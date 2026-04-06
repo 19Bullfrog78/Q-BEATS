@@ -9,7 +9,7 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
 {
 }
 
-void MetronomeDSP::setTempo(double bpm) {
+void MetronomeDSP::setBPM(double bpm) {
     _bpm = bpm;
 }
 

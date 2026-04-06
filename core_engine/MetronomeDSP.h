@@ -6,7 +6,7 @@ class MetronomeDSP {
 public:
     MetronomeDSP(double sampleRate, double bpm);
 
-    void setTempo(double bpm);
+    void setBPM(double bpm);
     void setAbsolutePositionForTesting(uint64_t pos);
     std::vector<uint32_t> processBuffer(uint32_t bufferSize);
 
