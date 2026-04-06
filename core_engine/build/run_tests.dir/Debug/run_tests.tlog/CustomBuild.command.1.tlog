@@ -1,0 +1,10 @@
+^C:\USERS\BULLFROG\DESKTOP\ANTIGRAVITY\Q-BEATS\CORE_ENGINE\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/core_engine -BC:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/core_engine/BUILD --check-stamp-file C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/core_engine/BUILD/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
