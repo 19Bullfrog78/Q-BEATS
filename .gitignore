@@ -1,5 +1,6 @@
 # Build directories
 build/
+core_engine/build/
 bin/
 obj/
 out/
@@ -26,6 +27,7 @@ CMakeSettings.json
 cmake_install.cmake
 Makefile
 install_manifest.txt
+*.cmake
 
 # OS files
 .DS_Store
