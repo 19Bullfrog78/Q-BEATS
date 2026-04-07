@@ -14,6 +14,7 @@ targets:
         excludes:
           - "CMakeLists.txt"
           - "tests/**"
+          - "test_main.cpp"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats
