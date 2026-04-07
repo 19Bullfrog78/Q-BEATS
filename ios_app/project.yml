@@ -1,34 +1,25 @@
 name: QBeats
 options:
   bundleIdPrefix: com.bullfrog
-  deploymentTarget:
-    iOS: "16.0"
-  xcodeVersion: "15"
-
-settings:
-  base:
-    SWIFT_VERSION: 5.9
-    CLANG_CXX_LANGUAGE_STANDARD: c++17
-    CLANG_CXX_LIBRARY: libc++
-    HEADER_SEARCH_PATHS: $(SRCROOT)/../core_engine
 
 targets:
   QBeats:
     type: application
     platform: iOS
+    deploymentTarget: "16.0"
     sources:
       - path: QBeats
-        includes:
-          - "**/*.swift"
-          - "**/*.h"
-          - "**/*.mm"
-          - "**/*.cpp"
       - path: ../core_engine
-        includes:
-          - "MetronomeDSP.h"
-          - "MetronomeDSP.cpp"
+        name: CoreEngine
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats
-        INFOPLIST_FILE: QBeats/Info.plist
-        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/QBeats/QBeats-Bridging-Header.h
+        CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+        CLANG_CXX_LIBRARY: "libc++"
+        HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/../core_engine"
+      configs:
+        Debug:
+          CODE_SIGNING_ALLOWED: NO
+          CODE_SIGNING_IDENTITY: ""
+          PROVISIONING_PROFILE_SPECIFIER: ""
