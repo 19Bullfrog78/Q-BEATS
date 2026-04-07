@@ -11,6 +11,9 @@ targets:
       - path: QBeats
       - path: ../core_engine
         name: CoreEngine
+        excludes:
+          - "CMakeLists.txt"
+          - "tests/**"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats
@@ -18,6 +21,7 @@ targets:
         CLANG_CXX_LIBRARY: "libc++"
         HEADER_SEARCH_PATHS:
           - "$(SRCROOT)/../core_engine"
+        SWIFT_OBJC_BRIDGING_HEADER: "QBeats/QBeats-Bridging-Header.h"
       configs:
         Debug:
           CODE_SIGNING_ALLOWED: NO
