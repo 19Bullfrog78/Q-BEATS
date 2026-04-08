@@ -1,4 +1,4 @@
-﻿import AVFoundation
+import AVFoundation
 
 class AudioEngine {
     private var metronomeHandle: MetronomeHandle?
@@ -32,7 +32,7 @@ class AudioEngine {
             scheduleNextBuffer()
             scheduleNextBuffer()
         } catch {
-            print("ðŸ”´ [AudioEngine] Start fallito: \(error)")
+            print("[AudioEngine] Start fallito: \(error)")
         }
     }
 
@@ -53,10 +53,10 @@ class AudioEngine {
         do {
             try session.setCategory(.playback, mode: .default, options: [])
             try session.setPreferredSampleRate(sampleRate)
-            try session.setPreferredIOBufferDuration(256.0 / sampleRate)
+            try session.setPreferredIOBufferDuration(512.0 / sampleRate)
             try session.setActive(true)
         } catch {
-            print("ðŸ”´ [AudioEngine] AVAudioSession setup fallito: \(error)")
+            print("[AudioEngine] AVAudioSession setup fallito: \(error)")
         }
     }
 
@@ -122,7 +122,16 @@ class AudioEngine {
         case .began:
             let wasRunning = isRunning; stop(); isRunning = wasRunning
         case .ended:
-            if isRunning { isRunning = false; start() }
+            let options = info[AVAudioSessionInterruptionOptionKey] as? UInt
+            let shouldResume = options.map {
+                AVAudioSession.InterruptionOptions(rawValue: $0).contains(.shouldResume)
+            } ?? false
+            if isRunning && shouldResume {
+                isRunning = false
+                try? AVAudioSession.sharedInstance().setActive(true,
+                    options: .notifyOthersOnDeactivation)
+                start()
+            }
         @unknown default: break
         }
     }
