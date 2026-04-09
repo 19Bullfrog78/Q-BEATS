@@ -126,45 +126,18 @@ class AudioEngine {
             return nil
         }
         do {
-            let file = try AVAudioFile(forReading: url)
-            let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+            let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+            let file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
             let frameCount = AVAudioFrameCount(file.length)
-
-            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else {
-                clickStatus = "nativeBuffer nil"
+            let ratio = sampleRate / file.fileFormat.sampleRate
+            let outFrames = AVAudioFrameCount(Double(frameCount) * ratio) + 1
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: outFrames) else {
+                clickStatus = "buffer alloc nil"
                 return nil
             }
-            try file.read(into: nativeBuffer)
-
-            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else {
-                clickStatus = "converter nil"
-                return nil
-            }
-            let outputCapacity = AVAudioFrameCount(Double(frameCount) * sampleRate / file.processingFormat.sampleRate) + 1
-            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else {
-                clickStatus = "outputBuffer nil"
-                return nil
-            }
-
-            var inputDone = false
-            let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
-                if inputDone {
-                    outStatus.pointee = .endOfStream
-                    return nil
-                }
-                inputDone = true
-                outStatus.pointee = .haveData
-                return nativeBuffer
-            }
-
-            var error: NSError?
-            converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
-            if let e = error {
-                clickStatus = "conversione fallita: \(e)"
-                return nil
-            }
-            clickStatus = "OK - cap:\(outputBuffer.frameCapacity) len:\(outputBuffer.frameLength)"
-            return outputBuffer
+            try file.read(into: buffer)
+            clickStatus = "OK direct read - frames:\(buffer.frameLength)"
+            return buffer
         } catch {
             clickStatus = "eccezione: \(error)"
             return nil
