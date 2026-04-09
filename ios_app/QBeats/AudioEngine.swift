@@ -8,6 +8,7 @@ class AudioEngine {
     private let bufferSize   : AVAudioFrameCount = 512
     private var clickBuffer  : AVAudioPCMBuffer?
     private var isRunning    = false
+    var clickStatus: String = "non caricato"
 
     init() {
         metronomeHandle = metronome_create(sampleRate, 120.0)
@@ -32,7 +33,7 @@ class AudioEngine {
             scheduleNextBuffer()
             scheduleNextBuffer()
         } catch {
-            print("[AudioEngine] Start fallito: \(error)")
+            clickStatus = "start fallito: \(error)"
         }
     }
 
@@ -56,7 +57,7 @@ class AudioEngine {
             try session.setPreferredIOBufferDuration(512.0 / sampleRate)
             try session.setActive(true)
         } catch {
-            print("[AudioEngine] AVAudioSession setup fallito: \(error)")
+            clickStatus = "session fallita: \(error)"
         }
     }
 
@@ -96,7 +97,7 @@ class AudioEngine {
 
     private func makeClickBuffer() -> AVAudioPCMBuffer? {
         guard let url = Bundle.main.url(forResource: "click", withExtension: "wav") else {
-            print("[AudioEngine] click.wav non trovato nel bundle")
+            clickStatus = "click.wav non trovato nel bundle"
             return nil
         }
         do {
@@ -104,12 +105,21 @@ class AudioEngine {
             let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
             let frameCount = AVAudioFrameCount(file.length)
 
-            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else { return nil }
+            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else {
+                clickStatus = "nativeBuffer nil"
+                return nil
+            }
             try file.read(into: nativeBuffer)
 
-            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else { return nil }
+            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else {
+                clickStatus = "converter nil"
+                return nil
+            }
             let outputCapacity = AVAudioFrameCount(Double(frameCount) * sampleRate / file.processingFormat.sampleRate) + 1
-            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else { return nil }
+            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else {
+                clickStatus = "outputBuffer nil"
+                return nil
+            }
 
             var inputDone = false
             let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
@@ -125,12 +135,13 @@ class AudioEngine {
             var error: NSError?
             converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
             if let e = error {
-                print("[AudioEngine] Conversione click.wav fallita: \(e)")
+                clickStatus = "conversione fallita: \(e)"
                 return nil
             }
+            clickStatus = "OK - \(outputBuffer.frameLength) frames"
             return outputBuffer
         } catch {
-            print("[AudioEngine] Caricamento click.wav fallito: \(error)")
+            clickStatus = "eccezione: \(error)"
             return nil
         }
     }
