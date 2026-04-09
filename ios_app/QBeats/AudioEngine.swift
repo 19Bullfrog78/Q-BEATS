@@ -1,4 +1,4 @@
-﻿import AVFoundation
+import AVFoundation
 
 class AudioEngine {
     private var metronomeHandle: MetronomeHandle?
@@ -128,6 +128,7 @@ class AudioEngine {
 
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
+        if bufferCount % 200 == 0 { print("QB-A: enter scheduleNext buf=\(bufferCount)") }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
@@ -136,16 +137,21 @@ class AudioEngine {
 
         var offsets = [UInt32](repeating: 0, count: 16)
         let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, 16)
+        if beatCount > 0 { print("QB-B: beats=\(beatCount) offset0=\(offsets[0]) buf=\(bufferCount) clickCount=\(clickSamples.count)") }
         bufferCount += 1
         beatTotal += Int(beatCount)
 
         if beatCount > 0 && !clickSamples.isEmpty {
+            print("QB-C: entered mix block buf=\(bufferCount)")
             let clickLen = clickSamples.count
             for i in 0..<Int(beatCount) {
                 let offset = Int(offsets[i])
                 guard offset < Int(bufferSize) else { continue }
                 let writeLen = min(clickLen, Int(bufferSize) - offset)
-                for j in 0..<writeLen { dst[offset + j] += clickSamples[j] }
+                for j in 0..<writeLen {
+                    if j == 0 { print("QB-D: writing offset=\(offset) writeLen=\(writeLen) sample0=\(clickSamples[0]) dstBefore=\(dst[offset])") }
+                    dst[offset + j] += clickSamples[j]
+                }
             }
         }
 
@@ -155,6 +161,7 @@ class AudioEngine {
             }
         }
 
+        if bufferCount % 200 == 0 { print("QB-E: scheduling frameLength=\(buffer.frameLength) dst[0]=\(dst[0]) dst[100]=\(dst[100])") }
         playerNode.scheduleBuffer(buffer) { [weak self] in
             DispatchQueue.global(qos: .userInteractive).async {
                 self?.scheduleNextBuffer()
