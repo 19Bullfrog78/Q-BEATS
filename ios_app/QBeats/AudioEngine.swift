@@ -13,6 +13,7 @@ class AudioEngine {
     var clickStatus: String = "non caricato"
     private var bufferCount: Int = 0
     private var beatTotal: Int = 0
+    private var clickPlayhead: Int = -1
 
     init() {
         metronomeHandle = metronome_create(sampleRate, 120.0)
@@ -32,6 +33,7 @@ class AudioEngine {
         do {
             bufferCount = 0
             beatTotal = 0
+            clickPlayhead = -1
             try engine.start()
             playerNode.play()
             isRunning = true
@@ -151,6 +153,21 @@ class AudioEngine {
         bufferCount += 1
         beatTotal += Int(beatCount)
 
+        // Fase 1: continua click in corso dal buffer precedente
+        if clickPlayhead >= 0 && !clickSamples.isEmpty {
+            let remaining = clickSamples.count - clickPlayhead
+            let writeLen = min(remaining, Int(bufferSize))
+            os_log("%{public}s", "QB-CONT: continuing playhead=\(clickPlayhead) writeLen=\(writeLen) buf=\(bufferCount)")
+            for j in 0..<writeLen {
+                dst[j] += clickSamples[clickPlayhead + j]
+            }
+            clickPlayhead += writeLen
+            if clickPlayhead >= clickSamples.count {
+                clickPlayhead = -1
+            }
+        }
+
+        // Fase 2: nuovi beat
         if beatCount > 0 && !clickSamples.isEmpty {
             os_log("%{public}s", "QB-C: entered mix block buf=\(bufferCount)")
             let clickLen = clickSamples.count
@@ -158,9 +175,14 @@ class AudioEngine {
                 let offset = Int(offsets[i])
                 guard offset < Int(bufferSize) else { continue }
                 let writeLen = min(clickLen, Int(bufferSize) - offset)
+                if i == 0 { os_log("%{public}s", "QB-D: writing offset=\(offset) writeLen=\(writeLen) sample0=\(clickSamples[0]) dstBefore=\(dst[offset])") }
                 for j in 0..<writeLen {
-                    if j == 0 { os_log("%{public}s", "QB-D: writing offset=\(offset) writeLen=\(writeLen) sample0=\(clickSamples[0]) dstBefore=\(dst[offset])") }
                     dst[offset + j] += clickSamples[j]
+                }
+                // Se il click non è entrato tutto nel buffer, salva il playhead
+                if writeLen < clickLen {
+                    clickPlayhead = writeLen
+                    os_log("%{public}s", "QB-SAVE: playhead saved at \(clickPlayhead) remaining=\(clickLen - writeLen)")
                 }
             }
         }
