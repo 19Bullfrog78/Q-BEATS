@@ -103,21 +103,32 @@ class AudioEngine {
             let file = try AVAudioFile(forReading: url)
             let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
             let frameCount = AVAudioFrameCount(file.length)
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else { return nil }
-            let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat)!
+
+            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else { return nil }
+            try file.read(into: nativeBuffer)
+
+            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else { return nil }
+            let outputCapacity = AVAudioFrameCount(Double(frameCount) * sampleRate / file.processingFormat.sampleRate) + 1
+            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else { return nil }
+
+            var inputDone = false
             let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
-                let inputBuffer = try? AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
-                try? file.read(into: inputBuffer!)
+                if inputDone {
+                    outStatus.pointee = .endOfStream
+                    return nil
+                }
+                inputDone = true
                 outStatus.pointee = .haveData
-                return inputBuffer
+                return nativeBuffer
             }
+
             var error: NSError?
-            converter.convert(to: buffer, error: &error, withInputFrom: inputBlock)
+            converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
             if let e = error {
                 print("[AudioEngine] Conversione click.wav fallita: \(e)")
                 return nil
             }
-            return buffer
+            return outputBuffer
         } catch {
             print("[AudioEngine] Caricamento click.wav fallito: \(error)")
             return nil
