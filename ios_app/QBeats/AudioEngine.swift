@@ -29,6 +29,7 @@ class AudioEngine {
             try engine.start()
             playerNode.play()
             isRunning = true
+            clickStatus = "engine started"
             scheduleNextBuffer()
             scheduleNextBuffer()
             scheduleNextBuffer()
