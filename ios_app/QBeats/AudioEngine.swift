@@ -1,5 +1,4 @@
 ﻿import AVFoundation
-import os.log
 
 class AudioEngine {
     private var metronomeHandle: MetronomeHandle?
@@ -7,7 +6,6 @@ class AudioEngine {
     private let playerNode   = AVAudioPlayerNode()
     private let sampleRate   : Double = 48000.0
     private let bufferSize   : AVAudioFrameCount = 512
-    private var clickBuffer  : AVAudioPCMBuffer?
     private var clickSamples : [Float] = []
     private var isRunning    = false
     var clickStatus: String = "non caricato"
@@ -19,7 +17,7 @@ class AudioEngine {
         metronomeHandle = metronome_create(sampleRate, 120.0)
         setupSession()
         setupGraph()
-        loadClickSamples()
+        generateClickSample()
         setupNotifications()
     }
 
@@ -79,77 +77,34 @@ class AudioEngine {
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
     }
 
-    private func loadClickSamples() {
-        guard let url = Bundle.main.url(forResource: "click", withExtension: "wav") else {
-            clickStatus = "click.wav non trovato nel bundle"
-            return
+    private func generateClickSample() {
+        let frequency: Float = 1000.0
+        let durationMs: Float = 40.0
+        let frameCount = Int(Float(sampleRate) * durationMs / 1000.0)
+        let decayRate: Float = 80.0
+
+        clickSamples = [Float](repeating: 0.0, count: frameCount)
+
+        for i in 0..<frameCount {
+            let t = Float(i) / Float(sampleRate)
+            let envelope = expf(-decayRate * t)
+            let sample = sinf(2.0 * Float.pi * frequency * t) * envelope
+            clickSamples[i] = sample * 0.8
         }
-        do {
-            let file = try AVAudioFile(forReading: url)
-            let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-            let frameCount = AVAudioFrameCount(file.length)
-            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else {
-                clickStatus = "nativeBuffer nil"
-                return
-            }
-            try file.read(into: nativeBuffer)
-            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else {
-                clickStatus = "converter nil"
-                return
-            }
-            let outputCapacity = AVAudioFrameCount(Double(frameCount) * sampleRate / file.processingFormat.sampleRate) + 1
-            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else {
-                clickStatus = "outputBuffer nil"
-                return
-            }
-            var inputDone = false
-            let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
-                if inputDone { outStatus.pointee = .endOfStream; return nil }
-                inputDone = true
-                outStatus.pointee = .haveData
-                return nativeBuffer
-            }
-            var error: NSError?
-            converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
-            if let e = error { clickStatus = "conversione fallita: \(e)"; return }
-            let frameLen = Int(outputBuffer.frameLength)
-            if frameLen == 0 { clickStatus = "frameLength zero dopo conversione"; return }
-            clickSamples = Array(repeating: 0, count: frameLen)
-            if let ptr = outputBuffer.floatChannelData?[0] {
-                for i in 0..<frameLen { clickSamples[i] = ptr[i] }
-                let maxVal = clickSamples.map { abs($0) }.max() ?? 0
-                let maxStr = String(format: "%.4f", maxVal)
-                clickStatus = "OK samples:\(frameLen) max:\(maxStr)"
-                if !clickSamples.isEmpty {
-                    let trimThreshold = maxVal * 0.01
-                    if let firstSignificant = clickSamples.firstIndex(where: { abs($0) > trimThreshold }) {
-                        if firstSignificant > 0 {
-                            clickSamples = Array(clickSamples[firstSignificant...])
-                            os_log("%{public}s", "QB-TRIM: rimossi \(firstSignificant) sample silenzio iniziale")
-                        }
-                    }
-                }
-            } else {
-                for i in 0..<frameLen { clickSamples[i] = 0.0 }
-                clickStatus = "floatChannelData nil - samples zero"
-            }
-        } catch {
-            clickStatus = "eccezione: \(error)"
-        }
+
+        clickStatus = "click sintetico OK: \(frameCount) samples"
     }
 
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
-        if bufferCount % 200 == 0 { os_log("%{public}s", "QB-A: enter scheduleNext buf=\(bufferCount)") }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
         guard let dst = buffer.floatChannelData?[0] else { return }
-        for i in 0..<Int(bufferSize) { dst[i] = 0.3 * sinf(2.0 * Float.pi * 440.0 * Float(i) / Float(sampleRate)) }
+        for i in 0..<Int(bufferSize) { dst[i] = 0.0 }
 
         var offsets = [UInt32](repeating: 0, count: 16)
         let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, 16)
-        if beatCount > 0 { os_log("%{public}s", "QB-B: beats=\(beatCount) offset0=\(offsets[0]) buf=\(bufferCount) clickCount=\(clickSamples.count)") }
         bufferCount += 1
         beatTotal += Int(beatCount)
 
@@ -157,7 +112,6 @@ class AudioEngine {
         if clickPlayhead >= 0 && !clickSamples.isEmpty {
             let remaining = clickSamples.count - clickPlayhead
             let writeLen = min(remaining, Int(bufferSize))
-            os_log("%{public}s", "QB-CONT: continuing playhead=\(clickPlayhead) writeLen=\(writeLen) buf=\(bufferCount)")
             for j in 0..<writeLen {
                 dst[j] += clickSamples[clickPlayhead + j]
             }
@@ -169,31 +123,21 @@ class AudioEngine {
 
         // Fase 2: nuovi beat
         if beatCount > 0 && !clickSamples.isEmpty {
-            os_log("%{public}s", "QB-C: entered mix block buf=\(bufferCount)")
             let clickLen = clickSamples.count
             for i in 0..<Int(beatCount) {
                 let offset = Int(offsets[i])
                 guard offset < Int(bufferSize) else { continue }
                 let writeLen = min(clickLen, Int(bufferSize) - offset)
-                if i == 0 { os_log("%{public}s", "QB-D: writing offset=\(offset) writeLen=\(writeLen) sample0=\(clickSamples[0]) dstBefore=\(dst[offset])") }
                 for j in 0..<writeLen {
                     dst[offset + j] += clickSamples[j]
                 }
                 // Se il click non è entrato tutto nel buffer, salva il playhead
                 if writeLen < clickLen {
                     clickPlayhead = writeLen
-                    os_log("%{public}s", "QB-SAVE: playhead saved at \(clickPlayhead) remaining=\(clickLen - writeLen)")
                 }
             }
         }
 
-        if bufferCount == 1 || bufferCount == 100 || bufferCount == 500 {
-            DispatchQueue.main.async {
-                self.clickStatus = "buf:\(self.bufferCount) beats:\(self.beatTotal) samples:\(self.clickSamples.count)"
-            }
-        }
-
-        if bufferCount % 200 == 0 { os_log("%{public}s", "QB-E: scheduling frameLength=\(buffer.frameLength) dst[0]=\(dst[0]) dst[100]=\(dst[100])") }
         playerNode.scheduleBuffer(buffer) { [weak self] in
             DispatchQueue.global(qos: .userInteractive).async {
                 self?.scheduleNextBuffer()
@@ -237,7 +181,7 @@ class AudioEngine {
     }
 
     @objc private func handleMediaReset(_ notification: Notification) {
-        stop(); setupSession(); setupGraph(); loadClickSamples()
+        stop(); setupSession(); setupGraph(); generateClickSample()
         if isRunning { isRunning = false; start() }
     }
 }
