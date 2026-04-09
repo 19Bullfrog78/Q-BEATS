@@ -138,7 +138,7 @@ class AudioEngine {
                 clickStatus = "conversione fallita: \(e)"
                 return nil
             }
-            clickStatus = "OK - \(outputBuffer.frameLength) frames"
+            clickStatus = "OK - cap:\(outputBuffer.frameCapacity) len:\(outputBuffer.frameLength)"
             return outputBuffer
         } catch {
             clickStatus = "eccezione: \(error)"
