@@ -1,4 +1,4 @@
-import AVFoundation
+﻿import AVFoundation
 import os.log
 
 class AudioEngine {
@@ -118,6 +118,15 @@ class AudioEngine {
                 let maxVal = clickSamples.map { abs($0) }.max() ?? 0
                 let maxStr = String(format: "%.4f", maxVal)
                 clickStatus = "OK samples:\(frameLen) max:\(maxStr)"
+                if !clickSamples.isEmpty {
+                    let trimThreshold = maxVal * 0.01
+                    if let firstSignificant = clickSamples.firstIndex(where: { abs($0) > trimThreshold }) {
+                        if firstSignificant > 0 {
+                            clickSamples = Array(clickSamples[firstSignificant...])
+                            os_log("%{public}s", "QB-TRIM: rimossi \(firstSignificant) sample silenzio iniziale")
+                        }
+                    }
+                }
             } else {
                 for i in 0..<frameLen { clickSamples[i] = 0.0 }
                 clickStatus = "floatChannelData nil - samples zero"
