@@ -9,6 +9,8 @@ class AudioEngine {
     private var clickBuffer  : AVAudioPCMBuffer?
     private var isRunning    = false
     var clickStatus: String = "non caricato"
+    private var bufferCount: Int = 0
+    private var beatTotal: Int = 0
 
     init() {
         metronomeHandle = metronome_create(sampleRate, 120.0)
@@ -26,10 +28,14 @@ class AudioEngine {
     func start() {
         guard !isRunning, let _ = metronomeHandle else { return }
         do {
+            bufferCount = 0
+            beatTotal = 0
             try engine.start()
             playerNode.play()
             isRunning = true
-            clickStatus = "engine started"
+            let actualSR = AVAudioSession.sharedInstance().sampleRate
+            let actualBuf = AVAudioSession.sharedInstance().ioBufferDuration * actualSR
+            clickStatus = "started SR:\(Int(actualSR)) buf:\(Int(actualBuf))"
             scheduleNextBuffer()
             scheduleNextBuffer()
             scheduleNextBuffer()
@@ -43,6 +49,7 @@ class AudioEngine {
         isRunning = false
         playerNode.stop()
         engine.stop()
+        clickStatus = "stopped buf:\(bufferCount) beats:\(beatTotal)"
     }
 
     func setBPM(_ bpm: Double) {
@@ -69,7 +76,12 @@ class AudioEngine {
     }
 
     private func scheduleNextBuffer() {
-        guard isRunning, let h = metronomeHandle, let click = clickBuffer else { return }
+        guard isRunning, let h = metronomeHandle, let click = clickBuffer else {
+            DispatchQueue.main.async {
+                self.clickStatus = "guard fail: running:\(self.isRunning) handle:\(self.metronomeHandle != nil) click:\(self.clickBuffer != nil)"
+            }
+            return
+        }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
@@ -78,14 +90,26 @@ class AudioEngine {
 
         var offsets = [UInt32](repeating: 0, count: 16)
         let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, 16)
+        bufferCount += 1
+        beatTotal += Int(beatCount)
 
-        if beatCount > 0, let src = click.floatChannelData?[0] {
+        if beatCount > 0 {
+            guard let src = click.floatChannelData?[0] else {
+                DispatchQueue.main.async { self.clickStatus = "src nil! beats:\(self.beatTotal)" }
+                return
+            }
             let clickLen = Int(click.frameLength)
             for i in 0..<Int(beatCount) {
                 let offset = Int(offsets[i])
                 guard offset < Int(bufferSize) else { continue }
                 let writeLen = min(clickLen, Int(bufferSize) - offset)
                 for j in 0..<writeLen { dst[offset + j] += src[j] }
+            }
+        }
+
+        if bufferCount == 1 || bufferCount == 100 || bufferCount == 500 {
+            DispatchQueue.main.async {
+                self.clickStatus = "buf:\(self.bufferCount) beats:\(self.beatTotal) clickLen:\(click.frameLength)"
             }
         }
 
