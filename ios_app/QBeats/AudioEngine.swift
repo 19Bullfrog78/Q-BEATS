@@ -132,7 +132,7 @@ class AudioEngine {
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
         guard let dst = buffer.floatChannelData?[0] else { return }
-        for i in 0..<Int(bufferSize) { dst[i] = 0.0 }
+        for i in 0..<Int(bufferSize) { dst[i] = 0.3 * sinf(2.0 * Float.pi * 440.0 * Float(i) / Float(sampleRate)) }
 
         var offsets = [UInt32](repeating: 0, count: 16)
         let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, 16)
