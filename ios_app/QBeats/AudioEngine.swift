@@ -114,7 +114,8 @@ class AudioEngine {
             clickSamples = Array(repeating: 0, count: frameLen)
             if let ptr = outputBuffer.floatChannelData?[0] {
                 for i in 0..<frameLen { clickSamples[i] = ptr[i] }
-                clickStatus = "OK samples:\(frameLen)"
+                let maxVal = clickSamples.map { abs($0) }.max() ?? 0
+                clickStatus = "OK samples:\(frameLen) max:\(String(format:\"%.4f\", maxVal))"
             } else {
                 for i in 0..<frameLen { clickSamples[i] = 0.0 }
                 clickStatus = "floatChannelData nil - samples zero"
