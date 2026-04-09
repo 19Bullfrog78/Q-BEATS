@@ -1,4 +1,4 @@
-import AVFoundation
+﻿import AVFoundation
 
 class AudioEngine {
     private var metronomeHandle: MetronomeHandle?
@@ -95,17 +95,33 @@ class AudioEngine {
     }
 
     private func makeClickBuffer() -> AVAudioPCMBuffer? {
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-        let frameCount = AVAudioFrameCount(sampleRate * 0.010)
-        guard let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
-        buf.frameLength = frameCount
-        guard let data = buf.floatChannelData?[0] else { return nil }
-        for i in 0..<Int(frameCount) {
-            let t        = Double(i) / sampleRate
-            let envelope = exp(-t / 0.005)
-            data[i]      = Float(sin(2.0 * .pi * 1000.0 * t) * envelope * 0.8)
+        guard let url = Bundle.main.url(forResource: "click", withExtension: "wav") else {
+            print("[AudioEngine] click.wav non trovato nel bundle")
+            return nil
         }
-        return buf
+        do {
+            let file = try AVAudioFile(forReading: url)
+            let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+            let frameCount = AVAudioFrameCount(file.length)
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else { return nil }
+            let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat)!
+            let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+                let inputBuffer = try? AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
+                try? file.read(into: inputBuffer!)
+                outStatus.pointee = .haveData
+                return inputBuffer
+            }
+            var error: NSError?
+            converter.convert(to: buffer, error: &error, withInputFrom: inputBlock)
+            if let e = error {
+                print("[AudioEngine] Conversione click.wav fallita: \(e)")
+                return nil
+            }
+            return buffer
+        } catch {
+            print("[AudioEngine] Caricamento click.wav fallito: \(error)")
+            return nil
+        }
     }
 
     private func setupNotifications() {
