@@ -7,6 +7,7 @@ class AudioEngine {
     private let sampleRate   : Double = 48000.0
     private let bufferSize   : AVAudioFrameCount = 512
     private var clickBuffer  : AVAudioPCMBuffer?
+    private var clickSamples : [Float] = []
     private var isRunning    = false
     var clickStatus: String = "non caricato"
     private var bufferCount: Int = 0
@@ -16,7 +17,7 @@ class AudioEngine {
         metronomeHandle = metronome_create(sampleRate, 120.0)
         setupSession()
         setupGraph()
-        clickBuffer = makeClickBuffer()
+        loadClickSamples()
         setupNotifications()
     }
 
@@ -35,7 +36,7 @@ class AudioEngine {
             isRunning = true
             let actualSR = AVAudioSession.sharedInstance().sampleRate
             let actualBuf = AVAudioSession.sharedInstance().ioBufferDuration * actualSR
-            clickStatus = "started SR:\(Int(actualSR)) buf:\(Int(actualBuf))"
+            clickStatus = "started SR:\(Int(actualSR)) buf:\(Int(actualBuf)) samples:\(clickSamples.count)"
             scheduleNextBuffer()
             scheduleNextBuffer()
             scheduleNextBuffer()
@@ -75,13 +76,56 @@ class AudioEngine {
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
     }
 
-    private func scheduleNextBuffer() {
-        guard isRunning, let h = metronomeHandle, let click = clickBuffer else {
-            DispatchQueue.main.async {
-                self.clickStatus = "guard fail: running:\(self.isRunning) handle:\(self.metronomeHandle != nil) click:\(self.clickBuffer != nil)"
-            }
+    private func loadClickSamples() {
+        guard let url = Bundle.main.url(forResource: "click", withExtension: "wav") else {
+            clickStatus = "click.wav non trovato nel bundle"
             return
         }
+        do {
+            let file = try AVAudioFile(forReading: url)
+            let targetFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+            let frameCount = AVAudioFrameCount(file.length)
+            guard let nativeBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else {
+                clickStatus = "nativeBuffer nil"
+                return
+            }
+            try file.read(into: nativeBuffer)
+            guard let converter = AVAudioConverter(from: file.processingFormat, to: targetFormat) else {
+                clickStatus = "converter nil"
+                return
+            }
+            let outputCapacity = AVAudioFrameCount(Double(frameCount) * sampleRate / file.processingFormat.sampleRate) + 1
+            guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else {
+                clickStatus = "outputBuffer nil"
+                return
+            }
+            var inputDone = false
+            let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+                if inputDone { outStatus.pointee = .endOfStream; return nil }
+                inputDone = true
+                outStatus.pointee = .haveData
+                return nativeBuffer
+            }
+            var error: NSError?
+            converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
+            if let e = error { clickStatus = "conversione fallita: \(e)"; return }
+            let frameLen = Int(outputBuffer.frameLength)
+            if frameLen == 0 { clickStatus = "frameLength zero dopo conversione"; return }
+            clickSamples = Array(repeating: 0, count: frameLen)
+            if let ptr = outputBuffer.floatChannelData?[0] {
+                for i in 0..<frameLen { clickSamples[i] = ptr[i] }
+                clickStatus = "OK samples:\(frameLen)"
+            } else {
+                for i in 0..<frameLen { clickSamples[i] = 0.0 }
+                clickStatus = "floatChannelData nil - samples zero"
+            }
+        } catch {
+            clickStatus = "eccezione: \(error)"
+        }
+    }
+
+    private func scheduleNextBuffer() {
+        guard isRunning, let h = metronomeHandle else { return }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
@@ -93,23 +137,19 @@ class AudioEngine {
         bufferCount += 1
         beatTotal += Int(beatCount)
 
-        if beatCount > 0 {
-            guard let src = click.floatChannelData?[0] else {
-                DispatchQueue.main.async { self.clickStatus = "src nil! beats:\(self.beatTotal)" }
-                return
-            }
-            let clickLen = Int(click.frameLength)
+        if beatCount > 0 && !clickSamples.isEmpty {
+            let clickLen = clickSamples.count
             for i in 0..<Int(beatCount) {
                 let offset = Int(offsets[i])
                 guard offset < Int(bufferSize) else { continue }
                 let writeLen = min(clickLen, Int(bufferSize) - offset)
-                for j in 0..<writeLen { dst[offset + j] += src[j] }
+                for j in 0..<writeLen { dst[offset + j] += clickSamples[j] }
             }
         }
 
         if bufferCount == 1 || bufferCount == 100 || bufferCount == 500 {
             DispatchQueue.main.async {
-                self.clickStatus = "buf:\(self.bufferCount) beats:\(self.beatTotal) clickLen:\(click.frameLength)"
+                self.clickStatus = "buf:\(self.bufferCount) beats:\(self.beatTotal) samples:\(self.clickSamples.count)"
             }
         }
 
@@ -117,30 +157,6 @@ class AudioEngine {
             DispatchQueue.global(qos: .userInteractive).async {
                 self?.scheduleNextBuffer()
             }
-        }
-    }
-
-    private func makeClickBuffer() -> AVAudioPCMBuffer? {
-        guard let url = Bundle.main.url(forResource: "click", withExtension: "wav") else {
-            clickStatus = "click.wav non trovato nel bundle"
-            return nil
-        }
-        do {
-            let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-            let file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
-            let frameCount = AVAudioFrameCount(file.length)
-            let ratio = sampleRate / file.fileFormat.sampleRate
-            let outFrames = AVAudioFrameCount(Double(frameCount) * ratio) + 1
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: outFrames) else {
-                clickStatus = "buffer alloc nil"
-                return nil
-            }
-            try file.read(into: buffer)
-            clickStatus = "OK direct read - frames:\(buffer.frameLength)"
-            return buffer
-        } catch {
-            clickStatus = "eccezione: \(error)"
-            return nil
         }
     }
 
@@ -180,7 +196,7 @@ class AudioEngine {
     }
 
     @objc private func handleMediaReset(_ notification: Notification) {
-        stop(); setupSession(); setupGraph(); clickBuffer = makeClickBuffer()
+        stop(); setupSession(); setupGraph(); loadClickSamples()
         if isRunning { isRunning = false; start() }
     }
 }
