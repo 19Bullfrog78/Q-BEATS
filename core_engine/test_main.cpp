@@ -10,9 +10,9 @@ void test_basic_beat() {
     assert(beats[0] == 0);
     
     bool foundSecondBeat = false;
-    for (int i = 1; i <= 93; ++i) { // buffer 1 to 93
+    for (int i = 1; i <= 93; ++i) { // processa buffer da indice 1 a 93 incluso (94 buffer totali contando il buffer 0 iniziale)
         beats = dsp.processBuffer(256);
-        if (i == 93) { // 23808 to 24063
+        if (i == 93) { // sample assoluti 23808-24063, beat atteso a offset 192 (sample 24000)
             assert(beats.size() == 1);
             assert(beats[0] == 192); // 23808 + 192 = 24000
             foundSecondBeat = true;
@@ -45,7 +45,7 @@ void test_long_term_drift() {
     MetronomeDSP dsp(48000.0, 121.0);
     uint32_t totalBeats = 0;
     uint32_t buffersProcessed = 0;
-    bool foundThousandth = false;
+    bool foundBeatIndex1000 = false;
     
     for (int i = 0; i < 100000; ++i) {
         auto beats = dsp.processBuffer(256);
@@ -56,14 +56,14 @@ void test_long_term_drift() {
             assert(currentAbsolute == expected);
             
             if (totalBeats == 1000) {
-                 foundThousandth = true;
+                 foundBeatIndex1000 = true;
             }
             totalBeats++;
         }
         buffersProcessed++;
-        if (foundThousandth) break;
+        if (foundBeatIndex1000) break;
     }
-    assert(foundThousandth);
+    assert(foundBeatIndex1000);
     std::cout << "test_long_term_drift passed" << std::endl;
 }
 
