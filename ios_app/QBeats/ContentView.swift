@@ -1,60 +1,67 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = MetronomeViewModel()
+    @StateObject private var audioEngine = AudioEngine()
+    @State private var bpm: Double = 120.0
+
+    private let timeSignatures: [(label: String, beats: UInt32)] = [
+        ("2/4", 2), ("3/4", 3), ("4/4", 4),
+        ("5/4", 5), ("6/8", 6), ("7/8", 7), ("12/8", 12)
+    ]
 
     var body: some View {
         VStack(spacing: 32) {
             Text("Q-Beats")
                 .font(.largeTitle)
                 .bold()
-            Text("\(Int(viewModel.bpm)) BPM")
+
+            Text("\(Int(bpm)) BPM")
                 .font(.system(size: 48, weight: .thin, design: .monospaced))
-            Text("Click: \(viewModel.clickStatus)")
+
+            Text("Click: \(audioEngine.clickStatus)")
                 .font(.caption)
                 .foregroundColor(.yellow)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Slider(value: $viewModel.bpm, in: 40...240, step: 1)
+
+            Slider(value: $bpm, in: 40...240, step: 1)
                 .padding(.horizontal, 32)
-                .onChange(of: viewModel.bpm) { newBPM in
-                    viewModel.updateBPM(newBPM)
+                .onChange(of: bpm) { newBPM in
+                    audioEngine.setBPM(newBPM)
                 }
-            Button(action: viewModel.togglePlayback) {
-                Text(viewModel.isPlaying ? "Stop" : "Start")
+
+            VStack(spacing: 8) {
+                Text("Time Signature")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Picker("Time Signature", selection: $audioEngine.beatsPerBar) {
+                    ForEach(timeSignatures, id: \.beats) { sig in
+                        Text(sig.label).tag(sig.beats)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 32)
+                .onChange(of: audioEngine.beatsPerBar) { newVal in
+                    audioEngine.setBeatsPerBar(newVal)
+                }
+            }
+
+            Button(action: {
+                if audioEngine.isPlaying {
+                    audioEngine.stop()
+                } else {
+                    audioEngine.start()
+                }
+            }) {
+                Text(audioEngine.isPlaying ? "Stop" : "Start")
                     .font(.title2)
                     .bold()
                     .frame(width: 120, height: 120)
-                    .background(viewModel.isPlaying ? Color.red : Color.green)
+                    .background(audioEngine.isPlaying ? Color.red : Color.green)
                     .foregroundColor(.white)
                     .clipShape(Circle())
             }
         }
         .padding()
-    }
-}
-
-class MetronomeViewModel: ObservableObject {
-    @Published var bpm: Double = 120.0
-    @Published var isPlaying: Bool = false
-    @Published var clickStatus: String = ""
-    private let audioEngine = AudioEngine()
-
-    init() {
-        clickStatus = audioEngine.clickStatus
-    }
-
-    func togglePlayback() {
-        if isPlaying {
-            audioEngine.stop()
-        } else {
-            audioEngine.start()
-        }
-        isPlaying.toggle()
-        clickStatus = audioEngine.clickStatus
-    }
-
-    func updateBPM(_ bpm: Double) {
-        audioEngine.setBPM(bpm)
     }
 }

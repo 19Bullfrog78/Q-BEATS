@@ -4,9 +4,19 @@ import AVFoundation
 // 1. isRunning, clickPlayhead, accentPlayhead, bufferCount, beatTotal,
 //    clickSamples, accentedClickSamples, offsets, accents
 //    sono accedute ESCLUSIVAMENTE su audioQueue.
-// 2. clickStatus è UI-only: ogni write avviene su audioQueue.async.
+// 2. clickStatus, isPlaying, beatsPerBar sono @Published:
+//    ogni write avviene su DispatchQueue.main.async.
+//    beatsPerBar è scritto dalla UI (main thread) tramite Picker;
+//    setBeatsPerBar() dispatcha solo su audioQueue, non riscrive @Published.
 
-class AudioEngine {
+class AudioEngine: ObservableObject {
+
+    // --- @Published — scritti SOLO su DispatchQueue.main ---
+    @Published var clickStatus : String  = "non caricato"
+    @Published var isPlaying   : Bool    = false
+    @Published var beatsPerBar : UInt32  = 4
+    // -------------------------------------------------------
+
     private var metronomeHandle      : MetronomeHandle?
     private let engine               = AVAudioEngine()
     private let playerNode           = AVAudioPlayerNode()
@@ -25,10 +35,6 @@ class AudioEngine {
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     // ------------------------------------------------
-
-    // --- UI only: write sempre su audioQueue.async ---
-    var clickStatus: String = "non caricato"
-    // -------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
 
@@ -66,12 +72,17 @@ class AudioEngine {
                 self.isRunning = true
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
-                self.clickStatus = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
+                let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
+                DispatchQueue.main.async {
+                    self.isPlaying   = true
+                    self.clickStatus = statusStr
+                }
                 self.scheduleNextBuffer()
                 self.scheduleNextBuffer()
                 self.scheduleNextBuffer()
             } catch {
-                self.clickStatus = "start fallito: \(error)"
+                let errStr = "start fallito: \(error)"
+                DispatchQueue.main.async { self.clickStatus = errStr }
             }
         }
     }
@@ -85,6 +96,9 @@ class AudioEngine {
         audioQueue.async { metronome_setBPM(h, bpm) }
     }
 
+    // Dispatcha il valore su audioQueue verso C++.
+    // Non tocca @Published beatsPerBar: è la UI che lo scrive
+    // tramite Picker su main thread prima di chiamare questo metodo.
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
         audioQueue.async { metronome_setBeatsPerBar(h, beatsPerBar) }
@@ -107,7 +121,11 @@ class AudioEngine {
         guard wasRunning else { return }
         playerNode.stop()
         engine.stop()
-        audioQueue.async { self.clickStatus = "stopped buf:\(bc) beats:\(bt)" }
+        let statusStr = "stopped buf:\(bc) beats:\(bt)"
+        DispatchQueue.main.async {
+            self.isPlaying   = false
+            self.clickStatus = statusStr
+        }
     }
 
     private func setupSession() {
@@ -118,7 +136,7 @@ class AudioEngine {
             try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
             try session.setActive(true)
         } catch {
-            audioQueue.async { self.clickStatus = "session fallita: \(error)" }
+            DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
         }
     }
 
@@ -128,14 +146,13 @@ class AudioEngine {
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
     }
 
-    // Genera un click sintetico alla frequenza indicata.
-    // Deve essere chiamata SOLO su audioQueue.
+    // Genera click sintetico alla frequenza indicata.
+    // Chiamare SOLO su audioQueue.
     private func generateClickSamples(frequency: Double) -> [Float] {
         let freq       : Float = Float(frequency)
         let durationMs : Float = 40.0
         let frameCount = Int(Float(sampleRate) * durationMs / 1000.0)
         let decayRate  : Float = 80.0
-
         var samples = [Float](repeating: 0.0, count: frameCount)
         for i in 0..<frameCount {
             let t        = Float(i) / Float(sampleRate)
@@ -145,7 +162,7 @@ class AudioEngine {
         return samples
     }
 
-    // Deve essere chiamata SOLO su audioQueue.
+    // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
@@ -158,7 +175,6 @@ class AudioEngine {
         bufferCount += 1
         beatTotal   += Int(beatCount)
 
-        // Fase 1: continua click normale in corso dal buffer precedente
         if clickPlayhead >= 0 && !clickSamples.isEmpty {
             let remaining = clickSamples.count - clickPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
@@ -167,7 +183,6 @@ class AudioEngine {
             if clickPlayhead >= clickSamples.count { clickPlayhead = -1 }
         }
 
-        // Fase 1b: continua click accentato in corso dal buffer precedente
         if accentPlayhead >= 0 && !accentedClickSamples.isEmpty {
             let remaining = accentedClickSamples.count - accentPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
@@ -176,14 +191,13 @@ class AudioEngine {
             if accentPlayhead >= accentedClickSamples.count { accentPlayhead = -1 }
         }
 
-        // Fase 2: nuovi beat in questo buffer
         if beatCount > 0 {
             for i in 0..<Int(beatCount) {
-                let offset    = Int(offsets[i])
-                let isAccent  = accents[i] != 0
-                let samples   = isAccent ? accentedClickSamples : clickSamples
+                let offset   = Int(offsets[i])
+                let isAccent = accents[i] != 0
+                let samples  = isAccent ? accentedClickSamples : clickSamples
                 guard offset < Int(bufferSize), !samples.isEmpty else { continue }
-                let writeLen  = min(samples.count, Int(bufferSize) - offset)
+                let writeLen = min(samples.count, Int(bufferSize) - offset)
                 for j in 0..<writeLen { dst[offset + j] += samples[j] }
                 if writeLen < samples.count {
                     if isAccent { accentPlayhead = writeLen }
@@ -225,7 +239,12 @@ class AudioEngine {
             guard wasRunning else { return }
             playerNode.stop()
             engine.stop()
-            audioQueue.async { self.clickStatus = "stopped buf:\(bc) beats:\(bt)" }
+            let statusStr = "stopped buf:\(bc) beats:\(bt)"
+            DispatchQueue.main.async {
+                self.isPlaying   = false
+                self.clickStatus = statusStr
+            }
+            // isRunning = true usato come flag "wasPlaying" per .ended
             audioQueue.sync { self.isRunning = true }
         case .ended:
             let options      = info[AVAudioSessionInterruptionOptionKey] as? UInt
