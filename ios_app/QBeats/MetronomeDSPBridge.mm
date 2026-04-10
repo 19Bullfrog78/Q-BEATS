@@ -1,7 +1,5 @@
-#import "MetronomeDSPBridge.h"
-#include "MetronomeDSP.h"
-#include <vector>
-#include <algorithm>
+#include "MetronomeDSPBridge.h"
+#include "../../core_engine/MetronomeDSP.h"
 
 MetronomeHandle metronome_create(double sampleRate, double bpm) {
     return new MetronomeDSP(sampleRate, bpm);
@@ -12,24 +10,25 @@ void metronome_destroy(MetronomeHandle handle) {
 }
 
 void metronome_setBPM(MetronomeHandle handle, double bpm) {
-    if (handle) static_cast<MetronomeDSP*>(handle)->setBPM(bpm);
+    static_cast<MetronomeDSP*>(handle)->setBPM(bpm);
 }
 
-void metronome_setAbsolutePositionForTesting(MetronomeHandle handle, uint64_t position) {
-    if (handle) static_cast<MetronomeDSP*>(handle)->setAbsolutePositionForTesting(position);
+void metronome_setBeatsPerBar(MetronomeHandle handle, uint32_t beatsPerBar) {
+    static_cast<MetronomeDSP*>(handle)->setBeatsPerBar(beatsPerBar);
 }
 
 uint32_t metronome_processBuffer(MetronomeHandle handle,
-                                 uint32_t bufferSize,
-                                 uint32_t* beatOffsetsOut,
-                                 uint32_t maxOffsets) {
-    if (!handle) return 0;
-    
-    std::vector<uint32_t> offsets = static_cast<MetronomeDSP*>(handle)->processBuffer(bufferSize);
-    
-    uint32_t count = (uint32_t)std::min(offsets.size(), (size_t)maxOffsets);
-    for (uint32_t i = 0; i < count; ++i) {
-        beatOffsetsOut[i] = offsets[i];
+                                  uint32_t        bufferSize,
+                                  uint32_t*       offsets,
+                                  uint8_t*        accents,
+                                  uint32_t        maxBeats) {
+    auto beats = static_cast<MetronomeDSP*>(handle)->processBuffer(bufferSize);
+    uint32_t count = 0;
+    for (const auto& ev : beats) {
+        if (count >= maxBeats) break;
+        offsets[count] = ev.offset;
+        accents[count] = ev.accent ? 1 : 0;
+        ++count;
     }
     return count;
 }

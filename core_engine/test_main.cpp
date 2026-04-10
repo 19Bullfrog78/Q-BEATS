@@ -7,14 +7,14 @@ void test_basic_beat() {
     MetronomeDSP dsp(48000.0, 120.0);
     auto beats = dsp.processBuffer(256);
     assert(beats.size() == 1);
-    assert(beats[0] == 0);
+    assert(beats[0].offset == 0);
     
     bool foundSecondBeat = false;
     for (int i = 1; i <= 93; ++i) { // processa buffer da indice 1 a 93 incluso (94 buffer totali contando il buffer 0 iniziale)
         beats = dsp.processBuffer(256);
         if (i == 93) { // sample assoluti 23808-24063, beat atteso a offset 192 (sample 24000)
             assert(beats.size() == 1);
-            assert(beats[0] == 192); // 23808 + 192 = 24000
+            assert(beats[0].offset == 192); // 23808 + 192 = 24000
             foundSecondBeat = true;
         } else {
             assert(beats.empty());
@@ -33,7 +33,7 @@ void test_buffer_wrap() {
         
         auto beats = dsp.processBuffer(bufferSize);
         assert(beats.size() == 1);
-        assert(beats[0] == bufferSize - 1);
+        assert(beats[0].offset == bufferSize - 1);
         
         auto nextBeats = dsp.processBuffer(bufferSize);
         assert(nextBeats.empty());
@@ -49,8 +49,8 @@ void test_long_term_drift() {
     
     for (int i = 0; i < 100000; ++i) {
         auto beats = dsp.processBuffer(256);
-        for (uint32_t offset : beats) {
-            uint64_t currentAbsolute = offset + (buffersProcessed * 256);
+        for (const auto& beat : beats) {
+            uint64_t currentAbsolute = beat.offset + (buffersProcessed * 256);
             uint64_t expected = (uint64_t)std::round((double)totalBeats * 48000.0 * 60.0 / 121.0);
             
             assert(currentAbsolute == expected);
