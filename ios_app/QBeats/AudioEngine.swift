@@ -1,4 +1,4 @@
-﻿import AVFoundation
+import AVFoundation
 
 class AudioEngine {
     private var metronomeHandle: MetronomeHandle?
@@ -12,6 +12,7 @@ class AudioEngine {
     private var bufferCount: Int = 0
     private var beatTotal: Int = 0
     private var clickPlayhead: Int = -1
+    private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
 
     init() {
         metronomeHandle = metronome_create(sampleRate, 120.0)
@@ -38,9 +39,9 @@ class AudioEngine {
             let actualSR = AVAudioSession.sharedInstance().sampleRate
             let actualBuf = AVAudioSession.sharedInstance().ioBufferDuration * actualSR
             clickStatus = "started SR:\(Int(actualSR)) buf:\(Int(actualBuf)) samples:\(clickSamples.count)"
-            scheduleNextBuffer()
-            scheduleNextBuffer()
-            scheduleNextBuffer()
+            audioQueue.async { self.scheduleNextBuffer() }
+            audioQueue.async { self.scheduleNextBuffer() }
+            audioQueue.async { self.scheduleNextBuffer() }
         } catch {
             clickStatus = "start fallito: \(error)"
         }
@@ -139,7 +140,7 @@ class AudioEngine {
         }
 
         playerNode.scheduleBuffer(buffer) { [weak self] in
-            DispatchQueue.global(qos: .userInteractive).async {
+            self?.audioQueue.async {
                 self?.scheduleNextBuffer()
             }
         }
