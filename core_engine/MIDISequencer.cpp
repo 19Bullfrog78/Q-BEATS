@@ -49,9 +49,10 @@ void MIDISequencer::clearPattern() {
 // Implementazioni rimosse: la logica usa solo _pattern e F8
 
 
-std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
-                                                          uint32_t bufferSize) {
-    std::vector<ScheduledEvent> result;
+void MIDISequencer::processBuffer(uint64_t startSample,
+                                   uint32_t bufferSize,
+                                   ScheduledEventBuffer& outBuffer) {
+    outBuffer.count = 0;
     uint64_t endSample = startSample + (uint64_t)bufferSize;
 
     // Sezione 1 rimossa: la logica usa esclusivamente _pattern e F8
@@ -82,19 +83,19 @@ std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
         uint64_t samplePos = _tickToSample(clockTick);
         if (samplePos >= endSample)   break;
         if (samplePos >= startSample) {
-            ScheduledEvent se;
+            if (outBuffer.count >= MAX_EVENTS_PER_BUFFER) continue; // Drop if full
+            ScheduledEvent& se = outBuffer.events[outBuffer.count++];
             se.samplePosition = samplePos;
             se.event.tick     = (uint32_t)clockTick;
             se.event.data[0]  = 0xF8;
             se.event.data[1]  = 0x00;
             se.event.data[2]  = 0x00;
             se.event.length   = 1;
-            result.push_back(se);
         }
     }
 
     if (_pattern.empty() || _patternLengthTicks == 0) {
-        return result;
+        return;
     }
 
     // --- Sezione 3: Pattern Loop ---
@@ -113,20 +114,18 @@ std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
                 break;
             }
             if (samplePos >= startSample) {
-                ScheduledEvent se;
+                if (outBuffer.count >= MAX_EVENTS_PER_BUFFER) continue; // Drop if full
+                ScheduledEvent& se = outBuffer.events[outBuffer.count++];
                 se.samplePosition = samplePos;
                 se.event = ev;
-                result.push_back(se);
             }
         }
     }
 
     // --- Sezione 4: ordinamento cronologico ---
-    std::sort(result.begin(), result.end(),
+    std::sort(outBuffer.events, outBuffer.events + outBuffer.count,
               [](const ScheduledEvent& a, const ScheduledEvent& b) {
                   return a.samplePosition < b.samplePosition;
               });
-
-    return result;
 }
 

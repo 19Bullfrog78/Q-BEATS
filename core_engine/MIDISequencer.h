@@ -4,6 +4,7 @@
 
 // Risoluzione inviolabile del progetto Q-BEATS
 static constexpr uint32_t SEQUENCER_PPQN = 960;
+static constexpr uint32_t MAX_EVENTS_PER_BUFFER = 256;
 
 // Evento MIDI grezzo
 struct MIDIEvent {
@@ -16,6 +17,12 @@ struct MIDIEvent {
 struct ScheduledEvent {
     uint64_t samplePosition; // sample assoluto in cui va inviato
     MIDIEvent event;
+};
+
+// Struttura pre-allocata RT-safe per l'output del buffer
+struct ScheduledEventBuffer {
+    ScheduledEvent events[MAX_EVENTS_PER_BUFFER];
+    uint32_t count = 0;
 };
 
 class MIDISequencer {
@@ -33,12 +40,10 @@ public:
     // Chiamare all'inizio di ogni buffer audio.
     // startSample = sample assoluto di inizio buffer.
     // bufferSize  = dimensione buffer in samples.
-    // Restituisce tutti gli eventi che cadono in
-    // [startSample, startSample + bufferSize).
-    // NOTA: usa std::vector — non usare nel render thread iOS.
-    // Il porting RT-safe è una fase separata.
-    std::vector<ScheduledEvent> processBuffer(uint64_t startSample,
-                                               uint32_t bufferSize);
+    // RT-safe: popola outBuffer fino a MAX_EVENTS_PER_BUFFER (eventi in eccesso vengono droppati).
+    void processBuffer(uint64_t startSample,
+                       uint32_t bufferSize,
+                       ScheduledEventBuffer& outBuffer);
 
 private:
     double   _bpm;

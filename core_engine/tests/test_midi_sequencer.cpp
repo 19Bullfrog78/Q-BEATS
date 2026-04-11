@@ -31,11 +31,13 @@ static void test_tick_to_sample_accuracy() {
     seq.setPattern(pEvents, 10000000);
 
     // Buffer unico abbastanza largo da contenere tutti gli eventi
-    auto result = seq.processBuffer(0, 200000);
+    ScheduledEventBuffer outBuffer;
+    seq.processBuffer(0, 200000, outBuffer);
 
     // Filtrare gli F8 — questo test verifica solo gli eventi NoteOn
     std::vector<ScheduledEvent> noteEvents;
-    for (auto& se : result) {
+    for (uint32_t i = 0; i < outBuffer.count; ++i) {
+        const auto& se = outBuffer.events[i];
         if (se.event.data[0] != 0xF8) noteEvents.push_back(se);
     }
 
@@ -64,8 +66,10 @@ static void test_process_buffer_windowing() {
 
     for (uint32_t buf = 0; buf < 400; ++buf) {
         uint64_t start = (uint64_t)buf * bufSize;
-        auto events = seq.processBuffer(start, bufSize);
-        for (auto& se : events) {
+        ScheduledEventBuffer outBuffer;
+        seq.processBuffer(start, bufSize, outBuffer);
+        for (uint32_t i = 0; i < outBuffer.count; ++i) {
+            auto& se = outBuffer.events[i];
             if (se.event.data[0] == 0x90) found0 = true;
             if (se.event.data[0] == 0x91) found1 = true;
             // Verifica che il sample cada nella finestra corretta
@@ -107,8 +111,10 @@ static void test_long_term_drift() {
     uint64_t totalSamples = expected + bufSize;
 
     for (uint64_t start = 0; start < totalSamples; start += bufSize) {
-        auto events = seq.processBuffer(start, bufSize);
-        for (auto& se : events) {
+        ScheduledEventBuffer outBuffer;
+        seq.processBuffer(start, bufSize, outBuffer);
+        for (uint32_t i = 0; i < outBuffer.count; ++i) {
+            auto& se = outBuffer.events[i];
             // Ignorare F8 — questo test verifica solo l'evento sentinel 0xFF
             if (se.event.data[0] == 0xF8) continue;
             assert(se.samplePosition == expected &&
@@ -149,27 +155,28 @@ static void test_clock_f8_generation() {
     noteOn.length  = 3;
     seq.setPattern({noteOn}, 100000);
 
-    auto result = seq.processBuffer(0, 3000);
+    ScheduledEventBuffer outBuffer;
+    seq.processBuffer(0, 3000, outBuffer);
 
     // Deve contenere esattamente 5 eventi: 4 F8 + 1 NoteOn
-    assert(result.size() == 5 && "Attesi 5 eventi: 4 F8 + 1 NoteOn");
+    assert(outBuffer.count == 5 && "Attesi 5 eventi: 4 F8 + 1 NoteOn");
 
     // Verifica ordine cronologico stretto
-    for (size_t i = 1; i < result.size(); ++i) {
-        assert(result[i].samplePosition >= result[i-1].samplePosition &&
+    for (uint32_t i = 1; i < outBuffer.count; ++i) {
+        assert(outBuffer.events[i].samplePosition >= outBuffer.events[i-1].samplePosition &&
                "Ordine cronologico violato");
     }
 
     // Verifica valori sample e byte attesi
-    assert(result[0].samplePosition == 0    && result[0].event.data[0] == 0xF8 &&
+    assert(outBuffer.events[0].samplePosition == 0    && outBuffer.events[0].event.data[0] == 0xF8 &&
            "F8 atteso a sample 0");
-    assert(result[1].samplePosition == 991  && result[1].event.data[0] == 0xF8 &&
+    assert(outBuffer.events[1].samplePosition == 991  && outBuffer.events[1].event.data[0] == 0xF8 &&
            "F8 atteso a sample 991");
-    assert(result[2].samplePosition == 1487 && result[2].event.data[0] == 0x90 &&
+    assert(outBuffer.events[2].samplePosition == 1487 && outBuffer.events[2].event.data[0] == 0x90 &&
            "NoteOn atteso a sample 1487");
-    assert(result[3].samplePosition == 1983 && result[3].event.data[0] == 0xF8 &&
+    assert(outBuffer.events[3].samplePosition == 1983 && outBuffer.events[3].event.data[0] == 0xF8 &&
            "F8 atteso a sample 1983");
-    assert(result[4].samplePosition == 2975 && result[4].event.data[0] == 0xF8 &&
+    assert(outBuffer.events[4].samplePosition == 2975 && outBuffer.events[4].event.data[0] == 0xF8 &&
            "F8 atteso a sample 2975");
 
     printf("PASS test_clock_f8_generation\n");
@@ -195,8 +202,10 @@ static void test_pattern_basic_loop() {
 
     for (uint32_t buf = 0; buf < 300; ++buf) {
         uint64_t start = (uint64_t)buf * bufSize;
-        auto result = seq.processBuffer(start, bufSize);
-        for(auto& se : result) {
+        ScheduledEventBuffer outBuffer;
+        seq.processBuffer(start, bufSize, outBuffer);
+        for(uint32_t i = 0; i < outBuffer.count; ++i) {
+            auto& se = outBuffer.events[i];
             if(se.event.data[0] == 0x90) {
                 allNoteEvents.push_back(se);
             }
@@ -228,10 +237,12 @@ static void test_pattern_boundary_wrap() {
     std::vector<MIDIEvent> pattern = { evFirst, evLast };
     seq.setPattern(pattern, 960);
     
-    auto result = seq.processBuffer(23900, 200);
+    ScheduledEventBuffer outBuffer;
+    seq.processBuffer(23900, 200, outBuffer);
 
     std::vector<ScheduledEvent> filtered;
-    for(auto& se : result) {
+    for(uint32_t i = 0; i < outBuffer.count; ++i) {
+        auto& se = outBuffer.events[i];
         if(se.event.data[0] != 0xF8) filtered.push_back(se);
     }
 
@@ -251,10 +262,12 @@ static void test_pattern_longer_than_buffer() {
     std::vector<MIDIEvent> pattern = { ev };
     seq.setPattern(pattern, 32);
 
-    auto result = seq.processBuffer(0, 25600);
+    ScheduledEventBuffer outBuffer;
+    seq.processBuffer(0, 25600, outBuffer);
 
     std::vector<ScheduledEvent> filtered;
-    for(auto& se : result) {
+    for(uint32_t i = 0; i < outBuffer.count; ++i) {
+        auto& se = outBuffer.events[i];
         if(se.event.data[0] != 0xF8) filtered.push_back(se);
     }
 
@@ -281,9 +294,11 @@ static void test_pattern_long_term_drift() {
     
     for (uint32_t i = 0; i < 10000; ++i) {
         uint64_t start = (uint64_t)i * bufSize;
-        auto result = seq.processBuffer(start, bufSize);
+        ScheduledEventBuffer outBuffer;
+        seq.processBuffer(start, bufSize, outBuffer);
         
-        for (auto& se : result) {
+        for (uint32_t j = 0; j < outBuffer.count; ++j) {
+            auto& se = outBuffer.events[j];
             if (se.event.data[0] == 0xF8) continue;
             
             uint64_t expected = (uint64_t)(loopCount * 960.0 * samplesPerTick);
