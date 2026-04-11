@@ -140,8 +140,7 @@ bool midi_engine_start(void* handle)
     // 4. Crea porta output fisica
     MIDIOutputPortCreate(engine->client, CFSTR("Q-BEATS Out"), &engine->_outputPort);
 
-    // 5. Prima scan sincrona
-    dispatch_sync(engine->_scanQueue, ^{ engine->scanAndConnectPhysicalPorts(); });
+    // La prima scan sincrona viene posticipata dopo la creazione delle virtual ports
 
     result = MIDISourceCreate(engine->client, CFSTR("Q-BEATS Virtual Out"), &engine->virtualSource);
     if (result != noErr) {
@@ -158,6 +157,9 @@ bool midi_engine_start(void* handle)
         engine->client = 0;
         return false;
     }
+
+    // 5. Prima scan sincrona (DOPO aver creato virtualSource e virtualDest)
+    dispatch_sync(engine->_scanQueue, ^{ engine->scanAndConnectPhysicalPorts(); });
 
 #if DEBUG
     os_log(OS_LOG_DEFAULT, "Q-BEATS MIDIEngine started successfully");
@@ -205,11 +207,12 @@ void midi_engine_send(void* handle,
     double   offsetNanos  = ((double)sampleOffset / engine->sampleRate) * 1.0e9;
     uint64_t targetMach   = engine->lastMachTime + nanosToMach((uint64_t)offsetNanos, engine->timebaseInfo);
 
-    MIDIPacketList pktList;
-    MIDIPacket* pkt = MIDIPacketListInit(&pktList);
-    pkt = MIDIPacketListAdd(&pktList, sizeof(pktList), pkt, targetMach, length, packet);
+    Byte virtualPacketBuffer[256];
+    MIDIPacketList* pktList = (MIDIPacketList*)virtualPacketBuffer;
+    MIDIPacket* pkt = MIDIPacketListInit(pktList);
+    pkt = MIDIPacketListAdd(pktList, sizeof(virtualPacketBuffer), pkt, targetMach, length, packet);
     if (pkt) {
-        MIDIReceived(engine->virtualSource, &pktList);
+        MIDIReceived(engine->virtualSource, pktList);
     }
 
     // Lettura con acquire ordering — OBBLIGATORIO
