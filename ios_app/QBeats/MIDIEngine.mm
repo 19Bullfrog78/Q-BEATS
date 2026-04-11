@@ -1,6 +1,6 @@
 #import "MIDIEngineBridge.h"
 #import <CoreMIDI/CoreMIDI.h>
-#import <CoreAudio/CoreAudioTypes.h>
+#include <mach/mach_time.h>
 #import <os/log.h>
 #import <string.h>
 
@@ -15,7 +15,14 @@ struct MIDIEngine {
 
     void (*receiveCallback)(const uint8_t*, uint32_t, void*);
     void* receiveUserData;
+
+    mach_timebase_info_data_t timebaseInfo;
 };
+
+static inline uint64_t nanosToMach(uint64_t nanos,
+                                    const mach_timebase_info_data_t& tb) {
+    return ((__uint128_t)nanos * tb.denom) / tb.numer;
+}
 
 static void midiReceiveProc(const MIDIPacketList* pktList,
                             void* readProcRefCon,
@@ -36,6 +43,7 @@ void* midi_engine_create(void)
     MIDIEngine* engine = new MIDIEngine();
     memset(engine, 0, sizeof(MIDIEngine));
     engine->sampleRate = 48000.0;
+    mach_timebase_info(&engine->timebaseInfo);
     return engine;
 }
 
@@ -111,7 +119,7 @@ void midi_engine_send(void* handle,
 
     uint64_t sampleOffset = samplePosition - engine->lastSamplePosition;
     double   offsetNanos  = ((double)sampleOffset / engine->sampleRate) * 1.0e9;
-    uint64_t targetMach   = engine->lastMachTime + AudioConvertNanosToHostTime((uint64_t)offsetNanos);
+    uint64_t targetMach   = engine->lastMachTime + nanosToMach((uint64_t)offsetNanos, engine->timebaseInfo);
 
     MIDIPacketList pktList;
     MIDIPacket* pkt = MIDIPacketListInit(&pktList);
