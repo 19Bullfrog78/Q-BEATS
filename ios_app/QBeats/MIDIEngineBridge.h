@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "../../core_engine/MIDITypes.h"
 
 typedef void* MIDIEngineHandle;
 
@@ -24,6 +25,13 @@ void  midi_engine_send(void* handle,
                         const uint8_t* packet,
                         uint32_t       length,
                         uint64_t       samplePosition);
+
+void  midi_engine_set_bpm(void* handle, double bpm);
+void  midi_engine_set_pattern(void* handle,
+                               const MIDIEvent* events,
+                               uint32_t count,
+                               uint32_t lengthTicks);
+void  midi_engine_process(void* handle, uint32_t bufferSize);
 
 void  midi_engine_set_receive_callback(void* handle,
                                         void (*callback)(const uint8_t* data,

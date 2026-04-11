@@ -35,6 +35,7 @@ class AudioEngine: ObservableObject {
     private var accentPlayhead       : Int = -1
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
+    private var currentBPM           : Double = 120.0
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -73,7 +74,22 @@ class AudioEngine: ObservableObject {
                 try self.engine.start()
                 self.playerNode.play()
                 self.isRunning = true
-                if let mh = self.midiEngineHandle { midi_engine_start(mh) }
+                if let mh = self.midiEngineHandle { 
+                    midi_engine_set_bpm(mh, self.currentBPM)
+                    
+                    // Pattern di test: Rullante su 2° e 4° movimento di un 4/4
+                    var ev1 = MIDIEvent(tick: 960, data: (0x90, 38, 100), length: 3)
+                    var ev2 = MIDIEvent(tick: 2880, data: (0x90, 38, 100), length: 3)
+                    var pattern = [ev1, ev2]
+                    
+                    pattern.withUnsafeBufferPointer { ptr in
+                        if let base = ptr.baseAddress {
+                            midi_engine_set_pattern(mh, base, UInt32(pattern.count), 3840)
+                        }
+                    }
+                    
+                    midi_engine_start(mh) 
+                }
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
@@ -97,7 +113,13 @@ class AudioEngine: ObservableObject {
 
     func setBPM(_ bpm: Double) {
         guard let h = metronomeHandle else { return }
-        audioQueue.async { metronome_setBPM(h, bpm) }
+        audioQueue.async {
+            self.currentBPM = bpm
+            metronome_setBPM(h, bpm)
+            if let mh = self.midiEngineHandle {
+                midi_engine_set_bpm(mh, bpm)
+            }
+        }
     }
 
     // Dispatcha il valore su audioQueue verso C++.
@@ -175,6 +197,7 @@ class AudioEngine: ObservableObject {
                 UInt64(bufferCount) * UInt64(bufferSize),
                 mach_absolute_time(),
                 sampleRate)
+            midi_engine_process(mh, UInt32(bufferSize))
         }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }

@@ -5,6 +5,7 @@
 #import <string.h>
 #include <atomic>
 #include <vector>
+#include "../../core_engine/MIDISequencer.h"
 
 struct MIDIEngine {
     MIDIClientRef   client;
@@ -17,6 +18,10 @@ struct MIDIEngine {
     std::vector<MIDIEndpointRef> _connectedSources;
     std::atomic<int> _physicalDestCount;
     dispatch_queue_t _scanQueue; // seriale, label "com.qbeats.midi.scan"
+
+    MIDISequencer sequencer;
+    ScheduledEventBuffer outBuffer;
+    Byte _processPacketBuffer[4 + MAX_EVENTS_PER_BUFFER * 16];
 
     uint64_t lastSamplePosition;
     uint64_t lastMachTime;
@@ -40,6 +45,7 @@ struct MIDIEngine {
         receiveCallback = nullptr;
         receiveUserData = nullptr;
         _scanQueue = nullptr;
+        memset(_processPacketBuffer, 0, sizeof(_processPacketBuffer));
     }
 
     void scanAndConnectPhysicalPorts() {
@@ -192,7 +198,10 @@ void midi_engine_sync_clock(void* handle,
     if (!engine) return;
     engine->lastSamplePosition = currentSamplePosition;
     engine->lastMachTime = machTimeAtBufferStart;
-    engine->sampleRate = sampleRate;
+    if (engine->sampleRate != sampleRate) {
+        engine->sampleRate = sampleRate;
+        engine->sequencer.setSampleRate(sampleRate);
+    }
 }
 
 void midi_engine_send(void* handle,
@@ -241,4 +250,51 @@ void midi_engine_set_receive_callback(void* handle,
     if (!engine) return;
     engine->receiveCallback = callback;
     engine->receiveUserData = userData;
+}
+
+void midi_engine_set_bpm(void* handle, double bpm) {
+    if (!handle) return;
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    engine->sequencer.setBPM(bpm);
+}
+
+void midi_engine_set_pattern(void* handle, const MIDIEvent* events, uint32_t count, uint32_t lengthTicks) {
+    if (!handle) return;
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    std::vector<MIDIEvent> patternEvents;
+    patternEvents.reserve(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        patternEvents.push_back(events[i]);
+    }
+    engine->sequencer.setPattern(patternEvents, lengthTicks);
+}
+
+void midi_engine_process(void* handle, uint32_t bufferSize) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine || !engine->virtualSource || bufferSize == 0) return;
+
+    engine->sequencer.processBuffer(engine->lastSamplePosition, bufferSize, engine->outBuffer);
+    if (engine->outBuffer.count == 0) return;
+
+    MIDIPacketList* pktList = (MIDIPacketList*)engine->_processPacketBuffer;
+    MIDIPacket* pkt = MIDIPacketListInit(pktList);
+
+    for (uint32_t i = 0; i < engine->outBuffer.count; ++i) {
+        ScheduledEvent& se = engine->outBuffer.events[i];
+        
+        uint64_t sampleOffset = se.samplePosition - engine->lastSamplePosition;
+        double offsetNanos = ((double)sampleOffset / engine->sampleRate) * 1.0e9;
+        uint64_t targetMach = engine->lastMachTime + nanosToMach((uint64_t)offsetNanos, engine->timebaseInfo);
+
+        pkt = MIDIPacketListAdd(pktList, sizeof(engine->_processPacketBuffer), pkt, targetMach, se.event.length, se.event.data);
+        if (!pkt) break; 
+    }
+
+    MIDIReceived(engine->virtualSource, pktList);
+
+    int count = engine->_physicalDestCount.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i) {
+        MIDIEndpointRef dest = engine->_physicalDestinations[i];
+        MIDISend(engine->_outputPort, dest, pktList);
+    }
 }
