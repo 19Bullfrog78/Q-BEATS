@@ -9,3 +9,12 @@ add_executable(run_tests
     MIDISequencer.cpp
     test_main.cpp
 )
+
+add_executable(test_midi_sequencer
+    tests/test_midi_sequencer.cpp
+    MIDISequencer.cpp
+)
+target_include_directories(test_midi_sequencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+enable_testing()
+add_test(NAME test_midi_sequencer COMMAND test_midi_sequencer)
