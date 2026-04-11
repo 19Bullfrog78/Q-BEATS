@@ -3,11 +3,20 @@
 #include <mach/mach_time.h>
 #import <os/log.h>
 #import <string.h>
+#include <atomic>
+#include <vector>
 
 struct MIDIEngine {
     MIDIClientRef   client;
     MIDIEndpointRef virtualSource;   // Out
     MIDIEndpointRef virtualDest;     // In
+    
+    MIDIPortRef _inputPort;
+    MIDIPortRef _outputPort;
+    MIDIEndpointRef _physicalDestinations[32];
+    std::vector<MIDIEndpointRef> _connectedSources;
+    std::atomic<int> _physicalDestCount;
+    dispatch_queue_t _scanQueue; // seriale, label "com.qbeats.midi.scan"
 
     uint64_t lastSamplePosition;
     uint64_t lastMachTime;
@@ -17,6 +26,51 @@ struct MIDIEngine {
     void* receiveUserData;
 
     mach_timebase_info_data_t timebaseInfo;
+
+    MIDIEngine() {
+        client = 0;
+        virtualSource = 0;
+        virtualDest = 0;
+        _inputPort = 0;
+        _outputPort = 0;
+        _physicalDestCount.store(0);
+        lastSamplePosition = 0;
+        lastMachTime = 0;
+        sampleRate = 48000.0;
+        receiveCallback = nullptr;
+        receiveUserData = nullptr;
+        _scanQueue = nullptr;
+    }
+
+    void scanAndConnectPhysicalPorts() {
+        // Step 1 — disconnetti tutte le sorgenti fisiche attualmente connesse
+        for (MIDIEndpointRef ep : _connectedSources) {
+            MIDIPortDisconnectSource(_inputPort, ep);
+        }
+        _connectedSources.clear();
+
+        // Step 2 — enumera e connetti sorgenti fisiche
+        int srcCount = (int)MIDIGetNumberOfSources();
+        for (int i = 0; i < srcCount; i++) {
+            MIDIEndpointRef ep = MIDIGetSource(i);
+            if (ep == virtualSource) continue; // evita echo loop
+            MIDIPortConnectSource(_inputPort, ep, NULL);
+            _connectedSources.push_back(ep);
+        }
+
+        // Step 3 — enumera destinazioni fisiche
+        int newDestCount = 0;
+        int destTotal = (int)MIDIGetNumberOfDestinations();
+        for (int i = 0; i < destTotal; i++) {
+            MIDIEndpointRef ep = MIDIGetDestination(i);
+            if (ep == virtualDest) continue; // evita echo loop
+            if (newDestCount >= 32) continue;          // bounds check — mai overflow
+            _physicalDestinations[newDestCount++] = ep;
+        }
+
+        // Step 4 — aggiorna contatore con release ordering
+        _physicalDestCount.store(newDestCount, std::memory_order_release);
+    }
 };
 
 static inline uint64_t nanosToMach(uint64_t nanos,
@@ -38,11 +92,22 @@ static void midiReceiveProc(const MIDIPacketList* pktList,
     }
 }
 
+static void midiNotifyProc(const MIDINotification *message, void *refCon) {
+    MIDIEngine* engine = (MIDIEngine*)refCon;
+    switch (message->messageID) {
+        case kMIDIMsgSetupChanged:
+            dispatch_async(engine->_scanQueue, ^{
+                engine->scanAndConnectPhysicalPorts();
+            });
+            break;
+        default:
+            break;
+    }
+}
+
 void* midi_engine_create(void)
 {
     MIDIEngine* engine = new MIDIEngine();
-    memset(engine, 0, sizeof(MIDIEngine));
-    engine->sampleRate = 48000.0;
     mach_timebase_info(&engine->timebaseInfo);
     return engine;
 }
@@ -62,8 +127,21 @@ bool midi_engine_start(void* handle)
 
     OSStatus result;
 
-    result = MIDIClientCreate(CFSTR("Q-BEATS"), nullptr, nullptr, &engine->client);
+    // 1. Crea _scanQueue
+    engine->_scanQueue = dispatch_queue_create("com.qbeats.midi.scan", DISPATCH_QUEUE_SERIAL);
+
+    // 2. Registra il client e la notify
+    result = MIDIClientCreate(CFSTR("Q-BEATS"), midiNotifyProc, engine, &engine->client);
     if (result != noErr) return false;
+
+    // 3. Crea porta input fisica
+    MIDIInputPortCreate(engine->client, CFSTR("Q-BEATS In"), midiReceiveProc, engine, &engine->_inputPort);
+
+    // 4. Crea porta output fisica
+    MIDIOutputPortCreate(engine->client, CFSTR("Q-BEATS Out"), &engine->_outputPort);
+
+    // 5. Prima scan sincrona
+    dispatch_sync(engine->_scanQueue, ^{ engine->scanAndConnectPhysicalPorts(); });
 
     result = MIDISourceCreate(engine->client, CFSTR("Q-BEATS Virtual Out"), &engine->virtualSource);
     if (result != noErr) {
@@ -92,9 +170,15 @@ void midi_engine_stop(void* handle)
     MIDIEngine* engine = (MIDIEngine*)handle;
     if (!engine) return;
 
+    if (engine->_scanQueue) {
+        dispatch_sync(engine->_scanQueue, ^{}); // Drena la coda per evitare accessi a porte eliminate
+    }
+
     if (engine->virtualDest)   { MIDIEndpointDispose(engine->virtualDest);   engine->virtualDest = 0; }
     if (engine->virtualSource) { MIDIEndpointDispose(engine->virtualSource); engine->virtualSource = 0; }
-    if (engine->client)        { MIDIClientDispose(engine->client); engine->client = 0; }
+    if (engine->_inputPort)    { MIDIPortDispose(engine->_inputPort);        engine->_inputPort = 0; }
+    if (engine->_outputPort)   { MIDIPortDispose(engine->_outputPort);       engine->_outputPort = 0; }
+    if (engine->client)        { MIDIClientDispose(engine->client);          engine->client = 0; }
 }
 
 void midi_engine_sync_clock(void* handle,
@@ -126,6 +210,23 @@ void midi_engine_send(void* handle,
     pkt = MIDIPacketListAdd(&pktList, sizeof(pktList), pkt, targetMach, length, packet);
     if (pkt) {
         MIDIReceived(engine->virtualSource, &pktList);
+    }
+
+    // Lettura con acquire ordering — OBBLIGATORIO
+    int count = engine->_physicalDestCount.load(std::memory_order_acquire);
+
+    if (count > 0) {
+        // Buffer stack sicuro per MIDIPacketList
+        Byte packetBuffer[256];
+        MIDIPacketList* physPacketList = (MIDIPacketList*)packetBuffer;
+        MIDIPacket* physPkt = MIDIPacketListInit(physPacketList);
+        physPkt = MIDIPacketListAdd(physPacketList, sizeof(packetBuffer),
+                                   physPkt, targetMach, length, packet);
+
+        // Invia a tutte le destinazioni fisiche
+        for (int i = 0; i < count; i++) {
+            MIDISend(engine->_outputPort, engine->_physicalDestinations[i], physPacketList);
+        }
     }
 }
 
