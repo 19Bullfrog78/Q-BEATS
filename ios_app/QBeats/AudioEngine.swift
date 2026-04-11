@@ -18,6 +18,7 @@ class AudioEngine: ObservableObject {
     // -------------------------------------------------------
 
     private var metronomeHandle      : MetronomeHandle?
+    private var midiEngineHandle     : MIDIEngineHandle? = nil
     private let engine               = AVAudioEngine()
     private let playerNode           = AVAudioPlayerNode()
     private let sampleRate           : Double = 48000.0
@@ -42,6 +43,7 @@ class AudioEngine: ObservableObject {
         offsets = [UInt32](repeating: 0, count: maxBeats)
         accents = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
+        midiEngineHandle = midi_engine_create()
         setupSession()
         setupGraph()
         audioQueue.sync {
@@ -54,6 +56,7 @@ class AudioEngine: ObservableObject {
     deinit {
         stopSync()
         if let h = metronomeHandle { metronome_destroy(h) }
+        if let mh = midiEngineHandle { midi_engine_destroy(mh) }
     }
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
@@ -70,6 +73,7 @@ class AudioEngine: ObservableObject {
                 try self.engine.start()
                 self.playerNode.play()
                 self.isRunning = true
+                if let mh = self.midiEngineHandle { midi_engine_start(mh) }
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
@@ -121,6 +125,7 @@ class AudioEngine: ObservableObject {
         guard wasRunning else { return }
         playerNode.stop()
         engine.stop()
+        if let mh = midiEngineHandle { midi_engine_stop(mh) }
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false
@@ -165,6 +170,12 @@ class AudioEngine: ObservableObject {
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
+        if let mh = midiEngineHandle {
+            midi_engine_sync_clock(mh,
+                UInt64(bufferCount) * UInt64(bufferSize),
+                mach_absolute_time(),
+                sampleRate)
+        }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
