@@ -27,9 +27,8 @@ public:
     void setSampleRate(double sampleRate);
 
     // Gestione eventi — non chiamare dal render thread
-    void addEvent(const MIDIEvent& event);  // inserisce in ordine di tick
-    void clearEvents();
-    void reset();  // riporta il playhead a tick 0
+    void setPattern(const std::vector<MIDIEvent>& events, uint32_t patternLengthTicks);
+    void clearPattern();
 
     // Chiamare all'inizio di ogni buffer audio.
     // startSample = sample assoluto di inizio buffer.
@@ -45,12 +44,12 @@ private:
     double   _bpm;
     double   _sampleRate;
     double   _samplesPerTick; // (sampleRate * 60.0) / (bpm * SEQUENCER_PPQN)
-    uint32_t _nextEventIndex; // indice prossimo evento non ancora schedulato
 
-    std::vector<MIDIEvent> _events; // sempre ordinati per tick crescente
+    std::vector<MIDIEvent> _pattern;
+    uint32_t _patternLengthTicks = 0;
 
     void     _recalculate();  // ricalcola _samplesPerTick dopo cambio bpm/sr
-    uint64_t _tickToSample(uint32_t tick) const;
+    uint64_t _tickToSample(uint64_t absoluteTick) const;
     // Formula: (uint64_t)((double)tick * _samplesPerTick)
     // Usa double precision per evitare drift accumulato.
 };

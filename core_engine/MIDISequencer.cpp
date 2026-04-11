@@ -6,7 +6,6 @@ MIDISequencer::MIDISequencer()
     : _bpm(120.0)
     , _sampleRate(48000.0)
     , _samplesPerTick(0.0)
-    , _nextEventIndex(0)
 {
     _recalculate();
 }
@@ -27,49 +26,36 @@ void MIDISequencer::_recalculate() {
     _samplesPerTick = (_sampleRate * 60.0) / (_bpm * (double)SEQUENCER_PPQN);
 }
 
-uint64_t MIDISequencer::_tickToSample(uint32_t tick) const {
+uint64_t MIDISequencer::_tickToSample(uint64_t absoluteTick) const {
     // Conversione diretta tick→sample via floating point.
     // NON accumulare sample per sample: calcolare sempre da tick assoluto
     // per evitare drift cumulativo.
-    return (uint64_t)((double)tick * _samplesPerTick);
+    return (uint64_t)((double)absoluteTick * _samplesPerTick);
 }
 
-void MIDISequencer::addEvent(const MIDIEvent& event) {
-    // Inserisce mantenendo ordine per tick crescente
-    auto it = std::lower_bound(
-        _events.begin(), _events.end(), event,
-        [](const MIDIEvent& a, const MIDIEvent& b) {
-            return a.tick < b.tick;
-        });
-    _events.insert(it, event);
+void MIDISequencer::setPattern(const std::vector<MIDIEvent>& events, uint32_t patternLengthTicks) {
+    _pattern = events;
+    std::sort(_pattern.begin(), _pattern.end(), [](const MIDIEvent& a, const MIDIEvent& b) {
+        return a.tick < b.tick;
+    });
+    _patternLengthTicks = patternLengthTicks;
 }
 
-void MIDISequencer::clearEvents() {
-    _events.clear();
-    _nextEventIndex = 0;
+void MIDISequencer::clearPattern() {
+    _pattern.clear();
+    _patternLengthTicks = 0;
 }
 
-void MIDISequencer::reset() {
-    _nextEventIndex = 0;
-}
+// Implementazioni rimosse: la logica usa solo _pattern e F8
+
 
 std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
                                                           uint32_t bufferSize) {
     std::vector<ScheduledEvent> result;
     uint64_t endSample = startSample + (uint64_t)bufferSize;
 
-    // --- Sezione 1: eventi MIDI normali da _events ---
-    for (uint32_t i = _nextEventIndex; i < (uint32_t)_events.size(); ++i) {
-        uint64_t samplePos = _tickToSample(_events[i].tick);
-        if (samplePos >= endSample) break;
-        if (samplePos >= startSample) {
-            ScheduledEvent se;
-            se.samplePosition = samplePos;
-            se.event          = _events[i];
-            result.push_back(se);
-            _nextEventIndex   = i + 1;
-        }
-    }
+    // Sezione 1 rimossa: la logica usa esclusivamente _pattern e F8
+
 
     // --- Sezione 2: MIDI Clock F8 (24 per quarter note = ogni 40 tick) ---
     //
@@ -93,7 +79,7 @@ std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
     uint64_t firstClockTick = ((startTick + 39) / 40) * 40;
 
     for (uint64_t clockTick = firstClockTick; ; clockTick += 40) {
-        uint64_t samplePos = _tickToSample((uint32_t)clockTick);
+        uint64_t samplePos = _tickToSample(clockTick);
         if (samplePos >= endSample)   break;
         if (samplePos >= startSample) {
             ScheduledEvent se;
@@ -107,10 +93,35 @@ std::vector<ScheduledEvent> MIDISequencer::processBuffer(uint64_t startSample,
         }
     }
 
-    // --- Sezione 3: ordinamento cronologico ---
-    // Interfoliazione F8 + eventi normali per samplePosition crescente.
-    // NOTA: std::sort è accettabile qui — processBuffer NON viene chiamato
-    // dal render thread iOS. Il porting RT-safe è una fase separata.
+    if (_pattern.empty() || _patternLengthTicks == 0) {
+        return result;
+    }
+
+    // --- Sezione 3: Pattern Loop ---
+    uint64_t cycleStartGlobalTick = (startTick / _patternLengthTicks) * _patternLengthTicks;
+
+    for (uint64_t globalCycle = cycleStartGlobalTick; ; globalCycle += _patternLengthTicks) {
+        if (_tickToSample(globalCycle) >= endSample) {
+            break;
+        }
+
+        for (const auto& ev : _pattern) {
+            uint64_t absoluteTick = globalCycle + ev.tick;
+            uint64_t samplePos = _tickToSample(absoluteTick);
+
+            if (samplePos >= endSample) {
+                break;
+            }
+            if (samplePos >= startSample) {
+                ScheduledEvent se;
+                se.samplePosition = samplePos;
+                se.event = ev;
+                result.push_back(se);
+            }
+        }
+    }
+
+    // --- Sezione 4: ordinamento cronologico ---
     std::sort(result.begin(), result.end(),
               [](const ScheduledEvent& a, const ScheduledEvent& b) {
                   return a.samplePosition < b.samplePosition;

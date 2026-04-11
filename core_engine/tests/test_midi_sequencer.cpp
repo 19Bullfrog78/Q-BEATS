@@ -18,6 +18,7 @@ static void test_tick_to_sample_accuracy() {
         { 3840, 95206 },
     };
 
+    std::vector<MIDIEvent> pEvents;
     for (auto& c : cases) {
         MIDIEvent ev;
         ev.tick    = c.tick;
@@ -25,8 +26,9 @@ static void test_tick_to_sample_accuracy() {
         ev.data[1] = 60;
         ev.data[2] = 100;
         ev.length  = 3;
-        seq.addEvent(ev);
+        pEvents.push_back(ev);
     }
+    seq.setPattern(pEvents, 10000000);
 
     // Buffer unico abbastanza largo da contenere tutti gli eventi
     auto result = seq.processBuffer(0, 200000);
@@ -54,8 +56,7 @@ static void test_process_buffer_windowing() {
 
     MIDIEvent ev0; ev0.tick = 0;   ev0.data[0] = 0x90; ev0.length = 1;
     MIDIEvent ev1; ev1.tick = 960; ev1.data[0] = 0x91; ev1.length = 1;
-    seq.addEvent(ev0);
-    seq.addEvent(ev1);
+    seq.setPattern({ev0, ev1}, 1000000);
 
     uint32_t bufSize = 256;
     bool found0 = false;
@@ -91,7 +92,7 @@ static void test_long_term_drift() {
     ev.tick    = lastTick;
     ev.data[0] = 0xFF;
     ev.length  = 1;
-    seq.addEvent(ev);
+    seq.setPattern({ev}, lastTick + 1000000);
 
     // Calcolo analitico atteso:
     //   samplesPerTick = (48000 * 60) / (121 * 960) = 24.793388429...
@@ -146,7 +147,7 @@ static void test_clock_f8_generation() {
     noteOn.data[1] = 60;
     noteOn.data[2] = 100;
     noteOn.length  = 3;
-    seq.addEvent(noteOn);
+    seq.setPattern({noteOn}, 100000);
 
     auto result = seq.processBuffer(0, 3000);
 
@@ -174,11 +175,137 @@ static void test_clock_f8_generation() {
     printf("PASS test_clock_f8_generation\n");
 }
 
+static void test_pattern_basic_loop() {
+    MIDISequencer seq;
+    seq.setBPM(121.0);
+    seq.setSampleRate(48000.0);
+
+    MIDIEvent noteOn;
+    noteOn.tick = 0;
+    noteOn.data[0] = 0x90;
+    noteOn.data[1] = 60;
+    noteOn.data[2] = 100;
+    noteOn.length = 3;
+
+    std::vector<MIDIEvent> pattern = { noteOn };
+    seq.setPattern(pattern, 960);
+
+    uint32_t bufSize = 256;
+    std::vector<ScheduledEvent> allNoteEvents;
+
+    for (uint32_t buf = 0; buf < 300; ++buf) {
+        uint64_t start = (uint64_t)buf * bufSize;
+        auto result = seq.processBuffer(start, bufSize);
+        for(auto& se : result) {
+            if(se.event.data[0] == 0x90) {
+                allNoteEvents.push_back(se);
+            }
+        }
+    }
+
+    assert(allNoteEvents.size() >= 3 && "Aspettati almeno 3 cicli");
+    
+    double samplesPerTick = (48000.0 * 60.0) / (121.0 * 960.0);
+    uint64_t expect0 = 0;
+    uint64_t expect1 = (uint64_t)(960.0 * samplesPerTick);
+    uint64_t expect2 = (uint64_t)(1920.0 * samplesPerTick);
+
+    assert(allNoteEvents[0].samplePosition == expect0);
+    assert(allNoteEvents[1].samplePosition == expect1);
+    assert(allNoteEvents[2].samplePosition == expect2);
+
+    printf("PASS test_pattern_basic_loop\n");
+}
+
+static void test_pattern_boundary_wrap() {
+    MIDISequencer seq;
+    seq.setBPM(120.0); 
+    seq.setSampleRate(48000.0);
+
+    MIDIEvent evFirst; evFirst.tick = 0; evFirst.data[0] = 0x91; evFirst.length = 1;
+    MIDIEvent evLast; evLast.tick = 959; evLast.data[0] = 0x90; evLast.length = 1;
+
+    std::vector<MIDIEvent> pattern = { evFirst, evLast };
+    seq.setPattern(pattern, 960);
+    
+    auto result = seq.processBuffer(23900, 200);
+
+    std::vector<ScheduledEvent> filtered;
+    for(auto& se : result) {
+        if(se.event.data[0] != 0xF8) filtered.push_back(se);
+    }
+
+    assert(filtered.size() == 2 && "Attesi eventi boundary");
+    assert(filtered[0].event.data[0] == 0x90 && filtered[0].samplePosition == 23975);
+    assert(filtered[1].event.data[0] == 0x91 && filtered[1].samplePosition == 24000);
+
+    printf("PASS test_pattern_boundary_wrap\n");
+}
+
+static void test_pattern_longer_than_buffer() {
+    MIDISequencer seq;
+    seq.setBPM(30.0);
+    seq.setSampleRate(48000.0);
+
+    MIDIEvent ev; ev.tick = 0; ev.data[0] = 0x90; ev.length = 1;
+    std::vector<MIDIEvent> pattern = { ev };
+    seq.setPattern(pattern, 32);
+
+    auto result = seq.processBuffer(0, 25600);
+
+    std::vector<ScheduledEvent> filtered;
+    for(auto& se : result) {
+        if(se.event.data[0] != 0xF8) filtered.push_back(se);
+    }
+
+    assert(filtered.size() == 8 && "Attesi 8 loop nel buffer");
+    for(size_t i = 0; i < 8; ++i) {
+        assert(filtered[i].samplePosition == i * 3200);   
+    }
+
+    printf("PASS test_pattern_longer_than_buffer\n");
+}
+
+static void test_pattern_long_term_drift() {
+    MIDISequencer seq;
+    seq.setBPM(121.0);
+    seq.setSampleRate(48000.0);
+
+    MIDIEvent ev; ev.tick = 0; ev.data[0] = 0x90; ev.length = 1;
+    seq.setPattern({ev}, 960);
+
+    double samplesPerTick = (48000.0 * 60.0) / (121.0 * 960.0);
+    
+    uint32_t bufSize = 256;
+    int loopCount = 0;
+    
+    for (uint32_t i = 0; i < 10000; ++i) {
+        uint64_t start = (uint64_t)i * bufSize;
+        auto result = seq.processBuffer(start, bufSize);
+        
+        for (auto& se : result) {
+            if (se.event.data[0] == 0xF8) continue;
+            
+            uint64_t expected = (uint64_t)(loopCount * 960.0 * samplesPerTick);
+            assert(se.samplePosition == expected && "Drift cumulato rilevato nel pattern!");
+            loopCount++;
+        }
+    }
+    
+    assert(loopCount > 0 && "Nessun loop trovato");
+
+    printf("PASS test_pattern_long_term_drift\n");
+}
+
 int main() {
     test_tick_to_sample_accuracy();
     test_process_buffer_windowing();
     test_long_term_drift();
     test_clock_f8_generation();
+    test_pattern_basic_loop();
+    test_pattern_boundary_wrap();
+    test_pattern_longer_than_buffer();
+    test_pattern_long_term_drift();
     printf("\nALL TESTS PASSED\n");
     return 0;
 }
