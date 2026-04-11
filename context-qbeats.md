@@ -79,7 +79,7 @@ Q-BEATS/
 - **Build #5 su device** — silenzio pulito + click secco ogni mezzo secondo a 120 BPM ✅
 
 ### Prossimo step immediato
-**Task #3 — Time signature configurabile**
+**Task #5 — MIDI Output / CoreMIDI Stage**
 
 ### Backlog follow-up
 
@@ -87,8 +87,8 @@ Q-BEATS/
 |---|---|---|---|
 | 1 | 🔴 Alta | ✅ Completato | Race condition `start()` — serializzato via DispatchQueue seriale |
 | Data race | 🔴 Alta | ✅ Completato | `isRunning`/`clickPlayhead`/`clickSamples`/`clickStatus`/`setBPM` — tutti su `audioQueue`. `AudioEngine.swift` rev. 2 |
-| 3 | 🟡 Media | 🔲 Aperto | Time signature configurabile — `beatsPerBar` in C++, accento beat 1 (1500 Hz), normale (1000 Hz). Firme: 2/4 3/4 4/4 6/8 5/4 7/8 12/8 |
-| 4 | 🟡 Media | 🔲 Aperto | Fix `clickStatus` SwiftUI — `AudioEngine` non è `ObservableObject`, aggiornamenti runtime persi. Fix: Combine o `@Published`. (clickStatus è ora thread-safe ma non reattiva alla UI) |
+| 3 | 🟡 Media | ✅ Completato | Time signature configurabile — `beatsPerBar` in C++, accento beat 1 (1500 Hz), normale (1000 Hz). |
+| 4 | 🟡 Media | ✅ Completato | Fix `clickStatus` SwiftUI — `AudioEngine` è ora `ObservableObject`, UI reattiva. |
 | 2 | 🟢 Bassa | 🔲 Aperto | Playhead singolo → array playhead (polimetria, suddivisioni future) |
 
 ### Orizzonte
@@ -193,4 +193,4 @@ AG scrive e testa il codice in locale
 
 ---
 
-*Ultimo aggiornamento: 10/04/2026*
+*Ultimo aggiornamento: 11/04/2026*
