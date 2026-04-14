@@ -36,6 +36,7 @@ class AudioEngine: ObservableObject {
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var currentBPM           : Double = 120.0
+    private(set) var midiDebugViewModel: MIDIDebugViewModel? = nil
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -45,6 +46,17 @@ class AudioEngine: ObservableObject {
         accents = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
+        
+        if let mh = midiEngineHandle {
+            let debugVM = MIDIDebugViewModel()
+            self.midiDebugViewModel = debugVM
+            midi_engine_set_receive_callback(mh, { data, length, userData in
+                guard let data = data, length > 0, let userData = userData else { return }
+                let vm    = Unmanaged<MIDIDebugViewModel>.fromOpaque(userData).takeUnretainedValue()
+                let bytes = Array(UnsafeBufferPointer(start: data, count: Int(length)))
+                DispatchQueue.main.async { vm.append(data: bytes) }
+            }, Unmanaged.passUnretained(debugVM).toOpaque())
+        }
         setupSession()
         setupGraph()
         audioQueue.sync {
@@ -76,18 +88,6 @@ class AudioEngine: ObservableObject {
                 self.isRunning = true
                 if let mh = self.midiEngineHandle { 
                     midi_engine_set_bpm(mh, self.currentBPM)
-                    
-                    // Pattern di test: Rullante su 2° e 4° movimento di un 4/4
-                    var ev1 = MIDIEvent(tick: 960, data: (0x90, 38, 100), length: 3)
-                    var ev2 = MIDIEvent(tick: 2880, data: (0x90, 38, 100), length: 3)
-                    var pattern = [ev1, ev2]
-                    
-                    pattern.withUnsafeBufferPointer { ptr in
-                        if let base = ptr.baseAddress {
-                            midi_engine_set_pattern(mh, base, UInt32(pattern.count), 3840)
-                        }
-                    }
-                    
                     midi_engine_start(mh) 
                 }
                 let sr  = AVAudioSession.sharedInstance().sampleRate
