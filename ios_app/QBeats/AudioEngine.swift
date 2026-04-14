@@ -122,6 +122,20 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    func enableNetworkMIDI(sessionName: String = "Q-BEATS") {
+        audioQueue.async { [weak self] in
+            guard let self = self, let h = self.midiEngineHandle else { return }
+            midi_engine_network_enable(h, sessionName)
+        }
+    }
+
+    func disableNetworkMIDI() {
+        audioQueue.async { [weak self] in
+            guard let self = self, let h = self.midiEngineHandle else { return }
+            midi_engine_network_disable(h)
+        }
+    }
+
     // Dispatcha il valore su audioQueue verso C++.
     // Non tocca @Published beatsPerBar: è la UI che lo scrive
     // tramite Picker su main thread prima di chiamare questo metodo.

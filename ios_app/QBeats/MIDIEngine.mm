@@ -1,5 +1,6 @@
 #import "MIDIEngineBridge.h"
 #import <CoreMIDI/CoreMIDI.h>
+#import <CoreMIDI/MIDINetworkSession.h>
 #include <mach/mach_time.h>
 #import <os/log.h>
 #import <string.h>
@@ -31,6 +32,9 @@ struct MIDIEngine {
     void* receiveUserData;
 
     mach_timebase_info_data_t timebaseInfo;
+
+    // Network MIDI
+    id _networkSessionObserver; // NSNotification observer — retain in ARC-free context via __bridge_retained
 
     MIDIEngine() {
         client = 0;
@@ -170,6 +174,16 @@ bool midi_engine_start(void* handle)
 #if DEBUG
     os_log(OS_LOG_DEFAULT, "Q-BEATS MIDIEngine started successfully");
 #endif
+
+    // Network MIDI — observer per cambio stato sessione
+    engine->_networkSessionObserver = [[NSNotificationCenter defaultCenter]
+        addObserverForName:MIDINetworkSessionDidChangeNotification
+        object:nil
+        queue:[NSOperationQueue mainQueue]
+        usingBlock:^(NSNotification* note) {
+            os_log(OS_LOG_DEFAULT, "Q-BEATS MIDINetworkSession state changed");
+        }];
+
     return true;
 }
 
@@ -187,6 +201,20 @@ void midi_engine_stop(void* handle)
     if (engine->_inputPort)    { MIDIPortDispose(engine->_inputPort);        engine->_inputPort = 0; }
     if (engine->_outputPort)   { MIDIPortDispose(engine->_outputPort);       engine->_outputPort = 0; }
     if (engine->client)        { MIDIClientDispose(engine->client);          engine->client = 0; }
+
+    // Cleanup connectedSources
+    if (engine->_inputPort) {
+        for (MIDIEndpointRef ep : engine->_connectedSources) {
+            MIDIPortDisconnectSource(engine->_inputPort, ep);
+        }
+        engine->_connectedSources.clear();
+    }
+
+    // Rimuovi observer Network MIDI
+    if (engine->_networkSessionObserver) {
+        [[NSNotificationCenter defaultCenter] removeObserver:engine->_networkSessionObserver];
+        engine->_networkSessionObserver = nil;
+    }
 }
 
 void midi_engine_sync_clock(void* handle,
@@ -297,4 +325,22 @@ void midi_engine_process(void* handle, uint32_t bufferSize) {
         MIDIEndpointRef dest = engine->_physicalDestinations[i];
         MIDISend(engine->_outputPort, dest, pktList);
     }
+}
+
+void midi_engine_network_enable(void* handle, const char* sessionName) {
+    if (!handle) return;
+    MIDINetworkSession* session = [MIDINetworkSession defaultSession];
+    if (sessionName && strlen(sessionName) > 0) {
+        session.localName = [NSString stringWithUTF8String:sessionName];
+    }
+    session.connectionMode = MIDINetworkConnectionPolicy_Anyone;
+    session.enabled = YES;
+    os_log(OS_LOG_DEFAULT, "Q-BEATS Network MIDI enabled: %{public}s", sessionName ? sessionName : "Q-BEATS");
+}
+
+void midi_engine_network_disable(void* handle) {
+    if (!handle) return;
+    MIDINetworkSession* session = [MIDINetworkSession defaultSession];
+    session.enabled = NO;
+    os_log(OS_LOG_DEFAULT, "Q-BEATS Network MIDI disabled");
 }

@@ -38,6 +38,9 @@ void  midi_engine_set_receive_callback(void* handle,
                                                          uint32_t       length,
                                                          void*          userData),
                                         void* userData);
+// Network MIDI — chiamare fuori dal render thread
+void  midi_engine_network_enable(void* handle, const char* sessionName);
+void  midi_engine_network_disable(void* handle);
 
 #ifdef __cplusplus
 }
