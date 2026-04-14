@@ -13,6 +13,8 @@ targets:
         NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
         NSBonjourServices:
           - "_apple-midi._tcp."
+        UIBackgroundModes:
+          - audio
     sources:
       - path: QBeats
       - path: ../core_engine
