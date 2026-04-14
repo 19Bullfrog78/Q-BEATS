@@ -89,6 +89,12 @@ class AudioEngine: ObservableObject {
                 if let mh = self.midiEngineHandle { 
                     midi_engine_set_bpm(mh, self.currentBPM)
                     midi_engine_start(mh) 
+                    
+                    if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
+                        midi_engine_network_enable(mh)
+                    } else {
+                        midi_engine_network_disable(mh)
+                    }
                 }
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
@@ -122,10 +128,10 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    func enableNetworkMIDI(sessionName: String = "Q-BEATS") {
+    func enableNetworkMIDI() {
         audioQueue.async { [weak self] in
             guard let self = self, let h = self.midiEngineHandle else { return }
-            midi_engine_network_enable(h, sessionName)
+            midi_engine_network_enable(h)
         }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var audioEngine = AudioEngine()
     @State private var bpm: Double = 120.0
+    @State private var showSettings = false
 
     private let timeSignatures: [(label: String, beats: UInt32)] = [
         ("2/4", 2), ("3/4", 3), ("4/4", 4),
@@ -10,8 +11,9 @@ struct ContentView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 32) {
-            Text("Q-Beats")
+        NavigationStack {
+            VStack(spacing: 32) {
+                Text("Q-Beats")
                 .font(.largeTitle)
                 .bold()
 
@@ -68,6 +70,17 @@ struct ContentView: View {
             }
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showSettings = true }) {
+                    Image(systemName: "gear")
+                }
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(audioEngine: audioEngine)
+        }
+        }
     }
 }
 
