@@ -192,29 +192,29 @@ void midi_engine_stop(void* handle)
     MIDIEngine* engine = (MIDIEngine*)handle;
     if (!engine) return;
 
+    // 1. Drena la scan queue — deve essere la prima operazione assoluta
     if (engine->_scanQueue) {
-        dispatch_sync(engine->_scanQueue, ^{}); // Drena la coda per evitare accessi a porte eliminate
+        dispatch_sync(engine->_scanQueue, ^{});
     }
 
+    // 2. Disconnetti sorgenti fisiche PRIMA di disporre le porte
+    for (MIDIEndpointRef ep : engine->_connectedSources) {
+        if (engine->_inputPort) MIDIPortDisconnectSource(engine->_inputPort, ep);
+    }
+    engine->_connectedSources.clear();
+
+    // 3. Rimuovi observer Network MIDI
+    if (engine->_networkSessionObserver) {
+        [[NSNotificationCenter defaultCenter] removeObserver:engine->_networkSessionObserver];
+        engine->_networkSessionObserver = nil;
+    }
+
+    // 4. Dispose porte ed endpoint nell'ordine corretto
     if (engine->virtualDest)   { MIDIEndpointDispose(engine->virtualDest);   engine->virtualDest = 0; }
     if (engine->virtualSource) { MIDIEndpointDispose(engine->virtualSource); engine->virtualSource = 0; }
     if (engine->_inputPort)    { MIDIPortDispose(engine->_inputPort);        engine->_inputPort = 0; }
     if (engine->_outputPort)   { MIDIPortDispose(engine->_outputPort);       engine->_outputPort = 0; }
     if (engine->client)        { MIDIClientDispose(engine->client);          engine->client = 0; }
-
-    // Cleanup connectedSources
-    if (engine->_inputPort) {
-        for (MIDIEndpointRef ep : engine->_connectedSources) {
-            MIDIPortDisconnectSource(engine->_inputPort, ep);
-        }
-        engine->_connectedSources.clear();
-    }
-
-    // Rimuovi observer Network MIDI
-    if (engine->_networkSessionObserver) {
-        [[NSNotificationCenter defaultCenter] removeObserver:engine->_networkSessionObserver];
-        engine->_networkSessionObserver = nil;
-    }
 }
 
 void midi_engine_sync_clock(void* handle,
