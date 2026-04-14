@@ -175,14 +175,6 @@ bool midi_engine_start(void* handle)
     os_log(OS_LOG_DEFAULT, "Q-BEATS MIDIEngine started successfully");
 #endif
 
-    // Network MIDI — observer per cambio stato sessione
-    engine->_networkSessionObserver = [[NSNotificationCenter defaultCenter]
-        addObserverForName:MIDINetworkSessionDidChangeNotification
-        object:nil
-        queue:[NSOperationQueue mainQueue]
-        usingBlock:^(NSNotification* note) {
-            NSLog(@"Q-BEATS MIDINetworkSession state changed");
-        }];
 
     return true;
 }
@@ -330,7 +322,7 @@ void midi_engine_process(void* handle, uint32_t bufferSize) {
 void midi_engine_network_enable(void* handle, const char* sessionName) {
     if (!handle) return;
     MIDINetworkSession* session = [MIDINetworkSession defaultSession];
-    session.connectionPolicy = MIDINetworkConnectionPolicyAnyone;
+    session.connectionPolicy = MIDINetworkConnectionPolicy_Anyone;
     session.enabled = YES;
     os_log(OS_LOG_DEFAULT, "Q-BEATS Network MIDI enabled: %{public}s", sessionName ? sessionName : "Q-BEATS");
 }
