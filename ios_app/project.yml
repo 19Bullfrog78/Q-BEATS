@@ -8,11 +8,15 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     info:
-      NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
-      NSBonjourServices:
-        - "_apple-midi._tcp."
+      path: QBeats/Info.plist
+      properties:
+        NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
+        NSBonjourServices:
+          - "_apple-midi._tcp."
     entitlements:
-      com.apple.developer.networking.multicast: true
+      path: QBeats/QBeats.entitlements
+      properties:
+        com.apple.developer.networking.multicast: true
     sources:
       - path: QBeats
       - path: ../core_engine
