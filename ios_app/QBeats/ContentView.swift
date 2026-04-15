@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 struct ContentView: View {
     @StateObject private var audioEngine = AudioEngine()
