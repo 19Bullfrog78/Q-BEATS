@@ -80,8 +80,9 @@ struct MIDIEngine {
             if (ep == virtualDest) continue; // evita echo loop
 
             MIDINetworkSession *session = [MIDINetworkSession defaultSession];
-            if (ep == session.sourceEndpoint || ep == session.destinationEndpoint) {
-                // Skip Network MIDI endpoints to prevent echo loop
+            if (ep == session.sourceEndpoint) {
+                // Skip only network source to prevent echo loop
+                // destinationEndpoint must be included to send MIDI to network peers
                 continue;
             }
             if (newDestCount >= 32) continue;          // bounds check — mai overflow
