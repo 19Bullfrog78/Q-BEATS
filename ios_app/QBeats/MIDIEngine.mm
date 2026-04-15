@@ -115,8 +115,8 @@ static void midiReceiveProc(const MIDIPacketList* pktList,
 
 static void midiNotifyProc(const MIDINotification *message, void *refCon) {
     MIDIEngine* engine = (MIDIEngine*)refCon;
-    if (message->messageID == kMIDIObjectAddedNotification ||
-        message->messageID == kMIDIObjectRemovedNotification) {
+    if (message->messageID == kMIDIMsgObjectAdded ||
+        message->messageID == kMIDIMsgObjectRemoved) {
         os_log(OS_LOG_DEFAULT,
             "[Q-BEATS][MIDI] Oggetto MIDI aggiunto/rimosso — dispatch scanAndConnect");
         dispatch_async(dispatch_get_main_queue(), ^{
