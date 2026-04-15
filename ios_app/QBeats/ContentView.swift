@@ -94,6 +94,14 @@ struct MIDIDebugView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
+                // [NUOVO] Bottone Bluetooth LE MIDI
+                Button("BT MIDI") {
+                    os_log("[Q-BEATS][BT] Apertura picker CABTMIDICentralViewController", type: .info)
+                    viewModel.showBTMIDIPicker = true
+                }
+                .font(.caption)
+                .padding(.trailing, 8)
+                
                 Button("Clear") { viewModel.clear() }
                     .font(.caption)
             }
@@ -124,5 +132,11 @@ struct MIDIDebugView: View {
             }
         }
         .padding(.horizontal)
+        .sheet(isPresented: $viewModel.showBTMIDIPicker, onDismiss: {
+            os_log("[Q-BEATS][BT] Picker chiuso — avvio scanAndConnectPhysicalPorts ottimistico", type: .info)
+            // Nota: Il riferimento all'engine è gestito tramite AudioEngine che chiama il bridge C
+        }) {
+            BTMIDICentralPickerView()
+        }
     }
 }
