@@ -10,6 +10,7 @@ struct MIDILogEntry: Identifiable {
 
 final class MIDIDebugViewModel: ObservableObject {
     @Published var entries: [MIDILogEntry] = []
+    @Published var showBTMIDIPicker: Bool = false
     private let maxEntries = 200
 
     private let formatter: DateFormatter = {

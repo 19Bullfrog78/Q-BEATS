@@ -34,6 +34,7 @@ void  midi_engine_set_receive_callback(void* handle,
                                         void* userData);
 void  midi_engine_network_enable(void* handle);
 void  midi_engine_network_disable(void* handle);
+void  midi_engine_scan_connect_ports(void* handle);
 
 #ifdef __cplusplus
 }

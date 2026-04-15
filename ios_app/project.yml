@@ -15,6 +15,11 @@ targets:
           - "_apple-midi._tcp."
         UIBackgroundModes:
           - audio
+    frameworks:
+      - CoreAudio.framework
+      - CoreMIDI.framework
+      - AVFoundation.framework
+      - CoreAudioKit.framework
     sources:
       - path: QBeats
       - path: ../core_engine

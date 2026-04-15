@@ -115,14 +115,18 @@ static void midiReceiveProc(const MIDIPacketList* pktList,
 
 static void midiNotifyProc(const MIDINotification *message, void *refCon) {
     MIDIEngine* engine = (MIDIEngine*)refCon;
-    switch (message->messageID) {
-        case kMIDIMsgSetupChanged:
-            dispatch_async(engine->_scanQueue, ^{
-                engine->scanAndConnectPhysicalPorts();
-            });
-            break;
-        default:
-            break;
+    if (message->messageID == kMIDIObjectAddedNotification ||
+        message->messageID == kMIDIObjectRemovedNotification) {
+        os_log(OS_LOG_DEFAULT,
+            "[Q-BEATS][MIDI] Oggetto MIDI aggiunto/rimosso — dispatch scanAndConnect");
+        dispatch_async(dispatch_get_main_queue(), ^{
+            midi_engine_scan_connect_ports(refCon);
+        });
+    }
+    if (message->messageID == kMIDIMsgSetupChanged) {
+        dispatch_async(engine->_scanQueue, ^{
+            engine->scanAndConnectPhysicalPorts();
+        });
     }
 }
 
@@ -181,6 +185,16 @@ bool midi_engine_start(void* handle)
 
     // 5. Prima scan sincrona (DOPO aver creato virtualSource e virtualDest)
     dispatch_sync(engine->_scanQueue, ^{ engine->scanAndConnectPhysicalPorts(); });
+    MIDINetworkSession *session = [MIDINetworkSession defaultSession];
+    if (!session.isEnabled) {
+        session.enabled = YES;
+    }
+    if (session.connectionPolicy != MIDINetworkConnectionPolicy_Anyone) {
+        session.connectionPolicy = MIDINetworkConnectionPolicy_Anyone;
+    }
+    os_log(OS_LOG_DEFAULT,
+        "[Q-BEATS][NET] Network MIDI restore: enabled=%d policy=%ld",
+        session.isEnabled, (long)session.connectionPolicy);
 
 #if DEBUG
     os_log(OS_LOG_DEFAULT, "Q-BEATS MIDIEngine started successfully");
@@ -338,4 +352,12 @@ void midi_engine_network_disable(void* handle) {
     MIDINetworkSession* session = [MIDINetworkSession defaultSession];
     session.enabled = NO;
     os_log(OS_LOG_DEFAULT, "Q-BEATS Network MIDI disabled");
+}
+
+void midi_engine_scan_connect_ports(void* handle) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return;
+    dispatch_async(engine->_scanQueue, ^{
+        engine->scanAndConnectPhysicalPorts();
+    });
 }
