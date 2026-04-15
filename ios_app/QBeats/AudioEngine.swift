@@ -97,7 +97,7 @@ class AudioEngine: ObservableObject {
                         MIDIEvent(tick: 480, data: (0x90, 64, 100), length: 3),
                         MIDIEvent(tick: 720, data: (0x80, 64, 0),   length: 3),
                     ]
-                    testEvents.withUnsafeMutableBufferPointer { ptr in
+                    testEvents.withUnsafeBufferPointer { ptr in
                         midi_engine_set_pattern(mh, ptr.baseAddress, UInt32(testEvents.count), 960)
                     }
                     // FINE TEST PATTERN
