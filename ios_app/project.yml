@@ -11,6 +11,8 @@ targets:
       path: QBeats/Info.plist
       properties:
         NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
+        NSBluetoothAlwaysUsageDescription: "Q-BEATS richiede l'accesso al Bluetooth per connettere controller e tastiere MIDI Bluetooth LE."
+        NSBluetoothPeripheralUsageDescription: "Q-BEATS richiede l'accesso al Bluetooth per connettere controller e tastiere MIDI Bluetooth LE."
         NSBonjourServices:
           - "_apple-midi._tcp."
         UIBackgroundModes:
