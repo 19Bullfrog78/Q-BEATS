@@ -90,6 +90,18 @@ class AudioEngine: ObservableObject {
                     midi_engine_set_bpm(mh, self.currentBPM)
                     midi_engine_start(mh) 
                     
+                    // TEST PATTERN — rimuovere dopo validazione Blocco 4B
+                    var testEvents: [MIDIEvent] = [
+                        MIDIEvent(tick: 0,   data: (0x90, 60, 100), length: 3),
+                        MIDIEvent(tick: 240, data: (0x80, 60, 0),   length: 3),
+                        MIDIEvent(tick: 480, data: (0x90, 64, 100), length: 3),
+                        MIDIEvent(tick: 720, data: (0x80, 64, 0),   length: 3),
+                    ]
+                    testEvents.withUnsafeMutableBufferPointer { ptr in
+                        midi_engine_set_pattern(mh, ptr.baseAddress, UInt32(testEvents.count), 960)
+                    }
+                    // FINE TEST PATTERN
+                    
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
                         midi_engine_network_enable(mh)
                     } else {
