@@ -52,6 +52,7 @@ class AudioEngine: ObservableObject {
         linkEngineHandle = link_engine_create()
 
         if let lh = linkEngineHandle {
+            link_engine_set_enabled(lh, true)
             link_engine_set_tempo_callback(lh, { bpm, ctx in
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
