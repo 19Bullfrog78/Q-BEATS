@@ -18,10 +18,6 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
-    ABLLinkSetPeerCountCallback(engine->link_, [](uint64_t count, void* ctx) {
-        LinkEngine* e = (LinkEngine*)ctx;
-        e->numPeers_.store((uint32_t)count);
-    }, engine);
     return (LinkEngineHandle)engine;
 }
 
