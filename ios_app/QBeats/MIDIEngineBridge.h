@@ -36,6 +36,18 @@ void  midi_engine_network_enable(void* handle);
 void  midi_engine_network_disable(void* handle);
 void  midi_engine_scan_connect_ports(void* handle);
 
+// === MODIFICATO 6A ===
+// === LinkEngine Bridge 6A ===
+typedef void* LinkEngineHandle;
+
+LinkEngineHandle link_engine_create(void);
+void link_engine_destroy(LinkEngineHandle handle);
+void link_engine_set_enabled(LinkEngineHandle handle, bool enabled);
+bool link_engine_is_enabled(LinkEngineHandle handle);
+uint32_t link_engine_num_peers(LinkEngineHandle handle);
+double link_engine_get_quantum(LinkEngineHandle handle);
+void link_engine_set_quantum(LinkEngineHandle handle, double quantum);
+
 #ifdef __cplusplus
 }
 #endif

@@ -19,6 +19,8 @@ class AudioEngine: ObservableObject {
 
     private var metronomeHandle      : MetronomeHandle?
     private var midiEngineHandle     : MIDIEngineHandle? = nil
+    // === MODIFICATO 6A ===
+    private var linkEngineHandle     : LinkEngineHandle? = nil
     private let engine               = AVAudioEngine()
     private let playerNode           = AVAudioPlayerNode()
     private let sampleRate           : Double = 48000.0
@@ -46,6 +48,8 @@ class AudioEngine: ObservableObject {
         accents = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
+        // === MODIFICATO 6A ===
+        linkEngineHandle = link_engine_create()
         
         if let mh = midiEngineHandle {
             let debugVM = MIDIDebugViewModel()
@@ -70,6 +74,8 @@ class AudioEngine: ObservableObject {
         stopSync()
         if let h = metronomeHandle { metronome_destroy(h) }
         if let mh = midiEngineHandle { midi_engine_destroy(mh) }
+        // === MODIFICATO 6A ===
+        if let lh = linkEngineHandle { link_engine_destroy(lh) }
     }
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
@@ -89,6 +95,8 @@ class AudioEngine: ObservableObject {
                 if let mh = self.midiEngineHandle { 
                     midi_engine_set_bpm(mh, self.currentBPM)
                     midi_engine_start(mh) 
+                    // === MODIFICATO 6A ===
+                    if let lh = self.linkEngineHandle { link_engine_set_enabled(lh, true) }
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
                         midi_engine_network_enable(mh)
                     } else {
@@ -167,6 +175,8 @@ class AudioEngine: ObservableObject {
         playerNode.stop()
         engine.stop()
         if let mh = midiEngineHandle { midi_engine_stop(mh) }
+        // === MODIFICATO 6A ===
+        if let lh = linkEngineHandle { link_engine_set_enabled(lh, false) }
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false
@@ -216,6 +226,12 @@ class AudioEngine: ObservableObject {
                 UInt64(bufferCount) * UInt64(bufferSize),
                 mach_absolute_time(),
                 sampleRate)
+            // === MODIFICATO 6A ===
+            // === PLACEHOLDER 6C Ableton Link ===
+            // Qui andranno link_captureAudioSessionState + link_commitAudioSessionState 
+            // (dentro audioQueue, prima del process sequencer)
+            if let lh = linkEngineHandle { }
+
             midi_engine_process(mh, UInt32(bufferSize))
         }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
@@ -319,6 +335,11 @@ class AudioEngine: ObservableObject {
               let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
         if reason == .oldDeviceUnavailable { stopSync() }
+        // === MODIFICATO 6A ===
+        // === 6A/6C output latency update ===
+        // TODO 6C: aggiornare outputLatencyMicros su LinkEngine da 
+        // AVAudioSession.sharedInstance().outputLatency * 1_000_000
+        // Questo aggiornamento deve avvenire fuori dal render callback
     }
 
     @objc private func handleMediaReset(_ notification: Notification) {

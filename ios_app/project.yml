@@ -22,6 +22,13 @@ targets:
       - CoreMIDI.framework
       - AVFoundation.framework
       - CoreAudioKit.framework
+      # === MODIFICATO 6A ===
+      - path: ../../Vendors/AbletonLink/LinkKit.xcframework
+        embed: true
+        codeSignOnCopy: true
+    resources:
+      - path: ../../Vendors/AbletonLink/LinkKitResources.bundle
+        codeSignOnCopy: true
     sources:
       - path: QBeats
       - path: ../core_engine
@@ -37,6 +44,11 @@ targets:
         CLANG_CXX_LIBRARY: "libc++"
         HEADER_SEARCH_PATHS:
           - "$(SRCROOT)/../core_engine"
+        # === MODIFICATO 6A ===
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/../../Vendors/AbletonLink"
+        OTHER_LDFLAGS:
+          - "-lc++"
         SWIFT_OBJC_BRIDGING_HEADER: "QBeats/QBeats-Bridging-Header.h"
       configs:
         Debug:
