@@ -24,8 +24,6 @@ targets:
       - CoreAudioKit.framework
       # === MODIFICATO 6A ===
       - path: ../Vendors/AbletonLink/LinkKit.xcframework
-        embed: true
-        codeSignOnCopy: true
     resources:
       - path: ../Vendors/AbletonLink/LinkKitResources.bundle
         codeSignOnCopy: true
@@ -50,6 +48,8 @@ targets:
           - "$(SRCROOT)/../Vendors/AbletonLink"
         OTHER_LDFLAGS:
           - "-lc++"
+          - "-L$(SRCROOT)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64"
+          - "-lLinkKit"
         SWIFT_OBJC_BRIDGING_HEADER: "QBeats/QBeats-Bridging-Header.h"
       configs:
         Debug:
