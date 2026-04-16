@@ -44,11 +44,10 @@ targets:
         CLANG_CXX_LIBRARY: "libc++"
         HEADER_SEARCH_PATHS:
           - "$(SRCROOT)/../core_engine"
-          - "$(PROJECT_DIR)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/LinkKit.framework/Headers"
-          - "$(PROJECT_DIR)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64_x86_64-simulator/LinkKit.framework/Headers"
-        # === MODIFICATO 6A ===
+          - "$(SRCROOT)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers"
+          - "$(SRCROOT)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64_x86_64-simulator/Headers"
         FRAMEWORK_SEARCH_PATHS:
-          - "$(PROJECT_DIR)/../Vendors/AbletonLink"
+          - "$(SRCROOT)/../Vendors/AbletonLink"
         OTHER_LDFLAGS:
           - "-lc++"
         SWIFT_OBJC_BRIDGING_HEADER: "QBeats/QBeats-Bridging-Header.h"
