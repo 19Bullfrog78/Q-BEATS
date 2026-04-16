@@ -1,7 +1,7 @@
 // === MODIFICATO 6A ===
 // Thin ObjC++ wrapper su ABLLinkRef (API C pura di LinkKit 3.2.2)
 #import "LinkEngine.h"
-#include <LinkKit/ABLLink.h>
+#include <ABLLink.h>
 #include <atomic>
 
 struct LinkEngine {
