@@ -3,6 +3,7 @@
 #import "LinkEngine.h"
 #include <ABLLink.h>
 #include <atomic>
+#include <mach/mach_time.h>
 
 struct LinkEngine {
     ABLLinkRef link_;
@@ -12,6 +13,8 @@ struct LinkEngine {
     std::atomic<int64_t> pendingPhaseJump_{-1};
     std::atomic<double> phaseJumpThresholdBeats_{0.01};
     std::atomic<uint64_t> outputLatencyMicros_{0};
+    void (*tempoCallback_)(double bpm, void* context) = nullptr;
+    void* tempoCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
@@ -57,4 +60,30 @@ void link_engine_set_quantum(LinkEngineHandle handle, double quantum) {
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;
     engine->quantum_.store(quantum);
+}
+
+void link_engine_set_bpm(LinkEngineHandle handle, double bpm) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    ABLLinkSetTempo(state, bpm, mach_absolute_time());
+    ABLLinkCommitAppSessionState(engine->link_, state);
+}
+
+void link_engine_set_tempo_callback(LinkEngineHandle handle,
+    void (*callback)(double bpm, void* context),
+    void* context) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    engine->tempoCallback_ = callback;
+    engine->tempoCallbackContext_ = context;
+    ABLLinkSetSessionTempoCallback(engine->link_,
+        [](double bpm, void* ctx) {
+            LinkEngine* e = (LinkEngine*)ctx;
+            if (e->tempoCallback_) {
+                e->tempoCallback_(bpm, e->tempoCallbackContext_);
+            }
+        },
+        (void*)engine);
 }

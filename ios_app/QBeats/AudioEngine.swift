@@ -50,7 +50,24 @@ class AudioEngine: ObservableObject {
         midiEngineHandle = midi_engine_create()
         // === MODIFICATO 6A ===
         linkEngineHandle = link_engine_create()
-        
+
+        if let lh = linkEngineHandle {
+            link_engine_set_tempo_callback(lh, { bpm, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>
+                    .fromOpaque(ctx).takeUnretainedValue()
+                engine.audioQueue.async {
+                    engine.currentBPM = bpm
+                    if let h = engine.metronomeHandle {
+                        metronome_setBPM(h, bpm)
+                    }
+                    if let mh = engine.midiEngineHandle {
+                        midi_engine_set_bpm(mh, bpm)
+                    }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
+        }
+
         if let mh = midiEngineHandle {
             let debugVM = MIDIDebugViewModel()
             self.midiDebugViewModel = debugVM
@@ -131,6 +148,9 @@ class AudioEngine: ObservableObject {
             metronome_setBPM(h, bpm)
             if let mh = self.midiEngineHandle {
                 midi_engine_set_bpm(mh, bpm)
+            }
+            if let lh = self.linkEngineHandle {
+                link_engine_set_bpm(lh, bpm)
             }
         }
     }

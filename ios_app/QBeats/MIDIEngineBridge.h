@@ -47,6 +47,10 @@ bool link_engine_is_enabled(LinkEngineHandle handle);
 uint32_t link_engine_num_peers(LinkEngineHandle handle);
 double link_engine_get_quantum(LinkEngineHandle handle);
 void link_engine_set_quantum(LinkEngineHandle handle, double quantum);
+void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
+void link_engine_set_tempo_callback(LinkEngineHandle handle,
+    void (*callback)(double bpm, void* context),
+    void* context);
 
 #ifdef __cplusplus
 }
