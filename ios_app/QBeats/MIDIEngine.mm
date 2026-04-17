@@ -361,3 +361,15 @@ void midi_engine_scan_connect_ports(void* handle) {
         engine->scanAndConnectPhysicalPorts();
     });
 }
+
+double midi_engine_get_beat_position(void* handle) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return 0.0;
+    return engine->sequencer.getBeatPosition(engine->lastSamplePosition);
+}
+
+void midi_engine_set_beat_position(void* handle, double targetBeats) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return;
+    engine->sequencer.setBeatPosition(targetBeats, engine->lastSamplePosition);
+}

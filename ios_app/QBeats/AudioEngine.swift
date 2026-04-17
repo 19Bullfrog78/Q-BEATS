@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 
 // Regole thread — inviolabili:
 // 1. isRunning, clickPlayhead, accentPlayhead, bufferCount, beatTotal,
@@ -21,6 +22,14 @@ class AudioEngine: ObservableObject {
     private var midiEngineHandle     : MIDIEngineHandle? = nil
     // === MODIFICATO 6A ===
     private var linkEngineHandle     : LinkEngineHandle? = nil
+
+    // === AGGIUNTO 6C — timebase cachato all'avvio ===
+    private let machTimebase: mach_timebase_info_data_t = {
+        var tbi = mach_timebase_info_data_t()
+        mach_timebase_info(&tbi)
+        return tbi
+    }()
+
     private let engine               = AVAudioEngine()
     private let playerNode           = AVAudioPlayerNode()
     private let sampleRate           : Double = 48000.0
@@ -38,6 +47,11 @@ class AudioEngine: ObservableObject {
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var currentBPM           : Double = 120.0
+
+    // === AGGIUNTO 6C — Link phase sync (accesso solo su audioQueue) ===
+    private var outputLatencyTicks : UInt64 = 0
+    private var bufferDurationTicks: UInt64 = 0
+
     private(set) var midiDebugViewModel: MIDIDebugViewModel? = nil
     // ------------------------------------------------
 
@@ -128,6 +142,15 @@ class AudioEngine: ObservableObject {
                     self.isPlaying   = true
                     self.clickStatus = statusStr
                 }
+
+                // === AGGIUNTO 6C — calcola ticks prima del primo buffer ===
+                let avSession = AVAudioSession.sharedInstance()
+                self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
+                self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
+                if let lh = self.linkEngineHandle {
+                    link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                }
+
                 self.scheduleNextBuffer()
                 self.scheduleNextBuffer()
                 self.scheduleNextBuffer()
@@ -239,6 +262,15 @@ class AudioEngine: ObservableObject {
         return samples
     }
 
+    // === AGGIUNTO 6C ===
+    // Converte secondi in mach ticks usando timebase cachata.
+    // Chiamabile da qualsiasi thread.
+    private func secondsToMachTicks(_ seconds: Double) -> UInt64 {
+        guard seconds > 0, machTimebase.numer > 0 else { return 0 }
+        let nanos = seconds * 1_000_000_000.0
+        return UInt64(nanos) * UInt64(machTimebase.denom) / UInt64(machTimebase.numer)
+    }
+
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
@@ -251,7 +283,20 @@ class AudioEngine: ObservableObject {
             // === PLACEHOLDER 6C Ableton Link ===
             // Qui andranno link_captureAudioSessionState + link_commitAudioSessionState 
             // (dentro audioQueue, prima del process sequencer)
-            if let lh = linkEngineHandle { }
+            // === MODIFICATO 6C — phase sync Link (Phase Correction Policy v1.2) ===
+            if let lh = linkEngineHandle, let mh = midiEngineHandle {
+                let hostTimeAtOutput = mach_absolute_time()
+                                     + outputLatencyTicks
+                                     + bufferDurationTicks
+                let currentBeat = midi_engine_get_beat_position(mh)
+                var newBeat: Double = 0.0
+                if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
+                    midi_engine_set_beat_position(mh, newBeat)
+                    os_log(OS_LOG_DEFAULT,
+                        "[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
+                        currentBeat, newBeat)
+                }
+            }
 
             midi_engine_process(mh, UInt32(bufferSize))
         }
@@ -358,9 +403,15 @@ class AudioEngine: ObservableObject {
         if reason == .oldDeviceUnavailable { stopSync() }
         // === MODIFICATO 6A ===
         // === 6A/6C output latency update ===
-        // TODO 6C: aggiornare outputLatencyMicros su LinkEngine da 
-        // AVAudioSession.sharedInstance().outputLatency * 1_000_000
-        // Questo aggiornamento deve avvenire fuori dal render callback
+        // === MODIFICATO 6C — aggiorna output latency in mach ticks ===
+        let avSession = AVAudioSession.sharedInstance()
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.outputLatencyTicks = self.secondsToMachTicks(avSession.outputLatency)
+            if let lh = self.linkEngineHandle {
+                link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+            }
+        }
     }
 
     @objc private func handleMediaReset(_ notification: Notification) {

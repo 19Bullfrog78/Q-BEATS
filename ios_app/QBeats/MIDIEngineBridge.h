@@ -36,6 +36,10 @@ void  midi_engine_network_enable(void* handle);
 void  midi_engine_network_disable(void* handle);
 void  midi_engine_scan_connect_ports(void* handle);
 
+// === AGGIUNTO 6C — Link phase sync ===
+double midi_engine_get_beat_position(void* handle);
+void   midi_engine_set_beat_position(void* handle, double targetBeats);
+
 // === MODIFICATO 6A ===
 // === LinkEngine Bridge 6A ===
 typedef void* LinkEngineHandle;
@@ -51,6 +55,16 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context);
+
+// === AGGIUNTO 6C — Link phase sync ===
+void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks);
+// Chiamare su audioQueue — NON in un AURenderCallback Core Audio.
+// hostTimeAtOutput = mach_absolute_time() + outputLatencyTicks + bufferDurationTicks
+// Ritorna true se correzione applicata, scrive posizione assoluta in outNewBeatPosition.
+bool link_engine_sync_phase(LinkEngineHandle handle,
+                            uint64_t hostTimeAtOutput,
+                            double   currentBeatPosition,
+                            double*  outNewBeatPosition);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include <atomic>
 #include "MIDITypes.h"
 
 // Risoluzione inviolabile del progetto Q-BEATS
@@ -40,6 +41,13 @@ public:
                        uint32_t bufferSize,
                        ScheduledEventBuffer& outBuffer);
 
+    // === AGGIUNTO 6C — Link phase sync ===
+    // RT-safe. Chiamare DOPO midi_engine_sync_clock, PRIMA di processBuffer.
+    double getBeatPosition(uint64_t currentSample) const;
+    // Hard sync assoluto. RT-safe, zero-malloc.
+    // currentSample = inizio buffer corrente (lastSamplePosition).
+    void setBeatPosition(double targetBeats, uint64_t currentSample);
+
 private:
     double   _bpm;
     double   _sampleRate;
@@ -49,6 +57,12 @@ private:
     uint32_t _patternLengthTicks = 0;
 
     void     _recalculate();
+
+    // === AGGIUNTO 6C — Link phase sync ===
+    // Virtual sample base offset. RT-safe.
+    // Positivo = siamo più avanti nel pattern; negativo = più indietro.
+    // Scritto da setBeatPosition, letto in processBuffer e getBeatPosition.
+    std::atomic<int64_t> _sampleBaseAdj{0};
     uint64_t _tickToSample(uint64_t absoluteTick) const;
     // Formula: (uint64_t)((double)tick * _samplesPerTick)
     // Double precision — zero drift accumulato.
