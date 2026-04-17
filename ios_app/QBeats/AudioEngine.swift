@@ -52,7 +52,6 @@ class AudioEngine: ObservableObject {
     private var outputLatencyTicks : UInt64 = 0
     private var bufferDurationTicks: UInt64 = 0
 
-    private(set) var midiDebugViewModel: MIDIDebugViewModel? = nil
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -83,16 +82,7 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        if let mh = midiEngineHandle {
-            let debugVM = MIDIDebugViewModel()
-            self.midiDebugViewModel = debugVM
-            midi_engine_set_receive_callback(mh, { data, length, userData in
-                guard let data = data, length > 0, let userData = userData else { return }
-                let vm    = Unmanaged<MIDIDebugViewModel>.fromOpaque(userData).takeUnretainedValue()
-                let bytes = Array(UnsafeBufferPointer(start: data, count: Int(length)))
-                DispatchQueue.main.async { vm.append(data: bytes) }
-            }, Unmanaged.passUnretained(debugVM).toOpaque())
-        }
+
         setupSession()
         setupGraph()
         audioQueue.sync {
@@ -293,7 +283,7 @@ class AudioEngine: ObservableObject {
                 if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
-                           log: .default, type: .debug,
+                           log: .default, type: .info,
                            currentBeat, newBeat)
                 }
             }

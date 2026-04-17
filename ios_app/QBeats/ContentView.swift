@@ -71,10 +71,7 @@ struct ContentView: View {
                     .clipShape(Circle())
             }
 
-            // MIDI Debug Log — temporaneo, Blocco 4A
-            if let debugVM = audioEngine.midiDebugViewModel {
-                MIDIDebugView(viewModel: debugVM)
-            }
+
         }
         .padding()
         .toolbar {
@@ -90,60 +87,4 @@ struct ContentView: View {
         }
     }
 }
-
-struct MIDIDebugView: View {
-    @ObservedObject var viewModel: MIDIDebugViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("MIDI IN")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                // [NUOVO] Bottone Bluetooth LE MIDI
-                Button("BT MIDI") {
-                    os_log("[Q-BEATS][BT] Apertura picker CABTMIDICentralViewController", type: .info)
-                    viewModel.showBTMIDIPicker = true
-                }
-                .font(.caption)
-                .padding(.trailing, 8)
-                
-                Button("Clear") { viewModel.clear() }
-                    .font(.caption)
-            }
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(viewModel.entries) { entry in
-                            HStack(alignment: .top, spacing: 8) {
-                                Text(entry.timestamp)
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                                Text(entry.decoded)
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundColor(.green)
-                            }
-                            .id(entry.id)
-                        }
-                    }
-                }
-                .frame(height: 160)
-                .background(Color.black.opacity(0.8))
-                .cornerRadius(8)
-                .onChange(of: viewModel.entries.count) { _ in
-                    if let last = viewModel.entries.last {
-                        proxy.scrollTo(last.id, anchor: .bottom)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-        .sheet(isPresented: $viewModel.showBTMIDIPicker, onDismiss: {
-            os_log("[Q-BEATS][BT] Picker chiuso — avvio scanAndConnectPhysicalPorts ottimistico", type: .info)
-            // Nota: Il riferimento all'engine è gestito tramite AudioEngine che chiama il bridge C
-        }) {
-            BTMIDICentralPickerView()
-        }
-    }
-}
+
