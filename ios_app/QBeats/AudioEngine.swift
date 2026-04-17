@@ -292,9 +292,9 @@ class AudioEngine: ObservableObject {
                 var newBeat: Double = 0.0
                 if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
-                    os_log(OS_LOG_DEFAULT,
-                        "[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
-                        currentBeat, newBeat)
+                    os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
+                           log: .default, type: .debug,
+                           currentBeat, newBeat)
                 }
             }
 
