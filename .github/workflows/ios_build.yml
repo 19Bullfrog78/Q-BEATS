@@ -68,6 +68,7 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Development" \
             PROVISIONING_PROFILE_SPECIFIER="QBeats_Dev_Profile" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
+            OTHER_CODE_SIGN_FLAGS="--entitlements $(pwd)/QBeats/QBeats.entitlements" \
             archive
       - name: Verify entitlements
         run: |
