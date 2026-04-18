@@ -68,11 +68,18 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Development" \
             PROVISIONING_PROFILE_SPECIFIER="QBeats_Dev_Profile" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
-            OTHER_CODE_SIGN_FLAGS="--entitlements $(pwd)/QBeats/QBeats.entitlements" \
             archive
+      - name: Manual codesign with entitlements
+        run: |
+          codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
+            --entitlements $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements \
+            --timestamp=none \
+            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
+
       - name: Verify entitlements
         run: |
-          codesign -d --entitlements - $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>/dev/null || true
+          echo "=== Entitlements nel binary ==="
+          codesign -d --entitlements :- $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
