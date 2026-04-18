@@ -47,7 +47,7 @@ extern "C" {
 }
 
 - (UIViewController*)makeSettingsViewController {
-    return [[ABLLinkSettingsViewController alloc] initWithLink:_linkRef];
+    return [ABLLinkSettingsViewController instance:_linkRef];
 }
 
 @end
