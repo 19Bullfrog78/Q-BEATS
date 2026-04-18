@@ -143,8 +143,6 @@ class AudioEngine: ObservableObject {
                 if let mh = self.midiEngineHandle { 
                     midi_engine_set_bpm(mh, self.currentBPM)
                     midi_engine_start(mh) 
-                    // === MODIFICATO 6A ===
-                    if let lh = self.linkEngineHandle { link_engine_set_enabled(lh, true) }
                     
                     // === AGGIUNTO 6D — notifica Link che la riproduzione è iniziata ===
                     if let lh = self.linkEngineHandle {
@@ -266,8 +264,6 @@ class AudioEngine: ObservableObject {
         playerNode.stop()
         engine.stop()
         if let mh = midiEngineHandle { midi_engine_stop(mh) }
-        // === MODIFICATO 6A ===
-        if let lh = linkEngineHandle { link_engine_set_enabled(lh, false) }
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false

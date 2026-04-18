@@ -26,6 +26,13 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
+    ABLLinkSetIsConnectedCallback(engine->link_,
+        [](bool isConnected, void* context) {
+            auto* le = static_cast<LinkEngine*>(context);
+            if (le->isConnectedCallback_) {
+                le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
+            }
+        }, engine);
     return (LinkEngineHandle)engine;
 }
 
@@ -47,13 +54,6 @@ void link_engine_set_enabled(LinkEngineHandle handle, bool enabled) {
     if (enabled) {
         le->enabled_.store(true);
         ABLLinkSetActive(le->link_, true);
-        ABLLinkSetIsConnectedCallback(le->link_, [](bool isConnected, void* context) {
-            auto* le = static_cast<LinkEngine*>(context);
-            le->enabled_.store(isConnected ? true : le->enabled_.load());
-            if (le->isConnectedCallback_) {
-                le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
-            }
-        }, le);
     } else {
         le->enabled_.store(false);
         ABLLinkSetActive(le->link_, false);
