@@ -82,6 +82,23 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
+        // === AGGIUNTO 6D — Start/Stop sync callback da peer Link ===
+        if let lh = linkEngineHandle {
+            link_engine_set_start_stop_callback(lh, { isPlaying, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>
+                    .fromOpaque(ctx).takeUnretainedValue()
+                // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
+                // audioQueue.sync dentro e causerebbe deadlock.
+                DispatchQueue.main.async {
+                    if isPlaying && !engine.isPlaying {
+                        engine.start()
+                    } else if !isPlaying && engine.isPlaying {
+                        engine.stop()
+                    }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
+        }
 
         setupSession()
         setupGraph()
@@ -119,6 +136,12 @@ class AudioEngine: ObservableObject {
                     midi_engine_start(mh) 
                     // === MODIFICATO 6A ===
                     if let lh = self.linkEngineHandle { link_engine_set_enabled(lh, true) }
+                    
+                    // === AGGIUNTO 6D — notifica Link che la riproduzione è iniziata ===
+                    if let lh = self.linkEngineHandle {
+                        link_engine_set_is_playing(lh, true, mach_absolute_time())
+                    }
+
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
                         midi_engine_network_enable(mh)
                     } else {
@@ -204,6 +227,11 @@ class AudioEngine: ObservableObject {
             self.isRunning = false
             bc = self.bufferCount
             bt = self.beatTotal
+            
+            // === AGGIUNTO 6D — notifica Link che la riproduzione è ferma ===
+            if let lh = linkEngineHandle {
+                link_engine_set_is_playing(lh, false, mach_absolute_time())
+            }
         }
         guard wasRunning else { return }
         playerNode.stop()

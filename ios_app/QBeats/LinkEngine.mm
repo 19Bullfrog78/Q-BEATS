@@ -16,6 +16,9 @@ struct LinkEngine {
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
     void (*tempoCallback_)(double bpm, void* context) = nullptr;
     void* tempoCallbackContext_ = nullptr;
+    // === AGGIUNTO 6D — Start/Stop sync ===
+    void (*startStopCallback_)(bool isPlaying, void* context) = nullptr;
+    void* startStopCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
@@ -93,6 +96,41 @@ void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t tick
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;
     engine->outputLatencyTicks_.store(ticks, std::memory_order_relaxed);
+}
+
+void link_engine_set_is_playing(LinkEngineHandle handle,
+                                bool isPlaying,
+                                uint64_t hostTime) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+
+    double quantum = engine->quantum_.load(std::memory_order_relaxed);
+    ABLLinkSetIsPlayingAndRequestBeatAtTime(
+        state, isPlaying, hostTime, 0.0, quantum);
+
+    ABLLinkCommitAppSessionState(engine->link_, state);
+}
+
+void link_engine_set_start_stop_callback(LinkEngineHandle handle,
+    void (*callback)(bool isPlaying, void* context),
+    void* context) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    engine->startStopCallback_ = callback;
+    engine->startStopCallbackContext_ = context;
+    ABLLinkSetStartStopCallback(engine->link_,
+        [](bool isPlaying, void* ctx) {
+            LinkEngine* e = (LinkEngine*)ctx;
+            if (e->startStopCallback_) {
+                e->startStopCallback_(isPlaying,
+                                     e->startStopCallbackContext_);
+            }
+        },
+        (void*)engine);
 }
 
 bool link_engine_sync_phase(LinkEngineHandle handle,

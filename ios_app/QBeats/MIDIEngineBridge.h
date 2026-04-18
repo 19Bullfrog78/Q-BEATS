@@ -66,6 +66,14 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
                             double   currentBeatPosition,
                             double*  outNewBeatPosition);
 
+// === AGGIUNTO 6D — Start/Stop sync ===
+void link_engine_set_is_playing(LinkEngineHandle handle,
+                                bool isPlaying,
+                                uint64_t hostTime);
+void link_engine_set_start_stop_callback(LinkEngineHandle handle,
+    void (*callback)(bool isPlaying, void* context),
+    void* context);
+
 #ifdef __cplusplus
 }
 #endif
