@@ -32,13 +32,12 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Slider(value: $audioEngine.currentBPM, in: 40...240, step: 1)
-                .padding(.horizontal, 32)
-                .onEditingChanged { isEditing in
-                    if !isEditing {
-                        audioEngine.setBPM(audioEngine.currentBPM)
-                    }
+            Slider(value: $audioEngine.currentBPM, in: 40...240, step: 1) { isEditing in
+                if !isEditing {
+                    audioEngine.setBPM(audioEngine.currentBPM)
                 }
+            }
+            .padding(.horizontal, 32)
 
             VStack(spacing: 8) {
                 Text("Time Signature")
