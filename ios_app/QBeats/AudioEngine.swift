@@ -12,8 +12,10 @@ import os
 
 class AudioEngine: ObservableObject {
 
-    // --- @Published — scritti SOLO su DispatchQueue.main ---
     @Published var clickStatus : String  = "non caricato"
+    @Published var currentBPM: Double = 120.0
+    @Published var linkEnabled: Bool = false
+    @Published var linkIsConnected: Bool = false
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
     // -------------------------------------------------------
@@ -46,7 +48,6 @@ class AudioEngine: ObservableObject {
     private var accentPlayhead       : Int = -1
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
-    private var currentBPM           : Double = 120.0
 
     // === AGGIUNTO 6C — Link phase sync (accesso solo su audioQueue) ===
     private var outputLatencyTicks : UInt64 = 0
@@ -65,19 +66,27 @@ class AudioEngine: ObservableObject {
         linkEngineHandle = link_engine_create()
 
         if let lh = linkEngineHandle {
-            link_engine_set_enabled(lh, true)
             link_engine_set_tempo_callback(lh, { bpm, ctx in
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
-                    engine.currentBPM = bpm
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
                     }
                     if let mh = engine.midiEngineHandle {
                         midi_engine_set_bpm(mh, bpm)
                     }
+                    DispatchQueue.main.async { engine.currentBPM = bpm }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
+
+            link_engine_set_is_connected_callback(lh, { isConnected, ctx in
+                guard let ctx = ctx else { return }
+                // Callback su main thread (LinkKit 3.2.2)
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                DispatchQueue.main.async {
+                    engine.linkIsConnected = isConnected
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
         }
@@ -181,15 +190,35 @@ class AudioEngine: ObservableObject {
     func setBPM(_ bpm: Double) {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
-            self.currentBPM = bpm
             metronome_setBPM(h, bpm)
             if let mh = self.midiEngineHandle {
                 midi_engine_set_bpm(mh, bpm)
             }
             if let lh = self.linkEngineHandle {
                 link_engine_set_bpm(lh, bpm)
+                DispatchQueue.main.async { self.currentBPM = bpm }
             }
         }
+    }
+
+    func setLinkEnabled(_ enabled: Bool) {
+        audioQueue.async { [weak self] in
+            guard let self = self, let lh = self.linkEngineHandle else { return }
+            link_engine_set_enabled(lh, enabled)
+            DispatchQueue.main.async {
+                self.linkEnabled = enabled
+                if !enabled {
+                    self.linkIsConnected = false
+                }
+            }
+        }
+    }
+
+    func makeLinkSettingsPresenter() -> LinkSettingsPresenter {
+        guard let lh = linkEngineHandle else {
+            fatalError("LinkEngine non inizializzato")
+        }
+        return LinkSettingsPresenter(handle: lh)
     }
 
     func enableNetworkMIDI() {

@@ -9,7 +9,6 @@ struct ContentView: View {
     // #include "ABLLinkSettingsViewController.h"
 
     @StateObject private var audioEngine = AudioEngine()
-    @State private var bpm: Double = 120.0
     @State private var showSettings = false
 
     private let timeSignatures: [(label: String, beats: UInt32)] = [
@@ -24,7 +23,7 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .bold()
 
-            Text("\(Int(bpm)) BPM")
+            Text("\(Int(audioEngine.currentBPM)) BPM")
                 .font(.system(size: 48, weight: .thin, design: .monospaced))
 
             Text("Click: \(audioEngine.clickStatus)")
@@ -33,10 +32,12 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Slider(value: $bpm, in: 40...240, step: 1)
+            Slider(value: $audioEngine.currentBPM, in: 40...240, step: 1)
                 .padding(.horizontal, 32)
-                .onChange(of: bpm) { newBPM in
-                    audioEngine.setBPM(newBPM)
+                .onEditingChanged { isEditing in
+                    if !isEditing {
+                        audioEngine.setBPM(audioEngine.currentBPM)
+                    }
                 }
 
             VStack(spacing: 8) {
@@ -75,6 +76,13 @@ struct ContentView: View {
         }
         .padding()
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if audioEngine.linkEnabled {
+                    Text(audioEngine.linkIsConnected ? "● Link" : "○ Link")
+                        .font(.caption)
+                        .foregroundColor(audioEngine.linkIsConnected ? .green : .secondary)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showSettings = true }) {
                     Image(systemName: "gear")

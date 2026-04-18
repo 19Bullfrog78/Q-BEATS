@@ -16,9 +16,10 @@ struct LinkEngine {
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
     void (*tempoCallback_)(double bpm, void* context) = nullptr;
     void* tempoCallbackContext_ = nullptr;
-    // === AGGIUNTO 6D — Start/Stop sync ===
     void (*startStopCallback_)(bool isPlaying, void* context) = nullptr;
     void* startStopCallbackContext_ = nullptr;
+    void (*isConnectedCallback_)(bool isConnected, void* context) = nullptr;
+    void* isConnectedCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
@@ -26,6 +27,11 @@ LinkEngineHandle link_engine_create(void) {
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
     return (LinkEngineHandle)engine;
+}
+
+void* link_engine_get_abl_ref(LinkEngineHandle handle) {
+    if (!handle) return nullptr;
+    return static_cast<LinkEngine*>(handle)->link_;
 }
 
 void link_engine_destroy(LinkEngineHandle handle) {
@@ -37,9 +43,21 @@ void link_engine_destroy(LinkEngineHandle handle) {
 
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled) {
     if (!handle) return;
-    LinkEngine* engine = (LinkEngine*)handle;
-    engine->enabled_.store(enabled);
-    ABLLinkSetActive(engine->link_, enabled);
+    auto* le = static_cast<LinkEngine*>(handle);
+    if (enabled) {
+        le->enabled_.store(true);
+        ABLLinkSetActive(le->link_, true);
+        ABLLinkSetIsConnectedCallback(le->link_, [](bool isConnected, void* context) {
+            auto* le = static_cast<LinkEngine*>(context);
+            le->enabled_.store(isConnected ? true : le->enabled_.load());
+            if (le->isConnectedCallback_) {
+                le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
+            }
+        }, le);
+    } else {
+        le->enabled_.store(false);
+        ABLLinkSetActive(le->link_, false);
+    }
 }
 
 bool link_engine_is_enabled(LinkEngineHandle handle) {
@@ -90,6 +108,15 @@ void link_engine_set_tempo_callback(LinkEngineHandle handle,
             }
         },
         (void*)engine);
+}
+
+void link_engine_set_is_connected_callback(LinkEngineHandle handle,
+    void (*callback)(bool isConnected, void* context),
+    void* context) {
+    if (!handle) return;
+    auto* le = static_cast<LinkEngine*>(handle);
+    le->isConnectedCallback_ = callback;
+    le->isConnectedCallbackContext_ = context;
 }
 
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {

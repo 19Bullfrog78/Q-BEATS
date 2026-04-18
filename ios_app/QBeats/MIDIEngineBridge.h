@@ -55,6 +55,9 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context);
+void link_engine_set_is_connected_callback(LinkEngineHandle handle,
+    void (*callback)(bool isConnected, void* context),
+    void* context);
 
 // === AGGIUNTO 6C — Link phase sync ===
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks);
