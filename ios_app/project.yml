@@ -16,6 +16,7 @@ targets:
         NSBluetoothPeripheralUsageDescription: "Q-BEATS richiede l'accesso al Bluetooth per connettere controller e tastiere MIDI Bluetooth LE."
         NSBonjourServices:
           - "_apple-midi._tcp."
+          - "_link-peers._tcp"
         UIBackgroundModes:
           - audio
     frameworks:
