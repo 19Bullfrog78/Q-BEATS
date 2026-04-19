@@ -135,7 +135,7 @@ class AudioEngine: ObservableObject {
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
 
-    func start() {
+    func start(resumeAtBeat: Double? = nil) {
         audioQueue.async { [weak self] in
             guard let self else { return }
             guard !self.isRunning, let _ = self.metronomeHandle else { return }
@@ -153,9 +153,11 @@ class AudioEngine: ObservableObject {
 
                     // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
-                    midi_engine_set_beat_position(mh, 0.0)
+                    // start(resumeAtBeat:) applica beat corretto prima dei buffer → zero race condition
+                    let startBeat = resumeAtBeat ?? 0.0
+                    midi_engine_set_beat_position(mh, startBeat)
                     if let h = self.metronomeHandle {
-                        metronome_set_beat_position(h, 0.0)
+                        metronome_set_beat_position(h, startBeat)
                     }
                     if let lh = self.linkEngineHandle {
                         link_engine_set_quantum(lh, Double(self.beatsPerBar))
@@ -499,23 +501,7 @@ class AudioEngine: ObservableObject {
 
             // start() fa già tutti i reset interni + link_engine_set_is_playing(true)
             // + scheduleNextBuffer x3. Non modificare la sua firma.
-            start()
-
-            // Solo se Link NON era attivo: forza la beat position calcolata.
-            // Se Link era attivo: il phase sync in scheduleNextBuffer() si occupa
-            // del riallineamento nei primi buffer.
-            if !interruptionLinkWasEnabled {
-                audioQueue.async {
-                    if let mh = self.midiEngineHandle {
-                        midi_engine_set_beat_position(mh, resumeBeat)
-                    }
-                    if let h = self.metronomeHandle {
-                        metronome_set_beat_position(h, resumeBeat)
-                    }
-                    os_log("[Q-BEATS][INTERRUPTION] resumeBeat forced: %.4f",
-                           log: .default, type: .default, resumeBeat)
-                }
-            }
+            start(resumeAtBeat: interruptionLinkWasEnabled ? nil : resumeBeat)
 
         @unknown default: break
         }
