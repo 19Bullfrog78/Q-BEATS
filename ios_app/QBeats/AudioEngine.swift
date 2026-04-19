@@ -521,6 +521,17 @@ class AudioEngine: ObservableObject {
                 guard let self = self,
                       self.wasPlayingBeforeInterruption else { return }
 
+                // === GUARD contro false resume durante chiamata attiva ===
+                // iOS manda .categoryChange MULTIPLE volte durante il lifecycle CallKit.
+                // Durante la chiamata la categoria diventa .playAndRecord (SR forzato a 32000 Hz).
+                // Riprendiamo SOLO quando iOS ha veramente ripristinato .playback.
+                let currentCategory = AVAudioSession.sharedInstance().category
+                guard currentCategory == .playback else {
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — categoria attuale: %{public}@",
+                           log: .default, type: .default, currentCategory.rawValue)
+                    return
+                }
+
                 // Copia locale dello stato prima di consumarlo
                 let resumeBeatPosition = self.interruptionBeatPosition
                 let resumeBPM          = self.interruptionBPM
@@ -548,7 +559,6 @@ class AudioEngine: ObservableObject {
                        elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
 
                 // setActive + start() devono essere sequenziali sul main thread
-                // per garantire che la sessione sia realmente attiva prima di engine.start()
                 DispatchQueue.main.async {
                     try? AVAudioSession.sharedInstance().setActive(true,
                         options: .notifyOthersOnDeactivation)
