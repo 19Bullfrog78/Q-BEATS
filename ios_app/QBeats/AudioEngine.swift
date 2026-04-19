@@ -482,26 +482,38 @@ class AudioEngine: ObservableObject {
             // lo considera non-resumable (es. dopo interruzione da YouTube).
             guard wasPlayingBeforeInterruption else { return }
 
+            // Copia locale + reset stato — previene doppio setActive se iOS manda
+            // anche .categoryChange dopo .ended (es. chiamata rifiutata).
+            // Il secondo setActive mentre l'engine è già running corrompe
+            // silenziosamente la session e blocca il completion handler dei buffer.
+            let resumeBeatPosition = interruptionBeatPosition
+            let resumeBPM          = interruptionBPM
+            let resumeLinkEnabled  = interruptionLinkWasEnabled
+            let resumeTimestamp    = interruptionTimestamp
+
+            wasPlayingBeforeInterruption = false
+            interruptionTimestamp        = 0
+            interruptionBeatPosition     = 0.0
+            interruptionBPM              = 120.0
+            interruptionLinkWasEnabled   = false
+
             try? AVAudioSession.sharedInstance().setActive(true,
                 options: .notifyOthersOnDeactivation)
 
-            // Calcola beat atteso (solo se Link non era attivo)
-            let elapsedTicks = mach_absolute_time() - interruptionTimestamp
+            let elapsedTicks = mach_absolute_time() - resumeTimestamp
             let elapsedNanos = Double(elapsedTicks)
                              * Double(machTimebase.numer)
                              / Double(machTimebase.denom)
             let elapsedSecs  = elapsedNanos / 1_000_000_000.0
-            let resumeBeat   = interruptionBeatPosition
-                             + (elapsedSecs * interruptionBPM / 60.0)
+            let resumeBeat   = resumeBeatPosition
+                             + (elapsedSecs * resumeBPM / 60.0)
 
             os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs resumeBeat:%.4f link:%d",
                    log: .default, type: .default,
                    elapsedSecs, resumeBeat,
-                   interruptionLinkWasEnabled ? 1 : 0)
+                   resumeLinkEnabled ? 1 : 0)
 
-            // start() fa già tutti i reset interni + link_engine_set_is_playing(true)
-            // + scheduleNextBuffer x3. Non modificare la sua firma.
-            start(resumeAtBeat: interruptionLinkWasEnabled ? nil : resumeBeat)
+            start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
 
         @unknown default: break
         }
