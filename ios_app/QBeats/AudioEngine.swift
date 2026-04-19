@@ -147,6 +147,9 @@ class AudioEngine: ObservableObject {
                     // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
                     midi_engine_set_beat_position(mh, 0.0)
+                    if let h = self.metronomeHandle {
+                        metronome_set_beat_position(h, 0.0)
+                    }
 
                     // Annuncio Link (join senza forzare downbeat)
                     if let lh = self.linkEngineHandle {
@@ -335,17 +338,18 @@ class AudioEngine: ObservableObject {
                 var newBeat: Double = 0.0
                 if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
+                    metronome_set_beat_position(h, newBeat)
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
-                           log: .default, type: .info,
+                           log: .default, type: .default,
                            currentBeat, newBeat)
                     if bufferCount <= 2 {
                         os_log("[Q-BEATS][LINK][RESTART] buffer #%d: correction %.4f → %.4f (delta=%.4f)",
-                               log: .default, type: .info,
+                               log: .default, type: .default,
                                bufferCount, currentBeat, newBeat, newBeat - currentBeat)
                     }
                 } else if bufferCount <= 2 {
                     os_log("[Q-BEATS][LINK][RESTART] buffer #%d: beat=%.4f — no correction",
-                           log: .default, type: .info,
+                           log: .default, type: .default,
                            bufferCount, currentBeat)
                 }
             }

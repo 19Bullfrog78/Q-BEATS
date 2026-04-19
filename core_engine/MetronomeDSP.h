@@ -14,6 +14,7 @@ public:
     void setBPM(double bpm);
     void setBeatsPerBar(uint32_t beatsPerBar);
     void setAbsolutePositionForTesting(uint64_t pos);
+    void setBeatPosition(double beatPosition);
     std::vector<BeatEvent> processBuffer(uint32_t bufferSize);
 
 private:

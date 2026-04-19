@@ -32,3 +32,8 @@ uint32_t metronome_processBuffer(MetronomeHandle handle,
     }
     return count;
 }
+
+void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setBeatPosition(beatPosition);
+}
