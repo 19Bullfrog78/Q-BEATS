@@ -635,15 +635,23 @@ class AudioEngine: ObservableObject {
             guard let self = self else { return }
             guard self.isRunning, !self.engine.isRunning else { return }
 
-            os_log("[Q-BEATS][ENGINE] Config change detected — clean restart",
+            os_log("[Q-BEATS][ENGINE] Config change detected — rebuilding graph and restarting",
                    log: .default, type: .default)
 
-            // Blocca la catena dei completion handler: scheduleNextBuffer()
-            // in coda su audioQueue vedrà isRunning=false e uscirà senza
-            // schedulare buffer su un engine morto.
+            // 1. Spezza la catena dei completion handler pendenti
             self.isRunning = false
 
-            // Legge beat corrente per riprendere dal punto esatto.
+            // 2. Ferma esplicitamente il nodo per sganciare lo stato di playback dal vecchio IO unit
+            self.playerNode.stop()
+
+            // 3. Scollega e ricollega SOLO il playerNode al mixer.
+            // Forza CoreAudio a ricalcolare il formato hardware auto-negoziando (format: nil).
+            self.engine.disconnectNodeOutput(self.playerNode)
+            self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+
+            // 4. Prepare è TASSATIVO prima di riavviare dopo un config change hardware
+            self.engine.prepare()
+
             let resumeBeat: Double
             if let mh = self.midiEngineHandle {
                 resumeBeat = midi_engine_get_beat_position(mh)
@@ -651,8 +659,7 @@ class AudioEngine: ObservableObject {
                 resumeBeat = 0.0
             }
 
-            // Restart pulito — start() azzera bufferCount, playhead e stati
-            // interni, poi schedula i 3 buffer su engine fresco.
+            // 5. Riavvia la catena pulita
             self.start(resumeAtBeat: resumeBeat)
         }
     }
