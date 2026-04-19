@@ -513,6 +513,52 @@ class AudioEngine: ObservableObject {
               let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
         if reason == .oldDeviceUnavailable { stopSync() }
 
+        // Resume dopo chiamata telefonica o altre route changes CallKit
+        // iOS non manda sempre .ended via InterruptionNotification per chiamate.
+        // Invece manda routeChange con .categoryChange quando la chiamata finisce.
+        if reason == .categoryChange {
+            audioQueue.async { [weak self] in
+                guard let self = self,
+                      self.wasPlayingBeforeInterruption else { return }
+
+                // Copia locale dello stato prima di consumarlo
+                let resumeBeatPosition = self.interruptionBeatPosition
+                let resumeBPM          = self.interruptionBPM
+                let resumeLinkEnabled  = self.interruptionLinkWasEnabled
+                let resumeTimestamp    = self.interruptionTimestamp
+
+                // Consuma lo stato di interruzione per evitare valori sporchi successivi
+                self.wasPlayingBeforeInterruption = false
+                self.interruptionTimestamp        = 0
+                self.interruptionBeatPosition     = 0.0
+                self.interruptionBPM              = 120.0
+                self.interruptionLinkWasEnabled   = false
+
+                // Calcolo elapsed (stesso di .ended)
+                let elapsedTicks = mach_absolute_time() - resumeTimestamp
+                let elapsedNanos = Double(elapsedTicks)
+                                 * Double(self.machTimebase.numer)
+                                 / Double(self.machTimebase.denom)
+                let elapsedSecs  = elapsedNanos / 1_000_000_000.0
+                let resumeBeat   = resumeBeatPosition
+                                 + (elapsedSecs * resumeBPM / 60.0)
+
+                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs resumeBeat:%.4f link:%d",
+                       log: .default, type: .default,
+                       elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
+
+                // setActive + start() devono essere sequenziali sul main thread
+                // per garantire che la sessione sia realmente attiva prima di engine.start()
+                DispatchQueue.main.async {
+                    try? AVAudioSession.sharedInstance().setActive(true,
+                        options: .notifyOthersOnDeactivation)
+
+                    // Avvia con beat corretto (Opzione A)
+                    self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
+                }
+            }
+        }
+
         let avSession = AVAudioSession.sharedInstance()
         audioQueue.async { [weak self] in
             guard let self else { return }
