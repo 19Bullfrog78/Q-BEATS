@@ -521,12 +521,10 @@ class AudioEngine: ObservableObject {
                 guard let self = self,
                       self.wasPlayingBeforeInterruption else { return }
 
-                // === GUARD contro false resume durante chiamata attiva ===
-                // iOS manda .categoryChange MULTIPLE volte durante il lifecycle CallKit.
-                // Durante la chiamata la categoria diventa .playAndRecord (SR forzato a 32000 Hz).
-                // Riprendiamo SOLO quando iOS ha veramente ripristinato .playback.
-                // Guard SR: durante chiamata iOS forza SR a 8000/16000/32000 Hz.
-                // Il resume è valido solo quando la sessione è tornata a 44100+ Hz.
+                // === GUARD SR contro false resume durante chiamata attiva ===
+                // iOS manda .categoryChange più volte durante il lifecycle chiamata.
+                // Durante la chiamata (Ringtone, PlayAndRecord) il SR è 8000/16000/32000 Hz.
+                // Il resume è valido SOLO quando la sessione è tornata a 44100+ Hz.
                 let currentSampleRate = AVAudioSession.sharedInstance().sampleRate
                 guard currentSampleRate >= 44100 else {
                     os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — SR:%.0f",
@@ -565,7 +563,6 @@ class AudioEngine: ObservableObject {
                     try? AVAudioSession.sharedInstance().setActive(true,
                         options: .notifyOthersOnDeactivation)
 
-                    // Avvia con beat corretto (Opzione A)
                     self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
                 }
             }
