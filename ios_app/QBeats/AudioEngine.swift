@@ -475,12 +475,10 @@ class AudioEngine: ObservableObject {
                    interruptionLinkWasEnabled ? 1 : 0)
 
         case .ended:
-            let options      = info[AVAudioSessionInterruptionOptionKey] as? UInt
-            let shouldResume = options.map {
-                AVAudioSession.InterruptionOptions(rawValue: $0).contains(.shouldResume)
-            } ?? false
-
-            guard wasPlayingBeforeInterruption && shouldResume else { return }
+            // Ignoriamo shouldResume per comportamento live: un metronomo/sequencer
+            // deve sempre riprendere quando l'utente torna sull'app, anche se iOS
+            // lo considera non-resumable (es. dopo interruzione da YouTube).
+            guard wasPlayingBeforeInterruption else { return }
 
             try? AVAudioSession.sharedInstance().setActive(true,
                 options: .notifyOthersOnDeactivation)
