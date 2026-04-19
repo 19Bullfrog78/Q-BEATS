@@ -633,30 +633,27 @@ class AudioEngine: ObservableObject {
     @objc private func handleEngineConfigChange(_ notification: Notification) {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
-            // Se noi pensiamo di essere in play ma iOS ha fermato l'engine
-            // (riconfigurazione IO unit dopo fine interruzione), riavviamo.
             guard self.isRunning, !self.engine.isRunning else { return }
 
-            os_log("[Q-BEATS][ENGINE] Config change detected — engine stopped externally, restarting",
+            os_log("[Q-BEATS][ENGINE] Config change detected — clean restart",
                    log: .default, type: .default)
 
-            do {
-                try self.engine.start()
-                self.playerNode.reset()
-                self.playerNode.play()
+            // Blocca la catena dei completion handler: scheduleNextBuffer()
+            // in coda su audioQueue vedrà isRunning=false e uscirà senza
+            // schedulare buffer su un engine morto.
+            self.isRunning = false
 
-                self.scheduleNextBuffer()
-                self.scheduleNextBuffer()
-                self.scheduleNextBuffer()
-            } catch {
-                os_log("[Q-BEATS][ENGINE] Restart after config change failed: %{public}@",
-                       log: .default, type: .error, error.localizedDescription)
-                self.isRunning = false
-                DispatchQueue.main.async {
-                    self.isPlaying = false
-                    self.clickStatus = "engine restart failed"
-                }
+            // Legge beat corrente per riprendere dal punto esatto.
+            let resumeBeat: Double
+            if let mh = self.midiEngineHandle {
+                resumeBeat = midi_engine_get_beat_position(mh)
+            } else {
+                resumeBeat = 0.0
             }
+
+            // Restart pulito — start() azzera bufferCount, playhead e stati
+            // interni, poi schedula i 3 buffer su engine fresco.
+            self.start(resumeAtBeat: resumeBeat)
         }
     }
 }
