@@ -145,6 +145,7 @@ class AudioEngine: ObservableObject {
                 self.clickPlayhead  = -1
                 self.accentPlayhead = -1
                 try self.engine.start()
+                self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
 
