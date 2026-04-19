@@ -522,13 +522,24 @@ class AudioEngine: ObservableObject {
                       self.wasPlayingBeforeInterruption else { return }
 
                 // === GUARD SR contro false resume durante chiamata attiva ===
-                // iOS manda .categoryChange più volte durante il lifecycle chiamata.
-                // Durante la chiamata (Ringtone, PlayAndRecord) il SR è 8000/16000/32000 Hz.
-                // Il resume è valido SOLO quando la sessione è tornata a 44100+ Hz.
                 let currentSampleRate = AVAudioSession.sharedInstance().sampleRate
                 guard currentSampleRate >= 44100 else {
                     os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — SR:%.0f",
                            log: .default, type: .default, currentSampleRate)
+                    return
+                }
+
+                // === GUARD durata minima interruzione ===
+                // Suoneria (Ringtone) non abbassa SR ma manda began+categoryChange
+                // a distanza di ~100-200ms. Una interruzione reale dura >= 500ms.
+                let elapsedTicksCheck = mach_absolute_time() - self.interruptionTimestamp
+                let elapsedSecsCheck  = Double(elapsedTicksCheck)
+                                      * Double(self.machTimebase.numer)
+                                      / Double(self.machTimebase.denom)
+                                      / 1_000_000_000.0
+                guard elapsedSecsCheck >= 0.5 else {
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — elapsed troppo breve: %.3fs",
+                           log: .default, type: .default, elapsedSecsCheck)
                     return
                 }
 
@@ -545,7 +556,7 @@ class AudioEngine: ObservableObject {
                 self.interruptionBPM              = 120.0
                 self.interruptionLinkWasEnabled   = false
 
-                // Calcolo elapsed (stesso di .ended)
+                // Calcolo elapsed
                 let elapsedTicks = mach_absolute_time() - resumeTimestamp
                 let elapsedNanos = Double(elapsedTicks)
                                  * Double(self.machTimebase.numer)
@@ -558,11 +569,9 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
 
-                // setActive + start() devono essere sequenziali sul main thread
                 DispatchQueue.main.async {
                     try? AVAudioSession.sharedInstance().setActive(true,
                         options: .notifyOthersOnDeactivation)
-
                     self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
                 }
             }
