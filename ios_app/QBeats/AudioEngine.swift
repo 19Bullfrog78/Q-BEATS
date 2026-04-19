@@ -146,6 +146,10 @@ class AudioEngine: ObservableObject {
                 self.accentPlayhead = -1
                 try self.engine.start()
                 self.playerNode.play()
+                // Reset stato interno del playerNode dopo restart engine.
+                // Senza questo, i completion handler di scheduleBuffer
+                // non si attivano dopo una interruzione AVAudioSession.
+                self.playerNode.reset()
                 self.isRunning = true
 
                 if let mh = self.midiEngineHandle {
