@@ -23,7 +23,7 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .bold()
 
-            Text("\(Int(audioEngine.currentBPM)) BPM")
+            Text("\(Int(audioEngine.currentBPM.rounded())) BPM")
                 .font(.system(size: 48, weight: .thin, design: .monospaced))
 
             Text("Click: \(audioEngine.clickStatus)")

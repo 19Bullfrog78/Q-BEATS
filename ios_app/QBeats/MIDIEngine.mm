@@ -33,9 +33,7 @@ struct MIDIEngine {
 
     mach_timebase_info_data_t timebaseInfo;
 
-    // === DIAGNOSTICA 7d — TEMPORANEA ===
-    std::atomic<bool> _diagPhaseCorrection{false};
-    uint64_t _diagLastEmittedMach{0};
+
 
     MIDIEngine() {
         client = 0;
@@ -333,46 +331,6 @@ void midi_engine_process(void* handle, uint32_t bufferSize) {
         if (!pkt) break; 
     }
 
-    // === DIAGNOSTICA 7d — log eventi nel buffer post-correzione ===
-    bool diagActive = engine->_diagPhaseCorrection.load(std::memory_order_relaxed);
-    if (diagActive) {
-        engine->_diagPhaseCorrection.store(false, std::memory_order_relaxed);
-        for (uint32_t di = 0; di < engine->outBuffer.count; ++di) {
-            ScheduledEvent& se = engine->outBuffer.events[di];
-            uint64_t sampleOffset = se.samplePosition - engine->lastSamplePosition;
-            double offsetNanos = ((double)sampleOffset / engine->sampleRate) * 1.0e9;
-            uint64_t targetMach = engine->lastMachTime
-                + nanosToMach((uint64_t)offsetNanos, engine->timebaseInfo);
-
-            double deltaMsFromLast = -1.0;
-            if (engine->_diagLastEmittedMach > 0) {
-                int64_t deltaTicks = (int64_t)targetMach - (int64_t)engine->_diagLastEmittedMach;
-                double deltaNanos = (double)((__int128_t)deltaTicks
-                    * (int64_t)engine->timebaseInfo.numer)
-                    / (int64_t)engine->timebaseInfo.denom;
-                deltaMsFromLast = deltaNanos / 1.0e6;
-            }
-
-            os_log(OS_LOG_DEFAULT,
-                "[Q-BEATS][DIAG][7d] POST-CORRECTION evt[%u/%u] tick=%u samplePos=%llu "
-                "targetMach=%llu deltaFromPrev=%.3fms data=0x%02X",
-                di, engine->outBuffer.count,
-                se.event.tick, (unsigned long long)se.samplePosition,
-                (unsigned long long)targetMach,
-                deltaMsFromLast, se.event.data[0]);
-
-            engine->_diagLastEmittedMach = targetMach;
-        }
-    } else {
-        // Path normale: aggiorna solo il timestamp dell'ultimo evento
-        if (engine->outBuffer.count > 0) {
-            ScheduledEvent& lastSe = engine->outBuffer.events[engine->outBuffer.count - 1];
-            uint64_t sampleOffset = lastSe.samplePosition - engine->lastSamplePosition;
-            double offsetNanos = ((double)sampleOffset / engine->sampleRate) * 1.0e9;
-            engine->_diagLastEmittedMach = engine->lastMachTime
-                + nanosToMach((uint64_t)offsetNanos, engine->timebaseInfo);
-        }
-    }
 
     MIDIReceived(engine->virtualSource, pktList);
 
@@ -416,6 +374,4 @@ void midi_engine_set_beat_position(void* handle, double targetBeats) {
     MIDIEngine* engine = (MIDIEngine*)handle;
     if (!engine) return;
     engine->sequencer.setBeatPosition(targetBeats, engine->lastSamplePosition);
-    // === DIAGNOSTICA 7d — segnala che il prossimo buffer è post-correzione ===
-    engine->_diagPhaseCorrection.store(true, std::memory_order_relaxed);
 }
