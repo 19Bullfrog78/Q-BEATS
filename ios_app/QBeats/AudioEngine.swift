@@ -525,10 +525,12 @@ class AudioEngine: ObservableObject {
                 // iOS manda .categoryChange MULTIPLE volte durante il lifecycle CallKit.
                 // Durante la chiamata la categoria diventa .playAndRecord (SR forzato a 32000 Hz).
                 // Riprendiamo SOLO quando iOS ha veramente ripristinato .playback.
-                let currentCategory = AVAudioSession.sharedInstance().category
-                guard currentCategory == .playback else {
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — categoria attuale: %{public}@",
-                           log: .default, type: .default, currentCategory.rawValue)
+                // Guard SR: durante chiamata iOS forza SR a 8000/16000/32000 Hz.
+                // Il resume è valido solo quando la sessione è tornata a 44100+ Hz.
+                let currentSampleRate = AVAudioSession.sharedInstance().sampleRate
+                guard currentSampleRate >= 44100 else {
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — SR:%.0f",
+                           log: .default, type: .default, currentSampleRate)
                     return
                 }
 
