@@ -526,7 +526,22 @@ class AudioEngine: ObservableObject {
         guard let info        = notification.userInfo,
               let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
-        if reason == .oldDeviceUnavailable { stopSync() }
+        if reason == .oldDeviceUnavailable {
+            // Fermare solo se il device rimosso era un output audio reale
+            // (cuffie, BT A2DP, BT LE). NON fermare per rilascio del
+            // codec telefonico (earpiece/mic chiamata) che manda
+            // oldDeviceUnavailable quando la chiamata finisce.
+            if let previousRoute = info[AVAudioSessionRouteChangePreviousRouteKey]
+                as? AVAudioSessionRouteDescription {
+                let wasAudioOutput = previousRoute.outputs.contains {
+                    $0.portType == .headphones ||
+                    $0.portType == .bluetoothA2DP ||
+                    $0.portType == .bluetoothLE ||
+                    $0.portType == .airPlay
+                }
+                if wasAudioOutput { stopSync() }
+            }
+        }
 
         // Resume dopo chiamata telefonica o altre route changes CallKit
         // iOS non manda sempre .ended via InterruptionNotification per chiamate.
