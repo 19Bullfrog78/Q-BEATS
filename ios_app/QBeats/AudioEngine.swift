@@ -53,6 +53,13 @@ class AudioEngine: ObservableObject {
     private var outputLatencyTicks : UInt64 = 0
     private var bufferDurationTicks: UInt64 = 0
 
+    // === AGGIUNTO Blocco 7 — stato interruzione (protetto da audioQueue) ===
+    private var wasPlayingBeforeInterruption: Bool   = false
+    private var interruptionBeatPosition:     Double  = 0.0
+    private var interruptionBPM:              Double  = 120.0
+    private var interruptionTimestamp:        UInt64  = 0
+    private var interruptionLinkWasEnabled:   Bool    = false
+
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -422,40 +429,96 @@ class AudioEngine: ObservableObject {
     @objc private func handleInterruption(_ notification: Notification) {
         guard let info      = notification.userInfo,
               let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type      = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+              let type      = AVAudioSession.InterruptionType(rawValue: typeValue)
+        else { return }
+
         switch type {
+
         case .began:
-            var wasRunning = false
-            var bc = 0
-            var bt = 0
             audioQueue.sync {
-                wasRunning = self.isRunning
+                // Salva stato prima di fermarsi
+                self.wasPlayingBeforeInterruption = self.isRunning
                 guard self.isRunning else { return }
+
+                // Salva beat position e BPM al momento dell'interruzione
+                if let mh = self.midiEngineHandle {
+                    self.interruptionBeatPosition = midi_engine_get_beat_position(mh)
+                }
+                self.interruptionBPM       = self.currentBPM
+                self.interruptionTimestamp = mach_absolute_time()
+
+                // Salva se Link era attivo (non leggere @Published in .ended)
+                if let lh = self.linkEngineHandle {
+                    self.interruptionLinkWasEnabled = link_engine_is_enabled(lh)
+                    // Notifica Link che la riproduzione si è fermata
+                    link_engine_set_is_playing(lh, false, mach_absolute_time())
+                } else {
+                    self.interruptionLinkWasEnabled = false
+                }
+
                 self.isRunning = false
-                bc = self.bufferCount
-                bt = self.beatTotal
             }
-            guard wasRunning else { return }
+
+            guard wasPlayingBeforeInterruption else { return }
             playerNode.stop()
             engine.stop()
-            let statusStr = "stopped buf:\(bc) beats:\(bt)"
+            if let mh = midiEngineHandle { midi_engine_stop(mh) }
+            let bc = audioQueue.sync { self.bufferCount }
+            let bt = audioQueue.sync { self.beatTotal }
             DispatchQueue.main.async {
                 self.isPlaying   = false
-                self.clickStatus = statusStr
+                self.clickStatus = "interrupted buf:\(bc) beats:\(bt)"
             }
-            // isRunning = true usato come flag "wasPlaying" per .ended
-            audioQueue.sync { self.isRunning = true }
+            os_log("[Q-BEATS][INTERRUPTION] began — beat:%.4f bpm:%.1f link:%d",
+                   log: .default, type: .default,
+                   interruptionBeatPosition, interruptionBPM,
+                   interruptionLinkWasEnabled ? 1 : 0)
+
         case .ended:
             let options      = info[AVAudioSessionInterruptionOptionKey] as? UInt
             let shouldResume = options.map {
                 AVAudioSession.InterruptionOptions(rawValue: $0).contains(.shouldResume)
             } ?? false
-            let wasPlaying: Bool = audioQueue.sync { self.isRunning }
-            guard wasPlaying && shouldResume else { return }
-            audioQueue.sync { self.isRunning = false }
+
+            guard wasPlayingBeforeInterruption && shouldResume else { return }
+
             try? AVAudioSession.sharedInstance().setActive(true,
                 options: .notifyOthersOnDeactivation)
+
+            // Calcola beat atteso (solo se Link non era attivo)
+            let elapsedTicks = mach_absolute_time() - interruptionTimestamp
+            let elapsedNanos = Double(elapsedTicks)
+                             * Double(machTimebase.numer)
+                             / Double(machTimebase.denom)
+            let elapsedSecs  = elapsedNanos / 1_000_000_000.0
+            let resumeBeat   = interruptionBeatPosition
+                             + (elapsedSecs * interruptionBPM / 60.0)
+
+            os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs resumeBeat:%.4f link:%d",
+                   log: .default, type: .default,
+                   elapsedSecs, resumeBeat,
+                   interruptionLinkWasEnabled ? 1 : 0)
+
+            // start() fa già tutti i reset interni + link_engine_set_is_playing(true)
+            // + scheduleNextBuffer x3. Non modificare la sua firma.
             start()
+
+            // Solo se Link NON era attivo: forza la beat position calcolata.
+            // Se Link era attivo: il phase sync in scheduleNextBuffer() si occupa
+            // del riallineamento nei primi buffer.
+            if !interruptionLinkWasEnabled {
+                audioQueue.async {
+                    if let mh = self.midiEngineHandle {
+                        midi_engine_set_beat_position(mh, resumeBeat)
+                    }
+                    if let h = self.metronomeHandle {
+                        metronome_set_beat_position(h, resumeBeat)
+                    }
+                    os_log("[Q-BEATS][INTERRUPTION] resumeBeat forced: %.4f",
+                           log: .default, type: .default, resumeBeat)
+                }
+            }
+
         @unknown default: break
         }
     }
