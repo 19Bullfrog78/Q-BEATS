@@ -60,6 +60,10 @@ class AudioEngine: ObservableObject {
     private var interruptionTimestamp:        UInt64  = 0
     private var interruptionLinkWasEnabled:   Bool    = false
 
+    // Usato da handleEngineConfigChange per ricalcolare beat position accurata
+    private var lastStartBeat:      Double = 0.0
+    private var lastStartTimestamp: UInt64 = 0
+
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -144,6 +148,9 @@ class AudioEngine: ObservableObject {
                 self.beatTotal      = 0
                 self.clickPlayhead  = -1
                 self.accentPlayhead = -1
+
+                self.lastStartBeat      = resumeAtBeat ?? 0.0
+                self.lastStartTimestamp = mach_absolute_time()
                 try self.engine.start()
                 self.playerNode.reset()
                 self.playerNode.play()
@@ -652,12 +659,16 @@ class AudioEngine: ObservableObject {
             // 4. Prepare è TASSATIVO prima di riavviare dopo un config change hardware
             self.engine.prepare()
 
-            let resumeBeat: Double
-            if let mh = self.midiEngineHandle {
-                resumeBeat = midi_engine_get_beat_position(mh)
-            } else {
-                resumeBeat = 0.0
-            }
+            // Ricalcola beat includendo il tempo trascorso durante il graph rebuild.
+            // midi_engine_get_beat_position conta solo i buffer già eseguiti (~32ms),
+            // non il tempo reale del rebuild. Questo causa desync misurabile.
+            let elapsedTicksSinceStart = mach_absolute_time() - self.lastStartTimestamp
+            let elapsedSecsSinceStart  = Double(elapsedTicksSinceStart)
+                                       * Double(self.machTimebase.numer)
+                                       / Double(self.machTimebase.denom)
+                                       / 1_000_000_000.0
+            let resumeBeat = self.lastStartBeat
+                           + elapsedSecsSinceStart * self.currentBPM / 60.0
 
             // 5. Riavvia la catena pulita
             self.start(resumeAtBeat: resumeBeat)

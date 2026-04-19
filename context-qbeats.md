@@ -1,196 +1,185 @@
-# Q-BEATS — Contesto di Progetto
-*Incolla questo come primo messaggio in ogni nuova chat del progetto.*
+# Q-BEATS — Contesto Progetto per AG
+**Ultimo aggiornamento:** 20/04/2026
 
 ---
 
-## Identità progetto
+## 1. Architettura (Strada B — NON modificabile)
 
-**Q-BEATS** (ex LiveHost) — metronomo e sequencer live nativo iOS per musicisti professionisti. iPhone-first. Livello: AUM / Cubasis / Drambo. Non un DAW.
+- **LAYER 3** — Swift / SwiftUI + ObjC++ Bridge (roadmap)
+- **LAYER 2** — CoreMIDI C-API + Sequencer PPQN-960 + Ableton Link ← fase attuale
+- **LAYER 1** — Core Audio C-API + C++ DSP Engine ✅ COMPLETATO
 
-**Mauro** = supervisore e architetto. Non scrive codice direttamente.
-**AG** (Antigravity IDE) = agente AI Google, esegue codice in locale su Windows.
-**Claude** = referee tecnico senior del panel AI (Claude + Gemini + GPT).
-
-Repository: `github.com/19Bullfrog78/Q-BEATS`
+Strada A (React Native) scartata. Non riaprire.
 
 ---
 
-## Architettura approvata — Strada B (NON modificabile)
+## 2. Regole RT thread — inviolabili nel render callback
 
-```
-LAYER 3 — Swift / SwiftUI + ObjC++ Bridge
-LAYER 2 — CoreMIDI C-API + Sequencer PPQN-960 + Ableton Link SDK
-LAYER 1 — Core Audio C-API + C++ DSP Engine  ← fase attuale
-```
-
-**Strada A (React Native + Expo + JSI) = scartata. Non riaprire.**
-
-### Regole RT thread — inviolabili nel render callback
-- Zero malloc/free/new/delete
-- Zero Swift ARC
+- Zero `malloc`/`free`/`new`/`delete`
+- Zero Swift ARC (retain/release)
 - Zero ObjC messaging
 - Zero mutex bloccanti
-- Zero I/O / syscall bloccanti
+- Zero I/O, zero syscall bloccanti
 - Consentito: `std::atomic`, memoria pre-allocata, lock-free ring buffer
 
 ---
 
-## Strategia operativa — Cervello + Orecchie
+## 3. Thread safety in `AudioEngine.swift`
 
-| Componente | Dove | Come |
+- **`audioQueue`** (Serial, `.userInteractive`): unica coda per stato audio (`isRunning`, `clickPlayhead`, `bufferCount`, `beatTotal`, `clickSamples`, ecc.)
+- **`@Published`**: ogni write su `DispatchQueue.main.async` (`clickStatus`, `isPlaying`, `currentBPM`, `linkEnabled`, `linkIsConnected`, `beatsPerBar`)
+- **Deadlock prevention**: mai chiamare `stopSync()` dall'interno di `audioQueue` (usa `sync` internamente)
+- Start/Stop callback Link: dispatcha su `DispatchQueue.main` (NON `audioQueue` — deadlock con `stopSync()`)
+
+---
+
+## 4. Stato Layer 2 — build corrente #118
+
+| Blocco | Stato |
+|---|---|
+| 1–5 (CoreMIDI, USB, Network, BT LE) | ✅ CHIUSO |
+| 6A–6E (Ableton Link) | ✅ CHIUSO |
+| Fix phase/click/quantum | ✅ CHIUSO (build #98–#100) |
+| Validazione Link test 7a, 7b | ✅ PASS |
+| Validazione Link test 7c, 7d | 🔲 Da fare |
+| **Blocco 7 — Interruption Handling** | 🔄 IN CORSO (build #118) |
+
+### Blocco 7 — sotto-blocchi
+
+| Step | Stato |
+|---|---|
+| 7A — Registrare InterruptionNotification, salvare stato in `.began` | ✅ |
+| 7B — Resume in `.ended` + `.categoryChange` (calcolo beat position) | ✅ |
+| 7C — Sync MetronomeDSP + MIDISequencer al resume | ✅ |
+| 7D — `mediaServicesWereResetNotification` (full engine rebuild) | ✅ |
+| 7E — Test su device (tutti gli scenari) | 🔄 IN CORSO |
+
+### Bug fixati Blocco 7
+
+| Bug | Fix | Build |
 |---|---|---|
-| `core_engine/` C++ puro | locale Windows | CMake, test in ms |
-| `ios_app/` ObjC++ + Swift | cloud build | GitHub Actions, macOS runner |
+| False riprese durante chiamata attiva (SR 32000) | Guard `SR >= 44100` in `categoryChange` | #109 |
+| False riprese durante suoneria (elapsed breve) | Guard `elapsed >= 0.5s` in `categoryChange` | #110–#111 |
+| Doppio `setActive` su chiamata rifiutata | Copia locale + reset `wasPlayingBeforeInterruption` in `.ended` | #112 |
+| iOS ferma engine per riconfigurazione IO dopo `.ended` | Observer `AVAudioEngineConfigurationChange` — clean restart con `resumeBeat` | #118 |
+| Stop improprio a fine chiamata (oldDeviceUnavailable) | Guard `previousRoute.outputs` in `handleRouteChange` | #117 |
 
-**iOS shell va in cloud build SOLO dopo che il C++ è verificato.**
+---
 
-### Struttura cartelle — realtà su GitHub
+## 5. Decisioni architetturali chiave
+
+### Bridge e file critici
+- `MIDIEngineBridge.h` = singola sorgente di verità firme bridge — disallineamento con `.mm` = build rossa
+- Bridge: `extern C` + `void*` handle
+- `setBPM` (mai `setTempo`)
+- Prompt verbatim obbligatorio per file critici
+
+### LinkEngine
+- **`struct LinkEngine {}` C++** definita in `LinkEngine.mm` (NON `@interface NSObject`)
+- API C pura: handle `ABLLinkRef` (LinkKit 3.2.2 xcframework, static lib)
+- `link_engine_get_abl_ref` in `LinkEngine.h` — NON in `MIDIEngineBridge.h`
+- `ABLLinkSettingsViewController`: class method `+ (instancetype)instance:` — NON `initWithLink:`
+- `ABLLinkSetPeerCountCallback` NON ESISTE in LinkKit 3.2.2
+- `ABLLinkClockMicros` NON è in `ABLLink.h`
+- `ABLLinkSetTempo(state, bpm, hostTime)` — hostTime = mach ticks
+- Quantum dinamico: segue `beatsPerBar`
+
+### Phase Correction Policy v1.2
+- Hard sync assoluto: `*outNewBeatPosition = linkBeat`
+- Soglia: 0.01 beats
+- Punto applicazione: buffer boundary (`scheduleNextBuffer()`)
+- `scheduleNextBuffer()` è su `audioQueue` (DispatchQueue) — versioni `App` di ABLLink
+
+### Interruption Handling
+- `.began`: salva stato + ferma engine
+- `.ended`: guard SR + copia locale stato + reset flag + `start(resumeAtBeat:)`
+- `.categoryChange`: guard SR >= 44100 + guard elapsed >= 0.5s + copia locale + reset flag + resume
+- `wasPlayingBeforeInterruption` resettato in ENTRAMBI i path (`.ended` e `categoryChange`)
+- `AVAudioEngineConfigurationChange`: se `isRunning && !engine.isRunning` → restart engine + playerNode + 3 buffer
+- `playerNode.reset()` va chiamato PRIMA di `playerNode.play()` — MAI dopo
+
+### Coordinamento metronomo
+- Opzione B: moduli indipendenti coordinati da AudioEngine
+- `MetronomeDSP::setBeatPosition` + bridge `metronome_set_beat_position` — in `start()` e dopo phase sync
+- Bridge metronomo = `MetronomeDSPBridge.h` / `.mm` — **NON dentro `MIDIEngine.mm`**
+- `MetronomeDSP._beatFractionAccumulator` **NON ESISTE** — rifiutare se compare
+
+---
+
+## 6. Flusso operativo
+
+- **AG (Windows)**: scrive codice, build/test `core_engine` C++ via CMake
+- **GitHub Actions (macOS)**: CI su push, genera IPA
+- **Claude**: referee tecnico finale — ogni prompt deve essere approvato
+- **Mauro**: supervisore/architetto — non scrive codice
+
+---
+
+## 7. Note tecniche fisse
+
+| Regola | Dettaglio |
+|---|---|
+| Buffer size | Sempre da `ioBufferDuration` — iOS può ignorare preferred |
+| Debug | `os_log` unico — `print()` non catturato da iMazing Console |
+| `os_log` in Swift | `os_log("...", log: .default, type: .debug, ...)` — `OS_LOG_DEFAULT` è macro C |
+| Test drift | 121 BPM (120 = intero esatto, maschera drift) |
+| Path build | Path relativi `../../../` vietati su GitHub Actions |
+| `UIBackgroundModes: audio` | Obbligatorio in `project.yml` |
+| `machTimebase` | Cachato come `let` in `AudioEngine.swift` — non chiamare ogni route change |
+| Re-sign manuale CI | Obbligatorio per entitlement restricted — non rimuovere step `codesign --force` |
+| Entitlement multicast | `com.apple.developer.networking.multicast` — confermato nel binario |
+
+---
+
+## 8. Struttura cartelle
 
 ```
 Q-BEATS/
-  core_engine/          ← C++ puro, CMakeLists.txt, unit test
+  core_engine/
+    MIDITypes.h
+    MIDISequencer.h / .cpp
   ios_app/
-    QBeats/             ← tutto in una cartella (no sottocartelle Bridge/ UI/)
-      MetronomeDSPBridge.h
-      MetronomeDSPBridge.mm
+    QBeats/
       AudioEngine.swift
       ContentView.swift
-      (altri file Swift/ObjC++)
+      SettingsView.swift
+      MIDIEngineBridge.h
+      MIDIEngine.mm
+      MetronomeDSPBridge.h / .mm
+      BTMIDICentralPickerView.swift
+      MIDINetworkViewModel.swift
+      LinkEngine.h / .mm
+      LinkSettingsPresenter.h / .mm
+      LinkSettingsUIView.swift
+      QBeats-Bridging-Header.h
   Vendors/
     TPCircularBuffer/
     AbletonLink/
+      LinkKit.xcframework
+      LinkKitResources.bundle
 ```
 
-> ⚠️ La struttura Bridge/ e UI/ come sottocartelle separate è ideale ma non corrisponde alla realtà attuale del repo. Tutto è piatto in `ios_app/QBeats/`.
+---
+
+## 9. Prossimi step
+
+1. Build #116 su CI → installare → test 7E (chiamata rifiutata, risposta+riagganciata, YouTube, sveglia, Siri, Link+chiamata)
+2. Se PASS → test Link 7c e 7d
+3. Backlog #3 — test BLE controller terze parti (opzionale)
+4. Briefing prodotto — sessione dedicata zero codice
+5. Apertura Layer 3 — Swift/SwiftUI
 
 ---
 
-## Stato attuale
+## 10. Test suite CMake — 8 test, tutti PASS
 
-### Completato ✅
-- `MetronomeDSP.h` / `.cpp` — Layer 1 C++, testato (3 test: `test_basic_beat`, `test_buffer_wrap`, `test_long_term_drift`)
-- `MetronomeDSPBridge.h` / `.mm` — bridge C puro (`extern "C"` + `void* handle`)
-- Expo / RN / expo-modules-core — rimossi definitivamente
-- Click sintetico — rimosso `click.wav`, seno 1000 Hz / 40ms con decay esponenziale in `generateClickSamples()`
-- Playhead persistente — bug troncamento click ai boundary di buffer risolto con `clickPlayhead: Int`
-- Commenti `test_main.cpp` — corretti e pushati (commit `8c8690f`)
-- **Task #1 — Race condition start() / completion handler** — `scheduleNextBuffer()` serializzato via `DispatchQueue(label: "com.bullfrog.qbeats.audio")`. Testato con interruzione WhatsApp e schermo spento: nessun colpo perso, nessun crash ✅
-- **Data race AudioEngine.swift** — `isRunning`, `clickPlayhead`, `bufferCount`, `beatTotal`, `clickSamples`, `clickStatus`, `setBPM` tutti thread-safe via `audioQueue`. `AudioEngine.swift` rev. 2 verificato e pushato ✅
-- **Build #5 su device** — silenzio pulito + click secco ogni mezzo secondo a 120 BPM ✅
-
-### Prossimo step immediato
-**Task #5 — MIDI Output / CoreMIDI Stage**
-
-### Backlog follow-up
-
-| # | Priorità | Stato | Descrizione |
-|---|---|---|---|
-| 1 | 🔴 Alta | ✅ Completato | Race condition `start()` — serializzato via DispatchQueue seriale |
-| Data race | 🔴 Alta | ✅ Completato | `isRunning`/`clickPlayhead`/`clickSamples`/`clickStatus`/`setBPM` — tutti su `audioQueue`. `AudioEngine.swift` rev. 2 |
-| 3 | 🟡 Media | ✅ Completato | Time signature configurabile — `beatsPerBar` in C++, accento beat 1 (1500 Hz), normale (1000 Hz). |
-| 4 | 🟡 Media | ✅ Completato | Fix `clickStatus` SwiftUI — `AudioEngine` è ora `ObservableObject`, UI reattiva. |
-| 2 | 🟢 Bassa | 🔲 Aperto | Playhead singolo → array playhead (polimetria, suddivisioni future) |
-
-### Orizzonte
-- **Fase 2**: CoreMIDI (tag Apple Developer Forums già flaggato)
-- **Fase 3**: AVAudioSession interruption handling (spec già definita — vedi sotto)
-- **MIDI 2.0**: rinviato, richiede iOS 17+
-
----
-
-## Regole tre inviolabili di progetto
-
-1. **No fix senza diagnosi completa** — capire esattamente perché esiste il bug prima di toccare qualcosa.
-2. **No patch su patch** — correggere la causa root al punto X, mai compensare al punto Y.
-3. **No shortcut architetturali** — Strada B / Cervello+Orecchie / sample-accurate è inviolabile.
-
----
-
-## Note tecniche fisse — sempre valide
-
-| Argomento | Regola |
+| Test | Copertura |
 |---|---|
-| Buffer size | Sempre da `ioBufferDuration` — iOS può ignorare il preferred |
-| AUv3 host | Impone buffer size dall'esterno — engine deve adattarsi |
-| Ableton Link SDK | Lock-free by design → va nel render callback, zero thread extra |
-| HDMI audio | AVAudioSession reindirizza automaticamente se configurato |
-| HDMI video | Offset compensazione manuale obbligatorio (latenza ≠ audio) |
-| Media server reset | `mediaServicesWereResetNotification` → full engine rebuild |
-| BT A2DP | 100–200ms — inutilizzabile per monitoring live |
-| BT LE MIDI | 5–15ms — accettabile MIDI, non audio |
-| 120 BPM test | 24000 samples esatti → **non** rivela drift, non usare |
-| 121 BPM test | 23801.65… → rivela immediatamente troncamenti, **obbligatorio** |
-| setBPM | È `setBPM`, mai `setTempo` — distinzione critica nei prompt |
-| Bridge | È `extern "C"` + `void* handle` — NON `@interface` ObjC |
-| Path relativi | Vietati su GitHub Actions — solo path risolvibili in cloud |
-| `os_log` | Unico sistema debug catturato da iMazing Device Console (`print()` Swift non catturato) |
-
-### AudioEngine.swift — regole thread (inviolabili)
-
-- `isRunning`, `clickPlayhead`, `bufferCount`, `beatTotal`, `clickSamples` — accesso ESCLUSIVO su `audioQueue`
-- `clickStatus` — UI only, ogni write su `audioQueue.async`
-- `stopSync()` — NON chiamare dall'interno di `audioQueue` (deadlock). Usa `audioQueue.sync` internamente
-- `setBPM()` — `audioQueue.async { metronome_setBPM(h, bpm) }` — write C++ su `audioQueue`
-- Notification handlers — usare `audioQueue.sync`/`audioQueue.async` per ogni accesso a stato; mai chiamare `start()`/`stop()` direttamente senza prima serializzare su `audioQueue`
-
-### Fase 3 — AVAudioSession interruption (spec confermata)
-- Tracciare `wasPlayingBeforeInterruption`
-- Su `.ended`: verificare `shouldResume` prima di riprendere
-- Chiamare `AVAudioSession.setActive(true, options: .notifyOthersOnDeactivation)` — obbligatorio
-- Resume path idempotente: stessa sessione = resume, non reinit
-- Notification handler su `@MainActor` via `Task`
-
----
-
-## Bug catches da Prompt Zero — non dimenticare
-
-- Buffer target in **samples**, non millisecondi
-- Swift ARC warning **deve** essere aggiunto esplicitamente
-- `test_buffer_wrap`: `setAbsolutePositionForTesting` = `samplesPerBeat - (bufferSize - 1)` — no hardcode
-- `setAbsolutePositionForTesting` deve resettare **tutto** lo stato floating-point, non solo il contatore int
-- Commenti fuorvianti = bug nei prompt — ogni commento deve essere letteralmente vero
-
----
-
-## Gerarchia LLM per prompt AG
-
-| Modello | Quando usarlo |
-|---|---|
-| **Gemini 3 Flash** | Task meccanici / routine — usare il più possibile |
-| **Gemini 3.1 PRO LOW/HIGH** | Ragionamento complesso dove Flash non basta |
-| **Claude Sonnet 4.6 Thinking / Opus 4.6 Thinking / GPT-OSS 230B** | Crediti limitati — riservare a task che richiedono davvero queste capacità |
-
-**iMazing**: 8 install IPA rimanenti (aggiornato 10/04/2026). Installare solo codice verificato e stabile.
-
----
-
-## Target hardware e deployment
-
-- **Device**: iPhone, chip A12 minimo (iPhone XS 2018+)
-- **iOS deployment target**: 16.0
-- **MIDI 2.0**: fase successiva (richiede iOS 17+)
-- **UI**: iPhone portrait. HDMI = landscape su `UIWindow` separata — non mirroring.
-
----
-
-## Flusso di lavoro standard
-
-```
-Mauro definisce obiettivo
-    ↓
-Claude verifica architettura e prompt → semaforo verde / verde con correzioni / rosso
-    ↓
-Gemini / GPT elaborano proposte
-    ↓
-Claude review finale
-    ↓
-Mauro lancia prompt su AG
-    ↓
-AG scrive e testa il codice in locale
-```
-
-**Mandato verbatim**: per file critici (bridge headers, DSP interfaces, build config, CI/CD workflow), AG riceve codice verbatim esatto — zero libertà creativa.
-
----
-
-*Ultimo aggiornamento: 11/04/2026*
+| test_tick_accuracy | Precisione tick PPQN-960 |
+| test_drift_121bpm | Drift 121 BPM |
+| test_buffer_wrap | Edge case buffer wrap |
+| test_loop_restart | Riavvio loop/pattern |
+| test_absolute_position | setAbsolutePositionForTesting |
+| test_bpm_change | Cambio BPM mid-playback |
+| test_ppqn_960 | Risoluzione PPQN-960 |
+| test_event_scheduling | Scheduling eventi MIDI |
