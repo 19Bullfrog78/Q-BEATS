@@ -150,6 +150,9 @@ class AudioEngine: ObservableObject {
                     if let h = self.metronomeHandle {
                         metronome_set_beat_position(h, 0.0)
                     }
+                    if let lh = self.linkEngineHandle {
+                        link_engine_set_quantum(lh, Double(self.beatsPerBar))
+                    }
 
                     // Annuncio Link (join senza forzare downbeat)
                     if let lh = self.linkEngineHandle {
@@ -245,7 +248,12 @@ class AudioEngine: ObservableObject {
     // tramite Picker su main thread prima di chiamare questo metodo.
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
-        audioQueue.async { metronome_setBeatsPerBar(h, beatsPerBar) }
+        audioQueue.async {
+            metronome_setBeatsPerBar(h, beatsPerBar)
+            if let lh = self.linkEngineHandle {
+                link_engine_set_quantum(lh, Double(beatsPerBar))
+            }
+        }
     }
 
     // MARK: - Private
