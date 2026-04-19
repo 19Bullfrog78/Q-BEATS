@@ -427,6 +427,8 @@ class AudioEngine: ObservableObject {
             name: AVAudioSession.routeChangeNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleMediaReset),
             name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleEngineConfigChange),
+            name: .AVAudioEngineConfigurationChange, object: engine)
     }
 
     @objc private func handleInterruption(_ notification: Notification) {
@@ -611,5 +613,35 @@ class AudioEngine: ObservableObject {
             self.accentedClickSamples = self.generateClickSamples(frequency: 1500.0)
         }
         if wasRunning { start() }
+    }
+
+    @objc private func handleEngineConfigChange(_ notification: Notification) {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            // Se noi pensiamo di essere in play ma iOS ha fermato l'engine
+            // (riconfigurazione IO unit dopo fine interruzione), riavviamo.
+            guard self.isRunning, !self.engine.isRunning else { return }
+
+            os_log("[Q-BEATS][ENGINE] Config change detected — engine stopped externally, restarting",
+                   log: .default, type: .default)
+
+            do {
+                try self.engine.start()
+                self.playerNode.reset()
+                self.playerNode.play()
+
+                self.scheduleNextBuffer()
+                self.scheduleNextBuffer()
+                self.scheduleNextBuffer()
+            } catch {
+                os_log("[Q-BEATS][ENGINE] Restart after config change failed: %{public}@",
+                       log: .default, type: .error, error.localizedDescription)
+                self.isRunning = false
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                    self.clickStatus = "engine restart failed"
+                }
+            }
+        }
     }
 }
