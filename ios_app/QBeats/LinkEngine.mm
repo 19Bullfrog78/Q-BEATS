@@ -5,6 +5,7 @@
 #include <atomic>
 #include <mach/mach_time.h>
 #include <cmath>
+#import <os/log.h>
 
 struct LinkEngine {
     ABLLinkRef link_;
@@ -136,8 +137,20 @@ void link_engine_set_is_playing(LinkEngineHandle handle,
         ABLLinkCaptureAppSessionState(engine->link_);
 
     double quantum = engine->quantum_.load(std::memory_order_relaxed);
-    ABLLinkSetIsPlayingAndRequestBeatAtTime(
-        state, isPlaying, hostTime, 0.0, quantum);
+
+    if (isPlaying) {
+        double currentLinkBeat = ABLLinkBeatAtTime(state, hostTime, quantum);
+        ABLLinkSetIsPlayingAndRequestBeatAtTime(
+            state, true, hostTime, currentLinkBeat, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][RESTART] set_is_playing=true beat=%.4f (join)",
+               currentLinkBeat);
+    } else {
+        ABLLinkSetIsPlayingAndRequestBeatAtTime(
+            state, false, hostTime, 0.0, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][RESTART] set_is_playing=false");
+    }
 
     ABLLinkCommitAppSessionState(engine->link_, state);
 }

@@ -140,11 +140,15 @@ class AudioEngine: ObservableObject {
                 try self.engine.start()
                 self.playerNode.play()
                 self.isRunning = true
-                if let mh = self.midiEngineHandle { 
-                    midi_engine_set_bpm(mh, self.currentBPM)
-                    midi_engine_start(mh) 
-                    
-                    // === AGGIUNTO 6D — notifica Link che la riproduzione è iniziata ===
+
+                if let mh = self.midiEngineHandle {
+                    midi_engine_start(mh)
+
+                    // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
+                    midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
+                    midi_engine_set_beat_position(mh, 0.0)
+
+                    // Annuncio Link (join senza forzare downbeat)
                     if let lh = self.linkEngineHandle {
                         link_engine_set_is_playing(lh, true, mach_absolute_time())
                     }
@@ -155,6 +159,7 @@ class AudioEngine: ObservableObject {
                         midi_engine_network_disable(mh)
                     }
                 }
+
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
@@ -163,7 +168,6 @@ class AudioEngine: ObservableObject {
                     self.clickStatus = statusStr
                 }
 
-                // === AGGIUNTO 6C — calcola ticks prima del primo buffer ===
                 let avSession = AVAudioSession.sharedInstance()
                 self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
                 self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
@@ -322,11 +326,7 @@ class AudioEngine: ObservableObject {
                 UInt64(bufferCount) * UInt64(bufferSize),
                 mach_absolute_time(),
                 sampleRate)
-            // === MODIFICATO 6A ===
-            // === PLACEHOLDER 6C Ableton Link ===
-            // Qui andranno link_captureAudioSessionState + link_commitAudioSessionState 
-            // (dentro audioQueue, prima del process sequencer)
-            // === MODIFICATO 6C — phase sync Link (Phase Correction Policy v1.2) ===
+            // === Phase sync Link (Phase Correction Policy v1.2) + diagnostica restart ===
             if let lh = linkEngineHandle, let mh = midiEngineHandle {
                 let hostTimeAtOutput = mach_absolute_time()
                                      + outputLatencyTicks
@@ -338,6 +338,15 @@ class AudioEngine: ObservableObject {
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
                            log: .default, type: .info,
                            currentBeat, newBeat)
+                    if bufferCount <= 2 {
+                        os_log("[Q-BEATS][LINK][RESTART] buffer #%d: correction %.4f → %.4f (delta=%.4f)",
+                               log: .default, type: .info,
+                               bufferCount, currentBeat, newBeat, newBeat - currentBeat)
+                    }
+                } else if bufferCount <= 2 {
+                    os_log("[Q-BEATS][LINK][RESTART] buffer #%d: beat=%.4f — no correction",
+                           log: .default, type: .info,
+                           bufferCount, currentBeat)
                 }
             }
 
@@ -444,13 +453,12 @@ class AudioEngine: ObservableObject {
               let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
         if reason == .oldDeviceUnavailable { stopSync() }
-        // === MODIFICATO 6A ===
-        // === 6A/6C output latency update ===
-        // === MODIFICATO 6C — aggiorna output latency in mach ticks ===
+
         let avSession = AVAudioSession.sharedInstance()
         audioQueue.async { [weak self] in
             guard let self else { return }
-            self.outputLatencyTicks = self.secondsToMachTicks(avSession.outputLatency)
+            self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
+            self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
             if let lh = self.linkEngineHandle {
                 link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
             }
