@@ -634,8 +634,8 @@ class AudioEngine: ObservableObject {
                 try? AVAudioSession.sharedInstance().setActive(true,
                     options: .notifyOthersOnDeactivation)
 
-                let avSession    = AVAudioSession.sharedInstance()
-                let latencySecs  = avSession.outputLatency + avSession.ioBufferDuration
+                let avSessionResume = AVAudioSession.sharedInstance()
+                let latencySecs  = avSessionResume.outputLatency + avSessionResume.ioBufferDuration
                 let elapsedTicks = mach_absolute_time() - resumeTimestamp
                 let elapsedSecs  = Double(elapsedTicks)
                                  * Double(self.machTimebase.numer)
