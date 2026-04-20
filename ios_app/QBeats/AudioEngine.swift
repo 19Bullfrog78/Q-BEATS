@@ -558,12 +558,17 @@ class AudioEngine: ObservableObject {
                 guard let self = self else { return }
 
                 let avSession = AVAudioSession.sharedInstance()
-                
-                // Rilevamento GSM/VoIP robusto: include playAndRecord, lo standard per le chiamate
+                let currentSR = avSession.sampleRate
+
+                // Rilevamento GSM/VoIP robusto: category/mode + SR come fallback hardware.
+                // iOS non cambia la category/mode della nostra sessione .playback durante GSM,
+                // ma abbassa sempre l'SR a 32000 (o meno con BT HFP). SR è il discriminatore
+                // affidabile per il began; category/mode coprono i casi VoIP futuri.
                 let isVoiceActive = avSession.mode == .voiceChat ||
                                     avSession.mode == .videoChat ||
                                     avSession.category == .record ||
-                                    avSession.category == .playAndRecord
+                                    avSession.category == .playAndRecord ||
+                                    currentSR < 44100
 
                 // === CASO GSM BEGAN ===
                 if isVoiceActive {
