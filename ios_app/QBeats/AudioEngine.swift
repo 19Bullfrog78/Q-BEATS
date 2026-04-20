@@ -507,20 +507,34 @@ class AudioEngine: ObservableObject {
             interruptionBPM              = 120.0
             interruptionLinkWasEnabled   = false
 
+            // Rebuild graph con formato auto-negoziato PRIMA di ripartire.
+            // SR è cambiato durante la chiamata (es. 32000 GSM → 48000).
+            // Evita AVAudioEngineConfigurationChange ritardati che causano desync.
+            engine.disconnectNodeOutput(playerNode)
+            engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
+            engine.prepare()
+
             try? AVAudioSession.sharedInstance().setActive(true,
                 options: .notifyOthersOnDeactivation)
 
+            // Calcolo elapsed DOPO rebuild e setActive — outputLatency è valido
+            // solo dopo che la sessione è tornata attiva a 48000Hz.
+            // Compensazione latenza hardware: allineamento con il path Link
+            // (outputLatencyTicks + bufferDurationTicks in scheduleNextBuffer).
+            let avSession = AVAudioSession.sharedInstance()
+            let latencySecs = avSession.outputLatency + avSession.ioBufferDuration
             let elapsedTicks = mach_absolute_time() - resumeTimestamp
             let elapsedNanos = Double(elapsedTicks)
                              * Double(machTimebase.numer)
                              / Double(machTimebase.denom)
             let elapsedSecs  = elapsedNanos / 1_000_000_000.0
+            let totalElapsedSecs = elapsedSecs + latencySecs
             let resumeBeat   = resumeBeatPosition
-                             + (elapsedSecs * resumeBPM / 60.0)
+                             + (totalElapsedSecs * resumeBPM / 60.0)
 
-            os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs resumeBeat:%.4f link:%d",
+            os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs (comp:%.3fs) resumeBeat:%.4f link:%d",
                    log: .default, type: .default,
-                   elapsedSecs, resumeBeat,
+                   elapsedSecs, totalElapsedSecs, resumeBeat,
                    resumeLinkEnabled ? 1 : 0)
 
             start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
