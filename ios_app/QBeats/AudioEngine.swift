@@ -677,6 +677,12 @@ class AudioEngine: ObservableObject {
             let resumeBeat = self.lastStartBeat
                            + elapsedSecsSinceStart * self.currentBPM / 60.0
 
+            // Riattiva la session prima del restart — necessario se il config change
+            // arriva durante o subito dopo una interruzione (es. app rilanciata da iOS
+            // durante chiamata attiva). Senza questo, engine.start() fallisce.
+            try? AVAudioSession.sharedInstance().setActive(true,
+                options: .notifyOthersOnDeactivation)
+
             // 5. Riavvia la catena pulita
             self.start(resumeAtBeat: resumeBeat)
         }
