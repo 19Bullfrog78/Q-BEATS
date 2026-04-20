@@ -560,7 +560,7 @@ class AudioEngine: ObservableObject {
                 let avSession = AVAudioSession.sharedInstance()
                 
                 // Rilevamento GSM/VoIP robusto: include playAndRecord, lo standard per le chiamate
-                let isVoiceActive = avSession.mode == .voiceTelephony ||
+                let isVoiceActive = avSession.mode == .voiceChat ||
                                     avSession.mode == .videoChat ||
                                     avSession.category == .record ||
                                     avSession.category == .playAndRecord
