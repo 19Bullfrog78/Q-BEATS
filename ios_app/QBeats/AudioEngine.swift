@@ -439,33 +439,25 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleInterruption(_ notification: Notification) {
-        guard let info      = notification.userInfo,
+        guard let info = notification.userInfo,
               let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type      = AVAudioSession.InterruptionType(rawValue: typeValue)
-        else { return }
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
 
         switch type {
-
         case .began:
             audioQueue.sync {
-                // Salva stato prima di fermarsi
                 self.wasPlayingBeforeInterruption = self.isRunning
                 guard self.isRunning else { return }
 
-                // Salva beat position e BPM al momento dell'interruzione
                 if let mh = self.midiEngineHandle {
                     self.interruptionBeatPosition = midi_engine_get_beat_position(mh)
                 }
-                self.interruptionBPM       = self.currentBPM
+                self.interruptionBPM = self.currentBPM
                 self.interruptionTimestamp = mach_absolute_time()
 
-                // Salva se Link era attivo (non leggere @Published in .ended)
                 if let lh = self.linkEngineHandle {
                     self.interruptionLinkWasEnabled = link_engine_is_enabled(lh)
-                    // Notifica Link che la riproduzione si è fermata
                     link_engine_set_is_playing(lh, false, mach_absolute_time())
-                } else {
-                    self.interruptionLinkWasEnabled = false
                 }
 
                 self.isRunning = false
@@ -475,69 +467,53 @@ class AudioEngine: ObservableObject {
             playerNode.stop()
             engine.stop()
             if let mh = midiEngineHandle { midi_engine_stop(mh) }
+
             let bc = audioQueue.sync { self.bufferCount }
             let bt = audioQueue.sync { self.beatTotal }
             DispatchQueue.main.async {
-                self.isPlaying   = false
+                self.isPlaying = false
                 self.clickStatus = "interrupted buf:\(bc) beats:\(bt)"
             }
-            os_log("[Q-BEATS][INTERRUPTION] began — beat:%.4f bpm:%.1f link:%d",
-                   log: .default, type: .default,
-                   interruptionBeatPosition, interruptionBPM,
-                   interruptionLinkWasEnabled ? 1 : 0)
 
         case .ended:
-            // Ignoriamo shouldResume per comportamento live: un metronomo/sequencer
-            // deve sempre riprendere quando l'utente torna sull'app, anche se iOS
-            // lo considera non-resumable (es. dopo interruzione da YouTube).
-            guard wasPlayingBeforeInterruption else { return }
+            audioQueue.async { [weak self] in
+                guard let self = self else { return }
+                guard self.wasPlayingBeforeInterruption else { return }
 
-            // Copia locale + reset stato — previene doppio setActive se iOS manda
-            // anche .categoryChange dopo .ended (es. chiamata rifiutata).
-            // Il secondo setActive mentre l'engine è già running corrompe
-            // silenziosamente la session e blocca il completion handler dei buffer.
-            let resumeBeatPosition = interruptionBeatPosition
-            let resumeBPM          = interruptionBPM
-            let resumeLinkEnabled  = interruptionLinkWasEnabled
-            let resumeTimestamp    = interruptionTimestamp
+                let resumeBeatPosition = self.interruptionBeatPosition
+                let resumeBPM          = self.interruptionBPM
+                let resumeLinkEnabled  = self.interruptionLinkWasEnabled
+                let resumeTimestamp    = self.interruptionTimestamp
 
-            wasPlayingBeforeInterruption = false
-            interruptionTimestamp        = 0
-            interruptionBeatPosition     = 0.0
-            interruptionBPM              = 120.0
-            interruptionLinkWasEnabled   = false
+                self.wasPlayingBeforeInterruption = false
+                self.interruptionTimestamp        = 0
+                self.interruptionBeatPosition     = 0.0
+                self.interruptionBPM              = 120.0
+                self.interruptionLinkWasEnabled   = false
 
-            // Rebuild graph con formato auto-negoziato PRIMA di ripartire.
-            // SR è cambiato durante la chiamata (es. 32000 GSM → 48000).
-            // Evita AVAudioEngineConfigurationChange ritardati che causano desync.
-            engine.disconnectNodeOutput(playerNode)
-            engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
-            engine.prepare()
+                self.engine.disconnectNodeOutput(self.playerNode)
+                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+                self.engine.prepare()
 
-            try? AVAudioSession.sharedInstance().setActive(true,
-                options: .notifyOthersOnDeactivation)
+                try? AVAudioSession.sharedInstance().setActive(true,
+                    options: .notifyOthersOnDeactivation)
 
-            // Calcolo elapsed DOPO rebuild e setActive — outputLatency è valido
-            // solo dopo che la sessione è tornata attiva a 48000Hz.
-            // Compensazione latenza hardware: allineamento con il path Link
-            // (outputLatencyTicks + bufferDurationTicks in scheduleNextBuffer).
-            let avSession = AVAudioSession.sharedInstance()
-            let latencySecs = avSession.outputLatency + avSession.ioBufferDuration
-            let elapsedTicks = mach_absolute_time() - resumeTimestamp
-            let elapsedNanos = Double(elapsedTicks)
-                             * Double(machTimebase.numer)
-                             / Double(machTimebase.denom)
-            let elapsedSecs  = elapsedNanos / 1_000_000_000.0
-            let totalElapsedSecs = elapsedSecs + latencySecs
-            let resumeBeat   = resumeBeatPosition
-                             + (totalElapsedSecs * resumeBPM / 60.0)
+                let avSession    = AVAudioSession.sharedInstance()
+                let latencySecs  = avSession.outputLatency + avSession.ioBufferDuration
+                let elapsedTicks = mach_absolute_time() - resumeTimestamp
+                let elapsedSecs  = Double(elapsedTicks)
+                                 * Double(self.machTimebase.numer)
+                                 / Double(self.machTimebase.denom)
+                                 / 1_000_000_000.0
+                let resumeBeat   = resumeBeatPosition
+                                 + ((elapsedSecs + latencySecs) * resumeBPM / 60.0)
 
-            os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs (comp:%.3fs) resumeBeat:%.4f link:%d",
-                   log: .default, type: .default,
-                   elapsedSecs, totalElapsedSecs, resumeBeat,
-                   resumeLinkEnabled ? 1 : 0)
+                os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs + latency:%.3fs → resumeBeat:%.4f link:%d",
+                       log: .default, type: .default,
+                       elapsedSecs, latencySecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
 
-            start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
+                self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
+            }
 
         @unknown default: break
         }
