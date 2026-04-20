@@ -606,6 +606,13 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
 
+                // Rebuild graph con formato auto-negoziato prima del restart.
+                // Previene AVAudioEngineConfigurationChange e il secondo restart
+                // che causava desync proporzionale alla durata della chiamata.
+                self.engine.disconnectNodeOutput(self.playerNode)
+                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+                self.engine.prepare()
+
                 DispatchQueue.main.async {
                     try? AVAudioSession.sharedInstance().setActive(true,
                         options: .notifyOthersOnDeactivation)
