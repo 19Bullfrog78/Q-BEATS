@@ -557,26 +557,60 @@ class AudioEngine: ObservableObject {
             audioQueue.async { [weak self] in
                 guard let self = self else { return }
 
-                // Consuma lo stato immediatamente come prima operazione.
-                // iOS può mandare categoryChange multipli simultanei (es. WA VoIP).
-                // Senza consumo immediato, più blocchi passano il guard e
-                // fanno rebuild multipli che corrompono il graph.
-                guard self.wasPlayingBeforeInterruption else { return }
-                self.wasPlayingBeforeInterruption = false
+                let avSession = AVAudioSession.sharedInstance()
+                
+                // Rilevamento GSM/VoIP robusto: include playAndRecord, lo standard per le chiamate
+                let isVoiceActive = avSession.mode == .voiceTelephony ||
+                                    avSession.mode == .videoChat ||
+                                    avSession.category == .record ||
+                                    avSession.category == .playAndRecord
 
-                guard !self.isRunning else { return }
-
-                // === GUARD SR contro false resume durante chiamata attiva ===
-                let currentSampleRate = AVAudioSession.sharedInstance().sampleRate
-                guard currentSampleRate >= 44100 else {
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — SR:%.0f",
-                           log: .default, type: .default, currentSampleRate)
+                // === CASO GSM BEGAN ===
+                if isVoiceActive {
+                    guard self.isRunning else {
+                        os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice began — engine già fermo (mode:%@ cat:%@)",
+                               log: .default, type: .default,
+                               avSession.mode.rawValue, avSession.category.rawValue)
+                        return
+                    }
+                    
+                    self.wasPlayingBeforeInterruption = true
+                    if let mh = self.midiEngineHandle {
+                        self.interruptionBeatPosition = midi_engine_get_beat_position(mh)
+                    }
+                    self.interruptionBPM       = self.currentBPM
+                    self.interruptionTimestamp = mach_absolute_time()
+                    
+                    if let lh = self.linkEngineHandle {
+                        self.interruptionLinkWasEnabled = link_engine_is_enabled(lh)
+                        link_engine_set_is_playing(lh, false, mach_absolute_time())
+                    } else {
+                        self.interruptionLinkWasEnabled = false
+                    }
+                    
+                    self.isRunning = false
+                    self.playerNode.stop()
+                    self.engine.stop()
+                    if let mh = self.midiEngineHandle { midi_engine_stop(mh) }
+                    
+                    DispatchQueue.main.async {
+                        self.isPlaying   = false
+                        self.clickStatus = "voice interrupted"
+                    }
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice began — beat:%.4f bpm:%.1f mode:%@ cat:%@",
+                           log: .default, type: .default,
+                           self.interruptionBeatPosition, self.interruptionBPM,
+                           avSession.mode.rawValue, avSession.category.rawValue)
                     return
                 }
 
-                // === GUARD durata minima interruzione ===
-                // Suoneria (Ringtone) non abbassa SR ma manda began+categoryChange
-                // a distanza di ~100-200ms. Una interruzione reale dura >= 500ms.
+                // === CASO RESUME ===
+                guard self.wasPlayingBeforeInterruption else { return }
+                self.wasPlayingBeforeInterruption = false // Consumo per debounce
+
+                guard !self.isRunning else { return }
+
+                // Guard durata minima interruzione
                 let elapsedTicksCheck = mach_absolute_time() - self.interruptionTimestamp
                 let elapsedSecsCheck  = Double(elapsedTicksCheck)
                                       * Double(self.machTimebase.numer)
@@ -585,22 +619,20 @@ class AudioEngine: ObservableObject {
                 guard elapsedSecsCheck >= 0.5 else {
                     os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — elapsed troppo breve: %.3fs",
                            log: .default, type: .default, elapsedSecsCheck)
+                    self.wasPlayingBeforeInterruption = true // RE-ARM FONDAMENTALE per non perdere il vero resume
                     return
                 }
 
-                // Copia locale dello stato prima di consumarlo
                 let resumeBeatPosition = self.interruptionBeatPosition
                 let resumeBPM          = self.interruptionBPM
                 let resumeLinkEnabled  = self.interruptionLinkWasEnabled
                 let resumeTimestamp    = self.interruptionTimestamp
 
-                // Consuma lo stato di interruzione per evitare valori sporchi successivi
-                self.interruptionTimestamp        = 0
-                self.interruptionBeatPosition     = 0.0
-                self.interruptionBPM              = 120.0
-                self.interruptionLinkWasEnabled   = false
+                self.interruptionTimestamp      = 0
+                self.interruptionBeatPosition   = 0.0
+                self.interruptionBPM            = 120.0
+                self.interruptionLinkWasEnabled = false
 
-                // Calcolo elapsed
                 let elapsedTicks = mach_absolute_time() - resumeTimestamp
                 let elapsedNanos = Double(elapsedTicks)
                                  * Double(self.machTimebase.numer)
@@ -609,13 +641,11 @@ class AudioEngine: ObservableObject {
                 let resumeBeat   = resumeBeatPosition
                                  + (elapsedSecs * resumeBPM / 60.0)
 
-                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs resumeBeat:%.4f link:%d",
+                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs resumeBeat:%.4f link:%d mode:%@ cat:%@",
                        log: .default, type: .default,
-                       elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
+                       elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0,
+                       avSession.mode.rawValue, avSession.category.rawValue)
 
-                // Rebuild graph con formato auto-negoziato prima del restart.
-                // Previene AVAudioEngineConfigurationChange e il secondo restart
-                // che causava desync proporzionale alla durata della chiamata.
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
