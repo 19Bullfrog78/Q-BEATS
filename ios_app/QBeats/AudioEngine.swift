@@ -558,6 +558,10 @@ class AudioEngine: ObservableObject {
                 guard let self = self,
                       self.wasPlayingBeforeInterruption else { return }
 
+                // Se il metronomo è già in esecuzione (es. chiamata WA in mixing),
+                // il categoryChange di fine chiamata non deve causare rebuild né restart.
+                guard !self.isRunning else { return }
+
                 // === GUARD SR contro false resume durante chiamata attiva ===
                 let currentSampleRate = AVAudioSession.sharedInstance().sampleRate
                 guard currentSampleRate >= 44100 else {
