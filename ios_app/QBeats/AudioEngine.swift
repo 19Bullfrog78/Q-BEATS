@@ -601,11 +601,10 @@ class AudioEngine: ObservableObject {
 
                 // === CASO RESUME ===
                 guard self.wasPlayingBeforeInterruption else { return }
-                self.wasPlayingBeforeInterruption = false // Consumo per debounce
+                self.wasPlayingBeforeInterruption = false
 
                 guard !self.isRunning else { return }
 
-                // Guard durata minima interruzione
                 let elapsedTicksCheck = mach_absolute_time() - self.interruptionTimestamp
                 let elapsedSecsCheck  = Double(elapsedTicksCheck)
                                       * Double(self.machTimebase.numer)
@@ -614,7 +613,7 @@ class AudioEngine: ObservableObject {
                 guard elapsedSecsCheck >= 0.5 else {
                     os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — elapsed troppo breve: %.3fs",
                            log: .default, type: .default, elapsedSecsCheck)
-                    self.wasPlayingBeforeInterruption = true // RE-ARM FONDAMENTALE per non perdere il vero resume
+                    self.wasPlayingBeforeInterruption = true
                     return
                 }
 
@@ -628,28 +627,28 @@ class AudioEngine: ObservableObject {
                 self.interruptionBPM            = 120.0
                 self.interruptionLinkWasEnabled = false
 
-                let elapsedTicks = mach_absolute_time() - resumeTimestamp
-                let elapsedNanos = Double(elapsedTicks)
-                                 * Double(self.machTimebase.numer)
-                                 / Double(self.machTimebase.denom)
-                let elapsedSecs  = elapsedNanos / 1_000_000_000.0
-                let resumeBeat   = resumeBeatPosition
-                                 + (elapsedSecs * resumeBPM / 60.0)
-
-                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs resumeBeat:%.4f link:%d mode:%@ cat:%@",
-                       log: .default, type: .default,
-                       elapsedSecs, resumeBeat, resumeLinkEnabled ? 1 : 0,
-                       avSession.mode.rawValue, avSession.category.rawValue)
-
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
 
-                DispatchQueue.main.async {
-                    try? AVAudioSession.sharedInstance().setActive(true,
-                        options: .notifyOthersOnDeactivation)
-                    self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
-                }
+                try? AVAudioSession.sharedInstance().setActive(true,
+                    options: .notifyOthersOnDeactivation)
+
+                let avSession    = AVAudioSession.sharedInstance()
+                let latencySecs  = avSession.outputLatency + avSession.ioBufferDuration
+                let elapsedTicks = mach_absolute_time() - resumeTimestamp
+                let elapsedSecs  = Double(elapsedTicks)
+                                 * Double(self.machTimebase.numer)
+                                 / Double(self.machTimebase.denom)
+                                 / 1_000_000_000.0
+                let resumeBeat   = resumeBeatPosition
+                                 + ((elapsedSecs + latencySecs) * resumeBPM / 60.0)
+
+                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs + latency:%.3fs resumeBeat:%.4f link:%d",
+                       log: .default, type: .default,
+                       elapsedSecs, latencySecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
+
+                self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
             }
         }
 
