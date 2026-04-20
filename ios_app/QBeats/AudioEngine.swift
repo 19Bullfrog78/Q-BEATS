@@ -555,11 +555,15 @@ class AudioEngine: ObservableObject {
         // Invece manda routeChange con .categoryChange quando la chiamata finisce.
         if reason == .categoryChange {
             audioQueue.async { [weak self] in
-                guard let self = self,
-                      self.wasPlayingBeforeInterruption else { return }
+                guard let self = self else { return }
 
-                // Se il metronomo è già in esecuzione (es. chiamata WA in mixing),
-                // il categoryChange di fine chiamata non deve causare rebuild né restart.
+                // Consuma lo stato immediatamente come prima operazione.
+                // iOS può mandare categoryChange multipli simultanei (es. WA VoIP).
+                // Senza consumo immediato, più blocchi passano il guard e
+                // fanno rebuild multipli che corrompono il graph.
+                guard self.wasPlayingBeforeInterruption else { return }
+                self.wasPlayingBeforeInterruption = false
+
                 guard !self.isRunning else { return }
 
                 // === GUARD SR contro false resume durante chiamata attiva ===
@@ -591,7 +595,6 @@ class AudioEngine: ObservableObject {
                 let resumeTimestamp    = self.interruptionTimestamp
 
                 // Consuma lo stato di interruzione per evitare valori sporchi successivi
-                self.wasPlayingBeforeInterruption = false
                 self.interruptionTimestamp        = 0
                 self.interruptionBeatPosition     = 0.0
                 self.interruptionBPM              = 120.0
