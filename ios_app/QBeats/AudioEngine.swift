@@ -158,11 +158,13 @@ class AudioEngine: ObservableObject {
                 self.isRunning = true
 
                 if let mh = self.midiEngineHandle {
-                    // Leggi beat vivo PRIMA di sync_clock — dopo il reset non è affidabile.
                     let resumeBeat: Double?
-                    if resumeAtBeat != nil, let h = self.metronomeHandle {
-                        resumeBeat = midi_engine_get_beat_position(mh)
-                        os_log("[Q-BEATS][RESUME] beat live pre-sync: %.6f",
+                    if resumeAtBeat != nil {
+                        let hostTimeAtFirstSample = mach_absolute_time()
+                                                   + self.outputLatencyTicks
+                                                   + self.bufferDurationTicks
+                        resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+                        os_log("[Q-BEATS][RESUME] beat compensated: %.6f",
                                log: .default, type: .default, resumeBeat!)
                     } else {
                         resumeBeat = nil
