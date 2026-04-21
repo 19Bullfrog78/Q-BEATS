@@ -369,6 +369,22 @@ double midi_engine_get_beat_position(void* handle) {
     if (!engine) return 0.0;
     return engine->sequencer.getBeatPosition(engine->lastSamplePosition);
 }
+double midi_engine_get_beat_at_time(void* handle, uint64_t hostTime) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return 0.0;
+    // Proietta hostTime in sample space usando l'ultimo sync point.
+    // lastMachTime e lastSamplePosition sono aggiornati ad ogni sync_clock.
+    // Questo calcolo è valido anche quando midi_engine_process() è fermo.
+    if (hostTime < engine->lastMachTime) return midi_engine_get_beat_position(handle);
+    uint64_t elapsedTicks  = hostTime - engine->lastMachTime;
+    double   elapsedNanos  = (double)elapsedTicks
+                           * engine->timebaseInfo.numer
+                           / engine->timebaseInfo.denom;
+    double   elapsedSecs   = elapsedNanos / 1e9;
+    uint64_t currentSample = engine->lastSamplePosition
+                           + (uint64_t)(elapsedSecs * engine->sampleRate);
+    return engine->sequencer.getBeatPosition(currentSample);
+}
 
 void midi_engine_set_beat_position(void* handle, double targetBeats) {
     MIDIEngine* engine = (MIDIEngine*)handle;

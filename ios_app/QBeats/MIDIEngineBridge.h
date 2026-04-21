@@ -38,6 +38,10 @@ void  midi_engine_scan_connect_ports(void* handle);
 
 // === AGGIUNTO 6C — Link phase sync ===
 double midi_engine_get_beat_position(void* handle);
+// Restituisce la beat position proiettata a hostTime (mach_absolute_time).
+// RT-safe. Usare durante interruzioni audio quando midi_engine_process()
+// non viene chiamato e il clock C++ si è congelato.
+double midi_engine_get_beat_at_time(void* handle, uint64_t hostTime);
 void   midi_engine_set_beat_position(void* handle, double targetBeats);
 
 // === MODIFICATO 6A ===

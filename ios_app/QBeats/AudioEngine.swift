@@ -62,11 +62,8 @@ class AudioEngine: ObservableObject {
     // === Blocco 7 — Silent Ticking (accesso SOLO su audioQueue) ===
     // Il clock C++ (metronome, MIDI, Link) non si ferma mai durante le interruzioni.
     // Solo l'audio layer (AVAudioEngine + playerNode) viene sospeso.
-    private var isAudioInterrupted:  Bool   = false
-    private var clockLinkWasEnabled: Bool   = false
-    private var clockBaseBeat:       Double = 0.0
-    private var clockBaseTimestamp:  UInt64 = 0
-    private var clockBaseBPM:        Double = 120.0
+    private var isAudioInterrupted:  Bool = false
+    private var clockLinkWasEnabled: Bool = false
 
     // ------------------------------------------------
 
@@ -464,14 +461,9 @@ class AudioEngine: ObservableObject {
                 } else {
                     self.clockLinkWasEnabled = false
                 }
-                // Salva beat e timestamp PRIMA di fermare — midi_engine_process()
-                // non verrà più chiamato durante l'interruzione, il clock C++ si congela.
-                // clockBaseBeat + clockBaseTimestamp permettono di calcolare il beat reale al resume.
-                if let mh = self.midiEngineHandle {
-                    self.clockBaseBeat = midi_engine_get_beat_position(mh)
-                }
-                self.clockBaseTimestamp = mach_absolute_time()
-                self.clockBaseBPM       = self.currentBPM
+                // CRITICO: NON salvare beat/timestamp — midi_engine_get_beat_at_time()
+                // calcola la posizione corretta al momento del resume usando lastMachTime
+                // e lastSamplePosition aggiornati dall'ultimo sync_clock.
                 self.isAudioInterrupted = true
                 self.isRunning          = false
                 shouldStop              = true
@@ -498,12 +490,12 @@ class AudioEngine: ObservableObject {
 
                 // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
                 // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
-                let elapsedTicks = mach_absolute_time() - self.clockBaseTimestamp
-                let elapsedSecs  = Double(elapsedTicks)
-                                 * Double(self.machTimebase.numer)
-                                 / Double(self.machTimebase.denom)
-                                 / 1_000_000_000.0
-                let resumeBeat   = self.clockBaseBeat + elapsedSecs * self.clockBaseBPM / 60.0
+                let resumeBeat: Double
+                if let mh = self.midiEngineHandle {
+                    resumeBeat = midi_engine_get_beat_at_time(mh, mach_absolute_time())
+                } else {
+                    resumeBeat = 0.0
+                }
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 self.engine.disconnectNodeOutput(self.playerNode)
@@ -575,11 +567,6 @@ class AudioEngine: ObservableObject {
                     } else {
                         self.clockLinkWasEnabled = false
                     }
-                    if let mh = self.midiEngineHandle {
-                        self.clockBaseBeat = midi_engine_get_beat_position(mh)
-                    }
-                    self.clockBaseTimestamp = mach_absolute_time()
-                    self.clockBaseBPM       = self.currentBPM
                     self.isAudioInterrupted = true
                     self.isRunning          = false
                     self.playerNode.stop()
@@ -602,12 +589,12 @@ class AudioEngine: ObservableObject {
 
                 // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
                 // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
-                let elapsedTicks = mach_absolute_time() - self.clockBaseTimestamp
-                let elapsedSecs  = Double(elapsedTicks)
-                                 * Double(self.machTimebase.numer)
-                                 / Double(self.machTimebase.denom)
-                                 / 1_000_000_000.0
-                let resumeBeat   = self.clockBaseBeat + elapsedSecs * self.clockBaseBPM / 60.0
+                let resumeBeat: Double
+                if let mh = self.midiEngineHandle {
+                    resumeBeat = midi_engine_get_beat_at_time(mh, mach_absolute_time())
+                } else {
+                    resumeBeat = 0.0
+                }
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 self.engine.disconnectNodeOutput(self.playerNode)
