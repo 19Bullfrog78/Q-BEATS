@@ -323,6 +323,27 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    private func activateSessionAndStart(resumeAtBeat: Double?, attempt: Int = 0) {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            do {
+                try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+                self.start(resumeAtBeat: resumeAtBeat)
+            } catch {
+                guard attempt < 5 else {
+                    os_log("[Q-BEATS] setActive failed after 5 attempts: %@",
+                           log: .default, type: .error, error.localizedDescription)
+                    return
+                }
+                os_log("[Q-BEATS] setActive attempt %d failed, retry in 100ms",
+                       log: .default, type: .default, attempt + 1)
+                self.audioQueue.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.activateSessionAndStart(resumeAtBeat: resumeAtBeat, attempt: attempt + 1)
+                }
+            }
+        }
+    }
+
     private func setupSession() {
         let session = AVAudioSession.sharedInstance()
         do {
@@ -512,7 +533,6 @@ class AudioEngine: ObservableObject {
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
-                try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double
@@ -539,7 +559,7 @@ class AudioEngine: ObservableObject {
                 // 4. Start
                 // Con Link attivo passa nil: la phase sync avviene automaticamente
                 // nei primi buffer di scheduleNextBuffer().
-                self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
+                self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
 
         @unknown default: break
@@ -621,7 +641,6 @@ class AudioEngine: ObservableObject {
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
-                try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double
@@ -648,7 +667,7 @@ class AudioEngine: ObservableObject {
                 // 4. Start
                 // Con Link attivo passa nil: la phase sync avviene automaticamente
                 // nei primi buffer di scheduleNextBuffer().
-                self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
+                self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
         }
 
@@ -711,8 +730,7 @@ class AudioEngine: ObservableObject {
             }
 
             // 3. Riattivazione sessione e restart
-            try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
-            self.start(resumeAtBeat: resumeBeat)
+            self.activateSessionAndStart(resumeAtBeat: resumeBeat)
         }
     }
 }
