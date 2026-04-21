@@ -53,16 +53,17 @@ class AudioEngine: ObservableObject {
     private var outputLatencyTicks : UInt64 = 0
     private var bufferDurationTicks: UInt64 = 0
 
-    // === AGGIUNTO Blocco 7 — stato interruzione (protetto da audioQueue) ===
-    private var wasPlayingBeforeInterruption: Bool   = false
-    private var interruptionBeatPosition:     Double  = 0.0
-    private var interruptionBPM:              Double  = 120.0
-    private var interruptionTimestamp:        UInt64  = 0
-    private var interruptionLinkWasEnabled:   Bool    = false
+
 
     // Usato da handleEngineConfigChange per ricalcolare beat position accurata
     private var lastStartBeat:      Double = 0.0
     private var lastStartTimestamp: UInt64 = 0
+
+    // === Blocco 7 — Silent Ticking (accesso SOLO su audioQueue) ===
+    // Il clock C++ (metronome, MIDI, Link) non si ferma mai durante le interruzioni.
+    // Solo l'audio layer (AVAudioEngine + playerNode) viene sospeso.
+    private var isAudioInterrupted:  Bool = false
+    private var clockLinkWasEnabled: Bool = false
 
     // ------------------------------------------------
 
@@ -445,74 +446,68 @@ class AudioEngine: ObservableObject {
 
         switch type {
         case .began:
+            var shouldStop = false
             audioQueue.sync {
-                self.wasPlayingBeforeInterruption = self.isRunning
-                guard self.isRunning else { return }
-
-                if let mh = self.midiEngineHandle {
-                    self.interruptionBeatPosition = midi_engine_get_beat_position(mh)
+                guard self.isRunning else {
+                    os_log("[Q-BEATS][INTERRUPTION] began — engine già fermo, noop",
+                           log: .default, type: .default)
+                    return
                 }
-                self.interruptionBPM = self.currentBPM
-                self.interruptionTimestamp = mach_absolute_time()
-
+                // Salva stato Link PRIMA di fermare l'audio layer.
+                // CRITICO: NON chiamare midi_engine_stop() — il sequencer C++ continua a
+                // mantenere la beat position corrente. NON notificare stop a Link.
                 if let lh = self.linkEngineHandle {
-                    self.interruptionLinkWasEnabled = link_engine_is_enabled(lh)
-                    link_engine_set_is_playing(lh, false, mach_absolute_time())
+                    self.clockLinkWasEnabled = link_engine_is_enabled(lh)
+                } else {
+                    self.clockLinkWasEnabled = false
                 }
-
-                self.isRunning = false
+                self.isAudioInterrupted = true
+                self.isRunning          = false
+                shouldStop              = true
             }
-
-            guard wasPlayingBeforeInterruption else { return }
+            guard shouldStop else { return }
             playerNode.stop()
             engine.stop()
-            if let mh = midiEngineHandle { midi_engine_stop(mh) }
-
-            let bc = audioQueue.sync { self.bufferCount }
-            let bt = audioQueue.sync { self.beatTotal }
             DispatchQueue.main.async {
-                self.isPlaying = false
-                self.clickStatus = "interrupted buf:\(bc) beats:\(bt)"
+                self.isPlaying   = false
+                self.clickStatus = "audio muted — clock running"
             }
+            os_log("[Q-BEATS][INTERRUPTION] began — audio stopped, MIDI/Link clock running",
+                   log: .default, type: .default)
 
         case .ended:
             audioQueue.async { [weak self] in
                 guard let self = self else { return }
-                guard self.wasPlayingBeforeInterruption else { return }
+                guard self.isAudioInterrupted else {
+                    os_log("[Q-BEATS][INTERRUPTION] ended — nessuna interruzione attiva, noop",
+                           log: .default, type: .default)
+                    return
+                }
+                self.isAudioInterrupted = false
 
-                let resumeBeatPosition = self.interruptionBeatPosition
-                let resumeBPM          = self.interruptionBPM
-                let resumeLinkEnabled  = self.interruptionLinkWasEnabled
-                let resumeTimestamp    = self.interruptionTimestamp
-
-                self.wasPlayingBeforeInterruption = false
-                self.interruptionTimestamp        = 0
-                self.interruptionBeatPosition     = 0.0
-                self.interruptionBPM              = 120.0
-                self.interruptionLinkWasEnabled   = false
+                // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
+                // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
+                let resumeBeat: Double
+                if let mh = self.midiEngineHandle {
+                    resumeBeat = midi_engine_get_beat_position(mh)
+                } else {
+                    resumeBeat = 0.0
+                }
+                let linkWasEnabled = self.clockLinkWasEnabled
 
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
-
                 try? AVAudioSession.sharedInstance().setActive(true,
                     options: .notifyOthersOnDeactivation)
 
-                let avSession    = AVAudioSession.sharedInstance()
-                let latencySecs  = avSession.outputLatency + avSession.ioBufferDuration
-                let elapsedTicks = mach_absolute_time() - resumeTimestamp
-                let elapsedSecs  = Double(elapsedTicks)
-                                 * Double(self.machTimebase.numer)
-                                 / Double(self.machTimebase.denom)
-                                 / 1_000_000_000.0
-                let resumeBeat   = resumeBeatPosition
-                                 + ((elapsedSecs + latencySecs) * resumeBPM / 60.0)
-
-                os_log("[Q-BEATS][INTERRUPTION] ended — elapsed:%.3fs + latency:%.3fs → resumeBeat:%.4f link:%d",
+                os_log("[Q-BEATS][INTERRUPTION] ended — resumeBeat:%.4f link:%d",
                        log: .default, type: .default,
-                       elapsedSecs, latencySecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
+                       resumeBeat, linkWasEnabled ? 1 : 0)
 
-                self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
+                // Con Link attivo passa nil: la phase sync avviene automaticamente
+                // nei primi buffer di scheduleNextBuffer().
+                self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
 
         @unknown default: break
@@ -550,105 +545,68 @@ class AudioEngine: ObservableObject {
                 let avSession = AVAudioSession.sharedInstance()
                 let currentSR = avSession.sampleRate
 
-                // Rilevamento GSM/VoIP robusto: category/mode + SR come fallback hardware.
-                // iOS non cambia la category/mode della nostra sessione .playback durante GSM,
-                // ma abbassa sempre l'SR a 32000 (o meno con BT HFP). SR è il discriminatore
-                // affidabile per il began; category/mode coprono i casi VoIP futuri.
                 let isVoiceActive = avSession.mode == .voiceChat ||
                                     avSession.mode == .videoChat ||
                                     avSession.category == .record ||
                                     avSession.category == .playAndRecord ||
                                     currentSR < 44100
 
-                // === CASO GSM BEGAN ===
+                // === CASO VOICE BEGAN ===
                 if isVoiceActive {
                     guard self.isRunning else {
-                        os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice began — engine già fermo (mode:%@ cat:%@)",
+                        os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice — engine già fermo (mode:%@ cat:%@)",
                                log: .default, type: .default,
                                avSession.mode.rawValue, avSession.category.rawValue)
                         return
                     }
-                    
-                    self.wasPlayingBeforeInterruption = true
-                    if let mh = self.midiEngineHandle {
-                        self.interruptionBeatPosition = midi_engine_get_beat_position(mh)
-                    }
-                    self.interruptionBPM       = self.currentBPM
-                    self.interruptionTimestamp = mach_absolute_time()
-                    
                     if let lh = self.linkEngineHandle {
-                        self.interruptionLinkWasEnabled = link_engine_is_enabled(lh)
-                        link_engine_set_is_playing(lh, false, mach_absolute_time())
+                        self.clockLinkWasEnabled = link_engine_is_enabled(lh)
                     } else {
-                        self.interruptionLinkWasEnabled = false
+                        self.clockLinkWasEnabled = false
                     }
-                    
-                    self.isRunning = false
+                    self.isAudioInterrupted = true
+                    self.isRunning          = false
                     self.playerNode.stop()
                     self.engine.stop()
-                    if let mh = self.midiEngineHandle { midi_engine_stop(mh) }
-                    
+                    // NON chiamare midi_engine_stop() — clock C++ continua.
+                    // NON notificare stop a Link.
                     DispatchQueue.main.async {
                         self.isPlaying   = false
-                        self.clickStatus = "voice interrupted"
+                        self.clickStatus = "voice active — clock running"
                     }
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice began — beat:%.4f bpm:%.1f mode:%@ cat:%@",
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] voice began — audio stopped, clock running (mode:%@ SR:%.0f)",
                            log: .default, type: .default,
-                           self.interruptionBeatPosition, self.interruptionBPM,
-                           avSession.mode.rawValue, avSession.category.rawValue)
+                           avSession.mode.rawValue, currentSR)
                     return
                 }
 
                 // === CASO RESUME ===
-                guard self.wasPlayingBeforeInterruption else { return }
-                self.wasPlayingBeforeInterruption = false
+                guard self.isAudioInterrupted else { return }
+                self.isAudioInterrupted = false
 
-                guard !self.isRunning else { return }
-
-                let elapsedTicksCheck = mach_absolute_time() - self.interruptionTimestamp
-                let elapsedSecsCheck  = Double(elapsedTicksCheck)
-                                      * Double(self.machTimebase.numer)
-                                      / Double(self.machTimebase.denom)
-                                      / 1_000_000_000.0
-                guard elapsedSecsCheck >= 0.5 else {
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange ignorato — elapsed troppo breve: %.3fs",
-                           log: .default, type: .default, elapsedSecsCheck)
-                    self.wasPlayingBeforeInterruption = true
-                    return
+                // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
+                // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
+                let resumeBeat: Double
+                if let mh = self.midiEngineHandle {
+                    resumeBeat = midi_engine_get_beat_position(mh)
+                } else {
+                    resumeBeat = 0.0
                 }
-
-                let resumeBeatPosition = self.interruptionBeatPosition
-                let resumeBPM          = self.interruptionBPM
-                let resumeLinkEnabled  = self.interruptionLinkWasEnabled
-                let resumeTimestamp    = self.interruptionTimestamp
-
-                self.interruptionTimestamp      = 0
-                self.interruptionBeatPosition   = 0.0
-                self.interruptionBPM            = 120.0
-                self.interruptionLinkWasEnabled = false
+                let linkWasEnabled = self.clockLinkWasEnabled
 
                 self.engine.disconnectNodeOutput(self.playerNode)
                 self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
                 self.engine.prepare()
-
                 try? AVAudioSession.sharedInstance().setActive(true,
                     options: .notifyOthersOnDeactivation)
 
-                let avSessionResume = AVAudioSession.sharedInstance()
-                let latencySecs  = avSessionResume.outputLatency + avSessionResume.ioBufferDuration
-                let elapsedTicks = mach_absolute_time() - resumeTimestamp
-                let elapsedSecs  = Double(elapsedTicks)
-                                 * Double(self.machTimebase.numer)
-                                 / Double(self.machTimebase.denom)
-                                 / 1_000_000_000.0
-                let resumeBeat   = resumeBeatPosition
-                                 + ((elapsedSecs + latencySecs) * resumeBPM / 60.0)
-
-                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — elapsed:%.3fs + latency:%.3fs resumeBeat:%.4f link:%d",
+                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
                        log: .default, type: .default,
-                       elapsedSecs, latencySecs, resumeBeat, resumeLinkEnabled ? 1 : 0)
+                       resumeBeat, linkWasEnabled ? 1 : 0)
 
-                self.start(resumeAtBeat: resumeLinkEnabled ? nil : resumeBeat)
+                // Con Link attivo passa nil: la phase sync avviene automaticamente
+                // nei primi buffer di scheduleNextBuffer().
+                self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
         }
 
