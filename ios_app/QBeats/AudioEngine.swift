@@ -487,9 +487,15 @@ class AudioEngine: ObservableObject {
                     return
                 }
                 self.isAudioInterrupted = false
+                let linkWasEnabled = self.clockLinkWasEnabled
 
-                // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
-                // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
+                // 1. Graph rebuild
+                self.engine.disconnectNodeOutput(self.playerNode)
+                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+                self.engine.prepare()
+                try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+
+                // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double
                 if let mh = self.midiEngineHandle {
                     let avSession = AVAudioSession.sharedInstance()
@@ -499,24 +505,19 @@ class AudioEngine: ObservableObject {
                         link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
                     }
                     let hostTimeAtFirstSample = mach_absolute_time()
-                                                + outputLatencyTicks
-                                                + bufferDurationTicks
+                                                + self.outputLatencyTicks
+                                                + self.bufferDurationTicks
                     resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 } else {
                     resumeBeat = 0.0
                 }
-                let linkWasEnabled = self.clockLinkWasEnabled
 
-                self.engine.disconnectNodeOutput(self.playerNode)
-                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-                self.engine.prepare()
-                try? AVAudioSession.sharedInstance().setActive(true,
-                    options: .notifyOthersOnDeactivation)
-
+                // 3. Log
                 os_log("[Q-BEATS][INTERRUPTION] ended — resumeBeat:%.4f link:%d",
                        log: .default, type: .default,
                        resumeBeat, linkWasEnabled ? 1 : 0)
 
+                // 4. Start
                 // Con Link attivo passa nil: la phase sync avviene automaticamente
                 // nei primi buffer di scheduleNextBuffer().
                 self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
@@ -595,9 +596,15 @@ class AudioEngine: ObservableObject {
                 // === CASO RESUME ===
                 guard self.isAudioInterrupted else { return }
                 self.isAudioInterrupted = false
+                let linkWasEnabled = self.clockLinkWasEnabled
 
-                // Il clock C++ non si è mai fermato: legge la beat position corrente direttamente.
-                // NON passare 0.0 — azzerebbe il clock vanificando il Silent Ticking.
+                // 1. Graph rebuild
+                self.engine.disconnectNodeOutput(self.playerNode)
+                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+                self.engine.prepare()
+                try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+
+                // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double
                 if let mh = self.midiEngineHandle {
                     let avSession = AVAudioSession.sharedInstance()
@@ -607,24 +614,19 @@ class AudioEngine: ObservableObject {
                         link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
                     }
                     let hostTimeAtFirstSample = mach_absolute_time()
-                                                + outputLatencyTicks
-                                                + bufferDurationTicks
+                                                + self.outputLatencyTicks
+                                                + self.bufferDurationTicks
                     resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 } else {
                     resumeBeat = 0.0
                 }
-                let linkWasEnabled = self.clockLinkWasEnabled
 
-                self.engine.disconnectNodeOutput(self.playerNode)
-                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-                self.engine.prepare()
-                try? AVAudioSession.sharedInstance().setActive(true,
-                    options: .notifyOthersOnDeactivation)
-
+                // 3. Log
                 os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
                        log: .default, type: .default,
                        resumeBeat, linkWasEnabled ? 1 : 0)
 
+                // 4. Start
                 // Con Link attivo passa nil: la phase sync avviene automaticamente
                 // nei primi buffer di scheduleNextBuffer().
                 self.start(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
