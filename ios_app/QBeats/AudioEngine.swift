@@ -390,6 +390,12 @@ class AudioEngine: ObservableObject {
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
+
+        if bufferCount == 0 || bufferCount % 100 == 0 {
+            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f",
+                   log: .default, type: .default,
+                   bufferCount, AVAudioSession.sharedInstance().sampleRate, self.sampleRate)
+        }
         if let mh = midiEngineHandle {
             midi_engine_sync_clock(mh,
                 UInt64(bufferCount) * UInt64(bufferSize),
