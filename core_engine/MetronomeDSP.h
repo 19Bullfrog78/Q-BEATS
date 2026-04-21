@@ -3,8 +3,8 @@
 #include <vector>
 
 struct BeatEvent {
-    uint32_t offset;  // sample offset dentro il buffer corrente
-    bool     accent;  // true = beat 1 di battuta (1500 Hz), false = beat normale (1000 Hz)
+    uint32_t offset;
+    bool     accent;
 };
 
 class MetronomeDSP {
@@ -14,7 +14,15 @@ public:
     void setBPM(double bpm);
     void setBeatsPerBar(uint32_t beatsPerBar);
     void setAbsolutePositionForTesting(uint64_t pos);
+
+    // Fresh play: fissa _startAbsoluteBeat e azzera _currentBeatInBar.
+    // Chiamare SOLO su start() senza resume.
+    void resetForStart(double startBeat);
+
+    // Resume / Link phase sync: aggiorna posizione senza toccare _startAbsoluteBeat.
+    // Chiamare su resume dopo interruzione e su ogni phase sync Link.
     void setBeatPosition(double beatPosition);
+
     std::vector<BeatEvent> processBuffer(uint32_t bufferSize);
 
 private:
@@ -24,4 +32,8 @@ private:
     uint32_t _currentBeatInBar;
     uint64_t _absoluteSamplePosition;
     double   _exactNextBeatSample;
+    // Phase origin: fissato al momento del Play originale.
+    // setBeatPosition calcola _currentBeatInBar come
+    // floor(nextBeatIndex - _startAbsoluteBeat) % _beatsPerBar.
+    double   _startAbsoluteBeat;
 };

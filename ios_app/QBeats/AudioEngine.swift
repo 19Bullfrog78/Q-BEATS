@@ -158,26 +158,32 @@ class AudioEngine: ObservableObject {
                 self.isRunning = true
 
                 if let mh = self.midiEngineHandle {
-                    midi_engine_start(mh)
-
-                    // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
-                    midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
-                    // start(resumeAtBeat:) applica beat corretto prima dei buffer → zero race condition
-                    let startBeat: Double
-                    if resumeAtBeat != nil {
-                        let currentBeat = midi_engine_get_beat_position(mh)
-                        let latencyTicks = self.outputLatencyTicks + self.bufferDurationTicks
-                        let latencyNanos = Double(latencyTicks)
-                                         * Double(self.machTimebase.numer)
-                                         / Double(self.machTimebase.denom)
-                        let latencyBeats = (latencyNanos / 1_000_000_000.0) * self.currentBPM / 60.0
-                        startBeat = currentBeat + latencyBeats
+                    // Leggi beat vivo PRIMA di sync_clock — dopo il reset non è affidabile.
+                    let resumeBeat: Double?
+                    if resumeAtBeat != nil, let h = self.metronomeHandle {
+                        resumeBeat = midi_engine_get_beat_position(mh)
+                        os_log("[Q-BEATS][RESUME] beat live pre-sync: %.6f",
+                               log: .default, type: .default, resumeBeat!)
                     } else {
-                        startBeat = 0.0
+                        resumeBeat = nil
                     }
-                    midi_engine_set_beat_position(mh, startBeat)
-                    if let h = self.metronomeHandle {
-                        metronome_set_beat_position(h, startBeat)
+
+                    midi_engine_start(mh)
+                    midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
+
+                    if let beat = resumeBeat {
+                        // Resume dopo interruzione: NON toccare phase origin.
+                        // metronome_set_beat_position usa _startAbsoluteBeat esistente per il modulo.
+                        midi_engine_set_beat_position(mh, beat)
+                        if let h = self.metronomeHandle {
+                            metronome_set_beat_position(h, beat)
+                        }
+                    } else {
+                        // Fresh play: fissa phase origin a 0 e azzera _currentBeatInBar.
+                        midi_engine_set_beat_position(mh, 0.0)
+                        if let h = self.metronomeHandle {
+                            metronome_reset_for_start(h, 0.0)
+                        }
                     }
                     if let lh = self.linkEngineHandle {
                         link_engine_set_quantum(lh, Double(self.beatsPerBar))

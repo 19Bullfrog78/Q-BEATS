@@ -17,10 +17,20 @@ void metronome_setBeatsPerBar(MetronomeHandle handle, uint32_t beatsPerBar) {
     static_cast<MetronomeDSP*>(handle)->setBeatsPerBar(beatsPerBar);
 }
 
+void metronome_reset_for_start(MetronomeHandle handle, double startBeat) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->resetForStart(startBeat);
+}
+
+void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setBeatPosition(beatPosition);
+}
+
 uint32_t metronome_processBuffer(MetronomeHandle handle,
                                   uint32_t        bufferSize,
-                                  uint32_t*       offsets,
-                                  uint8_t*        accents,
+                                  uint32_t* offsets,
+                                  uint8_t* accents,
                                   uint32_t        maxBeats) {
     auto beats = static_cast<MetronomeDSP*>(handle)->processBuffer(bufferSize);
     uint32_t count = 0;
@@ -31,9 +41,4 @@ uint32_t metronome_processBuffer(MetronomeHandle handle,
         ++count;
     }
     return count;
-}
-
-void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
-    if (!handle) return;
-    static_cast<MetronomeDSP*>(handle)->setBeatPosition(beatPosition);
 }
