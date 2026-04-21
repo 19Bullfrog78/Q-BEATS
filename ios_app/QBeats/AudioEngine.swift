@@ -683,38 +683,35 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][ENGINE] Config change detected — rebuilding graph and restarting",
                    log: .default, type: .default)
 
-            // 1. Spezza la catena dei completion handler pendenti
             self.isRunning = false
-
-            // 2. Ferma esplicitamente il nodo per sganciare lo stato di playback dal vecchio IO unit
             self.playerNode.stop()
 
-            // 3. Scollega e ricollega SOLO il playerNode al mixer.
-            // Forza CoreAudio a ricalcolare il formato hardware auto-negoziando (format: nil).
+            // 1. Graph rebuild con auto-negoziazione formato
             self.engine.disconnectNodeOutput(self.playerNode)
             self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-
-            // 4. Prepare è TASSATIVO prima di riavviare dopo un config change hardware
             self.engine.prepare()
 
-            // Ricalcola beat includendo il tempo trascorso durante il graph rebuild.
-            // midi_engine_get_beat_position conta solo i buffer già eseguiti (~32ms),
-            // non il tempo reale del rebuild. Questo causa desync misurabile.
-            let elapsedTicksSinceStart = mach_absolute_time() - self.lastStartTimestamp
-            let elapsedSecsSinceStart  = Double(elapsedTicksSinceStart)
-                                       * Double(self.machTimebase.numer)
-                                       / Double(self.machTimebase.denom)
-                                       / 1_000_000_000.0
-            let resumeBeat = self.lastStartBeat
-                           + elapsedSecsSinceStart * self.currentBPM / 60.0
+            // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
+            let resumeBeat: Double
+            if let mh = self.midiEngineHandle {
+                let avSession = AVAudioSession.sharedInstance()
+                self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
+                self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
+                
+                if let lh = self.linkEngineHandle {
+                    link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                }
 
-            // Riattiva la session prima del restart — necessario se il config change
-            // arriva durante o subito dopo una interruzione (es. app rilanciata da iOS
-            // durante chiamata attiva). Senza questo, engine.start() fallisce.
-            try? AVAudioSession.sharedInstance().setActive(true,
-                options: .notifyOthersOnDeactivation)
+                let hostTimeAtFirstSample = mach_absolute_time() 
+                                            + self.outputLatencyTicks 
+                                            + self.bufferDurationTicks
+                resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+            } else {
+                resumeBeat = self.lastStartBeat // Fallback estremo
+            }
 
-            // 5. Riavvia la catena pulita
+            // 3. Riattivazione sessione e restart
+            try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
             self.start(resumeAtBeat: resumeBeat)
         }
     }
