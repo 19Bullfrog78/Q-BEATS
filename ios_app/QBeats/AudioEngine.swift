@@ -165,10 +165,13 @@ class AudioEngine: ObservableObject {
                     // start(resumeAtBeat:) applica beat corretto prima dei buffer → zero race condition
                     let startBeat: Double
                     if resumeAtBeat != nil {
-                        let hostTimeAtFirstSample = mach_absolute_time()
-                                                  + self.outputLatencyTicks
-                                                  + self.bufferDurationTicks
-                        startBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+                        let currentBeat = midi_engine_get_beat_position(mh)
+                        let latencyTicks = self.outputLatencyTicks + self.bufferDurationTicks
+                        let latencyNanos = Double(latencyTicks)
+                                         * Double(self.machTimebase.numer)
+                                         / Double(self.machTimebase.denom)
+                        let latencyBeats = (latencyNanos / 1_000_000_000.0) * self.currentBPM / 60.0
+                        startBeat = currentBeat + latencyBeats
                     } else {
                         startBeat = 0.0
                     }
