@@ -163,7 +163,24 @@ class AudioEngine: ObservableObject {
                     // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
                     // start(resumeAtBeat:) applica beat corretto prima dei buffer → zero race condition
-                    let startBeat = resumeAtBeat ?? 0.0
+                    // 1. Aggiorna latency prima del calcolo beat (post-setActive)
+                    let avSession = AVAudioSession.sharedInstance()
+                    self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
+                    self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
+                    if let lh = self.linkEngineHandle {
+                        link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                    }
+
+                    // 2. Calcola startBeat proiettato al primo sample se siamo in resume
+                    let startBeat: Double
+                    if resumeAtBeat != nil {
+                        let hostTimeAtFirstSample = mach_absolute_time()
+                                                    + outputLatencyTicks
+                                                    + bufferDurationTicks
+                        startBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+                    } else {
+                        startBeat = 0.0
+                    }
                     midi_engine_set_beat_position(mh, startBeat)
                     if let h = self.metronomeHandle {
                         metronome_set_beat_position(h, startBeat)
