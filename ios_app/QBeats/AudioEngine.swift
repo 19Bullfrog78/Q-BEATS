@@ -163,12 +163,15 @@ class AudioEngine: ObservableObject {
                     // Reset sequencer: azzera lastSamplePosition + _sampleBaseAdj
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
                     // start(resumeAtBeat:) applica beat corretto prima dei buffer → zero race condition
-                    // Se siamo in resume path, il clock C++ non si è mai fermato.
-                    // Leggiamo la beat position attuale invece di usare il valore
-                    // pre-calcolato (stale di ~1 buffer dal momento del calcolo).
-                    let startBeat = resumeAtBeat != nil
-                        ? midi_engine_get_beat_position(mh)
-                        : 0.0
+                    let startBeat: Double
+                    if resumeAtBeat != nil {
+                        let hostTimeAtFirstSample = mach_absolute_time()
+                                                  + self.outputLatencyTicks
+                                                  + self.bufferDurationTicks
+                        startBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+                    } else {
+                        startBeat = 0.0
+                    }
                     midi_engine_set_beat_position(mh, startBeat)
                     if let h = self.metronomeHandle {
                         metronome_set_beat_position(h, startBeat)
