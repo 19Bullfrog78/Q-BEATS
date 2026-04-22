@@ -703,7 +703,16 @@ class AudioEngine: ObservableObject {
     @objc private func handleEngineConfigChange(_ notification: Notification) {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
+
             guard self.isRunning, !self.engine.isRunning else { return }
+
+            let hardwareSR = AVAudioSession.sharedInstance().sampleRate
+            let nodeSR = self.sampleRate
+            guard abs(hardwareSR - nodeSR) < 1.0 else {
+                os_log("[Q-BEATS] handleEngineConfigChange: SR mismatch hardware=%.0f node=%.0f — skip",
+                       log: .default, type: .default, hardwareSR, nodeSR)
+                return
+            }
 
             os_log("[Q-BEATS][ENGINE] Config change detected — rebuilding graph and restarting",
                    log: .default, type: .default)
