@@ -42,7 +42,7 @@ Strada A (React Native) scartata. Non riaprire.
 | Fix phase/click/quantum | ✅ CHIUSO (build #98–#100) |
 | Validazione Link test 7a, 7b | ✅ PASS |
 | Validazione Link test 7c, 7d | 🔲 Da fare |
-| **Blocco 7 — Interruption Handling** | 🔄 IN CORSO (build #118) |
+| **Blocco 7 — Interruption Handling** | ✅ CHIUSO (build #155) |
 
 ### Blocco 7 — sotto-blocchi
 
@@ -67,6 +67,7 @@ Strada A (React Native) scartata. Non riaprire.
 | Doppio restart post-VoIP (configChange ravvicinati) | Temporal Guard (skip < 20s dal resume) | #148 |
 | Rientro prematuro GSM/VoIP handoff | Guard CallActive sincrona in `handleRouteChange` | #152 |
 | Instabilità rientro GSM/VoIP | Async Guard 500ms + Reset stato vincolato | #153 |
+| Race condition background & Zombie retries | Token-based cancellation + exclusive setActive reset | #155 |
 
 ---
 
