@@ -647,6 +647,20 @@ class AudioEngine: ObservableObject {
 
                 // === CASO RESUME ===
                 guard self.isAudioInterrupted else { return }
+
+                let session = AVAudioSession.sharedInstance()
+                let isCallStillActive = session.category == .playAndRecord || 
+                                        session.category == .record || 
+                                        session.mode == .voiceChat || 
+                                        session.mode == .videoChat
+
+                guard !isCallStillActive else {
+                    os_log("[Q-BEATS][ROUTE] categoryChange ma call ancora attiva (cat:%@ mode:%@) — skip", 
+                           log: .default, type: .default, 
+                           session.category.rawValue, session.mode.rawValue)
+                    return
+                }
+
                 self.isAudioInterrupted = false
                 self.lastInterruptionResumeTime = mach_absolute_time()
                 let linkWasEnabled = self.clockLinkWasEnabled
