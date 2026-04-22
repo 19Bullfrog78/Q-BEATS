@@ -1,5 +1,5 @@
 # Q-BEATS — Contesto Progetto per AG
-**Ultimo aggiornamento:** 20/04/2026
+**Ultimo aggiornamento:** 22/04/2026
 
 ---
 
@@ -63,6 +63,10 @@ Strada A (React Native) scartata. Non riaprire.
 | Doppio `setActive` su chiamata rifiutata | Copia locale + reset `wasPlayingBeforeInterruption` in `.ended` | #112 |
 | iOS ferma engine per riconfigurazione IO dopo `.ended` | Observer `AVAudioEngineConfigurationChange` — clean restart con `resumeBeat` | #118 |
 | Stop improprio a fine chiamata (oldDeviceUnavailable) | Guard `previousRoute.outputs` in `handleRouteChange` | #117 |
+| Spostamento accento post-interruzione | Snap al Downbeat (ceil beat / beatsPerBar) | #147 |
+| Doppio restart post-VoIP (configChange ravvicinati) | Temporal Guard (skip < 20s dal resume) | #148 |
+| Rientro prematuro GSM/VoIP handoff | Guard CallActive sincrona in `handleRouteChange` | #152 |
+| Instabilità rientro GSM/VoIP | Async Guard 500ms + Reset stato vincolato | #153 |
 
 ---
 
@@ -112,6 +116,7 @@ Strada A (React Native) scartata. Non riaprire.
 - **GitHub Actions (macOS)**: CI su push, genera IPA
 - **Claude**: referee tecnico finale — ogni prompt deve essere approvato
 - **Mauro**: supervisore/architetto — non scrive codice
+- **Commit Strategy**: Separare sempre il refactoring (consolidamento, pulizia) dai fix funzionali in commit distinti per non sporcare il `git blame`.
 
 ---
 
