@@ -65,6 +65,7 @@ class AudioEngine: ObservableObject {
     // Solo l'audio layer (AVAudioEngine + playerNode) viene sospeso.
     private var isAudioInterrupted:  Bool = false
     private var clockLinkWasEnabled: Bool = false
+    private var lastInterruptionResumeTime: UInt64 = 0
 
     // ------------------------------------------------
 
@@ -647,6 +648,7 @@ class AudioEngine: ObservableObject {
                 // === CASO RESUME ===
                 guard self.isAudioInterrupted else { return }
                 self.isAudioInterrupted = false
+                self.lastInterruptionResumeTime = mach_absolute_time()
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 // 1. Graph rebuild
@@ -717,6 +719,17 @@ class AudioEngine: ObservableObject {
             guard abs(hardwareSR - nodeSR) < 1.0 else {
                 os_log("[Q-BEATS] handleEngineConfigChange: SR mismatch hardware=%.0f node=%.0f — skip",
                        log: .default, type: .default, hardwareSR, nodeSR)
+                return
+            }
+
+            let timeSinceResume = Double(mach_absolute_time() - self.lastInterruptionResumeTime) 
+                                 * Double(self.machTimebase.numer) 
+                                 / Double(self.machTimebase.denom) 
+                                 / 1_000_000_000.0
+
+            guard self.lastInterruptionResumeTime == 0 || timeSinceResume > 20.0 else {
+                os_log("[Q-BEATS][ENGINE] Config change post-interruption skip (%.1fs since resume)", 
+                       log: .default, type: .default, timeSinceResume)
                 return
             }
 
