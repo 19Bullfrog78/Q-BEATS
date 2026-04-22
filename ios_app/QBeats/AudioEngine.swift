@@ -1,5 +1,6 @@
 import AVFoundation
 import os
+import UIKit
 
 // Regole thread — inviolabili:
 // 1. isRunning, clickPlayhead, accentPlayhead, bufferCount, beatTotal,
@@ -330,14 +331,14 @@ class AudioEngine: ObservableObject {
                 try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
                 self.start(resumeAtBeat: resumeAtBeat)
             } catch {
-                guard attempt < 5 else {
+                guard attempt < 10 else {
                     os_log("[Q-BEATS] setActive failed after 5 attempts: %@",
                            log: .default, type: .error, error.localizedDescription)
                     return
                 }
                 os_log("[Q-BEATS] setActive attempt %d failed, retry in 100ms",
                        log: .default, type: .default, attempt + 1)
-                self.audioQueue.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self.audioQueue.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                     self?.activateSessionAndStart(resumeAtBeat: resumeAtBeat, attempt: attempt + 1)
                 }
             }
@@ -483,6 +484,8 @@ class AudioEngine: ObservableObject {
             name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleEngineConfigChange),
             name: .AVAudioEngineConfigurationChange, object: engine)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleAppWakeUp),
+            name: UIApplication.willEnterForegroundNotification, object: nil)
     }
 
     @objc private func handleInterruption(_ notification: Notification) {
@@ -746,6 +749,16 @@ class AudioEngine: ObservableObject {
 
             // 3. Riattivazione sessione e restart
             self.activateSessionAndStart(resumeAtBeat: resumeBeat)
+        }
+    }
+
+    @objc private func handleAppWakeUp() {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            guard self.isPlaying, !self.isRunning else { return }
+            os_log("[Q-BEATS] willEnterForeground — engine fermo, forzo activateSessionAndStart",
+                   log: .default, type: .default)
+            self.activateSessionAndStart(resumeAtBeat: 0.0)
         }
     }
 }
