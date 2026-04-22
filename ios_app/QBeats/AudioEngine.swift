@@ -66,6 +66,8 @@ class AudioEngine: ObservableObject {
     private var isAudioInterrupted:  Bool = false
     private var clockLinkWasEnabled: Bool = false
     private var lastInterruptionResumeTime: UInt64 = 0
+    private var pendingResume: Bool = false
+    private var pendingResumeBeat: Double? = nil
 
     // ------------------------------------------------
 
@@ -336,8 +338,10 @@ class AudioEngine: ObservableObject {
                 self.start(resumeAtBeat: resumeAtBeat)
             } catch {
                 guard attempt < 10 else {
-                    os_log("[Q-BEATS] setActive failed after 5 attempts: %@",
-                           log: .default, type: .error, error.localizedDescription)
+                    self.pendingResume = true
+                    self.pendingResumeBeat = resumeAtBeat
+                    os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true, beat salvato",
+                           log: .default, type: .error)
                     return
                 }
                 os_log("[Q-BEATS] setActive attempt %d failed, retry in 100ms",
@@ -578,6 +582,7 @@ class AudioEngine: ObservableObject {
                 // 4. Start
                 // Con Link attivo passa nil: la phase sync avviene automaticamente
                 // nei primi buffer di scheduleNextBuffer().
+                os_log("[Q-BEATS][RESUME] trigger: InterruptionEnded", log: .default, type: .default)
                 self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
 
@@ -586,6 +591,21 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleRouteChange(_ notification: Notification) {
+        var handledPending = false
+        audioQueue.sync {
+            if self.pendingResume {
+                self.pendingResume = false
+                let savedBeat = self.pendingResumeBeat
+                self.pendingResumeBeat = nil
+                os_log("[Q-BEATS][RESUME] pendingResume recuperato da notifica — beat:%.4f",
+                       log: .default, type: .default, savedBeat ?? -1.0)
+                os_log("[Q-BEATS][RESUME] trigger: RouteChange (pending)", log: .default, type: .default)
+                self.activateSessionAndStart(resumeAtBeat: savedBeat)
+                handledPending = true
+            }
+        }
+        if handledPending { return }
+
         guard let info        = notification.userInfo,
               let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
@@ -716,6 +736,7 @@ class AudioEngine: ObservableObject {
                     // 4. Start
                     // Con Link attivo passa nil: la phase sync avviene automaticamente
                     // nei primi buffer di scheduleNextBuffer().
+                    os_log("[Q-BEATS][RESUME] trigger: RouteChangeCategoryChange", log: .default, type: .default)
                     self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
                 }
             }
@@ -758,14 +779,22 @@ class AudioEngine: ObservableObject {
                 return
             }
 
-            let timeSinceResume = Double(mach_absolute_time() - self.lastInterruptionResumeTime) 
-                                 * Double(self.machTimebase.numer) 
-                                 / Double(self.machTimebase.denom) 
-                                 / 1_000_000_000.0
+            let timeSinceResume = self.machTicksToSeconds(mach_absolute_time() - self.lastInterruptionResumeTime)
 
             guard self.lastInterruptionResumeTime == 0 || timeSinceResume > 20.0 else {
                 os_log("[Q-BEATS][ENGINE] Config change post-interruption skip (%.1fs since resume)", 
                        log: .default, type: .default, timeSinceResume)
+                return
+            }
+
+            if self.pendingResume {
+                self.pendingResume = false
+                let savedBeat = self.pendingResumeBeat
+                self.pendingResumeBeat = nil
+                os_log("[Q-BEATS][RESUME] pendingResume recuperato da notifica — beat:%.4f",
+                       log: .default, type: .default, savedBeat ?? -1.0)
+                os_log("[Q-BEATS][RESUME] trigger: EngineConfigChange (pending)", log: .default, type: .default)
+                self.activateSessionAndStart(resumeAtBeat: savedBeat)
                 return
             }
 
@@ -800,6 +829,7 @@ class AudioEngine: ObservableObject {
             }
 
             // 3. Riattivazione sessione e restart
+            os_log("[Q-BEATS][RESUME] trigger: EngineConfigChange", log: .default, type: .default)
             self.activateSessionAndStart(resumeAtBeat: resumeBeat)
         }
     }
@@ -810,6 +840,7 @@ class AudioEngine: ObservableObject {
             guard self.isPlaying, !self.isRunning else { return }
             os_log("[Q-BEATS] willEnterForeground — engine fermo, forzo activateSessionAndStart",
                    log: .default, type: .default)
+            os_log("[Q-BEATS][RESUME] trigger: AppWakeUp", log: .default, type: .default)
             self.activateSessionAndStart(resumeAtBeat: 0.0)
         }
     }
