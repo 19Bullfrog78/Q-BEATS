@@ -165,8 +165,6 @@ class AudioEngine: ObservableObject {
                                                    + self.outputLatencyTicks
                                                    + self.bufferDurationTicks
                         resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-                        os_log("[Q-BEATS][RESUME] beat compensated: %.6f",
-                               log: .default, type: .default, resumeBeat!)
                     } else {
                         resumeBeat = nil
                     }
@@ -175,11 +173,16 @@ class AudioEngine: ObservableObject {
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
 
                     if let beat = resumeBeat {
-                        // Resume dopo interruzione: NON toccare phase origin.
-                        // metronome_set_beat_position usa _startAbsoluteBeat esistente per il modulo.
-                        midi_engine_set_beat_position(mh, beat)
+                        // Option B: Snap al prossimo confine di misura (Downbeat)
+                        let beatsPerBarD = Double(self.beatsPerBar)
+                        let snappedBeat = ceil(beat / beatsPerBarD) * beatsPerBarD
+                        
+                        os_log("[Q-BEATS][RESUME] Snap: %.4f -> %.4f (Measure boundary)", 
+                               log: .default, type: .default, beat, snappedBeat)
+                        
+                        midi_engine_set_beat_position(mh, snappedBeat)
                         if let h = self.metronomeHandle {
-                            metronome_set_beat_position(h, beat)
+                            metronome_set_beat_position(h, snappedBeat)
                         }
                     } else {
                         // Fresh play: fissa phase origin a 0 e azzera _currentBeatInBar.
