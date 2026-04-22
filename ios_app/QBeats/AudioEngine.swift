@@ -392,6 +392,12 @@ class AudioEngine: ObservableObject {
         return UInt64(nanos) * UInt64(machTimebase.denom) / UInt64(machTimebase.numer)
     }
 
+    private func machTicksToSeconds(_ ticks: UInt64) -> Double {
+        guard machTimebase.denom > 0 else { return 0.0 }
+        let nanos = Double(ticks) * Double(machTimebase.numer) / Double(machTimebase.denom)
+        return nanos / 1_000_000_000.0
+    }
+
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
@@ -646,56 +652,72 @@ class AudioEngine: ObservableObject {
                 }
 
                 // === CASO RESUME ===
-                guard self.isAudioInterrupted else { return }
+                let startTime = mach_absolute_time()
 
-                let session = AVAudioSession.sharedInstance()
-                let isCallStillActive = session.category == .playAndRecord || 
-                                        session.category == .record || 
-                                        session.mode == .voiceChat || 
-                                        session.mode == .videoChat
-
-                guard !isCallStillActive else {
-                    os_log("[Q-BEATS][ROUTE] categoryChange ma call ancora attiva (cat:%@ mode:%@) — skip", 
-                           log: .default, type: .default, 
-                           session.category.rawValue, session.mode.rawValue)
-                    return
-                }
-
-                self.isAudioInterrupted = false
-                self.lastInterruptionResumeTime = mach_absolute_time()
-                let linkWasEnabled = self.clockLinkWasEnabled
-
-                // 1. Graph rebuild
-                self.engine.disconnectNodeOutput(self.playerNode)
-                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-                self.engine.prepare()
-
-                // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
-                let resumeBeat: Double
-                if let mh = self.midiEngineHandle {
-                    let avSession = AVAudioSession.sharedInstance()
-                    self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
-                    self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
-                    if let lh = self.linkEngineHandle {
-                        link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                self.audioQueue.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    guard let self = self else { return }
+                    
+                    let session = AVAudioSession.sharedInstance()
+                    let elapsed = self.machTicksToSeconds(mach_absolute_time() - startTime)
+                    
+                    let isCallActive = session.category == .playAndRecord || 
+                                       session.category == .record || 
+                                       session.mode == .voiceChat || 
+                                       session.mode == .videoChat ||
+                                       session.mode == .voicePrompt
+                    
+                    let silenceHint = session.secondaryAudioShouldBeSilencedHint
+                    
+                    os_log("[Q-BEATS][ROUTE] Delayed check (%.3fs): isCallActive:%d silenceHint:%d", 
+                           log: .default, type: .default, elapsed, isCallActive ? 1 : 0, silenceHint ? 1 : 0)
+                    
+                    // GUARDIA: se ancora occupato, esce senza resettare lo stato di interruzione
+                    guard !isCallActive && !silenceHint else {
+                        os_log("[Q-BEATS][ROUTE] Chiamata/Prompt ancora attiva dopo delay — skip", 
+                               log: .default, type: .default)
+                        return
                     }
-                    let hostTimeAtFirstSample = mach_absolute_time()
-                                                + self.outputLatencyTicks
-                                                + self.bufferDurationTicks
-                    resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-                } else {
-                    resumeBeat = 0.0
+
+                    // VERIFICA STATO: procediamo solo se siamo effettivamente in interruzione
+                    guard self.isAudioInterrupted else { return }
+
+                    // RESET STATO (Vincolo: Prima di far ripartire l'engine)
+                    self.isAudioInterrupted = false 
+                    self.lastInterruptionResumeTime = mach_absolute_time()
+                    let linkWasEnabled = self.clockLinkWasEnabled
+
+                    // 1. Graph rebuild
+                    self.engine.disconnectNodeOutput(self.playerNode)
+                    self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
+                    self.engine.prepare()
+
+                    // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
+                    let resumeBeat: Double
+                    if let mh = self.midiEngineHandle {
+                        let avSession = AVAudioSession.sharedInstance()
+                        self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
+                        self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
+                        if let lh = self.linkEngineHandle {
+                            link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                        }
+                        let hostTimeAtFirstSample = mach_absolute_time()
+                                                    + self.outputLatencyTicks
+                                                    + self.bufferDurationTicks
+                        resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+                    } else {
+                        resumeBeat = 0.0
+                    }
+
+                    // 3. Log
+                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
+                           log: .default, type: .default,
+                           resumeBeat, linkWasEnabled ? 1 : 0)
+
+                    // 4. Start
+                    // Con Link attivo passa nil: la phase sync avviene automaticamente
+                    // nei primi buffer di scheduleNextBuffer().
+                    self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
                 }
-
-                // 3. Log
-                os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
-                       log: .default, type: .default,
-                       resumeBeat, linkWasEnabled ? 1 : 0)
-
-                // 4. Start
-                // Con Link attivo passa nil: la phase sync avviene automaticamente
-                // nei primi buffer di scheduleNextBuffer().
-                self.activateSessionAndStart(resumeAtBeat: linkWasEnabled ? nil : resumeBeat)
             }
         }
 
