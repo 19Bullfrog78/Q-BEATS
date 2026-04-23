@@ -395,14 +395,17 @@ class AudioEngine: ObservableObject {
                 self.start(resumeAtBeat: resumeAtBeat)
 
             } catch {
-                guard attempt < 10 else {
+                let maxAttempts = 20
+                let retryDelay = 0.5
+
+                guard attempt < maxAttempts else {
                     self.pendingResume = true
                     self.pendingResumeBeat = nil
                     os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true beat:%.4f trigger:%{public}@",
                            log: .default, type: .default, resumeAtBeat ?? -1.0, trigger)
 
-                    // Safety net: un solo tentativo ritardato dopo 3s
-                    self.audioQueue.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    // Safety net a 5 secondi (non 3)
+                    self.audioQueue.asyncAfter(deadline: .now() + 5.0) { [weak self] in
                         guard let self = self else { return }
                         guard self.pendingResume,
                               self.currentResumeToken == activeToken else {
@@ -422,10 +425,10 @@ class AudioEngine: ObservableObject {
                     return
                 }
 
-                os_log("[Q-BEATS][RESUME] setActive attempt %d/10 fallito (token:%d), retry in 100ms",
+                os_log("[Q-BEATS][RESUME] retry attempt %d/20 in 500ms (token:%d)",
                        log: .default, type: .default, attempt + 1, activeToken)
 
-                self.audioQueue.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self.audioQueue.asyncAfter(deadline: .now() + retryDelay) { [weak self] in
                     self?.activateSessionAndStart(
                         resumeAtBeat: resumeAtBeat,
                         trigger: trigger,
