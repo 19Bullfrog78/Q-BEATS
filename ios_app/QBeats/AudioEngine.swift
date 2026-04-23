@@ -163,15 +163,7 @@ class AudioEngine: ObservableObject {
                 self.isRunning = true
 
                 if let mh = self.midiEngineHandle {
-                    let resumeBeat: Double?
-                    if resumeAtBeat != nil {
-                        let hostTimeAtFirstSample = mach_absolute_time()
-                                                   + self.outputLatencyTicks
-                                                   + self.bufferDurationTicks
-                        resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-                    } else {
-                        resumeBeat = nil
-                    }
+                    let resumeBeat: Double? = resumeAtBeat
 
                     midi_engine_start(mh)
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
@@ -971,18 +963,27 @@ class AudioEngine: ObservableObject {
             guard let self = self else { return }
             guard self.isPlaying, !self.isRunning else { return }
 
-            guard !self.pendingResume else {
-                os_log("[Q-BEATS][WAKEUP] pendingResume attivo — skip",
-                       log: .default, type: .default)
+            if self.pendingResume {
+                self.pendingResume = false
+                self.pendingResumeBeat = nil
+                var recoveryBeat: Double? = nil
+                if let mh = self.midiEngineHandle {
+                    let hostTime = mach_absolute_time()
+                                 + self.outputLatencyTicks
+                                 + self.bufferDurationTicks
+                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                }
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
+                                             trigger: "wakeup_pending_recovery")
                 return
             }
 
-            let resumeBeat: Double?
+            var resumeBeat: Double? = nil
             if let mh = self.midiEngineHandle {
-                let hostTime = mach_absolute_time() + self.outputLatencyTicks + self.bufferDurationTicks
+                let hostTime = mach_absolute_time()
+                             + self.outputLatencyTicks
+                             + self.bufferDurationTicks
                 resumeBeat = midi_engine_get_beat_at_time(mh, hostTime)
-            } else {
-                resumeBeat = nil
             }
             self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: "app_wakeup")
         }
