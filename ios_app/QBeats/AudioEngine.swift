@@ -696,7 +696,10 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        resumeBeat ?? -1.0, linkWasEnabled ? 1 : 0)
 
-                // 4. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer
+                // 4. Aggiorna timestamp resume — blocca handleEngineConfigChange post-interruzione
+                self.lastInterruptionResumeTime = mach_absolute_time()
+
+                // 5. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer
                 self.activateSessionAndStart(
                     resumeAtBeat: linkWasEnabled ? nil : resumeBeat,
                     trigger: "interruption_ended"
