@@ -69,6 +69,8 @@ class AudioEngine: ObservableObject {
     private var pendingResume: Bool = false
     private var pendingResumeBeat: Double? = nil
     private var currentResumeToken: Int = 0
+    // Beat assoluto di clock al momento del Play originale — usato per snap relativo.
+    private var _startAbsoluteBeat: Double = 0.0
 
     // ------------------------------------------------
 
@@ -169,13 +171,19 @@ class AudioEngine: ObservableObject {
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
 
                     if let beat = resumeBeat {
-                        // Option B: Snap al prossimo confine di misura (Downbeat)
+                        // CALCOLO SNAP RELATIVO ALLA FASE DEL PLAY
                         let beatsPerBarD = Double(self.beatsPerBar)
-                        let snappedBeat = ceil(beat / beatsPerBarD) * beatsPerBarD
-                        
-                        os_log("[Q-BEATS][RESUME] Snap: %.4f -> %.4f (Measure boundary)", 
-                               log: .default, type: .default, beat, snappedBeat)
-                        
+
+                        // 1. Distanza dal beat di inizio del Playback originale
+                        let relativePhase = beat - self._startAbsoluteBeat
+                        // 2. Snappa alla prossima misura relativa
+                        let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
+                        // 3. Torna al beat assoluto del clock di sistema
+                        let snappedBeat = self._startAbsoluteBeat + snappedRelative
+
+                        os_log("[Q-BEATS][RESUME] Snap: %.4f -> %.4f (startBeat:%.4f)",
+                               log: .default, type: .default, beat, snappedBeat, self._startAbsoluteBeat)
+
                         midi_engine_set_beat_position(mh, snappedBeat)
                         if let h = self.metronomeHandle {
                             metronome_set_beat_position(h, snappedBeat)
@@ -216,6 +224,14 @@ class AudioEngine: ObservableObject {
                 self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
                 if let lh = self.linkEngineHandle {
                     link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
+                }
+
+                // Registra il beat di partenza (solo fresh play, latenza inclusa)
+                if resumeAtBeat == nil, let mh = self.midiEngineHandle {
+                    let hostTimeAtFirstSample = mach_absolute_time()
+                                                + self.outputLatencyTicks
+                                                + self.bufferDurationTicks
+                    self._startAbsoluteBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 }
 
                 self.scheduleNextBuffer()
