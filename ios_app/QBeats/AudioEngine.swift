@@ -679,7 +679,7 @@ class AudioEngine: ObservableObject {
                 // 3. Log
                 os_log("[Q-BEATS][INTERRUPTION] ended — resumeBeat:%.4f link:%d",
                        log: .default, type: .default,
-                       resumeBeat, linkWasEnabled ? 1 : 0)
+                       resumeBeat ?? -1.0, linkWasEnabled ? 1 : 0)
 
                 // 4. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer
                 self.activateSessionAndStart(
@@ -828,7 +828,7 @@ class AudioEngine: ObservableObject {
                     // 3. Log
                     os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
                            log: .default, type: .default,
-                           resumeBeat, linkWasEnabled ? 1 : 0)
+                           resumeBeat ?? -1.0, linkWasEnabled ? 1 : 0)
 
                     // 4. Start
                     // Con Link attivo passa nil: la phase sync avviene automaticamente
