@@ -634,7 +634,7 @@ class AudioEngine: ObservableObject {
 
                 // Filtro shouldResume
                 let options = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
-                let shouldResume = AVAudioSessionInterruptionOptions(rawValue: options).contains(.shouldResume)
+                let shouldResume = AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume)
                 if !shouldResume {
                     os_log("[Q-BEATS][RESUME] .ended ricevuto ma shouldResume=false — Pending=true.",
                            log: .default, type: .default)
