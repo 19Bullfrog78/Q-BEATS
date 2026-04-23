@@ -337,25 +337,55 @@ class AudioEngine: ObservableObject {
         attempt: Int = 0,
         token: Int = -1
     ) {
-        audioQueue.async { [weak self] in
-            guard let self = self else { return }
+        // — Token anti-zombie —
+        var activeToken = token
+        if attempt == 0 {
+            currentResumeToken += 1
+            activeToken = currentResumeToken
 
-            // --- Token logic: ogni fresh call incrementa il token; i retry zombie vengono uccisi ---
-            var activeToken = token
-            if attempt == 0 {
-                self.currentResumeToken += 1
-                activeToken = self.currentResumeToken
-            } else if activeToken != self.currentResumeToken {
-                os_log("[Q-BEATS][RESUME] Zombie retry killed (token %d vs %d) trigger:%@",
-                       log: .default, type: .default, activeToken, self.currentResumeToken, trigger)
+            // — Reset sessione e hardware gate (solo al primo tentativo) —
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setCategory(.playback, mode: .default, options: [])
+            } catch {
+                os_log("[Q-BEATS][RESUME] setCategory fallito: %@. Pending=true.",
+                       log: .default, type: .error, error.localizedDescription)
+                self.pendingResume = true
+                self.pendingResumeBeat = resumeAtBeat
                 return
             }
+            if session.isOtherAudioPlaying {
+                os_log("[Q-BEATS][RESUME] Hardware ancora occupato (isOtherAudioPlaying). Pending=true.",
+                       log: .default, type: .default)
+                self.pendingResume = true
+                self.pendingResumeBeat = resumeAtBeat
+                return
+            }
+        } else if activeToken != currentResumeToken {
+            os_log("[Q-BEATS][RESUME] Zombie retry ucciso (token %d vs %d) trigger:%@",
+                   log: .default, type: .default, activeToken, currentResumeToken, trigger)
+            return
+        }
 
+        os_log("[Q-BEATS][RESUME] trigger:%@ attempt:%d token:%d",
+               log: .default, type: .default, trigger, attempt, activeToken)
+
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
             do {
-                try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
-                // isAudioInterrupted = false VA SOLO QUI, subito dopo setActive riuscito
+                try AVAudioSession.sharedInstance().setActive(true,
+                    options: .notifyOthersOnDeactivation)
+
+                // SOLO QUI: reset stato interruzione
                 self.isAudioInterrupted = false
+                self.pendingResume = false
+                self.pendingResumeBeat = nil
+
+                os_log("[Q-BEATS][RESUME] setActive OK dopo %d tentativi (token:%d trigger:%@)",
+                       log: .default, type: .default, attempt, activeToken, trigger)
+
                 self.start(resumeAtBeat: resumeAtBeat)
+
             } catch {
                 guard attempt < 10 else {
                     self.pendingResume = true
@@ -363,10 +393,11 @@ class AudioEngine: ObservableObject {
                     os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true beat:%.4f trigger:%@",
                            log: .default, type: .default, resumeAtBeat ?? -1.0, trigger)
 
-                    // Safety net: ultimo tentativo ritardato — token fisso, attempt:1 per non incrementare
+                    // Safety net: un solo tentativo ritardato dopo 3s
                     self.audioQueue.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                         guard let self = self else { return }
-                        guard self.pendingResume, self.currentResumeToken == activeToken else {
+                        guard self.pendingResume,
+                              self.currentResumeToken == activeToken else {
                             os_log("[Q-BEATS][RESUME] Safety net annullato — token cambiato o pendingResume cleared",
                                    log: .default, type: .default)
                             return
@@ -376,15 +407,17 @@ class AudioEngine: ObservableObject {
                         self.activateSessionAndStart(
                             resumeAtBeat: resumeAtBeat,
                             trigger: "safety_net",
-                            attempt: 1,        // non incrementa il token
+                            attempt: 1,
                             token: activeToken
                         )
                     }
                     return
                 }
-                os_log("[Q-BEATS] setActive attempt %d failed trigger:%@ — retry in 300ms",
-                       log: .default, type: .default, attempt + 1, trigger)
-                self.audioQueue.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+
+                os_log("[Q-BEATS][RESUME] setActive attempt %d/10 fallito (token:%d), retry in 100ms",
+                       log: .default, type: .default, attempt + 1, activeToken)
+
+                self.audioQueue.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                     self?.activateSessionAndStart(
                         resumeAtBeat: resumeAtBeat,
                         trigger: trigger,
@@ -588,14 +621,28 @@ class AudioEngine: ObservableObject {
             audioQueue.async { [weak self] in
                 guard let self = self else { return }
 
-                // Guardia pendingResume — recupera se setActive era esaurito prima dell'ended
+                // Recovery pendingResume
                 if self.pendingResume {
                     self.pendingResume = false
                     let savedBeat = self.pendingResumeBeat
                     self.pendingResumeBeat = nil
-                    os_log("[Q-BEATS][RESUME] pendingResume recuperato da InterruptionEnded — beat:%.4f",
+                    os_log("[Q-BEATS][RESUME] pendingResume recuperato da InterruptionEnded beat:%.4f",
                            log: .default, type: .default, savedBeat ?? -1.0)
                     self.activateSessionAndStart(resumeAtBeat: savedBeat, trigger: "pending_interruption_ended")
+                    return
+                }
+
+                // Filtro shouldResume
+                let options = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+                let shouldResume = AVAudioSessionInterruptionOptions(rawValue: options).contains(.shouldResume)
+                if !shouldResume {
+                    os_log("[Q-BEATS][RESUME] .ended ricevuto ma shouldResume=false — Pending=true.",
+                           log: .default, type: .default)
+                    if let mh = self.midiEngineHandle {
+                        let hostTime = mach_absolute_time() + self.outputLatencyTicks + self.bufferDurationTicks
+                        self.pendingResumeBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                    }
+                    self.pendingResume = true
                     return
                 }
 
@@ -613,7 +660,7 @@ class AudioEngine: ObservableObject {
                 self.engine.prepare()
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
-                let resumeBeat: Double
+                let resumeBeat: Double?
                 if let mh = self.midiEngineHandle {
                     let avSession = AVAudioSession.sharedInstance()
                     self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
@@ -626,7 +673,7 @@ class AudioEngine: ObservableObject {
                                                 + self.bufferDurationTicks
                     resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 } else {
-                    resumeBeat = 0.0
+                    resumeBeat = nil
                 }
 
                 // 3. Log
@@ -646,19 +693,16 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleRouteChange(_ notification: Notification) {
-        var handledPending = false
-        audioQueue.sync {
-            if self.pendingResume {
-                self.pendingResume = false
-                let savedBeat = self.pendingResumeBeat
-                self.pendingResumeBeat = nil
-                os_log("[Q-BEATS][RESUME] pendingResume recuperato da notifica — beat:%.4f",
-                       log: .default, type: .default, savedBeat ?? -1.0)
-                self.activateSessionAndStart(resumeAtBeat: savedBeat, trigger: "route_change_pending")
-                handledPending = true
-            }
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            guard self.pendingResume else { return }
+            self.pendingResume = false
+            let savedBeat = self.pendingResumeBeat
+            self.pendingResumeBeat = nil
+            os_log("[Q-BEATS][RESUME] pendingResume recuperato da RouteChange — beat:%.4f",
+                   log: .default, type: .default, savedBeat ?? -1.0)
+            self.activateSessionAndStart(resumeAtBeat: savedBeat, trigger: "route_change_pending")
         }
-        if handledPending { return }
 
         guard let info        = notification.userInfo,
               let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
@@ -765,7 +809,7 @@ class AudioEngine: ObservableObject {
                     self.engine.prepare()
 
                     // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
-                    let resumeBeat: Double
+                    let resumeBeat: Double?
                     if let mh = self.midiEngineHandle {
                         let avSession = AVAudioSession.sharedInstance()
                         self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
@@ -778,7 +822,7 @@ class AudioEngine: ObservableObject {
                                                     + self.bufferDurationTicks
                         resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                     } else {
-                        resumeBeat = 0.0
+                        resumeBeat = nil
                     }
 
                     // 3. Log
@@ -864,7 +908,7 @@ class AudioEngine: ObservableObject {
             self.engine.prepare()
 
             // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
-            let resumeBeat: Double
+            let resumeBeat: Double?
             if let mh = self.midiEngineHandle {
                 let avSession = AVAudioSession.sharedInstance()
                 self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
@@ -879,7 +923,7 @@ class AudioEngine: ObservableObject {
                                             + self.bufferDurationTicks
                 resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
             } else {
-                resumeBeat = self.lastStartBeat // Fallback estremo
+                resumeBeat = nil
             }
 
             // 3. Riattivazione sessione e restart
@@ -892,7 +936,6 @@ class AudioEngine: ObservableObject {
             guard let self = self else { return }
             guard self.isPlaying, !self.isRunning else { return }
 
-            // Se pendingResume è attivo, un recovery è già in corso — skip
             guard !self.pendingResume else {
                 os_log("[Q-BEATS][WAKEUP] pendingResume attivo — skip",
                        log: .default, type: .default)
@@ -906,9 +949,6 @@ class AudioEngine: ObservableObject {
             } else {
                 resumeBeat = nil
             }
-
-            os_log("[Q-BEATS][WAKEUP] willEnterForeground — engine fermo, resumeBeat:%.4f",
-                   log: .default, type: .default, resumeBeat ?? -1.0)
             self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: "app_wakeup")
         }
     }
