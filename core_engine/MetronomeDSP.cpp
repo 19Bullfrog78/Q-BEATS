@@ -51,7 +51,7 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     double nextBeatIndex    = std::ceil(beatPosition - epsilon);
 
     double  relative  = nextBeatIndex - _startAbsoluteBeat;
-    int64_t beatIdx   = (int64_t)std::floor(relative);
+    int64_t beatIdx   = (int64_t)std::round(relative);
     int64_t beatInBar = beatIdx % (int64_t)_beatsPerBar;
     if (beatInBar < 0) beatInBar += _beatsPerBar;
 
