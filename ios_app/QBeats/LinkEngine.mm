@@ -45,6 +45,7 @@ LinkEngineHandle link_engine_create(void) {
     ABLLinkSetIsEnabledCallback(engine->link_,
         [](bool isEnabled, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
+            ABLLinkSetActive(le->link_, isEnabled);
             le->enabled_.store(isEnabled);
             os_log(OS_LOG_DEFAULT,
                    "[Q-BEATS][LINK][ENABLED] isEnabled:%d",
