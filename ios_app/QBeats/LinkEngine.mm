@@ -15,6 +15,7 @@ struct LinkEngine {
     std::atomic<int64_t> pendingPhaseJump_{-1};
     std::atomic<double> phaseJumpThresholdBeats_{0.01};
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
+    std::atomic<bool> suppressNextIsPlayingBroadcast_{false};
     void (*tempoCallback_)(double bpm, void* context) = nullptr;
     void* tempoCallbackContext_ = nullptr;
     void (*startStopCallback_)(bool isPlaying, void* context) = nullptr;
@@ -36,18 +37,23 @@ LinkEngineHandle link_engine_create(void) {
 
             // Al join: leggere stato isPlaying della sessione Link attiva
             if (isConnected) {
-                ABLLinkSessionStateRef state =
-                    ABLLinkCaptureAppSessionState(le->link_);
-                bool sessionIsPlaying = ABLLinkIsPlaying(state);
-                ABLLinkCommitAppSessionState(le->link_, state);
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                               (int64_t)(0.2 * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    ABLLinkSessionStateRef state =
+                        ABLLinkCaptureAppSessionState(le->link_);
+                    bool sessionIsPlaying = ABLLinkIsPlaying(state);
+                    ABLLinkCommitAppSessionState(le->link_, state);
 
-                os_log(OS_LOG_DEFAULT,
-                       "[Q-BEATS][LINK][JOIN] sessionIsPlaying:%d",
-                       (int)sessionIsPlaying);
+                    os_log(OS_LOG_DEFAULT,
+                           "[Q-BEATS][LINK][JOIN] sessionIsPlaying:%d",
+                           (int)sessionIsPlaying);
 
-                if (sessionIsPlaying && le->startStopCallback_) {
-                    le->startStopCallback_(true, le->startStopCallbackContext_);
-                }
+                    if (sessionIsPlaying && le->startStopCallback_) {
+                        le->suppressNextIsPlayingBroadcast_.store(true);
+                        le->startStopCallback_(true, le->startStopCallbackContext_);
+                    }
+                });
             }
 
             if (le->isConnectedCallback_) {
@@ -156,6 +162,11 @@ void link_engine_set_is_playing(LinkEngineHandle handle,
 
     ABLLinkSessionStateRef state =
         ABLLinkCaptureAppSessionState(engine->link_);
+
+    if (isPlaying && engine->suppressNextIsPlayingBroadcast_.exchange(false)) {
+        ABLLinkCommitAppSessionState(engine->link_, state);
+        return;
+    }
 
     double quantum = engine->quantum_.load(std::memory_order_relaxed);
 
