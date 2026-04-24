@@ -111,18 +111,6 @@ class AudioEngine: ObservableObject {
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
 
-            link_engine_set_is_enabled_callback(lh, { isEnabled, ctx in
-                guard let ctx = ctx else { return }
-                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
-                DispatchQueue.main.async {
-                    engine.linkEnabled = isEnabled
-                    if !isEnabled {
-                        engine.linkIsConnected = false
-                        engine.linkPeers = 0
-                    }
-                }
-            }, Unmanaged.passUnretained(self).toOpaque())
-
             link_engine_set_peers_changed_callback(lh, { ctx, count in
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
