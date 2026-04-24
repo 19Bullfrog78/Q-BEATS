@@ -33,30 +33,33 @@ void MetronomeDSP::setAbsolutePositionForTesting(uint64_t pos) {
 
 void MetronomeDSP::resetForStart(double startBeat) {
     // Fresh play: fissa la phase origin e azzera il contatore di battuta.
+    // Primo click al sample corrispondente a _startAbsoluteBeat (downbeat).
     _startAbsoluteBeat      = startBeat;
     double spb              = (_sampleRate * 60.0) / _bpm;
-    _absoluteSamplePosition = (uint64_t)(startBeat * spb);
-    double epsilon          = 0.5 / _sampleRate * (_bpm / 60.0);
-    double nextBeatIndex    = std::ceil(startBeat - epsilon);
+    _absoluteSamplePosition = (uint64_t)std::round(startBeat * spb);
     _currentBeatInBar       = 0;
-    _exactNextBeatSample    = nextBeatIndex * spb;
+    _exactNextBeatSample    = startBeat * spb;
 }
 
 void MetronomeDSP::setBeatPosition(double beatPosition) {
     // Resume / Link phase sync: NON tocca _startAbsoluteBeat.
-    // _currentBeatInBar calcolato come distanza dalla phase origin.
+    // Griglia coerente relativa a _startAbsoluteBeat per entrambi
+    // _currentBeatInBar e _exactNextBeatSample.
     double spb              = (_sampleRate * 60.0) / _bpm;
-    _absoluteSamplePosition = (uint64_t)(beatPosition * spb);
+    _absoluteSamplePosition = (uint64_t)std::round(beatPosition * spb);
     double epsilon          = 0.5 / _sampleRate * (_bpm / 60.0);
-    double nextBeatIndex    = std::ceil(beatPosition - epsilon);
 
-    double  relative  = nextBeatIndex - _startAbsoluteBeat;
-    int64_t beatIdx   = (int64_t)std::round(relative);
-    int64_t beatInBar = beatIdx % (int64_t)_beatsPerBar;
+    // Indice del prossimo beat, relativo a _startAbsoluteBeat
+    double relative         = beatPosition - _startAbsoluteBeat;
+    double nextRelativeIdx  = std::ceil(relative - epsilon);
+    int64_t beatIdx         = (int64_t)nextRelativeIdx;
+    int64_t beatInBar       = beatIdx % (int64_t)_beatsPerBar;
     if (beatInBar < 0) beatInBar += _beatsPerBar;
+    _currentBeatInBar       = (uint32_t)beatInBar;
 
-    _currentBeatInBar    = (uint32_t)beatInBar;
-    _exactNextBeatSample = nextBeatIndex * spb;
+    // Sample del prossimo beat: phase origin + indice relativo
+    double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
+    _exactNextBeatSample    = nextAbsoluteBeat * spb;
 }
 
 std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
