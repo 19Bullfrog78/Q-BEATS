@@ -33,7 +33,7 @@ LinkEngineHandle link_engine_create(void) {
             os_log(OS_LOG_DEFAULT,
                    "[Q-BEATS][LINK][CONNECTED] isConnected:%d numPeers:%lu",
                    (int)isConnected,
-                   (unsigned long)ABLLinkGetPeerCount(le->link_));
+                   (unsigned long)le->numPeers_.load());
             if (le->isConnectedCallback_) {
                 le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
             }
@@ -178,7 +178,7 @@ void link_engine_set_start_stop_callback(LinkEngineHandle handle,
             os_log(OS_LOG_DEFAULT,
                    "[Q-BEATS][LINK][ISPLAYING] isPlaying:%d numPeers:%lu",
                    (int)isPlaying,
-                   (unsigned long)ABLLinkGetPeerCount(e->link_));
+                   (unsigned long)e->numPeers_.load());
             if (e->startStopCallback_) {
                 e->startStopCallback_(isPlaying,
                                      e->startStopCallbackContext_);
