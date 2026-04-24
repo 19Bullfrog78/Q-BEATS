@@ -681,9 +681,9 @@ class AudioEngine: ObservableObject {
                            log: .default, type: .default)
                     self.pendingResumeBeat = nil
                     self.pendingResume = true
-                    
+
                     // Safety net autonomo: iOS non manda eventi successivi in questo path.
-                    // Dopo 2s triggeriamo recovery via handleAppWakeUp se ancora pending.
+                    // Dopo 2s triggeriamo recovery via activateSessionAndStart se ancora pending.
                     let capturedToken = self.currentResumeToken
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                         guard let self = self else { return }
