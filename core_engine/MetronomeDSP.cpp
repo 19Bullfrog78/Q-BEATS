@@ -1,5 +1,6 @@
 #include "MetronomeDSP.h"
 #include <cmath>
+#include <cstdio>
 
 MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
     : _sampleRate(sampleRate)
@@ -57,6 +58,9 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
 
     _currentBeatInBar    = (uint32_t)beatInBar;
     _exactNextBeatSample = nextBeatIndex * spb;
+
+    printf("[METRO] setBeatPosition: beat=%.6f startAbs=%.6f beatIndex=%llu beatInBar=%u\n",
+           beatPosition, _startAbsoluteBeat, (unsigned long long)beatIdx, _currentBeatInBar);
 }
 
 std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
