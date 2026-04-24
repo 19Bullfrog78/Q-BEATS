@@ -148,9 +148,18 @@ class AudioEngine: ObservableObject {
     // MARK: - Public API (chiamabile da qualsiasi thread)
 
     func start(resumeAtBeat: Double? = nil) {
+        os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
+               log: .default, type: .default,
+               resumeAtBeat.map { String(format: "%.6f", $0) } ?? "nil",
+               self._startAbsoluteBeat)
+
         audioQueue.async { [weak self] in
             guard let self else { return }
-            guard !self.isRunning, let _ = self.metronomeHandle else { return }
+            guard !self.isRunning, let _ = self.metronomeHandle else {
+                os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                       log: .default, type: .default)
+                return
+            }
             do {
                 self.bufferCount    = 0
                 self.beatTotal      = 0
@@ -187,12 +196,22 @@ class AudioEngine: ObservableObject {
                         midi_engine_set_beat_position(mh, snappedBeat)
                         if let h = self.metronomeHandle {
                             metronome_set_beat_position(h, snappedBeat)
+                            os_log("[Q-BEATS][START] -> metronome_set_beat_position(%.6f)",
+                                   log: .default, type: .default, snappedBeat)
+                        } else {
+                            os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                                   log: .default, type: .default)
                         }
                     } else {
                         // Fresh play: fissa phase origin a 0 e azzera _currentBeatInBar.
                         midi_engine_set_beat_position(mh, 0.0)
                         if let h = self.metronomeHandle {
                             metronome_reset_for_start(h, 0.0)
+                            os_log("[Q-BEATS][START] -> metronome_reset_for_start(%.6f)",
+                                   log: .default, type: .default, 0.0)
+                        } else {
+                            os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                                   log: .default, type: .default)
                         }
                     }
                     if let lh = self.linkEngineHandle {
@@ -209,6 +228,9 @@ class AudioEngine: ObservableObject {
                     } else {
                         midi_engine_network_disable(mh)
                     }
+                } else {
+                    os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                           log: .default, type: .default)
                 }
 
                 let sr  = AVAudioSession.sharedInstance().sampleRate
@@ -238,6 +260,8 @@ class AudioEngine: ObservableObject {
                 self.scheduleNextBuffer()
                 self.scheduleNextBuffer()
             } catch {
+                os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                       log: .default, type: .default)
                 let errStr = "start fallito: \(error)"
                 DispatchQueue.main.async { self.clickStatus = errStr }
             }
