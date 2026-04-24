@@ -11,19 +11,12 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Ableton Link") {
-                    Toggle("Ableton Link", isOn: Binding(
-                        get: { audioEngine.linkEnabled },
-                        set: { audioEngine.setLinkEnabled($0) }
-                    ))
-
                     Text(audioEngine.linkIsConnected ? "Connesso" : "Nessun peer")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    if audioEngine.linkEnabled {
-                        Button("Impostazioni Link") {
-                            showLinkSettings = true
-                        }
+                    Button("Impostazioni Link") {
+                        showLinkSettings = true
                     }
                 }
 

@@ -22,6 +22,8 @@ struct LinkEngine {
     void* startStopCallbackContext_ = nullptr;
     void (*isConnectedCallback_)(bool isConnected, void* context) = nullptr;
     void* isConnectedCallbackContext_ = nullptr;
+    void (*isEnabledCallback_)(bool isEnabled, void* context) = nullptr;
+    void* isEnabledCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
@@ -38,6 +40,17 @@ LinkEngineHandle link_engine_create(void) {
             if (le->isConnectedCallback_) {
                 le->isConnectedCallback_(isConnected,
                                          le->isConnectedCallbackContext_);
+            }
+        }, engine);
+    ABLLinkSetIsEnabledCallback(engine->link_,
+        [](bool isEnabled, void* context) {
+            auto* le = static_cast<LinkEngine*>(context);
+            le->enabled_.store(isEnabled);
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][LINK][ENABLED] isEnabled:%d",
+                   (int)isEnabled);
+            if (le->isEnabledCallback_) {
+                le->isEnabledCallback_(isEnabled, le->isEnabledCallbackContext_);
             }
         }, engine);
     return (LinkEngineHandle)engine;
@@ -124,6 +137,15 @@ void link_engine_set_is_connected_callback(LinkEngineHandle handle,
     auto* le = static_cast<LinkEngine*>(handle);
     le->isConnectedCallback_ = callback;
     le->isConnectedCallbackContext_ = context;
+}
+
+void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
+    void (*callback)(bool isEnabled, void* context),
+    void* context) {
+    if (!handle) return;
+    auto* le = static_cast<LinkEngine*>(handle);
+    le->isEnabledCallback_ = callback;
+    le->isEnabledCallbackContext_ = context;
 }
 
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {

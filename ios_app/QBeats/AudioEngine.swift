@@ -108,6 +108,17 @@ class AudioEngine: ObservableObject {
                     engine.linkIsConnected = isConnected
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
+
+            link_engine_set_is_enabled_callback(lh, { isEnabled, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                DispatchQueue.main.async {
+                    engine.linkEnabled = isEnabled
+                    if !isEnabled {
+                        engine.linkIsConnected = false
+                    }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
         }
 
         // === AGGIUNTO 6D — Start/Stop sync callback da peer Link ===
