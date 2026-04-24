@@ -31,11 +31,28 @@ LinkEngineHandle link_engine_create(void) {
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
             os_log(OS_LOG_DEFAULT,
-                   "[Q-BEATS][LINK][CONNECTED] isConnected:%d numPeers:%lu",
-                   (int)isConnected,
-                   (unsigned long)le->numPeers_.load());
+                   "[Q-BEATS][LINK][CONNECTED] isConnected:%d",
+                   (int)isConnected);
+
+            // Al join: leggere stato isPlaying della sessione Link attiva
+            if (isConnected) {
+                ABLLinkSessionStateRef state =
+                    ABLLinkCaptureAppSessionState(le->link_);
+                bool sessionIsPlaying = ABLLinkIsPlaying(state);
+                ABLLinkCommitAppSessionState(le->link_, state);
+
+                os_log(OS_LOG_DEFAULT,
+                       "[Q-BEATS][LINK][JOIN] sessionIsPlaying:%d",
+                       (int)sessionIsPlaying);
+
+                if (sessionIsPlaying && le->startStopCallback_) {
+                    le->startStopCallback_(true, le->startStopCallbackContext_);
+                }
+            }
+
             if (le->isConnectedCallback_) {
-                le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
+                le->isConnectedCallback_(isConnected,
+                                         le->isConnectedCallbackContext_);
             }
         }, engine);
     return (LinkEngineHandle)engine;
