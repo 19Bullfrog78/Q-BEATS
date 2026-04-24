@@ -1,5 +1,6 @@
 #include "MetronomeDSPBridge.h"
 #include "../../core_engine/MetronomeDSP.h"
+#import <os/log.h>
 
 MetronomeHandle metronome_create(double sampleRate, double bpm) {
     return new MetronomeDSP(sampleRate, bpm);
@@ -24,7 +25,13 @@ void metronome_reset_for_start(MetronomeHandle handle, double startBeat) {
 
 void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
     if (!handle) return;
-    static_cast<MetronomeDSP*>(handle)->setBeatPosition(beatPosition);
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    _dsp->setBeatPosition(beatPosition);
+    os_log(OS_LOG_DEFAULT,
+           "[METRO] setBeatPosition: beat=%.6f startAbs=%.6f beatInBar=%u",
+           beatPosition,
+           _dsp->getStartAbsoluteBeat(),
+           _dsp->getCurrentBeatInBar());
 }
 
 uint32_t metronome_processBuffer(MetronomeHandle handle,

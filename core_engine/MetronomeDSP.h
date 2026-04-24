@@ -23,6 +23,9 @@ public:
     // Chiamare su resume dopo interruzione e su ogni phase sync Link.
     void setBeatPosition(double beatPosition);
 
+    double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
+    uint32_t getCurrentBeatInBar() const { return _currentBeatInBar; }
+
     std::vector<BeatEvent> processBuffer(uint32_t bufferSize);
 
 private:
