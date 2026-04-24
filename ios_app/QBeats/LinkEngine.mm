@@ -30,6 +30,10 @@ LinkEngineHandle link_engine_create(void) {
     ABLLinkSetIsConnectedCallback(engine->link_,
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][LINK][CONNECTED] isConnected:%d numPeers:%lu",
+                   (int)isConnected,
+                   (unsigned long)ABLLinkGetPeerCount(le->link_));
             if (le->isConnectedCallback_) {
                 le->isConnectedCallback_(isConnected, le->isConnectedCallbackContext_);
             }
@@ -140,12 +144,18 @@ void link_engine_set_is_playing(LinkEngineHandle handle,
 
     if (isPlaying) {
         double currentLinkBeat = ABLLinkBeatAtTime(state, hostTime, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
+               (int)true, currentLinkBeat);
         ABLLinkSetIsPlayingAndRequestBeatAtTime(
             state, true, hostTime, currentLinkBeat, quantum);
         os_log(OS_LOG_DEFAULT,
                "[Q-BEATS][LINK][RESTART] set_is_playing=true beat=%.4f (join)",
                currentLinkBeat);
     } else {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
+               (int)false, 0.0);
         ABLLinkSetIsPlayingAndRequestBeatAtTime(
             state, false, hostTime, 0.0, quantum);
         os_log(OS_LOG_DEFAULT,
@@ -165,6 +175,10 @@ void link_engine_set_start_stop_callback(LinkEngineHandle handle,
     ABLLinkSetStartStopCallback(engine->link_,
         [](bool isPlaying, void* ctx) {
             LinkEngine* e = (LinkEngine*)ctx;
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][LINK][ISPLAYING] isPlaying:%d numPeers:%lu",
+                   (int)isPlaying,
+                   (unsigned long)ABLLinkGetPeerCount(e->link_));
             if (e->startStopCallback_) {
                 e->startStopCallback_(isPlaying,
                                      e->startStopCallbackContext_);

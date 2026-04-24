@@ -685,7 +685,7 @@ class AudioEngine: ObservableObject {
                     // Safety net autonomo: iOS non manda eventi successivi in questo path.
                     // Dopo 2s triggeriamo recovery via activateSessionAndStart se ancora pending.
                     let capturedToken = self.currentResumeToken
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                         guard let self = self else { return }
                         self.audioQueue.async { [weak self] in
                             guard let self = self else { return }
