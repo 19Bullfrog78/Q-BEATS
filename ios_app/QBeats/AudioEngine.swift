@@ -681,6 +681,31 @@ class AudioEngine: ObservableObject {
                            log: .default, type: .default)
                     self.pendingResumeBeat = nil
                     self.pendingResume = true
+                    
+                    // Safety net autonomo: iOS non manda eventi successivi in questo path.
+                    // Dopo 2s triggeriamo recovery via handleAppWakeUp se ancora pending.
+                    let capturedToken = self.currentResumeToken
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        guard let self = self else { return }
+                        self.audioQueue.async { [weak self] in
+                            guard let self = self else { return }
+                            guard self.pendingResume else { return }
+                            guard self.currentResumeToken == capturedToken else { return }
+                            os_log("[Q-BEATS][RESUME] safety_net_shouldResume_false triggered (token:%d)",
+                                   log: .default, type: .default, capturedToken)
+                            self.pendingResume = false
+                            self.pendingResumeBeat = nil
+                            var recoveryBeat: Double? = nil
+                            if let mh = self.midiEngineHandle {
+                                let hostTime = mach_absolute_time()
+                                             + self.outputLatencyTicks
+                                             + self.bufferDurationTicks
+                                recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                            }
+                            self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
+                                                         trigger: "safety_net_noresume")
+                        }
+                    }
                     return
                 }
 
