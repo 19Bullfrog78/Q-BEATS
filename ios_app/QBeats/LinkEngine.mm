@@ -34,28 +34,6 @@ LinkEngineHandle link_engine_create(void) {
             os_log(OS_LOG_DEFAULT,
                    "[Q-BEATS][LINK][CONNECTED] isConnected:%d",
                    (int)isConnected);
-
-            // Al join: leggere stato isPlaying della sessione Link attiva
-            if (isConnected) {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                               (int64_t)(0.2 * NSEC_PER_SEC)),
-                               dispatch_get_main_queue(), ^{
-                    ABLLinkSessionStateRef state =
-                        ABLLinkCaptureAppSessionState(le->link_);
-                    bool sessionIsPlaying = ABLLinkIsPlaying(state);
-                    ABLLinkCommitAppSessionState(le->link_, state);
-
-                    os_log(OS_LOG_DEFAULT,
-                           "[Q-BEATS][LINK][JOIN] sessionIsPlaying:%d",
-                           (int)sessionIsPlaying);
-
-                    if (sessionIsPlaying && le->startStopCallback_) {
-                        le->suppressNextIsPlayingBroadcast_.store(true);
-                        le->startStopCallback_(true, le->startStopCallbackContext_);
-                    }
-                });
-            }
-
             if (le->isConnectedCallback_) {
                 le->isConnectedCallback_(isConnected,
                                          le->isConnectedCallbackContext_);
