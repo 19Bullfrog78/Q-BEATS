@@ -8,7 +8,7 @@ struct ContentView: View {
     // per conformità Ableton. Aggiungere import nel bridging header se necessario:
     // #include "ABLLinkSettingsViewController.h"
 
-    @StateObject private var audioEngine = AudioEngine()
+    @StateObject private var audioEngine = AudioEngine.shared
     @State private var showSettings = false
 
     private let timeSignatures: [(label: String, beats: UInt32)] = [

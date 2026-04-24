@@ -12,6 +12,7 @@ import UIKit
 //    setBeatsPerBar() dispatcha solo su audioQueue, non riscrive @Published.
 
 class AudioEngine: ObservableObject {
+    static let shared = AudioEngine()
 
     @Published var clickStatus : String  = "non caricato"
     @Published var currentBPM: Double = 120.0
@@ -309,6 +310,14 @@ class AudioEngine: ObservableObject {
                 if !enabled {
                     self.linkIsConnected = false
                 }
+            }
+        }
+    }
+
+    func disableLinkOnTerminate() {
+        audioQueue.sync {
+            if let lh = linkEngineHandle {
+                link_engine_set_enabled(lh, false)
             }
         }
     }
