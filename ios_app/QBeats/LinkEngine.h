@@ -12,6 +12,7 @@ extern "C" {
 void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
                                             LinkPeersChangedCallback callback,
                                             void* context);
+void link_engine_activate(LinkEngineHandle handle);
 
 #ifdef __cplusplus
 }

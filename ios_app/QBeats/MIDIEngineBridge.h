@@ -90,6 +90,10 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
                                             LinkPeersChangedCallback callback,
                                             void* context);
 
+// === AGGIUNTO Build #177 — Activate after callbacks ===
+// Chiamare UNA SOLA VOLTA in init, dopo la registrazione di tutti i callback.
+void link_engine_activate(LinkEngineHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

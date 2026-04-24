@@ -33,8 +33,8 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
-    // Build #176: Link sempre attivo/pronto; il toggle UI applica enable/disable successivamente.
-    ABLLinkSetActive(engine->link_, true);
+    // Build #177: Link creato ma NON attivato. link_engine_activate() viene chiamato
+    // da AudioEngine.swift dopo la registrazione di tutti i callback.
     ABLLinkSetIsConnectedCallback(engine->link_,
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
@@ -162,6 +162,12 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
     auto* le = static_cast<LinkEngine*>(handle);
     le->peersChangedCallback_ = callback;
     le->peersChangedCallbackContext_ = context;
+}
+
+void link_engine_activate(LinkEngineHandle handle) {
+    if (!handle) return;
+    ABLLinkSetActive(static_cast<LinkEngine*>(handle)->link_, true);
+    os_log(OS_LOG_DEFAULT, "[Q-BEATS][LINK][ACTIVATE] Link attivato dopo registrazione callback");
 }
 
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {

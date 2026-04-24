@@ -149,6 +149,11 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
+        // Build #177: attiva Link solo dopo che tutti i callback sono registrati.
+        if let lh = linkEngineHandle {
+            link_engine_activate(lh)
+        }
+
         setupSession()
         setupGraph()
         audioQueue.sync {
