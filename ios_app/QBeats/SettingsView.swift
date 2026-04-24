@@ -11,11 +11,22 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Ableton Link") {
-                    Text(audioEngine.linkIsConnected ? "Connesso" : "Nessun peer")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Toggle("Link", isOn: Binding(
+                        get: { audioEngine.linkEnabled },
+                        set: { audioEngine.setLinkEnabled($0) }
+                    ))
 
-                    Button("Impostazioni Link") {
+                    if audioEngine.linkEnabled {
+                        HStack {
+                            Text("Peers")
+                            Spacer()
+                            Text("\(audioEngine.linkPeers)")
+                                .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
+                                .monospacedDigit()
+                        }
+                    }
+
+                    Button("Link Settings") {
                         showLinkSettings = true
                     }
                 }
@@ -47,7 +58,7 @@ struct SettingsView: View {
                 BTMIDICentralPickerView()
             }
             .sheet(isPresented: $showLinkSettings) {
-                LinkSettingsUIView(presenter: audioEngine.makeLinkSettingsPresenter())
+                LinkSettingsUIView()
             }
         }
     }

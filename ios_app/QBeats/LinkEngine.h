@@ -1,17 +1,17 @@
-// === MODIFICATO 6A ===
+// === Build #176 — Facade Pattern Link ===
 #pragma once
-#import <Foundation/Foundation.h>
-#include "MIDIEngineBridge.h"   // per LinkEngineHandle e typedef
+#include "MIDIEngineBridge.h"   // per LinkEngineHandle, typedef e dichiarazioni pubbliche
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// LinkEngine funzioni già dichiarate in MIDIEngineBridge.h
-void* link_engine_get_abl_ref(LinkEngineHandle handle);
-void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
-    void (*callback)(bool isEnabled, void* context),
-    void* context);
+// LinkPeersChangedCallback typedef e link_engine_set_peers_changed_callback
+// sono dichiarati in MIDIEngineBridge.h (visibile a Swift via bridging header).
+// Qui ri-dichiariamo per completezza del modulo C++.
+void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
+                                            LinkPeersChangedCallback callback,
+                                            void* context);
 
 #ifdef __cplusplus
 }

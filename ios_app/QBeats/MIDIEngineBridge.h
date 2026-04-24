@@ -84,6 +84,12 @@ void link_engine_set_start_stop_callback(LinkEngineHandle handle,
     void (*callback)(bool isPlaying, void* context),
     void* context);
 
+// === AGGIUNTO Build #176 — Facade peers callback ===
+typedef void (*LinkPeersChangedCallback)(void* context, uint32_t numPeers);
+void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
+                                            LinkPeersChangedCallback callback,
+                                            void* context);
+
 #ifdef __cplusplus
 }
 #endif

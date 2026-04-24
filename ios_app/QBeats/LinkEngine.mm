@@ -1,4 +1,4 @@
-// === MODIFICATO 6A ===
+// === Build #176 — Facade Pattern Link ===
 // Thin ObjC++ wrapper su ABLLinkRef (API C pura di LinkKit 3.2.2)
 #import "LinkEngine.h"
 #include <ABLLink.h>
@@ -24,22 +24,33 @@ struct LinkEngine {
     void* isConnectedCallbackContext_ = nullptr;
     void (*isEnabledCallback_)(bool isEnabled, void* context) = nullptr;
     void* isEnabledCallbackContext_ = nullptr;
+    // === Build #176 — Facade peers callback ===
+    void (*peersChangedCallback_)(void* context, uint32_t numPeers) = nullptr;
+    void* peersChangedCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
-    ABLLinkSetActive(engine->link_, false);
+    // Build #176: Link sempre attivo/pronto; il toggle UI applica enable/disable successivamente.
+    ABLLinkSetActive(engine->link_, true);
     ABLLinkSetIsConnectedCallback(engine->link_,
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
+            // ABLLinkIsConnectedCallback è boolean: 0=nessun peer, 1=almeno un peer.
+            // LinkKit 3.x non espone un contatore nativo via callback.
+            uint32_t peers = isConnected ? 1 : 0;
+            le->numPeers_.store(peers);
             os_log(OS_LOG_DEFAULT,
-                   "[Q-BEATS][LINK][CONNECTED] isConnected:%d",
-                   (int)isConnected);
+                   "[Q-BEATS][LINK][CONNECTED] isConnected:%d numPeers:%u",
+                   (int)isConnected, peers);
             if (le->isConnectedCallback_) {
                 le->isConnectedCallback_(isConnected,
                                          le->isConnectedCallbackContext_);
+            }
+            if (le->peersChangedCallback_) {
+                le->peersChangedCallback_(le->peersChangedCallbackContext_, peers);
             }
         }, engine);
     ABLLinkSetIsEnabledCallback(engine->link_,
@@ -55,11 +66,6 @@ LinkEngineHandle link_engine_create(void) {
             }
         }, engine);
     return (LinkEngineHandle)engine;
-}
-
-void* link_engine_get_abl_ref(LinkEngineHandle handle) {
-    if (!handle) return nullptr;
-    return static_cast<LinkEngine*>(handle)->link_;
 }
 
 void link_engine_destroy(LinkEngineHandle handle) {
@@ -147,6 +153,15 @@ void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
     auto* le = static_cast<LinkEngine*>(handle);
     le->isEnabledCallback_ = callback;
     le->isEnabledCallbackContext_ = context;
+}
+
+void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
+    void (*callback)(void* context, uint32_t numPeers),
+    void* context) {
+    if (!handle) return;
+    auto* le = static_cast<LinkEngine*>(handle);
+    le->peersChangedCallback_ = callback;
+    le->peersChangedCallbackContext_ = context;
 }
 
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {

@@ -2,12 +2,6 @@ import SwiftUI
 import os
 
 struct ContentView: View {
-    // === MODIFICATO 6A ===
-    // === PLACEHOLDER 6E Ableton Link ===
-    // Quando Link è enabled, presentare ABLLinkSettingsViewController 
-    // per conformità Ableton. Aggiungere import nel bridging header se necessario:
-    // #include "ABLLinkSettingsViewController.h"
-
     @StateObject private var audioEngine = AudioEngine.shared
     @State private var showSettings = false
 

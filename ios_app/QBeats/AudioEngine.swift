@@ -18,6 +18,7 @@ class AudioEngine: ObservableObject {
     @Published var currentBPM: Double = 120.0
     @Published var linkEnabled: Bool = false
     @Published var linkIsConnected: Bool = false
+    @Published var linkPeers: Int = 0
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
     // -------------------------------------------------------
@@ -117,8 +118,16 @@ class AudioEngine: ObservableObject {
                     engine.linkEnabled = isEnabled
                     if !isEnabled {
                         engine.linkIsConnected = false
+                        engine.linkPeers = 0
                     }
                 }
+            }, Unmanaged.passUnretained(self).toOpaque())
+
+            link_engine_set_peers_changed_callback(lh, { ctx, count in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                // già su main thread (LinkKit 3.2.2)
+                engine.linkPeers = Int(count)
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
@@ -309,6 +318,7 @@ class AudioEngine: ObservableObject {
                 self.linkEnabled = enabled
                 if !enabled {
                     self.linkIsConnected = false
+                    self.linkPeers = 0
                 }
             }
         }
@@ -320,13 +330,6 @@ class AudioEngine: ObservableObject {
                 link_engine_set_enabled(lh, false)
             }
         }
-    }
-
-    func makeLinkSettingsPresenter() -> LinkSettingsPresenter {
-        guard let lh = linkEngineHandle else {
-            fatalError("LinkEngine non inizializzato")
-        }
-        return LinkSettingsPresenter(handle: lh)
     }
 
     func enableNetworkMIDI() {
