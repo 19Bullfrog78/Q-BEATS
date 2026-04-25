@@ -59,10 +59,6 @@ class AudioEngine: ObservableObject {
 
 
 
-    // Usato da handleEngineConfigChange per ricalcolare beat position accurata
-    private var lastStartBeat:      Double = 0.0
-    private var lastStartTimestamp: UInt64 = 0
-
     // === Blocco 7 — Silent Ticking (accesso SOLO su audioQueue) ===
     // Il clock C++ (metronome, MIDI, Link) non si ferma mai durante le interruzioni.
     // Solo l'audio layer (AVAudioEngine + playerNode) viene sospeso.
@@ -186,8 +182,6 @@ class AudioEngine: ObservableObject {
                 self.clickPlayhead  = -1
                 self.accentPlayhead = -1
 
-                self.lastStartBeat      = resumeAtBeat ?? 0.0
-                self.lastStartTimestamp = mach_absolute_time()
                 try self.engine.start()
                 DispatchQueue.main.async {
                     UIApplication.shared.isIdleTimerDisabled = true
@@ -304,8 +298,8 @@ class AudioEngine: ObservableObject {
             }
             if let lh = self.linkEngineHandle {
                 link_engine_set_bpm(lh, bpm)
-                DispatchQueue.main.async { self.currentBPM = bpm }
             }
+            DispatchQueue.main.async { self.currentBPM = bpm }
         }
     }
 
