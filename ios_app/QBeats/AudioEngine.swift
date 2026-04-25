@@ -320,6 +320,22 @@ class AudioEngine: ObservableObject {
                     self.linkIsConnected = isConn
                     self.linkPeers = isConn ? 1 : 0
                 }
+                // ABLLinkIsConnectedCallback è edge-triggered e non ri-scatta per peer già
+                // noti dopo re-enable. Se la query immediata non trova ancora connessione,
+                // la riconnessione WiFi richiede qualche centinaio di ms: verifica dopo 2s.
+                if !isConn {
+                    self.audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        guard let self = self, let lh = self.linkEngineHandle else { return }
+                        guard link_engine_is_enabled(lh) else { return }
+                        let isConn2 = link_engine_is_connected(lh)
+                        if isConn2 {
+                            DispatchQueue.main.async {
+                                self.linkIsConnected = true
+                                self.linkPeers = 1
+                            }
+                        }
+                    }
+                }
             } else {
                 DispatchQueue.main.async {
                     self.linkEnabled = false
