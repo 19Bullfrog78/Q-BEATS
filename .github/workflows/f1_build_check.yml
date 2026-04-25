@@ -1,0 +1,50 @@
+name: F1 — Build Check (zero errors, zero warnings)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios_app
+        run: xcodegen generate
+
+      - name: Build Debug (no signing)
+        working-directory: ios_app
+        run: |
+          set -o pipefail
+          xcodebuild clean build \
+            -project QBeats.xcodeproj \
+            -scheme QBeats \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            2>&1 | tee ../build_output.txt
+
+      - name: Check errors and warnings
+        run: |
+          WARNINGS=$(grep -c ': warning:' build_output.txt 2>/dev/null || echo 0)
+          ERRORS=$(grep -c ': error:' build_output.txt 2>/dev/null || echo 0)
+          echo "=== F1 BUILD SUMMARY ==="
+          echo "Errors:   $ERRORS"
+          echo "Warnings: $WARNINGS"
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "--- ERRORS ---"
+            grep ': error:' build_output.txt || true
+            echo "❌ F1 FAIL — $ERRORS errori"
+            exit 1
+          fi
+          if [ "$WARNINGS" -gt 0 ]; then
+            echo "--- WARNINGS ---"
+            grep ': warning:' build_output.txt || true
+            echo "⚠️  F1 WARNING — $WARNINGS warning nuovi"
+            exit 1
+          fi
+          echo "✅ F1 PASS — zero errori, zero warning"
