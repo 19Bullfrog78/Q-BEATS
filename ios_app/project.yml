@@ -49,7 +49,6 @@ targets:
         FRAMEWORK_SEARCH_PATHS:
           - "$(SRCROOT)/../Vendors/AbletonLink"
         OTHER_LDFLAGS:
-          - "-lc++"
           - "-L$(SRCROOT)/../Vendors/AbletonLink/LinkKit.xcframework/ios-arm64"
           - "-lLinkKit"
         SWIFT_OBJC_BRIDGING_HEADER: "QBeats/QBeats-Bridging-Header.h"

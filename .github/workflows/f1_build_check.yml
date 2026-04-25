@@ -30,8 +30,8 @@ jobs:
 
       - name: Check errors and warnings
         run: |
-          WARNINGS=$(grep -c ': warning:' build_output.txt 2>/dev/null || echo 0)
-          ERRORS=$(grep -c ': error:' build_output.txt 2>/dev/null || echo 0)
+          WARNINGS=$(grep ': warning:' build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          ERRORS=$(grep ': error:' build_output.txt 2>/dev/null | wc -l | tr -d ' ')
           echo "=== F1 BUILD SUMMARY ==="
           echo "Errors:   $ERRORS"
           echo "Warnings: $WARNINGS"
