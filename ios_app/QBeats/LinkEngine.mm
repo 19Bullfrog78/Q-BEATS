@@ -157,6 +157,11 @@ bool link_engine_abl_is_enabled(LinkEngineHandle handle) {
     return ABLLinkIsEnabled(static_cast<LinkEngine*>(handle)->link_);
 }
 
+bool link_engine_is_connected(LinkEngineHandle handle) {
+    if (!handle) return false;
+    return ABLLinkIsConnected(static_cast<LinkEngine*>(handle)->link_);
+}
+
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;

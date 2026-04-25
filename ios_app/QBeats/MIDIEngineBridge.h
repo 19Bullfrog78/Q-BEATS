@@ -91,6 +91,11 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 // Chiamare UNA SOLA VOLTA in init, dopo la registrazione di tutti i callback.
 void link_engine_activate(LinkEngineHandle handle);
 
+// === AGGIUNTO Build #181 — Direct peer query ===
+// ABLLinkIsConnectedCallback è edge-triggered e non ri-scatta per peer già noti al re-enable.
+// Questa funzione legge ABLLinkIsConnected direttamente per sincronizzare la UI dopo toggle ON.
+bool link_engine_is_connected(LinkEngineHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

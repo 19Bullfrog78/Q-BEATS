@@ -313,9 +313,16 @@ class AudioEngine: ObservableObject {
         audioQueue.async { [weak self] in
             guard let self = self, let lh = self.linkEngineHandle else { return }
             link_engine_set_enabled(lh, enabled)
-            DispatchQueue.main.async {
-                self.linkEnabled = enabled
-                if !enabled {
+            if enabled {
+                let isConn = link_engine_is_connected(lh)
+                DispatchQueue.main.async {
+                    self.linkEnabled = true
+                    self.linkIsConnected = isConn
+                    self.linkPeers = isConn ? 1 : 0
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.linkEnabled = false
                     self.linkIsConnected = false
                     self.linkPeers = 0
                 }
