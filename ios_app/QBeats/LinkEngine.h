@@ -14,6 +14,10 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
                                             void* context);
 void link_engine_activate(LinkEngineHandle handle);
 
+// Internal use only — LinkSettingsPresenter.mm. Never in MIDIEngineBridge.h.
+void* link_engine_get_abl_ref(LinkEngineHandle handle);
+bool  link_engine_abl_is_enabled(LinkEngineHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

@@ -147,6 +147,16 @@ void link_engine_activate(LinkEngineHandle handle) {
     os_log(OS_LOG_DEFAULT, "[Q-BEATS][LINK][ACTIVATE] Link attivato dopo registrazione callback");
 }
 
+void* link_engine_get_abl_ref(LinkEngineHandle handle) {
+    if (!handle) return nullptr;
+    return (void*)static_cast<LinkEngine*>(handle)->link_;
+}
+
+bool link_engine_abl_is_enabled(LinkEngineHandle handle) {
+    if (!handle) return false;
+    return ABLLinkIsEnabled(static_cast<LinkEngine*>(handle)->link_);
+}
+
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks) {
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;

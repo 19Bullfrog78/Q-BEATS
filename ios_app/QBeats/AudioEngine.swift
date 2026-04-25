@@ -27,6 +27,7 @@ class AudioEngine: ObservableObject {
     private var midiEngineHandle     : MIDIEngineHandle? = nil
     // === MODIFICATO 6A ===
     private var linkEngineHandle     : LinkEngineHandle? = nil
+    private(set) var linkSettingsPresenter: LinkSettingsPresenter?
 
     // === AGGIUNTO 6C — timebase cachato all'avvio ===
     private let machTimebase: mach_timebase_info_data_t = {
@@ -85,6 +86,9 @@ class AudioEngine: ObservableObject {
         midiEngineHandle = midi_engine_create()
         // === MODIFICATO 6A ===
         linkEngineHandle = link_engine_create()
+        if let lh = linkEngineHandle {
+            linkSettingsPresenter = LinkSettingsPresenter(linkHandle: lh)
+        }
 
         if let lh = linkEngineHandle {
             link_engine_set_tempo_callback(lh, { bpm, ctx in
@@ -314,6 +318,14 @@ class AudioEngine: ObservableObject {
                     self.linkPeers = 0
                 }
             }
+        }
+    }
+
+    func completeSetupAndEnable() {
+        audioQueue.async { [weak self] in
+            guard let self = self, let lh = self.linkEngineHandle else { return }
+            link_engine_set_enabled(lh, true)
+            DispatchQueue.main.async { self.linkEnabled = true }
         }
     }
 
