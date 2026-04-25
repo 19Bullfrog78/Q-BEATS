@@ -144,6 +144,8 @@ class AudioEngine: ObservableObject {
         // Build #177: attiva Link solo dopo che tutti i callback sono registrati.
         if let lh = linkEngineHandle {
             link_engine_activate(lh)
+            // Build #180: Link parte sempre inattivo — l'utente abilita via toggle.
+            link_engine_set_enabled(lh, false)
         }
 
         setupSession()

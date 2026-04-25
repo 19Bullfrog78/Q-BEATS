@@ -2,7 +2,7 @@ import SwiftUI
 import os
 
 struct ContentView: View {
-    @StateObject private var audioEngine = AudioEngine.shared
+    @ObservedObject private var audioEngine = AudioEngine.shared
     @State private var showSettings = false
 
     private let timeSignatures: [(label: String, beats: UInt32)] = [

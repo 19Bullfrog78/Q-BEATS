@@ -1,11 +1,20 @@
 import SwiftUI
 
+private struct ABLLinkSettingsSheetView: UIViewControllerRepresentable {
+    let presenter: LinkSettingsPresenter
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        presenter.settingsViewController()
+    }
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
+
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("networkMIDIEnabled") private var networkMIDIEnabled: Bool = false
     @ObservedObject var audioEngine: AudioEngine
     @State private var showBTMIDIPicker: Bool = false
-    @State private var showLinkSettings: Bool = false
+    @State private var showLinkSetup: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -13,21 +22,29 @@ struct SettingsView: View {
                 Section("Ableton Link") {
                     Toggle("Link", isOn: Binding(
                         get: { audioEngine.linkEnabled },
-                        set: { audioEngine.setLinkEnabled($0) }
-                    ))
-
-                    if audioEngine.linkEnabled {
-                        HStack {
-                            Text("Peers")
-                            Spacer()
-                            Text("\(audioEngine.linkPeers)")
-                                .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
-                                .monospacedDigit()
+                        set: { newValue in
+                            if newValue,
+                               let p = audioEngine.linkSettingsPresenter,
+                               !p.ablIsEnabled() {
+                                showLinkSetup = true
+                            } else {
+                                audioEngine.setLinkEnabled(newValue)
+                            }
                         }
+                    ))
+                    HStack {
+                        Text("Peers")
+                        Spacer()
+                        Text("\(audioEngine.linkPeers)")
+                            .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
+                            .monospacedDigit()
                     }
-
-                    Button("Link Settings") {
-                        showLinkSettings = true
+                    HStack {
+                        Text("BPM")
+                        Spacer()
+                        Text(String(format: "%.1f", audioEngine.currentBPM))
+                            .foregroundColor(.primary)
+                            .monospacedDigit()
                     }
                 }
 
@@ -57,8 +74,14 @@ struct SettingsView: View {
             .sheet(isPresented: $showBTMIDIPicker) {
                 BTMIDICentralPickerView()
             }
-            .sheet(isPresented: $showLinkSettings) {
-                LinkSettingsUIView()
+            .sheet(isPresented: $showLinkSetup, onDismiss: {
+                if let p = audioEngine.linkSettingsPresenter, p.ablIsEnabled() {
+                    audioEngine.completeSetupAndEnable()
+                }
+            }) {
+                if let p = audioEngine.linkSettingsPresenter {
+                    ABLLinkSettingsSheetView(presenter: p)
+                }
             }
         }
     }
