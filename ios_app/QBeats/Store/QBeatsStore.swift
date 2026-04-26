@@ -112,7 +112,7 @@ final class QBeatsStore: ObservableObject {
 
     // MARK: - Private
 
-    private static func resolveBaseURL() -> URL {
+    nonisolated private static func resolveBaseURL() -> URL {
         if let container = FileManager.default.url(forUbiquityContainerIdentifier: iCloudContainerID) {
             return container.appendingPathComponent("Documents", isDirectory: true)
         }
@@ -120,12 +120,12 @@ final class QBeatsStore: ObservableObject {
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
-    private static func ensureDirectory(_ url: URL) throws {
+    nonisolated private static func ensureDirectory(_ url: URL) throws {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
-    private static func coordinatedRead<T: Decodable>(at url: URL, default defaultValue: T) throws -> T {
+    nonisolated private static func coordinatedRead<T: Decodable>(at url: URL, default defaultValue: T) throws -> T {
         guard FileManager.default.fileExists(atPath: url.path) else {
             logger.info("coordinatedRead — \(url.lastPathComponent) not found, using default")
             return defaultValue
@@ -151,7 +151,7 @@ final class QBeatsStore: ObservableObject {
         return result
     }
 
-    private static func coordinatedWrite<T: Encodable>(_ value: T, to url: URL) throws {
+    nonisolated private static func coordinatedWrite<T: Encodable>(_ value: T, to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

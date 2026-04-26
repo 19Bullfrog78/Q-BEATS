@@ -19,7 +19,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Ableton Link") {
+                SwiftUI.Section("Ableton Link") {
                     Toggle("Link", isOn: Binding(
                         get: { audioEngine.linkEnabled },
                         set: { newValue in
@@ -48,7 +48,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("MIDI Connections") {
+                SwiftUI.Section("MIDI Connections") {
                     Toggle("Network MIDI (WiFi)", isOn: $networkMIDIEnabled)
                         .onChange(of: networkMIDIEnabled) { enabled in
                             if enabled {
