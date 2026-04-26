@@ -61,3 +61,8 @@ void metronome_setSubdivision(MetronomeHandle handle, uint8_t multiplier, double
     if (!handle) return;
     static_cast<MetronomeDSP*>(handle)->setSubdivision(multiplier, swingRatio);
 }
+
+void metronome_scheduleBPMChange(MetronomeHandle handle, double newBPM) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->scheduleBPMChange(newBPM);
+}
