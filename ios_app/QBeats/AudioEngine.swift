@@ -413,7 +413,7 @@ class AudioEngine: ObservableObject {
     func scheduleBPMChange(_ newBPM: Double) {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
-            metronome_scheduleBPMChange(h, newBPM)
+            metronome_schedule_bpm_change(h, newBPM)
         }
     }
 
