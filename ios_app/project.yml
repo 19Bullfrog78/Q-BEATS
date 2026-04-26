@@ -29,6 +29,8 @@ targets:
     resources:
       - path: ../Vendors/AbletonLink/LinkKitResources.bundle
         codeSignOnCopy: true
+    entitlements:
+      path: QBeats/QBeats.entitlements
     sources:
       - path: QBeats
       - path: ../core_engine
