@@ -43,15 +43,18 @@ class AudioEngine: ObservableObject {
     private let maxBeats             : Int = 16
 
     // --- Stato audio: accesso SOLO su audioQueue ---
-    private var clickSamples         : [Float] = []
-    private var accentedClickSamples : [Float] = []
+    private var clickSamples              : [Float] = []
+    private var accentedClickSamples      : [Float] = []
+    private var subdivisionClickSamples   : [Float] = []
     private var isRunning            = false
     private var bufferCount          : Int = 0
     private var beatTotal            : Int = 0
     private var clickPlayhead        : Int = -1
     private var accentPlayhead       : Int = -1
+    private var subdivPlayhead       : Int = -1
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
+    private var isBeats              : [UInt8]
 
     // === AGGIUNTO 6C — Link phase sync (accesso solo su audioQueue) ===
     private var outputLatencyTicks : UInt64 = 0
@@ -76,8 +79,9 @@ class AudioEngine: ObservableObject {
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
 
     init() {
-        offsets = [UInt32](repeating: 0, count: maxBeats)
-        accents = [UInt8](repeating: 0, count: maxBeats)
+        offsets  = [UInt32](repeating: 0, count: maxBeats)
+        accents  = [UInt8](repeating: 0, count: maxBeats)
+        isBeats  = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
         // === MODIFICATO 6A ===
@@ -147,8 +151,9 @@ class AudioEngine: ObservableObject {
         setupSession()
         setupGraph()
         audioQueue.sync {
-            self.clickSamples         = self.generateClickSamples(frequency: 1000.0)
-            self.accentedClickSamples = self.generateClickSamples(frequency: 1500.0)
+            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
+            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
+            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
         }
         setupNotifications()
     }
@@ -181,6 +186,7 @@ class AudioEngine: ObservableObject {
                 self.beatTotal      = 0
                 self.clickPlayhead  = -1
                 self.accentPlayhead = -1
+                self.subdivPlayhead = -1
 
                 try self.engine.start()
                 DispatchQueue.main.async {
@@ -375,11 +381,48 @@ class AudioEngine: ObservableObject {
     // tramite Picker su main thread prima di chiamare questo metodo.
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
+        let pattern = defaultAccentPattern(for: beatsPerBar)
         audioQueue.async {
             metronome_setBeatsPerBar(h, beatsPerBar)
             if let lh = self.linkEngineHandle {
                 link_engine_set_quantum(lh, Double(beatsPerBar))
             }
+            pattern.withUnsafeBufferPointer { ptr in
+                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
+            }
+        }
+    }
+
+    func setAccentPattern(_ pattern: [UInt8]) {
+        guard let h = metronomeHandle else { return }
+        let p = pattern
+        audioQueue.async {
+            p.withUnsafeBufferPointer { ptr in
+                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(p.count))
+            }
+        }
+    }
+
+    func setSubdivision(multiplier: UInt8, swingRatio: Double = 0.5) {
+        guard let h = metronomeHandle else { return }
+        audioQueue.async {
+            metronome_setSubdivision(h, multiplier, swingRatio)
+        }
+    }
+
+    private func defaultAccentPattern(for beatsPerBar: UInt32) -> [UInt8] {
+        switch beatsPerBar {
+        case 2:  return [1,0]
+        case 3:  return [1,0,0]
+        case 4:  return [1,0,0,0]
+        case 5:  return [1,0,0,1,0]
+        case 6:  return [1,0,0,1,0,0]
+        case 7:  return [1,0,0,1,0,1,0]
+        case 12: return [1,0,0,1,0,0,1,0,0,1,0,0]
+        default:
+            var p = [UInt8](repeating: 0, count: Int(beatsPerBar))
+            if !p.isEmpty { p[0] = 1 }
+            return p
         }
     }
 
@@ -611,7 +654,7 @@ class AudioEngine: ObservableObject {
         guard let dst = buffer.floatChannelData?[0] else { return }
         for i in 0..<Int(bufferSize) { dst[i] = 0.0 }
 
-        let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, &accents, UInt32(maxBeats))
+        let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, &accents, &isBeats, UInt32(maxBeats))
         bufferCount += 1
         beatTotal   += Int(beatCount)
 
@@ -631,17 +674,30 @@ class AudioEngine: ObservableObject {
             if accentPlayhead >= accentedClickSamples.count { accentPlayhead = -1 }
         }
 
+        if subdivPlayhead >= 0 && !subdivisionClickSamples.isEmpty {
+            let remaining = subdivisionClickSamples.count - subdivPlayhead
+            let writeLen  = min(remaining, Int(bufferSize))
+            for j in 0..<writeLen { dst[j] += subdivisionClickSamples[subdivPlayhead + j] }
+            subdivPlayhead += writeLen
+            if subdivPlayhead >= subdivisionClickSamples.count { subdivPlayhead = -1 }
+        }
+
         if beatCount > 0 {
             for i in 0..<Int(beatCount) {
                 let offset   = Int(offsets[i])
-                let isAccent = accents[i] != 0
-                let samples  = isAccent ? accentedClickSamples : clickSamples
+                let isAccent = accents[i]  != 0
+                let isBeat   = isBeats[i]  != 0
+                let samples: [Float]
+                if isAccent       { samples = accentedClickSamples }
+                else if isBeat    { samples = clickSamples }
+                else              { samples = subdivisionClickSamples }
                 guard offset < Int(bufferSize), !samples.isEmpty else { continue }
                 let writeLen = min(samples.count, Int(bufferSize) - offset)
                 for j in 0..<writeLen { dst[offset + j] += samples[j] }
                 if writeLen < samples.count {
-                    if isAccent { accentPlayhead = writeLen }
-                    else        { clickPlayhead  = writeLen }
+                    if isAccent    { accentPlayhead = writeLen }
+                    else if isBeat { clickPlayhead  = writeLen }
+                    else           { subdivPlayhead = writeLen }
                 }
             }
         }
@@ -1001,8 +1057,9 @@ class AudioEngine: ObservableObject {
         setupSession()
         setupGraph()
         audioQueue.sync {
-            self.clickSamples         = self.generateClickSamples(frequency: 1000.0)
-            self.accentedClickSamples = self.generateClickSamples(frequency: 1500.0)
+            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
+            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
+            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
         }
         if wasRunning { start() }
     }

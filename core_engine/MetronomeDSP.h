@@ -1,10 +1,14 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
+#include <cstring>
+#include <limits>
 #include <vector>
 
 struct BeatEvent {
     uint32_t offset;
     bool     accent;
+    bool     isBeat;   // true = beat principale, false = suddivisione
 };
 
 class MetronomeDSP {
@@ -13,6 +17,12 @@ public:
 
     void setBPM(double bpm);
     void setBeatsPerBar(uint32_t beatsPerBar);
+    void setAccentPattern(const uint8_t* pattern, uint32_t length);
+    // multiplier: 1=nessuna, 2=crome, 3=terzine, 4=semicrome
+    // swingRatio: [0.5, 1.0[ — 0.5=dritto, >0.5=swing (solo con multiplier==2)
+    void setSubdivision(uint8_t multiplier, double swingRatio = 0.5);
+    // Schedula cambio BPM al prossimo downbeat (thread-safe, non-RT).
+    void scheduleBPMChange(double newBPM);
     void setAbsolutePositionForTesting(uint64_t pos);
 
     // Fresh play: fissa _startAbsoluteBeat e azzera _currentBeatInBar.
@@ -39,4 +49,26 @@ private:
     // setBeatPosition calcola _currentBeatInBar come
     // floor(nextBeatIndex - _startAbsoluteBeat) % _beatsPerBar.
     double   _startAbsoluteBeat;
+
+    // Double buffer accent pattern (thread safety: RT legge, audioQueue scrive)
+    uint8_t           _accentPattern[16];
+    uint8_t           _pendingPattern[16];
+    uint8_t           _pendingPatternLength;
+    std::atomic<bool> _patternDirty;
+
+    // Subdivision state (RT thread legge, audioQueue scrive via double-buffer)
+    uint8_t  _subdivisionMultiplier;   // 1=nessuna, 2=crome, 3=terzine, 4=semicrome
+    double   _swingRatio;              // 0.5=dritto (solo con _subdivisionMultiplier==2)
+    double   _exactNextSubdivSample;   // tracker parallelo a _exactNextBeatSample
+    bool     _swingPhase;              // false=long, true=short (solo swing)
+
+    uint8_t           _pendingMultiplier;
+    double            _pendingSwingRatio;
+    std::atomic<bool> _subdivDirty;
+
+    // Scheduled BPM change — applied at next downbeat (_currentBeatInBar == 0)
+    double            _pendingBPM;
+    std::atomic<bool> _bpmChangeDirty;
+
+    double subdivIntervalForPhase(double spb, bool phase) const;
 };

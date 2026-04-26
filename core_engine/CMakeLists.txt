@@ -4,7 +4,7 @@ project(LiveHostCoreEngine CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(run_tests
+add_executable(metronome_dsp_tests
     MetronomeDSP.cpp
     MIDISequencer.cpp
     test_main.cpp
