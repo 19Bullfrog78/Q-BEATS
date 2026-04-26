@@ -21,6 +21,7 @@ class AudioEngine: ObservableObject {
     @Published var linkPeers: Int = 0
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
+    @Published var channelVolumes: [Float] = [1.0, 1.0, 0.0, 0.0]
     // -------------------------------------------------------
 
     private var metronomeHandle      : MetronomeHandle?
@@ -78,6 +79,21 @@ class AudioEngine: ObservableObject {
     private let backtrackPlayerNode = AVAudioPlayerNode()
     private var backtrackBuffer: AVAudioPCMBuffer? = nil
     private var backtrackArmed: Bool = false
+
+    // --- Mixer 4 canali ---
+    private let ch1MixerNode = AVAudioMixerNode()   // Click / Metronomo
+    private let ch2MixerNode = AVAudioMixerNode()   // Backtrack musicale
+    private let ch3MixerNode = AVAudioMixerNode()   // Guide vocals (disabilitato senza HW Pro)
+    private let ch4MixerNode = AVAudioMixerNode()   // FX ambientali (disabilitato senza HW Pro)
+
+    private let ch3PlayerNode = AVAudioPlayerNode()
+    private let ch4PlayerNode = AVAudioPlayerNode()
+
+    // Volumi indipendenti per canale — accesso SOLO su audioQueue
+    private var ch1Volume: Float = 1.0
+    private var ch2Volume: Float = 1.0
+    private var ch3Volume: Float = 0.0   // disabilitato di default
+    private var ch4Volume: Float = 0.0   // disabilitato di default
 
     // ------------------------------------------------
 
@@ -422,6 +438,31 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    func setChannelVolume(_ channel: Int, volume: Float) {
+        guard (1...4).contains(channel) else { return }
+        let v = max(0.0, min(1.0, volume))
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            switch channel {
+            case 1:
+                self.ch1Volume = v
+                self.ch1MixerNode.outputVolume = v
+            case 2:
+                self.ch2Volume = v
+                self.ch2MixerNode.outputVolume = v
+            case 3:
+                self.ch3Volume = v
+                self.ch3MixerNode.outputVolume = v
+            case 4:
+                self.ch4Volume = v
+                self.ch4MixerNode.outputVolume = v
+            default: break
+            }
+            let vols = [self.ch1Volume, self.ch2Volume, self.ch3Volume, self.ch4Volume]
+            DispatchQueue.main.async { self.channelVolumes = vols }
+        }
+    }
+
     func armBacktrack(url: URL) {
         audioQueue.async { [weak self] in
             guard let self else { return }
@@ -653,11 +694,50 @@ class AudioEngine: ObservableObject {
     }
 
     private func setupGraph() {
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         engine.attach(playerNode)
-        engine.connect(playerNode, to: engine.mainMixerNode, format: format)
         engine.attach(backtrackPlayerNode)
-        engine.connect(backtrackPlayerNode, to: engine.mainMixerNode, format: nil)
+        engine.attach(ch3PlayerNode)
+        engine.attach(ch4PlayerNode)
+        engine.attach(ch1MixerNode)
+        engine.attach(ch2MixerNode)
+        engine.attach(ch3MixerNode)
+        engine.attach(ch4MixerNode)
+
+        connectAllNodes()
+    }
+
+    private func connectAllNodes() {
+        let monoFormat   = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+        let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
+
+        engine.connect(playerNode,          to: ch1MixerNode,         format: monoFormat)
+        engine.connect(ch1MixerNode,        to: engine.mainMixerNode, format: monoFormat)
+        ch1MixerNode.outputVolume = ch1Volume
+
+        engine.connect(backtrackPlayerNode, to: ch2MixerNode,         format: nil)
+        engine.connect(ch2MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
+        ch2MixerNode.outputVolume = ch2Volume
+
+        engine.connect(ch3PlayerNode,       to: ch3MixerNode,         format: nil)
+        engine.connect(ch3MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
+        ch3MixerNode.outputVolume = ch3Volume
+
+        engine.connect(ch4PlayerNode,       to: ch4MixerNode,         format: nil)
+        engine.connect(ch4MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
+        ch4MixerNode.outputVolume = ch4Volume
+    }
+
+    private func rebuildGraph() {
+        engine.disconnectNodeOutput(playerNode)
+        engine.disconnectNodeOutput(backtrackPlayerNode)
+        engine.disconnectNodeOutput(ch3PlayerNode)
+        engine.disconnectNodeOutput(ch4PlayerNode)
+        engine.disconnectNodeOutput(ch1MixerNode)
+        engine.disconnectNodeOutput(ch2MixerNode)
+        engine.disconnectNodeOutput(ch3MixerNode)
+        engine.disconnectNodeOutput(ch4MixerNode)
+        connectAllNodes()
+        engine.prepare()
     }
 
     // Genera click sintetico alla frequenza indicata.
@@ -929,9 +1009,7 @@ class AudioEngine: ObservableObject {
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 // 1. Graph rebuild
-                self.engine.disconnectNodeOutput(self.playerNode)
-                self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-                self.engine.prepare()
+                self.rebuildGraph()
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double?
@@ -1087,9 +1165,7 @@ class AudioEngine: ObservableObject {
                     let linkWasEnabled = self.clockLinkWasEnabled
 
                     // 1. Graph rebuild
-                    self.engine.disconnectNodeOutput(self.playerNode)
-                    self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-                    self.engine.prepare()
+                    self.rebuildGraph()
 
                     // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                     let resumeBeat: Double?
@@ -1145,6 +1221,19 @@ class AudioEngine: ObservableObject {
             self.backtrackArmed  = false
         }
         audioQueue.sync {
+            self.ch1Volume = 1.0
+            self.ch2Volume = 1.0
+            self.ch3Volume = 0.0
+            self.ch4Volume = 0.0
+            self.ch1MixerNode.outputVolume = 1.0
+            self.ch2MixerNode.outputVolume = 1.0
+            self.ch3MixerNode.outputVolume = 0.0
+            self.ch4MixerNode.outputVolume = 0.0
+        }
+        DispatchQueue.main.async {
+            self.channelVolumes = [1.0, 1.0, 0.0, 0.0]
+        }
+        audioQueue.sync {
             self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
             self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
@@ -1196,10 +1285,8 @@ class AudioEngine: ObservableObject {
             self.isRunning = false
             self.playerNode.stop()
 
-            // 1. Graph rebuild con auto-negoziazione formato
-            self.engine.disconnectNodeOutput(self.playerNode)
-            self.engine.connect(self.playerNode, to: self.engine.mainMixerNode, format: nil)
-            self.engine.prepare()
+            // 1. Graph rebuild
+            self.rebuildGraph()
 
             // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
             let resumeBeat: Double?
