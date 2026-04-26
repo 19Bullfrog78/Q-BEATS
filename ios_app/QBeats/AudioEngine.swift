@@ -74,6 +74,11 @@ class AudioEngine: ObservableObject {
     // Beat assoluto di clock al momento del Play originale — usato per snap relativo.
     private var _startAbsoluteBeat: Double = 0.0
 
+    // --- Backtrack state: accesso SOLO su audioQueue ---
+    private let backtrackPlayerNode = AVAudioPlayerNode()
+    private var backtrackBuffer: AVAudioPCMBuffer? = nil
+    private var backtrackArmed: Bool = false
+
     // ------------------------------------------------
 
     private let audioQueue = DispatchQueue(label: "com.bullfrog.qbeats.audio", qos: .userInteractive)
@@ -417,6 +422,75 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    func armBacktrack(url: URL) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            do {
+                let file = try AVAudioFile(forReading: url)
+                guard let buffer = AVAudioPCMBuffer(
+                    pcmFormat: file.processingFormat,
+                    frameCapacity: AVAudioFrameCount(file.length)
+                ) else {
+                    os_log("[Q-BEATS][BACKTRACK] armBacktrack: buffer alloc fallito",
+                           log: .default, type: .error)
+                    return
+                }
+                try file.read(into: buffer)
+                self.backtrackBuffer = buffer
+                self.backtrackArmed  = true
+                os_log("[Q-BEATS][BACKTRACK] armed — frames:%d SR:%.0f",
+                       log: .default, type: .default,
+                       buffer.frameLength,
+                       file.processingFormat.sampleRate)
+            } catch {
+                self.backtrackBuffer = nil
+                self.backtrackArmed  = false
+                os_log("[Q-BEATS][BACKTRACK] armBacktrack error: %{public}@",
+                       log: .default, type: .error,
+                       error.localizedDescription)
+            }
+        }
+    }
+
+    func playBacktrack() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            guard self.backtrackArmed, let buffer = self.backtrackBuffer else {
+                os_log("[Q-BEATS][BACKTRACK] playBacktrack: non armato — noop",
+                       log: .default, type: .default)
+                return
+            }
+            self.backtrackPlayerNode.stop()
+            self.backtrackPlayerNode.scheduleBuffer(buffer, at: nil, options: []) {
+                os_log("[Q-BEATS][BACKTRACK] playback completato",
+                       log: .default, type: .default)
+            }
+            self.backtrackPlayerNode.play()
+            os_log("[Q-BEATS][BACKTRACK] play avviato",
+                   log: .default, type: .default)
+        }
+    }
+
+    func stopBacktrack() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.backtrackPlayerNode.stop()
+            os_log("[Q-BEATS][BACKTRACK] stop emergenza",
+                   log: .default, type: .default)
+        }
+    }
+
+    func disarmBacktrack() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.backtrackPlayerNode.stop()
+            self.backtrackBuffer = nil
+            self.backtrackArmed  = false
+            os_log("[Q-BEATS][BACKTRACK] disarmato",
+                   log: .default, type: .default)
+        }
+    }
+
     private func defaultAccentPattern(for beatsPerBar: UInt32) -> [UInt8] {
         switch beatsPerBar {
         case 2:  return [1,0]
@@ -451,6 +525,7 @@ class AudioEngine: ObservableObject {
             if let lh = linkEngineHandle {
                 link_engine_set_is_playing(lh, false, mach_absolute_time())
             }
+            self.backtrackPlayerNode.stop()
         }
         guard wasRunning else { return }
         playerNode.stop()
@@ -581,6 +656,8 @@ class AudioEngine: ObservableObject {
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         engine.attach(playerNode)
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
+        engine.attach(backtrackPlayerNode)
+        engine.connect(backtrackPlayerNode, to: engine.mainMixerNode, format: nil)
     }
 
     // Genera click sintetico alla frequenza indicata.
@@ -1063,6 +1140,10 @@ class AudioEngine: ObservableObject {
         stopSync()
         setupSession()
         setupGraph()
+        audioQueue.sync {
+            self.backtrackBuffer = nil
+            self.backtrackArmed  = false
+        }
         audioQueue.sync {
             self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
