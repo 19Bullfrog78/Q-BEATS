@@ -12,7 +12,7 @@ struct DebugView: View {
         NavigationStack {
             List {
                 // --- INFO HARDWARE ---
-                Section("Stato Hardware") {
+                SwiftUI.Section("Stato Hardware") {
                     HStack {
                         Text("Modalità:")
                         Spacer()
@@ -41,7 +41,7 @@ struct DebugView: View {
                 }
 
                 // --- CONTROLLI MOTORE ---
-                Section("Controlli Motore") {
+                SwiftUI.Section("Controlli Motore") {
                     HStack {
                         Button(action: { 
                             os_log("[DebugView] Azione: Play", log: .default, type: .default)
@@ -78,7 +78,7 @@ struct DebugView: View {
                 }
 
                 // --- MIXER 4 CANALI ---
-                Section("Mixer (Fase 1.4)") {
+                SwiftUI.Section("Mixer (Fase 1.4)") {
                     VolumeSlider(label: "Ch1 - Click", channelIndex: 1, audioEngine: audioEngine)
                     VolumeSlider(label: "Ch2 - Backtrack", channelIndex: 2, audioEngine: audioEngine)
                     
@@ -91,7 +91,7 @@ struct DebugView: View {
                 }
 
                 // --- TOGGLES ---
-                Section("Impostazioni") {
+                SwiftUI.Section("Impostazioni") {
                     Toggle("Ableton Link", isOn: Binding(
                         get: { audioEngine.linkEnabled },
                         set: { 
@@ -110,7 +110,7 @@ struct DebugView: View {
                 }
 
                 // --- BACKTRACK ---
-                Section("Backtrack (Fase 1.3)") {
+                SwiftUI.Section("Backtrack (Fase 1.3)") {
                     Button("Arm Test Backtrack") {
                         os_log("[DebugView] Azione: Arm Test Backtrack", log: .default, type: .default)
                         if let url = Bundle.main.url(forResource: "test_backtrack", withExtension: "mp3") {
@@ -141,7 +141,7 @@ struct DebugView: View {
                 }
 
                 // --- LOG DI SISTEMA ---
-                Section("Log Eventi (Ultimi 10)") {
+                SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in
                         Text(log)
                             .font(.system(.caption2, design: .monospaced))
