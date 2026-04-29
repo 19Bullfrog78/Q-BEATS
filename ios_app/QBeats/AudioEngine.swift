@@ -22,6 +22,12 @@ class AudioEngine: ObservableObject {
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
     @Published var channelVolumes: [Float] = [1.0, 1.0, 0.0, 0.0]
+    
+    // --- Variabili per DebugView ---
+    @Published var audioMode: String = "Base" // "Base" o "Pro"
+    @Published var sampleRateInfo: Double = 48000.0
+    @Published var currentBeat: Double = 0.0
+    @Published var debugLogs: [String] = []
     // -------------------------------------------------------
 
     private var metronomeHandle      : MetronomeHandle?
@@ -176,7 +182,23 @@ class AudioEngine: ObservableObject {
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
             self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
         }
+        DispatchQueue.main.async {
+            self.sampleRateInfo = AVAudioSession.sharedInstance().sampleRate
+        }
         setupNotifications()
+    }
+
+    // Aggiunge log al ring buffer visivo (ultimi 10 eventi) per la DebugView
+    func addLog(_ message: String) {
+        let timestamp = Date().formatted(.dateTime.hour().minute().second().secondFraction(.three))
+        let logMessage = "[\(timestamp)] \(message)"
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.debugLogs.insert(logMessage, at: 0)
+            if self.debugLogs.count > 10 {
+                self.debugLogs.removeLast()
+            }
+        }
     }
 
     deinit {
@@ -798,6 +820,9 @@ class AudioEngine: ObservableObject {
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
                            log: .default, type: .default,
                            currentBeat, newBeat)
+                    DispatchQueue.main.async { [weak self] in
+                        self?.currentBeat = newBeat
+                    }
                     if bufferCount <= 2 {
                         os_log("[Q-BEATS][LINK][RESTART] buffer #%d: correction %.4f → %.4f (delta=%.4f)",
                                log: .default, type: .default,
@@ -847,6 +872,12 @@ class AudioEngine: ObservableObject {
         }
 
         if beatCount > 0 {
+            if let mh = midiEngineHandle {
+                let currentBeatNow = midi_engine_get_beat_position(mh)
+                DispatchQueue.main.async { [weak self] in
+                    self?.currentBeat = currentBeatNow
+                }
+            }
             for i in 0..<Int(beatCount) {
                 let offset   = Int(offsets[i])
                 let isAccent = accents[i]  != 0
