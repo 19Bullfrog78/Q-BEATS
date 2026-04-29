@@ -181,4 +181,19 @@ struct VolumeSlider: View {
         .padding(.vertical, 4)
     }
 }
+
+struct DebugToolbarModifier: ViewModifier {
+    @State private var showDebug = false
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showDebug = true } label: {
+                        Image(systemName: "ladybug").foregroundColor(.red)
+                    }
+                }
+            }
+            .sheet(isPresented: $showDebug) { DebugView() }
+    }
+}
 #endif

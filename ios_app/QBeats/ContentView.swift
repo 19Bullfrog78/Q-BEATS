@@ -4,9 +4,6 @@ import os
 struct ContentView: View {
     @ObservedObject private var audioEngine = AudioEngine.shared
     @State private var showSettings = false
-    #if DEBUG
-    @State private var showDebug = false
-    #endif
 
     private let timeSignatures: [(label: String, beats: UInt32)] = [
         ("2/4", 2), ("3/4", 3), ("4/4", 4),
@@ -84,21 +81,13 @@ struct ContentView: View {
                     Image(systemName: "gear")
                 }
             }
-            #if DEBUG
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showDebug = true }) {
-                    Image(systemName: "ladybug")
-                        .foregroundColor(.red)
-                }
-            }
-            #endif
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(audioEngine: audioEngine)
         }
-        .sheet(isPresented: $showDebug) {
-            DebugView()
-        }
+        #if DEBUG
+        .modifier(DebugToolbarModifier())
+        #endif
         }
     }
 }

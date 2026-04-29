@@ -190,7 +190,7 @@ class AudioEngine: ObservableObject {
 
     // Aggiunge log al ring buffer visivo (ultimi 10 eventi) per la DebugView
     func addLog(_ message: String) {
-        let timestamp = Date().formatted(.dateTime.hour().minute().second().secondFraction(.three))
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
         let logMessage = "[\(timestamp)] \(message)"
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
