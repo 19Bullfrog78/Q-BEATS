@@ -39,6 +39,11 @@ targets:
           - "CMakeLists.txt"
           - "tests/**"
           - "test_main.cpp"
+      - path: QBeats/test_backtrack.mp3
+        buildPhase: resources
+        group: TestAssets
+        compilerFlags: ""
+        optional: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats
@@ -59,3 +64,6 @@ targets:
           CODE_SIGNING_ALLOWED: NO
           CODE_SIGNING_IDENTITY: ""
           PROVISIONING_PROFILE_SPECIFIER: ""
+          EXCLUDED_SOURCE_FILE_NAMES[sdk=iphoneos*]: ""
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: "test_backtrack.mp3"
