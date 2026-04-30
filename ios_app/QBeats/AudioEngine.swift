@@ -727,7 +727,6 @@ class AudioEngine: ObservableObject {
         guard wasRunning else { return }
         playerNode.stop()
         engine.stop()
-        if let mh = midiEngineHandle { midi_engine_stop(mh) }
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false
