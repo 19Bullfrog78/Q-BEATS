@@ -16,10 +16,9 @@ struct DebugView: View {
                     HStack {
                         Text("Modalità:")
                         Spacer()
-                        // Nota: audioMode, sampleRateInfo e currentBeat richiederanno aggiunte in AudioEngine
-                        Text(audioEngine.audioMode)
+                        Text(audioEngine.audioMode == .pro ? "PRO" : "BASE")
                             .bold()
-                            .foregroundColor(audioEngine.audioMode == "Pro" ? .green : .orange)
+                            .foregroundColor(audioEngine.audioMode == .pro ? .green : .orange)
                     }
                     HStack {
                         Text("Sample Rate:")
@@ -86,8 +85,8 @@ struct DebugView: View {
                         VolumeSlider(label: "Ch3 - Guide", channelIndex: 3, audioEngine: audioEngine)
                         VolumeSlider(label: "Ch4 - FX", channelIndex: 4, audioEngine: audioEngine)
                     }
-                    .disabled(audioEngine.audioMode == "Base")
-                    .opacity(audioEngine.audioMode == "Base" ? 0.5 : 1.0)
+                    .disabled(audioEngine.audioMode == .base)
+                    .opacity(audioEngine.audioMode == .base ? 0.5 : 1.0)
                 }
 
                 // --- TOGGLES ---

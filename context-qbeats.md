@@ -1,191 +1,152 @@
-# Q-BEATS — Contesto Progetto per AG
-**Ultimo aggiornamento:** 22/04/2026
+# Q-BEATS — Contesto Progetto per Claude Code (CC)
+**Ultimo aggiornamento:** 29/04/2026 — Allineato a BOX 5 V7 (Build #192)
 
 ---
 
 ## 1. Architettura (Strada B — NON modificabile)
 
-- **LAYER 3** — Swift / SwiftUI + ObjC++ Bridge (roadmap)
-- **LAYER 2** — CoreMIDI C-API + Sequencer PPQN-960 + Ableton Link ← fase attuale
-- **LAYER 1** — Core Audio C-API + C++ DSP Engine ✅ COMPLETATO
+- **LAYER 3** — Swift / SwiftUI + ObjC++ Bridge 🔄 **In corso (Fase 1.4 completata)**
+- **LAYER 2** — CoreMIDI C-API + Sequencer PPQN-960 + Ableton Link ✅ **CHIUSO** (Build #183)
+- **LAYER 1** — Core Audio C-API + C++ DSP Engine ✅ **CHIUSO** (17/17 test CMake PASS)
 
-Strada A (React Native) scartata. Non riaprire.
-
----
-
-## 2. Regole RT thread — inviolabili nel render callback
-
-- Zero `malloc`/`free`/`new`/`delete`
-- Zero Swift ARC (retain/release)
-- Zero ObjC messaging
-- Zero mutex bloccanti
-- Zero I/O, zero syscall bloccanti
-- Consentito: `std::atomic`, memoria pre-allocata, lock-free ring buffer
+**Regola:** L1 e L2 sono considerati stabili. Ogni modifica deve essere approvata dal supervisore.
 
 ---
 
-## 3. Thread safety in `AudioEngine.swift`
+## 2. Stato Progetto — Build #192
 
-- **`audioQueue`** (Serial, `.userInteractive`): unica coda per stato audio (`isRunning`, `clickPlayhead`, `bufferCount`, `beatTotal`, `clickSamples`, ecc.)
-- **`@Published`**: ogni write su `DispatchQueue.main.async` (`clickStatus`, `isPlaying`, `currentBPM`, `linkEnabled`, `linkIsConnected`, `beatsPerBar`)
-- **Deadlock prevention**: mai chiamare `stopSync()` dall'interno di `audioQueue` (usa `sync` internamente)
-- Start/Stop callback Link: dispatcha su `DispatchQueue.main` (NON `audioQueue` — deadlock con `stopSync()`)
-
----
-
-## 4. Stato Layer 2 — build corrente #118
-
-| Blocco | Stato |
-|---|---|
-| 1–5 (CoreMIDI, USB, Network, BT LE) | ✅ CHIUSO |
-| 6A–6E (Ableton Link) | ✅ CHIUSO |
-| Fix phase/click/quantum | ✅ CHIUSO (build #98–#100) |
-| Validazione Link test 7a, 7b | ✅ PASS |
-| Validazione Link test 7c, 7d | 🔲 Da fare |
-| **Blocco 7 — Interruption Handling** | ✅ CHIUSO (build #155) |
-
-### Blocco 7 — sotto-blocchi
-
-| Step | Stato |
-|---|---|
-| 7A — Registrare InterruptionNotification, salvare stato in `.began` | ✅ |
-| 7B — Resume in `.ended` + `.categoryChange` (calcolo beat position) | ✅ |
-| 7C — Sync MetronomeDSP + MIDISequencer al resume | ✅ |
-| 7D — `mediaServicesWereResetNotification` (full engine rebuild) | ✅ |
-| 7E — Test su device (tutti gli scenari) | 🔄 IN CORSO |
-
-### Bug fixati Blocco 7
-
-| Bug | Fix | Build |
-|---|---|---|
-| False riprese durante chiamata attiva (SR 32000) | Guard `SR >= 44100` in `categoryChange` | #109 |
-| False riprese durante suoneria (elapsed breve) | Guard `elapsed >= 0.5s` in `categoryChange` | #110–#111 |
-| Doppio `setActive` su chiamata rifiutata | Copia locale + reset `wasPlayingBeforeInterruption` in `.ended` | #112 |
-| iOS ferma engine per riconfigurazione IO dopo `.ended` | Observer `AVAudioEngineConfigurationChange` — clean restart con `resumeBeat` | #118 |
-| Stop improprio a fine chiamata (oldDeviceUnavailable) | Guard `previousRoute.outputs` in `handleRouteChange` | #117 |
-| Spostamento accento post-interruzione | Snap al Downbeat (ceil beat / beatsPerBar) | #147 |
-| Doppio restart post-VoIP (configChange ravvicinati) | Temporal Guard (skip < 20s dal resume) | #148 |
-| Rientro prematuro GSM/VoIP handoff | Guard CallActive sincrona in `handleRouteChange` | #152 |
-| Instabilità rientro GSM/VoIP | Async Guard 500ms + Reset stato vincolato | #153 |
-| Race condition background & Zombie retries | Token-based cancellation + exclusive setActive reset | #155 |
+| Fase | Descrizione | Stato | Note |
+|---|---|---|---|
+| **0** | Estensioni L1 (Accent Pattern, Subdivision, BPM accurate) | ✅ | Completata (Build #185) |
+| **1.1** | Modello dati + QBeatsStore (iCloud, async throws) | ✅ | Ratificato (Section, Song, Setlist) |
+| **1.2** | ObjC++ Bridge Layer 3 | ✅ | Operativo |
+| **1.3** | Backtrack AVAudioPlayerNode + ARMED state | ✅ | In RAM, no streaming |
+| **1.4** | Mixer 4 canali | ✅ | Ch1-Ch4 con volumi indipendenti |
+| **DebugView** | Schermata scaffolding test device | 🔲 **PROSSIMO** | Obbligatorio prima di 1.5 |
+| **1.5** | Hardware detection Base/Pro | 🔲 | 1.5a (SW) / 1.5b (HW UMC404HD) |
+| **1.6** | MappingTable MIDI Learn | 🔲 | Indipendente |
 
 ---
 
-## 5. Decisioni architetturali chiave
-
-### Bridge e file critici
-- `MIDIEngineBridge.h` = singola sorgente di verità firme bridge — disallineamento con `.mm` = build rossa
-- Bridge: `extern C` + `void*` handle
-- `setBPM` (mai `setTempo`)
-- Prompt verbatim obbligatorio per file critici
-
-### LinkEngine
-- **`struct LinkEngine {}` C++** definita in `LinkEngine.mm` (NON `@interface NSObject`)
-- API C pura: handle `ABLLinkRef` (LinkKit 3.2.2 xcframework, static lib)
-- `link_engine_get_abl_ref` in `LinkEngine.h` — NON in `MIDIEngineBridge.h`
-- `ABLLinkSettingsViewController`: class method `+ (instancetype)instance:` — NON `initWithLink:`
-- `ABLLinkSetPeerCountCallback` NON ESISTE in LinkKit 3.2.2
-- `ABLLinkClockMicros` NON è in `ABLLink.h`
-- `ABLLinkSetTempo(state, bpm, hostTime)` — hostTime = mach ticks
-- Quantum dinamico: segue `beatsPerBar`
-
-### Phase Correction Policy v1.2
-- Hard sync assoluto: `*outNewBeatPosition = linkBeat`
-- Soglia: 0.01 beats
-- Punto applicazione: buffer boundary (`scheduleNextBuffer()`)
-- `scheduleNextBuffer()` è su `audioQueue` (DispatchQueue) — versioni `App` di ABLLink
-
-### Interruption Handling
-- `.began`: salva stato + ferma engine
-- `.ended`: guard SR + copia locale stato + reset flag + `start(resumeAtBeat:)`
-- `.categoryChange`: guard SR >= 44100 + guard elapsed >= 0.5s + copia locale + reset flag + resume
-- `wasPlayingBeforeInterruption` resettato in ENTRAMBI i path (`.ended` e `categoryChange`)
-- `AVAudioEngineConfigurationChange`: se `isRunning && !engine.isRunning` → restart engine + playerNode + 3 buffer
-- `playerNode.reset()` va chiamato PRIMA di `playerNode.play()` — MAI dopo
-
-### Coordinamento metronomo
-- Opzione B: moduli indipendenti coordinati da AudioEngine
-- `MetronomeDSP::setBeatPosition` + bridge `metronome_set_beat_position` — in `start()` e dopo phase sync
-- Bridge metronomo = `MetronomeDSPBridge.h` / `.mm` — **NON dentro `MIDIEngine.mm`**
-- `MetronomeDSP._beatFractionAccumulator` **NON ESISTE** — rifiutare se compare
-
----
-
-## 6. Flusso operativo
-
-- **AG (Windows)**: scrive codice, build/test `core_engine` C++ via CMake
-- **GitHub Actions (macOS)**: CI su push, genera IPA
-- **Claude**: referee tecnico finale — ogni prompt deve essere approvato
-- **Mauro**: supervisore/architetto — non scrive codice
-- **Commit Strategy**: Separare sempre il refactoring (consolidamento, pulizia) dai fix funzionali in commit distinti per non sporcare il `git blame`.
-
----
-
-## 7. Note tecniche fisse
+## 3. Invarianti Tecnici Layer 3 — Non negoziabili
 
 | Regola | Dettaglio |
 |---|---|
-| Buffer size | Sempre da `ioBufferDuration` — iOS può ignorare preferred |
-| Debug | `os_log` unico — `print()` non catturato da iMazing Console |
-| `os_log` in Swift | `os_log("...", log: .default, type: .debug, ...)` — `OS_LOG_DEFAULT` è macro C |
-| Test drift | 121 BPM (120 = intero esatto, maschera drift) |
-| Path build | Path relativi `../../../` vietati su GitHub Actions |
-| `UIBackgroundModes: audio` | Obbligatorio in `project.yml` |
-| `machTimebase` | Cachato come `let` in `AudioEngine.swift` — non chiamare ogni route change |
-| Re-sign manuale CI | Obbligatorio per entitlement restricted — non rimuovere step `codesign --force` |
-| Entitlement multicast | `com.apple.developer.networking.multicast` — confermato nel binario |
+| **Feedback visivo beat** | Callback C++ → dispatch main — **MAI timer SwiftUI** |
+| **Cambio BPM** | `scheduleBPMChange` (sample-accurate al downbeat) per cambi sezione |
+| **Backtrack playback** | `AVAudioPlayerNode` in `AVAudioEngine` — **MAI `AVPlayer`** |
+| **Streaming** | **VIETATO** — i backtrack devono essere file locali nella sandbox |
+| **Route change** | Clock C++ non si ferma mai — B1 Hard Sync al rientro |
+| **Debug** | `os_log` unico sistema ammesso (no `print()`) |
+| **Portrait** | Solo modalità verticale per la v1 su tutti i device |
+| **Storage** | `Documents/Backtracks/` per i file audio; iCloud per i JSON |
+| **repetitions = -1** | Sentinel loop infinito — MAI null |
+| **Tasto LOOP display** | 1 = LOOP / N>1 = LOOP · N / -1 = LOOP · ∞ |
+| **Progress bar micro** | segmentata, N segmenti = N battute sezione corrente |
+| **Count-in BPM** | prima sezione canzone target — MAI BPM canzone uscente |
+| **Count-in scope** | solo tra canzoni — mai tra sezioni |
+| **Sfondo Vista Bella** | nero obbligatorio |
+| **Section.name** | è il teleprompter in Vista Bella — non modificare per altri scopi |
+| **ALERT ultime 2 battute** | SCARTATO — le due progress bar bastano |
 
 ---
 
-## 8. Struttura cartelle
+## 4. Modello Dati Ratificato
+
+- **Section**: Include `bpm`, `beatsPerBar`, `beatUnit` (denominatore time signature: 4=quarti, 8=ottavi — default 4), `repetitions` (-1 per loop infinito), `accentPattern`, `subdivisionMultiplier`.
+  - **TimeSignature**: lista chiusa 12 voci — 4/4 · 3/4 · 2/4 · 6/8 · 9/8 · 12/8 · 5/4 · 6/4 · 7/4 · 5/8 · 7/8 · 11/8. Nessuna combinazione libera.
+- **Song**: Lista di `Section`, `countIn` (0/1/2 battute), riferimento a `backtrackFilename`.
+- **Setlist**: Lista di ID di `Song` (riferimenti, mai copie).
+- **BacktrackFile**: Metadati per la Libreria Backtrack (nome display, durata, dimensione).
+
+**⚠️ Collisione naming**: `struct Section` nel modello collide con `SwiftUI.Section`. Usare sempre `SwiftUI.Section` esplicitamente nelle View.
+
+---
+
+## 5. Mixer e Routing (Fase 1.4)
+
+| Canale | Contenuto | Modalità Base (Stereo) | Modalità Pro (Multi-out) |
+|---|---|---|---|
+| **Ch1** | Click / Metronomo | Out 1/2 (L) | Out 1 |
+| **Ch2** | Backtrack musicale | Out 1/2 (R) | Out 2 |
+| **Ch3** | Guide vocals / Cue | 🔒 Disabilitato | Out 3 |
+| **Ch4** | FX / Pad | 🔒 Disabilitato | Out 4 |
+
+---
+
+## 6. Prossimi Step Operativi
+
+1. **Implementazione DebugView**: Bottoni transport, slider volumi 4ch, log eventi a schermo.
+2. **Validazione su device**: Test del mixer e del routing con `test_backtrack.mp3`.
+3. **Fase 1.5a**: Logica software per la detection Base/Pro (`audioMode`).
+4. **Fase 2**: Sviluppo della struttura app (Studio vs Live) e della **Vista Bella**.
+
+---
+
+## 7. Struttura Cartelle (Layer 3)
 
 ```
-Q-BEATS/
-  core_engine/
-    MIDITypes.h
-    MIDISequencer.h / .cpp
-  ios_app/
-    QBeats/
-      AudioEngine.swift
-      ContentView.swift
-      SettingsView.swift
-      MIDIEngineBridge.h
-      MIDIEngine.mm
-      MetronomeDSPBridge.h / .mm
-      BTMIDICentralPickerView.swift
-      MIDINetworkViewModel.swift
-      LinkEngine.h / .mm
-      LinkSettingsPresenter.h / .mm
-      LinkSettingsUIView.swift
-      QBeats-Bridging-Header.h
-  Vendors/
-    TPCircularBuffer/
-    AbletonLink/
-      LinkKit.xcframework
-      LinkKitResources.bundle
+ios_app/QBeats/
+  ├── AudioEngine.swift         # Singleton core (L3)
+  ├── DebugView.swift           # Vista di scaffolding test
+  ├── ContentView.swift         # Entry point UI
+  ├── SettingsView.swift        # Impostazioni generali
+  ├── Models/                   # Section.swift, Song.swift, etc.
+  └── Store/                    # QBeatsStore.swift (Persistenza)
 ```
 
 ---
 
-## 9. Prossimi step
+## 8. Note Hardware (Build #192)
 
-1. Build #116 su CI → installare → test 7E (chiamata rifiutata, risposta+riagganciata, YouTube, sveglia, Siri, Link+chiamata)
-2. Se PASS → test Link 7c e 7d
-3. Backlog #3 — test BLE controller terze parti (opzionale)
-4. Briefing prodotto — sessione dedicata zero codice
-5. Apertura Layer 3 — Swift/SwiftUI
+- **Device Sviluppo**: iPhone 13 (Lightning).
+- **Audio Interface**: Behringer UMC404HD (in arrivo).
+- **Vincolo**: Per le uscite 3/4 su iOS è obbligatorio `setPreferredOutputNumberOfChannels(4)`.
 
 ---
 
-## 10. Test suite CMake — 8 test, tutti PASS
+## 9. AppSettings — Fase VOL (ratificata 29/04/2026)
 
-| Test | Copertura |
-|---|---|
-| test_tick_accuracy | Precisione tick PPQN-960 |
-| test_drift_121bpm | Drift 121 BPM |
-| test_buffer_wrap | Edge case buffer wrap |
-| test_loop_restart | Riavvio loop/pattern |
-| test_absolute_position | setAbsolutePositionForTesting |
-| test_bpm_change | Cambio BPM mid-playback |
-| test_ppqn_960 | Risoluzione PPQN-960 |
-| test_event_scheduling | Scheduling eventi MIDI |
+```swift
+struct AppSettings: Codable {
+    var accentVolume: Double = 1.0   // [0.0, 1.0] — downbeat
+    var beatVolume:   Double = 0.8   // [0.0, 1.0] — beat normale
+    var subdivVolume: Double = 0.4   // [0.0, 1.0] — suddivisione
+    var clickMuted:   Bool   = false // mute hard, slider invariati
+}
+```
+Persistenza: `settings.json` in iCloud container.
+I 4 setter DSP usano double-buffer + `std::atomic` dirty flag (stesso pattern accentPattern/subdivDirty build #185).
+`muteClickToggle`: azione MIDI Learn disponibile, nessun default CC.
+
+---
+
+## 10. MIDI Learn
+
+**Lista azioni completa:**
+Play/Pause/Stop, Next/Prev Section, Next Song, Tap Tempo, Loop Toggle, Stop Backtrack, Start Song, Mute Click Toggle (nessun default CC)
+
+---
+
+## 11. REGOLE OPERATIVE — NON NEGOZIABILI
+
+1. **STOP prima di agire**
+   Non modificare, creare o sovrascrivere nessun file senza che Mauro abbia dato esplicito via libera in chat. "Procedo" non è un via libera.
+
+2. **Nessuna iniziativa autonoma**
+   Non proporre e poi eseguire nella stessa risposta. Prima proponi, aspetta conferma, poi esegui.
+
+3. **Un file alla volta**
+   Ogni modifica a un file va mostrata a Mauro prima di passare al file successivo. Non eseguire modifiche in sequenza autonoma.
+
+4. **Output raw obbligatorio**
+   Prima di qualsiasi push o commit, mostrare l'output completo del terminale. Nessun commit senza approvazione esplicita di Mauro.
+
+5. **Nessuna lettura autonoma di file non richiesti**
+   Non aprire, leggere o analizzare file che Mauro non ha indicato esplicitamente. "Vorrei leggere anche X" → aspetta risposta prima di farlo.
+
+6. **Domande prima di implementare**
+   Se una specifica è ambigua, fare una domanda precisa e aspettare risposta. Non interpretare e procedere.
+
+7. **Review Claude referee obbligatoria**
+   Ogni blocco di codice nuovo passa da Claude referee prima del commit. CC non decide autonomamente se una implementazione è corretta.

@@ -10,6 +10,15 @@ import UIKit
 //    ogni write avviene su DispatchQueue.main.async.
 //    beatsPerBar è scritto dalla UI (main thread) tramite Picker;
 //    setBeatsPerBar() dispatcha solo su audioQueue, non riscrive @Published.
+// 3. audioMode è @Published e scritto SOLO su DispatchQueue.main.async.
+//    applyChannelRouting(for:) riceve il mode come parametro, non legge self.audioMode.
+
+// MARK: - AudioMode (Fase 1.5a)
+enum AudioMode: Equatable {
+    case base
+    case pro
+}
+
 
 class AudioEngine: ObservableObject {
     static let shared = AudioEngine()
@@ -23,8 +32,8 @@ class AudioEngine: ObservableObject {
     @Published var beatsPerBar : UInt32  = 4
     @Published var channelVolumes: [Float] = [1.0, 1.0, 0.0, 0.0]
     
-    // --- Variabili per DebugView ---
-    @Published var audioMode: String = "Base" // "Base" o "Pro"
+    // --- Variabili per DebugView (Fase 1.5a) ---
+    @Published var audioMode: AudioMode = .base
     @Published var sampleRateInfo: Double = 48000.0
     @Published var currentBeat: Double = 0.0
     @Published var debugLogs: [String] = []
@@ -45,7 +54,8 @@ class AudioEngine: ObservableObject {
 
     private let engine               = AVAudioEngine()
     private let playerNode           = AVAudioPlayerNode()
-    private let sampleRate           : Double = 48000.0
+    // Fase 1.5a: sampleRate dinamico — aggiornato da AVAudioSession dopo setActive(true)
+    private var sampleRate           : Double = 48000.0
     private let bufferSize           : AVAudioFrameCount = 512
     private let maxBeats             : Int = 16
 
@@ -716,6 +726,17 @@ class AudioEngine: ObservableObject {
     }
 
     private func setupGraph() {
+        // Fase 1.5a: legge sampleRate reale da AVAudioSession (già attiva)
+        self.sampleRate = AVAudioSession.sharedInstance().sampleRate
+        let detectedMode = detectAudioMode()
+        DispatchQueue.main.async {
+            self.audioMode = detectedMode
+            self.sampleRateInfo = self.sampleRate
+        }
+        os_log("setupGraph sampleRate=%.1f audioMode=%{public}@",
+               log: .default, type: .default,
+               self.sampleRate, "\(detectedMode)")
+
         engine.attach(playerNode)
         engine.attach(backtrackPlayerNode)
         engine.attach(ch3PlayerNode)
@@ -726,6 +747,10 @@ class AudioEngine: ObservableObject {
         engine.attach(ch4MixerNode)
 
         connectAllNodes()
+
+        // Fase 1.5a: applica routing canali in base all'hardware rilevato.
+        // I nodi Ch3/Ch4 restano nel grafo sempre — solo gain/pan.
+        applyChannelRouting(for: detectedMode)
     }
 
     private func connectAllNodes() {
@@ -760,6 +785,37 @@ class AudioEngine: ObservableObject {
         engine.disconnectNodeOutput(ch4MixerNode)
         connectAllNodes()
         engine.prepare()
+    }
+
+    // MARK: - Fase 1.5a — Hardware Detection
+
+    private func detectAudioMode() -> AudioMode {
+        let route = AVAudioSession.sharedInstance().currentRoute
+        for output in route.outputs {
+            if output.portType == .usbAudio && (output.channels?.count ?? 0) > 2 {
+                return .pro
+            }
+        }
+        return .base
+    }
+
+    private func applyChannelRouting(for mode: AudioMode) {
+        switch mode {
+        case .base:
+            ch1MixerNode.pan = -1.0
+            ch2MixerNode.pan =  1.0
+            ch3MixerNode.outputVolume = 0.0
+            ch4MixerNode.outputVolume = 0.0
+            os_log("routing BASE: Ch1 pan L, Ch2 pan R, Ch3/Ch4 muted",
+                   log: .default, type: .default)
+        case .pro:
+            ch1MixerNode.pan = 0.0
+            ch2MixerNode.pan = 0.0
+            ch3MixerNode.outputVolume = ch3Volume
+            ch4MixerNode.outputVolume = ch4Volume
+            os_log("routing PRO: Ch1-Ch4 active, pan center",
+                   log: .default, type: .default)
+        }
     }
 
     // Genera click sintetico alla frequenza indicata.
@@ -1079,166 +1135,95 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleRouteChange(_ notification: Notification) {
+        guard let reasonValue = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
+
+        os_log("routeChange reason=%{public}@",
+               log: .default, type: .default, "\(reason)")
+
+        // B1 Hard Sync: clock C++ NON si ferma mai durante route change.
+        // MAI chiamare midi_engine_stop() qui.
+
         audioQueue.async { [weak self] in
             guard let self = self else { return }
-            guard self.pendingResume else { return }
-            self.pendingResume = false
-            self.pendingResumeBeat = nil
-            let recoveryBeat: Double?
-            if let mh = self.midiEngineHandle {
-                let hostTime = mach_absolute_time() + self.outputLatencyTicks + self.bufferDurationTicks
-                recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
-            } else {
-                recoveryBeat = nil
-            }
-            os_log("[Q-BEATS][RESUME] pendingResume recuperato da RouteChange — beat:%.4f",
-                   log: .default, type: .default, recoveryBeat ?? -1.0)
-            self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: "pending_recovery")
-        }
 
-        guard let info        = notification.userInfo,
-              let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
-              let reason      = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
-        if reason == .oldDeviceUnavailable {
-            // Fermare solo se il device rimosso era un output audio reale
-            // (cuffie, BT A2DP, BT LE). NON fermare per rilascio del
-            // codec telefonico (earpiece/mic chiamata) che manda
-            // oldDeviceUnavailable quando la chiamata finisce.
-            if let previousRoute = info[AVAudioSessionRouteChangePreviousRouteKey]
-                as? AVAudioSessionRouteDescription {
-                let wasAudioOutput = previousRoute.outputs.contains {
-                    $0.portType == .headphones ||
-                    $0.portType == .bluetoothA2DP ||
-                    $0.portType == .bluetoothLE ||
-                    $0.portType == .airPlay
+            // --- pendingResume recovery (path esistente preservato) ---
+            if self.pendingResume {
+                self.pendingResume = false
+                self.pendingResumeBeat = nil
+                let recoveryBeat: Double?
+                if let mh = self.midiEngineHandle {
+                    let hostTime = mach_absolute_time() + self.outputLatencyTicks + self.bufferDurationTicks
+                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                } else {
+                    recoveryBeat = nil
                 }
-                if wasAudioOutput { stopSync() }
+                os_log("[Q-BEATS][RESUME] pendingResume recuperato da RouteChange — beat:%.4f",
+                       log: .default, type: .default, recoveryBeat ?? -1.0)
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: "pending_recovery")
+                return
             }
-        }
 
-        // Resume dopo chiamata telefonica o altre route changes CallKit
-        // iOS non manda sempre .ended via InterruptionNotification per chiamate.
-        // Invece manda routeChange con .categoryChange quando la chiamata finisce.
-        if reason == .categoryChange {
-            audioQueue.async { [weak self] in
-                guard let self = self else { return }
+            // --- Fase 1.5a: hardware detection e routing dinamico ---
+            let newSampleRate = AVAudioSession.sharedInstance().sampleRate
+            let detectedMode = self.detectAudioMode()
+            let sampleRateChanged = newSampleRate != self.sampleRate
+            let modeChanged = detectedMode != self.audioMode
 
-                let avSession = AVAudioSession.sharedInstance()
-                let currentSR = avSession.sampleRate
+            os_log("routeChange newSampleRate=%.1f detectedMode=%{public}@ srChanged=%{public}@ modeChanged=%{public}@",
+                   log: .default, type: .default,
+                   newSampleRate, "\(detectedMode)",
+                   "\(sampleRateChanged)", "\(modeChanged)")
 
-                let isVoiceActive = avSession.mode == .voiceChat ||
-                                    avSession.mode == .videoChat ||
-                                    avSession.category == .record ||
-                                    avSession.category == .playAndRecord ||
-                                    currentSR < 44100
+            self.sampleRate = newSampleRate
 
-                // === CASO VOICE BEGAN ===
-                if isVoiceActive {
-                    guard self.isRunning else {
-                        os_log("[Q-BEATS][INTERRUPTION][ROUTE] categoryChange voice — engine già fermo (mode:%@ cat:%@)",
-                               log: .default, type: .default,
-                               avSession.mode.rawValue, avSession.category.rawValue)
-                        return
-                    }
-                    if let lh = self.linkEngineHandle {
-                        self.clockLinkWasEnabled = link_engine_is_enabled(lh)
-                    } else {
-                        self.clockLinkWasEnabled = false
-                    }
-                    self.isAudioInterrupted = true
-                    self.isRunning          = false
-                    self.playerNode.stop()
-                    self.engine.stop()
-                    // NON chiamare midi_engine_stop() — clock C++ continua.
-                    // NON notificare stop a Link.
-                    DispatchQueue.main.async {
-                        self.isPlaying   = false
-                        self.clickStatus = "voice active — clock running"
-                    }
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] voice began — audio stopped, clock running (mode:%@ SR:%.0f)",
-                           log: .default, type: .default,
-                           avSession.mode.rawValue, currentSR)
-                    return
+            if sampleRateChanged {
+                self.setupGraph()
+
+                let recoveryBeat: Double?
+                if let mh = self.midiEngineHandle {
+                    let hostTime = mach_absolute_time()
+                                 + self.outputLatencyTicks
+                                 + self.bufferDurationTicks
+                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                } else {
+                    recoveryBeat = nil
                 }
 
-                // === CASO RESUME ===
-                let startTime = mach_absolute_time()
+                os_log("[Q-BEATS][ROUTE] sampleRateChanged — recoveryBeat:%.4f",
+                       log: .default, type: .default, recoveryBeat ?? -1.0)
 
-                self.audioQueue.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    guard let self = self else { return }
-                    
-                    let session = AVAudioSession.sharedInstance()
-                    let elapsed = self.machTicksToSeconds(mach_absolute_time() - startTime)
-                    
-                    let isCallActive = session.category == .playAndRecord || 
-                                       session.category == .record || 
-                                       session.mode == .voiceChat || 
-                                       session.mode == .videoChat ||
-                                       session.mode == .voicePrompt
-                    
-                    let silenceHint = session.secondaryAudioShouldBeSilencedHint
-                    
-                    os_log("[Q-BEATS][ROUTE] Delayed check (%.3fs): isCallActive:%d silenceHint:%d", 
-                           log: .default, type: .default, elapsed, isCallActive ? 1 : 0, silenceHint ? 1 : 0)
-                    
-                    // GUARDIA: se ancora occupato, esce senza resettare lo stato di interruzione
-                    guard !isCallActive && !silenceHint else {
-                        os_log("[Q-BEATS][ROUTE] Chiamata/Prompt ancora attiva dopo delay — skip", 
-                               log: .default, type: .default)
-                        return
-                    }
-
-                    // VERIFICA STATO: procediamo solo se siamo effettivamente in interruzione
-                    guard self.isAudioInterrupted else { return }
-
-                    // NON resettare isAudioInterrupted qui — lo fa activateSessionAndStart dopo setActive OK
-                    self.lastInterruptionResumeTime = mach_absolute_time()
-                    let linkWasEnabled = self.clockLinkWasEnabled
-
-                    // 1. Graph rebuild
-                    self.rebuildGraph()
-
-                    // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
-                    let resumeBeat: Double?
-                    if let mh = self.midiEngineHandle {
-                        let avSession = AVAudioSession.sharedInstance()
-                        self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
-                        self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
-                        if let lh = self.linkEngineHandle {
-                            link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
-                        }
-                        let hostTimeAtFirstSample = mach_absolute_time()
-                                                    + self.outputLatencyTicks
-                                                    + self.bufferDurationTicks
-                        resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-                    } else {
-                        resumeBeat = nil
-                    }
-
-                    // 3. Log
-                    os_log("[Q-BEATS][INTERRUPTION][ROUTE] resume after categoryChange — resumeBeat:%.4f link:%d",
-                           log: .default, type: .default,
-                           resumeBeat ?? -1.0, linkWasEnabled ? 1 : 0)
-
-                    // 4. Start
-                    // Con Link attivo passa nil: la phase sync avviene automaticamente
-                    // nei primi buffer di scheduleNextBuffer().
-                    self.activateSessionAndStart(
-                        resumeAtBeat: linkWasEnabled ? nil : resumeBeat,
-                        trigger: "route_category_change"
-                    )
-                }
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
+                                              trigger: "sample_rate_change")
+                return
+            } else if modeChanged {
+                self.applyChannelRouting(for: detectedMode)
             }
-        }
 
-        let avSession = AVAudioSession.sharedInstance()
-        audioQueue.async { [weak self] in
-            guard let self else { return }
+            DispatchQueue.main.async {
+                self.audioMode = detectedMode
+                self.sampleRateInfo = newSampleRate
+            }
+
+            // --- Aggiornamento latency ticks ---
+            let avSession = AVAudioSession.sharedInstance()
             self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
             self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
             if let lh = self.linkEngineHandle {
                 link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
             }
+
+            // --- oldDeviceUnavailable: ferma solo se era output audio reale ---
+            guard reason == .oldDeviceUnavailable,
+                  let previousRoute = notification.userInfo?[AVAudioSessionRouteChangePreviousRouteKey]
+                      as? AVAudioSessionRouteDescription else { return }
+            let wasAudioOutput = previousRoute.outputs.contains {
+                $0.portType == .headphones ||
+                $0.portType == .bluetoothA2DP ||
+                $0.portType == .bluetoothLE ||
+                $0.portType == .airPlay
+            }
+            if wasAudioOutput { self.stopSync() }
         }
     }
 
