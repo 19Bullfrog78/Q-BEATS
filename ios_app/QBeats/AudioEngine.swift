@@ -1213,17 +1213,6 @@ class AudioEngine: ObservableObject {
                 link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
             }
 
-            // --- oldDeviceUnavailable: ferma solo se era output audio reale ---
-            guard reason == .oldDeviceUnavailable,
-                  let previousRoute = notification.userInfo?[AVAudioSessionRouteChangePreviousRouteKey]
-                      as? AVAudioSessionRouteDescription else { return }
-            let wasAudioOutput = previousRoute.outputs.contains {
-                $0.portType == .headphones ||
-                $0.portType == .bluetoothA2DP ||
-                $0.portType == .bluetoothLE ||
-                $0.portType == .airPlay
-            }
-            if wasAudioOutput { self.stopSync() }
         }
     }
 
