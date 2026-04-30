@@ -58,9 +58,20 @@ class AudioEngine: ObservableObject {
             metronome_set_beat_volume(mh, s.beatVolume)
             metronome_set_subdiv_volume(mh, s.subdivVolume)
             metronome_set_muted(mh, s.clickMuted)
-            os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@",
+            self.ch1Volume = s.ch1Volume
+            self.ch2Volume = s.ch2Volume
+            self.ch3Volume = s.ch3Volume
+            self.ch4Volume = s.ch4Volume
+            self.ch1MixerNode.outputVolume = s.ch1Volume
+            self.ch2MixerNode.outputVolume = s.ch2Volume
+            self.ch3MixerNode.outputVolume = s.ch3Volume
+            self.ch4MixerNode.outputVolume = s.ch4Volume
+            let vols = [s.ch1Volume, s.ch2Volume, s.ch3Volume, s.ch4Volume]
+            DispatchQueue.main.async { self.channelVolumes = vols }
+            os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@ ch=[%.2f,%.2f,%.2f,%.2f]",
                    log: .default, type: .default,
-                   s.accentVolume, s.beatVolume, s.subdivVolume, "\(s.clickMuted)")
+                   s.accentVolume, s.beatVolume, s.subdivVolume, "\(s.clickMuted)",
+                   s.ch1Volume, s.ch2Volume, s.ch3Volume, s.ch4Volume)
         }
     }
 
@@ -526,7 +537,17 @@ class AudioEngine: ObservableObject {
             default: break
             }
             let vols = [self.ch1Volume, self.ch2Volume, self.ch3Volume, self.ch4Volume]
-            DispatchQueue.main.async { self.channelVolumes = vols }
+            let v1 = self.ch1Volume
+            let v2 = self.ch2Volume
+            let v3 = self.ch3Volume
+            let v4 = self.ch4Volume
+            DispatchQueue.main.async {
+                self.channelVolumes = vols
+                self.appSettings.ch1Volume = v1
+                self.appSettings.ch2Volume = v2
+                self.appSettings.ch3Volume = v3
+                self.appSettings.ch4Volume = v4
+            }
         }
     }
 
@@ -1406,19 +1427,7 @@ class AudioEngine: ObservableObject {
             self.backtrackBuffer = nil
             self.backtrackArmed  = false
         }
-        audioQueue.sync {
-            self.ch1Volume = 1.0
-            self.ch2Volume = 1.0
-            self.ch3Volume = 0.0
-            self.ch4Volume = 0.0
-            self.ch1MixerNode.outputVolume = 1.0
-            self.ch2MixerNode.outputVolume = 1.0
-            self.ch3MixerNode.outputVolume = 0.0
-            self.ch4MixerNode.outputVolume = 0.0
-        }
-        DispatchQueue.main.async {
-            self.channelVolumes = [1.0, 1.0, 0.0, 0.0]
-        }
+        applySettings(appSettings)
         audioQueue.sync {
             self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)

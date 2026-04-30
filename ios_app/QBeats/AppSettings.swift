@@ -5,6 +5,10 @@ struct AppSettings: Codable {
     var beatVolume:   Double = 0.8   // [0.0, 1.0] — beat normale
     var subdivVolume: Double = 0.4   // [0.0, 1.0] — suddivisione
     var clickMuted:   Bool   = false // mute hard — i 3 gain interni restano invariati
+    var ch1Volume:    Float  = 1.0
+    var ch2Volume:    Float  = 1.0
+    var ch3Volume:    Float  = 0.0
+    var ch4Volume:    Float  = 0.0
 }
 
 extension AppSettings {
