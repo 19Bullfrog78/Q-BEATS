@@ -1306,7 +1306,18 @@ class AudioEngine: ObservableObject {
             self.sampleRate = newSampleRate
 
             if sampleRateChanged {
+                let wasRunning = self.isRunning
                 self.setupGraph()
+
+                guard wasRunning else {
+                    os_log("[Q-BEATS][ROUTE] sampleRateChanged — engine fermo, no restart",
+                           log: .default, type: .default)
+                    DispatchQueue.main.async {
+                        self.audioMode = detectedMode
+                        self.sampleRateInfo = newSampleRate
+                    }
+                    return
+                }
 
                 let recoveryBeat: Double?
                 if let mh = self.midiEngineHandle {
@@ -1327,6 +1338,7 @@ class AudioEngine: ObservableObject {
             } else if modeChanged {
                 // Topologia grafo cambia tra Base e Pro — rebuild completo obbligatorio.
                 // B1 Hard Sync: clock C++ non si ferma — MAI midi_engine_stop() qui.
+                let wasRunning = self.isRunning
                 self.isRunning = false
                 self.playerNode.stop()
                 self.engine.stop()
@@ -1351,6 +1363,12 @@ class AudioEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self.audioMode = detectedMode
                     self.sampleRateInfo = newSampleRate
+                }
+
+                guard wasRunning else {
+                    os_log("[Q-BEATS][ROUTE] modeChanged — engine fermo, no restart",
+                           log: .default, type: .default)
+                    return
                 }
 
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
