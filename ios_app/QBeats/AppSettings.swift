@@ -19,6 +19,6 @@ extension AppSettings {
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        UserDefaults.standard.set(data, forKey: AppSettings.udKey)
+        UserDefaults.standard.set(data, forKey: Self.udKey)
     }
 }
