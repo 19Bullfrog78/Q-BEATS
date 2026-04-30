@@ -25,4 +25,12 @@ extension AppSettings {
         guard let data = try? JSONEncoder().encode(self) else { return }
         UserDefaults.standard.set(data, forKey: Self.udKey)
     }
+
+    mutating func updateChannelVolumes(ch1: Float, ch2: Float, ch3: Float, ch4: Float) {
+        ch1Volume = ch1
+        ch2Volume = ch2
+        ch3Volume = ch3
+        ch4Volume = ch4
+        save()
+    }
 }

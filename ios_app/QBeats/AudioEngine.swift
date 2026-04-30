@@ -543,10 +543,7 @@ class AudioEngine: ObservableObject {
             let v4 = self.ch4Volume
             DispatchQueue.main.async {
                 self.channelVolumes = vols
-                self.appSettings.ch1Volume = v1
-                self.appSettings.ch2Volume = v2
-                self.appSettings.ch3Volume = v3
-                self.appSettings.ch4Volume = v4
+                self.appSettings.updateChannelVolumes(ch1: v1, ch2: v2, ch3: v3, ch4: v4)
             }
         }
     }
