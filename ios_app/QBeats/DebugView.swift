@@ -88,7 +88,7 @@ struct DebugView: View {
                     .pickerStyle(.segmented)
                     .onChange(of: subdivisionMultiplier) { newValue in
                         os_log("[DebugView] Subdivision multiplier: %d", log: .default, type: .default, newValue)
-                        audioEngine.setSubdivision(UInt8(newValue), swingRatio: 0.5)
+                        audioEngine.setSubdivision(multiplier: UInt8(newValue), swingRatio: 0.5)
                     }
                 }
 
