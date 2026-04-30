@@ -704,6 +704,15 @@ class AudioEngine: ObservableObject {
                 os_log("[Q-BEATS][RESUME] setActive OK dopo %d tentativi (token:%d trigger:%{public}@)",
                        log: .default, type: .default, attempt, activeToken, trigger)
 
+                // Rebuild grafo Pro DOPO setActive(true) — il formato 4ch è disponibile solo ora.
+                // In Base mode il grafo è già corretto (setupGraph usa sempre Base).
+                let currentMode = mode ?? self.detectAudioMode()
+                if currentMode == .pro {
+                    self.rebuildGraph(for: .pro)
+                    os_log("[Q-BEATS][RESUME] rebuildGraph Pro eseguito post-setActive (trigger:%{public}@)",
+                           log: .default, type: .default, trigger)
+                }
+
                 self.start(resumeAtBeat: resumeAtBeat)
 
             } catch {
@@ -821,15 +830,15 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default)
 
         case .pro:
-            // Guard: verifica che l'hardware supporti davvero 4 canali.
-            // maximumOutputNumberOfChannels riflette le capacità hardware reali
-            // indipendentemente dallo stato di setActive — sicuro anche pre-setActive.
-            // Se il guard fallisce (USB instabile, setPreferredOutputNumberOfChannels ignorato),
-            // fallback a topologia Base — zero crash.
-            let maxChannels = AVAudioSession.sharedInstance().maximumOutputNumberOfChannels
-            guard maxChannels >= 4 else {
-                os_log("connectAllNodes: Pro richiesto ma maximumOutputChannels=%d — fallback Base",
-                       log: .default, type: .error, maxChannels)
+            // Formato reale dell'outputNode — disponibile SOLO dopo setActive(true).
+            // Questo metodo viene chiamato da rebuildGraph() che è chiamato
+            // dentro activateSessionAndStart dopo setActive OK — mai prima.
+            let outputFormat = engine.outputNode.outputFormat(forBus: 0)
+            let outputChannels = outputFormat.channelCount
+
+            guard outputChannels >= 4 else {
+                os_log("connectAllNodes: Pro richiesto ma outputChannels=%d < 4 — fallback Base",
+                       log: .default, type: .error, outputChannels)
                 engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: monoFormat)
                 engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: stereoFormat)
                 engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: stereoFormat)
@@ -837,39 +846,27 @@ class AudioEngine: ObservableObject {
                 return
             }
 
-            // Verifica formato hardware reale dell'outputNode.
-            // maximumOutputNumberOfChannels è il massimo teorico; hwChannels è ciò che
-            // l'outputNode ha effettivamente configurato — se < 4 le connessioni su bus 2/3 crashano.
-            let hwFormat = engine.outputNode.outputFormat(forBus: 0)
-            let hwChannels = hwFormat.channelCount
-            os_log("connectAllNodes PRO — hwFormat channels:%d SR:%.0f",
+            // Connessione esplicita mainMixerNode → outputNode con formato 4ch.
+            // Senza questa connessione esplicita il channelMap non è efficace.
+            // Fonte: Apple Developer Forums thread/713983.
+            engine.connect(engine.mainMixerNode, to: engine.outputNode, format: outputFormat)
+
+            // Ogni ch mixer → mainMixerNode con outputFormat (4ch).
+            // Necessario per attivare il channelMap — con formato mono non funziona.
+            engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(ch4MixerNode, to: engine.mainMixerNode, format: outputFormat)
+
+            // channelMap: [NSNumber] — indice = canale output 4ch, valore = canale input (-1 = silenzio).
+            ch1MixerNode.auAudioUnit.channelMap = [0, -1, -1, -1]   // click → out 0
+            ch2MixerNode.auAudioUnit.channelMap = [-1, 0, -1, -1]   // backtrack → out 1
+            ch3MixerNode.auAudioUnit.channelMap = [-1, -1, 0, -1]   // guide vocals → out 2
+            ch4MixerNode.auAudioUnit.channelMap = [-1, -1, -1, 0]   // FX → out 3
+
+            os_log("connectAllNodes: topologia PRO — channelMap attivo (outputChannels:%d SR:%.0f)",
                    log: .default, type: .default,
-                   hwChannels, hwFormat.sampleRate)
-            guard hwChannels >= 4 else {
-                os_log("connectAllNodes: outputNode hwChannels=%d < 4 — fallback Base",
-                       log: .default, type: .error, hwChannels)
-                engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: monoFormat)
-                engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: stereoFormat)
-                engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: stereoFormat)
-                engine.connect(ch4MixerNode, to: engine.mainMixerNode, format: stereoFormat)
-                return
-            }
-
-            // Topologia Pro: connessione diretta a outputNode su bus fisici separati.
-            // disconnectNodeInput(outputNode) rimuove la connessione automatica
-            // mainMixerNode → outputNode prima di connettere i mixer.
-            // Ch2 usa monoFormat: downmix stereo→mono accettabile in contesto live FOH.
-            engine.disconnectNodeInput(engine.outputNode)
-            engine.connect(ch1MixerNode, to: engine.outputNode,
-                           fromBus: 0, toBus: 0, format: monoFormat)
-            engine.connect(ch2MixerNode, to: engine.outputNode,
-                           fromBus: 0, toBus: 1, format: monoFormat)
-            engine.connect(ch3MixerNode, to: engine.outputNode,
-                           fromBus: 0, toBus: 2, format: monoFormat)
-            engine.connect(ch4MixerNode, to: engine.outputNode,
-                           fromBus: 0, toBus: 3, format: monoFormat)
-            os_log("connectAllNodes: topologia PRO — Ch1→out0 Ch2→out1 Ch3→out2 Ch4→out3 (maxCh:%d)",
-                   log: .default, type: .default, maxChannels)
+                   outputChannels, outputFormat.sampleRate)
         }
     }
 
@@ -1406,7 +1403,9 @@ class AudioEngine: ObservableObject {
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
             self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
         }
-        if wasRunning { start() }
+        if wasRunning {
+            activateSessionAndStart(resumeAtBeat: nil, trigger: "media_reset")
+        }
     }
 
     @objc private func handleEngineConfigChange(_ notification: Notification) {
