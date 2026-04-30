@@ -647,6 +647,7 @@ class AudioEngine: ObservableObject {
     private func activateSessionAndStart(
         resumeAtBeat: Double?,
         trigger: String,
+        mode: AudioMode? = nil,
         attempt: Int = 0,
         token: Int = -1
     ) {
@@ -667,6 +668,12 @@ class AudioEngine: ObservableObject {
                 self.pendingResumeBeat = nil
                 return
             }
+
+            // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive.
+            // mode passato dal call site quando noto; nil = rileva ora.
+            let targetMode = mode ?? detectAudioMode()
+            configureSessionChannels(for: targetMode)
+
             if session.isOtherAudioPlaying {
                 os_log("[Q-BEATS][RESUME] Hardware ancora occupato (isOtherAudioPlaying). Pending=true.",
                        log: .default, type: .default)
@@ -751,6 +758,8 @@ class AudioEngine: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [])
             try session.setPreferredSampleRate(sampleRate)
             try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
+            // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive
+            configureSessionChannels(for: detectAudioMode())
             try session.setActive(true)
         } catch {
             DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
@@ -758,7 +767,6 @@ class AudioEngine: ObservableObject {
     }
 
     private func setupGraph() {
-        // Fase 1.5a: legge sampleRate reale da AVAudioSession (già attiva)
         self.sampleRate = AVAudioSession.sharedInstance().sampleRate
         let detectedMode = detectAudioMode()
         DispatchQueue.main.async {
@@ -778,35 +786,79 @@ class AudioEngine: ObservableObject {
         engine.attach(ch3MixerNode)
         engine.attach(ch4MixerNode)
 
-        connectAllNodes()
-
-        // Fase 1.5a: applica routing canali in base all'hardware rilevato.
-        // I nodi Ch3/Ch4 restano nel grafo sempre — solo gain/pan.
+        connectAllNodes(for: detectedMode)
         applyChannelRouting(for: detectedMode)
     }
 
-    private func connectAllNodes() {
+    /// Costruisce la topologia del grafo AVAudioEngine in base alla modalità hardware.
+    /// Base: tutti i mixer al mainMixerNode (stereo). Ch3/Ch4 silenziate via outputVolume.
+    /// Pro:  connessione diretta a outputNode su bus fisici separati.
+    ///       Guard su maximumOutputNumberOfChannels — se l'hardware non supporta 4 canali,
+    ///       fallback automatico a topologia Base con log di errore.
+    /// Chiamare solo con engine fermo.
+    private func connectAllNodes(for mode: AudioMode) {
         let monoFormat   = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 
-        engine.connect(playerNode,          to: ch1MixerNode,         format: monoFormat)
-        engine.connect(ch1MixerNode,        to: engine.mainMixerNode, format: monoFormat)
+        // Player → Mixer (identico in Base e Pro)
+        engine.connect(playerNode,          to: ch1MixerNode, format: monoFormat)
+        engine.connect(backtrackPlayerNode, to: ch2MixerNode, format: nil)
+        engine.connect(ch3PlayerNode,       to: ch3MixerNode, format: nil)
+        engine.connect(ch4PlayerNode,       to: ch4MixerNode, format: nil)
+
         ch1MixerNode.outputVolume = ch1Volume
-
-        engine.connect(backtrackPlayerNode, to: ch2MixerNode,         format: nil)
-        engine.connect(ch2MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
         ch2MixerNode.outputVolume = ch2Volume
-
-        engine.connect(ch3PlayerNode,       to: ch3MixerNode,         format: nil)
-        engine.connect(ch3MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
         ch3MixerNode.outputVolume = ch3Volume
-
-        engine.connect(ch4PlayerNode,       to: ch4MixerNode,         format: nil)
-        engine.connect(ch4MixerNode,        to: engine.mainMixerNode, format: stereoFormat)
         ch4MixerNode.outputVolume = ch4Volume
+
+        switch mode {
+        case .base:
+            engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: monoFormat)
+            engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+            engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+            engine.connect(ch4MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+            os_log("connectAllNodes: topologia BASE",
+                   log: .default, type: .default)
+
+        case .pro:
+            // Guard: verifica che l'hardware supporti davvero 4 canali.
+            // maximumOutputNumberOfChannels riflette le capacità hardware reali
+            // indipendentemente dallo stato di setActive — sicuro anche pre-setActive.
+            // Se il guard fallisce (USB instabile, setPreferredOutputNumberOfChannels ignorato),
+            // fallback a topologia Base — zero crash.
+            let maxChannels = AVAudioSession.sharedInstance().maximumOutputNumberOfChannels
+            guard maxChannels >= 4 else {
+                os_log("connectAllNodes: Pro richiesto ma maximumOutputChannels=%d — fallback Base",
+                       log: .default, type: .error, maxChannels)
+                engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: monoFormat)
+                engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                engine.connect(ch4MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                return
+            }
+
+            // Topologia Pro: connessione diretta a outputNode su bus fisici separati.
+            // disconnectNodeInput(outputNode) rimuove la connessione automatica
+            // mainMixerNode → outputNode prima di connettere i mixer.
+            // Ch2 usa monoFormat: downmix stereo→mono accettabile in contesto live FOH.
+            engine.disconnectNodeInput(engine.outputNode)
+            engine.connect(ch1MixerNode, to: engine.outputNode,
+                           fromBus: 0, toBus: 0, format: monoFormat)
+            engine.connect(ch2MixerNode, to: engine.outputNode,
+                           fromBus: 0, toBus: 1, format: monoFormat)
+            engine.connect(ch3MixerNode, to: engine.outputNode,
+                           fromBus: 0, toBus: 2, format: monoFormat)
+            engine.connect(ch4MixerNode, to: engine.outputNode,
+                           fromBus: 0, toBus: 3, format: monoFormat)
+            os_log("connectAllNodes: topologia PRO — Ch1→out0 Ch2→out1 Ch3→out2 Ch4→out3 (maxCh:%d)",
+                   log: .default, type: .default, maxChannels)
+        }
     }
 
-    private func rebuildGraph() {
+    /// Ricostruisce il grafo: disconnette tutti i nodi, riconnette per la modalità
+    /// indicata, prepara l'engine.
+    /// Chiamare solo con engine e playerNode già fermi.
+    private func rebuildGraph(for mode: AudioMode) {
         engine.disconnectNodeOutput(playerNode)
         engine.disconnectNodeOutput(backtrackPlayerNode)
         engine.disconnectNodeOutput(ch3PlayerNode)
@@ -815,8 +867,10 @@ class AudioEngine: ObservableObject {
         engine.disconnectNodeOutput(ch2MixerNode)
         engine.disconnectNodeOutput(ch3MixerNode)
         engine.disconnectNodeOutput(ch4MixerNode)
-        connectAllNodes()
+        connectAllNodes(for: mode)
         engine.prepare()
+        os_log("rebuildGraph completato — mode: %{public}@",
+               log: .default, type: .default, "\(mode)")
     }
 
     // MARK: - Fase 1.5a — Hardware Detection
@@ -829,6 +883,29 @@ class AudioEngine: ObservableObject {
             }
         }
         return .base
+    }
+
+    /// Imposta il numero di canali output preferiti su AVAudioSession.
+    /// Chiamare DOPO setCategory e PRIMA di setActive — invariante iOS.
+    /// Non throwing: errore loggato, non propagato.
+    private func configureSessionChannels(for mode: AudioMode) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            switch mode {
+            case .pro:
+                try session.setPreferredOutputNumberOfChannels(4)
+                os_log("configureSessionChannels: Pro — 4 canali richiesti (max hardware: %d)",
+                       log: .default, type: .default,
+                       session.maximumOutputNumberOfChannels)
+            case .base:
+                try session.setPreferredOutputNumberOfChannels(2)
+                os_log("configureSessionChannels: Base — 2 canali",
+                       log: .default, type: .default)
+            }
+        } catch {
+            os_log("configureSessionChannels error: %{public}@",
+                   log: .default, type: .error, error.localizedDescription)
+        }
     }
 
     private func applyChannelRouting(for mode: AudioMode) {
@@ -1132,7 +1209,7 @@ class AudioEngine: ObservableObject {
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 // 1. Graph rebuild
-                self.rebuildGraph()
+                self.rebuildGraph(for: self.detectAudioMode())
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double?
@@ -1233,9 +1310,41 @@ class AudioEngine: ObservableObject {
                                               trigger: "sample_rate_change")
                 return
             } else if modeChanged {
+                // Topologia grafo cambia tra Base e Pro — rebuild completo obbligatorio.
+                // B1 Hard Sync: clock C++ non si ferma — MAI midi_engine_stop() qui.
+                self.isRunning = false
+                self.playerNode.stop()
+                self.engine.stop()
+
+                self.rebuildGraph(for: detectedMode)
                 self.applyChannelRouting(for: detectedMode)
+
+                let recoveryBeat: Double?
+                if let mh = self.midiEngineHandle {
+                    let hostTime = mach_absolute_time()
+                                 + self.outputLatencyTicks
+                                 + self.bufferDurationTicks
+                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
+                } else {
+                    recoveryBeat = nil
+                }
+
+                os_log("[Q-BEATS][ROUTE] modeChanged %{public}@ → %{public}@ — recoveryBeat:%.4f",
+                       log: .default, type: .default,
+                       "\(self.audioMode)", "\(detectedMode)", recoveryBeat ?? -1.0)
+
+                DispatchQueue.main.async {
+                    self.audioMode = detectedMode
+                    self.sampleRateInfo = newSampleRate
+                }
+
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
+                                             trigger: "mode_change",
+                                             mode: detectedMode)
+                return
             }
 
+            // Path senza cambio né SR né mode
             DispatchQueue.main.async {
                 self.audioMode = detectedMode
                 self.sampleRateInfo = newSampleRate
@@ -1327,7 +1436,7 @@ class AudioEngine: ObservableObject {
             self.playerNode.stop()
 
             // 1. Graph rebuild
-            self.rebuildGraph()
+            self.rebuildGraph(for: self.detectAudioMode())
 
             // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
             let resumeBeat: Double?
