@@ -14,6 +14,10 @@ void            metronome_setBeatsPerBar(MetronomeHandle handle, uint32_t beatsP
 void            metronome_setAccentPattern(MetronomeHandle handle, const uint8_t* pattern, uint32_t length);
 void            metronome_setSubdivision(MetronomeHandle handle, uint8_t multiplier, double swingRatio);
 void            metronome_schedule_bpm_change(MetronomeHandle handle, double newBPM);
+void            metronome_set_accent_volume(MetronomeHandle handle, double v);
+void            metronome_set_beat_volume(MetronomeHandle handle, double v);
+void            metronome_set_subdiv_volume(MetronomeHandle handle, double v);
+void            metronome_set_muted(MetronomeHandle handle, bool muted);
 
 // Fresh play: fissa phase origin, azzera _currentBeatInBar.
 // Chiamare SOLO su start() senza resume.

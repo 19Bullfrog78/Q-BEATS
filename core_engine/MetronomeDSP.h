@@ -25,6 +25,12 @@ public:
     void scheduleBPMChange(double newBPM);
     void setAbsolutePositionForTesting(uint64_t pos);
 
+    // --- Fase VOL: volume click + mute (chiamare solo da audioQueue) ---
+    void setAccentVolume(double v);   // [0.0, 1.0]
+    void setBeatVolume(double v);     // [0.0, 1.0]
+    void setSubdivVolume(double v);   // [0.0, 1.0]
+    void setMuted(bool muted);        // mute hard
+
     // Fresh play: fissa _startAbsoluteBeat e azzera _currentBeatInBar.
     // Chiamare SOLO su start() senza resume.
     void resetForStart(double startBeat);
@@ -69,6 +75,19 @@ private:
     // Scheduled BPM change — applied at next downbeat (_currentBeatInBar == 0)
     double            _pendingBPM;
     std::atomic<bool> _bpmChangeDirty;
+
+    // --- Fase VOL: volume click — double-buffer + atomic dirty ---
+    std::atomic<bool> _volumeDirty { false };
+    double _pendingAccentVolume { 1.0 };
+    double _pendingBeatVolume   { 0.8 };
+    double _pendingSubdivVolume { 0.4 };
+    bool   _pendingMuted        { false };
+
+    // live (RT thread only):
+    double _accentVolume { 1.0 };
+    double _beatVolume   { 0.8 };
+    double _subdivVolume { 0.4 };
+    bool   _muted        { false };
 
     double subdivIntervalForPhase(double spb, bool phase) const;
 };

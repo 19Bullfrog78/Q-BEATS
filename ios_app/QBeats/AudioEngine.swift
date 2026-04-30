@@ -39,6 +39,33 @@ class AudioEngine: ObservableObject {
     @Published var debugLogs: [String] = []
     // -------------------------------------------------------
 
+    // Fase VOL — settings globali
+    @Published var appSettings: AppSettings = AppSettings() {
+        didSet {
+            applyVolumeSettings()
+        }
+    }
+
+    private func applyVolumeSettings() {
+        audioQueue.async { [weak self] in
+            guard let self = self,
+                  let mh = self.metronomeHandle else { return }
+            self.accentVolume = self.appSettings.accentVolume
+            self.beatVolume   = self.appSettings.beatVolume
+            self.subdivVolume = self.appSettings.subdivVolume
+            metronome_set_accent_volume(mh, self.appSettings.accentVolume)
+            metronome_set_beat_volume(mh, self.appSettings.beatVolume)
+            metronome_set_subdiv_volume(mh, self.appSettings.subdivVolume)
+            metronome_set_muted(mh, self.appSettings.clickMuted)
+            os_log("applyVolumeSettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@",
+                   log: .default, type: .default,
+                   self.appSettings.accentVolume,
+                   self.appSettings.beatVolume,
+                   self.appSettings.subdivVolume,
+                   "\(self.appSettings.clickMuted)")
+        }
+    }
+
     private var metronomeHandle      : MetronomeHandle?
     private var midiEngineHandle     : MIDIEngineHandle? = nil
     // === MODIFICATO 6A ===
@@ -72,6 +99,11 @@ class AudioEngine: ObservableObject {
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
+
+    // Fase VOL — volumi su audioQueue
+    private var accentVolume: Double = 1.0
+    private var beatVolume:   Double = 0.8
+    private var subdivVolume: Double = 0.4
 
     // === AGGIUNTO 6C — Link phase sync (accesso solo su audioQueue) ===
     private var outputLatencyTicks : UInt64 = 0
@@ -906,7 +938,8 @@ class AudioEngine: ObservableObject {
         if clickPlayhead >= 0 && !clickSamples.isEmpty {
             let remaining = clickSamples.count - clickPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            for j in 0..<writeLen { dst[j] += clickSamples[clickPlayhead + j] }
+            let gain      = Float(beatVolume)
+            for j in 0..<writeLen { dst[j] += clickSamples[clickPlayhead + j] * gain }
             clickPlayhead += writeLen
             if clickPlayhead >= clickSamples.count { clickPlayhead = -1 }
         }
@@ -914,7 +947,8 @@ class AudioEngine: ObservableObject {
         if accentPlayhead >= 0 && !accentedClickSamples.isEmpty {
             let remaining = accentedClickSamples.count - accentPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            for j in 0..<writeLen { dst[j] += accentedClickSamples[accentPlayhead + j] }
+            let gain      = Float(accentVolume)
+            for j in 0..<writeLen { dst[j] += accentedClickSamples[accentPlayhead + j] * gain }
             accentPlayhead += writeLen
             if accentPlayhead >= accentedClickSamples.count { accentPlayhead = -1 }
         }
@@ -922,7 +956,8 @@ class AudioEngine: ObservableObject {
         if subdivPlayhead >= 0 && !subdivisionClickSamples.isEmpty {
             let remaining = subdivisionClickSamples.count - subdivPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            for j in 0..<writeLen { dst[j] += subdivisionClickSamples[subdivPlayhead + j] }
+            let gain      = Float(subdivVolume)
+            for j in 0..<writeLen { dst[j] += subdivisionClickSamples[subdivPlayhead + j] * gain }
             subdivPlayhead += writeLen
             if subdivPlayhead >= subdivisionClickSamples.count { subdivPlayhead = -1 }
         }
@@ -939,12 +974,13 @@ class AudioEngine: ObservableObject {
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
                 let samples: [Float]
-                if isAccent       { samples = accentedClickSamples }
-                else if isBeat    { samples = clickSamples }
-                else              { samples = subdivisionClickSamples }
+                let gain: Float
+                if isAccent    { samples = accentedClickSamples; gain = Float(accentVolume) }
+                else if isBeat { samples = clickSamples; gain = Float(beatVolume) }
+                else           { samples = subdivisionClickSamples; gain = Float(subdivVolume) }
                 guard offset < Int(bufferSize), !samples.isEmpty else { continue }
                 let writeLen = min(samples.count, Int(bufferSize) - offset)
-                for j in 0..<writeLen { dst[offset + j] += samples[j] }
+                for j in 0..<writeLen { dst[offset + j] += samples[j] * gain }
                 if writeLen < samples.count {
                     if isAccent    { accentPlayhead = writeLen }
                     else if isBeat { clickPlayhead  = writeLen }

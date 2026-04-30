@@ -36,6 +36,28 @@ void MetronomeDSP::scheduleBPMChange(double newBPM) {
     _bpmChangeDirty.store(true, std::memory_order_release);
 }
 
+// --- Fase VOL: setter (chiamare solo da audioQueue, mai dal RT thread) ---
+
+void MetronomeDSP::setAccentVolume(double v) {
+    _pendingAccentVolume = v;
+    _volumeDirty.store(true, std::memory_order_release);
+}
+
+void MetronomeDSP::setBeatVolume(double v) {
+    _pendingBeatVolume = v;
+    _volumeDirty.store(true, std::memory_order_release);
+}
+
+void MetronomeDSP::setSubdivVolume(double v) {
+    _pendingSubdivVolume = v;
+    _volumeDirty.store(true, std::memory_order_release);
+}
+
+void MetronomeDSP::setMuted(bool muted) {
+    _pendingMuted = muted;
+    _volumeDirty.store(true, std::memory_order_release);
+}
+
 void MetronomeDSP::setBeatsPerBar(uint32_t beatsPerBar) {
     _beatsPerBar      = beatsPerBar;
     _currentBeatInBar = 0;
@@ -128,6 +150,15 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
 }
 
 std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
+    // --- Fase VOL: PRIMA istruzione assoluta — dirty-check volume/mute ---
+    if (_volumeDirty.load(std::memory_order_acquire)) {
+        _accentVolume = _pendingAccentVolume;
+        _beatVolume   = _pendingBeatVolume;
+        _subdivVolume = _pendingSubdivVolume;
+        _muted        = _pendingMuted;
+        _volumeDirty.store(false, std::memory_order_release);
+    }
+
     std::vector<BeatEvent> beats;
     double spb = (_sampleRate * 60.0) / _bpm;
 
@@ -162,11 +193,17 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
         }
 
         if (isBeatSample) {
-            BeatEvent ev;
-            ev.offset = i;
-            ev.accent = (_accentPattern[_currentBeatInBar] > 0);
-            ev.isBeat = true;
-            beats.push_back(ev);
+            if (!_muted) {
+                BeatEvent ev;
+                ev.offset = i;
+                ev.accent = (_accentPattern[_currentBeatInBar] > 0);
+                ev.isBeat = true;
+                // Fase VOL: gain applicato in Swift al momento della scrittura PCM.
+                // _accentVolume/_beatVolume/_subdivVolume sono accessibili via BeatEvent.volume
+                // ma poiché BeatEvent non ha campo volume, il gain viene letto da AudioEngine
+                // tramite le proprietà pubblicate. Il mute blocca qui l'emissione dell'evento.
+                beats.push_back(ev);
+            }
             if (_currentBeatInBar == 0 && _bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
                 _bpm = _pendingBPM;
                 spb  = (_sampleRate * 60.0) / _bpm;
@@ -178,11 +215,13 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                 _exactNextSubdivSample = (double)currentAbsolute + subdivIntervalForPhase(spb, false);
             }
         } else if (isSubdivSample) {
-            BeatEvent ev;
-            ev.offset = i;
-            ev.accent = false;
-            ev.isBeat = false;
-            beats.push_back(ev);
+            if (!_muted) {
+                BeatEvent ev;
+                ev.offset = i;
+                ev.accent = false;
+                ev.isBeat = false;
+                beats.push_back(ev);
+            }
             _swingPhase            = !_swingPhase;
             _exactNextSubdivSample = (double)currentAbsolute + subdivIntervalForPhase(spb, _swingPhase);
         }

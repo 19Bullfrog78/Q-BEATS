@@ -89,6 +89,28 @@ struct DebugView: View {
                     .opacity(audioEngine.audioMode == .base ? 0.5 : 1.0)
                 }
 
+                // --- Sezione VOL ---
+                SwiftUI.Section {
+                    Text("CLICK VOLUMES").font(.caption).foregroundColor(.gray)
+                    
+                    HStack {
+                        Text("Accent")
+                        Slider(value: $audioEngine.appSettings.accentVolume, in: 0...1)
+                    }
+                    
+                    HStack {
+                        Text("Beat")
+                        Slider(value: $audioEngine.appSettings.beatVolume, in: 0...1)
+                    }
+                    
+                    HStack {
+                        Text("Subdiv")
+                        Slider(value: $audioEngine.appSettings.subdivVolume, in: 0...1)
+                    }
+                    
+                    Toggle("Mute Click", isOn: $audioEngine.appSettings.clickMuted)
+                }
+
                 // --- TOGGLES ---
                 SwiftUI.Section("Impostazioni") {
                     Toggle("Ableton Link", isOn: Binding(

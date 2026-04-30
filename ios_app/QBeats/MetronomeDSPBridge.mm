@@ -66,3 +66,23 @@ void metronome_schedule_bpm_change(MetronomeHandle handle, double newBPM) {
     if (!handle) return;
     static_cast<MetronomeDSP*>(handle)->scheduleBPMChange(newBPM);
 }
+
+void metronome_set_accent_volume(MetronomeHandle handle, double v) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setAccentVolume(v);
+}
+
+void metronome_set_beat_volume(MetronomeHandle handle, double v) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setBeatVolume(v);
+}
+
+void metronome_set_subdiv_volume(MetronomeHandle handle, double v) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setSubdivVolume(v);
+}
+
+void metronome_set_muted(MetronomeHandle handle, bool muted) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setMuted(muted);
+}
