@@ -7,6 +7,7 @@ struct DebugView: View {
     
     // Stato locale per scaffolding (feature non ancora implementate nel Layer 3 bridge)
     @State private var sectionLoopEnabled: Bool = false
+    @State private var subdivisionMultiplier: Int = 1
 
     var body: some View {
         NavigationStack {
@@ -74,6 +75,21 @@ struct DebugView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                }
+
+                // --- SUBDIVISION (TEST) ---
+                SwiftUI.Section("Subdivision (Test)") {
+                    Picker("Suddivisione", selection: $subdivisionMultiplier) {
+                        Text("Nessuna (1)").tag(1)
+                        Text("Crome (2)").tag(2)
+                        Text("Terzine (3)").tag(3)
+                        Text("Semicrome (4)").tag(4)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: subdivisionMultiplier) { newValue in
+                        os_log("[DebugView] Subdivision multiplier: %d", log: .default, type: .default, newValue)
+                        audioEngine.setSubdivision(UInt8(newValue), swingRatio: 0.5)
+                    }
                 }
 
                 // --- MIXER 4 CANALI ---
