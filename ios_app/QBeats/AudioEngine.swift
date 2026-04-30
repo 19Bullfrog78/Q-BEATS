@@ -40,29 +40,27 @@ class AudioEngine: ObservableObject {
     // -------------------------------------------------------
 
     // Fase VOL — settings globali
-    @Published var appSettings: AppSettings = AppSettings() {
+    @Published var appSettings: AppSettings = AppSettings.load() {
         didSet {
-            applyVolumeSettings()
+            appSettings.save()
+            applySettings(appSettings)
         }
     }
 
-    private func applyVolumeSettings() {
+    private func applySettings(_ s: AppSettings) {
         audioQueue.async { [weak self] in
             guard let self = self,
                   let mh = self.metronomeHandle else { return }
-            self.accentVolume = self.appSettings.accentVolume
-            self.beatVolume   = self.appSettings.beatVolume
-            self.subdivVolume = self.appSettings.subdivVolume
-            metronome_set_accent_volume(mh, self.appSettings.accentVolume)
-            metronome_set_beat_volume(mh, self.appSettings.beatVolume)
-            metronome_set_subdiv_volume(mh, self.appSettings.subdivVolume)
-            metronome_set_muted(mh, self.appSettings.clickMuted)
-            os_log("applyVolumeSettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@",
+            self.accentVolume = s.accentVolume
+            self.beatVolume   = s.beatVolume
+            self.subdivVolume = s.subdivVolume
+            metronome_set_accent_volume(mh, s.accentVolume)
+            metronome_set_beat_volume(mh, s.beatVolume)
+            metronome_set_subdiv_volume(mh, s.subdivVolume)
+            metronome_set_muted(mh, s.clickMuted)
+            os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@",
                    log: .default, type: .default,
-                   self.appSettings.accentVolume,
-                   self.appSettings.beatVolume,
-                   self.appSettings.subdivVolume,
-                   "\(self.appSettings.clickMuted)")
+                   s.accentVolume, s.beatVolume, s.subdivVolume, "\(s.clickMuted)")
         }
     }
 
@@ -228,6 +226,11 @@ class AudioEngine: ObservableObject {
             self.sampleRateInfo = AVAudioSession.sharedInstance().sampleRate
         }
         setupNotifications()
+        os_log("AppSettings loaded: accent=%.2f beat=%.2f subdiv=%.2f muted=%d",
+               log: .default, type: .default,
+               appSettings.accentVolume, appSettings.beatVolume, appSettings.subdivVolume,
+               appSettings.clickMuted ? 1 : 0)
+        applySettings(appSettings)
     }
 
     // Aggiunge log al ring buffer visivo (ultimi 10 eventi) per la DebugView
