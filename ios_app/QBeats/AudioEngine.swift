@@ -837,6 +837,24 @@ class AudioEngine: ObservableObject {
                 return
             }
 
+            // Verifica formato hardware reale dell'outputNode.
+            // maximumOutputNumberOfChannels è il massimo teorico; hwChannels è ciò che
+            // l'outputNode ha effettivamente configurato — se < 4 le connessioni su bus 2/3 crashano.
+            let hwFormat = engine.outputNode.outputFormat(forBus: 0)
+            let hwChannels = hwFormat.channelCount
+            os_log("connectAllNodes PRO — hwFormat channels:%d SR:%.0f",
+                   log: .default, type: .default,
+                   hwChannels, hwFormat.sampleRate)
+            guard hwChannels >= 4 else {
+                os_log("connectAllNodes: outputNode hwChannels=%d < 4 — fallback Base",
+                       log: .default, type: .error, hwChannels)
+                engine.connect(ch1MixerNode, to: engine.mainMixerNode, format: monoFormat)
+                engine.connect(ch2MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                engine.connect(ch3MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                engine.connect(ch4MixerNode, to: engine.mainMixerNode, format: stereoFormat)
+                return
+            }
+
             // Topologia Pro: connessione diretta a outputNode su bus fisici separati.
             // disconnectNodeInput(outputNode) rimuove la connessione automatica
             // mainMixerNode → outputNode prima di connettere i mixer.
