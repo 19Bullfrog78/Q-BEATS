@@ -316,7 +316,6 @@ class AudioEngine: ObservableObject {
                 if let mh = self.midiEngineHandle {
                     let resumeBeat: Double? = resumeAtBeat
 
-                    midi_engine_start(mh)
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
 
                     if let beat = resumeBeat {
