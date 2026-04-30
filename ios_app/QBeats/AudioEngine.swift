@@ -47,6 +47,10 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // Fase 1.6 — MIDI Learn
+    @Published var midiLearnStore: MIDILearnStore = MIDILearnStore.load()
+    @Published var midiLearnPendingAction: MIDIAction? = nil
+
     private func applySettings(_ s: AppSettings) {
         audioQueue.async { [weak self] in
             guard let self = self,
@@ -242,6 +246,17 @@ class AudioEngine: ObservableObject {
                appSettings.accentVolume, appSettings.beatVolume, appSettings.subdivVolume,
                appSettings.clickMuted ? 1 : 0)
         applySettings(appSettings)
+
+        if let mh = midiEngineHandle {
+            midi_engine_set_receive_callback(mh, { data, length, ctx in
+                guard let data = data, let ctx = ctx, length >= 2 else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                let bytes = Array(UnsafeBufferPointer(start: data, count: Int(length)))
+                engine.audioQueue.async {
+                    engine.handleMIDIInput(bytes)
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
+        }
     }
 
     // Aggiunge log al ring buffer visivo (ultimi 10 eventi) per la DebugView
@@ -634,6 +649,58 @@ class AudioEngine: ObservableObject {
     }
 
     // MARK: - Private
+
+    // Chiamare SOLO su audioQueue.
+    private func handleMIDIInput(_ bytes: [UInt8]) {
+        guard bytes.count >= 2 else { return }
+        let status  = bytes[0] & 0xF0
+        let channel = (bytes[0] & 0x0F) + 1  // 1-based
+        let number  = bytes[1]
+
+        let eventType: MIDIEventType
+        switch status {
+        case 0xB0:
+            eventType = .cc
+        case 0x90:
+            guard bytes.count >= 3, bytes[2] > 0 else { return }  // filtra Note Off (velocity=0)
+            eventType = .note
+        default:
+            return  // ignora SysEx, PitchBend, AfterTouch, ecc.
+        }
+
+        DispatchQueue.main.async {
+            if let pendingAction = self.midiLearnPendingAction {
+                let mapping = MIDILearnMapping(channel: channel, type: eventType, number: number)
+                self.midiLearnStore.setMapping(mapping, for: pendingAction)
+                self.midiLearnPendingAction = nil
+                os_log("[Q-BEATS][MIDI LEARN] Mappato %{public}@ → type:%{public}@ ch:%d num:%d",
+                       log: .default, type: .default,
+                       pendingAction.rawValue, eventType.rawValue,
+                       channel, number)
+                return
+            }
+            if let action = self.midiLearnStore.action(for: eventType, channel: channel, number: number) {
+                self.executeMIDIAction(action)
+            }
+        }
+    }
+
+    // Chiamare SOLO su main thread.
+    private func executeMIDIAction(_ action: MIDIAction) {
+        switch action {
+        case .playPause:
+            if isPlaying { stop() } else { start() }
+        case .stop:
+            stop()
+        case .muteClickToggle:
+            appSettings.clickMuted.toggle()
+        case .stopBacktrack:
+            stopBacktrack()
+        case .tapTempo, .nextSection, .prevSection, .nextSong, .startSong, .loopToggle:
+            os_log("[Q-BEATS][MIDI ACTION] %{public}@ — richiede Layer 3",
+                   log: .default, type: .default, action.rawValue)
+        }
+    }
 
     // NON chiamare dall'interno di audioQueue (deadlock).
     private func stopSync() {
