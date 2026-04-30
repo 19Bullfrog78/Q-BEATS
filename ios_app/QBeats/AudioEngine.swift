@@ -677,10 +677,12 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        pendingAction.rawValue, eventType.rawValue,
                        channel, number)
+                self.addLog("LEARN OK: \(pendingAction.rawValue) → \(eventType.rawValue) ch:\(channel) num:\(number)")
                 return
             }
             if let action = self.midiLearnStore.action(for: eventType, channel: channel, number: number) {
                 self.executeMIDIAction(action)
+                self.addLog("MIDI ACTION: \(action.rawValue)")
             }
         }
     }

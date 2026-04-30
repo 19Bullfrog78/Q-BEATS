@@ -177,6 +177,68 @@ struct DebugView: View {
                     }
                 }
 
+                // --- MIDI LEARN ---
+                SwiftUI.Section("MIDI Learn (Fase 1.6)") {
+                    Picker("Azione", selection: Binding(
+                        get: { audioEngine.midiLearnPendingAction },
+                        set: { _ in }
+                    )) {
+                        Text("—").tag(Optional<MIDIAction>.none)
+                        ForEach(MIDIAction.allCases) { action in
+                            Text(action.rawValue).tag(Optional(action))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(audioEngine.midiLearnPendingAction != nil)
+
+                    ForEach(MIDIAction.allCases) { action in
+                        HStack {
+                            Text(action.rawValue)
+                                .font(.caption)
+                            Spacer()
+                            if let m = audioEngine.midiLearnStore.mapping(for: action) {
+                                Text("\(m.type.rawValue.uppercased()) ch:\(m.channel) #\(m.number)")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("—")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Button("LEARN") {
+                                os_log("[DebugView] MIDI Learn avviato per %{public}@",
+                                       log: .default, type: .default, action.rawValue)
+                                audioEngine.midiLearnPendingAction = action
+                                audioEngine.addLog("LEARN attivo: \(action.rawValue) — premi un controllo")
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(audioEngine.midiLearnPendingAction == action ? .orange : .blue)
+                            .disabled(audioEngine.midiLearnPendingAction != nil &&
+                                      audioEngine.midiLearnPendingAction != action)
+
+                            Button("✕") {
+                                audioEngine.midiLearnStore.removeMapping(for: action)
+                                audioEngine.addLog("Mapping rimosso: \(action.rawValue)")
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                            .disabled(audioEngine.midiLearnStore.mapping(for: action) == nil)
+                        }
+                    }
+
+                    if audioEngine.midiLearnPendingAction != nil {
+                        Text("⏳ In attesa di evento MIDI...")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Button("Annulla Learn") {
+                            audioEngine.midiLearnPendingAction = nil
+                            audioEngine.addLog("Learn annullato")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.gray)
+                    }
+                }
+
                 // --- LOG DI SISTEMA ---
                 SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in
