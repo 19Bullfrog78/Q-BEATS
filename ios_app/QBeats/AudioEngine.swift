@@ -166,6 +166,9 @@ class AudioEngine: ObservableObject {
         isBeats  = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
+        if let mh = midiEngineHandle {
+            midi_engine_start(mh)
+        }
         // === MODIFICATO 6A ===
         linkEngineHandle = link_engine_create()
         if let lh = linkEngineHandle {
