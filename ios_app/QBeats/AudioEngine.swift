@@ -19,6 +19,14 @@ enum AudioMode: Equatable {
     case pro
 }
 
+// MARK: - PlaybackState (UX-3)
+enum PlaybackState {
+    case stopped
+    case countIn
+    case playing
+    case pausedAwaitingChoice(sectionName: String, songName: String)
+}
+
 
 class AudioEngine: ObservableObject {
     static let shared = AudioEngine()
@@ -50,6 +58,13 @@ class AudioEngine: ObservableObject {
     // Fase 1.6 — MIDI Learn
     @Published var midiLearnStore: MIDILearnStore = MIDILearnStore.load()
     @Published var midiLearnPendingAction: MIDIAction? = nil
+
+    // UX-3 — state machine playback
+    @Published var playbackState: PlaybackState = .stopped
+
+    // Placeholder L3 — sostituiti dalla song/section model di Layer 3
+    var currentSection: String? = nil
+    var currentSong: String? = nil
 
     private var tapTempoEngine = TapTempoEngine()
 
@@ -434,6 +449,48 @@ class AudioEngine: ObservableObject {
         os_log("Tap tempo: %{public}.1f BPM", log: .default, type: .default, rounded)
     }
 
+    func handleStop() {
+        switch playbackState {
+        case .playing:
+            stopSync()
+            let sectionName = currentSection ?? ""
+            let songName = currentSong ?? ""
+            os_log("[Q-BEATS][UX-3] handleStop: playing → pausedAwaitingChoice section:%{public}@ song:%{public}@",
+                   log: .default, type: .default, sectionName, songName)
+            DispatchQueue.main.async { [weak self] in
+                self?.playbackState = .pausedAwaitingChoice(sectionName: sectionName, songName: songName)
+            }
+        case .countIn:
+            stopSync()
+            resetToSongStart()
+            os_log("[Q-BEATS][UX-3] handleStop: countIn → stopped",
+                   log: .default, type: .default)
+            DispatchQueue.main.async { [weak self] in
+                self?.playbackState = .stopped
+            }
+        default:
+            break
+        }
+    }
+
+    func resumeFromCurrentSection() {
+        os_log("[Q-BEATS][UX-3] resumeFromCurrentSection → countIn",
+               log: .default, type: .default)
+        DispatchQueue.main.async { [weak self] in
+            self?.playbackState = .countIn
+        }
+        startCountIn(for: currentSection)
+    }
+
+    func restartFromBeginning() {
+        resetToSongStart()
+        os_log("[Q-BEATS][UX-3] restartFromBeginning → stopped",
+               log: .default, type: .default)
+        DispatchQueue.main.async { [weak self] in
+            self?.playbackState = .stopped
+        }
+    }
+
     func setLinkEnabled(_ enabled: Bool) {
         audioQueue.async { [weak self] in
             guard let self = self, let lh = self.linkEngineHandle else { return }
@@ -661,6 +718,14 @@ class AudioEngine: ObservableObject {
 
     // MARK: - Private
 
+    // L3 stub — sostituito da Layer 3 quando disponibile.
+    private func startCountIn(for section: String?) {
+        start()
+    }
+
+    // L3 stub — sostituito da Layer 3 quando disponibile.
+    private func resetToSongStart() {}
+
     // Chiamare SOLO su audioQueue.
     private func handleMIDIInput(_ bytes: [UInt8]) {
         guard bytes.count >= 2 else { return }
@@ -704,7 +769,7 @@ class AudioEngine: ObservableObject {
         case .playPause:
             if isPlaying { stop() } else { start() }
         case .stop:
-            stop()
+            handleStop()
         case .muteClickToggle:
             appSettings.clickMuted.toggle()
         case .stopBacktrack:

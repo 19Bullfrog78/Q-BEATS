@@ -66,7 +66,39 @@ struct DebugView: View {
                         .disabled(!audioEngine.isPlaying)
                     }
 
-                    Button(role: .destructive, action: { 
+                    Button(action: {
+                        os_log("[DebugView] Azione: handleStop", log: .default, type: .default)
+                        audioEngine.handleStop()
+                    }) {
+                        Label("STOP", systemImage: "stop.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+
+                    if case let .pausedAwaitingChoice(section, song) = audioEngine.playbackState {
+                        Button(action: {
+                            os_log("[DebugView] Azione: resumeFromCurrentSection", log: .default, type: .default)
+                            audioEngine.resumeFromCurrentSection()
+                        }) {
+                            Text("Riprendi da \(section.isEmpty ? "sezione" : section)")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+
+                        Button(action: {
+                            os_log("[DebugView] Azione: restartFromBeginning", log: .default, type: .default)
+                            audioEngine.restartFromBeginning()
+                        }) {
+                            Text("Dall'inizio\(song.isEmpty ? "" : " \(song)")")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.gray)
+                    }
+
+                    Button(role: .destructive, action: {
                         os_log("[DebugView] Azione: STOP EMERGENZA", log: .default, type: .error)
                         audioEngine.stopBacktrack()
                         audioEngine.stop()
