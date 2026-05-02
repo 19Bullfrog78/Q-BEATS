@@ -33,7 +33,7 @@ struct ImportView: View {
                 resultView(result)
             } else {
                 Form {
-                    Section {
+                    SwiftUI.Section {
                         HStack {
                             Text("Esportato il")
                             Spacer()
@@ -42,12 +42,12 @@ struct ImportView: View {
                     }
 
                     if manifest.hasSettings {
-                        Section("Impostazioni") {
+                        SwiftUI.Section("Impostazioni") {
                             Toggle("Impostazioni app", isOn: $importSettings)
                         }
                     }
 
-                    Section("Canzoni (\(manifest.songs.count))") {
+                    SwiftUI.Section("Canzoni (\(manifest.songs.count))") {
                         if manifest.songs.isEmpty {
                             Text("Nessuna canzone nel backup").foregroundColor(.secondary).font(.caption)
                         } else {
@@ -76,7 +76,7 @@ struct ImportView: View {
                         }
                     }
 
-                    Section("Setlist (\(manifest.setlists.count))") {
+                    SwiftUI.Section("Setlist (\(manifest.setlists.count))") {
                         if manifest.setlists.isEmpty {
                             Text("Nessuna setlist nel backup").foregroundColor(.secondary).font(.caption)
                         } else {
@@ -96,13 +96,13 @@ struct ImportView: View {
                     }
 
                     if manifest.songs.contains(where: { $0.audioFilename != nil }) {
-                        Section {
+                        SwiftUI.Section {
                             Toggle("Includi audio", isOn: $includeAudio)
                         }
                     }
 
                     if let err = importError {
-                        Section {
+                        SwiftUI.Section {
                             Text(err).foregroundColor(.red).font(.caption)
                         }
                     }

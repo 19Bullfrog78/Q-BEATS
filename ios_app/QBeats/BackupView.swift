@@ -28,11 +28,11 @@ struct BackupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Impostazioni") {
+                SwiftUI.Section("Impostazioni") {
                     Toggle("Impostazioni app", isOn: $includeSettings)
                 }
 
-                Section("Canzoni") {
+                SwiftUI.Section("Canzoni") {
                     Toggle("Tutte", isOn: $allSongsSelected)
                         .onChange(of: allSongsSelected) { val in
                             selectedSongIDs = val ? Set(store.songs.map(\.id)) : []
@@ -55,7 +55,7 @@ struct BackupView: View {
                     }
                 }
 
-                Section("Setlist") {
+                SwiftUI.Section("Setlist") {
                     ForEach(store.setlists) { setlist in
                         CheckRow(
                             label: setlist.name,
