@@ -44,7 +44,7 @@ extension TimeSignature {
     }
 
     // Ritorna la time sig corrente di una Section, o nil se non è nella lista chiusa
-    static func matching(_ section: Section) -> TimeSignature? {
+    static func matching(_ section: SongSection) -> TimeSignature? {
         find(numerator: section.beatsPerBar, denominator: section.beatUnit)
     }
 }

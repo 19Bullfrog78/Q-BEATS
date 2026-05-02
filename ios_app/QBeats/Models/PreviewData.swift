@@ -1,9 +1,9 @@
 import Foundation
 
 #if DEBUG
-extension Section {
-    static var preview: Section {
-        Section(
+extension SongSection {
+    static var preview: SongSection {
+        SongSection(
             id: UUID(uuidString: "11111111-0000-0000-0000-000000000001")!,
             name: "Intro",
             bpm: 100.0,
@@ -23,7 +23,7 @@ extension Song {
             id: UUID(uuidString: "22222222-0000-0000-0000-000000000001")!,
             name: "Superstition",
             sections: [
-                Section(
+                SongSection(
                     id: UUID(uuidString: "11111111-0000-0000-0000-000000000001")!,
                     name: "Intro",
                     bpm: 100.0,
@@ -34,7 +34,7 @@ extension Song {
                     subdivisionMultiplier: 1,
                     swingRatio: 0.5
                 ),
-                Section(
+                SongSection(
                     id: UUID(uuidString: "11111111-0000-0000-0000-000000000002")!,
                     name: "Verse",
                     bpm: 100.0,

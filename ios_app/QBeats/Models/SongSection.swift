@@ -1,6 +1,6 @@
 import Foundation
 
-struct Section: Codable, Identifiable {
+struct SongSection: Codable, Identifiable {
     var id: UUID
     var name: String
     var bpm: Double
@@ -52,9 +52,9 @@ struct Section: Codable, Identifiable {
     }
 }
 
-extension Section {
-    static func makeDefault() -> Section {
-        Section(
+extension SongSection {
+    static func makeDefault() -> SongSection {
+        SongSection(
             id: UUID(),
             name: "Sezione",
             bpm: 120.0,

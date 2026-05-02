@@ -3,7 +3,7 @@ import Foundation
 struct Song: Codable, Identifiable {
     var id: UUID
     var name: String
-    var sections: [Section]
+    var sections: [SongSection]
     var countIn: Int          // 0=nessuno, 1=1 battuta, 2=2 battute
     var backtrackFilename: String?
 }
@@ -13,7 +13,7 @@ extension Song {
         Song(
             id: UUID(),
             name: "Nuova canzone",
-            sections: [Section.makeDefault()],
+            sections: [SongSection.makeDefault()],
             countIn: 1,
             backtrackFilename: nil
         )
