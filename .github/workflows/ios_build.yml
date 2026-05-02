@@ -64,11 +64,8 @@ jobs:
             -configuration Debug \
             -destination 'generic/platform=iOS' \
             -archivePath $RUNNER_TEMP/QBeats.xcarchive \
-            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Development" \
-            PROVISIONING_PROFILE_SPECIFIER="QBeats_Dev_Profile" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
-            -skipPackagePluginValidation \
             archive
       - name: Manual codesign with entitlements
         run: |
