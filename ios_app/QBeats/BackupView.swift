@@ -73,7 +73,7 @@ struct BackupView: View {
                     }
                 }
 
-                Section {
+                SwiftUI.Section {
                     Toggle("Includi audio", isOn: $includeAudio)
                     if includeAudio, estimatedAudioSize > 0 {
                         HStack {
@@ -86,7 +86,7 @@ struct BackupView: View {
                 }
 
                 if let err = exportError {
-                    Section {
+                    SwiftUI.Section {
                         Text(err).foregroundColor(.red).font(.caption)
                     }
                 }
