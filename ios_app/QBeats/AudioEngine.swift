@@ -51,6 +51,8 @@ class AudioEngine: ObservableObject {
     @Published var midiLearnStore: MIDILearnStore = MIDILearnStore.load()
     @Published var midiLearnPendingAction: MIDIAction? = nil
 
+    private var tapTempoEngine = TapTempoEngine()
+
     private func applySettings(_ s: AppSettings) {
         audioQueue.async { [weak self] in
             guard let self = self,
@@ -425,6 +427,13 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    func tapTempo() {
+        guard let bpm = tapTempoEngine.tap() else { return }
+        let rounded = (bpm * 10).rounded() / 10
+        setBPM(rounded)
+        os_log("Tap tempo: %{public}.1f BPM", log: .default, type: .default, rounded)
+    }
+
     func setLinkEnabled(_ enabled: Bool) {
         audioQueue.async { [weak self] in
             guard let self = self, let lh = self.linkEngineHandle else { return }
@@ -700,7 +709,9 @@ class AudioEngine: ObservableObject {
             appSettings.clickMuted.toggle()
         case .stopBacktrack:
             stopBacktrack()
-        case .tapTempo, .nextSection, .prevSection, .nextSong, .startSong, .loopToggle:
+        case .tapTempo:
+            tapTempo()
+        case .nextSection, .prevSection, .nextSong, .startSong, .loopToggle:
             os_log("[Q-BEATS][MIDI ACTION] %{public}@ — richiede Layer 3",
                    log: .default, type: .default, action.rawValue)
         }
