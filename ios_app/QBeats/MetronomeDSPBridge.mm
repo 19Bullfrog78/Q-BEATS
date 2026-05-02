@@ -14,6 +14,11 @@ void metronome_setBPM(MetronomeHandle handle, double bpm) {
     static_cast<MetronomeDSP*>(handle)->setBPM(bpm);
 }
 
+void metronome_set_sample_rate(MetronomeHandle handle, double sampleRate) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setSampleRate(sampleRate);
+}
+
 void metronome_setBeatsPerBar(MetronomeHandle handle, uint32_t beatsPerBar) {
     static_cast<MetronomeDSP*>(handle)->setBeatsPerBar(beatsPerBar);
 }

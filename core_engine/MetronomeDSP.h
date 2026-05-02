@@ -16,6 +16,7 @@ public:
     MetronomeDSP(double sampleRate, double bpm);
 
     void setBPM(double bpm);
+    void setSampleRate(double sr);
     void setBeatsPerBar(uint32_t beatsPerBar);
     void setAccentPattern(const uint8_t* pattern, uint32_t length);
     // multiplier: 1=nessuna, 2=crome, 3=terzine, 4=semicrome

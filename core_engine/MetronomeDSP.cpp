@@ -31,6 +31,10 @@ void MetronomeDSP::setBPM(double bpm) {
     _bpm = bpm;
 }
 
+void MetronomeDSP::setSampleRate(double sr) {
+    _sampleRate = sr;
+}
+
 void MetronomeDSP::scheduleBPMChange(double newBPM) {
     _pendingBPM = newBPM;
     _bpmChangeDirty.store(true, std::memory_order_release);

@@ -11,6 +11,7 @@ typedef void* MetronomeHandle;
 MetronomeHandle metronome_create(double sampleRate, double bpm);
 void            metronome_destroy(MetronomeHandle handle);
 void            metronome_setBPM(MetronomeHandle handle, double bpm);
+void            metronome_set_sample_rate(MetronomeHandle handle, double sampleRate);
 void            metronome_setBeatsPerBar(MetronomeHandle handle, uint32_t beatsPerBar);
 void            metronome_setAccentPattern(MetronomeHandle handle, const uint8_t* pattern, uint32_t length);
 void            metronome_setSubdivision(MetronomeHandle handle, uint8_t multiplier, double swingRatio);

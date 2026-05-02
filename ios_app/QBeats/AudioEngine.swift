@@ -861,6 +861,11 @@ class AudioEngine: ObservableObject {
             // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive
             configureSessionChannels(for: detectAudioMode())
             try session.setActive(true)
+            sampleRate = AVAudioSession.sharedInstance().sampleRate
+            if let mh = metronomeHandle {
+                metronome_set_sample_rate(mh, sampleRate)
+            }
+            os_log("QA-3 sampleRate aggiornato: %{public}.1f", log: .default, type: .default, sampleRate)
         } catch {
             DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
         }
