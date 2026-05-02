@@ -238,7 +238,7 @@ enum QBeatsBackupManager {
         // Audio
         var audioFilesImported = 0
         if includeAudio, let dir = extractDir {
-            audioFilesImported = try await Task.detached(priority: .utility) {
+            audioFilesImported = await Task.detached(priority: .utility) {
                 let btSrc = dir.appendingPathComponent("backtracks", isDirectory: true)
                 let btDst = resolveBacktracksURL()
                 try? FileManager.default.createDirectory(at: btDst, withIntermediateDirectories: true)
