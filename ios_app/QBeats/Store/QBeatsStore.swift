@@ -120,6 +120,12 @@ final class QBeatsStore: ObservableObject {
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
+    // Single source of truth for backtrack audio file location.
+    // Used by QBeatsBackupManager and future Layer 3 song player.
+    nonisolated static func backtrackBaseURL() -> URL {
+        resolveBaseURL().appendingPathComponent("Backtracks", isDirectory: true)
+    }
+
     nonisolated private static func ensureDirectory(_ url: URL) throws {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

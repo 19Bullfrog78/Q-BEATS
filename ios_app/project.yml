@@ -2,6 +2,11 @@ name: QBeats
 options:
   bundleIdPrefix: com.bullfrog
 
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    from: "0.9.19"
+
 targets:
   QBeats:
     type: application
@@ -19,6 +24,22 @@ targets:
           - "_link-peers._tcp"
         UIBackgroundModes:
           - audio
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Q-BEATS Backup
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.bullfrog.qbeats.backup
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.bullfrog.qbeats.backup
+            UTTypeDescription: Q-BEATS Backup
+            UTTypeConformsTo:
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - qbeats
+    dependencies:
+      - package: ZIPFoundation
     frameworks:
       - CoreAudio.framework
       - CoreMIDI.framework
