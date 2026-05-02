@@ -139,7 +139,9 @@ class AudioEngine: ObservableObject {
     private var outputLatencyTicks : UInt64 = 0
     private var bufferDurationTicks: UInt64 = 0
 
-
+    // QA-1 drift analysis — eseguito su audioQueue
+    private var qa1BeatCounter: UInt64 = 0
+    private var qa1StartTime: UInt64 = 0  // mach_absolute_time al beat 0
 
     // === Blocco 7 — Silent Ticking (accesso SOLO su audioQueue) ===
     // Il clock C++ (metronome, MIDI, Link) non si ferma mai durante le interruzioni.
@@ -798,6 +800,9 @@ class AudioEngine: ObservableObject {
             if let lh = linkEngineHandle {
                 link_engine_set_is_playing(lh, false, mach_absolute_time())
             }
+            // QA-1 drift analysis reset
+            self.qa1BeatCounter = 0
+            self.qa1StartTime = 0
             self.backtrackPlayerNode.stop()
         }
         guard wasRunning else { return }
@@ -1237,6 +1242,24 @@ class AudioEngine: ObservableObject {
                 let offset   = Int(offsets[i])
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
+                
+                // QA-1 drift analysis — eseguito su audioQueue
+                if isBeat {
+                    if self.qa1BeatCounter == 0 {
+                        self.qa1StartTime = mach_absolute_time()
+                    }
+                    self.qa1BeatCounter += 1
+                    
+                    if self.qa1BeatCounter % 100 == 0 {
+                        let elapsed = self.machTicksToSeconds(mach_absolute_time() - self.qa1StartTime)
+                        let expected = Double(self.qa1BeatCounter - 1) * 60.0 / self.currentBPM
+                        let deltams = (elapsed - expected) * 1000.0
+                        os_log("QA1 beat=%{public}llu expected=%.3fs elapsed=%.3fs delta=%{public}.2fms",
+                               log: .default, type: .default,
+                               self.qa1BeatCounter, expected, elapsed, deltams)
+                    }
+                }
+
                 let samples: [Float]
                 let gain: Float
                 if isAccent    { samples = accentedClickSamples; gain = Float(accentVolume) }
