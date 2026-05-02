@@ -351,6 +351,27 @@ void test_bpm_no_change_without_schedule() {
     std::cout << "test_bpm_no_change_without_schedule passed" << std::endl;
 }
 
+void SampleRateUpdateTakesEffect() {
+    MetronomeDSP dsp(48000.0, 120.0);
+    dsp.setSampleRate(44100.0);
+    dsp.resetForStart(0.0);
+    
+    // spb = 44100 * 60.0 / 120.0 = 22050
+    // primo beat atteso al sample 22050 (oltre a quello a 0)
+    auto beats = dsp.processBuffer(44100);
+    
+    bool foundCorrect = false;
+    bool foundWrong = false;
+    for (const auto& b : beats) {
+        if (b.offset == 22050) foundCorrect = true;
+        if (b.offset == 24000) foundWrong = true; // 24000 = 48000 * 60 / 120
+    }
+    
+    assert(foundCorrect);
+    assert(!foundWrong);
+    std::cout << "SampleRateUpdateTakesEffect passed" << std::endl;
+}
+
 int main() {
     test_basic_beat();
     test_buffer_wrap();
@@ -369,6 +390,7 @@ int main() {
     test_bpm_change_mid_buffer();
     test_bpm_change_subdiv_coherent();
     test_bpm_no_change_without_schedule();
+    SampleRateUpdateTakesEffect();
     std::cout << "All C++ Core Engine tests passed successfully!" << std::endl;
     return 0;
 }
