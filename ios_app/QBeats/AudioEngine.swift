@@ -566,7 +566,7 @@ class AudioEngine: ObservableObject {
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
         let pattern = defaultAccentPattern(for: beatsPerBar)
-        audioQueue.async {
+        audioQueue.async { [h, pattern] in
             metronome_setBeatsPerBar(h, beatsPerBar)
             if let lh = self.linkEngineHandle {
                 link_engine_set_quantum(lh, Double(beatsPerBar))
@@ -579,10 +579,9 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
-        let p = pattern
-        audioQueue.async {
-            p.withUnsafeBufferPointer { ptr in
-                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(p.count))
+        audioQueue.async { [h] in
+            pattern.withUnsafeBufferPointer { ptr in
+                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
             }
         }
     }
