@@ -48,6 +48,13 @@ struct SettingsView: View {
                     }
                 }
 
+                SwiftUI.Section("Audio") {
+                    Toggle("Mostra promemoria Aereo/Non Disturbare", isOn: Binding(
+                        get: { audioEngine.appSettings.showDNDReminder },
+                        set: { audioEngine.setShowDNDReminder($0) }
+                    ))
+                }
+
                 SwiftUI.Section("MIDI Connections") {
                     Toggle("Network MIDI (WiFi)", isOn: $networkMIDIEnabled)
                         .onChange(of: networkMIDIEnabled) { enabled in

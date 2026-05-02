@@ -271,6 +271,13 @@ struct DebugView: View {
                     }
                 }
 
+                // --- UX-2 DND REMINDER TEST ---
+                SwiftUI.Section("UX-2 DND Reminder") {
+                    Button("TEST DND Reminder") {
+                        AudioEngine.shared.triggerDNDReminderIfNeeded()
+                    }
+                }
+
                 // --- LOG DI SISTEMA ---
                 SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in

@@ -85,6 +85,16 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(audioEngine: audioEngine)
         }
+        .alert("Modalità Aereo / Non Disturbare", isPresented: $audioEngine.shouldShowDNDReminder) {
+            Button("OK") {
+                audioEngine.dismissDNDReminder(permanent: false)
+            }
+            Button("Non mostrare più") {
+                audioEngine.dismissDNDReminder(permanent: true)
+            }
+        } message: {
+            Text("Per un'esecuzione senza interruzioni, attiva la modalità Aereo o almeno Non Disturbare prima di iniziare.")
+        }
         #if DEBUG
         .modifier(DebugToolbarModifier())
         #endif

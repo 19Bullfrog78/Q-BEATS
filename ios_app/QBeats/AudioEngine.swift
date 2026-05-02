@@ -62,6 +62,10 @@ class AudioEngine: ObservableObject {
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
 
+    // UX-2 — DND Reminder
+    @Published var shouldShowDNDReminder: Bool = false
+    private var dndReminderShownThisSession = false
+
     // Placeholder L3 — sostituiti dalla song/section model di Layer 3
     var currentSection: String? = nil
     var currentSong: String? = nil
@@ -491,6 +495,30 @@ class AudioEngine: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             self?.playbackState = .stopped
         }
+    }
+
+    func triggerDNDReminderIfNeeded() {
+        guard appSettings.showDNDReminder,
+              !dndReminderShownThisSession else { return }
+        dndReminderShownThisSession = true
+        DispatchQueue.main.async {
+            self.shouldShowDNDReminder = true
+        }
+    }
+
+    func dismissDNDReminder(permanent: Bool) {
+        DispatchQueue.main.async {
+            self.shouldShowDNDReminder = false
+            if permanent {
+                self.appSettings.showDNDReminder = false
+                self.appSettings.save()
+            }
+        }
+    }
+
+    func setShowDNDReminder(_ value: Bool) {
+        appSettings.showDNDReminder = value
+        appSettings.save()
     }
 
     func setLinkEnabled(_ enabled: Bool) {

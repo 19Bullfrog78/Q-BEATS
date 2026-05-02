@@ -9,6 +9,7 @@ struct AppSettings: Codable {
     var ch2Volume:    Float  = 1.0
     var ch3Volume:    Float  = 0.0
     var ch4Volume:    Float  = 0.0
+    var showDNDReminder: Bool = true
 }
 
 extension AppSettings {
