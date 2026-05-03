@@ -42,6 +42,7 @@ struct AppRootView: View {
                     .transition(.opacity)
             }
         }
+        .ignoresSafeArea(.all)
         .onChange(of: appNav.showLive) { isShowing in
             if !isShowing { audioEngine.stop() }
         }
