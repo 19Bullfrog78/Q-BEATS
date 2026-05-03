@@ -1284,6 +1284,7 @@ class AudioEngine: ObservableObject {
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
 
+                guard isBeat else { continue }
                 self.beatTickCounter += 1
                 let tickN = self.beatTickCounter
                 DispatchQueue.main.async { [weak self] in
