@@ -14,6 +14,7 @@ struct QBeatsApp: App {
             AppRootView()
                 .environmentObject(audioEngine)
                 .environmentObject(appNav)
+                .ignoresSafeArea(.all)
                 .sheet(isPresented: $showImportView) {
                     if let manifest = pendingImportManifest {
                         ImportView(manifest: manifest, store: QBeatsStore.shared)

@@ -11,7 +11,6 @@ struct LiveView: View {
     var body: some View {
         ZStack {
             Color(hex: "#0e0e10")
-                .ignoresSafeArea(.all)
 
             let isStandby: Bool = {
                 if case .standby = session.playbackState { return true }
@@ -57,7 +56,7 @@ struct LiveView: View {
                 MixerOverlayView(session: session, audioEngine: audioEngine)
             }
         }
-        .frame(width: sw, height: sh)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all)
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
