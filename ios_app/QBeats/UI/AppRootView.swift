@@ -10,6 +10,7 @@ enum AppDestination: Hashable {
 }
 
 struct AppRootView: View {
+    @EnvironmentObject var audioEngine: AudioEngine
     @State private var showSplash = true
     @State private var path = NavigationPath()
 
@@ -28,10 +29,16 @@ struct AppRootView: View {
                 BivioBoardView(path: $path)
                     .navigationDestination(for: AppDestination.self) { destination in
                         switch destination {
-                        case .studio: StudioRootView()
-                        case .live:   LiveRootView()
+                        case .studio:
+                            StudioRootView()
+                                .environmentObject(audioEngine)
+                        case .live:
+                            LiveRootView()
+                                .environmentObject(audioEngine)
                         #if DEBUG
-                        case .debug:  DebugRootView()
+                        case .debug:
+                            DebugRootView()
+                                .environmentObject(audioEngine)
                         #endif
                         }
                     }
