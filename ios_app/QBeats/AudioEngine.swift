@@ -40,6 +40,7 @@ class AudioEngine: ObservableObject {
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
     @Published var currentAccentPattern: [UInt8] = [2, 1, 1, 1]
+    @Published var currentSectionRepetitions: Int = 0
     @Published var channelVolumes: [Float] = [1.0, 1.0, 0.0, 0.0]
     
     // --- Variabili per DebugView (Fase 1.5a) ---

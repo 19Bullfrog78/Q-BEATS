@@ -80,7 +80,9 @@ struct LiveView: View {
         }
         .onReceive(audioEngine.$beatsPerBar) { beats in
             session.currentTimeSig = timeSigString(for: beats)
-            session.totalBarsInSection = Int(beats)
+        }
+        .onReceive(audioEngine.$currentSectionRepetitions) { reps in
+            session.totalBarsInSection = reps
         }
         .onReceive(audioEngine.beatTickSubject) { tickN in
             let bpb = max(1, Int(audioEngine.beatsPerBar))
