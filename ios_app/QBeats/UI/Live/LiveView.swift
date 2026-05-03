@@ -11,6 +11,7 @@ struct LiveView: View {
     var body: some View {
         ZStack {
             Color(hex: "#0e0e10")
+                .ignoresSafeArea(.all)
 
             let isStandby: Bool = {
                 if case .standby = session.playbackState { return true }
