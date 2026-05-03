@@ -4,6 +4,7 @@ import os
 struct BivioBoardView: View {
     @Binding var path: NavigationPath
     @EnvironmentObject var audioEngine: AudioEngine
+    @State private var showLive = false
     #if DEBUG
     @State private var showDebug = false
     #endif
@@ -31,7 +32,7 @@ struct BivioBoardView: View {
                     Button {
                         os_log("Bivio: LIVE selezionato")
                         audioEngine.triggerDNDReminderIfNeeded() // UX-2
-                        path.append(AppDestination.live)
+                        showLive = true
                     } label: {
                         BivioButton(title: "LIVE", background: Color(hex: "#d43f00"), isAccent: true)
                     }
@@ -54,6 +55,12 @@ struct BivioBoardView: View {
             audioEngine.stop()
         }
         .toolbar(.hidden, for: .navigationBar)
+        .fullScreenCover(isPresented: $showLive, onDismiss: {
+            audioEngine.stop()
+        }) {
+            LiveRootView()
+                .environmentObject(audioEngine)
+        }
         #if DEBUG
         .fullScreenCover(isPresented: $showDebug, onDismiss: {
             audioEngine.stop()

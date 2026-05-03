@@ -3,7 +3,6 @@ import os
 
 enum AppDestination: Hashable {
     case studio
-    case live
 }
 
 struct AppRootView: View {
@@ -28,9 +27,6 @@ struct AppRootView: View {
                         switch destination {
                         case .studio:
                             StudioRootView()
-                                .environmentObject(audioEngine)
-                        case .live:
-                            LiveRootView()
                                 .environmentObject(audioEngine)
                         }
                     }

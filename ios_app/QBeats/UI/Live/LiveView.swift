@@ -55,10 +55,8 @@ struct LiveView: View {
                     MixerOverlayView(session: session, audioEngine: audioEngine)
                 }
             }
-            .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea(.all)
-        .toolbar(.hidden, for: .navigationBar)
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
