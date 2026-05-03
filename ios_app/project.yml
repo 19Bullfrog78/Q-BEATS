@@ -24,6 +24,8 @@ targets:
           - "_link-peers._tcp"
         UIBackgroundModes:
           - audio
+        UILaunchScreen:
+          UIColorName: ""
         UIAppFonts:
           - JetBrainsMono-Regular.ttf
           - JetBrainsMono-Medium.ttf
