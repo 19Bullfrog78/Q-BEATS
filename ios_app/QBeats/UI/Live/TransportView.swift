@@ -38,8 +38,8 @@ struct TransportView: View {
                     disabled: isCountIn || isStandby) { audioEngine.toggleLoop() }
 
                 RubberBtnView(
-                    label: "kill base",
-                    glyph: "",
+                    label: "",
+                    glyph: "KILL\nBASE",
                     disabled: isCountIn || isStandby,
                     accentColor: killFlashing ? Color(hex: "#f5b820") : nil
                 ) {
