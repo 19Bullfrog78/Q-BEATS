@@ -1287,20 +1287,19 @@ class AudioEngine: ObservableObject {
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
 
-                guard isBeat else { continue }
-                self.beatTickCounter += 1
-                let tickN = self.beatTickCounter
-                DispatchQueue.main.async { [weak self] in
-                    self?.beatTickSubject.send(tickN)
-                }
-                
-                // QA-1 drift analysis — eseguito su audioQueue
                 if isBeat {
+                    self.beatTickCounter += 1
+                    let tickN = self.beatTickCounter
+                    DispatchQueue.main.async { [weak self] in
+                        self?.beatTickSubject.send(tickN)
+                    }
+
+                    // QA-1 drift analysis — eseguito su audioQueue
                     if self.qa1BeatCounter == 0 {
                         self.qa1StartTime = mach_absolute_time()
                     }
                     self.qa1BeatCounter += 1
-                    
+
                     if self.qa1BeatCounter % 100 == 0 {
                         let elapsed = self.machTicksToSeconds(mach_absolute_time() - self.qa1StartTime)
                         let expected = Double(self.qa1BeatCounter - 1) * 60.0 / self.currentBPM
