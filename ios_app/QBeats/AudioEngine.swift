@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import os
 import UIKit
 
@@ -58,6 +59,10 @@ class AudioEngine: ObservableObject {
     // Fase 1.6 — MIDI Learn
     @Published var midiLearnStore: MIDILearnStore = MIDILearnStore.load()
     @Published var midiLearnPendingAction: MIDIAction? = nil
+
+    // Beat tick discreto — PassthroughSubject, no coalescing
+    let beatTickSubject = PassthroughSubject<Int, Never>()
+    private var beatTickCounter: Int = 0
 
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
@@ -322,11 +327,12 @@ class AudioEngine: ObservableObject {
                 return
             }
             do {
-                self.bufferCount    = 0
-                self.beatTotal      = 0
-                self.clickPlayhead  = -1
-                self.accentPlayhead = -1
-                self.subdivPlayhead = -1
+                self.bufferCount      = 0
+                self.beatTotal        = 0
+                self.beatTickCounter  = 0
+                self.clickPlayhead    = -1
+                self.accentPlayhead   = -1
+                self.subdivPlayhead   = -1
 
                 try self.engine.start()
                 DispatchQueue.main.async {
@@ -835,8 +841,9 @@ class AudioEngine: ObservableObject {
                 link_engine_set_is_playing(lh, false, mach_absolute_time())
             }
             // QA-1 drift analysis reset
-            self.qa1BeatCounter = 0
-            self.qa1StartTime = 0
+            self.qa1BeatCounter  = 0
+            self.qa1StartTime    = 0
+            self.beatTickCounter = 0
             self.backtrackPlayerNode.stop()
         }
         guard wasRunning else { return }
@@ -1276,6 +1283,12 @@ class AudioEngine: ObservableObject {
                 let offset   = Int(offsets[i])
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
+
+                self.beatTickCounter += 1
+                let tickN = self.beatTickCounter
+                DispatchQueue.main.async { [weak self] in
+                    self?.beatTickSubject.send(tickN)
+                }
                 
                 // QA-1 drift analysis — eseguito su audioQueue
                 if isBeat {

@@ -83,19 +83,11 @@ struct LiveView: View {
             session.accentPattern = buildAccentPattern(beatsPerBar: beats)
             session.totalBarsInSection = Int(beats)
         }
-        .onReceive(audioEngine.$currentBeat) { beat in
-            os_log("[LIVE] beat=%.3f bpb=%u isPlaying=%d pattern=%d",
-                log: .default, type: .default,
-                beat, audioEngine.beatsPerBar, audioEngine.isPlaying ? 1 : 0,
-                session.accentPattern.count)
-            guard audioEngine.isPlaying else { return }
-            let bpb = max(1.0, Double(audioEngine.beatsPerBar))
-            session.beatActive = Int(beat.truncatingRemainder(dividingBy: bpb)) + 1
-            session.currentBar = Int(beat / bpb) + 1
+        .onReceive(audioEngine.beatTickSubject) { tickN in
+            let bpb = max(1, Int(audioEngine.beatsPerBar))
+            session.beatActive = ((tickN - 1) % bpb) + 1
+            session.currentBar = ((tickN - 1) / bpb) + 1
             session.macroBarCurrent = session.currentBar
-            os_log("[LIVE] beatActive=%d currentBar=%d",
-                log: .default, type: .default,
-                session.beatActive, session.currentBar)
         }
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
