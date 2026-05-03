@@ -4,6 +4,9 @@ import os
 enum AppDestination: Hashable {
     case studio
     case live
+    #if DEBUG
+    case debug
+    #endif
 }
 
 struct AppRootView: View {
@@ -27,6 +30,9 @@ struct AppRootView: View {
                         switch destination {
                         case .studio: StudioRootView()
                         case .live:   LiveRootView()
+                        #if DEBUG
+                        case .debug:  DebugRootView()
+                        #endif
                         }
                     }
             }

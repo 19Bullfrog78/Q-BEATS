@@ -35,6 +35,15 @@ struct BivioBoardView: View {
                 }
                 .padding(.horizontal, 40)
 
+                #if DEBUG
+                Button("⚙ DEBUG") {
+                    path.append(AppDestination.debug)
+                }
+                .foregroundColor(Color.white.opacity(0.30))
+                .font(.system(size: 13, design: .monospaced))
+                .padding(.top, 16)
+                #endif
+
                 Spacer()
             }
         }
