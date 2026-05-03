@@ -33,7 +33,7 @@ struct LiveView: View {
                     TransportView(session: session, audioEngine: audioEngine)
                         .frame(height: geo.size.height * 0.21)
                 }
-                .frame(width: geo.size.width, height: geo.size.height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
                 .opacity(isStandby ? 0.10 : 1.0)
                 .animation(.easeInOut(duration: 0.3), value: isStandby)
