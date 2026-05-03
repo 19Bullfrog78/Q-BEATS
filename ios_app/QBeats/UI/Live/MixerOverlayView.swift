@@ -1,0 +1,74 @@
+import SwiftUI
+
+struct MixerOverlayView: View {
+    @ObservedObject var session: LiveSession
+    @ObservedObject var audioEngine: AudioEngine
+
+    var body: some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 4) {
+                Capsule()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 28, height: 3)
+                    .padding(.top, 6)
+
+                HStack(spacing: 0) {
+                    MixerChannelView(index: 0, label: "CLICK", enabled: true, audioEngine: audioEngine)
+                    MixerChannelView(index: 1, label: "BACKT", enabled: true, audioEngine: audioEngine)
+                    MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine)
+                    MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+            .frame(height: UIScreen.main.bounds.height * 0.37)
+            .background(Color(hex: "#0e0e10").opacity(0.95))
+            .overlay(
+                Rectangle()
+                    .frame(height: 1.5)
+                    .foregroundColor(Color.white.opacity(0.10)),
+                alignment: .top
+            )
+        }
+        .gesture(
+            DragGesture().onEnded { val in
+                if val.translation.height > 40 { session.showMixer = false }
+            }
+        )
+    }
+}
+
+private struct MixerChannelView: View {
+    let index: Int          // 0-based
+    let label: String
+    let enabled: Bool
+    @ObservedObject var audioEngine: AudioEngine
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(label)
+                .font(.jbMono(.medium, size: 9))
+                .tracking(1.2)
+                .foregroundColor(enabled ? Color.white.opacity(0.55) : Color.white.opacity(0.20))
+
+            GeometryReader { geo in
+                let binding = Binding<Float>(
+                    get: {
+                        guard index < audioEngine.channelVolumes.count else { return 0 }
+                        return audioEngine.channelVolumes[index]
+                    },
+                    set: { audioEngine.setChannelVolume(index + 1, volume: $0) }
+                )
+                Slider(value: binding, in: 0...1)
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: geo.size.height, height: geo.size.width)
+                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                    .tint(enabled ? Color.white.opacity(0.75) : Color.white.opacity(0.25))
+                    .disabled(!enabled)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .opacity(enabled ? 1.0 : 0.35)
+    }
+}

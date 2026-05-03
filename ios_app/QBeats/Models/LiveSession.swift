@@ -1,0 +1,36 @@
+import Foundation
+import Combine
+
+/// Sorgente di verità per la Vista LIVE.
+/// Alimentata da AudioEngine + QBeatsStore.
+/// Tutti i @Published assegnati su main thread.
+@MainActor
+final class LiveSession: ObservableObject {
+
+    // MARK: - Canzone corrente
+    @Published var currentSongName: String = ""
+    @Published var currentBPM: Double = 120
+    @Published var currentTimeSig: String = "4/4"
+    @Published var currentSectionName: String = ""
+    @Published var nextSectionName: String? = nil
+    @Published var nextSongName: String? = nil
+
+    // MARK: - Posizione
+    @Published var currentBar: Int = 1
+    @Published var totalBarsInSection: Int = 4
+    @Published var macroBarCurrent: Int = 0
+    @Published var macroBarTotal: Int = 1
+
+    // MARK: - Metronomo slot
+    /// Array: "accent" | "beat" | "subdiv" — lunghezza = beatsPerBar
+    @Published var accentPattern: [String] = ["accent", "beat", "beat", "beat"]
+    @Published var beatActive: Int = 0      // 1-based, 0 = nessuno
+
+    // MARK: - Stato
+    @Published var playbackState: LivePlaybackState = .standby(nextSongName: "—")
+    @Published var isBacktrackLocked: Bool = false
+
+    // MARK: - Mixer
+    @Published var showMixer: Bool = false
+    @Published var isProMode: Bool = false
+}

@@ -497,6 +497,12 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // Stub — implementazione in Fase Backtrack
+    func restartCurrentSong() { restartFromBeginning() }
+    func prevSection() {}
+    func nextSection() {}
+    func toggleLoop() {}
+
     func triggerDNDReminderIfNeeded() {
         guard appSettings.showDNDReminder,
               !dndReminderShownThisSession else { return }
