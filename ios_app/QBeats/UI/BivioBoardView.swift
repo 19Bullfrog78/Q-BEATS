@@ -55,7 +55,9 @@ struct BivioBoardView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         #if DEBUG
-        .fullScreenCover(isPresented: $showDebug) {
+        .fullScreenCover(isPresented: $showDebug, onDismiss: {
+            audioEngine.stop()
+        }) {
             ZStack(alignment: .topTrailing) {
                 ContentView()
                 Button("✕  BIVIO") {
