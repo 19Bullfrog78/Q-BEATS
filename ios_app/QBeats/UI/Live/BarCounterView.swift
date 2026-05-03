@@ -13,16 +13,17 @@ struct BarCounterView: View {
                     .font(.jbMono(.medium, size: 16))
                     .foregroundColor(Color.white.opacity(0.88))
             default:
-                let isInf = total == -1
+                let isInf   = total == -1
+                let isReady = total > 0 || isInf
                 Group {
                     Text("Battuta ")
                         .foregroundColor(Color.white.opacity(0.88))
-                    + Text("\(current)")
+                    + Text(isReady ? "\(current)" : "—")
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                     + Text(" di ")
                         .foregroundColor(Color.white.opacity(0.88))
-                    + Text(isInf ? "∞" : "\(total)")
+                    + Text(isInf ? "∞" : isReady ? "\(total)" : "—")
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                 }

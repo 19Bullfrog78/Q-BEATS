@@ -278,6 +278,24 @@ struct DebugView: View {
                     }
                 }
 
+                // --- TEST BAR COUNTER ---
+                #if DEBUG
+                SwiftUI.Section("Test Bar Counter") {
+                    Button("Sezione A — 8 battute") {
+                        audioEngine.currentSectionRepetitions = 8
+                    }
+                    Button("Sezione B — 4 battute") {
+                        audioEngine.currentSectionRepetitions = 4
+                    }
+                    Button("Loop infinito (∞)") {
+                        audioEngine.currentSectionRepetitions = -1
+                    }
+                    Button("Reset (—)") {
+                        audioEngine.currentSectionRepetitions = 0
+                    }
+                }
+                #endif
+
                 // --- LOG DI SISTEMA ---
                 SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in
