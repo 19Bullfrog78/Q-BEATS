@@ -58,6 +58,15 @@ struct LiveView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all)
+        .onAppear {
+            let win = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first
+            os_log("WINDOW frame: %f x %f", win?.frame.width ?? 0, win?.frame.height ?? 0)
+            os_log("WINDOW safeArea top: %f bottom: %f",
+                win?.safeAreaInsets.top ?? 0,
+                win?.safeAreaInsets.bottom ?? 0)
+        }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
