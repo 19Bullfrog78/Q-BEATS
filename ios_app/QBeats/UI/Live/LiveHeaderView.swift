@@ -3,7 +3,7 @@ import SwiftUI
 struct LiveHeaderView: View {
     @ObservedObject var session: LiveSession
     @EnvironmentObject var audioEngine: AudioEngine
-    @EnvironmentObject var appNav: AppNavigationState
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         HStack(spacing: 8) {
@@ -16,7 +16,7 @@ struct LiveHeaderView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color.white.opacity(0.65))
                 )
-                .onTapGesture { appNav.showLive = false }
+                .onTapGesture { dismiss() }
 
             Spacer()
 
@@ -55,7 +55,6 @@ struct LiveHeaderView: View {
                         .fill(Color(hex: "#00c96e"))
                         .frame(width: 5, height: 5)
                 }
-                // btConnected / wifiConnected — stub (AudioEngine non espone ancora questi)
             }
 
             RoundedRectangle(cornerRadius: 10)

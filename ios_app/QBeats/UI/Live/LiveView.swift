@@ -58,6 +58,7 @@ struct LiveView: View {
             }
         }
         .ignoresSafeArea(.all)
+        .onDisappear { audioEngine.stop() }
         .onAppear {
             if let scene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene })

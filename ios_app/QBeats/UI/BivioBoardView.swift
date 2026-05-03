@@ -4,7 +4,6 @@ import os
 struct BivioBoardView: View {
     @Binding var path: NavigationPath
     @EnvironmentObject var audioEngine: AudioEngine
-    @EnvironmentObject var appNav: AppNavigationState
     #if DEBUG
     @State private var showDebug = false
     #endif
@@ -31,8 +30,15 @@ struct BivioBoardView: View {
 
                     Button {
                         os_log("Bivio: LIVE selezionato")
-                        audioEngine.triggerDNDReminderIfNeeded() // UX-2
-                        appNav.showLive = true
+                        audioEngine.triggerDNDReminderIfNeeded()
+                        let vc = UIHostingController(rootView: LiveView().environmentObject(audioEngine))
+                        vc.modalPresentationStyle = .overFullScreen
+                        vc.view.backgroundColor = .clear
+                        UIApplication.shared.connectedScenes
+                            .compactMap { $0 as? UIWindowScene }
+                            .first?.windows.first?
+                            .rootViewController?
+                            .present(vc, animated: false)
                     } label: {
                         BivioButton(title: "LIVE", background: Color(hex: "#d43f00"), isAccent: true)
                     }
