@@ -8,7 +8,7 @@ struct LiveView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color(hex: "#0e0e10").ignoresSafeArea()
+                Color(hex: "#0e0e10").ignoresSafeArea(.all)
 
                 let isStandby: Bool = {
                     if case .standby = session.playbackState { return true }
@@ -56,7 +56,7 @@ struct LiveView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .ignoresSafeArea()
+        .ignoresSafeArea(.all)
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
