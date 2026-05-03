@@ -3,7 +3,7 @@ import SwiftUI
 struct LiveHeaderView: View {
     @ObservedObject var session: LiveSession
     @EnvironmentObject var audioEngine: AudioEngine
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appNav: AppNavigationState
 
     var body: some View {
         HStack(spacing: 8) {
@@ -16,7 +16,7 @@ struct LiveHeaderView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color.white.opacity(0.65))
                 )
-                .onTapGesture { dismiss() }
+                .onTapGesture { appNav.showLive = false }
 
             Spacer()
 

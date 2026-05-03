@@ -5,6 +5,7 @@ import os
 struct QBeatsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var audioEngine = AudioEngine.shared
+    @StateObject private var appNav = AppNavigationState()
     @State private var pendingImportManifest: BackupManifest? = nil
     @State private var showImportView = false
 
@@ -12,6 +13,7 @@ struct QBeatsApp: App {
         WindowGroup {
             AppRootView()
                 .environmentObject(audioEngine)
+                .environmentObject(appNav)
                 .sheet(isPresented: $showImportView) {
                     if let manifest = pendingImportManifest {
                         ImportView(manifest: manifest, store: QBeatsStore.shared)
