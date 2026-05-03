@@ -80,8 +80,10 @@ struct LiveView: View {
         }
         .onReceive(audioEngine.$beatsPerBar) { beats in
             session.currentTimeSig = timeSigString(for: beats)
-            session.accentPattern = buildAccentPattern(beatsPerBar: beats)
             session.totalBarsInSection = Int(beats)
+        }
+        .onReceive(audioEngine.$currentAccentPattern) { pattern in
+            session.accentPattern = pattern.map { $0 > 0 ? "accent" : "beat" }
         }
         .onReceive(audioEngine.beatTickSubject) { tickN in
             let bpb = max(1, Int(audioEngine.beatsPerBar))
@@ -102,8 +104,5 @@ struct LiveView: View {
         return "\(beats)/\(denom)"
     }
 
-    private func buildAccentPattern(beatsPerBar: UInt32) -> [String] {
-        guard beatsPerBar > 0 else { return ["accent"] }
-        return (0..<Int(beatsPerBar)).map { $0 == 0 ? "accent" : "beat" }
-    }
+
 }

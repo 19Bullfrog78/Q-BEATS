@@ -39,6 +39,7 @@ class AudioEngine: ObservableObject {
     @Published var linkPeers: Int = 0
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
+    @Published var currentAccentPattern: [UInt8] = [1, 0, 0, 0]
     @Published var channelVolumes: [Float] = [1.0, 1.0, 0.0, 0.0]
     
     // --- Variabili per DebugView (Fase 1.5a) ---
@@ -607,6 +608,7 @@ class AudioEngine: ObservableObject {
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
         let pattern = defaultAccentPattern(for: beatsPerBar)
+        self.currentAccentPattern = pattern
         audioQueue.async { [h, pattern] in
             metronome_setBeatsPerBar(h, beatsPerBar)
             if let lh = self.linkEngineHandle {
@@ -620,6 +622,7 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
+        DispatchQueue.main.async { self.currentAccentPattern = pattern }
         audioQueue.async { [h, pattern] in
             pattern.withUnsafeBufferPointer { ptr in
                 metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
