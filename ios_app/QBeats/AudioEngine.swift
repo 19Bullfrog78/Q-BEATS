@@ -608,7 +608,7 @@ class AudioEngine: ObservableObject {
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
         let pattern = defaultAccentPattern(for: beatsPerBar)
-        os_log("[AE] setBeatsPerBar raw pattern: %{public}@", pattern.map { String($0) }.joined(separator: ","))
+        os_log(.debug, "accentPattern assign: %{public}@", pattern.map { String($0) }.joined(separator: ","))
         self.currentAccentPattern = pattern.map { $0 > 0 ? 2 : 1 }
         audioQueue.async { [h, pattern] in
             metronome_setBeatsPerBar(h, beatsPerBar)
@@ -623,7 +623,7 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
-        os_log("[AE] setAccentPattern raw pattern: %{public}@", pattern.map { String($0) }.joined(separator: ","))
+        os_log(.debug, "accentPattern assign: %{public}@", pattern.map { String($0) }.joined(separator: ","))
         DispatchQueue.main.async { self.currentAccentPattern = pattern.map { $0 > 0 ? 2 : 1 } }
         audioQueue.async { [h, pattern] in
             pattern.withUnsafeBufferPointer { ptr in
