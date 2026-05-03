@@ -58,6 +58,22 @@ struct LiveView: View {
             }
         }
         .ignoresSafeArea(.all)
+        .onAppear {
+            if let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }),
+               let window = scene.windows.first(where: { $0.isKeyWindow }) {
+                os_log("KEY WINDOW frame: %f x %f", window.frame.width, window.frame.height)
+                os_log("KEY WINDOW safeArea: top=%f bot=%f left=%f right=%f",
+                    window.safeAreaInsets.top,
+                    window.safeAreaInsets.bottom,
+                    window.safeAreaInsets.left,
+                    window.safeAreaInsets.right)
+                os_log("rootVC frame: %f x %f",
+                    window.rootViewController?.view.frame.width ?? 0,
+                    window.rootViewController?.view.frame.height ?? 0)
+            }
+        }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
