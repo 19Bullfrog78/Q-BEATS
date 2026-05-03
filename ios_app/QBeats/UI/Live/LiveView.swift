@@ -18,7 +18,7 @@ struct LiveView: View {
                 VStack(spacing: 0) {
                     LiveHeaderView(session: session)
                         .frame(height: geo.size.height * 0.08)
-                    MetSlotStripView(pattern: session.accentPattern, beatActive: session.beatActive)
+                    MetSlotStripView(pattern: accentPatternToStrings(audioEngine.currentAccentPattern), beatActive: session.beatActive)
                         .frame(height: geo.size.height * 0.10)
                     BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
                         .frame(height: geo.size.height * 0.08)
@@ -82,9 +82,6 @@ struct LiveView: View {
             session.currentTimeSig = timeSigString(for: beats)
             session.totalBarsInSection = Int(beats)
         }
-        .onReceive(audioEngine.$currentAccentPattern) { pattern in
-            session.accentPattern = pattern.map { $0 > 0 ? "accent" : "beat" }
-        }
         .onReceive(audioEngine.beatTickSubject) { tickN in
             let bpb = max(1, Int(audioEngine.beatsPerBar))
             session.beatActive = ((tickN - 1) % bpb) + 1
@@ -96,6 +93,16 @@ struct LiveView: View {
         }
         .onReceive(audioEngine.$isPlaying) { playing in
             if !playing { session.beatActive = 0 }
+        }
+    }
+
+    private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {
+        pattern.map { value in
+            switch value {
+            case 2:  return "accent"
+            case 1:  return "beat"
+            default: return "subdiv"
+            }
         }
     }
 
