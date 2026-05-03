@@ -60,6 +60,7 @@ struct BivioBoardView: View {
         }) {
             LiveRootView()
                 .environmentObject(audioEngine)
+                .ignoresSafeArea(.all)
         }
         #if DEBUG
         .fullScreenCover(isPresented: $showDebug, onDismiss: {

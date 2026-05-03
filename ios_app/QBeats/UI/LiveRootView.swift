@@ -6,6 +6,6 @@ struct LiveRootView: View {
     var body: some View {
         LiveView()
             .environmentObject(audioEngine)
-            .toolbar(.hidden, for: .navigationBar)
+            .ignoresSafeArea(.all)
     }
 }
