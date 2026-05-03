@@ -84,7 +84,7 @@ struct LiveView: View {
             session.totalBarsInSection = Int(beats)
         }
         .onReceive(audioEngine.$currentBeat) { beat in
-            guard case .playing = session.playbackState else { return }
+            guard audioEngine.isPlaying else { return }
             let bpb = max(1.0, Double(audioEngine.beatsPerBar))
             session.beatActive = Int(beat.truncatingRemainder(dividingBy: bpb)) + 1
             session.currentBar = Int(beat / bpb) + 1
