@@ -5,57 +5,58 @@ struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @StateObject private var session = LiveSession()
 
+    private let sh = UIScreen.main.bounds.height
+    private let sw = UIScreen.main.bounds.width
+
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Color(hex: "#0e0e10")
-                    .ignoresSafeArea(.all)
+        ZStack {
+            Color(hex: "#0e0e10")
 
-                let isStandby: Bool = {
-                    if case .standby = session.playbackState { return true }
-                    return false
-                }()
+            let isStandby: Bool = {
+                if case .standby = session.playbackState { return true }
+                return false
+            }()
 
-                VStack(spacing: 0) {
-                    LiveHeaderView(session: session)
-                        .frame(height: geo.size.height * 0.08)
-                    MetSlotStripView(pattern: session.accentPattern, beatActive: session.beatActive)
-                        .frame(height: geo.size.height * 0.10)
-                    BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
-                        .frame(height: geo.size.height * 0.08)
-                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection)
-                        .frame(height: geo.size.height * 0.04)
-                    TeleprompterCapsuleView(session: session)
-                        .frame(height: geo.size.height * 0.35)
-                    MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                        .frame(height: geo.size.height * 0.04)
-                    POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
-                        .frame(height: geo.size.height * 0.10)
-                    TransportView(session: session, audioEngine: audioEngine)
-                        .frame(height: geo.size.height * 0.21)
-                }
-                .padding(.horizontal, 16)
-                .opacity(isStandby ? 0.10 : 1.0)
-                .animation(.easeInOut(duration: 0.3), value: isStandby)
+            VStack(spacing: 0) {
+                LiveHeaderView(session: session)
+                    .frame(height: sh * 0.08)
+                MetSlotStripView(pattern: session.accentPattern, beatActive: session.beatActive)
+                    .frame(height: sh * 0.10)
+                BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
+                    .frame(height: sh * 0.08)
+                MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection)
+                    .frame(height: sh * 0.04)
+                TeleprompterCapsuleView(session: session)
+                    .frame(height: sh * 0.35)
+                MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+                    .frame(height: sh * 0.04)
+                POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
+                    .frame(height: sh * 0.10)
+                TransportView(session: session, audioEngine: audioEngine)
+                    .frame(height: sh * 0.21)
+            }
+            .padding(.horizontal, 16)
+            .opacity(isStandby ? 0.10 : 1.0)
+            .animation(.easeInOut(duration: 0.3), value: isStandby)
 
-                if case .standby(let nextSong) = session.playbackState {
-                    StandbyOverlayView(nextSongName: nextSong)
-                        .onTapGesture { audioEngine.start() }
-                }
+            if case .standby(let nextSong) = session.playbackState {
+                StandbyOverlayView(nextSongName: nextSong)
+                    .onTapGesture { audioEngine.start() }
+            }
 
-                if case .overlayStop(let sec, let song) = session.playbackState {
-                    OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine)
-                }
+            if case .overlayStop(let sec, let song) = session.playbackState {
+                OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine)
+            }
 
-                if case .fineSetlist = session.playbackState {
-                    FineSetlistView()
-                }
+            if case .fineSetlist = session.playbackState {
+                FineSetlistView()
+            }
 
-                if session.showMixer {
-                    MixerOverlayView(session: session, audioEngine: audioEngine)
-                }
+            if session.showMixer {
+                MixerOverlayView(session: session, audioEngine: audioEngine)
             }
         }
+        .frame(width: sw, height: sh)
         .ignoresSafeArea(.all)
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
