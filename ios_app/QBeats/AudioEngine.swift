@@ -399,8 +399,9 @@ class AudioEngine: ObservableObject {
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
                 DispatchQueue.main.async {
-                    self.isPlaying   = true
-                    self.clickStatus = statusStr
+                    self.isPlaying     = true
+                    self.playbackState = .playing
+                    self.clickStatus   = statusStr
                 }
 
                 let avSession = AVAudioSession.sharedInstance()
