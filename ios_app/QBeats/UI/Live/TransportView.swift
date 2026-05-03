@@ -23,7 +23,7 @@ struct TransportView: View {
 
                 RubberBtnView(
                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
-                    glyph: isCountIn ? "⏹" : (audioEngine.isPlaying ? "⏹" : "▶"),
+                    glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
                     primary: !isStopped,
                     disabled: isStandby) {
                         audioEngine.isPlaying ? audioEngine.stop() : audioEngine.start()
