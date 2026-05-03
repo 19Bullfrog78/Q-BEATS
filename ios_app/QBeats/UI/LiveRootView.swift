@@ -6,6 +6,5 @@ struct LiveRootView: View {
     var body: some View {
         LiveView()
             .environmentObject(audioEngine)
-            .ignoresSafeArea(.all)
     }
 }
