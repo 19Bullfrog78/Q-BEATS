@@ -13,6 +13,7 @@ struct TransportView: View {
         return false
     }
     private var isStopped: Bool { session.playbackState == .stopped }
+    @State private var killFlashing = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -36,8 +37,18 @@ struct TransportView: View {
                 RubberBtnView(label: loopLabel, glyph: "↺",
                     disabled: isCountIn || isStandby) { audioEngine.toggleLoop() }
 
-                RubberBtnView(label: "stop bt", glyph: "■",
-                    disabled: isCountIn || isStandby) { audioEngine.stopBacktrack() }
+                RubberBtnView(
+                    label: "kill base",
+                    glyph: "",
+                    accentColor: killFlashing ? Color(hex: "#f5b820") : nil,
+                    disabled: isCountIn || isStandby
+                ) {
+                    audioEngine.stopBacktrack()
+                    withAnimation(.easeInOut(duration: 0.4)) { killFlashing = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation(.easeInOut(duration: 0.4)) { killFlashing = false }
+                    }
+                }
 
                 RubberBtnView(label: "emerg", glyph: "⚠", danger: true,
                     disabled: false) { /* navigazione Vista LISTA — Fase successiva */ }
