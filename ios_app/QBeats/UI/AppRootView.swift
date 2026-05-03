@@ -4,9 +4,6 @@ import os
 enum AppDestination: Hashable {
     case studio
     case live
-    #if DEBUG
-    case debug
-    #endif
 }
 
 struct AppRootView: View {
@@ -35,11 +32,6 @@ struct AppRootView: View {
                         case .live:
                             LiveRootView()
                                 .environmentObject(audioEngine)
-                        #if DEBUG
-                        case .debug:
-                            DebugRootView()
-                                .environmentObject(audioEngine)
-                        #endif
                         }
                     }
             }

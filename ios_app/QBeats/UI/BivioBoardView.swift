@@ -4,6 +4,9 @@ import os
 struct BivioBoardView: View {
     @Binding var path: NavigationPath
     @EnvironmentObject var audioEngine: AudioEngine
+    #if DEBUG
+    @State private var showDebug = false
+    #endif
 
     var body: some View {
         ZStack {
@@ -37,7 +40,7 @@ struct BivioBoardView: View {
 
                 #if DEBUG
                 Button("⚙ DEBUG") {
-                    path.append(AppDestination.debug)
+                    showDebug = true
                 }
                 .foregroundColor(Color.white.opacity(0.30))
                 .font(.system(size: 13, design: .monospaced))
@@ -48,6 +51,11 @@ struct BivioBoardView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        #if DEBUG
+        .fullScreenCover(isPresented: $showDebug) {
+            ContentView()
+        }
+        #endif
     }
 }
 
