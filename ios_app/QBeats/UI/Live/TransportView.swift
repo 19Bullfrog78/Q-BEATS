@@ -40,8 +40,8 @@ struct TransportView: View {
                 RubberBtnView(
                     label: "kill base",
                     glyph: "",
-                    accentColor: killFlashing ? Color(hex: "#f5b820") : nil,
-                    disabled: isCountIn || isStandby
+                    disabled: isCountIn || isStandby,
+                    accentColor: killFlashing ? Color(hex: "#f5b820") : nil
                 ) {
                     audioEngine.stopBacktrack()
                     withAnimation(.easeInOut(duration: 0.4)) { killFlashing = true }
