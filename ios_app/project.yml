@@ -24,6 +24,11 @@ targets:
           - "_link-peers._tcp"
         UIBackgroundModes:
           - audio
+        UIAppFonts:
+          - JetBrainsMono-Regular.ttf
+          - JetBrainsMono-Medium.ttf
+          - JetBrainsMono-SemiBold.ttf
+          - JetBrainsMono-Bold.ttf
         CFBundleDocumentTypes:
           - CFBundleTypeName: Q-BEATS Backup
             CFBundleTypeRole: Editor
