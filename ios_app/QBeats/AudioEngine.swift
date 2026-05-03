@@ -613,7 +613,7 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
-        audioQueue.async { [h] in
+        audioQueue.async { [h, pattern] in
             pattern.withUnsafeBufferPointer { ptr in
                 metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
             }

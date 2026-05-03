@@ -42,7 +42,7 @@ struct AppRootView: View {
                     .transition(.opacity)
             }
         }
-        .onChange(of: appNav.showLive) { _, isShowing in
+        .onChange(of: appNav.showLive) { isShowing in
             if !isShowing { audioEngine.stop() }
         }
     }
