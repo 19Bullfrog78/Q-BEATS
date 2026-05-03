@@ -4,6 +4,7 @@ import os
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @StateObject private var session = LiveSession()
+    @State private var debugInfo = ""
 
     private let sh = UIScreen.main.bounds.height
     private let sw = UIScreen.main.bounds.width
@@ -62,10 +63,22 @@ struct LiveView: View {
             let win = UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
                 .first?.windows.first
-            os_log("WINDOW frame: %f x %f", win?.frame.width ?? 0, win?.frame.height ?? 0)
-            os_log("WINDOW safeArea top: %f bottom: %f",
-                win?.safeAreaInsets.top ?? 0,
-                win?.safeAreaInsets.bottom ?? 0)
+            let w = win?.frame.width ?? 0
+            let h = win?.frame.height ?? 0
+            let top = win?.safeAreaInsets.top ?? 0
+            let bot = win?.safeAreaInsets.bottom ?? 0
+            debugInfo = "WIN \(Int(w))×\(Int(h))  SA top:\(Int(top)) bot:\(Int(bot))"
+        }
+        .overlay(alignment: .top) {
+            if !debugInfo.isEmpty {
+                Text(debugInfo)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.yellow)
+                    .padding(6)
+                    .background(Color.black.opacity(0.75))
+                    .cornerRadius(6)
+                    .padding(.top, 60)
+            }
         }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
