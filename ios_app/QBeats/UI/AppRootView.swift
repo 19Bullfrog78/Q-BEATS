@@ -12,39 +12,32 @@ struct AppRootView: View {
     @State private var path = NavigationPath()
 
     var body: some View {
-        ZStack {
-            if showSplash {
-                SplashView()
-                    .onAppear {
+        if appNav.showLive {
+            LiveRootView()
+                .environmentObject(audioEngine)
+                .ignoresSafeArea(.all)
+        } else {
+            ZStack {
+                if showSplash {
+                    SplashView().onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            withAnimation(.easeOut(duration: 0.4)) {
-                                showSplash = false
-                            }
+                            withAnimation(.easeOut(duration: 0.4)) { showSplash = false }
                         }
                     }
-            } else {
-                NavigationStack(path: $path) {
-                    BivioBoardView(path: $path)
-                        .navigationDestination(for: AppDestination.self) { destination in
-                            switch destination {
-                            case .studio:
-                                StudioRootView()
-                                    .environmentObject(audioEngine)
+                } else {
+                    NavigationStack(path: $path) {
+                        BivioBoardView(path: $path)
+                            .navigationDestination(for: AppDestination.self) { dest in
+                                switch dest {
+                                case .studio: StudioRootView().environmentObject(audioEngine)
+                                }
                             }
-                        }
+                    }
                 }
             }
-
-            if appNav.showLive {
-                LiveRootView()
-                    .environmentObject(audioEngine)
-                    .ignoresSafeArea(.all)
-                    .transition(.opacity)
+            .onChange(of: appNav.showLive) { isShowing in
+                if !isShowing { audioEngine.stop() }
             }
-        }
-        .ignoresSafeArea(.all)
-        .onChange(of: appNav.showLive) { isShowing in
-            if !isShowing { audioEngine.stop() }
         }
     }
 }

@@ -55,9 +55,6 @@ struct LiveView: View {
                     MixerOverlayView(session: session, audioEngine: audioEngine)
                 }
 
-                Rectangle()
-                    .fill(Color.red.opacity(0.3))
-                    .ignoresSafeArea(.all)
             }
         }
         .ignoresSafeArea(.all)
