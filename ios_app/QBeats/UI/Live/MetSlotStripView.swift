@@ -26,7 +26,7 @@ private struct SlotBar: View {
     var body: some View {
         let height: CGFloat = stato == "accent" ? 18 : stato == "subdiv" ? 8 : 14
         let bg: Color = active
-            ? (stato == "accent" ? .white : stato == "subdiv" ? Color.white.opacity(0.55) : Color.white.opacity(0.92))
+            ? (stato == "accent" ? Color(hex: "#d43f00") : stato == "subdiv" ? Color.white.opacity(0.55) : Color.white.opacity(0.92))
             : Color.white.opacity(0.07)
         let opacity: Double = active ? 1.0 : (stato == "accent" ? 0.6 : stato == "subdiv" ? 0.4 : 0.5)
 
@@ -35,6 +35,6 @@ private struct SlotBar: View {
             .frame(height: height)
             .cornerRadius(3)
             .opacity(opacity)
-            .shadow(color: active && stato == "accent" ? Color.white.opacity(0.6) : .clear, radius: 4)
+            .shadow(color: active && stato == "accent" ? Color(hex: "#d43f00").opacity(0.6) : .clear, radius: 4)
     }
 }
