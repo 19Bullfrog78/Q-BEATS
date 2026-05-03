@@ -50,6 +50,9 @@ struct BivioBoardView: View {
                 Spacer()
             }
         }
+        .onAppear {
+            audioEngine.stop()
+        }
         .toolbar(.hidden, for: .navigationBar)
         #if DEBUG
         .fullScreenCover(isPresented: $showDebug) {
