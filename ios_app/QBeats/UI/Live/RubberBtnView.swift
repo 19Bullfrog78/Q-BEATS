@@ -26,7 +26,7 @@ struct RubberBtnView: View {
                         Text(glyph)
                             .font(glyph.count <= 3
                                 ? .jbMono(.semibold, size: 18)
-                                : .jbMono(.semibold, size: 10))
+                                : .jbMono(.semibold, size: 13))
                             .foregroundColor(glyphColor)
                     }
                 }
