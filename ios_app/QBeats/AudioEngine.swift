@@ -405,10 +405,12 @@ class AudioEngine: ObservableObject {
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
+                let uiPattern = self.defaultAccentPattern(for: self.beatsPerBar).map { $0 > 0 ? 2 : 1 as UInt8 }
                 DispatchQueue.main.async {
-                    self.isPlaying     = true
-                    self.playbackState = .playing
-                    self.clickStatus   = statusStr
+                    self.isPlaying            = true
+                    self.playbackState        = .playing
+                    self.clickStatus          = statusStr
+                    self.currentAccentPattern = uiPattern
                 }
 
                 let avSession = AVAudioSession.sharedInstance()
@@ -608,7 +610,6 @@ class AudioEngine: ObservableObject {
     func setBeatsPerBar(_ beatsPerBar: UInt32) {
         guard let h = metronomeHandle else { return }
         let pattern = defaultAccentPattern(for: beatsPerBar)
-        os_log(.debug, "accentPattern assign: %{public}@", pattern.map { String($0) }.joined(separator: ","))
         self.currentAccentPattern = pattern.map { $0 > 0 ? 2 : 1 }
         audioQueue.async { [h, pattern] in
             metronome_setBeatsPerBar(h, beatsPerBar)
@@ -623,7 +624,6 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
-        os_log(.debug, "accentPattern assign: %{public}@", pattern.map { String($0) }.joined(separator: ","))
         DispatchQueue.main.async { self.currentAccentPattern = pattern.map { $0 > 0 ? 2 : 1 } }
         audioQueue.async { [h, pattern] in
             pattern.withUnsafeBufferPointer { ptr in
