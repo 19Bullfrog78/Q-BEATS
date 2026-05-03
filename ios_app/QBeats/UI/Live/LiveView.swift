@@ -57,7 +57,6 @@ struct LiveView: View {
 
             }
         }
-        .ignoresSafeArea(.all)
         .onDisappear { audioEngine.stop() }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
