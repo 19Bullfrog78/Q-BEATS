@@ -53,7 +53,16 @@ struct BivioBoardView: View {
         .toolbar(.hidden, for: .navigationBar)
         #if DEBUG
         .fullScreenCover(isPresented: $showDebug) {
-            ContentView()
+            ZStack(alignment: .topTrailing) {
+                ContentView()
+                Button("✕  BIVIO") {
+                    showDebug = false
+                }
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundColor(.white.opacity(0.40))
+                .padding(.top, 60)
+                .padding(.trailing, 20)
+            }
         }
         #endif
     }
