@@ -30,6 +30,16 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.04)
                     POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
                         .frame(height: geo.size.height * 0.10)
+                        .gesture(
+                            DragGesture(minimumDistance: 30)
+                                .onEnded { value in
+                                    if value.translation.height > 30 {
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            session.showMixer = true
+                                        }
+                                    }
+                                }
+                        )
                     TransportView(session: session, audioEngine: audioEngine)
                         .frame(height: geo.size.height * 0.21)
                 }
