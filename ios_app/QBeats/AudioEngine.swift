@@ -89,7 +89,8 @@ class AudioEngine: ObservableObject {
             metronome_set_accent_volume(mh, s.accentVolume)
             metronome_set_beat_volume(mh, s.beatVolume)
             metronome_set_subdiv_volume(mh, s.subdivVolume)
-            metronome_set_muted(mh, s.clickMuted)
+            self._clickMuted = s.clickMuted
+            // Layer 1 non riceve mai il mute — beat events continuano a scattare.
             self.ch1Volume = s.ch1Volume
             self.ch2Volume = s.ch2Volume
             self.ch3Volume = s.ch3Volume
@@ -137,6 +138,7 @@ class AudioEngine: ObservableObject {
     private var clickPlayhead        : Int = -1
     private var accentPlayhead       : Int = -1
     private var subdivPlayhead       : Int = -1
+    private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -1251,10 +1253,12 @@ class AudioEngine: ObservableObject {
         bufferCount += 1
         beatTotal   += Int(beatCount)
 
+        let muteGain: Float = self._clickMuted ? 0.0 : 1.0
+
         if clickPlayhead >= 0 && !clickSamples.isEmpty {
             let remaining = clickSamples.count - clickPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            let gain      = Float(beatVolume)
+            let gain      = Float(beatVolume) * muteGain
             for j in 0..<writeLen { dst[j] += clickSamples[clickPlayhead + j] * gain }
             clickPlayhead += writeLen
             if clickPlayhead >= clickSamples.count { clickPlayhead = -1 }
@@ -1263,7 +1267,7 @@ class AudioEngine: ObservableObject {
         if accentPlayhead >= 0 && !accentedClickSamples.isEmpty {
             let remaining = accentedClickSamples.count - accentPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            let gain      = Float(accentVolume)
+            let gain      = Float(accentVolume) * muteGain
             for j in 0..<writeLen { dst[j] += accentedClickSamples[accentPlayhead + j] * gain }
             accentPlayhead += writeLen
             if accentPlayhead >= accentedClickSamples.count { accentPlayhead = -1 }
@@ -1272,7 +1276,7 @@ class AudioEngine: ObservableObject {
         if subdivPlayhead >= 0 && !subdivisionClickSamples.isEmpty {
             let remaining = subdivisionClickSamples.count - subdivPlayhead
             let writeLen  = min(remaining, Int(bufferSize))
-            let gain      = Float(subdivVolume)
+            let gain      = Float(subdivVolume) * muteGain
             for j in 0..<writeLen { dst[j] += subdivisionClickSamples[subdivPlayhead + j] * gain }
             subdivPlayhead += writeLen
             if subdivPlayhead >= subdivisionClickSamples.count { subdivPlayhead = -1 }
@@ -1315,9 +1319,9 @@ class AudioEngine: ObservableObject {
 
                 let samples: [Float]
                 let gain: Float
-                if isAccent    { samples = accentedClickSamples; gain = Float(accentVolume) }
-                else if isBeat { samples = clickSamples; gain = Float(beatVolume) }
-                else           { samples = subdivisionClickSamples; gain = Float(subdivVolume) }
+                if isAccent    { samples = accentedClickSamples; gain = Float(accentVolume) * muteGain }
+                else if isBeat { samples = clickSamples; gain = Float(beatVolume) * muteGain }
+                else           { samples = subdivisionClickSamples; gain = Float(subdivVolume) * muteGain }
                 guard offset < Int(bufferSize), !samples.isEmpty else { continue }
                 let writeLen = min(samples.count, Int(bufferSize) - offset)
                 for j in 0..<writeLen { dst[offset + j] += samples[j] * gain }
