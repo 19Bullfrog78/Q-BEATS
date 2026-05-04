@@ -258,11 +258,11 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        // Build #177: attiva Link solo dopo che tutti i callback sono registrati.
+        // DIAGNOSTIC build #288: rimuoviamo activate+disable all'init.
+        // Sospetto: ABLLinkSetActive(true) + (false) in rapida successione corrompe discovery.
+        // Link parte naturalmente inattivo da ABLLinkNew. Il toggle UI lo attiva con setLinkEnabled.
         if let lh = linkEngineHandle {
-            link_engine_activate(lh)
-            // Build #180: Link parte sempre inattivo — l'utente abilita via toggle.
-            link_engine_set_enabled(lh, false)
+            _ = lh  // no-op — preserve guard pattern
         }
 
         setupSession()
