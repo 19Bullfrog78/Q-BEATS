@@ -62,14 +62,28 @@ void link_engine_destroy(LinkEngineHandle handle) {
 }
 
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled) {
-    if (!handle) return;
+    if (!handle) {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_ENABLED] ABORT — handle NULL");
+        return;
+    }
     auto* le = static_cast<LinkEngine*>(handle);
+    os_log(OS_LOG_DEFAULT,
+           "[Q-BEATS][LINK][SET_ENABLED] called — enabled:%d",
+           (int)enabled);
     if (enabled) {
         le->enabled_.store(true);
         ABLLinkSetActive(le->link_, true);
+        bool ablActive = ABLLinkIsEnabled(le->link_);
+        uint32_t peers = le->numPeers_.load();
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_ENABLED] ABLLinkSetActive(true) done — abl_is_enabled:%d numPeers:%u",
+               (int)ablActive, peers);
     } else {
         le->enabled_.store(false);
         ABLLinkSetActive(le->link_, false);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_ENABLED] ABLLinkSetActive(false) done");
     }
 }
 

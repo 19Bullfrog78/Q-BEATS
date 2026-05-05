@@ -130,7 +130,9 @@ Play/Pause/Stop, Next/Prev Section, Next Song, Tap Tempo, Loop Toggle, Stop Back
 
 ## 11. REGOLE OPERATIVE — NON NEGOZIABILI
 
-1. **STOP prima di agire**
+1. **NON TI PERMETTERE PIU DI FARE COSA SENZA PERMESSO.**
+
+2. **STOP prima di agire**
    Non modificare, creare o sovrascrivere nessun file senza che Mauro abbia dato esplicito via libera in chat. "Procedo" non è un via libera.
 
 2. **Nessuna iniziativa autonoma**

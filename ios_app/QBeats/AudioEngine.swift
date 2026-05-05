@@ -542,7 +542,13 @@ class AudioEngine: ObservableObject {
 
     func setLinkEnabled(_ enabled: Bool) {
         audioQueue.async { [weak self] in
-            guard let self = self, let lh = self.linkEngineHandle else { return }
+            guard let self = self, let lh = self.linkEngineHandle else {
+                os_log("[Q-BEATS][LINK][SWIFT] setLinkEnabled: guard fallita — handle o self nil",
+                       log: .default, type: .default)
+                return
+            }
+            os_log("[Q-BEATS][LINK][SWIFT] setLinkEnabled(%{public}@) → chiamata C++",
+                   log: .default, type: .default, enabled ? "true" : "false")
             link_engine_set_enabled(lh, enabled)
             if enabled {
                 let isConn = link_engine_is_connected(lh)
@@ -551,14 +557,13 @@ class AudioEngine: ObservableObject {
                     self.linkIsConnected = isConn
                     self.linkPeers = isConn ? 1 : 0
                 }
-                // ABLLinkIsConnectedCallback è edge-triggered e non ri-scatta per peer già
-                // noti dopo re-enable. Se la query immediata non trova ancora connessione,
-                // la riconnessione WiFi richiede qualche centinaio di ms: verifica dopo 2s.
                 if !isConn {
                     self.audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                         guard let self = self, let lh = self.linkEngineHandle else { return }
                         guard link_engine_is_enabled(lh) else { return }
                         let isConn2 = link_engine_is_connected(lh)
+                        os_log("[Q-BEATS][LINK][SWIFT] check 2s post-enable — isConn:%{public}@",
+                               log: .default, type: .default, isConn2 ? "true" : "false")
                         if isConn2 {
                             DispatchQueue.main.async {
                                 self.linkIsConnected = true
