@@ -11,6 +11,12 @@
 "SyncStartStopTitle" = "Sync Start/Stop";
 "SyncStartStopSubtitle" = "Send and listen to Start/Stop commands";
 
+"EnableLinkAudioTitle" = "Share Audio";
+"EnableLinkAudioSubtitle" = "Share audio with Link peers";
+
+"PeerNameTitle" = "Peer Name";
+"PeerNameSubtitle" = "Other Link peers see that name";
+
 "ConnectedPeersSectionTitle" = "CONNECTED PEERS";
 
 "PeersConnectedZero" = "No peers connected";
