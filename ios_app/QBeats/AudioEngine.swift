@@ -37,6 +37,7 @@ class AudioEngine: ObservableObject {
     @Published var linkEnabled: Bool = false
     @Published var linkIsConnected: Bool = false
     @Published var linkPeers: Int = 0
+    @Published var isWaitingForLinkDownbeat: Bool = false
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4
     @Published var currentAccentPattern: [UInt8] = [2, 1, 1, 1]
@@ -167,6 +168,8 @@ class AudioEngine: ObservableObject {
     private var currentResumeToken: Int = 0
     // Beat assoluto di clock al momento del Play originale — usato per snap relativo.
     private var _startAbsoluteBeat: Double = 0.0
+    // Opzione B — Link downbeat wait (accesso SOLO su audioQueue)
+    private var pendingLinkStart: DispatchWorkItem? = nil
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
     private let backtrackPlayerNode = AVAudioPlayerNode()
@@ -333,6 +336,43 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default)
                 return
             }
+
+            // === LINK DOWNBEAT WAIT — Opzione B ===
+            if resumeAtBeat == nil, let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
+                let hostNow     = mach_absolute_time()
+                let quantum     = Double(self.beatsPerBar)
+                let linkBeat    = link_engine_beat_at_time(lh, hostNow, quantum)
+                let phase       = linkBeat.truncatingRemainder(dividingBy: quantum)
+                let beatsToWait = phase < 0.01 ? 0.0 : (quantum - phase)
+
+                if beatsToWait > 0.01 {
+                    let bpm          = self.currentBPM
+                    let delaySeconds = beatsToWait * (60.0 / bpm)
+
+                    os_log("[Q-BEATS][LINK][WAIT] fase:%.4f attesa:%.4f beat (%.3f s)",
+                           log: .default, type: .default,
+                           phase, beatsToWait, delaySeconds)
+
+                    DispatchQueue.main.async {
+                        self.isWaitingForLinkDownbeat = true
+                    }
+
+                    let work = DispatchWorkItem { [weak self] in
+                        guard let self else { return }
+                        DispatchQueue.main.async {
+                            self.isWaitingForLinkDownbeat = false
+                        }
+                        os_log("[Q-BEATS][LINK][WAIT] beat 1 raggiunto — avvio motore",
+                               log: .default, type: .default)
+                        self.start()
+                    }
+                    self.pendingLinkStart = work
+                    self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
+                    return
+                }
+            }
+            // === FINE LINK DOWNBEAT WAIT ===
+
             do {
                 self.bufferCount      = 0
                 self.beatTotal        = 0
@@ -884,6 +924,13 @@ class AudioEngine: ObservableObject {
         var bc = 0
         var bt = 0
         audioQueue.sync {
+            pendingLinkStart?.cancel()
+            pendingLinkStart = nil
+            if isWaitingForLinkDownbeat {
+                DispatchQueue.main.async {
+                    self.isWaitingForLinkDownbeat = false
+                }
+            }
             wasRunning = self.isRunning
             guard self.isRunning else { return }
             self.isRunning = false
