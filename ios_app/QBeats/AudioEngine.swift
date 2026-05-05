@@ -170,6 +170,8 @@ class AudioEngine: ObservableObject {
     private var _startAbsoluteBeat: Double = 0.0
     // Opzione B — Link downbeat wait (accesso SOLO su audioQueue)
     private var pendingLinkStart: DispatchWorkItem? = nil
+    // Build 303 — salta sync Link nei primi 3 buffer dopo fresh play
+    private var linkSyncSkipBuffers: Int = 0
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
     private let backtrackPlayerNode = AVAudioPlayerNode()
@@ -436,6 +438,7 @@ class AudioEngine: ObservableObject {
                         if let h = self.metronomeHandle {
                             metronome_reset_for_start(h, 0.0)
                         }
+                        self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
                             link_engine_set_is_playing(lh, true, mach_absolute_time())
                         }
@@ -1287,7 +1290,11 @@ class AudioEngine: ObservableObject {
                                      + bufferDurationTicks
                 let currentBeat = midi_engine_get_beat_position(mh)
                 var newBeat: Double = 0.0
-                if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
+                if self.linkSyncSkipBuffers > 0 {
+                    self.linkSyncSkipBuffers -= 1
+                    os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
+                           log: .default, type: .default, self.linkSyncSkipBuffers)
+                } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     metronome_set_beat_position(h, newBeat)
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
