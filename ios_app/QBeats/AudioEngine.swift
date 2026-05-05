@@ -198,9 +198,9 @@ class AudioEngine: ObservableObject {
         isBeats  = [UInt8](repeating: 0, count: maxBeats)
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
-        if let mh = midiEngineHandle {
-            midi_engine_start(mh)
-        }
+        // midi_engine_start() spostato dopo setupGraph() —
+        // Link registra il suo listener UDP multicast prima che CoreMIDI
+        // apra virtual ports e scan queue. Previene contesa rete al boot.
         // === MODIFICATO 6A ===
         linkEngineHandle = link_engine_create()
         if let lh = linkEngineHandle {
@@ -267,6 +267,10 @@ class AudioEngine: ObservableObject {
 
         setupSession()
         setupGraph()
+        // MIDI engine avvia DOPO Link e grafo audio — ordine intenzionale.
+        if let mh = midiEngineHandle {
+            midi_engine_start(mh)
+        }
         audioQueue.sync {
             self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
