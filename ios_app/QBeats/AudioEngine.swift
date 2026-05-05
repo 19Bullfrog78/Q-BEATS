@@ -258,11 +258,11 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        // DIAGNOSTIC build #288: rimuoviamo activate+disable all'init.
-        // Sospetto: ABLLinkSetActive(true) + (false) in rapida successione corrompe discovery.
-        // Link parte naturalmente inattivo da ABLLinkNew. Il toggle UI lo attiva con setLinkEnabled.
+        // Cold Start: attiva e disattiva Link immediatamente dopo la registrazione
+        // di tutti i callback. Inizializza il listener UDP prima di CoreMIDI.
         if let lh = linkEngineHandle {
-            _ = lh  // no-op — preserve guard pattern
+            link_engine_activate(lh)
+            link_engine_set_enabled(lh, false)
         }
 
         setupSession()
