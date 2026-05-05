@@ -323,7 +323,7 @@ class AudioEngine: ObservableObject {
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
 
-    func start(resumeAtBeat: Double? = nil) {
+    func start(resumeAtBeat: Double? = nil, skipLinkWait: Bool = false) {
         os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
                log: .default, type: .default,
                resumeAtBeat.map { String(format: "%.6f", $0) } ?? "nil",
@@ -338,7 +338,7 @@ class AudioEngine: ObservableObject {
             }
 
             // === LINK DOWNBEAT WAIT — Opzione B ===
-            if resumeAtBeat == nil, let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
+            if !skipLinkWait, resumeAtBeat == nil, let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
                 let hostNow     = mach_absolute_time()
                 let quantum     = Double(self.beatsPerBar)
                 let linkBeat    = link_engine_beat_at_time(lh, hostNow, quantum)
@@ -364,7 +364,7 @@ class AudioEngine: ObservableObject {
                         }
                         os_log("[Q-BEATS][LINK][WAIT] beat 1 raggiunto — avvio motore",
                                log: .default, type: .default)
-                        self.start()
+                        self.start(resumeAtBeat: nil, skipLinkWait: true)
                     }
                     self.pendingLinkStart = work
                     self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
@@ -431,45 +431,19 @@ class AudioEngine: ObservableObject {
                             link_engine_set_is_playing(lh, true, mach_absolute_time())
                         }
                     } else {
-                        // Fresh play: aspetta beat 1 Link se attivo, poi avvia metronomo
-                        let doStart = { [weak self] in
-                            guard let self else { return }
-                            self.audioQueue.async {
-                                if let h = self.metronomeHandle {
-                                    metronome_reset_for_start(h, 0.0)
-                                }
-                                if let lh = self.linkEngineHandle {
-                                    link_engine_set_is_playing(lh, true, mach_absolute_time())
-                                }
-                                self.scheduleNextBuffer()
-                                self.scheduleNextBuffer()
-                                self.scheduleNextBuffer()
-                                os_log("[Q-BEATS][LINK][START] metronomo avviato su beat 1 Link",
-                                       log: .default, type: .default)
-                            }
+                        // Fresh play — il blocco esterno LINK WAIT (righe 340–374)
+                        // ha già atteso il beat 1 Link se necessario. Avvio diretto.
+                        if let h = self.metronomeHandle {
+                            metronome_reset_for_start(h, 0.0)
                         }
-
-                        if let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
-                            let hostNow = mach_absolute_time()
-                            let quantum = Double(self.beatsPerBar)
-                            let linkBeat = link_engine_beat_at_time(lh, hostNow, quantum)
-                            let phase = linkBeat.truncatingRemainder(dividingBy: quantum)
-                            let beatsToWait = phase < 0.01 ? 0.0 : (quantum - phase)
-
-                            if beatsToWait < 0.01 {
-                                doStart()
-                            } else {
-                                let bpm = self.currentBPM
-                                let delaySeconds = beatsToWait * (60.0 / bpm)
-                                os_log("[Q-BEATS][LINK][START] attesa %.4f beats (%.3f s) per beat 1",
-                                       log: .default, type: .default, beatsToWait, delaySeconds)
-                                self.audioQueue.asyncAfter(deadline: .now() + delaySeconds) {
-                                    doStart()
-                                }
-                            }
-                        } else {
-                            doStart()
+                        if let lh = self.linkEngineHandle {
+                            link_engine_set_is_playing(lh, true, mach_absolute_time())
                         }
+                        self.scheduleNextBuffer()
+                        self.scheduleNextBuffer()
+                        self.scheduleNextBuffer()
+                        os_log("[Q-BEATS][LINK][START] metronomo avviato",
+                               log: .default, type: .default)
                     }
 
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {

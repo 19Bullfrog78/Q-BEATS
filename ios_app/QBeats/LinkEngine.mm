@@ -305,10 +305,10 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
     ABLLinkCommitAppSessionState(engine->link_, state);
 
     if (fabs(delta) > threshold) {
-        // Hard sync ASSOLUTO — Phase Correction Policy v1.2.
-        // NON currentBeatPosition + delta (relativo — accumula drift).
-        // Allineamento esatto alla posizione beat di Link.
-        *outNewBeatPosition = linkBeat;
+        // Hard sync RELATIVO — Phase Correction Policy v1.3.
+        // Correzione di fase nel dominio locale del metronomo,
+        // non salto alla posizione assoluta della sessione Link.
+        *outNewBeatPosition = currentBeatPosition + delta;
         return true;
     }
     return false;
