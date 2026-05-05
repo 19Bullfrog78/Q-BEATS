@@ -216,15 +216,13 @@ void link_engine_set_is_playing(LinkEngineHandle handle,
     double quantum = engine->quantum_.load(std::memory_order_relaxed);
 
     if (isPlaying) {
-        double currentLinkBeat = ABLLinkBeatAtTime(state, hostTime, quantum);
         os_log(OS_LOG_DEFAULT,
                "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
-               (int)true, currentLinkBeat);
+               (int)true, 0.0);
         ABLLinkSetIsPlayingAndRequestBeatAtTime(
-            state, true, hostTime, currentLinkBeat, quantum);
+            state, true, hostTime, 0.0, quantum);
         os_log(OS_LOG_DEFAULT,
-               "[Q-BEATS][LINK][RESTART] set_is_playing=true beat=%.4f (join)",
-               currentLinkBeat);
+               "[Q-BEATS][LINK][RESTART] set_is_playing=true beat=0.0 (leader)");
     } else {
         os_log(OS_LOG_DEFAULT,
                "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
