@@ -599,6 +599,7 @@ class AudioEngine: ObservableObject {
     }
 
     func enableNetworkMIDI() {
+        UserDefaults.standard.set(true, forKey: "networkMIDIEnabled")
         audioQueue.async { [weak self] in
             guard let self = self, let h = self.midiEngineHandle else { return }
             midi_engine_network_enable(h)
@@ -606,6 +607,7 @@ class AudioEngine: ObservableObject {
     }
 
     func disableNetworkMIDI() {
+        UserDefaults.standard.set(false, forKey: "networkMIDIEnabled")
         audioQueue.async { [weak self] in
             guard let self = self, let h = self.midiEngineHandle else { return }
             midi_engine_network_disable(h)

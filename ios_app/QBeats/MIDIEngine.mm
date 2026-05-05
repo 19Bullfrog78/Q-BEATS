@@ -186,16 +186,23 @@ bool midi_engine_start(void* handle)
 
     // 5. Prima scan sincrona (DOPO aver creato virtualSource e virtualDest)
     dispatch_sync(engine->_scanQueue, ^{ engine->scanAndConnectPhysicalPorts(); });
+
+    // Network MIDI restore — rispetta la preferenza utente persistita in NSUserDefaults.
+    // Default OFF: il socket multicast/Bonjour di MIDINetworkSession può interferire
+    // con il discovery UDP di Ableton Link. Se l'utente non ha mai abilitato
+    // Network MIDI, parte spento.
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    BOOL desired = [defaults boolForKey:@"networkMIDIEnabled"];
     MIDINetworkSession *session = [MIDINetworkSession defaultSession];
-    if (!session.isEnabled) {
-        session.enabled = YES;
-    }
-    if (session.connectionPolicy != MIDINetworkConnectionPolicy_Anyone) {
+    if (desired) {
         session.connectionPolicy = MIDINetworkConnectionPolicy_Anyone;
+        session.enabled = YES;
+    } else {
+        session.enabled = NO;
     }
     os_log(OS_LOG_DEFAULT,
-        "[Q-BEATS][NET] Network MIDI restore: enabled=%d policy=%ld",
-        session.isEnabled, (long)session.connectionPolicy);
+        "[Q-BEATS][NET] Network MIDI restore: desired=%d enabled=%d policy=%ld",
+        desired, session.isEnabled, (long)session.connectionPolicy);
 
 #if DEBUG
     os_log(OS_LOG_DEFAULT, "Q-BEATS MIDIEngine started successfully");
