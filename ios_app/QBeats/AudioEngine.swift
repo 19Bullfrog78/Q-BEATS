@@ -258,11 +258,10 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        // Cold Start: attiva e disattiva Link immediatamente dopo la registrazione
-        // di tutti i callback. Inizializza il listener UDP prima di CoreMIDI.
+        // link_engine_activate() registra il POLL diagnostico; NON chiama ABLLinkSetActive.
+        // Link viene attivato esclusivamente dal toggle UI (link_engine_set_enabled).
         if let lh = linkEngineHandle {
             link_engine_activate(lh)
-            link_engine_set_enabled(lh, false)
         }
 
         setupSession()

@@ -158,7 +158,8 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 void link_engine_activate(LinkEngineHandle handle) {
     if (!handle) return;
     LinkEngine* le = static_cast<LinkEngine*>(handle);
-    ABLLinkSetActive(le->link_, true);
+    // ABLLinkSetActive rimosso — attivazione affidata esclusivamente al toggle UI.
+    // Flap activate(true)→(false) al boot rompeva il discovery multicast di LinkKit.
     os_log(OS_LOG_DEFAULT, "[Q-BEATS][LINK][ACTIVATE] Link attivato dopo registrazione callback");
 
     // Diagnostic #293: poll stato Link ogni 5s dopo attivazione
