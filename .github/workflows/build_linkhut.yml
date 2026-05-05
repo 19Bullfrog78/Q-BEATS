@@ -1,0 +1,110 @@
+name: Build LinkHut Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Install certificate
+        env:
+          P12_CERTIFICATE: ${{ secrets.P12_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          echo "$P12_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "" build.keychain
+
+      - name: Install provisioning profile
+        env:
+          LINKHUT_PROFILE: ${{ secrets.LINKHUT_PROFILE_BASE64 }}
+        run: |
+          echo "$LINKHUT_PROFILE" | base64 --decode > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision \
+            ~/Library/MobileDevice/Provisioning\ Profiles/68ca45ee-efa2-4985-87c4-d5ecb485df65.mobileprovision
+
+      - name: Download LinkKit
+        run: |
+          curl -L $(curl -s https://api.github.com/repos/Ableton/LinkKit/releases/latest \
+            | grep "browser_download_url.*zip" \
+            | cut -d '"' -f 4) -o LinkKit.zip
+          unzip -q LinkKit.zip -d LinkKitSDK
+
+      - name: Configure LinkHut
+        run: |
+          cd LinkKitSDK/LinkKit*/examples/LinkHut
+
+          # Imposta bundle ID, team ID, profile
+          /usr/libexec/PlistBuddy -c \
+            "Set :CFBundleIdentifier com.bullfrog.linkhuttest" \
+            LinkHut/Info.plist || true
+
+          # Aggiungi entitlement multicast
+          cat > LinkHut/LinkHut.entitlements << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.developer.networking.multicast</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build LinkHut
+        run: |
+          cd LinkKitSDK/LinkKit*/examples/LinkHut
+
+          xcodebuild \
+            -project LinkHut.xcodeproj \
+            -scheme LinkHut \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=X42CX3ZP3T \
+            PRODUCT_BUNDLE_IDENTIFIER=com.bullfrog.linkhuttest \
+            PROVISIONING_PROFILE_SPECIFIER=LinkHutTest_Dev_Profile \
+            CODE_SIGN_ENTITLEMENTS=LinkHut/LinkHut.entitlements \
+            -archivePath ${{ github.workspace }}/LinkHut.xcarchive \
+            archive
+
+      - name: Export IPA
+        run: |
+          cat > ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>X42CX3ZP3T</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.bullfrog.linkhuttest</key>
+                  <string>LinkHutTest_Dev_Profile</string>
+              </dict>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath ${{ github.workspace }}/LinkHut.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath ${{ github.workspace }}/output
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LinkHut-diagnostic
+          path: ${{ github.workspace }}/output/*.ipa
+          retention-days: 3
