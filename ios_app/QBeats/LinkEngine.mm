@@ -157,8 +157,22 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 
 void link_engine_activate(LinkEngineHandle handle) {
     if (!handle) return;
-    ABLLinkSetActive(static_cast<LinkEngine*>(handle)->link_, true);
+    LinkEngine* le = static_cast<LinkEngine*>(handle);
+    ABLLinkSetActive(le->link_, true);
     os_log(OS_LOG_DEFAULT, "[Q-BEATS][LINK][ACTIVATE] Link attivato dopo registrazione callback");
+
+    // Diagnostic #293: poll stato Link ogni 5s dopo attivazione
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
+        dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+            bool conn = ABLLinkIsConnected(le->link_);
+            bool en   = ABLLinkIsEnabled(le->link_);
+            ABLLinkSessionStateRef state = ABLLinkCaptureAppSessionState(le->link_);
+            double bpm = ABLLinkGetTempo(state);
+            ABLLinkCommitAppSessionState(le->link_, state);
+            os_log(OS_LOG_DEFAULT,
+                "[Q-BEATS][LINK][POLL] enabled:%d connected:%d bpm:%.2f",
+                (int)en, (int)conn, bpm);
+    });
 }
 
 void* link_engine_get_abl_ref(LinkEngineHandle handle) {
