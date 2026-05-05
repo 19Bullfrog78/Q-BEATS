@@ -258,6 +258,18 @@ void link_engine_set_start_stop_callback(LinkEngineHandle handle,
         (void*)engine);
 }
 
+double link_engine_beat_at_time(LinkEngineHandle handle,
+                                uint64_t hostTime,
+                                double quantum) {
+    if (!handle) return 0.0;
+    LinkEngine* engine = (LinkEngine*)handle;
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    double beat = ABLLinkBeatAtTime(state, hostTime, quantum);
+    ABLLinkCommitAppSessionState(engine->link_, state);
+    return beat;
+}
+
 bool link_engine_sync_phase(LinkEngineHandle handle,
                             uint64_t hostTimeAtOutput,
                             double   currentBeatPosition,

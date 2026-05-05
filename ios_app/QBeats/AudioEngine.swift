@@ -380,22 +380,56 @@ class AudioEngine: ObservableObject {
                     } else {
                         // Fresh play: fissa phase origin a 0 e azzera _currentBeatInBar.
                         midi_engine_set_beat_position(mh, 0.0)
-                        if let h = self.metronomeHandle {
-                            metronome_reset_for_start(h, 0.0)
-                            os_log("[Q-BEATS][START] -> metronome_reset_for_start(%.6f)",
-                                   log: .default, type: .default, 0.0)
-                        } else {
-                            os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
-                                   log: .default, type: .default)
-                        }
                     }
                     if let lh = self.linkEngineHandle {
                         link_engine_set_quantum(lh, Double(self.beatsPerBar))
                     }
 
-                    // Annuncio Link (join senza forzare downbeat)
-                    if let lh = self.linkEngineHandle {
-                        link_engine_set_is_playing(lh, true, mach_absolute_time())
+                    if resumeAtBeat != nil {
+                        // Resume: annuncio Link immediato
+                        if let lh = self.linkEngineHandle {
+                            link_engine_set_is_playing(lh, true, mach_absolute_time())
+                        }
+                    } else {
+                        // Fresh play: aspetta beat 1 Link se attivo, poi avvia metronomo
+                        let doStart = { [weak self] in
+                            guard let self else { return }
+                            self.audioQueue.async {
+                                if let h = self.metronomeHandle {
+                                    metronome_reset_for_start(h, 0.0)
+                                }
+                                if let lh = self.linkEngineHandle {
+                                    link_engine_set_is_playing(lh, true, mach_absolute_time())
+                                }
+                                self.scheduleNextBuffer()
+                                self.scheduleNextBuffer()
+                                self.scheduleNextBuffer()
+                                os_log("[Q-BEATS][LINK][START] metronomo avviato su beat 1 Link",
+                                       log: .default, type: .default)
+                            }
+                        }
+
+                        if let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
+                            let hostNow = mach_absolute_time()
+                            let quantum = Double(self.beatsPerBar)
+                            let linkBeat = link_engine_beat_at_time(lh, hostNow, quantum)
+                            let phase = linkBeat.truncatingRemainder(dividingBy: quantum)
+                            let beatsToWait = phase < 0.01 ? 0.0 : (quantum - phase)
+
+                            if beatsToWait < 0.01 {
+                                doStart()
+                            } else {
+                                let bpm = self.currentBPM
+                                let delaySeconds = beatsToWait * (60.0 / bpm)
+                                os_log("[Q-BEATS][LINK][START] attesa %.4f beats (%.3f s) per beat 1",
+                                       log: .default, type: .default, beatsToWait, delaySeconds)
+                                self.audioQueue.asyncAfter(deadline: .now() + delaySeconds) {
+                                    doStart()
+                                }
+                            }
+                        } else {
+                            doStart()
+                        }
                     }
 
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
@@ -434,9 +468,11 @@ class AudioEngine: ObservableObject {
                     self._startAbsoluteBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 }
 
-                self.scheduleNextBuffer()
-                self.scheduleNextBuffer()
-                self.scheduleNextBuffer()
+                if resumeAtBeat != nil {
+                    self.scheduleNextBuffer()
+                    self.scheduleNextBuffer()
+                    self.scheduleNextBuffer()
+                }
             } catch {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)

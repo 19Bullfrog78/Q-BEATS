@@ -96,6 +96,13 @@ void link_engine_activate(LinkEngineHandle handle);
 // Questa funzione legge ABLLinkIsConnected direttamente per sincronizzare la UI dopo toggle ON.
 bool link_engine_is_connected(LinkEngineHandle handle);
 
+// === Build #300 — beat position at time ===
+// Legge la posizione beat assoluta della sessione Link a hostTime.
+// Usare per calcolare il delay fino al prossimo beat 1 prima di avviare il metronomo.
+double link_engine_beat_at_time(LinkEngineHandle handle,
+                                uint64_t hostTime,
+                                double quantum);
+
 #ifdef __cplusplus
 }
 #endif
