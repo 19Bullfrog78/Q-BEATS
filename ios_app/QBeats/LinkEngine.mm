@@ -31,6 +31,7 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
+    ABLLinkSetActive(engine->link_, false); // STEP 2 — inattivo fino a toggle utente
     // Build #177: Link creato ma NON attivato. link_engine_activate() viene chiamato
     // da AudioEngine.swift dopo la registrazione di tutti i callback.
     ABLLinkSetIsConnectedCallback(engine->link_,
