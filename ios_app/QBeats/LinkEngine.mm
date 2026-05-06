@@ -277,6 +277,15 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
     LinkEngine* engine = (LinkEngine*)handle;
     if (!engine->enabled_.load(std::memory_order_relaxed)) return false;
 
+    // mach_timebase_info cachata: inizializzata una sola volta.
+    // Conversione tick → nanosecondi: ticks * numer / denom.
+    // Su ARM64 iOS tipicamente numer==denom==1, ma manteniamo
+    // l'aritmetica generale per portabilità.
+    static mach_timebase_info_data_t timebase = {0, 0};
+    if (timebase.denom == 0) {
+        mach_timebase_info(&timebase);
+    }
+
     // ABLLinkCaptureAppSessionState — scheduleNextBuffer è su audioQueue
     // (DispatchQueue), NON in un AURenderCallback Core Audio.
     // Le versioni Audio sono riservate al render thread.
@@ -287,8 +296,35 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
     // linkBeat = posizione beat assoluta che Link si aspetta a hostTimeAtOutput
     double linkBeat = ABLLinkBeatAtTime(state, hostTimeAtOutput, quantum);
 
-    // Fase locale e fase Link, modulate per quantum
-    double localPhase = fmod(currentBeatPosition, quantum);
+    // === FIX BUG-LINK-A — Allineamento temporale del confronto fase ===
+    // Difetto pre-fix: localPhase calcolata su currentBeatPosition (tempo
+    // PRESENTE) veniva confrontata con linkPhase letta a hostTimeAtOutput
+    // (tempo FUTURO, ~16–23ms avanti). Lo scarto temporale sistematico,
+    // sommato all'offset di negoziazione introdotto da peer Link connessi
+    // (anche silenti), superava la soglia 0.01 beat producendo una
+    // correzione spuria al 4° buffer dopo il play start. Risultato:
+    // beat 2 anticipato di 12–50ms; beat 3+ corretti perché l'allineamento
+    // post-correzione era ormai consistente.
+    //
+    // Fix: proiettare currentBeatPosition in avanti fino a hostTimeAtOutput
+    // usando il BPM Link corrente, così entrambe le misure (locale e Link)
+    // sono riferite allo stesso istante temporale → confronto coerente.
+    //
+    // deltaTicks può essere negativo se la funzione è invocata in ritardo
+    // rispetto al timestamp pianificato: l'aritmetica resta valida (fmod
+    // su valore negativo è normalizzato dalla guardia << 0.0 più sotto).
+    double bpm           = ABLLinkGetTempo(state);
+    uint64_t now         = mach_absolute_time();
+    int64_t  deltaTicks  = (int64_t)hostTimeAtOutput - (int64_t)now;
+    double   deltaSec    = (double)deltaTicks
+                         * (double)timebase.numer
+                         / (double)timebase.denom
+                         / 1.0e9;
+    double   deltaBeats  = deltaSec * bpm / 60.0;
+    double   projectedBeatPosition = currentBeatPosition + deltaBeats;
+
+    // Fase locale (proiettata a hostTimeAtOutput) e fase Link, modulate per quantum
+    double localPhase = fmod(projectedBeatPosition, quantum);
     double linkPhase  = fmod(linkBeat, quantum);
     if (localPhase < 0.0) localPhase += quantum;
     if (linkPhase  < 0.0) linkPhase  += quantum;
