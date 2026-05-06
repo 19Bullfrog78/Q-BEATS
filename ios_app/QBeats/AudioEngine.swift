@@ -395,8 +395,6 @@ class AudioEngine: ObservableObject {
                     let resumeBeat: Double? = resumeAtBeat
 
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
-                    
-                    var initialBeat: Double = 0.0
 
                     if let beat = resumeBeat {
                         // CALCOLO SNAP RELATIVO ALLA FASE DEL PLAY
@@ -422,25 +420,7 @@ class AudioEngine: ObservableObject {
                                    log: .default, type: .default)
                         }
                     } else {
-                        // Fresh play: fissa phase origin a 0 e azzera _currentBeatInBar.
-                        let hostTimeForFirstSample = mach_absolute_time()
-                                                   + self.outputLatencyTicks
-                                                   + self.bufferDurationTicks
-
-                        initialBeat = {
-                            guard let lh = self.linkEngineHandle,
-                                  link_engine_is_enabled(lh),
-                                  self.beatsPerBar > 0 else { return 0.0 }
-                            let quantum = Double(self.beatsPerBar)
-                            let linkBeat = link_engine_beat_at_time(lh,
-                                                                    hostTimeForFirstSample,
-                                                                    quantum)
-                            return linkBeat.truncatingRemainder(dividingBy: quantum)
-                        }()
-
-                        midi_engine_set_beat_position(mh, initialBeat)
-                        os_log("[Q-BEATS][LINK][START] initialBeat:%{public}.4f",
-                               log: .default, type: .default, initialBeat)
+                        midi_engine_set_beat_position(mh, 0.0)
                     }
                     if let lh = self.linkEngineHandle {
                         link_engine_set_quantum(lh, Double(self.beatsPerBar))
@@ -455,7 +435,7 @@ class AudioEngine: ObservableObject {
                         // Fresh play — il blocco esterno LINK WAIT (righe 340–374)
                         // ha già atteso il beat 1 Link se necessario. Avvio diretto.
                         if let h = self.metronomeHandle {
-                            metronome_reset_for_start(h, initialBeat)
+                            metronome_reset_for_start(h, 0.0)
                         }
                         self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
