@@ -325,7 +325,7 @@ class AudioEngine: ObservableObject {
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
 
-    func start(resumeAtBeat: Double? = nil, skipLinkWait: Bool = false) {
+    func start(resumeAtBeat: Double? = nil) {
         os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
                log: .default, type: .default,
                resumeAtBeat.map { String(format: "%.6f", $0) } ?? "nil",
@@ -339,41 +339,12 @@ class AudioEngine: ObservableObject {
                 return
             }
 
-            // === LINK DOWNBEAT WAIT — Opzione B ===
-            if !skipLinkWait, resumeAtBeat == nil, let lh = self.linkEngineHandle, link_engine_is_enabled(lh) {
-                let hostNow     = mach_absolute_time()
-                let quantum     = Double(self.beatsPerBar)
-                let linkBeat    = link_engine_beat_at_time(lh, hostNow, quantum)
-                let phase       = linkBeat.truncatingRemainder(dividingBy: quantum)
-                let beatsToWait = phase < 0.01 ? 0.0 : (quantum - phase)
-
-                if beatsToWait > 0.01 {
-                    let bpm          = self.currentBPM
-                    let delaySeconds = beatsToWait * (60.0 / bpm)
-
-                    os_log("[Q-BEATS][LINK][WAIT] fase:%.4f attesa:%.4f beat (%.3f s)",
-                           log: .default, type: .default,
-                           phase, beatsToWait, delaySeconds)
-
-                    DispatchQueue.main.async {
-                        self.isWaitingForLinkDownbeat = true
-                    }
-
-                    let work = DispatchWorkItem { [weak self] in
-                        guard let self else { return }
-                        DispatchQueue.main.async {
-                            self.isWaitingForLinkDownbeat = false
-                        }
-                        os_log("[Q-BEATS][LINK][WAIT] beat 1 raggiunto — avvio motore",
-                               log: .default, type: .default)
-                        self.start(resumeAtBeat: nil, skipLinkWait: true)
-                    }
-                    self.pendingLinkStart = work
-                    self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
-                    return
-                }
-            }
-            // === FINE LINK DOWNBEAT WAIT ===
+            // Build #307: rimosso il vecchio DOWNBEAT WAIT (Opzione B) e il
+            // parametro skipLinkWait. La distinzione master/follower avviene
+            // ora esplicitamente dentro il blocco do { ... } qui sotto via
+            // link_engine_probe_session, evitando la doppia invocazione
+            // ricorsiva e cementificando il principio "chi entra si adegua,
+            // chi c'è già non si muove" (doc Ableton LinkKit).
 
             do {
                 self.bufferCount      = 0
@@ -426,26 +397,133 @@ class AudioEngine: ObservableObject {
                         link_engine_set_quantum(lh, Double(self.beatsPerBar))
                     }
 
+                    // === Build #307 — Start API semantica (Opzione 2) ===
+                    // 3 percorsi distinti: RESUME, FRESH PLAY master, FRESH PLAY follower.
+                    // Ognuno usa una funzione bridge dedicata, niente magic numbers.
                     if resumeAtBeat != nil {
-                        // Resume: annuncio Link immediato
-                        if let lh = self.linkEngineHandle {
-                            link_engine_set_is_playing(lh, true, mach_absolute_time())
-                        }
-                    } else {
-                        // Fresh play — il blocco esterno LINK WAIT (righe 340–374)
-                        // ha già atteso il beat 1 Link se necessario. Avvio diretto.
-                        if let h = self.metronomeHandle {
-                            metronome_reset_for_start(h, 0.0)
-                        }
+                        // RESUME: ripartiamo da snappedBeat (calcolato sopra).
+                        // Q-BEATS detta la timeline a beat noto.
+                        // snappedBeat è in scope sopra dentro l'`if let beat = resumeBeat`,
+                        // qui lo ricalcoliamo coerentemente per il branch link.
+                        let beatsPerBarD = Double(self.beatsPerBar)
+                        let relativePhase = (resumeAtBeat ?? 0.0) - self._startAbsoluteBeat
+                        let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
+                        let snappedBeatLocal = self._startAbsoluteBeat + snappedRelative
                         self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
-                            link_engine_set_is_playing(lh, true, mach_absolute_time())
+                            link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
                         }
                         self.scheduleNextBuffer()
                         self.scheduleNextBuffer()
                         self.scheduleNextBuffer()
-                        os_log("[Q-BEATS][LINK][START] metronomo avviato",
-                               log: .default, type: .default)
+                        os_log("[Q-BEATS][LINK][START] resume avviato a beat:%.4f",
+                               log: .default, type: .default, snappedBeatLocal)
+                    } else {
+                        // FRESH PLAY: probe della sessione Link per distinguere
+                        // master (Q-BEATS detta) da follower (Q-BEATS si adegua).
+                        let hostNow = mach_absolute_time()
+                        let quantum = Double(self.beatsPerBar)
+                        var probe = LinkSessionProbe(isPlaying: false,
+                                                     phaseAtHost: 0.0,
+                                                     tempo: 0.0)
+                        if let lh = self.linkEngineHandle {
+                            probe = link_engine_probe_session(lh, hostNow, quantum)
+                        }
+
+                        if !probe.isPlaying {
+                            // === MASTER / STANDALONE ===
+                            // Q-BEATS è il primo a fare play. Detta la timeline:
+                            // chiede a Link di mappare beat 0 a hostNow.
+                            // Funziona anche con Link disabled (la funzione bridge
+                            // fa early return su !enabled).
+                            if let h = self.metronomeHandle {
+                                metronome_reset_for_start(h, 0.0)
+                            }
+                            self.linkSyncSkipBuffers = 3
+                            if let lh = self.linkEngineHandle {
+                                link_engine_start_at_beat_zero(lh, hostNow)
+                            }
+                            self.scheduleNextBuffer()
+                            self.scheduleNextBuffer()
+                            self.scheduleNextBuffer()
+                            os_log("[Q-BEATS][LINK][START] master avviato",
+                                   log: .default, type: .default)
+                        } else {
+                            // === FOLLOWER (peer master in play) ===
+                            // Q-BEATS si adegua: quantized launch al prossimo
+                            // downbeat Link, NESSUN override della timeline
+                            // condivisa. Pattern aderente alla doc Ableton:
+                            // "chi entra si adegua, chi c'è già non si muove".
+                            let bpm = probe.tempo
+                            let phase = probe.phaseAtHost
+                            // Se phase ≈ quantum siamo già sul downbeat → no wait.
+                            // Altrimenti aspettiamo (quantum - phase) beat.
+                            let beatsToWait = (phase < 0.001 || phase > quantum - 0.001)
+                                              ? 0.0
+                                              : (quantum - phase)
+                            let delaySeconds = beatsToWait * (60.0 / bpm)
+
+                            // Conversione delaySeconds → mach ticks per
+                            // futureHostTime esatto (timestamp Link insensibile
+                            // al jitter dispatch).
+                            var timebase = mach_timebase_info_data_t()
+                            mach_timebase_info(&timebase)
+                            let delayNs = delaySeconds * 1_000_000_000.0
+                            let delayTicks = UInt64(delayNs
+                                                    * Double(timebase.denom)
+                                                    / Double(timebase.numer))
+                            let futureHostTime = hostNow + delayTicks
+
+                            os_log("[Q-BEATS][LINK][FOLLOWER] phase:%.4f attesa:%.4f beat (%.3f s) bpm:%.2f",
+                                   log: .default, type: .default,
+                                   phase, beatsToWait, delaySeconds, bpm)
+
+                            DispatchQueue.main.async {
+                                self.isWaitingForLinkDownbeat = true
+                            }
+
+                            // Catturiamo lh e futureHostTime nella closure.
+                            // ROTTA α (Build #307): l'annuncio Link è DENTRO
+                            // il work item. Se l'utente preme stop prima del
+                            // fire, pendingLinkStart?.cancel() impedisce ogni
+                            // pubblicazione di stato a Link → atomicità by design.
+                            let lhCaptured = self.linkEngineHandle
+                            let work = DispatchWorkItem { [weak self] in
+                                guard let self else { return }
+                                DispatchQueue.main.async {
+                                    self.isWaitingForLinkDownbeat = false
+                                }
+                                if let lh = lhCaptured {
+                                    // Timestamp = futureHostTime catturato,
+                                    // NON mach_absolute_time() rileggiuto al
+                                    // fire (il jitter dispatch sposterebbe il
+                                    // timestamp Link rispetto al downbeat target).
+                                    link_engine_join_running_session(lh, futureHostTime)
+                                }
+                                if let h = self.metronomeHandle {
+                                    metronome_reset_for_start(h, 0.0)
+                                }
+                                self.linkSyncSkipBuffers = 3
+                                self.scheduleNextBuffer()
+                                self.scheduleNextBuffer()
+                                self.scheduleNextBuffer()
+                                // Sovrascrive _startAbsoluteBeat con il valore
+                                // corretto per il path follower: il primo sample
+                                // audio reale parte a futureHostTime, non al
+                                // mach_absolute_time() di quando è stato schedulato
+                                // il work item (~delaySeconds prima).
+                                if let mh = self.midiEngineHandle {
+                                    self._startAbsoluteBeat = midi_engine_get_beat_at_time(
+                                        mh,
+                                        futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
+                                }
+                                os_log("[Q-BEATS][LINK][FOLLOWER] downbeat raggiunto — avvio motore startBeat:%.4f",
+                                       log: .default, type: .default,
+                                       self._startAbsoluteBeat)
+                            }
+                            self.pendingLinkStart = work
+                            self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
+                        }
                     }
 
                     if UserDefaults.standard.bool(forKey: "networkMIDIEnabled") {
@@ -476,7 +554,11 @@ class AudioEngine: ObservableObject {
                     link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
                 }
 
-                // Registra il beat di partenza (solo fresh play, latenza inclusa)
+                // Registra il beat di partenza (solo fresh play, latenza inclusa).
+                // Build #307: per il path FOLLOWER questo valore verrà sovrascritto
+                // al fire del work item (vedi nuovo flow sopra), perché il primo
+                // sample reale parte a futureHostTime, non a "now". Per master e
+                // standalone resta corretto.
                 if resumeAtBeat == nil, let mh = self.midiEngineHandle {
                     let hostTimeAtFirstSample = mach_absolute_time()
                                                 + self.outputLatencyTicks
@@ -484,11 +566,9 @@ class AudioEngine: ObservableObject {
                     self._startAbsoluteBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
                 }
 
-                if resumeAtBeat != nil {
-                    self.scheduleNextBuffer()
-                    self.scheduleNextBuffer()
-                    self.scheduleNextBuffer()
-                }
+                // Build #307: rimosso il scheduleNextBuffer × 3 ridondante per il
+                // resume (ora è già chiamato esplicitamente dentro il branch RESUME
+                // sopra, con la nuova API link_engine_start_at_beat).
             } catch {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
@@ -913,9 +993,9 @@ class AudioEngine: ObservableObject {
             bc = self.bufferCount
             bt = self.beatTotal
             
-            // === AGGIUNTO 6D — notifica Link che la riproduzione è ferma ===
+            // Build #307: notifica Link che la riproduzione è ferma — API semantica.
             if let lh = linkEngineHandle {
-                link_engine_set_is_playing(lh, false, mach_absolute_time())
+                link_engine_stop(lh, mach_absolute_time())
             }
             // QA-1 drift analysis reset
             self.qa1BeatCounter  = 0

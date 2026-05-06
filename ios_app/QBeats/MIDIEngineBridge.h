@@ -73,10 +73,45 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
                             double   currentBeatPosition,
                             double*  outNewBeatPosition);
 
-// === AGGIUNTO 6D — Start/Stop sync ===
-void link_engine_set_is_playing(LinkEngineHandle handle,
-                                bool isPlaying,
-                                uint64_t hostTime);
+// === Build #307 — Start/Stop API semantica (Opzione 2) ===
+// Sostituisce il vecchio link_engine_set_is_playing con 4 funzioni
+// dal nome parlante, una per ciascuno scenario di transport. La quinta
+// funzione (probe_session) è una probe single-capture atomica per
+// leggere coerentemente isPlaying + phase + tempo dalla sessione Link.
+
+// Probe atomica della sessione Link.
+// Una sola CaptureAppSessionState → letture coerenti (no race tra peer).
+// RT-safe lato chiamata. quantum è il numero di beat per battuta.
+typedef struct {
+    bool   isPlaying;     // ABLLinkIsPlaying(state)
+    double phaseAtHost;   // ABLLinkPhaseAtTime(state, hostTime, quantum), in [0, quantum)
+    double tempo;         // ABLLinkGetTempo(state), BPM corrente sessione
+} LinkSessionProbe;
+
+LinkSessionProbe link_engine_probe_session(LinkEngineHandle handle,
+                                           uint64_t hostTime,
+                                           double   quantum);
+
+// Master / standalone fresh play: Q-BEATS detta la timeline.
+// Internamente chiede a Link di mappare beat 0 a hostTime.
+void link_engine_start_at_beat_zero(LinkEngineHandle handle, uint64_t hostTime);
+
+// Resume da posizione nota (es. seek): Q-BEATS riparte allineato a beat.
+// Internamente chiede a Link di mappare beat a hostTime.
+void link_engine_start_at_beat(LinkEngineHandle handle,
+                               uint64_t hostTime,
+                               double   beat);
+
+// Follower (peer master già in play): Q-BEATS si adegua alla timeline
+// condivisa. NESSUN RequestBeatAtTime — solo SetIsPlaying.
+// futureHostTime = istante (mach ticks) del downbeat target a cui
+// allineare l'avvio.
+void link_engine_join_running_session(LinkEngineHandle handle,
+                                      uint64_t futureHostTime);
+
+// Stop transport.
+void link_engine_stop(LinkEngineHandle handle, uint64_t hostTime);
+
 void link_engine_set_start_stop_callback(LinkEngineHandle handle,
     void (*callback)(bool isPlaying, void* context),
     void* context);
