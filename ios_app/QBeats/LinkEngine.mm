@@ -15,8 +15,7 @@ struct LinkEngine {
     std::atomic<int64_t> pendingPhaseJump_{-1};
     std::atomic<double> phaseJumpThresholdBeats_{0.01};
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
-    // Build #307: rimosso suppressNextIsPlayingBroadcast_ — era dead code,
-    // nessun setter lo impostava mai a true.
+    std::atomic<bool> suppressNextIsPlayingBroadcast_{false};
     void (*tempoCallback_)(double bpm, void* context) = nullptr;
     void* tempoCallbackContext_ = nullptr;
     void (*startStopCallback_)(bool isPlaying, void* context) = nullptr;
@@ -199,109 +198,39 @@ void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t tick
     engine->outputLatencyTicks_.store(ticks, std::memory_order_relaxed);
 }
 
-// === Build #307 — Start/Stop API semantica (Opzione 2) ===
-// Sostituisce il monolitico link_engine_set_is_playing con 4 funzioni di
-// azione (semantica esplicita al call site) + 1 funzione probe atomica.
-//
-// Razionale: il vecchio set_is_playing leggeva currentLinkBeat dalla
-// sessione condivisa e lo ripassava a Link. Con peer presenti, il
-// consensus poteva spostarlo, generando divergenza δ tra timeline locale
-// (MetronomeDSP a beat 0 dopo resetForStart) e timeline Link.
-// Risultato osservato: BUG-LINK-A (beat 2 anticipato di 12-50ms in
-// scenario master+peer fermo).
-//
-// Nuovo approccio aderente alla doc Ableton ("chi entra si adegua, chi
-// c'è già non si muove"):
-//   - master/standalone: chiede a Link di allineare beat 0 a hostTime
-//     (Q-BEATS detta la timeline)
-//   - resume: chiede a Link di allineare beat noto a hostTime
-//   - follower: NESSUN RequestBeatAtTime — solo SetIsPlaying (Q-BEATS
-//     si adegua alla timeline condivisa, non la sovrascrive)
-
-LinkSessionProbe link_engine_probe_session(LinkEngineHandle handle,
-                                           uint64_t hostTime,
-                                           double   quantum) {
-    LinkSessionProbe probe = { false, 0.0, 0.0 };
-    if (!handle) return probe;
-    LinkEngine* engine = (LinkEngine*)handle;
-    if (!engine->enabled_.load(std::memory_order_relaxed)) return probe;
-
-    // Single CaptureAppSessionState — tutte le letture sono coerenti tra
-    // loro (no race con i peer durante la probe).
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
-
-    probe.isPlaying   = ABLLinkIsPlaying(state);
-    probe.phaseAtHost = ABLLinkPhaseAtTime(state, hostTime, quantum);
-    probe.tempo       = ABLLinkGetTempo(state);
-
-    ABLLinkCommitAppSessionState(engine->link_, state);
-    return probe;
-}
-
-void link_engine_start_at_beat_zero(LinkEngineHandle handle,
-                                    uint64_t hostTime) {
+void link_engine_set_is_playing(LinkEngineHandle handle,
+                                bool isPlaying,
+                                uint64_t hostTime) {
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;
     if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+
+    if (isPlaying && engine->suppressNextIsPlayingBroadcast_.exchange(false)) {
+        ABLLinkCommitAppSessionState(engine->link_, state);
+        return;
+    }
 
     double quantum = engine->quantum_.load(std::memory_order_relaxed);
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
 
-    // beat 0 mappato a hostTime: Link adegua la propria timeline a Q-BEATS.
-    ABLLinkSetIsPlayingAndRequestBeatAtTime(
-        state, true, hostTime, 0.0, quantum);
-
-    ABLLinkCommitAppSessionState(engine->link_, state);
-}
-
-void link_engine_start_at_beat(LinkEngineHandle handle,
-                               uint64_t hostTime,
-                               double   beat) {
-    if (!handle) return;
-    LinkEngine* engine = (LinkEngine*)handle;
-    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
-
-    double quantum = engine->quantum_.load(std::memory_order_relaxed);
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
-
-    // beat noto (es. snappedBeat per resume) mappato a hostTime.
-    ABLLinkSetIsPlayingAndRequestBeatAtTime(
-        state, true, hostTime, beat, quantum);
-
-    ABLLinkCommitAppSessionState(engine->link_, state);
-}
-
-void link_engine_join_running_session(LinkEngineHandle handle,
-                                      uint64_t futureHostTime) {
-    if (!handle) return;
-    LinkEngine* engine = (LinkEngine*)handle;
-    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
-
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
-
-    // NESSUN RequestBeatAtTime: Q-BEATS sta entrando in sessione attiva,
-    // si adegua alla timeline condivisa senza sovrascriverla.
-    // futureHostTime è il timestamp del downbeat target già calcolato dal
-    // chiamante; passandolo direttamente Link riceve il timestamp esatto
-    // del target (insensibile al jitter dispatch).
-    ABLLinkSetIsPlaying(state, true, futureHostTime);
-
-    ABLLinkCommitAppSessionState(engine->link_, state);
-}
-
-void link_engine_stop(LinkEngineHandle handle, uint64_t hostTime) {
-    if (!handle) return;
-    LinkEngine* engine = (LinkEngine*)handle;
-    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
-
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
-
-    ABLLinkSetIsPlaying(state, false, hostTime);
+    if (isPlaying) {
+        double currentLinkBeat = ABLLinkBeatAtTime(state, hostTime, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
+               (int)true, currentLinkBeat);
+        ABLLinkSetIsPlayingAndRequestBeatAtTime(
+            state, true, hostTime, currentLinkBeat, quantum);
+    } else {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][SET_PLAYING] isPlaying:%d beat:%.4f",
+               (int)false, 0.0);
+        ABLLinkSetIsPlayingAndRequestBeatAtTime(
+            state, false, hostTime, 0.0, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][RESTART] set_is_playing=false");
+    }
 
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
