@@ -39,9 +39,7 @@ struct LiveView: View {
                         DragGesture(minimumDistance: 10)
                             .onEnded { value in
                                 if value.translation.height > 15 {
-                                    withAnimation(.easeInOut(duration: 0.25)) {
-                                        session.showMixer = true
-                                    }
+                                    session.showMixer = true
                                 }
                             }
                     )
@@ -70,7 +68,6 @@ struct LiveView: View {
                     Spacer()
                     if session.showMixer {
                         MixerOverlayView(session: session, audioEngine: audioEngine)
-                            .transition(.move(edge: .top))
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

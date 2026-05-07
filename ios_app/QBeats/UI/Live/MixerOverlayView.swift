@@ -26,9 +26,7 @@ struct MixerOverlayView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                session.showMixer = false
-            }
+            session.showMixer = false
         }
     }
 }
