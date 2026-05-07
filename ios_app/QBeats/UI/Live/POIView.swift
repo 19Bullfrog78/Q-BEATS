@@ -25,14 +25,5 @@ struct POIView: View {
             }
             Spacer()
         }
-        .overlay(
-            VStack {
-                Spacer()
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.white.opacity(0.20))
-                    .frame(width: 32, height: 3)
-                    .padding(.bottom, 6)
-            }
-        )
     }
 }

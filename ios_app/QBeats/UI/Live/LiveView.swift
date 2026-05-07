@@ -27,9 +27,11 @@ struct LiveView: View {
                     TeleprompterCapsuleView(session: session)
                         .frame(height: geo.size.height * 0.35)
                     MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                        .frame(height: geo.size.height * 0.04)
+                        .frame(height: geo.size.height * 0.02)
                     POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
                         .frame(height: geo.size.height * 0.10)
+                    HandleStripView()
+                        .frame(height: geo.size.height * 0.02)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 30)
@@ -64,7 +66,7 @@ struct LiveView: View {
 
                 if session.showMixer {
                     MixerOverlayView(session: session, audioEngine: audioEngine)
-                        .transition(.move(edge: .bottom))
+                        .transition(.move(edge: .top))
                 }
 
             }
@@ -126,4 +128,16 @@ struct LiveView: View {
     }
 
 
+}
+
+private struct HandleStripView: View {
+    var body: some View {
+        VStack {
+            Spacer()
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color.white.opacity(0.20))
+                .frame(width: 32, height: 3)
+            Spacer()
+        }
+    }
 }
