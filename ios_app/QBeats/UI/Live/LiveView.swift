@@ -34,9 +34,9 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.02)
                         .contentShape(Rectangle())
                         .gesture(
-                            DragGesture(minimumDistance: 30)
+                            DragGesture(minimumDistance: 10)
                                 .onEnded { value in
-                                    if value.translation.height > 30 {
+                                    if value.translation.height > 15 {
                                         withAnimation(.easeInOut(duration: 0.25)) {
                                             session.showMixer = true
                                         }

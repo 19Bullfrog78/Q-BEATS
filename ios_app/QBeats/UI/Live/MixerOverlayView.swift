@@ -5,41 +5,36 @@ struct MixerOverlayView: View {
     @ObservedObject var audioEngine: AudioEngine
 
     var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 4) {
-                HStack(spacing: 0) {
-                    MixerChannelView(index: 0, label: "CLICK", enabled: true,              audioEngine: audioEngine)
-                    MixerChannelView(index: 1, label: "BACKT", enabled: true,              audioEngine: audioEngine)
-                    MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine)
-                    MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+        VStack(spacing: 4) {
+            HStack(spacing: 0) {
+                MixerChannelView(index: 0, label: "CLICK", enabled: true,              audioEngine: audioEngine)
+                MixerChannelView(index: 1, label: "BACKT", enabled: true,              audioEngine: audioEngine)
+                MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine)
+                MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine)
             }
-            .frame(height: UIScreen.main.bounds.height * 0.21)
-            .background(Color(hex: "#16161a"))
-            .overlay(
-                Rectangle()
-                    .frame(height: 1.5)
-                    .foregroundColor(Color.white.opacity(0.10)),
-                alignment: .top
-            )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .gesture(
-            DragGesture().onEnded { val in
-                if val.translation.height < -40 {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        session.showMixer = false
-                    }
-                }
-            }
+        .frame(height: UIScreen.main.bounds.height * 0.21)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .background(Color(hex: "#16161a"))
+        .overlay(
+            Rectangle()
+                .frame(height: 1.5)
+                .foregroundColor(Color.white.opacity(0.10)),
+            alignment: .top
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                session.showMixer = false
+            }
+        }
     }
 }
 
 private struct MixerChannelView: View {
-    let index: Int          // 0-based
+    let index: Int
     let label: String
     let enabled: Bool
     @ObservedObject var audioEngine: AudioEngine
