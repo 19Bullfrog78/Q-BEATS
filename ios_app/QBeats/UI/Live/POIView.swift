@@ -8,10 +8,9 @@ struct POIView: View {
         HStack {
             if let next = nextSection {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("poi")
+                    Text("NEXT:")
                         .font(.jbMono(.semibold, size: 10))
                         .tracking(2)
-                        .textCase(.uppercase)
                         .foregroundColor(Color.white.opacity(0.25))
                     Text(next.uppercased())
                         .font(.custom("Inter-ExtraBold", size: 34))

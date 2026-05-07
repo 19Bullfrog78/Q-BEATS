@@ -30,6 +30,7 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.04)
                     POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
                         .frame(height: geo.size.height * 0.10)
+                        .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 30)
                                 .onEnded { value in
@@ -63,6 +64,7 @@ struct LiveView: View {
 
                 if session.showMixer {
                     MixerOverlayView(session: session, audioEngine: audioEngine)
+                        .transition(.move(edge: .bottom))
                 }
 
             }

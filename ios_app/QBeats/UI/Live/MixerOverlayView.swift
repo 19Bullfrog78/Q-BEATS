@@ -18,7 +18,7 @@ struct MixerOverlayView: View {
                 .padding(.vertical, 8)
             }
             .frame(height: UIScreen.main.bounds.height * 0.21)
-            .background(Color.white.opacity(0.05))
+            .background(Color(hex: "#16161a"))
             .overlay(
                 Rectangle()
                     .frame(height: 1.5)
