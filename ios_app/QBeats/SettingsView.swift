@@ -32,6 +32,12 @@ struct SettingsView: View {
                             }
                         }
                     ))
+                    if audioEngine.linkEnabled,
+                       audioEngine.linkSettingsPresenter != nil {
+                        Button("Impostazioni Ableton Link") {
+                            showLinkSetup = true
+                        }
+                    }
                     HStack {
                         Text("Peers")
                         Spacer()
