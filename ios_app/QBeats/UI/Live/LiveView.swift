@@ -24,25 +24,27 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.08)
                     MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection)
                         .frame(height: geo.size.height * 0.04)
-                    TeleprompterCapsuleView(session: session)
-                        .frame(height: geo.size.height * 0.35)
-                    MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                        .frame(height: geo.size.height * 0.02)
-                    POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
-                        .frame(height: geo.size.height * 0.10)
-                    HandleStripView()
-                        .frame(height: geo.size.height * 0.02)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onEnded { value in
-                                    if value.translation.height > 15 {
-                                        withAnimation(.easeInOut(duration: 0.25)) {
-                                            session.showMixer = true
-                                        }
+                    VStack(spacing: 0) {
+                        TeleprompterCapsuleView(session: session)
+                            .frame(height: geo.size.height * 0.35)
+                        MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+                            .frame(height: geo.size.height * 0.02)
+                        POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
+                            .frame(height: geo.size.height * 0.10)
+                        HandleStripView()
+                            .frame(height: geo.size.height * 0.02)
+                    }
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 10)
+                            .onEnded { value in
+                                if value.translation.height > 15 {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        session.showMixer = true
                                     }
                                 }
-                        )
+                            }
+                    )
                     TransportView(session: session, audioEngine: audioEngine)
                         .frame(height: geo.size.height * 0.21)
                 }
@@ -64,10 +66,15 @@ struct LiveView: View {
                     FineSetlistView()
                 }
 
-                if session.showMixer {
-                    MixerOverlayView(session: session, audioEngine: audioEngine)
-                        .transition(.move(edge: .top))
+                VStack(spacing: 0) {
+                    Spacer()
+                    if session.showMixer {
+                        MixerOverlayView(session: session, audioEngine: audioEngine)
+                            .transition(.move(edge: .top))
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(session.showMixer)
 
             }
         }
