@@ -67,6 +67,12 @@ struct LiveView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     if session.showMixer {
+                        Color.clear
+                            .frame(height: geo.size.height * 0.49)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                session.showMixer = false
+                            }
                         MixerOverlayView(session: session, audioEngine: audioEngine)
                     }
                 }
