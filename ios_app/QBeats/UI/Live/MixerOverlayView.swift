@@ -8,22 +8,17 @@ struct MixerOverlayView: View {
         VStack {
             Spacer()
             VStack(spacing: 4) {
-                Capsule()
-                    .fill(Color.white.opacity(0.12))
-                    .frame(width: 28, height: 3)
-                    .padding(.top, 6)
-
                 HStack(spacing: 0) {
-                    MixerChannelView(index: 0, label: "CLICK", enabled: true, audioEngine: audioEngine)
-                    MixerChannelView(index: 1, label: "BACKT", enabled: true, audioEngine: audioEngine)
+                    MixerChannelView(index: 0, label: "CLICK", enabled: true,              audioEngine: audioEngine)
+                    MixerChannelView(index: 1, label: "BACKT", enabled: true,              audioEngine: audioEngine)
                     MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine)
                     MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .padding(.vertical, 8)
             }
-            .frame(height: UIScreen.main.bounds.height * 0.37)
-            .background(Color(hex: "#0e0e10").opacity(0.95))
+            .frame(height: UIScreen.main.bounds.height * 0.21)
+            .background(Color.white.opacity(0.05))
             .overlay(
                 Rectangle()
                     .frame(height: 1.5)
@@ -33,7 +28,11 @@ struct MixerOverlayView: View {
         }
         .gesture(
             DragGesture().onEnded { val in
-                if val.translation.height > 40 { session.showMixer = false }
+                if val.translation.height < -40 {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        session.showMixer = false
+                    }
+                }
             }
         )
     }
