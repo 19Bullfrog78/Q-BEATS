@@ -217,6 +217,9 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
+                // Q-BEATS è master del proprio tempo durante una performance.
+                // I cambi tempo da peer Link vengono ignorati quando in play.
+                if engine.isPlaying { return }
                 engine.audioQueue.async {
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
