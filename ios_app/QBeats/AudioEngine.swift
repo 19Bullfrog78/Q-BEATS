@@ -256,6 +256,51 @@ class AudioEngine: ObservableObject {
                 // già su main thread (LinkKit 3.2.2)
                 engine.linkPeers = Int(count)
             }, Unmanaged.passUnretained(self).toOpaque())
+
+            // === Reattività pane Ableton — ABLLinkSetIsEnabledCallback ===
+            // Callback main-thread quando l'utente flicca toggle Link nel pane
+            // Ableton. Il flag enabled_ C++ è già stato sincronizzato dal
+            // callback C++ stesso. Qui replichiamo il pattern di setLinkEnabled
+            // SOLO per la parte UI (linkEnabled / linkIsConnected / linkPeers
+            // con re-check post-2s), SENZA ri-chiamare link_engine_set_enabled
+            // (eviterebbe potenziale loop di re-emission).
+            link_engine_set_is_enabled_callback(lh, { isEnabled, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                engine.audioQueue.async { [weak engine] in
+                    guard let engine = engine,
+                          let lh = engine.linkEngineHandle else { return }
+                    if isEnabled {
+                        let isConn = link_engine_is_connected(lh)
+                        DispatchQueue.main.async {
+                            engine.linkEnabled = true
+                            engine.linkIsConnected = isConn
+                            engine.linkPeers = isConn ? 1 : 0
+                        }
+                        if !isConn {
+                            engine.audioQueue.asyncAfter(deadline: .now() + 2.0) {
+                                [weak engine] in
+                                guard let engine = engine,
+                                      let lh = engine.linkEngineHandle else { return }
+                                guard link_engine_is_enabled(lh) else { return }
+                                let isConn2 = link_engine_is_connected(lh)
+                                if isConn2 {
+                                    DispatchQueue.main.async {
+                                        engine.linkIsConnected = true
+                                        engine.linkPeers = 1
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            engine.linkEnabled = false
+                            engine.linkIsConnected = false
+                            engine.linkPeers = 0
+                        }
+                    }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
         }
 
         // === AGGIUNTO 6D — Start/Stop sync callback da peer Link ===

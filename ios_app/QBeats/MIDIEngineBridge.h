@@ -63,6 +63,20 @@ void link_engine_set_is_connected_callback(LinkEngineHandle handle,
     void (*callback)(bool isConnected, void* context),
     void* context);
 
+// === Reattività pane Ableton ===
+// Registra il user callback per ABLLinkSetIsEnabledCallback.
+// LinkKit invoca il callback sul main thread quando l'utente cambia
+// l'enabled state nel preference pane Ableton (toggle dentro il pane).
+// Il C++ sincronizza enabled_ PRIMA di chiamare il callback Swift, così
+// quando il callback Swift accede ai guard interni (es. via altre
+// link_engine_* su audioQueue) il flag è già coerente.
+//
+// Pattern di parità comportamentale con Soundbrenner: peer compare nel
+// pane mentre è ancora aperto, senza necessità di chiudere.
+void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
+    void (*callback)(bool isEnabled, void* context),
+    void* context);
+
 // === AGGIUNTO 6C — Link phase sync ===
 void link_engine_set_output_latency_ticks(LinkEngineHandle handle, uint64_t ticks);
 // Chiamare su audioQueue — NON in un AURenderCallback Core Audio.

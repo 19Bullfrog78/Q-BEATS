@@ -26,6 +26,9 @@ struct LinkEngine {
     // === Build #176 — Facade peers callback ===
     void (*peersChangedCallback_)(void* context, uint32_t numPeers) = nullptr;
     void* peersChangedCallbackContext_ = nullptr;
+    // === Build c7d1073+ — IsEnabled callback dal pane Ableton ===
+    void (*isEnabledCallback_)(bool isEnabled, void* context) = nullptr;
+    void* isEnabledCallbackContext_ = nullptr;
 };
 
 LinkEngineHandle link_engine_create(void) {
@@ -155,6 +158,44 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
     auto* le = static_cast<LinkEngine*>(handle);
     le->peersChangedCallback_ = callback;
     le->peersChangedCallbackContext_ = context;
+}
+
+// === Reattività pane Ableton — ABLLinkSetIsEnabledCallback ===
+// LinkKit invoca il callback sul main thread quando l'utente cambia
+// l'enabled state via Link settings view (preference pane Ableton).
+//
+// Razionale: prima di questo callback, Q-BEATS scopriva il cambio solo
+// quando l'utente chiudeva il pane (onDismiss → setLinkEnabled). Risultato
+// percepito: peer SB visibile nel pane di SB ma NON nel pane di Q-BEATS
+// finché l'utente non chiudeva. Soundbrenner registra questo callback,
+// noi no — fix di parità comportamentale con SB.
+//
+// Comportamento: il C++ sincronizza enabled_ atomicamente PRIMA di
+// chiamare il user callback Swift. Q-B non chiama ABLLinkSetActive nel
+// callback — l'utente ha appena cambiato lo stato lui stesso, ri-asserirlo
+// sarebbe redundante e potenzialmente loop-inducente.
+void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
+    void (*callback)(bool isEnabled, void* context),
+    void* context) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    engine->isEnabledCallback_ = callback;
+    engine->isEnabledCallbackContext_ = context;
+    ABLLinkSetIsEnabledCallback(engine->link_,
+        [](bool isEnabled, void* ctx) {
+            LinkEngine* e = (LinkEngine*)ctx;
+            // Sincronizza il flag interno C++ con il nuovo stato del pane.
+            // Necessario per i guard in probe_session, start_at_*, stop,
+            // sync_phase, assert_session_state.
+            e->enabled_.store(isEnabled, std::memory_order_relaxed);
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][LINK][IS-ENABLED] callback isEnabled:%d",
+                   (int)isEnabled);
+            if (e->isEnabledCallback_) {
+                e->isEnabledCallback_(isEnabled, e->isEnabledCallbackContext_);
+            }
+        },
+        (void*)engine);
 }
 
 void link_engine_activate(LinkEngineHandle handle) {
