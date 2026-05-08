@@ -1381,8 +1381,13 @@ class AudioEngine: ObservableObject {
                            log: .default, type: .default, self.linkSyncSkipBuffers)
                 } else if _linkMode == .direttore {
                     // Modalità Direttore in play (siamo dentro scheduleNextBuffer,
-                    // quindi isRunning è già garantito true dal guard a riga 1350).
-                    // Ignora phase correction dai peer — Q-BEATS detta la timeline.
+                    // quindi isRunning è già garantito true dal guard a riga 1359).
+                    // Q-BEATS impone BPM e fase al session state in un singolo
+                    // capture/commit atomico — vedi rationale in
+                    // link_engine_assert_session_state. Risolve il drift di fase
+                    // post-deviazione peer (test D2, build #333).
+                    link_engine_assert_session_state(lh, hostTimeAtOutput,
+                                                    currentBeat, _audioBPM)
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     metronome_set_beat_position(h, newBeat)

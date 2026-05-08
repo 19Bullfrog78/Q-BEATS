@@ -422,3 +422,82 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
     }
     return false;
 }
+
+// === Modalità Direttore — Phase assertion attiva ===
+// Q-BEATS impone BPM e fase al session state in un singolo capture/commit
+// atomico. Usato in scheduleNextBuffer di AudioEngine.swift quando
+// _linkMode == .direttore, in alternativa a link_engine_sync_phase
+// (modalità Collaborativa).
+//
+// Razionale: in modalità Direttore Q-BEATS è la sorgente di verità della
+// timeline. ABLLinkSetTempo + ABLLinkRequestBeatAtTime nello stesso commit
+// garantiscono che il peer riceva tempo e fase nello stesso evento di
+// session update, evitando finestre intermedie di disallineamento.
+//
+// Vincolo critico: ABLLinkRequestBeatAtTime DEVE usare hostTimeAtOutput
+// (passato dal chiamante), non mach_absolute_time() ricalcolato. L'uso del
+// tempo sbagliato genera loop di rinegoziazione (regressione build #307).
+void link_engine_assert_session_state(LinkEngineHandle handle,
+                                      uint64_t hostTimeAtOutput,
+                                      double   currentBeatPosition,
+                                      double   bpm) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+
+    static mach_timebase_info_data_t timebase = {0, 0};
+    if (timebase.denom == 0) {
+        mach_timebase_info(&timebase);
+    }
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+
+    double quantum  = engine->quantum_.load(std::memory_order_relaxed);
+    double linkBeat = ABLLinkBeatAtTime(state, hostTimeAtOutput, quantum);
+
+    // Stessa proiezione di link_engine_sync_phase: portiamo
+    // currentBeatPosition al tempo del buffer in arrivo per un confronto
+    // coerente locale-vs-Link.
+    double   linkTempo   = ABLLinkGetTempo(state);
+    uint64_t now         = mach_absolute_time();
+    int64_t  deltaTicks  = (int64_t)hostTimeAtOutput - (int64_t)now;
+    double   deltaSec    = (double)deltaTicks
+                         * (double)timebase.numer
+                         / (double)timebase.denom
+                         / 1.0e9;
+    double   deltaBeats  = deltaSec * linkTempo / 60.0;
+    double   projectedBeatPosition = currentBeatPosition + deltaBeats;
+
+    double localPhase = fmod(projectedBeatPosition, quantum);
+    double linkPhase  = fmod(linkBeat, quantum);
+    if (localPhase < 0.0) localPhase += quantum;
+    if (linkPhase  < 0.0) linkPhase  += quantum;
+
+    double delta = linkPhase - localPhase;
+    if (delta >  quantum * 0.5) delta -= quantum;
+    if (delta < -quantum * 0.5) delta += quantum;
+
+    double threshold = engine->phaseJumpThresholdBeats_
+                           .load(std::memory_order_relaxed);
+
+    if (fabs(delta) > threshold) {
+        // Q-BEATS impone: tempo + posizione beat nello stesso commit.
+        // hostTimeAtOutput identico per entrambe le chiamate → atomicità
+        // semantica oltre che di commit.
+        // CRITICO: passare projectedBeatPosition (beat proiettato a
+        // hostTimeAtOutput), NON currentBeatPosition (beat a now). Confronto
+        // e correzione devono usare lo stesso riferimento temporale,
+        // altrimenti il delta sistematico ~0.02-0.04 beat (10-20ms a 120 BPM)
+        // non scende mai sotto threshold → assertion ad ogni buffer →
+        // loop di rinegoziazione (regressione #307).
+        ABLLinkSetTempo(state, bpm, hostTimeAtOutput);
+        ABLLinkRequestBeatAtTime(state, projectedBeatPosition,
+                                 hostTimeAtOutput, quantum);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][DIRECTOR-ASSERT] delta:%.4f bpm:%.2f beat_proj:%.4f",
+               delta, bpm, projectedBeatPosition);
+    }
+
+    ABLLinkCommitAppSessionState(engine->link_, state);
+}

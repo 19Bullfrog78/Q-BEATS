@@ -73,6 +73,23 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
                             double   currentBeatPosition,
                             double*  outNewBeatPosition);
 
+// === Modalità Direttore — Phase assertion attiva ===
+// Q-BEATS impone BPM e fase al session state in un singolo capture/commit
+// atomico. Usato in scheduleNextBuffer quando _linkMode == .direttore, in
+// alternativa a link_engine_sync_phase (modalità Collaborativa).
+//
+// hostTimeAtOutput: stesso valore passato a link_engine_sync_phase.
+// currentBeatPosition: posizione beat locale (Q-BEATS source of truth).
+// bpm: BPM corrente di Q-BEATS (_audioBPM su audioQueue).
+//
+// Vincolo: hostTimeAtOutput MAI sostituibile con mach_absolute_time()
+// ricalcolato — l'uso del tempo sbagliato genera loop di rinegoziazione
+// (regressione build #307). Vedi commento estensivo in LinkEngine.mm.
+void link_engine_assert_session_state(LinkEngineHandle handle,
+                                      uint64_t hostTimeAtOutput,
+                                      double   currentBeatPosition,
+                                      double   bpm);
+
 // === Build #309 — Start/Stop API semantica (Opzione 2) ===
 // Sostituisce il vecchio link_engine_set_is_playing con 4 funzioni
 // dal nome parlante, una per ciascuno scenario di transport. La quinta
