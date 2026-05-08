@@ -7,6 +7,7 @@ enum AppDestination: Hashable {
 
 struct AppRootView: View {
     @EnvironmentObject var audioEngine: AudioEngine
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
     @State private var path = NavigationPath()
 
@@ -33,6 +34,12 @@ struct AppRootView: View {
                         }
                 }
             }
+        }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+        .onChange(of: scenePhase) { newPhase in
+            UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
         }
     }
 }

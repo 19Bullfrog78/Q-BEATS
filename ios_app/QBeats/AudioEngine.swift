@@ -354,9 +354,6 @@ class AudioEngine: ObservableObject {
                 self.subdivPlayhead   = -1
 
                 try self.engine.start()
-                DispatchQueue.main.async {
-                    UIApplication.shared.isIdleTimerDisabled = true
-                }
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
@@ -1011,7 +1008,6 @@ class AudioEngine: ObservableObject {
         DispatchQueue.main.async {
             self.isPlaying   = false
             self.clickStatus = statusStr
-            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 
