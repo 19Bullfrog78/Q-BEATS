@@ -732,14 +732,6 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    func completeSetupAndEnable() {
-        audioQueue.async { [weak self] in
-            guard let self = self, let lh = self.linkEngineHandle else { return }
-            link_engine_set_enabled(lh, true)
-            DispatchQueue.main.async { self.linkEnabled = true }
-        }
-    }
-
     func disableLinkOnTerminate() {
         audioQueue.sync {
             if let lh = linkEngineHandle {

@@ -20,48 +20,35 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 SwiftUI.Section("Ableton Link") {
-                    Toggle("Link", isOn: Binding(
-                        get: { audioEngine.linkEnabled },
-                        set: { newValue in
-                            if newValue,
-                               let p = audioEngine.linkSettingsPresenter,
-                               !p.ablIsEnabled() {
-                                showLinkSetup = true
-                            } else {
-                                audioEngine.setLinkEnabled(newValue)
+                    Button("Ableton Link") {
+                        showLinkSetup = true
+                    }
+                    if audioEngine.linkEnabled {
+                        Picker("Modalità", selection: Binding(
+                            get: { audioEngine.appSettings.linkMode },
+                            set: { newValue in
+                                audioEngine.appSettings.linkMode = newValue
                             }
+                        )) {
+                            Text("Direttore").tag(LinkMode.direttore)
+                            Text("Collaborativa").tag(LinkMode.collaborativa)
                         }
-                    ))
-                    if audioEngine.linkEnabled,
-                       audioEngine.linkSettingsPresenter != nil {
-                        Button("Impostazioni Ableton Link") {
-                            showLinkSetup = true
+                        .pickerStyle(.menu)
+                        .disabled(audioEngine.isPlaying)
+                        HStack {
+                            Text("Peers")
+                            Spacer()
+                            Text("\(audioEngine.linkPeers)")
+                                .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
+                                .monospacedDigit()
                         }
-                    }
-                    Picker("Modalità", selection: Binding(
-                        get: { audioEngine.appSettings.linkMode },
-                        set: { newValue in
-                            audioEngine.appSettings.linkMode = newValue
+                        HStack {
+                            Text("BPM")
+                            Spacer()
+                            Text(String(format: "%.1f", audioEngine.currentBPM))
+                                .foregroundColor(.primary)
+                                .monospacedDigit()
                         }
-                    )) {
-                        Text("Direttore").tag(LinkMode.direttore)
-                        Text("Collaborativa").tag(LinkMode.collaborativa)
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(audioEngine.isPlaying)
-                    HStack {
-                        Text("Peers")
-                        Spacer()
-                        Text("\(audioEngine.linkPeers)")
-                            .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
-                            .monospacedDigit()
-                    }
-                    HStack {
-                        Text("BPM")
-                        Spacer()
-                        Text(String(format: "%.1f", audioEngine.currentBPM))
-                            .foregroundColor(.primary)
-                            .monospacedDigit()
                     }
                 }
 
@@ -99,9 +86,8 @@ struct SettingsView: View {
                 BTMIDICentralPickerView()
             }
             .sheet(isPresented: $showLinkSetup, onDismiss: {
-                if let p = audioEngine.linkSettingsPresenter, p.ablIsEnabled() {
-                    audioEngine.completeSetupAndEnable()
-                }
+                guard let p = audioEngine.linkSettingsPresenter else { return }
+                audioEngine.setLinkEnabled(p.ablIsEnabled())
             }) {
                 if let p = audioEngine.linkSettingsPresenter {
                     ABLLinkSettingsSheetView(presenter: p)
