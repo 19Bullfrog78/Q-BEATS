@@ -142,6 +142,7 @@ class AudioEngine: ObservableObject {
     private var subdivPlayhead       : Int = -1
     private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
     private var _linkMode: LinkMode = .direttore   // accesso SOLO su audioQueue
+    private var _currentBPM: Double = 120.0   // accesso SOLO su audioQueue
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -220,8 +221,16 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
-                    // Modalità Direttore in play: ignora cambi tempo da peer
-                    if engine.isRunning && engine._linkMode == .direttore { return }
+                    // Modalità Direttore in play: ri-asserisci il proprio tempo
+                    // per vincere la negoziazione Link (Q-B detta, peer seguono).
+                    // Il check bpm != _currentBPM evita loop di re-broadcast quando
+                    // peer riceve il valore Q-B e ritorna lo stesso.
+                    if engine.isRunning && engine._linkMode == .direttore {
+                        if bpm != engine._currentBPM, let lh = engine.linkEngineHandle {
+                            link_engine_set_bpm(lh, engine._currentBPM)
+                        }
+                        return
+                    }
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
                     }
@@ -591,6 +600,7 @@ class AudioEngine: ObservableObject {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
             metronome_setBPM(h, bpm)
+            self._currentBPM = bpm
             if let mh = self.midiEngineHandle {
                 midi_engine_set_bpm(mh, bpm)
             }
