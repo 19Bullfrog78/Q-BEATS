@@ -478,22 +478,35 @@ void link_engine_assert_session_state(LinkEngineHandle handle,
     if (delta >  quantum * 0.5) delta -= quantum;
     if (delta < -quantum * 0.5) delta += quantum;
 
-    double threshold = engine->phaseJumpThresholdBeats_
-                           .load(std::memory_order_relaxed);
+    // Soglia dedicata Director, separata da phaseJumpThresholdBeats_ usata
+    // da link_engine_sync_phase (Collaborativa). Build #333 ha rivelato un
+    // drift sistematico ~0.025 beat (~12ms a 120 BPM) tra clock locale Q-B
+    // e session state Link, sotto-percettivo ma sopra la soglia 0.01 di
+    // sync_phase → l'assertion scattava ad ogni buffer in regime stabile.
+    // 0.04 lascia spazio al drift sistematico (silenzio in regime) e
+    // scatta solo su deviazioni reali del peer (delta > ~20ms).
+    constexpr double kDirectorPhaseThreshold = 0.04;
 
-    if (fabs(delta) > threshold) {
+    if (fabs(delta) > kDirectorPhaseThreshold) {
         // Q-BEATS impone: tempo + posizione beat nello stesso commit.
         // hostTimeAtOutput identico per entrambe le chiamate → atomicità
         // semantica oltre che di commit.
-        // CRITICO: passare projectedBeatPosition (beat proiettato a
-        // hostTimeAtOutput), NON currentBeatPosition (beat a now). Confronto
-        // e correzione devono usare lo stesso riferimento temporale,
-        // altrimenti il delta sistematico ~0.02-0.04 beat (10-20ms a 120 BPM)
-        // non scende mai sotto threshold → assertion ad ogni buffer →
-        // loop di rinegoziazione (regressione #307).
+        //
+        // CRITICO 1 — projectedBeatPosition (NON currentBeatPosition):
+        // confronto e correzione devono usare lo stesso riferimento
+        // temporale, altrimenti il delta non scende mai sotto soglia.
+        //
+        // CRITICO 2 — ABLLinkForceBeatAtTime (NON RequestBeatAtTime):
+        // Build #333 ha rivelato che RequestBeatAtTime in presenza di peer
+        // negozia col consensus invece di imporre, lasciando il delta
+        // bloccato a valori alti (0.13-0.33) dopo deviazione peer. Force
+        // è documentata da Ableton come "rude re-map for all peers" →
+        // legittima per external clock source, che è esattamente la
+        // semantica Director (Q-BEATS è la sorgente di verità autoritaria
+        // della timeline).
         ABLLinkSetTempo(state, bpm, hostTimeAtOutput);
-        ABLLinkRequestBeatAtTime(state, projectedBeatPosition,
-                                 hostTimeAtOutput, quantum);
+        ABLLinkForceBeatAtTime(state, projectedBeatPosition,
+                               hostTimeAtOutput, quantum);
         os_log(OS_LOG_DEFAULT,
                "[Q-BEATS][LINK][DIRECTOR-ASSERT] delta:%.4f bpm:%.2f beat_proj:%.4f",
                delta, bpm, projectedBeatPosition);
