@@ -170,10 +170,22 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 // finché l'utente non chiudeva. Soundbrenner registra questo callback,
 // noi no — fix di parità comportamentale con SB.
 //
-// Comportamento: il C++ sincronizza enabled_ atomicamente PRIMA di
-// chiamare il user callback Swift. Q-B non chiama ABLLinkSetActive nel
-// callback — l'utente ha appena cambiato lo stato lui stesso, ri-asserirlo
-// sarebbe redundante e potenzialmente loop-inducente.
+// Comportamento: il C++ replica la sequenza interna di
+// link_engine_set_enabled atomicamente PRIMA di chiamare il user
+// callback Swift. Due passi obbligatori:
+//   1. enabled_.store(isEnabled) — flag interno per i guard di
+//      probe_session, start_at_*, stop, sync_phase, assert_session_state.
+//   2. ABLLinkSetActive(link_, isEnabled) — flag programmatic di LinkKit
+//      che attiva/disattiva la discovery dei peer e il network multicast.
+//      Questo è separato da ABLLinkIsEnabled (user-only) e DEVE essere
+//      chiamato esplicitamente perché altrimenti il pane Ableton mostra
+//      Link "on" ma Q-B non scopre peer (build c7d1073..7d38080 aveva
+//      proprio questo bug).
+//
+// No loop di re-emission: ABLLinkSetIsEnabledCallback è documentato
+// "Invoked when the user changes the enabled state via the Link
+// settings view" — solo user action, non chiamate programmatiche.
+// ABLLinkSetActive(true) qui non ri-trigger il callback.
 void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
     void (*callback)(bool isEnabled, void* context),
     void* context) {
@@ -184,12 +196,15 @@ void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
     ABLLinkSetIsEnabledCallback(engine->link_,
         [](bool isEnabled, void* ctx) {
             LinkEngine* e = (LinkEngine*)ctx;
-            // Sincronizza il flag interno C++ con il nuovo stato del pane.
-            // Necessario per i guard in probe_session, start_at_*, stop,
-            // sync_phase, assert_session_state.
+            // Sincronizza i due flag (interno + programmatic) atomicamente
+            // PRIMA di chiamare il user callback Swift. Stessa sequenza di
+            // link_engine_set_enabled, perché il pane Ableton da solo
+            // modifica solo ABLLinkIsEnabled (user-only) — la discovery
+            // dei peer richiede anche ABLLinkSetActive programmatic.
             e->enabled_.store(isEnabled, std::memory_order_relaxed);
+            ABLLinkSetActive(e->link_, isEnabled);
             os_log(OS_LOG_DEFAULT,
-                   "[Q-BEATS][LINK][IS-ENABLED] callback isEnabled:%d",
+                   "[Q-BEATS][LINK][IS-ENABLED] callback isEnabled:%d (enabled_ + ABLLinkSetActive sincronizzati)",
                    (int)isEnabled);
             if (e->isEnabledCallback_) {
                 e->isEnabledCallback_(isEnabled, e->isEnabledCallbackContext_);
