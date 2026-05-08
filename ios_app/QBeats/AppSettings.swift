@@ -1,5 +1,10 @@
 import Foundation
 
+enum LinkMode: String, Codable {
+    case direttore       // Q-BEATS detta. Durante play ignora BPM/phase/stop dai peer.
+    case collaborativa   // Standard Link peer-to-peer. Q-BEATS accetta tutto dai peer.
+}
+
 struct AppSettings: Codable {
     var accentVolume: Double = 1.0   // [0.0, 1.0] — downbeat
     var beatVolume:   Double = 0.8   // [0.0, 1.0] — beat normale
@@ -10,6 +15,7 @@ struct AppSettings: Codable {
     var ch3Volume:    Float  = 0.0
     var ch4Volume:    Float  = 0.0
     var showDNDReminder: Bool = true
+    var linkMode:     LinkMode = .direttore
 }
 
 extension AppSettings {

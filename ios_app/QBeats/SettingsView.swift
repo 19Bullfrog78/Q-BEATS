@@ -38,6 +38,17 @@ struct SettingsView: View {
                             showLinkSetup = true
                         }
                     }
+                    Picker("Modalità", selection: Binding(
+                        get: { audioEngine.appSettings.linkMode },
+                        set: { newValue in
+                            audioEngine.appSettings.linkMode = newValue
+                        }
+                    )) {
+                        Text("Direttore").tag(LinkMode.direttore)
+                        Text("Collaborativa").tag(LinkMode.collaborativa)
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(audioEngine.isPlaying)
                     HStack {
                         Text("Peers")
                         Spacer()

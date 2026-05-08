@@ -91,6 +91,7 @@ class AudioEngine: ObservableObject {
             metronome_set_beat_volume(mh, s.beatVolume)
             metronome_set_subdiv_volume(mh, s.subdivVolume)
             self._clickMuted = s.clickMuted
+            self._linkMode = s.linkMode
             // Layer 1 non riceve mai il mute — beat events continuano a scattare.
             self.ch1Volume = s.ch1Volume
             self.ch2Volume = s.ch2Volume
@@ -140,6 +141,7 @@ class AudioEngine: ObservableObject {
     private var accentPlayhead       : Int = -1
     private var subdivPlayhead       : Int = -1
     private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
+    private var _linkMode: LinkMode = .direttore   // accesso SOLO su audioQueue
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -218,6 +220,8 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
+                    // Modalità Direttore in play: ignora cambi tempo da peer
+                    if engine.isRunning && engine._linkMode == .direttore { return }
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
                     }
@@ -251,6 +255,9 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
+                // Modalità Direttore in play: ignora start/stop da peer.
+                // Lettura _linkMode da non-audioQueue: enum case è atomic in Swift.
+                if engine.isRunning && engine._linkMode == .direttore { return }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
@@ -1370,6 +1377,10 @@ class AudioEngine: ObservableObject {
                     self.linkSyncSkipBuffers -= 1
                     os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
                            log: .default, type: .default, self.linkSyncSkipBuffers)
+                } else if _linkMode == .direttore {
+                    // Modalità Direttore in play (siamo dentro scheduleNextBuffer,
+                    // quindi isRunning è già garantito true dal guard a riga 1350).
+                    // Ignora phase correction dai peer — Q-BEATS detta la timeline.
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     metronome_set_beat_position(h, newBeat)
