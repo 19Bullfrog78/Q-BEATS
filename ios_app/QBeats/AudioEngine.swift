@@ -143,6 +143,13 @@ class AudioEngine: ObservableObject {
     private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
     private var _linkMode: LinkMode = .direttore   // accesso SOLO su audioQueue
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
+    // === L1.a — Sezione corrente (mirror su audioQueue) ===
+    // Sincronizzati via loadSection(beatsPerBar:repetitions:onEnd:).
+    // _sectionTotalBeats = 0 → nessun limite (loop infinito o sezione non caricata).
+    // _onSectionEnd è single-shot: consumata (settata nil) sull'ultimo beat per evitare double-fire.
+    private var _sectionTotalBeats: Int = 0
+    private var _sectionBeatCounter: Int = 0
+    private var _onSectionEnd: (() -> Void)? = nil
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -414,6 +421,10 @@ class AudioEngine: ObservableObject {
                 self.bufferCount      = 0
                 self.beatTotal        = 0
                 self.beatTickCounter  = 0
+                // L1.a — coerenza con stopSync(): replay safe.
+                // Vedi commento in stopSync() per la motivazione di non
+                // toccare _sectionTotalBeats e _onSectionEnd.
+                self._sectionBeatCounter = 0
                 self.clickPlayhead    = -1
                 self.accentPlayhead   = -1
                 self.subdivPlayhead   = -1
@@ -657,6 +668,37 @@ class AudioEngine: ObservableObject {
                 link_engine_set_bpm(lh, bpm)
             }
             DispatchQueue.main.async { self.currentBPM = bpm }
+        }
+    }
+
+    // === L1.a — Caricamento sezione + closure end-of-section ===
+    // Chiamabile da qualunque thread. Internamente:
+    //   - audioQueue per i 3 mirror privati (_sectionTotalBeats, _sectionBeatCounter, _onSectionEnd)
+    //   - main per currentSectionRepetitions @Published (display Vista LIVE)
+    // Semantica:
+    //   repetitions > 0  → registra closure single-shot, scatterà sull'ultimo beat
+    //                       della sezione (totalBeats = repetitions × beatsPerBar)
+    //   repetitions <= 0 → nessun limite (loop infinito esplicito -1 o reset 0),
+    //                       closure NON registrata, nessun stop automatico
+    // Il display Vista LIVE riflette il valore passato (positivo, 0, o -1) — la
+    // distinzione 0 vs -1 è preservata per coerenza con SongSection.repetitions.
+    func loadSection(beatsPerBar: UInt32,
+                     repetitions: Int,
+                     onEnd: @escaping () -> Void) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            if repetitions > 0 {
+                self._sectionTotalBeats = repetitions * Int(beatsPerBar)
+                self._sectionBeatCounter = 0
+                self._onSectionEnd = onEnd
+            } else {
+                self._sectionTotalBeats = 0
+                self._sectionBeatCounter = 0
+                self._onSectionEnd = nil
+            }
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.currentSectionRepetitions = repetitions
         }
     }
 
@@ -1057,6 +1099,12 @@ class AudioEngine: ObservableObject {
             self.qa1BeatCounter  = 0
             self.qa1StartTime    = 0
             self.beatTickCounter = 0
+            // L1.a — reset counter sezione per replay corretto.
+            // _sectionTotalBeats e _onSectionEnd RESTANO registrati: la sezione
+            // caricata deve persistere tra stop/play (es. utente preme Stop a
+            // metà sezione e poi Play — la sezione ricomincia da capo, non
+            // viene "scaricata"). Solo il counter va azzerato.
+            self._sectionBeatCounter = 0
             self.backtrackPlayerNode.stop()
         }
         guard wasRunning else { return }
@@ -1531,6 +1579,28 @@ class AudioEngine: ObservableObject {
                         os_log("QA1 beat=%{public}llu expected=%.3fs elapsed=%.3fs delta=%{public}.2fms",
                                log: .default, type: .default,
                                self.qa1BeatCounter, expected, elapsed, deltams)
+                    }
+
+                    // === L1.a — Stop a fine ultima ripetizione ===
+                    // _sectionTotalBeats > 0 → sezione con limite caricata via loadSection.
+                    // Incremento contatore + check fine. Single-shot: closure consumata
+                    // (nil dopo) e contatori azzerati per evitare double-fire al replay.
+                    // L'ultimo beat suona normalmente: siamo DOPO l'emissione del tick e
+                    // PRIMA dello scheduling del prossimo buffer audio.
+                    if self._sectionTotalBeats > 0 {
+                        self._sectionBeatCounter += 1
+                        if self._sectionBeatCounter >= self._sectionTotalBeats {
+                            os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → onSectionEnd",
+                                   log: .default, type: .default,
+                                   self._sectionBeatCounter, self._sectionTotalBeats)
+                            let endClosure = self._onSectionEnd
+                            self._sectionTotalBeats = 0
+                            self._sectionBeatCounter = 0
+                            self._onSectionEnd = nil
+                            if let endClosure {
+                                DispatchQueue.main.async { endClosure() }
+                            }
+                        }
                     }
                 }
 

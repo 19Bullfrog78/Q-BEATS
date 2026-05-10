@@ -282,16 +282,26 @@ struct DebugView: View {
                 #if DEBUG
                 SwiftUI.Section("Test Bar Counter") {
                     Button("Sezione A — 8 battute") {
-                        audioEngine.currentSectionRepetitions = 8
+                        audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
+                                                repetitions: 8) { [weak audioEngine] in
+                            audioEngine?.stop()
+                            audioEngine?.playbackState = .stopped
+                        }
                     }
                     Button("Sezione B — 4 battute") {
-                        audioEngine.currentSectionRepetitions = 4
+                        audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
+                                                repetitions: 4) { [weak audioEngine] in
+                            audioEngine?.stop()
+                            audioEngine?.playbackState = .stopped
+                        }
                     }
                     Button("Loop infinito (∞)") {
-                        audioEngine.currentSectionRepetitions = -1
+                        audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
+                                                repetitions: -1) { }
                     }
                     Button("Reset (—)") {
-                        audioEngine.currentSectionRepetitions = 0
+                        audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
+                                                repetitions: 0) { }
                     }
                 }
                 #endif
