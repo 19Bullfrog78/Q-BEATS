@@ -285,14 +285,12 @@ struct DebugView: View {
                         audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
                                                 repetitions: 8) { [weak audioEngine] in
                             audioEngine?.stop()
-                            audioEngine?.playbackState = .stopped
                         }
                     }
                     Button("Sezione B — 4 battute") {
                         audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
                                                 repetitions: 4) { [weak audioEngine] in
                             audioEngine?.stop()
-                            audioEngine?.playbackState = .stopped
                         }
                     }
                     Button("Loop infinito (∞)") {

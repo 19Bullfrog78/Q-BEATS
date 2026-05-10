@@ -663,6 +663,15 @@ class AudioEngine: ObservableObject {
 
     func stop() {
         stopSync()
+        // P1+P3 fix: allinea playbackState all'isPlaying su ogni percorso di stop.
+        // Pattern già usato in handleStop() (.countIn/.playing) e restartFromBeginning().
+        // Senza questo dispatch, lo stop manuale lasciava playbackState=.playing
+        // mentre isPlaying=false → desincronizzazione UI (segmento bloccato bianco,
+        // TransportView label/glyph fuori sync — TransportView re-render solo su
+        // session.playbackState, non su audioEngine.isPlaying).
+        DispatchQueue.main.async { [weak self] in
+            self?.playbackState = .stopped
+        }
     }
 
     func setBPM(_ bpm: Double) {
