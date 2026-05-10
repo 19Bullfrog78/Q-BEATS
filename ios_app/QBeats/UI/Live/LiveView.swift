@@ -116,6 +116,21 @@ struct LiveView: View {
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
         }
+        // P2 — Fade LED ultimo beat a fine sezione NATURALE (autostop L1.a).
+        // Lo stop manuale NON emette sectionEndedSubject: il LED resta acceso
+        // (Test 4 verde, comportamento ratificato). Qui invece, dopo l'autostop,
+        // attendiamo la durata di un beat al BPM corrente e poi spegniamo.
+        // Il guard su playbackState protegge il caso "Play premuto durante fade":
+        // se l'utente riparte prima della scadenza, il nuovo beat 1 prende il
+        // posto del 4 acceso e lasciamo perdere il reset.
+        .onReceive(audioEngine.sectionEndedSubject) { _ in
+            let beatDurationSeconds = 60.0 / max(audioEngine.currentBPM, 1)
+            DispatchQueue.main.asyncAfter(deadline: .now() + beatDurationSeconds) {
+                if case .stopped = session.playbackState {
+                    session.beatActive = 0
+                }
+            }
+        }
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {

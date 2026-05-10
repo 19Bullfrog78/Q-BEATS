@@ -67,6 +67,12 @@ class AudioEngine: ObservableObject {
     let beatTickSubject = PassthroughSubject<Int, Never>()
     private var beatTickCounter: Int = 0
 
+    // L1.a P2 — segnale "fine sezione naturale" (post-drain audio).
+    // Distingue autostop da stop manuale: lo stop manuale chiama stop() direttamente
+    // senza emettere questo subject. LiveView lo ascolta per il fade del LED
+    // dell'ultimo beat (durata pari a un beat al BPM corrente, poi spegnimento).
+    let sectionEndedSubject = PassthroughSubject<Void, Never>()
+
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
 
@@ -1493,8 +1499,15 @@ class AudioEngine: ObservableObject {
             self._pendingEndClosure = nil
             os_log("[Q-BEATS][L1.a] drain completato → onSectionEnd dispatch",
                    log: .default, type: .default)
-            if let endClosure {
-                DispatchQueue.main.async { endClosure() }
+            // P2: emetti sectionEndedSubject PRIMA della closure (autostop = fine
+            // naturale). LiveView avvia il fade del LED ultimo beat con durata
+            // pari a un beat al BPM corrente. Poi parte la closure (che farà
+            // stop() → playbackState=.stopped via fix P1+P3, ma il LED resta
+            // acceso durante il fade grazie a TD#10: nessun reset di beatActive
+            // in case .stopped).
+            DispatchQueue.main.async { [weak self] in
+                self?.sectionEndedSubject.send()
+                endClosure?()
             }
             return
         }
