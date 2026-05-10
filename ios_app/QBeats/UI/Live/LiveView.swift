@@ -90,6 +90,20 @@ struct LiveView: View {
             switch state {
             case .stopped:
                 session.playbackState = .stopped
+                // P2 sync stop manuale: spegnimento all'unisono LED+trattini.
+                // Se sectionHold=false → stop manuale (o overlay) → reset beatActive
+                // subito (LED metronomo si spegne insieme ai trattini gia gestiti
+                // dal gate state==.playing in MicroSegBarView).
+                // Se sectionHold=true → autostop in corso → NON toccare beatActive:
+                // ci pensa l'asyncAfter di sectionEndedSubject a fare il reset
+                // sincronizzato dopo durata-beat (mantiene il fade di ~500ms).
+                // Ordine eventi su main: sectionEndedSubject.send() viene processato
+                // PRIMA di playbackState=.stopped (dispatch async successivo dalla
+                // stop()), quindi quando arrivo qui sectionHold e' gia' true se
+                // siamo in autostop.
+                if !sectionHold {
+                    session.beatActive = 0
+                }
             case .countIn:
                 session.playbackState = .countIn(countdown: 4)
             case .playing:
