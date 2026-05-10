@@ -1640,11 +1640,17 @@ class AudioEngine: ObservableObject {
                             os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → drain mode",
                                    log: .default, type: .default,
                                    self._sectionBeatCounter, self._sectionTotalBeats)
+                            // Salva closure corrente per dispatch a fine drain.
+                            // _sectionTotalBeats e _onSectionEnd RESTANO registrati:
+                            // la sezione caricata persiste tra play/replay (utente
+                            // ascolta sezione 4 battute → stop automatico → ripreme
+                            // Play → si aspetta che la stessa sezione ricominci).
+                            // Solo _sectionBeatCounter va azzerato per il replay.
+                            // Niente double-fire durante il drain: metronome_processBuffer
+                            // skippato → beatCount=0 → hook non scatta.
                             self._pendingEndClosure = self._onSectionEnd
                             self._sectionEndPending = true
-                            self._sectionTotalBeats = 0
                             self._sectionBeatCounter = 0
-                            self._onSectionEnd = nil
                         }
                     }
                 }
