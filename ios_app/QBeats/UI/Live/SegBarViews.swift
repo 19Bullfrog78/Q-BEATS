@@ -4,17 +4,27 @@ struct MicroSegBarView: View {
     let current: Int
     let total: Int
     let state: LivePlaybackState
+    let sectionHold: Bool
 
+    // P2 sync: il segmento e' acceso quando lo state e' .playing OPPURE quando
+    // siamo nella finestra di "fade post-sezione naturale" (sectionHold=true).
+    // Questo allinea lo spegnimento del segmento a quello del LED metronomo:
+    // entrambi durano la durata di un beat al BPM corrente, poi si spengono
+    // INSIEME dallo stesso istante (sectionHold=false + beatActive=0 dispatchati
+    // dall'asyncAfter in LiveView).
+    // Stop manuale: NON attiva sectionHold → segmento si spegne subito a .stopped
+    // (comportamento ratificato Test 4 P1+P3, LED resta acceso da TD#10).
     var body: some View {
         let segs = max(total, 1)
         let isPlaying: Bool = {
             if case .playing = state { return true }
             return false
         }()
+        let isLit = isPlaying || sectionHold
         HStack(spacing: 3) {
             ForEach(0..<segs, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill((isPlaying && i < current) ? Color.white.opacity(0.85) : Color.white.opacity(0.07))
+                    .fill((isLit && i < current) ? Color.white.opacity(0.85) : Color.white.opacity(0.07))
                     .frame(height: 5)
             }
         }

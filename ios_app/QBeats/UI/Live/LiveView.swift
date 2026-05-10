@@ -4,6 +4,9 @@ import os
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @StateObject private var session = LiveSession()
+    // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
+    // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
+    @State private var sectionHold: Bool = false
 
     var body: some View {
         GeometryReader { geo in
@@ -22,7 +25,7 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.10)
                     BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
                         .frame(height: geo.size.height * 0.08)
-                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
+                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
                         .frame(height: geo.size.height * 0.04)
                     VStack(spacing: 0) {
                         TeleprompterCapsuleView(session: session)
@@ -91,9 +94,13 @@ struct LiveView: View {
                 session.playbackState = .countIn(countdown: 4)
             case .playing:
                 session.playbackState = .playing
+                // P2: chiusura della finestra fade se l'utente preme Play durante
+                // i ~500ms post-autostop (asyncAfter pendente sara' poi no-op via guard).
+                sectionHold = false
             case .pausedAwaitingChoice(let sec, let song):
                 session.playbackState = .overlayStop(sectionName: sec, songName: song)
                 session.beatActive = 0
+                sectionHold = false
             }
             session.currentSongName = audioEngine.currentSong ?? ""
             session.currentSectionName = audioEngine.currentSection ?? ""
@@ -116,17 +123,23 @@ struct LiveView: View {
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
         }
-        // P2 — Fade LED ultimo beat a fine sezione NATURALE (autostop L1.a).
-        // Lo stop manuale NON emette sectionEndedSubject: il LED resta acceso
-        // (Test 4 verde, comportamento ratificato). Qui invece, dopo l'autostop,
-        // attendiamo la durata di un beat al BPM corrente e poi spegniamo.
-        // Il guard su playbackState protegge il caso "Play premuto durante fade":
-        // se l'utente riparte prima della scadenza, il nuovo beat 1 prende il
-        // posto del 4 acceso e lasciamo perdere il reset.
+        // P2 — Fade SINCRONIZZATO segmento+LED a fine sezione NATURALE (autostop L1.a).
+        // sectionHold=true tiene acceso il segmento durante la finestra di fade
+        // (override del gate state==.playing). Dopo durata-beat al BPM corrente,
+        // sectionHold=false E beatActive=0 dispatchati nello stesso istante:
+        // segmento e LED si spengono INSIEME, esattamente quello che serve a fine
+        // sezione naturale ("metronomo e segmento si comportano insieme").
+        // Stop manuale: NON emette il subject — segmento si spegne subito al
+        // .stopped (Test 4 verde) e LED resta da TD#10.
+        // Guard su .stopped: se l'utente preme Play durante il fade, lo switch
+        // su .playing ha gia' resettato sectionHold; questo asyncAfter diventa
+        // un no-op silenzioso.
         .onReceive(audioEngine.sectionEndedSubject) { _ in
+            sectionHold = true
             let beatDurationSeconds = 60.0 / max(audioEngine.currentBPM, 1)
             DispatchQueue.main.asyncAfter(deadline: .now() + beatDurationSeconds) {
                 if case .stopped = session.playbackState {
+                    sectionHold = false
                     session.beatActive = 0
                 }
             }
