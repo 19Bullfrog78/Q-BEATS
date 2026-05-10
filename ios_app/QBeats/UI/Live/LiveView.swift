@@ -22,7 +22,7 @@ struct LiveView: View {
                         .frame(height: geo.size.height * 0.10)
                     BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
                         .frame(height: geo.size.height * 0.08)
-                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection)
+                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
                         .frame(height: geo.size.height * 0.04)
                     VStack(spacing: 0) {
                         TeleprompterCapsuleView(session: session)
@@ -87,7 +87,6 @@ struct LiveView: View {
             switch state {
             case .stopped:
                 session.playbackState = .stopped
-                session.beatActive = 0
             case .countIn:
                 session.playbackState = .countIn(countdown: 4)
             case .playing:
@@ -116,9 +115,6 @@ struct LiveView: View {
         }
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
-        }
-        .onReceive(audioEngine.$isPlaying) { playing in
-            if !playing { session.beatActive = 0 }
         }
     }
 
