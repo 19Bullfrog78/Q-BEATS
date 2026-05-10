@@ -216,9 +216,50 @@ void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
 void link_engine_activate(LinkEngineHandle handle) {
     if (!handle) return;
     LinkEngine* le = static_cast<LinkEngine*>(handle);
-    // ABLLinkSetActive rimosso — attivazione affidata esclusivamente al toggle UI.
-    // Flap activate(true)→(false) al boot rompeva il discovery multicast di LinkKit.
-    os_log(OS_LOG_DEFAULT, "[Q-BEATS][LINK][ACTIVATE] Link attivato dopo registrazione callback");
+
+    // === Boot reconciliation ABLLinkIsEnabled persistito ===
+    // LinkKit persiste ABLLinkIsEnabled tra una sessione e l'altra. Al boot
+    // Q-BEATS si trova sempre con enabled_=false (default struct) e
+    // ABLLinkSetActive(false) (forzato in link_engine_create). Se l'utente
+    // aveva lasciato Link ON, ABLLinkIsEnabled() resta true ma:
+    //   - flag interno enabled_ resta false (i guard di probe_session,
+    //     start_at_*, sync_phase, assert_session_state non passano)
+    //   - ABLLinkSetActive resta false (discovery peer disattiva,
+    //     network multicast spento)
+    //   - ABLLinkSetIsEnabledCallback NON scatta — è invocato solo su
+    //     cambio di stato user-driven, e qui non c'è cambio
+    // Risultato osservato pre-fix: pane Ableton mostra Link "ON" ma nessun
+    // peer compare finché l'utente non chiude/riapre il pane (e nemmeno
+    // allora — il callback resta silente).
+    //
+    // Fix: leggere ABLLinkIsEnabled qui (chiamata DOPO la registrazione di
+    // tutti i callback Swift) e, se persistito a true, replicare la sequenza
+    // interna di set_is_enabled_callback in modo coerente:
+    //   1. enabled_.store(true)        — flag interno C++ allineato
+    //   2. ABLLinkSetActive(true)      — discovery peer attiva
+    //   3. isEnabledCallback_(true, …) — propaga a Swift → linkEnabled=true,
+    //                                    UI coerente, re-check peers post-2s
+    // No flap activate(true)→(false) al boot: chiamiamo SetActive(true) solo
+    // se ABLLinkIsEnabled è già true (intenzione utente persistita), mai
+    // come default. Il commento storico "flap rompe multicast" si riferiva a
+    // chiamate incondizionate post-create, qui evitate.
+    bool persistedEnabled = ABLLinkIsEnabled(le->link_);
+    os_log(OS_LOG_DEFAULT,
+           "[Q-BEATS][LINK][ACTIVATE] persistedEnabled:%d",
+           (int)persistedEnabled);
+
+    if (persistedEnabled) {
+        le->enabled_.store(true, std::memory_order_relaxed);
+        ABLLinkSetActive(le->link_, true);
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][ACTIVATE] reconciled: enabled_=true + ABLLinkSetActive(true) + propagate callback");
+        if (le->isEnabledCallback_) {
+            le->isEnabledCallback_(true, le->isEnabledCallbackContext_);
+        }
+    } else {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][ACTIVATE] no persisted state — Link rimane inattivo fino a toggle utente");
+    }
 
     // Diagnostic #293: poll stato Link ogni 5s dopo attivazione
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),

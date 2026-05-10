@@ -324,8 +324,12 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        // link_engine_activate() registra il POLL diagnostico; NON chiama ABLLinkSetActive.
-        // Link viene attivato esclusivamente dal toggle UI (link_engine_set_enabled).
+        // link_engine_activate() esegue boot reconciliation di ABLLinkIsEnabled
+        // persistito (se true: enabled_.store + ABLLinkSetActive(true) +
+        // propagazione isEnabledCallback → linkEnabled=true Swift), poi avvia
+        // il poll diagnostico #293. Vedi commento estensivo in LinkEngine.mm.
+        // Quando ABLLinkIsEnabled è false, l'attivazione resta affidata al
+        // toggle UI (link_engine_set_enabled).
         if let lh = linkEngineHandle {
             link_engine_activate(lh)
         }
