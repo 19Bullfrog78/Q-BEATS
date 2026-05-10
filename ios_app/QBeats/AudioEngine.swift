@@ -150,6 +150,15 @@ class AudioEngine: ObservableObject {
     private var _sectionTotalBeats: Int = 0
     private var _sectionBeatCounter: Int = 0
     private var _onSectionEnd: (() -> Void)? = nil
+    // === L1.a — Drain mode dopo fine sezione ===
+    // Quando il counter raggiunge il totale, _sectionEndPending viene settato.
+    // I buffer successivi NON chiamano metronome_processBuffer (no beat fantasma)
+    // ma continuano a drenare clickPlayhead/accentPlayhead/subdivPlayhead esistenti.
+    // Quando tutti i playhead sono < 0 → dispatch _pendingEndClosure → stop reale.
+    // Sample-accurate: il dispatch arriva quando l'ultimo click è stato riprodotto
+    // integralmente, non con timer arbitrari su main thread.
+    private var _sectionEndPending: Bool = false
+    private var _pendingEndClosure: (() -> Void)? = nil
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -1105,6 +1114,12 @@ class AudioEngine: ObservableObject {
             // metà sezione e poi Play — la sezione ricomincia da capo, non
             // viene "scaricata"). Solo il counter va azzerato.
             self._sectionBeatCounter = 0
+            // L1.a — Stop manuale durante drain: aborta dispatch pending.
+            // Non chiamiamo la closure: stopSync sta già facendo il lavoro che
+            // la closure di L1.a avrebbe fatto (stop motore + reset). Lasciarla
+            // pending la farebbe scattare al prossimo Play, scenario indesiderato.
+            self._sectionEndPending = false
+            self._pendingEndClosure = nil
             self.backtrackPlayerNode.stop()
         }
         guard wasRunning else { return }
@@ -1455,6 +1470,26 @@ class AudioEngine: ObservableObject {
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
 
+        // === L1.a — Drain mode check ===
+        // Se in drain (sezione finita) e tutti i playhead sono esauriti, il
+        // click è stato riprodotto integralmente: dispatch closure stop ora.
+        // Sample-accurate: il completion handler dell'ultimo buffer ci ha
+        // svegliato esattamente quando l'audio era esaurito.
+        if self._sectionEndPending
+            && self.clickPlayhead < 0
+            && self.accentPlayhead < 0
+            && self.subdivPlayhead < 0 {
+            self._sectionEndPending = false
+            let endClosure = self._pendingEndClosure
+            self._pendingEndClosure = nil
+            os_log("[Q-BEATS][L1.a] drain completato → onSectionEnd dispatch",
+                   log: .default, type: .default)
+            if let endClosure {
+                DispatchQueue.main.async { endClosure() }
+            }
+            return
+        }
+
         if bufferCount == 0 || bufferCount % 100 == 0 {
             os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f",
                    log: .default, type: .default,
@@ -1514,7 +1549,17 @@ class AudioEngine: ObservableObject {
         guard let dst = buffer.floatChannelData?[0] else { return }
         for i in 0..<Int(bufferSize) { dst[i] = 0.0 }
 
-        let beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, &accents, &isBeats, UInt32(maxBeats))
+        // === L1.a — Drain mode: skip metronome_processBuffer ===
+        // Durante il drain non chiediamo nuovi beat events al motore C++:
+        // questo evita che vengano generati click "fantasma" in attesa che
+        // il drain finisca. I playhead esistenti (clickPlayhead/accent/subdiv)
+        // continuano comunque a essere drenati nel buffer corrente sotto.
+        let beatCount: UInt32
+        if self._sectionEndPending {
+            beatCount = 0
+        } else {
+            beatCount = metronome_processBuffer(h, UInt32(bufferSize), &offsets, &accents, &isBeats, UInt32(maxBeats))
+        }
         bufferCount += 1
         beatTotal   += Int(beatCount)
 
@@ -1581,25 +1626,25 @@ class AudioEngine: ObservableObject {
                                self.qa1BeatCounter, expected, elapsed, deltams)
                     }
 
-                    // === L1.a — Stop a fine ultima ripetizione ===
+                    // === L1.a — Stop a fine ultima ripetizione (drain-based) ===
                     // _sectionTotalBeats > 0 → sezione con limite caricata via loadSection.
-                    // Incremento contatore + check fine. Single-shot: closure consumata
-                    // (nil dopo) e contatori azzerati per evitare double-fire al replay.
-                    // L'ultimo beat suona normalmente: siamo DOPO l'emissione del tick e
-                    // PRIMA dello scheduling del prossimo buffer audio.
+                    // Incremento contatore + check fine. NESSUN dispatch immediato:
+                    // settare _sectionEndPending attiva il drain mode, che skippa
+                    // metronome_processBuffer (no beat fantasma) e drena clickPlayhead
+                    // residuo nei buffer successivi. Quando tutti i playhead sono
+                    // esauriti (controllo all'inizio di scheduleNextBuffer), il
+                    // dispatch della closure arriva sample-accurate.
                     if self._sectionTotalBeats > 0 {
                         self._sectionBeatCounter += 1
                         if self._sectionBeatCounter >= self._sectionTotalBeats {
-                            os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → onSectionEnd",
+                            os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → drain mode",
                                    log: .default, type: .default,
                                    self._sectionBeatCounter, self._sectionTotalBeats)
-                            let endClosure = self._onSectionEnd
+                            self._pendingEndClosure = self._onSectionEnd
+                            self._sectionEndPending = true
                             self._sectionTotalBeats = 0
                             self._sectionBeatCounter = 0
                             self._onSectionEnd = nil
-                            if let endClosure {
-                                DispatchQueue.main.async { endClosure() }
-                            }
                         }
                     }
                 }
