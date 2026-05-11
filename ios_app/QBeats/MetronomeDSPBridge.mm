@@ -72,6 +72,11 @@ void metronome_schedule_bpm_change(MetronomeHandle handle, double newBPM) {
     static_cast<MetronomeDSP*>(handle)->scheduleBPMChange(newBPM);
 }
 
+void metronome_cancel_pending_bpm(MetronomeHandle handle) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->cancelPendingBPM();
+}
+
 void metronome_set_accent_volume(MetronomeHandle handle, double v) {
     if (!handle) return;
     static_cast<MetronomeDSP*>(handle)->setAccentVolume(v);

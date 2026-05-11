@@ -40,6 +40,14 @@ void MetronomeDSP::scheduleBPMChange(double newBPM) {
     _bpmChangeDirty.store(true, std::memory_order_release);
 }
 
+void MetronomeDSP::cancelPendingBPM() {
+    // Spegne il flag dirty. _pendingBPM non viene toccato: non sarà letto
+    // finché _bpmChangeDirty è false (vedi processBuffer guard al downbeat).
+    // memory_order_release per simmetria col writer di scheduleBPMChange,
+    // accoppia col memory_order_acquire del reader in processBuffer.
+    _bpmChangeDirty.store(false, std::memory_order_release);
+}
+
 // --- Fase VOL: setter (chiamare solo da audioQueue, mai dal RT thread) ---
 
 void MetronomeDSP::setAccentVolume(double v) {

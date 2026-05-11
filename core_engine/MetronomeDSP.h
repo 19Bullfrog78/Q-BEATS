@@ -24,6 +24,9 @@ public:
     void setSubdivision(uint8_t multiplier, double swingRatio = 0.5);
     // Schedula cambio BPM al prossimo downbeat (thread-safe, non-RT).
     void scheduleBPMChange(double newBPM);
+    // Cancella un cambio BPM schedulato non ancora scattato (thread-safe, non-RT).
+    // No-op se nessun cambio è pendente. Simmetrica a scheduleBPMChange.
+    void cancelPendingBPM();
     void setAbsolutePositionForTesting(uint64_t pos);
 
     // --- Fase VOL: volume click + mute (chiamare solo da audioQueue) ---

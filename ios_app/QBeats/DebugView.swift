@@ -304,6 +304,32 @@ struct DebugView: View {
                 }
                 #endif
 
+                // --- TEST TASK D — Section BPM broadcast (rimuovere pre-merge L1.b) ---
+                #if DEBUG
+                SwiftUI.Section("Test Task D — Schedule BPM") {
+                    Text("Cambio BPM al prossimo downbeat. Propaga a Link/MIDI/_audioBPM/UI.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    HStack {
+                        Button("→ 100 BPM") {
+                            os_log("[DebugView] Task D: scheduleBPMChange 100", log: .default, type: .default)
+                            audioEngine.scheduleBPMChange(100)
+                        }
+                        .buttonStyle(.bordered)
+                        Button("→ 120 BPM") {
+                            os_log("[DebugView] Task D: scheduleBPMChange 120", log: .default, type: .default)
+                            audioEngine.scheduleBPMChange(120)
+                        }
+                        .buttonStyle(.bordered)
+                        Button("→ 140 BPM") {
+                            os_log("[DebugView] Task D: scheduleBPMChange 140", log: .default, type: .default)
+                            audioEngine.scheduleBPMChange(140)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                #endif
+
                 // --- LOG DI SISTEMA ---
                 SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in

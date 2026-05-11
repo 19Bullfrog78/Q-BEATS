@@ -67,6 +67,20 @@ class AudioEngine: ObservableObject {
     let beatTickSubject = PassthroughSubject<Int, Never>()
     private var beatTickCounter: Int = 0
 
+    // === Task D — Section BPM broadcast su Link ===
+    // Pattern identico a L1.a (closure single-shot a beat-target).
+    // Quando scheduleBPMChange viene chiamato:
+    //   - il C++ DSP arma _bpmChangeDirty e applicherà _pendingBPM al prossimo
+    //     downbeat (sample-accurate, atomic exchange in processBuffer);
+    //   - Swift memorizza qui il valore target e il tick atteso del downbeat.
+    // Nel beat-tick callback di scheduleNextBuffer, quando beatTickCounter ==
+    // _pendingBPMTargetTick, propaga link_engine_set_bpm + _audioBPM +
+    // midi_engine_set_bpm + currentBPM UI, in sincrono col cambio DSP.
+    // Reset su setBPM (path immediato), stopSync, e auto-reset post-scatto.
+    // Accesso SOLO su audioQueue.
+    private var _pendingBPMValue: Double? = nil
+    private var _pendingBPMTargetTick: Int = 0
+
     // L1.a P2 — segnale "fine sezione naturale" (post-drain audio).
     // Distingue autostop da stop manuale: lo stop manuale chiama stop() direttamente
     // senza emettere questo subject. LiveView lo ascolta per il fade del LED
@@ -683,6 +697,16 @@ class AudioEngine: ObservableObject {
     func setBPM(_ bpm: Double) {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
+            // Task D — Annulla cambio BPM schedulato non ancora scattato.
+            // setBPM è path immediato: il valore di bpm sostituisce qualunque
+            // valore pending. Cancel Layer 1 PRIMA di metronome_setBPM evita
+            // che un downbeat appena successivo applichi il valore vecchio
+            // (race-free: tutto su audioQueue).
+            if self._pendingBPMValue != nil {
+                metronome_cancel_pending_bpm(h)
+                self._pendingBPMValue = nil
+                self._pendingBPMTargetTick = 0
+            }
             metronome_setBPM(h, bpm)
             self._audioBPM = bpm
             if let mh = self.midiEngineHandle {
@@ -910,6 +934,24 @@ class AudioEngine: ObservableObject {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
             metronome_schedule_bpm_change(h, newBPM)
+            // Task D — calcola il tick del prossimo downbeat in scala
+            // beatTickCounter (1-based: tick=1 è il primo downbeat al play,
+            // poi tick=1+beatsPerBar, 1+2*beatsPerBar, ...).
+            // Formula: downbeat sse (tick-1) % beatsPerBar == 0.
+            // Caso beatTickCounter == 0 (pre-play): target=1, scatterà al play.
+            // Altrimenti: primo downbeat strettamente > beatTickCounter.
+            let bpb = Int(self.beatsPerBar)
+            let target: Int
+            if self.beatTickCounter == 0 {
+                target = 1
+            } else {
+                target = ((self.beatTickCounter - 1) / bpb + 1) * bpb + 1
+            }
+            self._pendingBPMValue = newBPM
+            self._pendingBPMTargetTick = target
+            os_log("[Q-BEATS][TaskD] scheduleBPMChange %.1f BPM — target tick:%d (current:%d, bpb:%d)",
+                   log: .default, type: .default,
+                   newBPM, target, self.beatTickCounter, bpb)
         }
     }
 
@@ -1129,6 +1171,15 @@ class AudioEngine: ObservableObject {
             // metà sezione e poi Play — la sezione ricomincia da capo, non
             // viene "scaricata"). Solo il counter va azzerato.
             self._sectionBeatCounter = 0
+            // Task D — Stop manuale o autostop: annulla cambio BPM pending.
+            // Senza questo, un cambio armato pre-stop scatterebbe al replay
+            // (DSP riapplicherebbe _pendingBPM al primo downbeat post-Play).
+            // Cancel DSP + reset Swift, sempre simmetrico.
+            if let mh = self.metronomeHandle, self._pendingBPMValue != nil {
+                metronome_cancel_pending_bpm(mh)
+            }
+            self._pendingBPMValue = nil
+            self._pendingBPMTargetTick = 0
             // L1.a — Stop manuale durante drain: aborta dispatch pending.
             // Non chiamiamo la closure: stopSync sta già facendo il lavoro che
             // la closure di L1.a avrebbe fatto (stop motore + reset). Lasciarla
@@ -1631,6 +1682,32 @@ class AudioEngine: ObservableObject {
                     let tickN = self.beatTickCounter
                     DispatchQueue.main.async { [weak self] in
                         self?.beatTickSubject.send(tickN)
+                    }
+
+                    // === Task D — Propagazione BPM al downbeat target ===
+                    // Il DSP C++ ha appena applicato _pendingBPM a _bpm
+                    // (atomic exchange in processBuffer, sample-accurate a
+                    // _currentBeatInBar==0). Ora propaghiamo lo stesso valore
+                    // a Link, MIDI, _audioBPM mirror, e currentBPM UI — tutti
+                    // sincronizzati col cambio audio appena avvenuto.
+                    if let pending = self._pendingBPMValue,
+                       self.beatTickCounter == self._pendingBPMTargetTick {
+                        if let lh = self.linkEngineHandle {
+                            link_engine_set_bpm(lh, pending)
+                        }
+                        self._audioBPM = pending
+                        if let mh = self.midiEngineHandle {
+                            midi_engine_set_bpm(mh, pending)
+                        }
+                        let valueForMain = pending
+                        DispatchQueue.main.async { [weak self] in
+                            self?.currentBPM = valueForMain
+                        }
+                        os_log("[Q-BEATS][TaskD] BPM change applied at downbeat tick:%d → %.1f BPM (Link+MIDI+_audioBPM+UI)",
+                               log: .default, type: .default,
+                               self.beatTickCounter, pending)
+                        self._pendingBPMValue = nil
+                        self._pendingBPMTargetTick = 0
                     }
 
                     // QA-1 drift analysis — eseguito su audioQueue
