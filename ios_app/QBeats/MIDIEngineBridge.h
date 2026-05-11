@@ -56,6 +56,12 @@ uint32_t link_engine_num_peers(LinkEngineHandle handle);
 double link_engine_get_quantum(LinkEngineHandle handle);
 void link_engine_set_quantum(LinkEngineHandle handle, double quantum);
 void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
+// Fix #3 — variante con hostTime futuro esplicito. Usata per propagare
+// scheduleBPMChange a Link allineato al downbeat sample-accurate del DSP
+// audio invece che a "adesso" (che causava offset di fase residuo su SB
+// di ~10-20ms post-cambio sezione, fisso non convergente — verificato
+// 11/05/2026 dopo fix #1+#2).
+void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t hostTime);
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context);

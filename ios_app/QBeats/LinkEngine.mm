@@ -125,6 +125,20 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm) {
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
+void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t hostTime) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    // hostTime futuro: ABLLink propagherà il cambio tempo a tutti i peer
+    // allineato a quel host time. Usato da scheduleBPMChange per allineare
+    // il momento in cui SB applica il nuovo BPM col momento in cui il DSP
+    // audio locale applica al downbeat sample-accurate. Differenza vs
+    // link_engine_set_bpm: solo l'argomento hostTime di ABLLinkSetTempo.
+    ABLLinkSetTempo(state, bpm, hostTime);
+    ABLLinkCommitAppSessionState(engine->link_, state);
+}
+
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context) {

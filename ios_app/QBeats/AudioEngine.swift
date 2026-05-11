@@ -1601,7 +1601,14 @@ class AudioEngine: ObservableObject {
         if let pending = self._pendingBPMValue,
            self.beatTickCounter + 1 == self._pendingBPMTargetTick {
             if let lh = self.linkEngineHandle {
-                link_engine_set_bpm(lh, pending)
+                // Fix #3 — propaga il nuovo BPM a Link al hostTime di output
+                // del buffer corrente (≈ downbeat sample-accurate ±10ms)
+                // invece che a "adesso" (che era ~25ms anticipato e causava
+                // SB in anticipo di fase fissa post-cambio).
+                let hostTimeAtOutput = mach_absolute_time()
+                                     + self.outputLatencyTicks
+                                     + self.bufferDurationTicks
+                link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
             }
             self._audioBPM = pending
             if let mh = self.midiEngineHandle {
@@ -1751,7 +1758,12 @@ class AudioEngine: ObservableObject {
                     if let pending = self._pendingBPMValue,
                        self.beatTickCounter == self._pendingBPMTargetTick {
                         if let lh = self.linkEngineHandle {
-                            link_engine_set_bpm(lh, pending)
+                            // Fix #3 — propaga il nuovo BPM a Link al hostTime
+                            // di output (vedi pre-apply per dettagli).
+                            let hostTimeAtOutput = mach_absolute_time()
+                                                 + self.outputLatencyTicks
+                                                 + self.bufferDurationTicks
+                            link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
                         }
                         self._audioBPM = pending
                         if let mh = self.midiEngineHandle {
