@@ -710,7 +710,16 @@ class AudioEngine: ObservableObject {
             metronome_setBPM(h, bpm)
             self._audioBPM = bpm
             if let mh = self.midiEngineHandle {
+                // Strada E (Task D fix #2) — re-anchor MIDI engine beat position
+                // attraverso il cambio BPM. MIDISequencer::setBPM ricalcola
+                // _samplesPerTick ma NON aggiorna _sampleBaseAdj → la posizione
+                // tracciata salta proporzionalmente a currentSample (verificato
+                // sui log 11/05/2026: beat_proj=22.23 con beatTickCounter=20).
+                // Leggi posizione PRIMA del cambio, applica setBPM (che salta),
+                // ri-ancora alla stessa posizione col nuovo BPM.
+                let preChangeBeatPos = midi_engine_get_beat_position(mh)
                 midi_engine_set_bpm(mh, bpm)
+                midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             if let lh = self.linkEngineHandle {
                 link_engine_set_bpm(lh, bpm)
@@ -1596,7 +1605,10 @@ class AudioEngine: ObservableObject {
             }
             self._audioBPM = pending
             if let mh = self.midiEngineHandle {
+                // Strada E (Task D fix #2) — re-anchor MIDI engine, vedi setBPM
+                let preChangeBeatPos = midi_engine_get_beat_position(mh)
                 midi_engine_set_bpm(mh, pending)
+                midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             let valueForMain = pending
             DispatchQueue.main.async { [weak self] in
@@ -1743,7 +1755,10 @@ class AudioEngine: ObservableObject {
                         }
                         self._audioBPM = pending
                         if let mh = self.midiEngineHandle {
+                            // Strada E (Task D fix #2) — re-anchor MIDI engine, vedi setBPM
+                            let preChangeBeatPos = midi_engine_get_beat_position(mh)
                             midi_engine_set_bpm(mh, pending)
+                            midi_engine_set_beat_position(mh, preChangeBeatPos)
                         }
                         let valueForMain = pending
                         DispatchQueue.main.async { [weak self] in
