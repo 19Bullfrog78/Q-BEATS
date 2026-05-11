@@ -1563,6 +1563,52 @@ class AudioEngine: ObservableObject {
             return
         }
 
+        // === Task D fix #1 — Pre-applicazione propagazione BPM PRIMA dell'assert Link ===
+        // Quando il prossimo beat sarà il target del cambio BPM (downbeat in
+        // questo buffer), pre-applichiamo qui la propagazione a _audioBPM/Link/
+        // MIDI/UI così l'assert a Link (in modalità Direttore, ~50 righe sotto)
+        // userà il BPM nuovo, coerente con quello che il DSP applicherà al
+        // sample-accurate dentro processBuffer di questo buffer.
+        //
+        // Senza questo blocco, l'assert userebbe _audioBPM vecchio e Link
+        // riceverebbe la fase calcolata col BPM vecchio, mentre subito dopo
+        // il beat callback comunicherebbe il nuovo BPM. Soundbrenner riceve
+        // due messaggi contraddittori in ~10ms e ricostruisce la fase sul
+        // BPM sbagliato, restando "in levare" di mezzo beat (test Mauro
+        // 11/05/2026 — caso A confermato: stesso BPM, fase sfasata).
+        //
+        // beatTickCounter è 1-based: parte da 0, viene incrementato a 1 PRIMA
+        // dell'emissione del primo beat (vedi loop beat in scheduleNextBuffer).
+        // Il check beatTickCounter + 1 == target significa inequivocabilmente
+        // "il prossimo tick che verrà emesso in questo buffer è il target".
+        //
+        // Edge case noto (non bloccante): se un buffer contiene 2+ beat e il
+        // target è il 2°, questo check non scatta (il +1 punta al 1° beat) e
+        // il fallback nel beat callback (Hunk Task D propagazione) propagherà
+        // DOPO l'assert. In pratica non si verifica con i parametri correnti
+        // (buffer 512 frame a 48 kHz = ~10.7 ms, 1 beat a 300 BPM = 200 ms,
+        // quindi sempre 0 o 1 beat per buffer). Documentato qui per onestà,
+        // non patch necessaria.
+        if let pending = self._pendingBPMValue,
+           self.beatTickCounter + 1 == self._pendingBPMTargetTick {
+            if let lh = self.linkEngineHandle {
+                link_engine_set_bpm(lh, pending)
+            }
+            self._audioBPM = pending
+            if let mh = self.midiEngineHandle {
+                midi_engine_set_bpm(mh, pending)
+            }
+            let valueForMain = pending
+            DispatchQueue.main.async { [weak self] in
+                self?.currentBPM = valueForMain
+            }
+            os_log("[Q-BEATS][TaskD] BPM pre-applied (pre-assert) for downbeat in current buffer — next tick:%d → %.1f BPM",
+                   log: .default, type: .default,
+                   self.beatTickCounter + 1, pending)
+            self._pendingBPMValue = nil
+            self._pendingBPMTargetTick = 0
+        }
+
         if bufferCount == 0 || bufferCount % 100 == 0 {
             os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f",
                    log: .default, type: .default,
