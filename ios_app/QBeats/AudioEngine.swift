@@ -48,7 +48,7 @@ class AudioEngine: ObservableObject {
             let mappedPattern: [UInt8] = pattern.map { $0 > 0 ? 2 : 1 }
             DispatchQueue.main.async { self.currentAccentPattern = mappedPattern }
             audioQueue.async { [h, pattern, bpb] in
-                self._beatsPerBar = bpb
+                self._beatsPerBarQ = bpb
                 metronome_setBeatsPerBar(h, bpb)
                 if let lh = self.linkEngineHandle {
                     link_engine_set_quantum(lh, Double(bpb))
@@ -196,7 +196,7 @@ class AudioEngine: ObservableObject {
     private var _linkMode: LinkMode = .direttore   // accesso SOLO su audioQueue
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
     // DEFAULT DEVE COINCIDERE con @Published var beatsPerBar (didSet non scatta in init)
-    private var _beatsPerBar: UInt32 = 4   // accesso SOLO su audioQueue
+    private var _beatsPerBarQ: UInt32 = 4   // accesso SOLO su audioQueue
     // === L1.a — Sezione corrente (mirror su audioQueue) ===
     // Sincronizzati via loadSection(beatsPerBar:repetitions:onEnd:).
     // _sectionTotalBeats = 0 → nessun limite (loop infinito o sezione non caricata).
@@ -529,7 +529,7 @@ class AudioEngine: ObservableObject {
 
                     if let beat = resumeBeat {
                         // CALCOLO SNAP RELATIVO ALLA FASE DEL PLAY
-                        let beatsPerBarD = Double(self._beatsPerBar)
+                        let beatsPerBarD = Double(self._beatsPerBarQ)
 
                         // 1. Distanza dal beat di inizio del Playback originale
                         let relativePhase = beat - self._startAbsoluteBeat
@@ -554,7 +554,7 @@ class AudioEngine: ObservableObject {
                         midi_engine_set_beat_position(mh, 0.0)
                     }
                     if let lh = self.linkEngineHandle {
-                        link_engine_set_quantum(lh, Double(self._beatsPerBar))
+                        link_engine_set_quantum(lh, Double(self._beatsPerBarQ))
                     }
 
                     // === Build #309 — Start API semantica (Opzione 2, modello a 3 rami) ===
@@ -566,7 +566,7 @@ class AudioEngine: ObservableObject {
                         // Q-BEATS detta la timeline a beat noto. snappedBeat è in
                         // scope sopra dentro l'`if let beat = resumeBeat`,
                         // qui lo ricalcoliamo coerentemente per il branch link.
-                        let beatsPerBarD = Double(self._beatsPerBar)
+                        let beatsPerBarD = Double(self._beatsPerBarQ)
                         let relativePhase = (resumeAtBeat ?? 0.0) - self._startAbsoluteBeat
                         let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
                         let snappedBeatLocal = self._startAbsoluteBeat + snappedRelative
@@ -582,7 +582,7 @@ class AudioEngine: ObservableObject {
                     } else {
                         // FRESH PLAY: probe + num_peers per distinguere i 3 scenari.
                         let hostNow = mach_absolute_time()
-                        let quantum = Double(self._beatsPerBar)
+                        let quantum = Double(self._beatsPerBarQ)
                         var probe = LinkSessionProbe(isPlaying: false,
                                                      phaseAtHost: 0.0,
                                                      tempo: 0.0)
@@ -701,7 +701,7 @@ class AudioEngine: ObservableObject {
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
-                let uiPattern = self.defaultAccentPattern(for: self._beatsPerBar).map { $0 > 0 ? 2 : 1 as UInt8 }
+                let uiPattern = self.defaultAccentPattern(for: self._beatsPerBarQ).map { $0 > 0 ? 2 : 1 as UInt8 }
                 DispatchQueue.main.async {
                     self.isPlaying            = true
                     self.playbackState        = .playing
@@ -996,7 +996,7 @@ class AudioEngine: ObservableObject {
             // Formula: downbeat sse (tick-1) % beatsPerBar == 0.
             // Caso beatTickCounter == 0 (pre-play): target=1, scatterà al play.
             // Altrimenti: primo downbeat strettamente > beatTickCounter.
-            let bpb = Int(self._beatsPerBar)
+            let bpb = Int(self._beatsPerBarQ)
             let target: Int
             if self.beatTickCounter == 0 {
                 target = 1
