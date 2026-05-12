@@ -44,9 +44,6 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 32)
-                .onChange(of: audioEngine.beatsPerBar) { newVal in
-                    audioEngine.setBeatsPerBar(newVal)
-                }
             }
 
             Button(action: {
