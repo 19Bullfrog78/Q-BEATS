@@ -142,10 +142,12 @@ class AudioEngine: ObservableObject {
     // del sink node (Correzione 1 referee — evita use-after-free).
     // Vedi QBeatsAtomics.h per dettagli RT-safety.
     private let linkPending: OpaquePointer
-    // linkSinkNode: AVAudioSinkNode collegato come secondo consumer di
-    // playerNode. Il suo block gira sul vero render thread real-time.
-    // Connessione in connectAllNodes (entrambe topologie Base/Pro).
-    private var linkSinkNode: AVAudioSinkNode!
+    // === Task D refactor #18c ===
+    // AVAudioSinkNode (refactor #18) sostituito da installTap su
+    // engine.mainMixerNode (refactor #18c) perche' il sink in
+    // multi-destination da playerNode non veniva mai invocato dal
+    // render thread (diagnosi #18b: zero log A/B/C/D). Vedi
+    // installLinkTap() per setup del tap RT-equivalente.
 
     // === AGGIUNTO 6C — timebase cachato all'avvio ===
     private let machTimebase: mach_timebase_info_data_t = {
@@ -389,84 +391,12 @@ class AudioEngine: ObservableObject {
             link_engine_activate(lh)
         }
 
-        // === Task D refactor #18 — setup linkSinkNode con block RT-safe ===
-        // Block NON cattura self (vincoli RT — niente ARC). Cattura solo:
-        // - opaque C pointers (pendingPtr, handle) — stabili per lifecycle
-        // - scalar primitive (tbNumer, tbDenom) — let immutabili
-        // sampleRate è letto atomic dal pending struct (set in audioQueue).
+        // === Task D refactor #18c — pending atomic init ===
+        // Inizializzazione preliminare sample_rate nel pending atomic prima
+        // che il tap block possa essere invocato. Il tap su mainMixerNode
+        // viene installato in setupGraph() dopo connectAllNodes (richiede
+        // mainMixerNode collegato al graph). Vedi installLinkTap().
         qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
-
-        let pendingPtr: OpaquePointer = self.linkPending
-        let handle: LinkEngineHandle? = self.linkEngineHandle
-        let tbNumer: UInt32 = self.machTimebase.numer
-        let tbDenom: UInt32 = self.machTimebase.denom
-
-        let block: AVAudioSinkNodeReceiverBlock = { timestamp, _, _ in
-            // === VERO RENDER THREAD — vincoli RT ===
-            // - niente self / weak / class Swift
-            // - niente ObjC messaging
-            // - niente lock / I/O
-            // - solo C function su atomic + ABLLink Audio*SessionState
-            let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
-
-            // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-            if qbeats_diag_mark_first_callback() {
-                os_log("[Q-BEATS][TaskD-AT][DIAG] A. sink_first_callback: renderBufferId=%llu",
-                       log: .default, type: .default, renderBufferId)
-            }
-
-            // Calibrazione delta sched-render (one-shot al primo render)
-            if qbeats_link_pending_get_delta(pendingPtr) == 0 {
-                let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
-
-                // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                if schedNow > 0 && qbeats_diag_mark_first_sched() {
-                    os_log("[Q-BEATS][TaskD-AT][DIAG] B. sink_first_sched_seen: schedNow=%llu renderBufferId=%llu",
-                           log: .default, type: .default, schedNow, renderBufferId)
-                }
-
-                if schedNow > 0 {
-                    let delta = Int64(schedNow) - Int64(renderBufferId)
-                    if delta > 0 {
-                        qbeats_link_pending_set_delta(pendingPtr, delta)
-
-                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                        if qbeats_diag_mark_calibrated() {
-                            os_log("[Q-BEATS][TaskD-AT][DIAG] C. sink_delta_calibrated: delta=%lld schedNow=%llu renderBufferId=%llu",
-                                   log: .default, type: .default, delta, schedNow, renderBufferId)
-                        }
-                    } else {
-                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                        if qbeats_diag_mark_negative_delta() {
-                            os_log("[Q-BEATS][TaskD-AT][DIAG] D. sink_delta_negative: delta_attempt=%lld schedNow=%llu renderBufferId=%llu",
-                                   log: .default, type: .default, delta, schedNow, renderBufferId)
-                        }
-                    }
-                }
-            }
-
-            // Arming check + apply al sample-accurate del downbeat
-            if qbeats_link_pending_load_scheduled(pendingPtr) {
-                let targetBufferId = qbeats_link_pending_load_buffer_id(pendingPtr)
-                if renderBufferId == targetBufferId {
-                    let bpm = qbeats_link_pending_load_bpm(pendingPtr)
-                    let sampleOffset = qbeats_link_pending_load_sample_offset(pendingPtr)
-                    let sampleRate = qbeats_link_pending_load_sample_rate(pendingPtr)
-                    // hostTime preciso del sample del downbeat:
-                    //   mHostTime del buffer + offset_in_buffer in ticks
-                    let nanosOffset = Double(sampleOffset) / sampleRate * 1.0e9
-                    let ticksOffset = UInt64(nanosOffset * Double(tbDenom) / Double(tbNumer))
-                    let hostTime = timestamp.pointee.mHostTime + ticksOffset
-                    if let h = handle {
-                        link_engine_set_bpm_audio_thread(h, bpm, hostTime)
-                    }
-                    qbeats_link_pending_clear_scheduled(pendingPtr)
-                }
-            }
-            return noErr
-        }
-
-        self.linkSinkNode = AVAudioSinkNode(receiverBlock: block)
 
         setupSession()
         setupGraph()
@@ -516,17 +446,15 @@ class AudioEngine: ObservableObject {
 
     deinit {
         stopSync()
-        // === Task D refactor #18 — Correzione 1 referee: ordine di shutdown ===
+        // === Task D refactor #18c — Correzione 1 referee adattata a installTap ===
         // 1. stopSync() — sopra
-        // 2. engine.stop() — assicura che il render thread NON invochi piu' il sink
-        // 3. engine.detach(linkSinkNode) — il sink block non sara' piu' chiamato
+        // 2. engine.stop() — ferma render thread (blocking, sincrono per Apple docs)
+        // 3. mainMixerNode.removeTap(onBus: 0) — release del tap block ref
         // 4. destroy degli handle C (incluso qbeats_link_pending_destroy)
         // Senza questo ordine, free(linkPending) potrebbe race col render
-        // thread che sta ancora eseguendo il sink block → use-after-free.
+        // thread che sta ancora eseguendo il tap block → use-after-free.
         engine.stop()
-        if let sink = linkSinkNode {
-            engine.detach(sink)
-        }
+        engine.mainMixerNode.removeTap(onBus: 0)
         if let h = metronomeHandle { metronome_destroy(h) }
         if let mh = midiEngineHandle { midi_engine_destroy(mh) }
         // === MODIFICATO 6A ===
@@ -1477,11 +1405,12 @@ class AudioEngine: ObservableObject {
         engine.attach(ch2MixerNode)
         engine.attach(ch3MixerNode)
         engine.attach(ch4MixerNode)
-        // Task D refactor #18 — sink node attached come secondo consumer
-        // di playerNode. Connessione multi-destination in connectAllNodes.
-        engine.attach(linkSinkNode)
-
         connectAllNodes(for: detectedMode)
+        // === Task D refactor #18c — installTap su mainMixerNode ===
+        // Sostituisce engine.attach(linkSinkNode) di refactor #18.
+        // Il tap richiede mainMixerNode presente nel graph (connectAllNodes
+        // lo configura). Idempotente — vedi installLinkTap().
+        installLinkTap()
         applyChannelRouting(for: detectedMode)
     }
 
@@ -1495,18 +1424,13 @@ class AudioEngine: ObservableObject {
         let monoFormat   = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 
-        // Player → Mixer (identico in Base e Pro)
-        // Task D refactor #18 — playerNode → 2 destinazioni:
-        //   (1) ch1MixerNode → mainMixer → output (audio normale)
-        //   (2) linkSinkNode (terminale, no output) → block render-thread
-        //       per Link audio-thread API
-        // Nota 2 referee: la connessione è presente in entrambe le topologie
-        // Base/Pro perché connectAllNodes è chiamato sia da setupGraph (init)
-        // sia da rebuildGraph (cambio modalità) dopo disconnectNodeOutput.
-        engine.connect(playerNode, to: [
-            AVAudioConnectionPoint(node: ch1MixerNode, bus: 0),
-            AVAudioConnectionPoint(node: linkSinkNode, bus: 0)
-        ], fromBus: 0, format: monoFormat)
+        // Player → ch1Mixer (singola destination, identico in Base e Pro)
+        // === Task D refactor #18c ===
+        // Multi-destination [ch1Mixer, linkSinkNode] di refactor #18 era
+        // architetturalmente corretto ma AVAudioEngine non onorava il sink
+        // come secondo consumer (sink block mai invocato — diagnosi #18b).
+        // Sostituito da installTap su mainMixerNode (vedi installLinkTap).
+        engine.connect(playerNode, to: ch1MixerNode, format: monoFormat)
         engine.connect(backtrackPlayerNode, to: ch2MixerNode, format: nil)
         engine.connect(ch3PlayerNode,       to: ch3MixerNode, format: nil)
         engine.connect(ch4PlayerNode,       to: ch4MixerNode, format: nil)
@@ -1579,9 +1503,108 @@ class AudioEngine: ObservableObject {
         engine.disconnectNodeOutput(ch3MixerNode)
         engine.disconnectNodeOutput(ch4MixerNode)
         connectAllNodes(for: mode)
+        // === Task D refactor #18c — re-install tap dopo rebuild ===
+        // disconnectNodeOutput non rimuove il tap installato su mainMixerNode,
+        // ma per safety reinstalliamo (idempotente: removeTap precede installTap).
+        installLinkTap()
         engine.prepare()
         os_log("rebuildGraph completato — mode: %{public}@",
                log: .default, type: .default, "\(mode)")
+    }
+
+    // === Task D refactor #18c — installTap su mainMixerNode ===
+    // Sostituisce AVAudioSinkNode (refactor #18) che non veniva mai
+    // invocato come secondo consumer multi-destination di playerNode.
+    //
+    // installTap su mainMixerNode opera con priorita' RT equivalente al
+    // rendering AVAudioEngine (NON e' il "vero" render thread Core Audio
+    // in senso stretto, ma scheduling RT garantito ad ogni render del
+    // mainMixer — sempre attivo durante engine running).
+    //
+    // Le API ABLLink AudioSessionState (Capture/Commit) sono LOCKFREE
+    // per design: compatibili con thread RT secondo doc Ableton ABLLink.h.
+    //
+    // Vincoli del block (identici al sink originario):
+    // - niente self / weak / class Swift (no ARC)
+    // - niente ObjC messaging
+    // - niente lock / I/O
+    // - solo C function su atomic + ABLLink Audio*SessionState (lockfree)
+    //
+    // Cattura esplicita:
+    // - opaque C pointers (pendingPtr, handle) — stabili per lifecycle
+    // - scalar primitive (tbNumer, tbDenom) — let immutabili
+    //
+    // Idempotente: removeTap precede installTap per sopravvivere a
+    // rebuildGraph (cambio modalita' Base/Pro).
+    private func installLinkTap() {
+        engine.mainMixerNode.removeTap(onBus: 0)
+
+        let pendingPtr: OpaquePointer = self.linkPending
+        let handle: LinkEngineHandle? = self.linkEngineHandle
+        let tbNumer: UInt32 = self.machTimebase.numer
+        let tbDenom: UInt32 = self.machTimebase.denom
+
+        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { _, when in
+            // Tap block — priorita' RT equivalente al rendering AVAudioEngine.
+            // Vincoli: no self/weak/class, no ObjC msg, no lock, no I/O.
+            // ABLLink Audio*SessionState lockfree → compatibili con thread RT.
+            let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
+
+            // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+            if qbeats_diag_mark_first_callback() {
+                os_log("[Q-BEATS][TaskD-AT][DIAG] A. tap_first_callback: renderBufferId=%llu",
+                       log: .default, type: .default, renderBufferId)
+            }
+
+            // Calibrazione delta sched-render
+            if qbeats_link_pending_get_delta(pendingPtr) == 0 {
+                let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
+
+                // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+                if schedNow > 0 && qbeats_diag_mark_first_sched() {
+                    os_log("[Q-BEATS][TaskD-AT][DIAG] B. tap_first_sched_seen: schedNow=%llu renderBufferId=%llu",
+                           log: .default, type: .default, schedNow, renderBufferId)
+                }
+
+                if schedNow > 0 {
+                    let delta = Int64(schedNow) - Int64(renderBufferId)
+                    if delta > 0 {
+                        qbeats_link_pending_set_delta(pendingPtr, delta)
+
+                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+                        if qbeats_diag_mark_calibrated() {
+                            os_log("[Q-BEATS][TaskD-AT][DIAG] C. tap_delta_calibrated: delta=%lld schedNow=%llu renderBufferId=%llu",
+                                   log: .default, type: .default, delta, schedNow, renderBufferId)
+                        }
+                    } else {
+                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+                        if qbeats_diag_mark_negative_delta() {
+                            os_log("[Q-BEATS][TaskD-AT][DIAG] D. tap_delta_negative: delta_attempt=%lld schedNow=%llu renderBufferId=%llu",
+                                   log: .default, type: .default, delta, schedNow, renderBufferId)
+                        }
+                    }
+                }
+            }
+
+            // Arming check + apply al sample-accurate del downbeat
+            if qbeats_link_pending_load_scheduled(pendingPtr) {
+                let targetBufferId = qbeats_link_pending_load_buffer_id(pendingPtr)
+                if renderBufferId == targetBufferId {
+                    let bpm = qbeats_link_pending_load_bpm(pendingPtr)
+                    let sampleOffset = qbeats_link_pending_load_sample_offset(pendingPtr)
+                    let sampleRate = qbeats_link_pending_load_sample_rate(pendingPtr)
+                    // hostTime preciso del sample del downbeat:
+                    //   when.hostTime + offset_in_buffer in ticks
+                    let nanosOffset = Double(sampleOffset) / sampleRate * 1.0e9
+                    let ticksOffset = UInt64(nanosOffset * Double(tbDenom) / Double(tbNumer))
+                    let hostTime = when.hostTime + ticksOffset
+                    if let h = handle {
+                        link_engine_set_bpm_audio_thread(h, bpm, hostTime)
+                    }
+                    qbeats_link_pending_clear_scheduled(pendingPtr)
+                }
+            }
+        }
     }
 
     // MARK: - Fase 1.5a — Hardware Detection
