@@ -1550,38 +1550,13 @@ class AudioEngine: ObservableObject {
             // ABLLink Audio*SessionState lockfree → compatibili con thread RT.
             let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
 
-            // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-            if qbeats_diag_mark_first_callback() {
-                os_log("[Q-BEATS][TaskD-AT][DIAG] A. tap_first_callback: renderBufferId=%llu",
-                       log: .default, type: .default, renderBufferId)
-            }
-
-            // Calibrazione delta sched-render
+            // Calibrazione delta sched-render (one-shot self-correcting)
             if qbeats_link_pending_get_delta(pendingPtr) == 0 {
                 let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
-
-                // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                if schedNow > 0 && qbeats_diag_mark_first_sched() {
-                    os_log("[Q-BEATS][TaskD-AT][DIAG] B. tap_first_sched_seen: schedNow=%llu renderBufferId=%llu",
-                           log: .default, type: .default, schedNow, renderBufferId)
-                }
-
                 if schedNow > 0 {
                     let delta = Int64(schedNow) - Int64(renderBufferId)
                     if delta > 0 {
                         qbeats_link_pending_set_delta(pendingPtr, delta)
-
-                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                        if qbeats_diag_mark_calibrated() {
-                            os_log("[Q-BEATS][TaskD-AT][DIAG] C. tap_delta_calibrated: delta=%lld schedNow=%llu renderBufferId=%llu",
-                                   log: .default, type: .default, delta, schedNow, renderBufferId)
-                        }
-                    } else {
-                        // === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
-                        if qbeats_diag_mark_negative_delta() {
-                            os_log("[Q-BEATS][TaskD-AT][DIAG] D. tap_delta_negative: delta_attempt=%lld schedNow=%llu renderBufferId=%llu",
-                                   log: .default, type: .default, delta, schedNow, renderBufferId)
-                        }
                     }
                 }
             }
