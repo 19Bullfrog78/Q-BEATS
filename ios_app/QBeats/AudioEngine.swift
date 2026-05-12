@@ -1422,6 +1422,9 @@ class AudioEngine: ObservableObject {
             if let mh = metronomeHandle {
                 metronome_set_sample_rate(mh, sampleRate)
             }
+            // Task D refactor #18 — propaga sampleRate al pending atomic
+            // (sink block lo legge per calcolo offset hostTime sample-accurate).
+            qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
             os_log("QA-3 sampleRate aggiornato: %{public}.1f", log: .default, type: .default, sampleRate)
         } catch {
             DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
@@ -1430,6 +1433,8 @@ class AudioEngine: ObservableObject {
 
     private func setupGraph() {
         self.sampleRate = AVAudioSession.sharedInstance().sampleRate
+        // Task D refactor #18 — propaga sampleRate al pending atomic.
+        qbeats_link_pending_set_sample_rate(self.linkPending, self.sampleRate)
         let detectedMode = detectAudioMode()
         DispatchQueue.main.async {
             self.audioMode = detectedMode
@@ -2179,6 +2184,9 @@ class AudioEngine: ObservableObject {
                    "\(sampleRateChanged)", "\(modeChanged)")
 
             self.sampleRate = newSampleRate
+            // Task D refactor #18 — propaga sampleRate al pending atomic
+            // su route change (es. cambio interface 48 kHz ↔ 44.1 kHz).
+            qbeats_link_pending_set_sample_rate(self.linkPending, newSampleRate)
 
             if sampleRateChanged {
                 let wasRunning = self.isRunning
