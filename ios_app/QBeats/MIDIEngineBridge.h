@@ -62,6 +62,11 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
 // di ~10-20ms post-cambio sezione, fisso non convergente — verificato
 // 11/05/2026 dopo fix #1+#2).
 void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t hostTime);
+// Fix #18 — variante audio-thread per chiamata dal vero render thread.
+// Usa ABLLinkCaptureAudioSessionState / ABLLinkCommitAudioSessionState
+// (lockfree, audio-thread only). Sample-accurate per design.
+// MAI chiamare da audioQueue Swift o altri thread non-RT.
+void link_engine_set_bpm_audio_thread(LinkEngineHandle handle, double bpm, uint64_t hostTime);
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context);

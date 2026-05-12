@@ -125,6 +125,20 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm) {
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
+void link_engine_set_bpm_audio_thread(LinkEngineHandle handle, double bpm, uint64_t hostTime) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    // ABLLinkCaptureAudioSessionState: lockfree, audio-thread only.
+    // Differenza vs link_engine_set_bpm_at_time (App-thread):
+    //   - usa Audio API invece di App API
+    //   - sample-accurate per design (refactor #18)
+    //   - MAI chiamare da audioQueue Swift (violazione contratto Apple)
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAudioSessionState(engine->link_);
+    ABLLinkSetTempo(state, bpm, hostTime);
+    ABLLinkCommitAudioSessionState(engine->link_, state);
+}
+
 void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t hostTime) {
     if (!handle) return;
     LinkEngine* engine = (LinkEngine*)handle;

@@ -136,6 +136,17 @@ class AudioEngine: ObservableObject {
     private var linkEngineHandle     : LinkEngineHandle? = nil
     private(set) var linkSettingsPresenter: LinkSettingsPresenter?
 
+    // === Task D refactor #18 — Atomic pending + sink node audio-thread ===
+    // linkPending: ponte lockfree fra audioQueue (arming) e render thread
+    // (sink block). Allocato in init(), distrutto in deinit() DOPO detach
+    // del sink node (Correzione 1 referee — evita use-after-free).
+    // Vedi QBeatsAtomics.h per dettagli RT-safety.
+    private let linkPending: UnsafeMutablePointer<QBeatsLinkPending>
+    // linkSinkNode: AVAudioSinkNode collegato come secondo consumer di
+    // playerNode. Il suo block gira sul vero render thread real-time.
+    // Connessione in connectAllNodes (entrambe topologie Base/Pro).
+    private var linkSinkNode: AVAudioSinkNode!
+
     // === AGGIUNTO 6C — timebase cachato all'avvio ===
     private let machTimebase: mach_timebase_info_data_t = {
         var tbi = mach_timebase_info_data_t()
@@ -240,6 +251,14 @@ class AudioEngine: ObservableObject {
         offsets  = [UInt32](repeating: 0, count: maxBeats)
         accents  = [UInt8](repeating: 0, count: maxBeats)
         isBeats  = [UInt8](repeating: 0, count: maxBeats)
+
+        // === Task D refactor #18 — alloca atomic pending struct ===
+        // Una sola malloc, mai dal render thread. RT-safe per design.
+        guard let pending = qbeats_link_pending_create() else {
+            fatalError("[Q-BEATS] qbeats_link_pending_create failed (OOM)")
+        }
+        self.linkPending = pending
+
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
         // midi_engine_start() spostato dopo setupGraph() —
@@ -370,6 +389,60 @@ class AudioEngine: ObservableObject {
             link_engine_activate(lh)
         }
 
+        // === Task D refactor #18 — setup linkSinkNode con block RT-safe ===
+        // Block NON cattura self (vincoli RT — niente ARC). Cattura solo:
+        // - opaque C pointers (pendingPtr, handle) — stabili per lifecycle
+        // - scalar primitive (tbNumer, tbDenom) — let immutabili
+        // sampleRate è letto atomic dal pending struct (set in audioQueue).
+        qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
+
+        let pendingPtr: UnsafeMutablePointer<QBeatsLinkPending> = self.linkPending
+        let handle: LinkEngineHandle? = self.linkEngineHandle
+        let tbNumer: UInt32 = self.machTimebase.numer
+        let tbDenom: UInt32 = self.machTimebase.denom
+
+        let block: AVAudioSinkNodeReceiverBlock = { timestamp, _, _ in
+            // === VERO RENDER THREAD — vincoli RT ===
+            // - niente self / weak / class Swift
+            // - niente ObjC messaging
+            // - niente lock / I/O
+            // - solo C function su atomic + ABLLink Audio*SessionState
+            let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
+
+            // Calibrazione delta sched-render (one-shot al primo render)
+            if qbeats_link_pending_get_delta(pendingPtr) == 0 {
+                let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
+                if schedNow > 0 {
+                    let delta = Int64(schedNow) - Int64(renderBufferId)
+                    if delta > 0 {
+                        qbeats_link_pending_set_delta(pendingPtr, delta)
+                    }
+                }
+            }
+
+            // Arming check + apply al sample-accurate del downbeat
+            if qbeats_link_pending_load_scheduled(pendingPtr) {
+                let targetBufferId = qbeats_link_pending_load_buffer_id(pendingPtr)
+                if renderBufferId == targetBufferId {
+                    let bpm = qbeats_link_pending_load_bpm(pendingPtr)
+                    let sampleOffset = qbeats_link_pending_load_sample_offset(pendingPtr)
+                    let sampleRate = qbeats_link_pending_load_sample_rate(pendingPtr)
+                    // hostTime preciso del sample del downbeat:
+                    //   mHostTime del buffer + offset_in_buffer in ticks
+                    let nanosOffset = Double(sampleOffset) / sampleRate * 1.0e9
+                    let ticksOffset = UInt64(nanosOffset * Double(tbDenom) / Double(tbNumer))
+                    let hostTime = timestamp.pointee.mHostTime + ticksOffset
+                    if let h = handle {
+                        link_engine_set_bpm_audio_thread(h, bpm, hostTime)
+                    }
+                    qbeats_link_pending_clear_scheduled(pendingPtr)
+                }
+            }
+            return noErr
+        }
+
+        self.linkSinkNode = AVAudioSinkNode(receiverBlock: block)
+
         setupSession()
         setupGraph()
         // MIDI engine avvia DOPO Link e grafo audio — ordine intenzionale.
@@ -418,10 +491,22 @@ class AudioEngine: ObservableObject {
 
     deinit {
         stopSync()
+        // === Task D refactor #18 — Correzione 1 referee: ordine di shutdown ===
+        // 1. stopSync() — sopra
+        // 2. engine.stop() — assicura che il render thread NON invochi piu' il sink
+        // 3. engine.detach(linkSinkNode) — il sink block non sara' piu' chiamato
+        // 4. destroy degli handle C (incluso qbeats_link_pending_destroy)
+        // Senza questo ordine, free(linkPending) potrebbe race col render
+        // thread che sta ancora eseguendo il sink block → use-after-free.
+        engine.stop()
+        if let sink = linkSinkNode {
+            engine.detach(sink)
+        }
         if let h = metronomeHandle { metronome_destroy(h) }
         if let mh = midiEngineHandle { midi_engine_destroy(mh) }
         // === MODIFICATO 6A ===
         if let lh = linkEngineHandle { link_engine_destroy(lh) }
+        qbeats_link_pending_destroy(linkPending)
     }
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
@@ -1362,6 +1447,9 @@ class AudioEngine: ObservableObject {
         engine.attach(ch2MixerNode)
         engine.attach(ch3MixerNode)
         engine.attach(ch4MixerNode)
+        // Task D refactor #18 — sink node attached come secondo consumer
+        // di playerNode. Connessione multi-destination in connectAllNodes.
+        engine.attach(linkSinkNode)
 
         connectAllNodes(for: detectedMode)
         applyChannelRouting(for: detectedMode)
@@ -1378,7 +1466,17 @@ class AudioEngine: ObservableObject {
         let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 
         // Player → Mixer (identico in Base e Pro)
-        engine.connect(playerNode,          to: ch1MixerNode, format: monoFormat)
+        // Task D refactor #18 — playerNode → 2 destinazioni:
+        //   (1) ch1MixerNode → mainMixer → output (audio normale)
+        //   (2) linkSinkNode (terminale, no output) → block render-thread
+        //       per Link audio-thread API
+        // Nota 2 referee: la connessione è presente in entrambe le topologie
+        // Base/Pro perché connectAllNodes è chiamato sia da setupGraph (init)
+        // sia da rebuildGraph (cambio modalità) dopo disconnectNodeOutput.
+        engine.connect(playerNode, to: [
+            AVAudioConnectionPoint(node: ch1MixerNode, bus: 0),
+            AVAudioConnectionPoint(node: linkSinkNode, bus: 0)
+        ], fromBus: 0, format: monoFormat)
         engine.connect(backtrackPlayerNode, to: ch2MixerNode, format: nil)
         engine.connect(ch3PlayerNode,       to: ch3MixerNode, format: nil)
         engine.connect(ch4PlayerNode,       to: ch4MixerNode, format: nil)
@@ -1573,6 +1671,13 @@ class AudioEngine: ObservableObject {
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
 
+        // === Task D refactor #18 — esponi bufferCount al render thread ===
+        // Atomic snapshot del bufferCount audioQueue. Il sink block lo legge
+        // per calibrare delta = sched - render al primo invocation. Pattern
+        // self-calibrating, no modifica Layer 1.
+        qbeats_link_pending_set_sched_buffer_count(self.linkPending,
+                                                    UInt64(self.bufferCount))
+
         // === L1.a — Drain mode check ===
         // Se in drain (sezione finita) e tutti i playhead sono esauriti, il
         // click è stato riprodotto integralmente: dispatch closure stop ora.
@@ -1600,59 +1705,12 @@ class AudioEngine: ObservableObject {
             return
         }
 
-        // === Task D fix #1 — Pre-applicazione propagazione BPM PRIMA dell'assert Link ===
-        // Quando il prossimo beat sarà il target del cambio BPM (downbeat in
-        // questo buffer), pre-applichiamo qui la propagazione a _audioBPM/Link/
-        // MIDI/UI così l'assert a Link (in modalità Direttore, ~50 righe sotto)
-        // userà il BPM nuovo, coerente con quello che il DSP applicherà al
-        // sample-accurate dentro processBuffer di questo buffer.
-        //
-        // Senza questo blocco, l'assert userebbe _audioBPM vecchio e Link
-        // riceverebbe la fase calcolata col BPM vecchio, mentre subito dopo
-        // il beat callback comunicherebbe il nuovo BPM. Soundbrenner riceve
-        // due messaggi contraddittori in ~10ms e ricostruisce la fase sul
-        // BPM sbagliato, restando "in levare" di mezzo beat (test Mauro
-        // 11/05/2026 — caso A confermato: stesso BPM, fase sfasata).
-        //
-        // beatTickCounter è 1-based: parte da 0, viene incrementato a 1 PRIMA
-        // dell'emissione del primo beat (vedi loop beat in scheduleNextBuffer).
-        // Il check beatTickCounter + 1 == target significa inequivocabilmente
-        // "il prossimo tick che verrà emesso in questo buffer è il target".
-        //
-        // Edge case noto (non bloccante): se un buffer contiene 2+ beat e il
-        // target è il 2°, questo check non scatta (il +1 punta al 1° beat) e
-        // il fallback nel beat callback (Hunk Task D propagazione) propagherà
-        // DOPO l'assert. In pratica non si verifica con i parametri correnti
-        // (buffer 512 frame a 48 kHz = ~10.7 ms, 1 beat a 300 BPM = 200 ms,
-        // quindi sempre 0 o 1 beat per buffer). Documentato qui per onestà,
-        // non patch necessaria.
-        if let pending = self._pendingBPMValue,
-           self.beatTickCounter + 1 == self._pendingBPMTargetTick {
-            if let lh = self.linkEngineHandle {
-                // Fix #4 — vero hostTime di output via playerNode.lastRenderTime
-                // (include pre-roll AVAudioPlayerNode ~10-20ms). Fix #3 con
-                // sola formula AVAudioSession sottostimava di ~15ms causando
-                // SB in anticipo. Vedi nextBufferOutputHostTime().
-                let hostTimeAtOutput = self.nextBufferOutputHostTime()
-                link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
-            }
-            self._audioBPM = pending
-            if let mh = self.midiEngineHandle {
-                // Strada E (Task D fix #2) — re-anchor MIDI engine, vedi setBPM
-                let preChangeBeatPos = midi_engine_get_beat_position(mh)
-                midi_engine_set_bpm(mh, pending)
-                midi_engine_set_beat_position(mh, preChangeBeatPos)
-            }
-            let valueForMain = pending
-            DispatchQueue.main.async { [weak self] in
-                self?.currentBPM = valueForMain
-            }
-            os_log("[Q-BEATS][TaskD] BPM pre-applied (pre-assert) for downbeat in current buffer — next tick:%d → %.1f BPM",
-                   log: .default, type: .default,
-                   self.beatTickCounter + 1, pending)
-            self._pendingBPMValue = nil
-            self._pendingBPMTargetTick = 0
-        }
+        // === Task D fix #1 pre-apply RIMOSSO (refactor #18) ===
+        // Il pre-apply non conosceva l'offset del downbeat nel buffer
+        // (metronome_processBuffer non ancora chiamato). L'arming pending
+        // audio-thread richiede l'offset preciso, che è disponibile SOLO
+        // nel beat callback DOPO metronome_processBuffer (vedi loop beat
+        // più sotto). L'arming è ora unificato nel beat callback.
 
         if bufferCount == 0 || bufferCount % 100 == 0 {
             os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f",
@@ -1775,33 +1833,65 @@ class AudioEngine: ObservableObject {
                         self?.beatTickSubject.send(tickN)
                     }
 
-                    // === Task D — Propagazione BPM al downbeat target ===
+                    // === Task D — Propagazione BPM al downbeat target (refactor #18) ===
                     // Il DSP C++ ha appena applicato _pendingBPM a _bpm
                     // (atomic exchange in processBuffer, sample-accurate a
-                    // _currentBeatInBar==0). Ora propaghiamo lo stesso valore
-                    // a Link, MIDI, _audioBPM mirror, e currentBPM UI — tutti
-                    // sincronizzati col cambio audio appena avvenuto.
+                    // _currentBeatInBar==0). Ora propaghiamo:
+                    //   1. _audioBPM mirror (Nota 1 referee — PRIMA di tutto: il
+                    //      render thread può leggere il pending tra qui e l'arming,
+                    //      _audioBPM deve già contenere il nuovo valore per il
+                    //      Direttore re-broadcast del tempo callback Link)
+                    //   2. MIDI engine re-anchor (Strada E fix #2 invariato)
+                    //   3. Branch esplicito audio-thread vs fallback warm-up
+                    //      (Nota 3 referee — niente silent no-op)
+                    //   4. UI dispatch
                     if let pending = self._pendingBPMValue,
                        self.beatTickCounter == self._pendingBPMTargetTick {
-                        if let lh = self.linkEngineHandle {
-                            // Fix #4 — vedi nextBufferOutputHostTime() / pre-apply.
-                            let hostTimeAtOutput = self.nextBufferOutputHostTime()
-                            link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
-                        }
+                        // [Nota 1] _audioBPM PRIMA di tutto
                         self._audioBPM = pending
+
+                        // MIDI re-anchor (Strada E fix #2 invariato)
                         if let mh = self.midiEngineHandle {
-                            // Strada E (Task D fix #2) — re-anchor MIDI engine, vedi setBPM
                             let preChangeBeatPos = midi_engine_get_beat_position(mh)
                             midi_engine_set_bpm(mh, pending)
                             midi_engine_set_beat_position(mh, preChangeBeatPos)
                         }
+
+                        // [Nota 3] Branch esplicito audio-thread vs fallback
+                        // Refactor #18: armar pending audio-thread SOLO se delta
+                        // calibrato (>0). Durante warm-up (delta=0, primi ~3
+                        // buffer post-engine.start), il sink non ha ancora
+                        // stabilito il counter rispetto a bufferCount → l'arming
+                        // sarebbe stale. Fallback ESPLICITO al path App-thread
+                        // esistente — nessun silent no-op.
+                        let delta = qbeats_link_pending_get_delta(self.linkPending)
+                        if delta > 0 {
+                            let sampleOffset = UInt32(offset)
+                            let targetBufferId = UInt64(Int64(self.bufferCount) + delta)
+                            qbeats_link_pending_arm(self.linkPending,
+                                                    pending,
+                                                    sampleOffset,
+                                                    targetBufferId)
+                            os_log("[Q-BEATS][TaskD-AT] armed audio-thread: bpm:%.1f offset:%d targetBuffer:%llu delta:%lld",
+                                   log: .default, type: .default,
+                                   pending, sampleOffset, targetBufferId, delta)
+                        } else {
+                            // Fallback warm-up: path App-thread (fix #3/#4 esistente)
+                            if let lh = self.linkEngineHandle {
+                                let hostTimeAtOutput = self.nextBufferOutputHostTime()
+                                link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
+                            }
+                            os_log("[Q-BEATS][TaskD-AT] warm-up fallback (delta=0): bpm:%.1f via App-thread link_engine_set_bpm_at_time",
+                                   log: .default, type: .default, pending)
+                        }
+
+                        // UI dispatch (invariato)
                         let valueForMain = pending
                         DispatchQueue.main.async { [weak self] in
                             self?.currentBPM = valueForMain
                         }
-                        os_log("[Q-BEATS][TaskD] BPM change applied at downbeat tick:%d → %.1f BPM (Link+MIDI+_audioBPM+UI)",
-                               log: .default, type: .default,
-                               self.beatTickCounter, pending)
+
+                        // Reset stato pending Swift
                         self._pendingBPMValue = nil
                         self._pendingBPMTargetTick = 0
                     }
