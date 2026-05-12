@@ -42,3 +42,12 @@ uint64_t qbeats_link_pending_load_buffer_id(QBeatsLinkPending* p);
 double   qbeats_link_pending_load_sample_rate(QBeatsLinkPending* p);
 void     qbeats_link_pending_clear_scheduled(QBeatsLinkPending* p);
 uint64_t qbeats_link_pending_increment_render_buffer(QBeatsLinkPending* p);
+
+// === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+// Atomic one-shot flags globali per diagnosticare path audio-thread.
+// Ognuno ritorna true SOLO alla prima chiamata (transizione false→true).
+// Lockfree via atomic_exchange_explicit. RT-safe per sink block.
+bool qbeats_diag_mark_first_callback(void);
+bool qbeats_diag_mark_first_sched(void);
+bool qbeats_diag_mark_calibrated(void);
+bool qbeats_diag_mark_negative_delta(void);

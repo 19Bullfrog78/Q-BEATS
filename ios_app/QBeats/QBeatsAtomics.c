@@ -92,3 +92,27 @@ void qbeats_link_pending_clear_scheduled(QBeatsLinkPending* p) {
 uint64_t qbeats_link_pending_increment_render_buffer(QBeatsLinkPending* p) {
     return atomic_fetch_add_explicit(&p->render_buffer_id, 1, memory_order_relaxed) + 1;
 }
+
+// === DIAG TEMP Task D #18b — RIMUOVERE dopo diagnosi ===
+// Stato globale (non per-instance) — diagnosi singola sessione.
+// One-shot via atomic_exchange: ritorna !already_marked.
+static _Atomic bool diag_first_callback  = false;
+static _Atomic bool diag_first_sched     = false;
+static _Atomic bool diag_calibrated      = false;
+static _Atomic bool diag_negative_delta  = false;
+
+bool qbeats_diag_mark_first_callback(void) {
+    return !atomic_exchange_explicit(&diag_first_callback, true, memory_order_relaxed);
+}
+
+bool qbeats_diag_mark_first_sched(void) {
+    return !atomic_exchange_explicit(&diag_first_sched, true, memory_order_relaxed);
+}
+
+bool qbeats_diag_mark_calibrated(void) {
+    return !atomic_exchange_explicit(&diag_calibrated, true, memory_order_relaxed);
+}
+
+bool qbeats_diag_mark_negative_delta(void) {
+    return !atomic_exchange_explicit(&diag_negative_delta, true, memory_order_relaxed);
+}
