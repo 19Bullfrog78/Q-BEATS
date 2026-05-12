@@ -1541,6 +1541,34 @@ class AudioEngine: ObservableObject {
         return nanos / 1_000_000_000.0
     }
 
+    // === Fix #4 — vero hostTime di output del prossimo buffer ===
+    // playerNode.lastRenderTime è hardware-accurate, ancorato al clock audio
+    // del sistema, non a mach_absolute_time(). Indica l'orario in cui
+    // l'ULTIMO buffer è stato renderizzato. Il buffer corrente (quello in
+    // scheduleNextBuffer) sarà renderizzato ~bufferDuration dopo, e l'output
+    // udibile arriva ~outputLatency dopo il rendering.
+    //
+    // Il fallback (now + outputLatency + bufferDuration) sottostima di
+    // ~15ms perché non include il pre-roll AVAudioPlayerNode (1-2 buffer
+    // in coda). Verificato 12/05/2026 da test su device: SB anticipava di
+    // ~15ms = 0.035 beat a 140 BPM. Sotto soglia DIRECTOR-ASSERT 0.04 →
+    // nessuna correzione automatica, ma percettibile all'orecchio.
+    //
+    // Chiamabile da audioQueue.
+    private func nextBufferOutputHostTime() -> UInt64 {
+        if let renderTime = self.playerNode.lastRenderTime,
+           renderTime.isHostTimeValid {
+            return renderTime.hostTime
+                 + self.bufferDurationTicks
+                 + self.outputLatencyTicks
+        }
+        // Fallback: playerNode non running, oppure hostTime non valido.
+        // Errore residuo come fix #3 (~15ms sottostimato).
+        return mach_absolute_time()
+             + self.outputLatencyTicks
+             + self.bufferDurationTicks
+    }
+
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
@@ -1601,13 +1629,11 @@ class AudioEngine: ObservableObject {
         if let pending = self._pendingBPMValue,
            self.beatTickCounter + 1 == self._pendingBPMTargetTick {
             if let lh = self.linkEngineHandle {
-                // Fix #3 — propaga il nuovo BPM a Link al hostTime di output
-                // del buffer corrente (≈ downbeat sample-accurate ±10ms)
-                // invece che a "adesso" (che era ~25ms anticipato e causava
-                // SB in anticipo di fase fissa post-cambio).
-                let hostTimeAtOutput = mach_absolute_time()
-                                     + self.outputLatencyTicks
-                                     + self.bufferDurationTicks
+                // Fix #4 — vero hostTime di output via playerNode.lastRenderTime
+                // (include pre-roll AVAudioPlayerNode ~10-20ms). Fix #3 con
+                // sola formula AVAudioSession sottostimava di ~15ms causando
+                // SB in anticipo. Vedi nextBufferOutputHostTime().
+                let hostTimeAtOutput = self.nextBufferOutputHostTime()
                 link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
             }
             self._audioBPM = pending
@@ -1758,11 +1784,8 @@ class AudioEngine: ObservableObject {
                     if let pending = self._pendingBPMValue,
                        self.beatTickCounter == self._pendingBPMTargetTick {
                         if let lh = self.linkEngineHandle {
-                            // Fix #3 — propaga il nuovo BPM a Link al hostTime
-                            // di output (vedi pre-apply per dettagli).
-                            let hostTimeAtOutput = mach_absolute_time()
-                                                 + self.outputLatencyTicks
-                                                 + self.bufferDurationTicks
+                            // Fix #4 — vedi nextBufferOutputHostTime() / pre-apply.
+                            let hostTimeAtOutput = self.nextBufferOutputHostTime()
                             link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
                         }
                         self._audioBPM = pending
