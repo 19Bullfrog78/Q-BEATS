@@ -141,7 +141,7 @@ class AudioEngine: ObservableObject {
     // (sink block). Allocato in init(), distrutto in deinit() DOPO detach
     // del sink node (Correzione 1 referee — evita use-after-free).
     // Vedi QBeatsAtomics.h per dettagli RT-safety.
-    private let linkPending: UnsafeMutablePointer<QBeatsLinkPending>
+    private let linkPending: OpaquePointer
     // linkSinkNode: AVAudioSinkNode collegato come secondo consumer di
     // playerNode. Il suo block gira sul vero render thread real-time.
     // Connessione in connectAllNodes (entrambe topologie Base/Pro).
@@ -396,7 +396,7 @@ class AudioEngine: ObservableObject {
         // sampleRate è letto atomic dal pending struct (set in audioQueue).
         qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
 
-        let pendingPtr: UnsafeMutablePointer<QBeatsLinkPending> = self.linkPending
+        let pendingPtr: OpaquePointer = self.linkPending
         let handle: LinkEngineHandle? = self.linkEngineHandle
         let tbNumer: UInt32 = self.machTimebase.numer
         let tbDenom: UInt32 = self.machTimebase.denom
