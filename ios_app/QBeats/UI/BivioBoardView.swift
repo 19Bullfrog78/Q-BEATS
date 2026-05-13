@@ -31,7 +31,7 @@ struct BivioBoardView: View {
                     Button {
                         os_log("Bivio: LIVE selezionato")
                         audioEngine.triggerDNDReminderIfNeeded()
-                        let vc = UIHostingController(rootView: LiveView().environmentObject(audioEngine))
+                        let vc = UIHostingController(rootView: LiveRootView().environmentObject(audioEngine))
                         vc.modalPresentationStyle = .overFullScreen
                         vc.view.backgroundColor = .clear
                         UIApplication.shared.connectedScenes
