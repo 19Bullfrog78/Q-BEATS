@@ -3,6 +3,7 @@ import os
 
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
+    @EnvironmentObject var runner: SetlistRunner
     @StateObject private var session = LiveSession()
     // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
     // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
@@ -56,7 +57,9 @@ struct LiveView: View {
 
                 if case .standby(let nextSong) = session.playbackState {
                     StandbyOverlayView(nextSongName: nextSong)
-                        .onTapGesture { audioEngine.start() }
+                        .onTapGesture {
+                            runner.startCurrentSong(audioEngine: audioEngine, session: session)
+                        }
                 }
 
                 if case .overlayStop(let sec, let song) = session.playbackState {
@@ -89,6 +92,16 @@ struct LiveView: View {
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
             case .stopped:
+                // L1.b: il runner gestisce .standby e .fineSetlist impostando
+                // session.playbackState PRIMA di chiamare audioEngine.stop().
+                // Lo stop() dispatcha .stopped su main qualche ms dopo —
+                // NON sovrascrivere stati già impostati dal runner.
+                switch session.playbackState {
+                case .standby, .fineSetlist:
+                    return
+                default:
+                    break
+                }
                 session.playbackState = .stopped
                 // P2 sync stop manuale: spegnimento all'unisono LED+trattini.
                 // Se sectionHold=false → stop manuale (o overlay) → reset beatActive

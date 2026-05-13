@@ -3,6 +3,7 @@ import SwiftUI
 struct TransportView: View {
     @ObservedObject var session: LiveSession
     let audioEngine: AudioEngine
+    @EnvironmentObject var runner: SetlistRunner
 
     private var isCountIn: Bool {
         if case .countIn = session.playbackState { return true }
@@ -26,7 +27,11 @@ struct TransportView: View {
                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
                     primary: !isStopped,
                     disabled: isStandby) {
-                        audioEngine.isPlaying ? audioEngine.stop() : audioEngine.start()
+                        if audioEngine.isPlaying {
+                            audioEngine.stop()
+                        } else {
+                            runner.startSetlist(audioEngine: audioEngine, session: session)
+                        }
                 }
 
                 RubberBtnView(label: "next sez", glyph: "▶▶",
