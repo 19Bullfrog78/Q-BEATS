@@ -196,6 +196,16 @@ final class SetlistRunner: ObservableObject {
                        log: .default, type: .default, nextSongName)
                 session.playbackState = .standby(nextSongName: nextSongName)
                 session.beatActive = 0
+                // L1.b Fix 7 — Azzera i campi display per non far apparire i
+                // dati della canzone precedente in secondo piano sotto lo
+                // standby overlay (la canzone successiva NON è ancora caricata,
+                // arriva al tap su StandbyOverlay → runner.startCurrentSong).
+                session.currentSongName = ""
+                session.currentSectionName = ""
+                session.nextSectionName = nil
+                session.nextSongName = nil
+                session.macroBarCurrent = 0
+                session.macroBarTotal = 1
                 // NESSUN sectionEndedSubject.send() — fine canzone non è fine performance.
                 // NESSUN loadSection/setBPM — il prossimo setup arriva al tap
                 // StandbyOverlay tramite runner.startCurrentSong(...).

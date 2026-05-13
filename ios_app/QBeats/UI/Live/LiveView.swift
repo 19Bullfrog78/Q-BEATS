@@ -5,6 +5,12 @@ struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @EnvironmentObject var runner: SetlistRunner
     @StateObject private var session = LiveSession()
+    // L1.b — Tick di riferimento per il bar counter relativo alla sezione corrente.
+    // beatTickCounter di AudioEngine cresce monotono dalla partenza; per resettare
+    // il display "Battuta X di Y" ad ogni cambio sezione manteniamo qui in Layer 3
+    // il primo tick della sezione corrente, e calcoliamo `currentBar` come tick relativo.
+    @State private var sectionStartTick: Int = 1
+    @State private var pendingSectionStart: Bool = false
     // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
     // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
     @State private var sectionHold: Bool = false
@@ -125,13 +131,16 @@ struct LiveView: View {
                 // P2: chiusura della finestra fade se l'utente preme Play durante
                 // i ~500ms post-autostop (asyncAfter pendente sara' poi no-op via guard).
                 sectionHold = false
+                // L1.b — audioEngine.start() ha resettato beatTickCounter a 0 →
+                // il prossimo tick sarà 1. Resetta il marker della sezione di
+                // partenza per la prima sezione di una nuova performance.
+                sectionStartTick = 1
+                pendingSectionStart = false
             case .pausedAwaitingChoice(let sec, let song):
                 session.playbackState = .overlayStop(sectionName: sec, songName: song)
                 session.beatActive = 0
                 sectionHold = false
             }
-            session.currentSongName = audioEngine.currentSong ?? ""
-            session.currentSectionName = audioEngine.currentSection ?? ""
         }
         .onReceive(audioEngine.$currentBPM) { bpm in
             session.currentBPM = bpm
@@ -143,10 +152,29 @@ struct LiveView: View {
             session.totalBarsInSection = reps
         }
         .onReceive(audioEngine.beatTickSubject) { tickN in
+            // L1.b — Al cambio sezione (runner.$currentSectionIdx triggera
+            // pendingSectionStart=true), il prossimo tick è il primo della
+            // nuova sezione: lo registriamo come sectionStartTick.
+            if pendingSectionStart {
+                sectionStartTick = tickN
+                pendingSectionStart = false
+            }
             let bpb = max(1, Int(audioEngine.beatsPerBar))
-            session.beatActive = ((tickN - 1) % bpb) + 1
-            session.currentBar = ((tickN - 1) / bpb) + 1
+            // Tick relativo alla sezione corrente (1-based dentro la sezione).
+            let relativeTick = tickN - sectionStartTick + 1
+            session.beatActive = ((relativeTick - 1) % bpb) + 1
+            session.currentBar = ((relativeTick - 1) / bpb) + 1
             session.macroBarCurrent = session.currentBar
+        }
+        // L1.b — Marker per il cambio sezione: alla transizione di
+        // currentSectionIdx (ramo avanza o ramo standby), il prossimo tick
+        // generato dall'audio engine sarà il primo della nuova sezione e
+        // diventerà sectionStartTick. Il ramo standby chiama audioEngine.stop()
+        // → nessun tick fino al prossimo startCurrentSong, che farà partire
+        // l'engine fresh (beatTickCounter=0); il primo tick=1 sarà catturato
+        // qui come sectionStartTick.
+        .onReceive(runner.$currentSectionIdx) { _ in
+            pendingSectionStart = true
         }
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
