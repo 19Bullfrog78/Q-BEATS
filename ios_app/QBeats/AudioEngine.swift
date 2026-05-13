@@ -978,10 +978,20 @@ class AudioEngine: ObservableObject {
 
     func setAccentPattern(_ pattern: [UInt8]) {
         guard let h = metronomeHandle else { return }
-        DispatchQueue.main.async { self.currentAccentPattern = pattern.map { $0 > 0 ? 2 : 1 } }
-        audioQueue.async { [h, pattern] in
-            pattern.withUnsafeBufferPointer { ptr in
-                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
+        // L1.b — `pattern` arriva in convenzione UI/SongSection:
+        //   0 = subdiv, 1 = beat normale, 2 = accent.
+        // Display @Published `currentAccentPattern` usa stessa convenzione
+        // UI (MetSlotStripView mappa 2→accent, 1→beat, 0→subdiv) — passa
+        // pattern RAW, senza mapping.
+        DispatchQueue.main.async { self.currentAccentPattern = pattern }
+        // DSP C++ usa convenzione propria: 1 = accent, 0 = beat normale.
+        // Converti UI → DSP prima di passare a metronome_setAccentPattern.
+        // Coerente con setBeatsPerBar didSet che alimenta il DSP con
+        // l'output RAW di defaultAccentPattern (già in convenzione DSP).
+        let dspPattern: [UInt8] = pattern.map { $0 == 2 ? 1 : 0 }
+        audioQueue.async { [h, dspPattern] in
+            dspPattern.withUnsafeBufferPointer { ptr in
+                metronome_setAccentPattern(h, ptr.baseAddress, UInt32(dspPattern.count))
             }
         }
     }
