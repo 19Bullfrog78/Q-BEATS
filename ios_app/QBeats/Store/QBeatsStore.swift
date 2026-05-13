@@ -110,6 +110,20 @@ final class QBeatsStore: ObservableObject {
         resolve(setlist).songs.reduce(0.0) { $0 + $1.estimatedDurationSeconds }
     }
 
+    // MARK: - Test data injection (DEBUG only)
+
+    #if DEBUG
+    /// Inietta dati di test direttamente in RAM, bypassa coordinated read/write.
+    /// Usato da DebugView per popolare lo store senza dipendere da iCloud
+    /// container o file su disco. Nessuna persistenza — i dati spariscono al
+    /// kill dell'app. Pensato per validazione L1.b su device.
+    func injectTestData(songs: [Song], setlists: [Setlist]) {
+        self.songs = songs
+        self.setlists = setlists
+        logger.info("injectTestData — songs: \(self.songs.count), setlists: \(self.setlists.count)")
+    }
+    #endif
+
     // MARK: - Private
 
     nonisolated private static func resolveBaseURL() -> URL {

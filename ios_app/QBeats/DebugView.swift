@@ -306,6 +306,20 @@ struct DebugView: View {
                 }
                 #endif
 
+                // --- TEST L1.b — Dati di prova ---
+                #if DEBUG
+                SwiftUI.Section("Test L1.b — Dati di prova") {
+                    Text("Popola lo store in RAM con 2 canzoni + 1 setlist. Poi tap LIVE → Play del transport.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Button("Carica dati test L1.b") {
+                        loadTestDataL1b()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.purple)
+                }
+                #endif
+
                 // --- LOG DI SISTEMA ---
                 SwiftUI.Section("Log Eventi (Ultimi 10)") {
                     ForEach(audioEngine.debugLogs, id: \.self) { log in
@@ -319,6 +333,45 @@ struct DebugView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
+
+    #if DEBUG
+    /// Popola QBeatsStore.shared con 2 canzoni + 1 setlist hardcoded per
+    /// validazione L1.b multi-section. Nessuna persistenza, solo RAM.
+    private func loadTestDataL1b() {
+        os_log("[DebugView] Carica dati test L1.b", log: .default, type: .default)
+
+        // Song A — 3 sezioni con cambio BPM e cambio time signature
+        let intro  = SongSection(name: "Intro 100",  bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                                 repetitions: 12, notes: "", accentPattern: [2,1,1,1],
+                                 subdivisionMultiplier: 1, swingRatio: 0.5)
+        let verse  = SongSection(name: "Verse 120",  bpm: 120, beatsPerBar: 4, beatUnit: 4,
+                                 repetitions: 3,  notes: "", accentPattern: [2,1,1,1],
+                                 subdivisionMultiplier: 1, swingRatio: 0.5)
+        let bridge = SongSection(name: "Bridge 3/4", bpm: 140, beatsPerBar: 3, beatUnit: 4,
+                                 repetitions: 2,  notes: "", accentPattern: [2,1,1],
+                                 subdivisionMultiplier: 1, swingRatio: 0.5)
+        let songA = Song(id: UUID(), name: "Test Song A",
+                         sections: [intro, verse, bridge],
+                         countIn: 0, backtrackFilename: nil)
+
+        // Song B — 2 sezioni
+        let slow  = SongSection(name: "Slow 90",   bpm: 90,  beatsPerBar: 4, beatUnit: 4,
+                                repetitions: 3,  notes: "", accentPattern: [2,1,1,1],
+                                subdivisionMultiplier: 1, swingRatio: 0.5)
+        let build = SongSection(name: "Build 110", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                                repetitions: 12, notes: "", accentPattern: [2,1,1,1],
+                                subdivisionMultiplier: 1, swingRatio: 0.5)
+        let songB = Song(id: UUID(), name: "Test Song B",
+                         sections: [slow, build],
+                         countIn: 0, backtrackFilename: nil)
+
+        // Setlist
+        let setlist = Setlist(id: UUID(), name: "Test Setlist L1.b",
+                              date: Date(), songIDs: [songA.id, songB.id])
+
+        QBeatsStore.shared.injectTestData(songs: [songA, songB], setlists: [setlist])
+    }
+    #endif
 }
 
 struct VolumeSlider: View {
