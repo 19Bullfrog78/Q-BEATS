@@ -57,6 +57,7 @@ struct LiveView: View {
 
                 if case .standby(let nextSong) = session.playbackState {
                     StandbyOverlayView(nextSongName: nextSong)
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             runner.startCurrentSong(audioEngine: audioEngine, session: session)
                         }
