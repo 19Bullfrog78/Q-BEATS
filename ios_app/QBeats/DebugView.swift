@@ -284,12 +284,14 @@ struct DebugView: View {
                     Button("Sezione A — 8 battute") {
                         audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
                                                 repetitions: 8) { [weak audioEngine] in
+                            audioEngine?.sectionEndedSubject.send()
                             audioEngine?.stop()
                         }
                     }
                     Button("Sezione B — 4 battute") {
                         audioEngine.loadSection(beatsPerBar: audioEngine.beatsPerBar,
                                                 repetitions: 4) { [weak audioEngine] in
+                            audioEngine?.sectionEndedSubject.send()
                             audioEngine?.stop()
                         }
                     }

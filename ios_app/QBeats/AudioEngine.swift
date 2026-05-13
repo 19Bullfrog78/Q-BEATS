@@ -100,10 +100,17 @@ class AudioEngine: ObservableObject {
     private var _pendingBPMValue: Double? = nil
     private var _pendingBPMTargetTick: Int = 0
 
-    // L1.a P2 — segnale "fine sezione naturale" (post-drain audio).
-    // Distingue autostop da stop manuale: lo stop manuale chiama stop() direttamente
-    // senza emettere questo subject. LiveView lo ascolta per il fade del LED
-    // dell'ultimo beat (durata pari a un beat al BPM corrente, poi spegnimento).
+    // L1.a/L1.b — segnale "fine vera della performance".
+    // Esposto da AudioEngine ma emesso ESCLUSIVAMENTE dal callsite di
+    // loadSection(onEnd:), che ha contesto setlist e può discriminare fine
+    // intermedia da fine vera (TD #16, refactor L1.b).
+    //   L1.a (DebugView): callsite emette subject prima di stop() — singola
+    //     sezione di test, "fine vera" coincide con "fine sezione".
+    //   L1.b (Layer 3): callsite emette subject solo nel ramo `fineSetlist`
+    //     della closure end-of-section. Transizioni intermedie NON emettono.
+    // LiveView ascolta per il fade del LED ultimo beat (durata pari a un
+    // beat al BPM corrente, poi spegnimento). Stop manuale chiama stop()
+    // senza emettere il subject — LED spento netto.
     let sectionEndedSubject = PassthroughSubject<Void, Never>()
 
     // UX-3 — state machine playback
@@ -1729,14 +1736,13 @@ class AudioEngine: ObservableObject {
             self._pendingEndClosure = nil
             os_log("[Q-BEATS][L1.a] drain completato → onSectionEnd dispatch",
                    log: .default, type: .default)
-            // P2: emetti sectionEndedSubject PRIMA della closure (autostop = fine
-            // naturale). LiveView avvia il fade del LED ultimo beat con durata
-            // pari a un beat al BPM corrente. Poi parte la closure (che farà
-            // stop() → playbackState=.stopped via fix P1+P3, ma il LED resta
-            // acceso durante il fade grazie a TD#10: nessun reset di beatActive
-            // in case .stopped).
+            // TD #16: l'engine NON emette più sectionEndedSubject. Limita
+            // l'azione a dispatch della closure end-of-section registrata
+            // dal callsite (DebugView in L1.a, Layer 3 in L1.b). È il
+            // callsite a decidere se emettere il subject prima di stop()
+            // — solo quando si tratta di fine vera della performance, non
+            // di transizione fra sezioni intermedie.
             DispatchQueue.main.async { [weak self] in
-                self?.sectionEndedSubject.send()
                 endClosure?()
             }
             return
