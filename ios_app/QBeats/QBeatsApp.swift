@@ -12,6 +12,15 @@ struct QBeatsApp: App {
         WindowGroup {
             AppRootView()
                 .environmentObject(audioEngine)
+                .task {
+                    do {
+                        try await QBeatsStore.shared.load()
+                    } catch {
+                        os_log("[QBeatsApp] QBeatsStore.load failed: %{public}@",
+                               log: .default, type: .error,
+                               error.localizedDescription)
+                    }
+                }
                 .sheet(isPresented: $showImportView) {
                     if let manifest = pendingImportManifest {
                         ImportView(manifest: manifest, store: QBeatsStore.shared)
