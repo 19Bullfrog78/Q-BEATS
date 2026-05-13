@@ -164,7 +164,6 @@ struct LiveView: View {
             let relativeTick = tickN - sectionStartTick + 1
             session.beatActive = ((relativeTick - 1) % bpb) + 1
             session.currentBar = ((relativeTick - 1) / bpb) + 1
-            session.macroBarCurrent = session.currentBar
         }
         // L1.b — Marker per il cambio sezione: alla transizione di
         // currentSectionIdx (ramo avanza o ramo standby), il prossimo tick
