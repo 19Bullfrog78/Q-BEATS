@@ -15,6 +15,12 @@ struct TeleprompterCapsuleView: View {
                     .font(.jbMono(.bold, size: 80))
                     .foregroundColor(.white)
 
+            case .standby:
+                // TD #25 — In standby il default branch finisce nel fallback BPM
+                // (currentSectionName azzerato dal ramo standby di SetlistRunner)
+                // e mostra il valore della sezione precedente sotto lo StandbyOverlay.
+                EmptyView()
+
             default:
                 if session.currentSectionName.isEmpty {
                     VStack(spacing: 4) {
