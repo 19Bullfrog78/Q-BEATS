@@ -12,5 +12,7 @@
     </array>
     <key>com.apple.developer.networking.multicast</key>
     <true/>
+    <key>get-task-allow</key>
+    <true/>
 </dict>
 </plist>
