@@ -20,7 +20,14 @@ struct MicroSegBarView: View {
             if case .playing = state { return true }
             return false
         }()
-        let isLit = isPlaying || sectionHold
+        // TD #29 — guard esplicito .standby: tutti i segmenti spenti.
+        // Pattern state-aware coerente con TD #25 (TeleprompterCapsuleView).
+        // BOX5 V22 "Comportamenti ratificati": "Pre-Play (apertura, standby) → spenti".
+        let isStandby: Bool = {
+            if case .standby = state { return true }
+            return false
+        }()
+        let isLit = !isStandby && (isPlaying || sectionHold)
         HStack(spacing: 3) {
             ForEach(0..<segs, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 2)
@@ -40,7 +47,13 @@ struct MacroBarView: View {
         let t = max(total, 1)
         let step = t > 32 ? Int(ceil(Double(t) / 32.0)) : 1
         let segs = Int(ceil(Double(t) / Double(step)))
-        let filled = Int(ceil(Double(current) / Double(step)))
+        // TD #29 — guard esplicito .standby: tutti i segmenti spenti.
+        // Coerente con MicroSegBarView. BOX5 V22 "Pre-Play (apertura, standby) → spenti".
+        let isStandby: Bool = {
+            if case .standby = state { return true }
+            return false
+        }()
+        let filled = isStandby ? 0 : Int(ceil(Double(current) / Double(step)))
 
         HStack(spacing: 2) {
             ForEach(0..<segs, id: \.self) { i in
