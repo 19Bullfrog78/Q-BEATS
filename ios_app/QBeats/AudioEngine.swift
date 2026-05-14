@@ -788,15 +788,7 @@ class AudioEngine: ObservableObject {
                 midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             if let lh = self.linkEngineHandle {
-                let hostTime = self.nextBufferOutputHostTime()
-                let now = mach_absolute_time()
-                os_log("[Q-BEATS][L1bSync] setBPM Link broadcast — bpm:%.1f drainPending:%{public}@ hostTime:%llu now:%llu deltaMs:%.2f",
-                       log: .default, type: .default,
-                       bpm,
-                       self._sectionEndPending ? "YES" : "NO",
-                       hostTime, now,
-                       Double(Int64(hostTime) - Int64(now)) / 1_000_000.0)
-                link_engine_set_bpm_at_time(lh, bpm, hostTime)
+                link_engine_set_bpm(lh, bpm)
             }
             DispatchQueue.main.async { self.currentBPM = bpm }
         }
