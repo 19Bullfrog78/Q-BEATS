@@ -788,7 +788,15 @@ class AudioEngine: ObservableObject {
                 midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             if let lh = self.linkEngineHandle {
-                link_engine_set_bpm_at_time(lh, bpm, self.nextBufferOutputHostTime())
+                let hostTime = self.nextBufferOutputHostTime()
+                let now = mach_absolute_time()
+                os_log("[Q-BEATS][L1bSync] setBPM Link broadcast — bpm:%.1f drainPending:%{public}@ hostTime:%llu now:%llu deltaMs:%.2f",
+                       log: .default, type: .default,
+                       bpm,
+                       self._sectionEndPending ? "YES" : "NO",
+                       hostTime, now,
+                       Double(Int64(hostTime) - Int64(now)) / 1_000_000.0)
+                link_engine_set_bpm_at_time(lh, bpm, hostTime)
             }
             DispatchQueue.main.async { self.currentBPM = bpm }
         }
@@ -1708,17 +1716,26 @@ class AudioEngine: ObservableObject {
     //
     // Chiamabile da audioQueue.
     private func nextBufferOutputHostTime() -> UInt64 {
+        let now = mach_absolute_time()
         if let renderTime = self.playerNode.lastRenderTime,
            renderTime.isHostTimeValid {
-            return renderTime.hostTime
-                 + self.bufferDurationTicks
-                 + self.outputLatencyTicks
+            let result = renderTime.hostTime
+                       + self.bufferDurationTicks
+                       + self.outputLatencyTicks
+            os_log("[Q-BEATS][L1bSync] nextBufferOutputHostTime HARDWARE — lastRender:%llu now:%llu bufDur:%llu outLat:%llu result:%llu deltaFromNow:%lld",
+                   log: .default, type: .default,
+                   renderTime.hostTime, now, self.bufferDurationTicks, self.outputLatencyTicks,
+                   result, Int64(result) - Int64(now))
+            return result
         }
         // Fallback: playerNode non running, oppure hostTime non valido.
         // Errore residuo come fix #3 (~15ms sottostimato).
-        return mach_absolute_time()
-             + self.outputLatencyTicks
-             + self.bufferDurationTicks
+        let fallback = now + self.outputLatencyTicks + self.bufferDurationTicks
+        os_log("[Q-BEATS][L1bSync] nextBufferOutputHostTime FALLBACK — lastRender:nil-or-invalid now:%llu bufDur:%llu outLat:%llu result:%llu deltaFromNow:%lld",
+               log: .default, type: .default,
+               now, self.bufferDurationTicks, self.outputLatencyTicks,
+               fallback, Int64(fallback) - Int64(now))
+        return fallback
     }
 
     // Chiamare SOLO su audioQueue.
@@ -1744,8 +1761,15 @@ class AudioEngine: ObservableObject {
             self._sectionEndPending = false
             let endClosure = self._pendingEndClosure
             self._pendingEndClosure = nil
-            os_log("[Q-BEATS][L1.a] drain completato → onSectionEnd dispatch",
-                   log: .default, type: .default)
+            let renderInfo: String
+            if let rt = self.playerNode.lastRenderTime, rt.isHostTimeValid {
+                renderInfo = "valid hostTime=\(rt.hostTime)"
+            } else {
+                renderInfo = "INVALID"
+            }
+            os_log("[Q-BEATS][L1bSync] drain completato → onSectionEnd dispatch — lastRenderTime:%{public}@",
+                   log: .default, type: .default,
+                   renderInfo)
             // TD #16: l'engine NON emette più sectionEndedSubject. Limita
             // l'azione a dispatch della closure end-of-section registrata
             // dal callsite (DebugView in L1.a, Layer 3 in L1.b). È il
