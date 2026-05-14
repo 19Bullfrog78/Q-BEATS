@@ -788,7 +788,7 @@ class AudioEngine: ObservableObject {
                 midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             if let lh = self.linkEngineHandle {
-                link_engine_set_bpm(lh, bpm)
+                link_engine_set_bpm_at_time(lh, bpm, self.nextBufferOutputHostTime())
             }
             DispatchQueue.main.async { self.currentBPM = bpm }
         }
