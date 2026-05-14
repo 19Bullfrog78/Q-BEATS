@@ -94,6 +94,11 @@ struct LiveView: View {
 
             }
         }
+        .onAppear {
+            os_log("[Q-BEATS][L1b] LiveView onAppear — playbackState: %{public}@",
+                   log: .default, type: .default,
+                   String(describing: session.playbackState))
+        }
         .onDisappear { audioEngine.stop() }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
