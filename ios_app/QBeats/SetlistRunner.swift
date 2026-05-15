@@ -183,12 +183,7 @@ final class SetlistRunner: ObservableObject {
                 audioEngine.loadSection(beatsPerBar: nextSec.beatsPerBar,
                                         repetitions: nextSec.repetitions,
                                         onEnd: closure)
-                // L1.b Opzione A — scheduleBPMChange invece di setBPM per cambio
-                // sezione automatico. Path Task D armed audio-thread: il broadcast
-                // Link parte dal render thread con hostTime sample-accurate, no
-                // pre-roll AVAudioPlayerNode invisibile. atNextBeat:true bypassa
-                // la formula bpb-dipendente (vedi scheduleBPMChange).
-                audioEngine.scheduleBPMChange(nextSec.bpm, atNextBeat: true)
+                audioEngine.setBPM(nextSec.bpm)
                 self.updateSessionDisplay(session: session)
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.
 
