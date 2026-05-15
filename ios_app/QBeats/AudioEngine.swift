@@ -252,6 +252,8 @@ class AudioEngine: ObservableObject {
     private var pendingLinkStart: DispatchWorkItem? = nil
     // Build 303 — salta sync Link nei primi 3 buffer dopo fresh play
     private var linkSyncSkipBuffers: Int = 0
+    // L1.b sync investigation — conta 3 buffer dopo cambio BPM per log DIRECTOR-ASSERT
+    private var _linkSyncLogBuffers: Int = 0
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
     private let backtrackPlayerNode = AVAudioPlayerNode()
@@ -1609,6 +1611,11 @@ class AudioEngine: ObservableObject {
                     let ticksOffset = UInt64(nanosOffset * Double(tbDenom) / Double(tbNumer))
                     let hostTime = when.hostTime + ticksOffset
                     if let h = handle {
+                        let nowAtSink = mach_absolute_time()
+                        os_log("[Q-BEATS][SinkSync] broadcast — bpm:%.1f renderBufferId:%llu when.hostTime:%llu ticksOffset:%llu hostTime:%llu deltaFromNow:%lld",
+                               log: .default, type: .default,
+                               bpm, renderBufferId, when.hostTime, ticksOffset, hostTime,
+                               Int64(hostTime) - Int64(nowAtSink))
                         link_engine_set_bpm_audio_thread(h, bpm, hostTime)
                     }
                     qbeats_link_pending_clear_scheduled(pendingPtr)
@@ -1818,6 +1825,12 @@ class AudioEngine: ObservableObject {
                     // capture/commit atomico — vedi rationale in
                     // link_engine_assert_session_state. Risolve il drift di fase
                     // post-deviazione peer (test D2, build #333).
+                    if self._linkSyncLogBuffers > 0 {
+                        self._linkSyncLogBuffers -= 1
+                        os_log("[Q-BEATS][AssertSync] hostTimeAtOutput:%llu audioBPM:%.1f beatTick:%d",
+                               log: .default, type: .default,
+                               hostTimeAtOutput, self._audioBPM, self.beatTickCounter)
+                    }
                     link_engine_assert_session_state(lh, hostTimeAtOutput,
                                                     currentBeat, _audioBPM)
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
@@ -1927,6 +1940,8 @@ class AudioEngine: ObservableObject {
                        self.beatTickCounter == self._pendingBPMTargetTick {
                         // [Nota 1] _audioBPM PRIMA di tutto
                         self._audioBPM = pending
+                        // L1.b sync investigation — abilita log DIRECTOR-ASSERT per 3 buffer
+                        self._linkSyncLogBuffers = 3
 
                         // MIDI re-anchor (Strada E fix #2 invariato)
                         if let mh = self.midiEngineHandle {
