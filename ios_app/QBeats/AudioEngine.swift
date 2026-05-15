@@ -1005,7 +1005,7 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    func scheduleBPMChange(_ newBPM: Double) {
+    func scheduleBPMChange(_ newBPM: Double, atNextBeat: Bool = false) {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
             metronome_schedule_bpm_change(h, newBPM)
@@ -1015,18 +1015,27 @@ class AudioEngine: ObservableObject {
             // Formula: downbeat sse (tick-1) % beatsPerBar == 0.
             // Caso beatTickCounter == 0 (pre-play): target=1, scatterà al play.
             // Altrimenti: primo downbeat strettamente > beatTickCounter.
+            //
+            // L1.b Opzione A — atNextBeat:true bypassa la formula bpb-dipendente.
+            // Usato dal ramo avanza di SetlistRunner: a fine sezione, il prossimo
+            // beat coincide col primo beat (= primo downbeat) della nuova sezione,
+            // indipendentemente da cambi di time signature. Evita il bug noto
+            // della formula quando _beatsPerBarQ è già stato aggiornato al nuovo
+            // bpb da setBeatsPerBar prima della chiamata.
             let bpb = Int(self._beatsPerBarQ)
             let target: Int
-            if self.beatTickCounter == 0 {
+            if atNextBeat {
+                target = self.beatTickCounter + 1
+            } else if self.beatTickCounter == 0 {
                 target = 1
             } else {
                 target = ((self.beatTickCounter - 1) / bpb + 1) * bpb + 1
             }
             self._pendingBPMValue = newBPM
             self._pendingBPMTargetTick = target
-            os_log("[Q-BEATS][TaskD] scheduleBPMChange %.1f BPM — target tick:%d (current:%d, bpb:%d)",
+            os_log("[Q-BEATS][TaskD] scheduleBPMChange %.1f BPM — target tick:%d (current:%d, bpb:%d, atNextBeat:%d)",
                    log: .default, type: .default,
-                   newBPM, target, self.beatTickCounter, bpb)
+                   newBPM, target, self.beatTickCounter, bpb, atNextBeat ? 1 : 0)
         }
     }
 
