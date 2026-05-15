@@ -603,6 +603,56 @@ void link_engine_assert_session_state(LinkEngineHandle handle,
     if (delta >  quantum * 0.5) delta -= quantum;
     if (delta < -quantum * 0.5) delta += quantum;
 
+    // === Step 1 — Logging diagnostico esteso (TEMP, rimuovere a bug chiuso) ===
+    // Stampa TUTTE le grandezze che entrano nel calcolo del delta, per ogni
+    // call, con throttling:
+    //  - Prime 30 call dopo avvio processo  → log denso (cattura play start)
+    //  - Prime 30 call dopo cambio di `bpm` → log denso (cattura primo buffer
+    //    post-skip-buffer al cambio sezione: durante i 100 skip questa funzione
+    //    non è chiamata, il buffer critico è quello immediatamente successivo)
+    //  - Regime stabile                     → 1 call ogni 50 (~4 log/s a 5ms/buf)
+    // Le variabili sono static atomic per thread-safety (questa funzione gira
+    // sull'audio thread). Costo per call non-loggate: ~3 atomic load + 1 fabs.
+    static std::atomic<uint64_t> g_assertDiagCounter{0};
+    static std::atomic<double>   g_assertDiagLastBPM{0.0};
+    static std::atomic<uint64_t> g_assertDiagBurstRemaining{0};
+    constexpr uint64_t kAssertDiagBurstCalls = 30;
+    constexpr uint64_t kAssertDiagThrottle   = 50;
+
+    uint64_t diagCnt = g_assertDiagCounter.fetch_add(1, std::memory_order_relaxed);
+
+    double lastBpm = g_assertDiagLastBPM.load(std::memory_order_relaxed);
+    if (fabs(bpm - lastBpm) > 1e-6) {
+        g_assertDiagLastBPM.store(bpm, std::memory_order_relaxed);
+        g_assertDiagBurstRemaining.store(kAssertDiagBurstCalls,
+                                         std::memory_order_relaxed);
+    }
+
+    bool inBoot     = (diagCnt < kAssertDiagBurstCalls);
+    bool inBurst    = false;
+    uint64_t burstRem = g_assertDiagBurstRemaining.load(std::memory_order_relaxed);
+    if (burstRem > 0) {
+        g_assertDiagBurstRemaining.store(burstRem - 1, std::memory_order_relaxed);
+        inBurst = true;
+    }
+    bool inThrottle    = (diagCnt % kAssertDiagThrottle == 0);
+    bool shouldDiagLog = inBoot || inBurst || inThrottle;
+
+    if (shouldDiagLog) {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][ASSERT-DIAG] cnt:%llu hto:%llu now:%llu "
+               "dT:%lld dS:%.6f dB:%.6f cBP:%.4f bpm:%.3f lTempo:%.3f q:%.2f "
+               "lBeat:%.4f pBP:%.4f lPh:%.4f locPh:%.4f delta:%.4f",
+               (unsigned long long)diagCnt,
+               (unsigned long long)hostTimeAtOutput,
+               (unsigned long long)now,
+               (long long)deltaTicks,
+               deltaSec, deltaBeats,
+               currentBeatPosition, bpm, linkTempo, quantum,
+               linkBeat, projectedBeatPosition,
+               linkPhase, localPhase, delta);
+    }
+
     // Soglia dedicata Director, separata da phaseJumpThresholdBeats_ usata
     // da link_engine_sync_phase (Collaborativa). Build #333 ha rivelato un
     // drift sistematico ~0.025 beat (~12ms a 120 BPM) tra clock locale Q-B
