@@ -1603,6 +1603,15 @@ class AudioEngine: ObservableObject {
                 }
             }
 
+            // === DISABLED — broadcast moved to scheduleNextBuffer beat callback ===
+            // Il design del match buffer-id (sched ~100/s vs render ~10/s) non regge
+            // l'asimmetria reale: il match `renderBufferId == targetBufferId` non
+            // scatta nei tempi del target (verifica Step 1A, sessione 15/05/2026).
+            // Broadcast Link ora parte da audioQueue — vedi commento "Step 2 —
+            // broadcast Link da audioQueue" nel beat callback di scheduleNextBuffer.
+            // Codice mantenuto visibile per reference durante validazione; pulizia
+            // definitiva in commit separato post-device verde.
+            /*
             // Arming check + apply al sample-accurate del downbeat
             if qbeats_link_pending_load_scheduled(pendingPtr) {
                 let targetBufferId = qbeats_link_pending_load_buffer_id(pendingPtr)
@@ -1626,6 +1635,7 @@ class AudioEngine: ObservableObject {
                     qbeats_link_pending_clear_scheduled(pendingPtr)
                 }
             }
+            */
         }
     }
 
@@ -1961,32 +1971,22 @@ class AudioEngine: ObservableObject {
                             midi_engine_set_beat_position(mh, preChangeBeatPos)
                         }
 
-                        // [Nota 3] Branch esplicito audio-thread vs fallback
-                        // Refactor #18: armar pending audio-thread SOLO se delta
-                        // calibrato (>0). Durante warm-up (delta=0, primi ~3
-                        // buffer post-engine.start), il sink non ha ancora
-                        // stabilito il counter rispetto a bufferCount → l'arming
-                        // sarebbe stale. Fallback ESPLICITO al path App-thread
-                        // esistente — nessun silent no-op.
-                        let delta = qbeats_link_pending_get_delta(self.linkPending)
-                        if delta > 0 {
+                        // === Step 2 — broadcast Link da audioQueue ===
+                        // Il path tap broadcast è disattivato (vedi installLinkTap):
+                        // il design del delta non regge l'asimmetria sched-vs-render
+                        // rate (~100/s vs ~10/s in pratica), il match buffer-id non
+                        // scatta mai. Broadcast diretto qui, single-threaded, con
+                        // hostTime sample-accurate = nextBufferOutputHostTime +
+                        // ticksOffset del downbeat dentro il buffer.
+                        if let lh = self.linkEngineHandle {
                             let sampleOffset = UInt32(offset)
-                            let targetBufferId = UInt64(Int64(self.bufferCount) + delta)
-                            qbeats_link_pending_arm(self.linkPending,
-                                                    pending,
-                                                    sampleOffset,
-                                                    targetBufferId)
-                            os_log("[Q-BEATS][TaskD-AT] armed audio-thread: bpm:%.1f offset:%d targetBuffer:%llu delta:%lld",
+                            let nanosOffset = Double(sampleOffset) / self.sampleRate * 1.0e9
+                            let ticksOffset = UInt64(nanosOffset * Double(self.machTimebase.denom) / Double(self.machTimebase.numer))
+                            let hostTime = self.nextBufferOutputHostTime() + ticksOffset
+                            link_engine_set_bpm_at_time(lh, pending, hostTime)
+                            os_log("[Q-BEATS][TaskD-AQ] broadcast — bpm:%.1f sampleOffset:%d ticksOffset:%llu hostTime:%llu",
                                    log: .default, type: .default,
-                                   pending, sampleOffset, targetBufferId, delta)
-                        } else {
-                            // Fallback warm-up: path App-thread (fix #3/#4 esistente)
-                            if let lh = self.linkEngineHandle {
-                                let hostTimeAtOutput = self.nextBufferOutputHostTime()
-                                link_engine_set_bpm_at_time(lh, pending, hostTimeAtOutput)
-                            }
-                            os_log("[Q-BEATS][TaskD-AT] warm-up fallback (delta=0): bpm:%.1f via App-thread link_engine_set_bpm_at_time",
-                                   log: .default, type: .default, pending)
+                                   pending, sampleOffset, ticksOffset, hostTime)
                         }
 
                         // UI dispatch (invariato)
