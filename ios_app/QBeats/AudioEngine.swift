@@ -1781,6 +1781,9 @@ class AudioEngine: ObservableObject {
             && self.clickPlayhead < 0
             && self.accentPlayhead < 0
             && self.subdivPlayhead < 0 {
+            os_log("[Q-BEATS][DRAIN] entered — bufCount:%d beatTick:%d",
+                   log: .default, type: .default,
+                   self.bufferCount, self.beatTickCounter)
             self._sectionEndPending = false
             let endClosure = self._pendingEndClosure
             self._pendingEndClosure = nil
@@ -1802,6 +1805,8 @@ class AudioEngine: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 endClosure?()
             }
+            os_log("[Q-BEATS][DRAIN] return — no buffer scheduled to playerNode",
+                   log: .default, type: .default)
             return
         }
 

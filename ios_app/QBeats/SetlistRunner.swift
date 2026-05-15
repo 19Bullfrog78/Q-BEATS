@@ -165,6 +165,8 @@ final class SetlistRunner: ObservableObject {
                                   session: LiveSession) -> () -> Void {
         return { [weak self, weak audioEngine, weak session] in
             guard let self, let audioEngine, let session else { return }
+            os_log("[Q-BEATS][DRAIN] endClosure executing",
+                   log: .default, type: .default)
 
             if !self.isLastSectionInSong {
                 // === RAMO AVANZA ===
@@ -190,6 +192,8 @@ final class SetlistRunner: ObservableObject {
                 // la formula bpb-dipendente (vedi scheduleBPMChange).
                 audioEngine.scheduleBPMChange(nextSec.bpm, atNextBeat: true)
                 self.updateSessionDisplay(session: session)
+                os_log("[Q-BEATS][DRAIN] avanza complete — scheduling chain not restarted",
+                       log: .default, type: .default)
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.
 
             } else if !self.isLastSongInSetlist {
