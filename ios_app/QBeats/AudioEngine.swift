@@ -1989,6 +1989,18 @@ class AudioEngine: ObservableObject {
                         self._audioBPM = pending
                         // L1.b sync investigation — abilita log DIRECTOR-ASSERT per 3 buffer
                         self._linkSyncLogBuffers = 3
+                        // === Step 3 — disabilita DIRECTOR-ASSERT durante transizione tempo ===
+                        // Il broadcast Link [TaskD-AQ] sotto crea un cambio tempo a hostTime
+                        // futuro (preRoll compensation). Mentre Q-B DSP continua a suonare il
+                        // vecchio BPM aspettando il downbeat sample-accurate, Link interpola
+                        // verso il nuovo BPM. Le fasi locale Q-B e Link divergono artificialmente
+                        // per ~1 beat. Senza skip, link_engine_assert_session_state vede il delta
+                        // sopra soglia 0.04 e chiama ABLLinkSetTempo(NOW) + ABLLinkForceBeatAtTime,
+                        // SOVRASCRIVENDO il broadcast futuro e annullando preRoll. Cascading
+                        // correzioni → SB + microbar fuori sync. Riuso linkSyncSkipBuffers
+                        // (meccanismo esistente play-start warm-up): 50 buffer ~500ms a ~100/s
+                        // coprono il periodo critico tra broadcast e downbeat applicato.
+                        self.linkSyncSkipBuffers = 50
 
                         // MIDI re-anchor (Strada E fix #2 invariato)
                         if let mh = self.midiEngineHandle {
