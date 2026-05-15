@@ -317,6 +317,11 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.purple)
+                    Button("Carica dati test L2.b") {
+                        loadTestDataL2b()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.indigo)
                 }
                 #endif
 
@@ -370,6 +375,34 @@ struct DebugView: View {
                               date: Date(), songIDs: [songA.id, songB.id])
 
         QBeatsStore.shared.injectTestData(songs: [songA, songB], setlists: [setlist])
+    }
+
+    /// Popola QBeatsStore.shared con 1 canzone × 4 sezioni in 4/4 puro per
+    /// test Step 2.5 (γ): isolare l'effetto pre-roll del broadcast BPM dal
+    /// mismatch quantum (3/4 vs 4/4 di SB). 3 cambi BPM con Δ diversi.
+    private func loadTestDataL2b() {
+        os_log("[DebugView] Carica dati test L2.b", log: .default, type: .default)
+
+        let s1 = SongSection(name: "Sez 1 — 100", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4,  notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "Sez 2 — 130", bpm: 130, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 6,  notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "Sez 3 — 110", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 12, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4 = SongSection(name: "Sez 4 — 140", bpm: 140, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4,  notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song L2.b",
+                        sections: [s1, s2, s3, s4],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist L2.b",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
     }
     #endif
 }
