@@ -168,11 +168,24 @@ void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t h
 // Link non condividono lo stesso punto di partenza di fase all'hostTime,
 // Link riporta beat phase diverse da quelle di Q-B.
 //
-// La fase è proiettata internamente come currentBeat + (hostTime - now) * bpm / 60.
-// Stessa formula di link_engine_assert_session_state, in direzione invertita
-// (lì verifichiamo, qui imponiamo). Usiamo bpm passato (NEW BPM) perché tra
-// now e hostTime Q-B sta già suonando al nuovo tempo (_audioBPM è stato
-// impostato dal chiamante prima della call).
+// La fase è proiettata internamente come currentBeat + (hostTime - now) * oldBpm / 60.
+// Stessa formula di link_engine_assert_session_state.
+//
+// === Strada A (16/05/2026) — proiezione con OLD BPM, non NEW ===
+// Ground truth Audacity 15/05/2026 notte: con la proiezione al NEW BPM
+// l'offset peer→Q-B (SB in anticipo sul master) accumulava ~35-50ms ad
+// ogni cambio sezione (100→130 +35ms, 130→110 +50ms, 110→140 +50ms).
+// Causa: tra `now` e `hostTime` (~150ms iOS, next-buffer + preroll 2 buf
+// + ticksOffset) il DSP C++ sta ancora renderizzando i 2 buffer di
+// pre-roll davanti al downbeat AL VECCHIO BPM — il `_pendingBPM` exchange
+// atomico sample-accurate del DSP scatta solo sul sample del downbeat.
+// Il commento storico precedente diceva "Q-B sta già suonando al nuovo
+// tempo perché _audioBPM impostato dal chiamante" — falso, _audioBPM è
+// solo mirror Swift, non rappresenta lo stato del DSP.
+// Quindi la proiezione corretta da currentBeat (a now) verso il beat
+// reale a hostTime usa OLD BPM, non NEW. ABLLinkGetTempo(state) chiamata
+// sullo state appena catturato restituisce l'ultimo tempo committato
+// (=oldBpm), perché SetTempo non è stato ancora fatto in questa funzione.
 void link_engine_set_bpm_and_beat_at_time(LinkEngineHandle handle,
                                           double bpm,
                                           double currentBeat,
@@ -188,21 +201,25 @@ void link_engine_set_bpm_and_beat_at_time(LinkEngineHandle handle,
 
     double quantum = engine->quantum_.load(std::memory_order_relaxed);
 
+    // Capture PRIMA della proiezione: serve oldBpm dal session state
+    // corrente per proiettare correttamente nella finestra pre-roll.
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    double oldBpm = ABLLinkGetTempo(state);
+
     uint64_t now         = mach_absolute_time();
     int64_t  deltaTicks  = (int64_t)hostTime - (int64_t)now;
     double   deltaSec    = (double)deltaTicks
                          * (double)timebase.numer
                          / (double)timebase.denom
                          / 1.0e9;
-    double   deltaBeats  = deltaSec * bpm / 60.0;
+    double   deltaBeats  = deltaSec * oldBpm / 60.0;
     double   beatAtHostTime = currentBeat + deltaBeats;
 
     // ABLLinkSetTempo + ABLLinkForceBeatAtTime nello stesso capture/commit
     // atomico. ABLLinkForceBeatAtTime perché modalità Direttore = Q-BEATS
     // sorgente autoritaria (semantica documentata Ableton come "rude
     // re-map for all peers", legittima per external clock source).
-    ABLLinkSessionStateRef state =
-        ABLLinkCaptureAppSessionState(engine->link_);
     ABLLinkSetTempo(state, bpm, hostTime);
     ABLLinkForceBeatAtTime(state, beatAtHostTime, hostTime, quantum);
     ABLLinkCommitAppSessionState(engine->link_, state);
