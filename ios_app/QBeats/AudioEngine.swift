@@ -1030,6 +1030,19 @@ class AudioEngine: ObservableObject {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
             metronome_schedule_bpm_change(h, newBPM)
+            // === Step 3 (rev.2) — disabilita DIRECTOR-ASSERT durante transizione tempo ===
+            // linkSyncSkipBuffers settato QUI (audioQueue.async, FIFO prima di
+            // kickScheduling nel ramo avanza SetlistRunner) anzichè nel beat callback
+            // target tick. Motivo: i 3 buffer di kickScheduling girano su audioQueue
+            // PRIMA che il beat target sia processato. Senza skip pre-armato,
+            // link_engine_assert_session_state scatta con il vecchio BPM durante i
+            // kick buffer (osservato a 19:21:17 sul commit d29c4b7: DIRECTOR-ASSERT
+            // bpm:100.00 PRIMA del broadcast TaskD-AQ a bpm:130.0). 100 buffer ~1s
+            // coprono sia la finestra pre-broadcast (kick buffer con vecchio BPM)
+            // sia la finestra post-broadcast (downbeat applicato + margine residuo
+            // convergenza fase). max() evita di ridurre uno skip già più lungo se
+            // due cambi BPM si sovrappongono.
+            self.linkSyncSkipBuffers = max(self.linkSyncSkipBuffers, 100)
             // Task D — calcola il tick del prossimo downbeat in scala
             // beatTickCounter (1-based: tick=1 è il primo downbeat al play,
             // poi tick=1+beatsPerBar, 1+2*beatsPerBar, ...).
@@ -1989,18 +2002,6 @@ class AudioEngine: ObservableObject {
                         self._audioBPM = pending
                         // L1.b sync investigation — abilita log DIRECTOR-ASSERT per 3 buffer
                         self._linkSyncLogBuffers = 3
-                        // === Step 3 — disabilita DIRECTOR-ASSERT durante transizione tempo ===
-                        // Il broadcast Link [TaskD-AQ] sotto crea un cambio tempo a hostTime
-                        // futuro (preRoll compensation). Mentre Q-B DSP continua a suonare il
-                        // vecchio BPM aspettando il downbeat sample-accurate, Link interpola
-                        // verso il nuovo BPM. Le fasi locale Q-B e Link divergono artificialmente
-                        // per ~1 beat. Senza skip, link_engine_assert_session_state vede il delta
-                        // sopra soglia 0.04 e chiama ABLLinkSetTempo(NOW) + ABLLinkForceBeatAtTime,
-                        // SOVRASCRIVENDO il broadcast futuro e annullando preRoll. Cascading
-                        // correzioni → SB + microbar fuori sync. Riuso linkSyncSkipBuffers
-                        // (meccanismo esistente play-start warm-up): 50 buffer ~500ms a ~100/s
-                        // coprono il periodo critico tra broadcast e downbeat applicato.
-                        self.linkSyncSkipBuffers = 50
 
                         // MIDI re-anchor (Strada E fix #2 invariato)
                         if let mh = self.midiEngineHandle {
