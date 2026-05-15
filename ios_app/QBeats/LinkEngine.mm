@@ -153,6 +153,61 @@ void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t h
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
+// === Step 4 — Set BPM + Beat atomically (15/05/2026) ===
+// Risolve drift sistemico ai cambi BPM in modalità Direttore. Diagnosi log
+// [LINK][ASSERT-DIAG] 15/05/2026 sera: ai cambi 100->130, 130->110, 110->140
+// osservato offset costante 0.02-0.09 beat (~10-40 ms) indipendente dal peer
+// (Tick e Metronome Pro stessi numeri entro 20%). bpm == lTempo sempre,
+// quindi non è interpolazione Link. Puro offset di fase, presente solo
+// nella finestra di transizione, persistente fino all'ASSERT successivo
+// (o costante in Sez 3 dove l'offset stava sotto soglia 0.04).
+//
+// Razionale: link_engine_set_bpm_at_time chiama ABLLinkSetTempo da solo.
+// Link applica il nuovo tempo dal hostTime indicato MA conserva il proprio
+// beat counter, accelerando/decelerando dal punto pre-cambio. Se Q-B e
+// Link non condividono lo stesso punto di partenza di fase all'hostTime,
+// Link riporta beat phase diverse da quelle di Q-B.
+//
+// La fase è proiettata internamente come currentBeat + (hostTime - now) * bpm / 60.
+// Stessa formula di link_engine_assert_session_state, in direzione invertita
+// (lì verifichiamo, qui imponiamo). Usiamo bpm passato (NEW BPM) perché tra
+// now e hostTime Q-B sta già suonando al nuovo tempo (_audioBPM è stato
+// impostato dal chiamante prima della call).
+void link_engine_set_bpm_and_beat_at_time(LinkEngineHandle handle,
+                                          double bpm,
+                                          double currentBeat,
+                                          uint64_t hostTime) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+
+    static mach_timebase_info_data_t timebase = {0, 0};
+    if (timebase.denom == 0) {
+        mach_timebase_info(&timebase);
+    }
+
+    double quantum = engine->quantum_.load(std::memory_order_relaxed);
+
+    uint64_t now         = mach_absolute_time();
+    int64_t  deltaTicks  = (int64_t)hostTime - (int64_t)now;
+    double   deltaSec    = (double)deltaTicks
+                         * (double)timebase.numer
+                         / (double)timebase.denom
+                         / 1.0e9;
+    double   deltaBeats  = deltaSec * bpm / 60.0;
+    double   beatAtHostTime = currentBeat + deltaBeats;
+
+    // ABLLinkSetTempo + ABLLinkForceBeatAtTime nello stesso capture/commit
+    // atomico. ABLLinkForceBeatAtTime perché modalità Direttore = Q-BEATS
+    // sorgente autoritaria (semantica documentata Ableton come "rude
+    // re-map for all peers", legittima per external clock source).
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    ABLLinkSetTempo(state, bpm, hostTime);
+    ABLLinkForceBeatAtTime(state, beatAtHostTime, hostTime, quantum);
+    ABLLinkCommitAppSessionState(engine->link_, state);
+}
+
 void link_engine_set_tempo_callback(LinkEngineHandle handle,
     void (*callback)(double bpm, void* context),
     void* context) {

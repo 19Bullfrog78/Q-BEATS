@@ -62,6 +62,27 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm);
 // di ~10-20ms post-cambio sezione, fisso non convergente — verificato
 // 11/05/2026 dopo fix #1+#2).
 void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t hostTime);
+// === Step 4 (15/05/2026) — Set BPM + Beat atomically (App-thread, AudioQueue-callable) ===
+// Variante atomica di link_engine_set_bpm_at_time che invia anche la fase.
+// Risolve il drift sistemico ai cambi BPM in modalità Direttore (test L2.b
+// 15/05/2026 sera, riprodotto su Tick e Metronome Pro). Il vecchio
+// set_bpm_at_time mandava solo il tempo; Link conservava il proprio beat
+// counter accelerando/decelerando dal punto pre-cambio, generando offset
+// di ~30-50 ms al primo buffer post-skip-buffer. Questa funzione fa
+// ABLLinkSetTempo + ABLLinkForceBeatAtTime nello stesso capture/commit —
+// peer riceve tempo e fase nello stesso session update.
+//
+// Parametri:
+//   bpm:         nuovo BPM al hostTime indicato
+//   currentBeat: beat di Q-B al momento della call (midi_engine_get_beat_position)
+//   hostTime:    hostTime futuro del primo sample del nuovo tempo
+//
+// La fase a hostTime è calcolata internamente come:
+//   beatAtHostTime = currentBeat + (hostTime - now) * bpm / 60
+void link_engine_set_bpm_and_beat_at_time(LinkEngineHandle handle,
+                                          double bpm,
+                                          double currentBeat,
+                                          uint64_t hostTime);
 // Fix #18 — variante audio-thread per chiamata dal vero render thread.
 // Usa ABLLinkCaptureAudioSessionState / ABLLinkCommitAudioSessionState
 // (lockfree, audio-thread only). Sample-accurate per design.

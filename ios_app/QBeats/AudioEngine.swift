@@ -2017,7 +2017,13 @@ class AudioEngine: ObservableObject {
                         // scatta mai. Broadcast diretto qui, single-threaded, con
                         // hostTime sample-accurate = nextBufferOutputHostTime +
                         // ticksOffset del downbeat dentro il buffer.
-                        if let lh = self.linkEngineHandle {
+                        // === Step 4 (15/05/2026) — broadcast atomic tempo + fase ===
+                        // Sostituisce link_engine_set_bpm_at_time (solo tempo) con
+                        // link_engine_set_bpm_and_beat_at_time (tempo + fase nello
+                        // stesso session commit). Risolve drift sistemico 0.02-0.09
+                        // beat ai cambi BPM (test L2.b 15/05/2026 sera, riprodotto
+                        // su Tick e Metronome Pro, numeri identici entro 20%).
+                        if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle {
                             let sampleOffset = UInt32(offset)
                             let nanosOffset = Double(sampleOffset) / self.sampleRate * 1.0e9
                             let ticksOffset = UInt64(nanosOffset * Double(self.machTimebase.denom) / Double(self.machTimebase.numer))
@@ -2028,10 +2034,11 @@ class AudioEngine: ObservableObject {
                             // prossimo buffer da renderizzare; il nostro è dietro di preRollTicks.
                             let preRollTicks = 2 * self.bufferDurationTicks
                             let hostTime = self.nextBufferOutputHostTime() + preRollTicks + ticksOffset
-                            link_engine_set_bpm_at_time(lh, pending, hostTime)
-                            os_log("[Q-BEATS][TaskD-AQ] broadcast — bpm:%.1f sampleOffset:%d ticksOffset:%llu preRollTicks:%llu bufDurTicks:%llu hostTime:%llu",
+                            let currentBeat = midi_engine_get_beat_position(mh)
+                            link_engine_set_bpm_and_beat_at_time(lh, pending, currentBeat, hostTime)
+                            os_log("[Q-BEATS][TaskD-AQ] broadcast — bpm:%.1f beatNow:%.4f sampleOffset:%d ticksOffset:%llu preRollTicks:%llu bufDurTicks:%llu hostTime:%llu",
                                    log: .default, type: .default,
-                                   pending, sampleOffset, ticksOffset, preRollTicks, self.bufferDurationTicks, hostTime)
+                                   pending, currentBeat, sampleOffset, ticksOffset, preRollTicks, self.bufferDurationTicks, hostTime)
                         }
 
                         // UI dispatch (invariato)
