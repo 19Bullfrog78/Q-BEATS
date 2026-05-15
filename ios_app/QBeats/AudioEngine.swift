@@ -827,6 +827,27 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    /// Riavvia la catena di completion handler del playerNode dopo un drain
+    /// di sezione. Il branch drain fa `return` senza schedulare un nuovo
+    /// buffer al playerNode. Le sezioni lunghe (steady-state buffer al
+    /// minimo) lasciano la coda vuota dopo il drain, e la catena di
+    /// completion handler si esaurisce naturalmente. Sezioni brevi
+    /// sopravvivono per buffer residui del pre-roll iniziale non ancora
+    /// consumati. Questo metodo ripristina 3 buffer in coda
+    /// incondizionatamente, eliminando la dipendenza dalla fortuna.
+    /// Pattern identico al pre-roll iniziale (righe 586-588).
+    /// Chiamare SOLO dal ramo avanza di SetlistRunner, dopo scheduleBPMChange.
+    /// Wrappa in audioQueue.async perché il chiamante gira su main thread
+    /// (closure end dispatchata da DispatchQueue.main.async).
+    func kickScheduling() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.scheduleNextBuffer()
+            self.scheduleNextBuffer()
+            self.scheduleNextBuffer()
+        }
+    }
+
     func tapTempo() {
         guard let bpm = tapTempoEngine.tap() else { return }
         let rounded = (bpm * 10).rounded() / 10

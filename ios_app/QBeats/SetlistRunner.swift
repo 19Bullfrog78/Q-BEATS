@@ -191,8 +191,9 @@ final class SetlistRunner: ObservableObject {
                 // pre-roll AVAudioPlayerNode invisibile. atNextBeat:true bypassa
                 // la formula bpb-dipendente (vedi scheduleBPMChange).
                 audioEngine.scheduleBPMChange(nextSec.bpm, atNextBeat: true)
+                audioEngine.kickScheduling()
                 self.updateSessionDisplay(session: session)
-                os_log("[Q-BEATS][DRAIN] avanza complete — scheduling chain not restarted",
+                os_log("[Q-BEATS][DRAIN] avanza complete — kickScheduling() called",
                        log: .default, type: .default)
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.
 
