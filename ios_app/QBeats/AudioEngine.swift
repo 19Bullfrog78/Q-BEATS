@@ -1982,11 +1982,17 @@ class AudioEngine: ObservableObject {
                             let sampleOffset = UInt32(offset)
                             let nanosOffset = Double(sampleOffset) / self.sampleRate * 1.0e9
                             let ticksOffset = UInt64(nanosOffset * Double(self.machTimebase.denom) / Double(self.machTimebase.numer))
-                            let hostTime = self.nextBufferOutputHostTime() + ticksOffset
+                            // Step 2.5 — pre-roll AVAudioPlayerNode: ~2 buffer in coda davanti
+                            // al buffer che stiamo riempiendo (pre-roll iniziale 3 buffer
+                            // righe 586-588 + completion handler scheduleNextBuffer mantengono
+                            // steady-state ~2 in coda). nextBufferOutputHostTime punta al
+                            // prossimo buffer da renderizzare; il nostro è dietro di preRollTicks.
+                            let preRollTicks = 2 * self.bufferDurationTicks
+                            let hostTime = self.nextBufferOutputHostTime() + preRollTicks + ticksOffset
                             link_engine_set_bpm_at_time(lh, pending, hostTime)
-                            os_log("[Q-BEATS][TaskD-AQ] broadcast — bpm:%.1f sampleOffset:%d ticksOffset:%llu hostTime:%llu",
+                            os_log("[Q-BEATS][TaskD-AQ] broadcast — bpm:%.1f sampleOffset:%d ticksOffset:%llu preRollTicks:%llu bufDurTicks:%llu hostTime:%llu",
                                    log: .default, type: .default,
-                                   pending, sampleOffset, ticksOffset, hostTime)
+                                   pending, sampleOffset, ticksOffset, preRollTicks, self.bufferDurationTicks, hostTime)
                         }
 
                         // UI dispatch (invariato)
