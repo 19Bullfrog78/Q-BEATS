@@ -92,3 +92,7 @@ void qbeats_link_pending_clear_scheduled(QBeatsLinkPending* p) {
 uint64_t qbeats_link_pending_increment_render_buffer(QBeatsLinkPending* p) {
     return atomic_fetch_add_explicit(&p->render_buffer_id, 1, memory_order_relaxed) + 1;
 }
+
+uint64_t qbeats_link_pending_get_render_buffer_id(QBeatsLinkPending* p) {
+    return atomic_load_explicit(&p->render_buffer_id, memory_order_relaxed);
+}

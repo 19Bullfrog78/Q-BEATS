@@ -1578,6 +1578,11 @@ class AudioEngine: ObservableObject {
             // ABLLink Audio*SessionState lockfree → compatibili con thread RT.
             let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
 
+            if renderBufferId % 1024 == 0 {
+                os_log("[Q-BEATS][SinkDiag-RT] heartbeat — renderBufferId:%llu",
+                       log: .default, type: .default, renderBufferId)
+            }
+
             // Calibrazione delta sched-render (one-shot self-correcting)
             if qbeats_link_pending_get_delta(pendingPtr) == 0 {
                 let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
@@ -1913,6 +1918,12 @@ class AudioEngine: ObservableObject {
                     let tickN = self.beatTickCounter
                     DispatchQueue.main.async { [weak self] in
                         self?.beatTickSubject.send(tickN)
+                    }
+
+                    if self.beatTickCounter % 32 == 0 {
+                        let sinkCount = qbeats_link_pending_get_render_buffer_id(self.linkPending)
+                        os_log("[Q-BEATS][SinkDiag-AQ] relay — renderBufferId:%llu beatTick:%d",
+                               log: .default, type: .default, sinkCount, self.beatTickCounter)
                     }
 
                     // === Task D — Propagazione BPM al downbeat target (refactor #18) ===

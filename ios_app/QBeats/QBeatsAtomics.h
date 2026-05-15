@@ -42,3 +42,4 @@ uint64_t qbeats_link_pending_load_buffer_id(QBeatsLinkPending* p);
 double   qbeats_link_pending_load_sample_rate(QBeatsLinkPending* p);
 void     qbeats_link_pending_clear_scheduled(QBeatsLinkPending* p);
 uint64_t qbeats_link_pending_increment_render_buffer(QBeatsLinkPending* p);
+uint64_t qbeats_link_pending_get_render_buffer_id(QBeatsLinkPending* p);
