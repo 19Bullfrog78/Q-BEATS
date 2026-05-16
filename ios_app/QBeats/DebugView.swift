@@ -322,6 +322,16 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.indigo)
+                    Button("Carica dati test 110 Mono") {
+                        loadTestData110Mono()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.teal)
+                    Button("Carica dati test 110 Quad") {
+                        loadTestData110Quad()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.cyan)
                 }
                 #endif
 
@@ -400,6 +410,56 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist L2.b",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico 110 Mono — 1 sezione 110 BPM 4/4 × 45 misure (~98s).
+    /// Isola se il drift intra-sezione osservato in L2.b Sez 110 è
+    /// BPM-intrinsic (drifta anche standalone) o cambio-driven (sparisce
+    /// senza cambi BPM precedenti). 45 misure scelte per amplificare un
+    /// drift lineare ~4ms/s a ~390ms, ben oltre rumore di misura Audacity.
+    private func loadTestData110Mono() {
+        os_log("[DebugView] Carica dati test 110 Mono", log: .default, type: .default)
+
+        let s1 = SongSection(name: "110 Mono", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 45, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song 110 Mono",
+                        sections: [s1],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist 110 Mono",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico 110 Quad — 4 sezioni 110 BPM 4/4 × 7 misure ciascuna.
+    /// Isola se le transizioni di sezione causano drift indipendentemente
+    /// dal cambio di BPM (qui il BPM resta 110 in tutte le sezioni).
+    /// Durata totale ~61s, paragonabile a L2.b (~54s).
+    private func loadTestData110Quad() {
+        os_log("[DebugView] Carica dati test 110 Quad", log: .default, type: .default)
+
+        let s1 = SongSection(name: "110 Quad — 1", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "110 Quad — 2", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "110 Quad — 3", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4 = SongSection(name: "110 Quad — 4", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song 110 Quad",
+                        sections: [s1, s2, s3, s4],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist 110 Quad",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
