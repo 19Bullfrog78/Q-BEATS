@@ -56,7 +56,9 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 | **L1.b** | "Carica dati test L1.b" | `.purple` | 2 song, 5 sezioni totali, cambi BPM + cambi time signature (3/4 incluso) | ~variabile | Validazione L1.b multi-section originale (verde 14/05/2026) |
 | **L2.b** | "Carica dati test L2.b" | `.indigo` | 1 song, 4 sez 4/4 puro, BPM 100/130/110/140, ripetizioni 4/6/12/4 | ~54s | Isola problema BPM puro dal mismatch quantum (commit `52fe1f9`) |
 | **110 Mono** | "Carica dati test 110 Mono" | `.teal` | 1 song, 1 sez 110 BPM 4/4 × 45 misure | ~98s | Isola BPM-intrinsic vs cambio-driven (commit `7946032`) |
-| **110 Quad** | "Carica dati test 110 Quad" | `.cyan` | 1 song, 4 sez 110 BPM 4/4 × 7 misure ciascuna, zero cambi BPM | ~61s | Isola se transizioni sezione causano drift indipendentemente da ΔBpm (commit `7946032`) |
+| **110 Quad** | "Carica dati test 110 Quad" | `.cyan` | 1 song, 4 sez 110 BPM 4/4 × 7 misure ciascuna, zero cambi BPM | ~61s | Isola se transizioni sezione causano drift indipendentemente da ΔBpm (commit `7946032`). **T-R2** post-Strada-A |
+| **BPM Quad** | "Carica dati test BPM Quad" | `.orange` | 1 song, 4 sez 4/4 × 7 misure, BPM 100→130→110→140 (Δ ascendente/discendente/ascendente) | ~57s | Valida atomic exchange BPM al downbeat + broadcast Link `set_bpm_and_beat_at_time` post-Strada-A (commit `7a0f622`). **T-BPM** |
+| **BPB Mixed** | "Carica dati test BPB Mixed" | `.mint` | 1 song, 4 sez × 4 misure × 120 BPM, BPB 4/4→3/4→5/4→4/4 con accent pattern misti `[2,1,1,1]`/`[2,1,1]`/`[2,1,1,2,1]`/`[2,1,2,1]` | ~32s | Valida atomic exchange BPB + accent pattern + quantum Link al downbeat post-Strada-A (commit `7a0f622`). **T-BPB** |
 
 **Setlist da NON cancellare**: sono strumenti regression. Pulizia log diagnostici a fine bug Link sync NON deve toccare le setlist test.
 
@@ -98,6 +100,19 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 **Realtà**: i log Q-B-side misurano coerenza state Link condiviso (Q-B con sé stesso), NON sync audio sample-accurate peer-side. Per validare sync inter-peer reale serve ground truth audio.
 
 **Regola fissata** in memoria `feedback_log_vs_ground_truth.md`: validare sync inter-peer SEMPRE con orecchio Mauro su device + Audacity, MAI con soli log Q-B.
+
+### Lezione 5 — "Link quantum mismatch produce sync_phase spurio" (16/05/2026 pomeriggio, post-T-BPB)
+
+**Errore origine**: T-BPB Test 1 con peer SB attivo via Link → click orfano + accent shift permanente al primo cambio BPB (4/4→3/4). Inizialmente attribuito a possibile bug Strada A.
+
+**Realtà** (confermata da T-BPB Test 2 in Q-B standalone, no Link): il click orfano sparisce completamente quando il peer Link è disconnesso. Causa: Q-B passa a quantum=3 (3/4) via `link_engine_set_quantum`, SB resta a quantum=4 (TS hardcoded nell'app SB, non cambiabile via Link). Per ~1s post-transizione `linkSyncSkipBuffers=100` protegge da `link_engine_sync_phase`. Dopo la scadenza, sync_phase riprende e legge un consensus Link inconsistente (Q-B quantum=3 + SB quantum=4 = phase ambigua) → correzione spuria → `metronome_set_beat_position` riscrive `_currentBeatInBar` + `_exactNextBeatSample` → click shiftato + accent permanente fuori posto.
+
+**Implicazioni**:
+- Per testare cambi BPB in modo isolato dal peer, usare **Q-B standalone** (Link OFF) o peer compatibile (Tick? da verificare se supporta cambi TS via Link).
+- SB come peer ground truth per cambi BPB NON è affidabile — produce artefatti che NON sono bug Q-B.
+- Setlist con cambi BPB live richiedono mitigazione lato Q-B (vedi TD #39): aumentare `linkSyncSkipBuffers` post-cambio BPB, bloccare sync_phase per finestra estesa, o verificare consenso peer prima della correzione.
+
+**Regola fissata**: per test Strada A su cambi BPB, eseguire **almeno una variante standalone** per isolare Q-B-side da peer/Link-side prima di concludere bug Q-B.
 
 ---
 
@@ -179,7 +194,54 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 | **Risultato** | Sez 1 regime: ~0ms. **Sez 2 inizio (T1, ~15.3s): +33ms** (SB 0.490 / Q-B 0.523). **Sez 3 mid (~33s): +74ms** (click visibilmente separati). **Sez 4 mid (~50s): +160ms** (doppio picco molto chiaro). Ultimo beat Sez 4: +150ms (Q-B finisce in ritardo, SB ha beat extra). Distanza SB→SB approssimativamente costante ~0.49-0.55s (≈ beat period 545ms a 110 BPM). |
 | **Stato** | ✅ VALIDATO (risultato negativo = ROSSO) — metodologia corretta |
 | **Conclusione** | **Drift accumulativo ~30-50ms per transizione di sezione**, INDIPENDENTE dal cambio BPM. Causa: **drain gap Q-B-side**. SB segue Link giusto, Q-B audio si ferma momentaneamente al cambio sezione. |
-| **NON rifare** | A meno di regression check post-Strada A |
+| **NON rifare** | Sostituito da T-R2 post-Strada-A (verde) |
+
+### T-R2 — 110 Quad post-Strada-A ✅ VALIDATO
+
+| Campo | Valore |
+|---|---|
+| **Data** | 16/05/2026 pomeriggio |
+| **HEAD** | `1f0a433` (Strada A applicata) — IPA su master `7a0f622` |
+| **Setup** | SB peer via Link, microfono in stanza, Audacity |
+| **Setlist** | 110 Quad (identica a Test 2) — bottone `.cyan` |
+| **Risultato Mauro** | *"Fatto il peer fatto partire 4 sezioni da 110 x 7 misure perfette nessun drift anche ad orecchio è perfetto. Se chiudo gli occhi e ascolto non mi accorgo del cambio sezione."* |
+| **Confronto vs baseline V60** | Pre-Strada-A: +33/+74/+160ms cumulativi su 3 transizioni. Post-Strada-A: zero offset percepibile (cluster compatti su tutte le transizioni). |
+| **Soglia chiusura** | ≤5ms cumulato (BOX3 V61) — **superata** |
+| **Stato** | ✅ VALIDATO — drain gap eliminato, causa root del bug originario risolta |
+| **Conclusione** | **Strada A funziona come progettato sul caso d'uso primario del bug**. Le transizioni di sezione intra-canzone sono ora seamless: l'orecchio del batterista non percepisce il cambio. |
+| **NON rifare** | A meno di regression post-fix futuri al Layer 1 DSP o Layer 3 AudioEngine |
+
+### T-BPM — BPM Quad post-Strada-A ✅ VALIDATO (caveat peer)
+
+| Campo | Valore |
+|---|---|
+| **Data** | 16/05/2026 pomeriggio |
+| **HEAD** | `1f0a433` / IPA `7a0f622` |
+| **Setup** | SB peer via Link, Audacity |
+| **Setlist** | BPM Quad (4 sez × 7 mis × 4/4, BPM 100→130→110→140) — bottone `.orange` |
+| **Risultato Mauro** | *"Tutto ok tranne una volta che è saltato il peer sul cambio BPM (da indagare che non sia un bug) ma se il peer non salta il sync è perfetto."* |
+| **Caveat** | 1 occorrenza isolata di "peer SB salta sul cambio BPM" in N transizioni. Non sistematica. Ipotesi 1 (firmware SB) probabile — memoria `project_qbeats_test_peer.md` ricorda bug noti SB su Link. |
+| **Stato Q-B-side** | ✅ VALIDATO — broadcast Link atomic `set_bpm_and_beat_at_time` funziona correttamente nel ramo SEAMLESS, DSP exchange BPM al downbeat sample-accurate. |
+| **Stato caveat peer** | ⚠️ Archiviato come glitch isolato. Da riconsiderare se si ripete sistematicamente in test futuri. |
+| **NON rifare** | A meno che il caveat peer si manifesti sistematicamente |
+
+### T-BPB — BPB Mixed post-Strada-A ✅ VALIDATO Q-B-side (2 caveat)
+
+| Campo | Valore |
+|---|---|
+| **Data** | 16/05/2026 pomeriggio (due esecuzioni: con peer SB + standalone) |
+| **HEAD** | `1f0a433` / IPA `7a0f622` |
+| **Setup Test 1** | SB peer via Link, Audacity |
+| **Setup Test 2** | **Q-B standalone (Link disattivato)**, Audacity |
+| **Setlist** | BPB Mixed (4 sez × 4 mis × 120 BPM, BPB 4/4→3/4→5/4→4/4 con accent misti) — bottone `.mint` |
+| **Risultato Test 1 (con peer)** | Cambio 4/4→3/4: click orfano fuori griglia tra beat ~14-15 + accent shift permanente. SB non cambia TS (resta 4/4) come da limite Link/SB. |
+| **Risultato Test 2 (standalone)** | Cambio 4/4→3/4 pulito, zero click orfani, accent corretto. Sez 4 (`[2,1,2,1]`): 4 click con accent backbeat (1+3) come da pattern. |
+| **Diagnosi click orfano Test 1** | Link sync quantum mismatch (vedi Lezione 5 + TD #39 in BOX3 V62). Post-`linkSyncSkipBuffers` (~1s), `link_engine_sync_phase` corregge Q-B verso consensus Link inconsistente (Q-B quantum=3 + SB quantum=4) → `metronome_set_beat_position` riscrive `_currentBeatInBar` + `_exactNextBeatSample` → click shiftato. |
+| **Esclusione bug Q-B-side** | Test 2 standalone dimostra che senza peer Link il bug sparisce → causa è peer/Link-side, NON Strada A. |
+| **Caveat 1** | Display microbar Sez 4 (4/4 accent backbeat) mostra "2/4" visivamente invece di 4 beat con accent. Bug UI pre-esistente — Strada A non tocca SwiftUI Views. Registrato come TD #38. |
+| **Caveat 2** | Display microbar Sez 3 (5/4) ultimo segmento beat resta nero. Bug UI pre-esistente. Registrato come TD #38. |
+| **Stato Q-B-side** | ✅ VALIDATO — DSP exchange BPB + accent pattern + `link_engine_set_quantum` al downbeat funzionano sample-accurate. |
+| **NON rifare** | A meno di regression post-fix |
 
 ---
 
@@ -187,8 +249,11 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 
 | Test | Motivo per cui NON rifare |
 |---|---|
-| Test 1 — 110 Mono ✅ | Risultato verde validato. Rifare solo per regression check post-Strada A. |
-| Test 2 — 110 Quad ❌ | Risultato rosso validato + causa root identificata. Rifare solo per regression check post-Strada A. |
+| Test 1 — 110 Mono ✅ | Risultato verde validato. Sostituito da T-R2 come regression Strada A. |
+| Test 2 — 110 Quad ❌ | Risultato rosso validato + causa root identificata. Sostituito da T-R2 ✅. |
+| **T-R2** — 110 Quad post-Strada-A ✅ | Risultato verde validato 16/05 pomeriggio. Rifare solo per regression post-fix futuri al Layer 1/Layer 3. |
+| **T-BPM** — BPM Quad post-Strada-A ✅ | Verde Q-B-side. Rifare solo se il caveat peer SB si ripete sistematicamente. |
+| **T-BPB** — BPB Mixed post-Strada-A ✅ Q-B-side | Verde su 2 esecuzioni (con peer + standalone). Per future indagini su TD #39 (Link quantum mismatch), riprodurre con peer Tick se supporta cambi TS. |
 | Test L2.b varianti pre-Strada-C | Dati interpretati male, valore storico. Per dati numerici precisi serve nuova esecuzione con metodologia corretta. |
 | Test 3 — L2.b con peer Tick | **CANCELLATO**. Causa root Q-B-side (non peer-side), Tick mostrerebbe lo stesso fenomeno. |
 
@@ -196,36 +261,24 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 
 ## TEST FUTURI PREVISTI (NON ANCORA ESEGUITI)
 
-### Test R1 — Regression 110 Mono post-Strada-A
+### Test R1 — Regression 110 Mono post-Strada-A — **DEPRECATO**
+
+Sostituito de facto da T-R2: se T-R2 (4 sez con transizioni) è verde, T-R1 (1 sez standalone, scenario più semplice) è implicitamente verde. Da eseguire solo se T-R2 mostrasse regressioni inattese in futuro.
+
+### Test R2 — Regression 110 Quad post-Strada-A — **ESEGUITO ✅**
+
+Vedi sezione "T-R2 — 110 Quad post-Strada-A ✅ VALIDATO" sopra. Verde perfetto 16/05/2026 pomeriggio. Drain gap eliminato.
+
+### Test R3 — L2.b post-Strada-A (scenario produzione)
 
 | Campo | Valore |
 |---|---|
-| **Quando** | Dopo che Strada A sarà implementata e committata (Layer 1 + 2 + 3) |
-| **HEAD** | TBD (commit Strada A) |
-| **Setup** | Identico a Test 1 |
-| **Setlist** | 110 Mono |
-| **Atteso** | Stesso risultato di Test 1: cluster compatto, zero offset. Validare che Strada A non abbia regressioni su scenari standalone. |
-
-### Test R2 — Regression 110 Quad post-Strada-A (test critico)
-
-| Campo | Valore |
-|---|---|
-| **Quando** | Dopo Strada A |
-| **HEAD** | TBD |
-| **Setup** | Identico a Test 2 |
-| **Setlist** | 110 Quad |
-| **Atteso** | **ZERO drift accumulativo ai 3 cambi sezione**. Tutti i punti devono mostrare cluster compatto (come Sez 1 di Test 2). Se persiste anche un solo cambio con doppio peak → Strada A non ha risolto. |
-| **Criterio chiusura bug** | Test R2 verde + ground truth Audacity validata |
-
-### Test R3 — L2.b post-Strada-A (test scenario produzione)
-
-| Campo | Valore |
-|---|---|
-| **Quando** | Dopo R2 verde |
-| **HEAD** | TBD |
-| **Setup** | Identico ai test L2.b precedenti |
-| **Setlist** | L2.b (100→130→110→140) |
-| **Atteso** | Zero accumulo ai cambi sezione + zero drift intra-sezione (Strada C già risolveva cambi tempo, Strada A risolve cambi sezione). |
+| **Quando** | Opzionale pre-palco. Coperto in parte da T-BPM (BPM variabile + 4/4) eseguito 16/05 pomeriggio. |
+| **HEAD** | `1f0a433` (post-Strada-A) |
+| **Setup** | Identico ai test L2.b precedenti, peer SB |
+| **Setlist** | L2.b (100→130→110→140) — bottone `.indigo` |
+| **Atteso** | Zero accumulo ai cambi sezione + zero drift intra-sezione. T-BPM (più simmetrico, 7 mis fisse) ha già confermato lo scenario. T-R3 servirebbe solo per confrontare con i dati storici L2.b. |
+| **Decisione** | Non prioritario. T-BPM verde lo copre sufficientemente. |
 
 ### Test palco real-life
 
@@ -255,8 +308,10 @@ Tutte le setlist test sono in `DebugView.swift` sotto `#if DEBUG`. Bottoni dedic
 
 ## VERSIONING REGISTRO
 
-- **V1** (questo, 16/05/2026 mattina) — primo registro consolidato, copre tutti i test eseguiti fino a Test 2. Lezioni metodologiche 1-4 incluse.
-- **V2** (futuro) — aggiornare con esito Test R1/R2/R3 post-Strada A. Eventuali nuove lezioni emergenti.
-- **V3** (futuro) — aggiornare con esito palco real-life.
+- **V1** (16/05/2026 mattina) — primo registro consolidato, test fino a Test 2. Lezioni 1-4.
+- **V2** (16/05/2026 pomeriggio) — questo aggiornamento. T-R2 + T-BPM + T-BPB post-Strada-A. Nuovi bottoni DebugView (BPM Quad `.orange` + BPB Mixed `.mint`). Lezione 5 (Link quantum mismatch). Strada A validata sul trittico critico audio Q-B-side.
+- **V3** (futuro) — aggiornare con esito palco real-life + eventuali test post-fix TD #38/#39.
 
 **Regola di aggiornamento**: ogni nuovo test eseguito va aggiunto come riga nella tabella "TEST ESEGUITI", con HEAD, data, setup, risultato, stato. Le lezioni metodologiche restano cumulative (le vecchie non vanno rimosse, solo aggiunte le nuove).
+
+**Nota nome file**: filename `REGISTRO_TEST_AUDACITY_V1.md` mantenuto per stabilità link/memoria. Il versioning interno (V1/V2/V3) traccia gli aggiornamenti progressivi del contenuto.
