@@ -17,6 +17,14 @@ void            metronome_setAccentPattern(MetronomeHandle handle, const uint8_t
 void            metronome_setSubdivision(MetronomeHandle handle, uint8_t multiplier, double swingRatio);
 void            metronome_schedule_bpm_change(MetronomeHandle handle, double newBPM);
 void            metronome_cancel_pending_bpm(MetronomeHandle handle);
+
+// Strada A — C-API per pending BPB + accent pattern paralleli a BPM.
+void            metronome_schedule_bpb_change(MetronomeHandle handle, uint32_t bpb);
+void            metronome_cancel_pending_bpb(MetronomeHandle handle);
+void            metronome_schedule_accent_pattern_change(MetronomeHandle handle,
+                                                          const uint8_t* pattern,
+                                                          uint32_t length);
+
 void            metronome_set_accent_volume(MetronomeHandle handle, double v);
 void            metronome_set_beat_volume(MetronomeHandle handle, double v);
 void            metronome_set_subdiv_volume(MetronomeHandle handle, double v);

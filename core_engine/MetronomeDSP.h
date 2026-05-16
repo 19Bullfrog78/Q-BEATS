@@ -27,6 +27,26 @@ public:
     // Cancella un cambio BPM schedulato non ancora scattato (thread-safe, non-RT).
     // No-op se nessun cambio è pendente. Simmetrica a scheduleBPMChange.
     void cancelPendingBPM();
+
+    // Strada A — Schedula cambio BeatsPerBar al prossimo downbeat
+    // (thread-safe, non-RT). Estende il pattern di scheduleBPMChange
+    // a BPB per transizioni di sezione seamless. NON resetta
+    // _currentBeatInBar (lo gestisce il modulo % _beatsPerBar al downbeat).
+    // NON scrive accent pattern di default.
+    void scheduleBeatsPerBarChange(uint32_t bpb);
+
+    // Strada A — Cancella un cambio BPB schedulato non ancora scattato
+    // (thread-safe, non-RT). No-op se nessun cambio è pendente.
+    // Simmetrica a cancelPendingBPM.
+    void cancelPendingBPB();
+
+    // Strada A — Schedula cambio accent pattern al prossimo inizio buffer
+    // (thread-safe, non-RT). Variante di setAccentPattern senza il check
+    // length != _beatsPerBar — al pre-load _beatsPerBar è ancora OLD
+    // (es. BPB cambia 4→3 alla transizione: pattern nuovo è length 3,
+    // _beatsPerBar è ancora 4).
+    void scheduleAccentPatternChange(const uint8_t* pattern, uint32_t length);
+
     void setAbsolutePositionForTesting(uint64_t pos);
 
     // --- Fase VOL: volume click + mute (chiamare solo da audioQueue) ---
@@ -79,6 +99,13 @@ private:
     // Scheduled BPM change — applied at next downbeat (_currentBeatInBar == 0)
     double            _pendingBPM;
     std::atomic<bool> _bpmChangeDirty;
+
+    // Strada A — Scheduled BPB change — applied at next downbeat
+    // (_currentBeatInBar == 0). Ordine exchange in processBuffer:
+    // BPB prima di BPM, ciascuno precede il proprio consumer
+    // (BPB precede il modulo % _beatsPerBar, BPM precede += spb).
+    uint32_t          _pendingBeatsPerBar;
+    std::atomic<bool> _bpbChangeDirty;
 
     // --- Fase VOL: volume click — double-buffer + atomic dirty ---
     std::atomic<bool> _volumeDirty { false };

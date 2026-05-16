@@ -134,6 +134,18 @@ final class SetlistRunner: ObservableObject {
                                 onEnd: closure)
         audioEngine.setBPM(section.bpm)
 
+        // Strada A — Seed del meccanismo seamless: pre-load sezione N+1
+        // SOLO se esiste nella stessa canzone. Se nextSection == nil
+        // (canzone con una sola sezione, o ultima sezione della canzone),
+        // il primo cambio passa per drain + standby (corretto).
+        if let n1 = self.nextSection {
+            audioEngine.preloadNextSection(bpm: n1.bpm,
+                                           beatsPerBar: n1.beatsPerBar,
+                                           accentPattern: n1.accentPattern,
+                                           repetitions: n1.repetitions,
+                                           onEnd: closure)
+        }
+
         // 5: display LiveSession (siamo già su main, @Published direct).
         updateSessionDisplay(session: session)
 
@@ -169,32 +181,37 @@ final class SetlistRunner: ObservableObject {
                    log: .default, type: .default)
 
             if !self.isLastSectionInSong {
-                // === RAMO AVANZA ===
+                // === RAMO AVANZA — Strada A (seamless) ===
+                // Lo swap audio (BPM/BPB/accent/totalBeats) è già avvenuto
+                // nel beat callback di AudioEngine (ramo SEAMLESS). Qui:
+                //   1. avanza currentSectionIdx
+                //   2. aggiorna session display
+                //   3. pre-load sezione N+2 SE esiste nella stessa canzone
+                // NESSUNA chiamata a setBeatsPerBar/setAccentPattern/
+                // loadSection/scheduleBPMChange/kickScheduling — tutto
+                // gestito dallo swap nel beat callback.
                 self.currentSectionIdx += 1
-                guard let nextSec = self.currentSection,
-                      let closure = self.sectionEndedClosure else {
-                    os_log("[Q-BEATS][L1.b] avanza — nextSec o closure nil, abort",
+                guard let closure = self.sectionEndedClosure else {
+                    os_log("[Q-BEATS][L1.b] avanza — closure nil, abort",
                            log: .default, type: .error)
                     return
                 }
-                os_log("[Q-BEATS][L1.b] avanza — songIdx:%d sectionIdx:%d name:%{public}@",
+                os_log("[Q-BEATS][L1.b] avanza (seamless) — songIdx:%d sectionIdx:%d",
                        log: .default, type: .default,
-                       self.currentSongIdx, self.currentSectionIdx, nextSec.name)
-                audioEngine.setBeatsPerBar(nextSec.beatsPerBar)
-                audioEngine.setAccentPattern(nextSec.accentPattern)
-                audioEngine.loadSection(beatsPerBar: nextSec.beatsPerBar,
-                                        repetitions: nextSec.repetitions,
-                                        onEnd: closure)
-                // L1.b Opzione A — scheduleBPMChange invece di setBPM per cambio
-                // sezione automatico. Path Task D armed audio-thread: il broadcast
-                // Link parte dal render thread con hostTime sample-accurate, no
-                // pre-roll AVAudioPlayerNode invisibile. atNextBeat:true bypassa
-                // la formula bpb-dipendente (vedi scheduleBPMChange).
-                audioEngine.scheduleBPMChange(nextSec.bpm, atNextBeat: true)
-                audioEngine.kickScheduling()
+                       self.currentSongIdx, self.currentSectionIdx)
                 self.updateSessionDisplay(session: session)
-                os_log("[Q-BEATS][DRAIN] avanza complete — kickScheduling() called",
-                       log: .default, type: .default)
+                // Pre-load sezione N+2 SOLO se esiste nella stessa canzone.
+                // Se nextSection == nil dopo l'avanzamento: l'attuale è
+                // l'ultima della canzone — il prossimo cambio passerà per
+                // drain + standby (passaggio inter-canzone), il prossimo
+                // swap vedrà _pendingNext* == nil → ramo DRAIN.
+                if let n2 = self.nextSection {
+                    audioEngine.preloadNextSection(bpm: n2.bpm,
+                                                   beatsPerBar: n2.beatsPerBar,
+                                                   accentPattern: n2.accentPattern,
+                                                   repetitions: n2.repetitions,
+                                                   onEnd: closure)
+                }
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.
 
             } else if !self.isLastSongInSetlist {

@@ -41,6 +41,18 @@ class AudioEngine: ObservableObject {
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
+            // Strada A — Guard suppress PRIMA di guard oldValue.
+            // Il ramo SEAMLESS setta _suppressBeatsPerBarDidSet=true su main
+            // prima di assegnare self.beatsPerBar, per evitare che il didSet
+            // chiami metronome_setBeatsPerBar (immediato, resetta
+            // _currentBeatInBar nel DSP — distruggerebbe il sample-accurate
+            // exchange al downbeat). L'ordine è critico: con il guard oldValue
+            // prima, due sezioni con stesso BPB (es. 4/4 → 4/4) lascerebbero
+            // il flag bruciato per i didSet successivi.
+            if _suppressBeatsPerBarDidSet {
+                _suppressBeatsPerBarDidSet = false
+                return
+            }
             guard beatsPerBar != oldValue else { return }
             guard let h = metronomeHandle else { return }
             let bpb = beatsPerBar
@@ -85,6 +97,12 @@ class AudioEngine: ObservableObject {
     // Beat tick discreto — PassthroughSubject, no coalescing
     let beatTickSubject = PassthroughSubject<Int, Never>()
     private var beatTickCounter: Int = 0
+
+    // === Strada A — Flag suppress per didSet di beatsPerBar ===
+    // Single-shot: settato dal ramo SEAMLESS prima di assegnare
+    // self.beatsPerBar. Il didSet lo legge e auto-resetta.
+    // Accesso esclusivamente su main thread.
+    private var _suppressBeatsPerBarDidSet: Bool = false
 
     // === Task D — Section BPM broadcast su Link ===
     // Pattern identico a L1.a (closure single-shot a beat-target).
@@ -220,6 +238,19 @@ class AudioEngine: ObservableObject {
     // integralmente, non con timer arbitrari su main thread.
     private var _sectionEndPending: Bool = false
     private var _pendingEndClosure: (() -> Void)? = nil
+
+    // === Strada A — Pre-load nuova sezione (audioQueue-private) ===
+    // Riempiti da preloadNextSection() chiamato dal SetlistRunner all'inizio
+    // della sezione corrente con i parametri della sezione N+1. Consumati e
+    // azzerati nel ramo SEAMLESS del beat callback quando
+    // _sectionBeatCounter >= _sectionTotalBeats. Tutti nil → ramo DRAIN.
+    private var _pendingNextBPM: Double? = nil
+    private var _pendingNextBPB: UInt32? = nil
+    private var _pendingNextAccentPattern: [UInt8]? = nil
+    private var _pendingNextSectionTotalBeats: Int? = nil
+    private var _pendingNextOnSectionEnd: (() -> Void)? = nil
+    private var _pendingNextRepetitions: Int? = nil
+
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
     private var isBeats              : [UInt8]
@@ -827,6 +858,35 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // === Strada A — Pre-load parametri sezione successiva ===
+    // Salva i parametri della prossima sezione nei _pendingNext* SENZA
+    // toccare la sezione corrente e SENZA chiamare alcuna C-API DSP.
+    // Le C-API metronome_schedule_* partono SOLO nel beat callback
+    // all'ultimo beat della sezione corrente (ramo SEAMLESS in
+    // scheduleNextBuffer).
+    //
+    // Parametro accentPattern: convenzione UI (2=accent, 1=beat, 0=subdiv),
+    // coerente con setAccentPattern. La conversione UI→DSP avviene nello
+    // step d del ramo SEAMLESS.
+    //
+    // Calcolo critico: _pendingNextSectionTotalBeats = repetitions * Int(beatsPerBar)
+    // USANDO IL NUOVO beatsPerBar PARAMETRO, MAI _beatsPerBarQ corrente.
+    func preloadNextSection(bpm: Double,
+                            beatsPerBar: UInt32,
+                            accentPattern: [UInt8],
+                            repetitions: Int,
+                            onEnd: @escaping () -> Void) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self._pendingNextBPM = bpm
+            self._pendingNextBPB = beatsPerBar
+            self._pendingNextAccentPattern = accentPattern
+            self._pendingNextSectionTotalBeats = repetitions * Int(beatsPerBar)
+            self._pendingNextOnSectionEnd = onEnd
+            self._pendingNextRepetitions = repetitions
+        }
+    }
+
     /// Riavvia la catena di completion handler del playerNode dopo un drain
     /// di sezione. Il branch drain fa `return` senza schedulare un nuovo
     /// buffer al playerNode. Le sezioni lunghe (steady-state buffer al
@@ -1293,11 +1353,30 @@ class AudioEngine: ObservableObject {
             // Senza questo, un cambio armato pre-stop scatterebbe al replay
             // (DSP riapplicherebbe _pendingBPM al primo downbeat post-Play).
             // Cancel DSP + reset Swift, sempre simmetrico.
-            if let mh = self.metronomeHandle, self._pendingBPMValue != nil {
-                metronome_cancel_pending_bpm(mh)
+            if let mh = self.metronomeHandle {
+                if self._pendingBPMValue != nil {
+                    metronome_cancel_pending_bpm(mh)
+                }
+                // Strada A — Cancel BPB INCONDIZIONATO.
+                // Dopo il ramo seamless tutti i _pendingNext* sono nil, ma
+                // _bpbChangeDirty nel DSP è ancora true (armato in step d).
+                // Se lo stop arriva tra lo swap e il downbeat, il cancel
+                // condizionale non scatterebbe e il BPB pendente verrebbe
+                // applicato al replay successivo.
+                // No-op se _bpbChangeDirty già false — zero costo.
+                metronome_cancel_pending_bpb(mh)
             }
             self._pendingBPMValue = nil
             self._pendingBPMTargetTick = 0
+            // Strada A — Reset tutti i _pendingNext* a nil.
+            // Accent pattern NON richiede cancel: _patternDirty viene
+            // sovrascritto dal prossimo setAccentPattern al reload.
+            self._pendingNextBPM = nil
+            self._pendingNextBPB = nil
+            self._pendingNextAccentPattern = nil
+            self._pendingNextSectionTotalBeats = nil
+            self._pendingNextOnSectionEnd = nil
+            self._pendingNextRepetitions = nil
             // L1.a — Stop manuale durante drain: aborta dispatch pending.
             // Non chiamiamo la closure: stopSync sta già facendo il lavoro che
             // la closure di L1.a avrebbe fatto (stop motore + reset). Lasciarla
@@ -2078,20 +2157,114 @@ class AudioEngine: ObservableObject {
                     if self._sectionTotalBeats > 0 {
                         self._sectionBeatCounter += 1
                         if self._sectionBeatCounter >= self._sectionTotalBeats {
-                            os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → drain mode",
-                                   log: .default, type: .default,
-                                   self._sectionBeatCounter, self._sectionTotalBeats)
-                            // Salva closure corrente per dispatch a fine drain.
-                            // _sectionTotalBeats e _onSectionEnd RESTANO registrati:
-                            // la sezione caricata persiste tra play/replay (utente
-                            // ascolta sezione 4 battute → stop automatico → ripreme
-                            // Play → si aspetta che la stessa sezione ricominci).
-                            // Solo _sectionBeatCounter va azzerato per il replay.
-                            // Niente double-fire durante il drain: metronome_processBuffer
-                            // skippato → beatCount=0 → hook non scatta.
-                            self._pendingEndClosure = self._onSectionEnd
-                            self._sectionEndPending = true
-                            self._sectionBeatCounter = 0
+                            // Strada A — Distingue ramo SEAMLESS (transizione
+                            // intra-canzone con preload) da ramo DRAIN
+                            // (standby / fineSetlist).
+                            if self._pendingNextSectionTotalBeats != nil {
+                                // === RAMO SEAMLESS ===
+                                os_log("[Q-BEATS][SEAMLESS] fine sezione — swap atomico (Strada A)",
+                                       log: .default, type: .default)
+
+                                // (a) Cattura locali — prima di qualsiasi reset.
+                                let closureToDispatch    = self._onSectionEnd
+                                let pendingBPB           = self._pendingNextBPB!
+                                let pendingBPM           = self._pendingNextBPM!
+                                let pendingAccentPattern = self._pendingNextAccentPattern!
+                                let pendingTotalBeats    = self._pendingNextSectionTotalBeats!
+                                let pendingOnSectionEnd  = self._pendingNextOnSectionEnd
+                                let pendingRepetitions   = self._pendingNextRepetitions!
+
+                                // (b) Reset _pendingNext* (safe — locali già catturati).
+                                self._pendingNextBPB = nil
+                                self._pendingNextBPM = nil
+                                self._pendingNextAccentPattern = nil
+                                self._pendingNextSectionTotalBeats = nil
+                                self._pendingNextOnSectionEnd = nil
+                                self._pendingNextRepetitions = nil
+
+                                // (c) Swap contatori Swift.
+                                // _sectionEndPending resta false — il ramo SEAMLESS
+                                // non entra mai in drain mode.
+                                // _audioBPM assegnato presto per coerenza col bypass
+                                // DIRECTOR-ASSERT via linkSyncSkipBuffers (step f).
+                                self._sectionTotalBeats = pendingTotalBeats
+                                self._sectionBeatCounter = 0
+                                self._onSectionEnd = pendingOnSectionEnd
+                                self._beatsPerBarQ = pendingBPB
+                                self._audioBPM = pendingBPM
+
+                                // (d) Arm DSP Layer 1 — atomic exchange al downbeat
+                                // di transizione. Conversione accent UI→DSP:
+                                // UI usa 2=accent, 1=beat, 0=subdiv;
+                                // DSP usa 1=accent, 0=beat (no subdiv).
+                                let dspPattern: [UInt8] = pendingAccentPattern.map {
+                                    $0 == 2 ? UInt8(1) : UInt8(0)
+                                }
+                                metronome_schedule_bpb_change(h, pendingBPB)
+                                dspPattern.withUnsafeBufferPointer { ptr in
+                                    metronome_schedule_accent_pattern_change(
+                                        h, ptr.baseAddress, UInt32(dspPattern.count))
+                                }
+                                metronome_schedule_bpm_change(h, pendingBPM)
+
+                                // (e) Arm Link — quantum aggiornato per il nuovo BPB.
+                                if let lh = self.linkEngineHandle {
+                                    link_engine_set_quantum(lh, Double(pendingBPB))
+                                }
+
+                                // (f) Disabilita DIRECTOR-ASSERT per 100 buffer (~1s)
+                                // durante la transizione, coerente con scheduleBPMChange.
+                                self.linkSyncSkipBuffers = max(self.linkSyncSkipBuffers, 100)
+
+                                // (g) Arm Swift BPM — il broadcast Link/MIDI/UI
+                                // al downbeat target viene fatto al prossimo beat
+                                // (dal blocco "if let pending = self._pendingBPMValue"
+                                // più sopra in questo stesso loop, alla prossima
+                                // invocazione di scheduleNextBuffer).
+                                self._pendingBPMValue = pendingBPM
+                                self._pendingBPMTargetTick = self.beatTickCounter + 1
+
+                                // (h) Dispatch @Published su main.
+                                // Invariante architetturale: in Studio non esistono
+                                // _pendingNext* armati (niente setlist), quindi
+                                // _suppressBeatsPerBarDidSet non viene mai settato.
+                                // In Live la UI Studio non è accessibile.
+                                // Nessun conflitto possibile.
+                                DispatchQueue.main.async { [weak self] in
+                                    guard let self else { return }
+                                    self._suppressBeatsPerBarDidSet = true
+                                    self.beatsPerBar = pendingBPB
+                                    self.currentAccentPattern = pendingAccentPattern
+                                    self.currentSectionRepetitions = pendingRepetitions
+                                }
+
+                                // (i) Dispatch closure SetlistRunner su main.
+                                // Se stopSync arriva tra lo swap (audioQueue) e
+                                // questo dispatch, la closure può eseguire dopo lo
+                                // stop — gli effetti vengono usati al resume o
+                                // sovrascritti al restart (vedi tech debt OSS2
+                                // su epoch counter, fix post-validazione device).
+                                DispatchQueue.main.async {
+                                    closureToDispatch?()
+                                }
+
+                            } else {
+                                // === RAMO DRAIN (invariato) — standby / fineSetlist ===
+                                os_log("[Q-BEATS][L1.a] fine ultima ripetizione — beat:%d/%d → drain mode",
+                                       log: .default, type: .default,
+                                       self._sectionBeatCounter, self._sectionTotalBeats)
+                                // Salva closure corrente per dispatch a fine drain.
+                                // _sectionTotalBeats e _onSectionEnd RESTANO registrati:
+                                // la sezione caricata persiste tra play/replay (utente
+                                // ascolta sezione 4 battute → stop automatico → ripreme
+                                // Play → si aspetta che la stessa sezione ricominci).
+                                // Solo _sectionBeatCounter va azzerato per il replay.
+                                // Niente double-fire durante il drain: metronome_processBuffer
+                                // skippato → beatCount=0 → hook non scatta.
+                                self._pendingEndClosure = self._onSectionEnd
+                                self._sectionEndPending = true
+                                self._sectionBeatCounter = 0
+                            }
                         }
                     }
                 }

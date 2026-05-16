@@ -20,6 +20,11 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
     , _subdivDirty(false)
     , _pendingBPM(bpm)
     , _bpmChangeDirty(false)
+    // Strada A — nuovi pending paralleli a _pendingBPM / _bpmChangeDirty.
+    // _pendingBeatsPerBar(4) coerente con _beatsPerBar(4) di default
+    // (il costruttore non ha parametro beatsPerBar, solo bpm).
+    , _pendingBeatsPerBar(4)
+    , _bpbChangeDirty(false)
 {
     std::memset(_accentPattern,  0, sizeof(_accentPattern));
     std::memset(_pendingPattern, 0, sizeof(_pendingPattern));
@@ -46,6 +51,35 @@ void MetronomeDSP::cancelPendingBPM() {
     // memory_order_release per simmetria col writer di scheduleBPMChange,
     // accoppia col memory_order_acquire del reader in processBuffer.
     _bpmChangeDirty.store(false, std::memory_order_release);
+}
+
+// Strada A — Schedula cambio BeatsPerBar al prossimo downbeat.
+// Pattern parallelo a scheduleBPMChange. Il valore _pendingBeatsPerBar
+// viene applicato a _beatsPerBar nell'exchange di processBuffer quando
+// _currentBeatInBar == 0 (sample-accurate, race-free).
+void MetronomeDSP::scheduleBeatsPerBarChange(uint32_t bpb) {
+    _pendingBeatsPerBar = bpb;
+    _bpbChangeDirty.store(true, std::memory_order_release);
+}
+
+// Strada A — Cancella cambio BPB schedulato non ancora scattato.
+// _pendingBeatsPerBar non viene toccato: non sarà letto finché
+// _bpbChangeDirty è false. Simmetrico a cancelPendingBPM.
+void MetronomeDSP::cancelPendingBPB() {
+    _bpbChangeDirty.store(false, std::memory_order_release);
+}
+
+// Strada A — Schedula cambio accent pattern senza il check length
+// != _beatsPerBar (necessario al pre-load quando _beatsPerBar è OLD).
+// L'exchange a inizio buffer (in processBuffer) consuma _patternDirty
+// e copia _pendingPattern in _accentPattern: tra inizio buffer e
+// downbeat di transizione non esistono BeatEvent della sezione
+// precedente da pubblicare, quindi nessun effetto udibile.
+void MetronomeDSP::scheduleAccentPatternChange(const uint8_t* pattern, uint32_t length) {
+    if (length == 0 || length > 16) return;
+    std::memcpy(_pendingPattern, pattern, length);
+    _pendingPatternLength = (uint8_t)length;
+    _patternDirty.store(true, std::memory_order_release);
 }
 
 // --- Fase VOL: setter (chiamare solo da audioQueue, mai dal RT thread) ---
@@ -216,9 +250,19 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                 // tramite le proprietà pubblicate. Il mute blocca qui l'emissione dell'evento.
                 beats.push_back(ev);
             }
-            if (_currentBeatInBar == 0 && _bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
-                _bpm = _pendingBPM;
-                spb  = (_sampleRate * 60.0) / _bpm;
+            // Strada A — Atomic exchange BPB + BPM al downbeat.
+            // Ordine: BPB prima di BPM. L'ordine reciproco BPB↔BPM non ha
+            // importanza tra loro — ciascuno precede il proprio consumer:
+            // BPB precede il modulo % _beatsPerBar (riga sotto),
+            // BPM precede _exactNextBeatSample += spb (riga sotto-sotto).
+            if (_currentBeatInBar == 0) {
+                if (_bpbChangeDirty.exchange(false, std::memory_order_acquire)) {
+                    _beatsPerBar = _pendingBeatsPerBar;
+                }
+                if (_bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
+                    _bpm = _pendingBPM;
+                    spb  = (_sampleRate * 60.0) / _bpm;
+                }
             }
             _currentBeatInBar = (_currentBeatInBar + 1) % _beatsPerBar;
             _exactNextBeatSample += spb;

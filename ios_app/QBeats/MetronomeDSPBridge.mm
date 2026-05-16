@@ -77,6 +77,24 @@ void metronome_cancel_pending_bpm(MetronomeHandle handle) {
     static_cast<MetronomeDSP*>(handle)->cancelPendingBPM();
 }
 
+// Strada A — Bridge per nuove API DSP.
+void metronome_schedule_bpb_change(MetronomeHandle handle, uint32_t bpb) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->scheduleBeatsPerBarChange(bpb);
+}
+
+void metronome_cancel_pending_bpb(MetronomeHandle handle) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->cancelPendingBPB();
+}
+
+void metronome_schedule_accent_pattern_change(MetronomeHandle handle,
+                                               const uint8_t* pattern,
+                                               uint32_t length) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->scheduleAccentPatternChange(pattern, length);
+}
+
 void metronome_set_accent_volume(MetronomeHandle handle, double v) {
     if (!handle) return;
     static_cast<MetronomeDSP*>(handle)->setAccentVolume(v);
