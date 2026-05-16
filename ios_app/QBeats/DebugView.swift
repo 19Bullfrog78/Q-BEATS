@@ -332,6 +332,16 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.cyan)
+                    Button("Carica dati test BPM Quad") {
+                        loadTestDataBpmQuad()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    Button("Carica dati test BPB Mixed") {
+                        loadTestDataBpbMixed()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.mint)
                 }
                 #endif
 
@@ -460,6 +470,83 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist 110 Quad",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico BPM Quad — Strada A validazione T-BPM.
+    /// 4 sezioni 4/4 × 7 misure ciascuna, BPM variabile: 100 → 130 → 110 → 140.
+    /// Simmetria identica al 110 Quad (7 misure fisse, durata totale variabile
+    /// con BPM) per confronto diretto. Sequenza scelta per testare:
+    ///   T1 100→130 (+30 BPM ascendente)
+    ///   T2 130→110 (-20 BPM discendente)
+    ///   T3 110→140 (+30 BPM ascendente)
+    /// Verifica broadcast Link atomic + DSP exchange BPM al downbeat di
+    /// transizione. Soglia VERDE: offset SB→Q-B ≤5ms su tutti i downbeat,
+    /// NON accumulativo (vs baseline pre-Strada-A).
+    private func loadTestDataBpmQuad() {
+        os_log("[DebugView] Carica dati test BPM Quad", log: .default, type: .default)
+
+        let s1 = SongSection(name: "BPM Quad — 100", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "BPM Quad — 130", bpm: 130, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "BPM Quad — 110", bpm: 110, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4 = SongSection(name: "BPM Quad — 140", bpm: 140, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 7, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song BPM Quad",
+                        sections: [s1, s2, s3, s4],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist BPM Quad",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico BPB Mixed — Strada A validazione T-BPB.
+    /// 4 sezioni × 4 misure × 120 BPM costante, BPB variabile:
+    /// 4/4 → 3/4 → 5/4 → 4/4 con accent pattern misti.
+    /// Verifica:
+    ///   - DSP atomic exchange BPB al downbeat (modulo % _beatsPerBar con NEW)
+    ///   - metronome_schedule_accent_pattern_change (length variabile 3,4,5)
+    ///   - link_engine_set_quantum aggiornato al downbeat
+    ///   - SB segue il cambio metro senza staccarsi
+    /// Soglia VERDE:
+    ///   - cambio metro percepibile chiaro a ogni transizione
+    ///   - accent in posizione giusta (beat 1 sempre + secondari come da pattern)
+    ///   - SB resta in sync (no disconnect Link)
+    ///   - nessun click "fantasma" dal pattern precedente
+    private func loadTestDataBpbMixed() {
+        os_log("[DebugView] Carica dati test BPB Mixed", log: .default, type: .default)
+
+        // Sez 1: 4/4 con accent default (solo beat 1)
+        let s1 = SongSection(name: "BPB Mixed — 4/4", bpm: 120, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        // Sez 2: 3/4 (length pattern shorter del precedente)
+        let s2 = SongSection(name: "BPB Mixed — 3/4", bpm: 120, beatsPerBar: 3, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        // Sez 3: 5/4 con accent secondario al beat 4 (length pattern longer)
+        let s3 = SongSection(name: "BPB Mixed — 5/4", bpm: 120, beatsPerBar: 5, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1,2,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        // Sez 4: 4/4 con accent doppio (beat 1 e 3) — verifica pattern UI→DSP non-default
+        let s4 = SongSection(name: "BPB Mixed — 4/4 alt", bpm: 120, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,2,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song BPB Mixed",
+                        sections: [s1, s2, s3, s4],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist BPB Mixed",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
