@@ -27,7 +27,12 @@ final class LiveSession: ObservableObject {
     @Published var beatActive: Int = 0      // 1-based, 0 = nessuno
 
     // MARK: - Stato
-    @Published var playbackState: LivePlaybackState = .standby(nextSongName: "—")
+    // Default `.stopped`: all'avvio Vista LIVE niente em-dash centrale.
+    // L'overlay `.standby` viene mostrato SOLO quando il SetlistRunner
+    // imposta esplicitamente lo state tra una canzone e l'altra (vedi
+    // SetlistRunner.swift ramo standby). Cambiato da `.standby(nextSongName: "—")`
+    // il 17/05/2026 — TD #28, Step 2 roadmap pre-CD.
+    @Published var playbackState: LivePlaybackState = .stopped
     @Published var isBacktrackLocked: Bool = false
 
     // MARK: - Mixer
