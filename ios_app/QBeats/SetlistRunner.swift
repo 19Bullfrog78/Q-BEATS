@@ -147,13 +147,35 @@ final class SetlistRunner: ObservableObject {
             return
         }
 
-        // TD #41 fix — Lazy subscribe a `beatTickSubject`, UNA VOLTA per la
-        // vita del runner. Sink applica `updateSessionDisplay` al primo tick
-        // post-transition se `pendingDisplayUpdate == true`. Guard esplicito
-        // `beatTickSubscribed` (NON `cancellables.isEmpty`).
+        // TD #41 fix v2 (17/05/2026) — Lazy subscribe a `session.$beatActive`
+        // filter ==1, UNA VOLTA per la vita del runner. Sink applica
+        // `updateSessionDisplay` al primo beat di una battuta SE
+        // `pendingDisplayUpdate == true`.
+        //
+        // Motivazione cambio v1 → v2: il sink originale su `beatTickSubject`
+        // con `.receive(on: DispatchQueue.main)` soffriva di race FIFO main
+        // queue. L'operator `.receive(on:)` faceva sì che il sink ricevesse
+        // il tick_ULTIMO sezione precedente DOPO la closure step (i) avesse
+        // settato `pendingDisplayUpdate = true` → updateSessionDisplay
+        // applicato all'ULTIMO beat sezione precedente anziché al PRIMO beat
+        // nuova sezione (TD #41 ROSSO sul device 17/05 test L1.b: testo
+        // teleprompter + macrobar cambiavano al 4° beat sez prec).
+        //
+        // `session.beatActive` è invece settato da LiveView handler
+        // `beatTickSubject` DOPO aver applicato i mirror pending e resettato
+        // `sectionStartTick`. Al tick_PRIMO nuova sezione, beatActive=1
+        // (= ((1-1) % bpb) + 1). Filter ==1 garantisce sink solo al primo
+        // beat di battuta.
+        //
+        // `.receive(on:)` rimosso: `LiveSession` è @MainActor e
+        // `session.beatActive` è scritto solo dal main (LiveView handler),
+        // quindi il sink scatta sincrono sul main thread senza scheduler
+        // intermedio. Codice più pulito e zero ambiguità di timing.
+        //
+        // Guard esplicito `beatTickSubscribed` (NON `cancellables.isEmpty`).
         if !beatTickSubscribed {
-            audioEngine.beatTickSubject
-                .receive(on: DispatchQueue.main)
+            session.$beatActive
+                .filter { $0 == 1 }
                 .sink { [weak self, weak session] _ in
                     guard let self,
                           let session,
