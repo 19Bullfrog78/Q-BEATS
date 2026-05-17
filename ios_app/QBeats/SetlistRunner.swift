@@ -32,6 +32,28 @@ final class SetlistRunner: ObservableObject {
     // identica per tutta la vita del runner (autopropagante).
     private var sectionEndedClosure: (() -> Void)?
 
+    // MARK: - Display update segnale (TD #41 fix, 17/05/2026)
+
+    /// Subscription al `beatTickSubject` di AudioEngine. Subscribed UNA VOLTA
+    /// in `prepareAndStartCurrentSection` (guard `beatTickSubscribed`), vive
+    /// per la durata del runner. Sink: se `pendingDisplayUpdate == true`,
+    /// chiama `updateSessionDisplay` e azzera il flag.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// Guard esplicito per la sottoscrizione lazy. NON usare
+    /// `cancellables.isEmpty` come guard: è fragile se altre subscription
+    /// venissero aggiunte/rimosse in seguito.
+    private var beatTickSubscribed = false
+
+    /// True quando il ramo `avanza` ha incrementato `currentSectionIdx` ma
+    /// il display non è ancora stato aggiornato. Il subscriber a
+    /// `beatTickSubject` applica `updateSessionDisplay` al primo tick
+    /// post-transition (= primo beat nuova sezione audio Strada A).
+    /// Reset esplicito ai entry points (`startSetlist`, `startCurrentSong`)
+    /// per evitare update spurio al replay dopo Stop manuale durante
+    /// transizione SEAMLESS (TD #41 lifecycle).
+    @Published private(set) var pendingDisplayUpdate: Bool = false
+
     // MARK: - Init
 
     init(setlist: Setlist, store: QBeatsStore) {
@@ -83,6 +105,10 @@ final class SetlistRunner: ObservableObject {
     /// Primo Play della setlist — resetta indici a 0 e carica la prima sezione.
     /// Chiamato dal pulsante Play del transport quando da `.stopped`.
     func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+        // Reset esplicito pendingDisplayUpdate: se l'utente ha fatto Stop
+        // durante una transizione SEAMLESS (flag true) e ora replay, evita
+        // updateSessionDisplay spurio al primo tick post-replay (TD #41).
+        pendingDisplayUpdate = false
         currentSongIdx = 0
         currentSectionIdx = 0
         os_log("[Q-BEATS][L1.b] startSetlist — reset a songIdx:0 sectionIdx:0",
@@ -94,6 +120,8 @@ final class SetlistRunner: ObservableObject {
     /// già avanzato dal ramo standby della closure end-of-section.
     /// Chiamato dal tap su `StandbyOverlayView`.
     func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
+        // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
+        pendingDisplayUpdate = false
         currentSectionIdx = 0
         os_log("[Q-BEATS][L1.b] startCurrentSong — songIdx:%d sectionIdx:0",
                log: .default, type: .default, currentSongIdx)
@@ -117,6 +145,24 @@ final class SetlistRunner: ObservableObject {
             audioEngine.sectionEndedSubject.send()
             session.playbackState = .fineSetlist
             return
+        }
+
+        // TD #41 fix — Lazy subscribe a `beatTickSubject`, UNA VOLTA per la
+        // vita del runner. Sink applica `updateSessionDisplay` al primo tick
+        // post-transition se `pendingDisplayUpdate == true`. Guard esplicito
+        // `beatTickSubscribed` (NON `cancellables.isEmpty`).
+        if !beatTickSubscribed {
+            audioEngine.beatTickSubject
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self, weak session] _ in
+                    guard let self,
+                          let session,
+                          self.pendingDisplayUpdate else { return }
+                    self.updateSessionDisplay(session: session)
+                    self.pendingDisplayUpdate = false
+                }
+                .store(in: &cancellables)
+            beatTickSubscribed = true
         }
 
         // Lazy build closure end-of-section (autopropagante, costruita una
@@ -199,7 +245,15 @@ final class SetlistRunner: ObservableObject {
                 os_log("[Q-BEATS][L1.b] avanza (seamless) — songIdx:%d sectionIdx:%d",
                        log: .default, type: .default,
                        self.currentSongIdx, self.currentSectionIdx)
-                self.updateSessionDisplay(session: session)
+                // TD #41 fix: rinvia updateSessionDisplay al primo beat tick
+                // della nuova sezione. Senza rinvio, il display si aggiornava
+                // all'ULTIMO beat sezione precedente (dispatch step (i) di
+                // AudioEngine.scheduleNextBuffer ramo SEAMLESS su main),
+                // mostrando il testo della sezione successiva 1 beat prima
+                // del cambio audio. Il subscriber a `beatTickSubject` in
+                // `prepareAndStartCurrentSection` chiamerà
+                // `updateSessionDisplay` al primo tick post-transition.
+                self.pendingDisplayUpdate = true
                 // Pre-load sezione N+2 SOLO se esiste nella stessa canzone.
                 // Se nextSection == nil dopo l'avanzamento: l'attuale è
                 // l'ultima della canzone — il prossimo cambio passerà per
