@@ -8,7 +8,7 @@ struct FineSetlistView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0e0e10").opacity(0.95).ignoresSafeArea()
+            Color(hex: "#0e0e10").ignoresSafeArea()
             VStack(spacing: 24) {
                 Text("FINE SETLIST")
                     .font(.jbMono(.bold, size: 28 * scaleFactor))
