@@ -5,6 +5,10 @@ struct TransportView: View {
     let audioEngine: AudioEngine
     @EnvironmentObject var runner: SetlistRunner
 
+    /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
+    /// Propagato a tutti i `RubberBtnView` per scalare label e glyph.
+    let scaleFactor: CGFloat
+
     private var isCountIn: Bool {
         if case .countIn = session.playbackState { return true }
         return false
@@ -20,13 +24,15 @@ struct TransportView: View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
                 RubberBtnView(label: "prev sez", glyph: "◀",
-                    disabled: isCountIn || isStandby) { audioEngine.prevSection() }
+                    disabled: isCountIn || isStandby,
+                    scaleFactor: scaleFactor) { audioEngine.prevSection() }
 
                 RubberBtnView(
                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
                     primary: !isStopped,
-                    disabled: isStandby) {
+                    disabled: isStandby,
+                    scaleFactor: scaleFactor) {
                         if audioEngine.isPlaying {
                             audioEngine.stop()
                         } else {
@@ -35,18 +41,21 @@ struct TransportView: View {
                 }
 
                 RubberBtnView(label: "next sez", glyph: "▶▶",
-                    disabled: isCountIn || isStandby) { audioEngine.nextSection() }
+                    disabled: isCountIn || isStandby,
+                    scaleFactor: scaleFactor) { audioEngine.nextSection() }
             }
 
             HStack(spacing: 6) {
                 RubberBtnView(label: loopLabel, glyph: "↺",
-                    disabled: isCountIn || isStandby) { audioEngine.toggleLoop() }
+                    disabled: isCountIn || isStandby,
+                    scaleFactor: scaleFactor) { audioEngine.toggleLoop() }
 
                 RubberBtnView(
                     label: "",
                     glyph: "KILL\nBASE",
                     disabled: isCountIn || isStandby,
-                    accentColor: killFlashing ? Color(hex: "#f5b820") : nil
+                    accentColor: killFlashing ? Color(hex: "#f5b820") : nil,
+                    scaleFactor: scaleFactor
                 ) {
                     audioEngine.stopBacktrack()
                     withAnimation(.easeInOut(duration: 0.4)) { killFlashing = true }
@@ -56,7 +65,8 @@ struct TransportView: View {
                 }
 
                 RubberBtnView(label: "emerg", glyph: "⚠", danger: true,
-                    disabled: false) { /* navigazione Vista LISTA — Fase successiva */ }
+                    disabled: false,
+                    scaleFactor: scaleFactor) { /* navigazione Vista LISTA — Fase successiva */ }
             }
 
             if !session.showMixer {

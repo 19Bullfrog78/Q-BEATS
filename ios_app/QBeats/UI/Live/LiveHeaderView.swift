@@ -5,6 +5,13 @@ struct LiveHeaderView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @Environment(\.dismiss) private var dismiss
 
+    /// TD #23 (17/05/2026) — fattore di scala per font responsive iPad v1.
+    /// Calcolato in `LiveView` come `geo.size.width / 390` (baseline iPhone 13
+    /// portrait misurata empiricamente). Propagato come parametro esplicito.
+    /// Tutti gli 8 `.font(...)` di questo file moltiplicano la loro size in pt
+    /// per questo fattore.
+    let scaleFactor: CGFloat
+
     var body: some View {
         HStack(spacing: 8) {
 
@@ -19,7 +26,7 @@ struct LiveHeaderView: View {
                     .frame(width: 34, height: 34)
                     .overlay(
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12 * scaleFactor, weight: .semibold))
                             .foregroundColor(Color.white.opacity(0.65))
                     )
             }
@@ -30,33 +37,33 @@ struct LiveHeaderView: View {
             // ── Centro: song name · BPM [lock] · time sig ──
             HStack(spacing: 6) {
                 Text(session.currentSongName)
-                    .font(.jbMono(.bold, size: 28))
+                    .font(.jbMono(.bold, size: 28 * scaleFactor))
                     .foregroundColor(Color.white.opacity(0.95))
                     .lineLimit(1)
                     .truncationMode(.tail)
 
                 Text("·")
                     .foregroundColor(Color.white.opacity(0.20))
-                    .font(.system(size: 13))
+                    .font(.system(size: 13 * scaleFactor))
 
                 HStack(spacing: 3) {
                     Text("\(Int(session.currentBPM.rounded()))")
-                        .font(.jbMono(.regular, size: 17))
+                        .font(.jbMono(.regular, size: 17 * scaleFactor))
                         .foregroundColor(Color.white.opacity(0.50))
 
                     if session.isBacktrackLocked {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: 9 * scaleFactor))
                             .foregroundColor(Color.white.opacity(0.35))
                     }
                 }
 
                 Text("·")
                     .foregroundColor(Color.white.opacity(0.20))
-                    .font(.system(size: 13))
+                    .font(.system(size: 13 * scaleFactor))
 
                 Text(session.currentTimeSig)
-                    .font(.jbMono(.regular, size: 15))
+                    .font(.jbMono(.regular, size: 15 * scaleFactor))
                     .foregroundColor(Color.white.opacity(0.50))
             }
 
@@ -103,7 +110,7 @@ struct LiveHeaderView: View {
                     .frame(width: 34, height: 34)
                     .overlay(
                         Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * scaleFactor))
                             .foregroundColor(
                                 isMuted
                                     ? Color(hex: "#f5b820")

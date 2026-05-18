@@ -3,6 +3,10 @@ import SwiftUI
 struct TeleprompterCapsuleView: View {
     @ObservedObject var session: LiveSession
 
+    /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
+    /// Vedi `LiveView` per la baseline 390pt.
+    let scaleFactor: CGFloat
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22)
@@ -12,7 +16,7 @@ struct TeleprompterCapsuleView: View {
             switch session.playbackState {
             case .countIn(let n):
                 Text("\(n)")
-                    .font(.jbMono(.bold, size: 80))
+                    .font(.jbMono(.bold, size: 80 * scaleFactor))
                     .foregroundColor(.white)
 
             case .standby:
@@ -25,15 +29,15 @@ struct TeleprompterCapsuleView: View {
                 if session.currentSectionName.isEmpty {
                     VStack(spacing: 4) {
                         Text("\(Int(session.currentBPM.rounded()))")
-                            .font(.jbMono(.bold, size: 48))
+                            .font(.jbMono(.bold, size: 48 * scaleFactor))
                             .foregroundColor(Color.white.opacity(0.55))
                         Text("BPM")
-                            .font(.jbMono(.regular, size: 11))
+                            .font(.jbMono(.regular, size: 11 * scaleFactor))
                             .foregroundColor(Color.white.opacity(0.25))
                             .tracking(2)
                     }
                 } else {
-                    let fontSize: CGFloat = session.currentSectionName.count > 10 ? 44 : 56
+                    let fontSize: CGFloat = (session.currentSectionName.count > 10 ? 44 : 56) * scaleFactor
                     Text(session.currentSectionName.uppercased())
                         .font(.custom("Inter-Black", size: fontSize))
                         .foregroundColor(.white)

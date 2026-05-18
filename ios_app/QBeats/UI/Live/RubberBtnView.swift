@@ -7,13 +7,16 @@ struct RubberBtnView: View {
     var primary: Bool = false
     var disabled: Bool = false
     var accentColor: Color? = nil
+    /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
+    /// Propagato da `TransportView` (che lo riceve da `LiveView`).
+    let scaleFactor: CGFloat
     let action: () -> Void
 
     var body: some View {
         Button(action: { if !disabled { action() } }) {
             VStack(spacing: 3) {
                 Text(label)
-                    .font(.jbMono(.regular, size: 8))
+                    .font(.jbMono(.regular, size: 8 * scaleFactor))
                     .tracking(1.4)
                     .textCase(.uppercase)
                     .foregroundColor(labelColor)
@@ -25,8 +28,8 @@ struct RubberBtnView: View {
                     if !glyph.isEmpty {
                         Text(glyph)
                             .font(glyph.count <= 3
-                                ? .jbMono(.semibold, size: 18)
-                                : .jbMono(.semibold, size: 13))
+                                ? .jbMono(.semibold, size: 18 * scaleFactor)
+                                : .jbMono(.semibold, size: 13 * scaleFactor))
                             .foregroundColor(glyphColor)
                     }
                 }

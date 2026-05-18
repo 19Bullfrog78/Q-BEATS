@@ -4,13 +4,18 @@ struct MixerOverlayView: View {
     @ObservedObject var session: LiveSession
     @ObservedObject var audioEngine: AudioEngine
 
+    /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
+    /// Propagato esplicitamente al sub-component `MixerChannelView`
+    /// (callsite font dentro il sub, niente cattura implicita).
+    let scaleFactor: CGFloat
+
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 0) {
-                MixerChannelView(index: 0, label: "CLICK", enabled: true,              audioEngine: audioEngine)
-                MixerChannelView(index: 1, label: "BACKT", enabled: true,              audioEngine: audioEngine)
-                MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine)
-                MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine)
+                MixerChannelView(index: 0, label: "CLICK", enabled: true,              audioEngine: audioEngine, scaleFactor: scaleFactor)
+                MixerChannelView(index: 1, label: "BACKT", enabled: true,              audioEngine: audioEngine, scaleFactor: scaleFactor)
+                MixerChannelView(index: 2, label: "CH3",   enabled: session.isProMode, audioEngine: audioEngine, scaleFactor: scaleFactor)
+                MixerChannelView(index: 3, label: "CH4",   enabled: session.isProMode, audioEngine: audioEngine, scaleFactor: scaleFactor)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -37,10 +42,14 @@ private struct MixerChannelView: View {
     let enabled: Bool
     @ObservedObject var audioEngine: AudioEngine
 
+    /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
+    /// Propagato esplicitamente da `MixerOverlayView`.
+    let scaleFactor: CGFloat
+
     var body: some View {
         VStack(spacing: 6) {
             Text(label)
-                .font(.jbMono(.medium, size: 9))
+                .font(.jbMono(.medium, size: 9 * scaleFactor))
                 .tracking(1.2)
                 .foregroundColor(enabled ? Color.white.opacity(0.55) : Color.white.opacity(0.20))
 

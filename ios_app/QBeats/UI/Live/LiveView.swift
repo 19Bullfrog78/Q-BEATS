@@ -42,6 +42,17 @@ struct LiveView: View {
 
     var body: some View {
         GeometryReader { geo in
+            // TD #23 (17/05/2026) — scaleFactor responsive iPad v1.
+            // Baseline 390pt = larghezza geo.size.width reale su iPhone 13
+            // portrait, misurata empiricamente con log Fase 1 (commit adfcc39):
+            //   "[QBEATS][ScaleFactor] geo.size.width = 390.000000".
+            // Su iPad Mini (~744pt) scaleFactor ≈ 1.91; su iPad Pro 12.9"
+            // (~1024pt portrait) ≈ 2.63. Tutti i 24 callsite font in UI/Live/
+            // moltiplicano la loro pt size per scaleFactor. Spacing/padding
+            // restano pt assoluti per non destabilizzare il layout esistente.
+            // Unica fonte di verità: ricalcolato qui, propagato come parametro
+            // CGFloat a tutti i sub-view che ne hanno bisogno.
+            let scaleFactor: CGFloat = geo.size.width / 390
             ZStack {
                 Color(hex: "#0e0e10").ignoresSafeArea(.all)
 
@@ -51,20 +62,20 @@ struct LiveView: View {
                 }()
 
                 VStack(spacing: 0) {
-                    LiveHeaderView(session: session)
+                    LiveHeaderView(session: session, scaleFactor: scaleFactor)
                         .frame(height: geo.size.height * 0.08)
                     MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                         .frame(height: geo.size.height * 0.10)
-                    BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState)
+                    BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
                         .frame(height: geo.size.height * 0.08)
                     MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
                         .frame(height: geo.size.height * 0.04)
                     VStack(spacing: 0) {
-                        TeleprompterCapsuleView(session: session)
+                        TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
                             .frame(height: geo.size.height * 0.35)
                         MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
                             .frame(height: geo.size.height * 0.02)
-                        POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName)
+                        POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
                             .frame(height: geo.size.height * 0.10)
                         HandleStripView()
                             .frame(height: geo.size.height * 0.02)
@@ -78,7 +89,7 @@ struct LiveView: View {
                                 }
                             }
                     )
-                    TransportView(session: session, audioEngine: audioEngine)
+                    TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
                         .frame(height: geo.size.height * 0.21)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -87,7 +98,7 @@ struct LiveView: View {
                 .animation(.easeInOut(duration: 0.3), value: isStandby)
 
                 if case .standby(let nextSong) = session.playbackState {
-                    StandbyOverlayView(nextSongName: nextSong)
+                    StandbyOverlayView(nextSongName: nextSong, scaleFactor: scaleFactor)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             runner.startCurrentSong(audioEngine: audioEngine, session: session)
@@ -95,11 +106,11 @@ struct LiveView: View {
                 }
 
                 if case .overlayStop(let sec, let song) = session.playbackState {
-                    OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine)
+                    OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine, scaleFactor: scaleFactor)
                 }
 
                 if case .fineSetlist = session.playbackState {
-                    FineSetlistView()
+                    FineSetlistView(scaleFactor: scaleFactor)
                 }
 
                 VStack(spacing: 0) {
@@ -111,21 +122,12 @@ struct LiveView: View {
                             .onTapGesture {
                                 session.showMixer = false
                             }
-                        MixerOverlayView(session: session, audioEngine: audioEngine)
+                        MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(session.showMixer)
 
-            }
-            .onAppear {
-                // TD #23 Fase 1 (17/05/2026) — log temporaneo per misurare
-                // baseline reale `geo.size.width` su iPhone 13 prima del
-                // refactor scaleFactor responsive iPad. Applicato su ZStack
-                // INTERNO al GeometryReader per accedere a `geo` in scope.
-                // Scatta UNA volta al mount della Vista LIVE (non al render).
-                // DA RIMUOVERE nel commit TD #23 Fase 2.
-                os_log(.default, "[QBEATS][ScaleFactor] geo.size.width = %f", geo.size.width)
             }
         }
         .onDisappear { audioEngine.stop() }
