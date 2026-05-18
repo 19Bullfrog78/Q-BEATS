@@ -34,5 +34,16 @@
         <string>JetBrainsMono-SemiBold.ttf</string>
         <string>JetBrainsMono-Bold.ttf</string>
     </array>
+    <key>ABLLinkPeerName</key>
+    <string>Q-BEATS</string>
+    <key>ABLLinkStartStopSyncSupported</key>
+    <true/>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Q-BEATS uses the local network to connect to Link-enabled apps and Network MIDI sessions.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_apple-midi._tcp.</string>
+        <string>_link-peers._tcp</string>
+    </array>
 </dict>
 </plist>
