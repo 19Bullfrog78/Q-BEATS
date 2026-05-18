@@ -118,6 +118,15 @@ struct LiveView: View {
                 .allowsHitTesting(session.showMixer)
 
             }
+            .onAppear {
+                // TD #23 Fase 1 (17/05/2026) — log temporaneo per misurare
+                // baseline reale `geo.size.width` su iPhone 13 prima del
+                // refactor scaleFactor responsive iPad. Applicato su ZStack
+                // INTERNO al GeometryReader per accedere a `geo` in scope.
+                // Scatta UNA volta al mount della Vista LIVE (non al render).
+                // DA RIMUOVERE nel commit TD #23 Fase 2.
+                os_log(.default, "[QBEATS][ScaleFactor] geo.size.width = %f", geo.size.width)
+            }
         }
         .onDisappear { audioEngine.stop() }
         .onAppear {
