@@ -17,6 +17,7 @@ targets:
       properties:
         NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
         ABLLinkStartStopSyncSupported: true
+        ABLLinkPeerName: "Q-BEATS"
         NSBluetoothAlwaysUsageDescription: "Q-BEATS richiede l'accesso al Bluetooth per connettere controller e tastiere MIDI Bluetooth LE."
         NSBluetoothPeripheralUsageDescription: "Q-BEATS richiede l'accesso al Bluetooth per connettere controller e tastiere MIDI Bluetooth LE."
         NSBonjourServices:
