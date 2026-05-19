@@ -7,6 +7,14 @@
 #include <cmath>
 #import <os/log.h>
 
+// === API LinkKit esportata, non documentata in ABLLink.h ===
+// Verificata su libLinkKit.a 4.0 (simboli _ABLLinkSetPeerName + mangled
+// __ZN7ABLLink11setPeerNameEPKc presenti). LinkKit persiste il valore in
+// NSUserDefaults (chiave "ABLLinkPeerName") e lo usa come identità del
+// peer nella sessione Link. Override programmatico necessario per
+// distinguere istanze stesso-bundle su device diversi.
+extern "C" void ABLLinkSetPeerName(ABLLinkRef link, const char* name);
+
 struct LinkEngine {
     ABLLinkRef link_;
     std::atomic<bool> enabled_{false};
@@ -64,6 +72,15 @@ void link_engine_destroy(LinkEngineHandle handle) {
     LinkEngine* engine = (LinkEngine*)handle;
     ABLLinkDelete(engine->link_);
     delete engine;
+}
+
+void link_engine_set_peer_name(LinkEngineHandle handle, const char* name) {
+    if (!handle || !name) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    ABLLinkSetPeerName(engine->link_, name);
+    os_log(OS_LOG_DEFAULT,
+           "[Q-BEATS][LINK][PEER-NAME] set to %{public}s",
+           name);
 }
 
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled) {

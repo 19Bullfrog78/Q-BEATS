@@ -331,6 +331,15 @@ class AudioEngine: ObservableObject {
         linkEngineHandle = link_engine_create()
         if let lh = linkEngineHandle {
             linkSettingsPresenter = LinkSettingsPresenter(linkHandle: lh)
+
+            // Peer name = nome iOS del device, univoco per device (fix
+            // discovery QB↔QB stesso-bundle, pattern NodeId collision).
+            // Va PRIMA di link_engine_activate() — altrimenti il primo
+            // advertising mDNS/UDP contiene il default "Link App" /
+            // valore statico ABLLinkPeerName di Info.plist.
+            UIDevice.current.name.withCString {
+                link_engine_set_peer_name(lh, $0)
+            }
         }
 
         if let lh = linkEngineHandle {

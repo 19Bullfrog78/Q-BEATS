@@ -49,6 +49,15 @@ void   midi_engine_set_beat_position(void* handle, double targetBeats);
 typedef void* LinkEngineHandle;
 
 LinkEngineHandle link_engine_create(void);
+// Set peer name a runtime (LinkKit API esportata ma non documentata in
+// ABLLink.h: extern "C" void ABLLinkSetPeerName(ABLLinkRef, const char*)).
+// Verificata su libLinkKit.a 4.0 (simboli _ABLLinkSetPeerName +
+// __ZN7ABLLink11setPeerNameEPKc presenti). Bypassa default "Link App" /
+// chiave statica ABLLinkPeerName di Info.plist con un nome per-device,
+// fix discovery QB↔QB stesso-bundle (pattern NodeId collision).
+// Chiamare PRIMA di link_engine_activate() — il nome deve essere settato
+// prima del primo advertising mDNS/UDP. Da rivalidare su upgrade LinkKit.
+void link_engine_set_peer_name(LinkEngineHandle handle, const char* name);
 void link_engine_destroy(LinkEngineHandle handle);
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled);
 bool link_engine_is_enabled(LinkEngineHandle handle);
