@@ -32,7 +32,7 @@ struct BackupView: View {
                     Toggle("Impostazioni app", isOn: $includeSettings)
                 }
 
-                SwiftUI.Section("Canzoni") {
+                SwiftUI.Section("Songs") {
                     Toggle("Tutte", isOn: $allSongsSelected)
                         .onChange(of: allSongsSelected) { val in
                             selectedSongIDs = val ? Set(store.songs.map(\.id)) : []
@@ -55,7 +55,7 @@ struct BackupView: View {
                     }
                 }
 
-                SwiftUI.Section("Setlist") {
+                SwiftUI.Section("Shows") {
                     ForEach(store.setlists) { setlist in
                         CheckRow(
                             label: setlist.name,
@@ -69,7 +69,7 @@ struct BackupView: View {
                         }
                     }
                     if store.setlists.isEmpty {
-                        Text("Nessuna setlist").foregroundColor(.secondary).font(.caption)
+                        Text("Nessuno show").foregroundColor(.secondary).font(.caption)
                     }
                 }
 

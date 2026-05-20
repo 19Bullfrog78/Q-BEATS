@@ -25,7 +25,7 @@ struct BivioBoardView: View {
                         os_log("Bivio: STUDIO selezionato")
                         path.append(AppDestination.studio)
                     } label: {
-                        BivioButton(title: "STUDIO", background: Color(hex: "#16161a"), isAccent: false)
+                        BivioButton(title: "Q-STAGE", background: Color(hex: "#16161a"), isAccent: false)
                     }
 
                     Button {
@@ -40,7 +40,7 @@ struct BivioBoardView: View {
                             .rootViewController?
                             .present(vc, animated: false)
                     } label: {
-                        BivioButton(title: "LIVE", background: Color(hex: "#d43f00"), isAccent: true)
+                        BivioButton(title: "Q-Live", background: Color(hex: "#d43f00"), isAccent: true)
                     }
                 }
                 .padding(.horizontal, 40)

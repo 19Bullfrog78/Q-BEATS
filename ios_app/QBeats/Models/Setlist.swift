@@ -11,7 +11,7 @@ extension Setlist {
     static func makeDefault() -> Setlist {
         Setlist(
             id: UUID(),
-            name: "Nuova setlist",
+            name: "New Show",
             date: Date(),
             songIDs: []
         )

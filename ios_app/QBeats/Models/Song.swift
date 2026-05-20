@@ -12,7 +12,7 @@ extension Song {
     static func makeDefault() -> Song {
         Song(
             id: UUID(),
-            name: "Nuova canzone",
+            name: "New Song",
             sections: [SongSection.makeDefault()],
             countIn: 1,
             backtrackFilename: nil

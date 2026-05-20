@@ -47,9 +47,9 @@ struct ImportView: View {
                         }
                     }
 
-                    SwiftUI.Section("Canzoni (\(manifest.songs.count))") {
+                    SwiftUI.Section("Songs (\(manifest.songs.count))") {
                         if manifest.songs.isEmpty {
-                            Text("Nessuna canzone nel backup").foregroundColor(.secondary).font(.caption)
+                            Text("Nessuna song nel backup").foregroundColor(.secondary).font(.caption)
                         } else {
                             ForEach(manifest.songs, id: \.song.id) { entry in
                                 HStack {
@@ -76,9 +76,9 @@ struct ImportView: View {
                         }
                     }
 
-                    SwiftUI.Section("Setlist (\(manifest.setlists.count))") {
+                    SwiftUI.Section("Shows (\(manifest.setlists.count))") {
                         if manifest.setlists.isEmpty {
-                            Text("Nessuna setlist nel backup").foregroundColor(.secondary).font(.caption)
+                            Text("Nessuno show nel backup").foregroundColor(.secondary).font(.caption)
                         } else {
                             ForEach(manifest.setlists, id: \.setlist.id) { entry in
                                 CheckRow(
@@ -141,7 +141,7 @@ struct ImportView: View {
                     Label("Impostazioni importate", systemImage: "gearshape.fill")
                 }
                 Label(
-                    "\(result.songsImported) canzon\(result.songsImported == 1 ? "e" : "i") importat\(result.songsImported == 1 ? "a" : "e")",
+                    "\(result.songsImported) song importat\(result.songsImported == 1 ? "a" : "e")",
                     systemImage: "music.note"
                 )
                 if result.songsDuplicated > 0 {
@@ -153,7 +153,7 @@ struct ImportView: View {
                 }
                 if result.setlistsImported > 0 {
                     Label(
-                        "\(result.setlistsImported) setlist importat\(result.setlistsImported == 1 ? "a" : "e")",
+                        "\(result.setlistsImported) show importat\(result.setlistsImported == 1 ? "o" : "i")",
                         systemImage: "list.bullet"
                     )
                 }

@@ -6,7 +6,7 @@ struct StudioRootView: View {
     var body: some View {
         ZStack {
             Color(hex: "#0e0e10").ignoresSafeArea()
-            Text("STUDIO — in costruzione")
+            Text("Q-STAGE — in costruzione")
                 .font(.system(size: 24, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
         }

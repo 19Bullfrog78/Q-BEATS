@@ -309,7 +309,7 @@ struct DebugView: View {
                 // --- TEST L1.b — Dati di prova ---
                 #if DEBUG
                 SwiftUI.Section("Test L1.b — Dati di prova") {
-                    Text("Popola lo store in RAM con 2 canzoni + 1 setlist. Poi tap LIVE → Play del transport.")
+                    Text("Popola lo store in RAM con 2 songs + 1 show. Poi tap Q-Live → Play del transport.")
                         .font(.caption)
                         .foregroundColor(.gray)
                     Button("Carica dati test L1.b") {
