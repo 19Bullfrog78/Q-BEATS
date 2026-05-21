@@ -28,12 +28,12 @@ struct BackupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                SwiftUI.Section("Impostazioni") {
-                    Toggle("Impostazioni app", isOn: $includeSettings)
+                SwiftUI.Section("Settings") {
+                    Toggle("App settings", isOn: $includeSettings)
                 }
 
                 SwiftUI.Section("Songs") {
-                    Toggle("Tutte", isOn: $allSongsSelected)
+                    Toggle("All", isOn: $allSongsSelected)
                         .onChange(of: allSongsSelected) { val in
                             selectedSongIDs = val ? Set(store.songs.map(\.id)) : []
                         }
@@ -69,15 +69,15 @@ struct BackupView: View {
                         }
                     }
                     if store.setlists.isEmpty {
-                        Text("Nessuno show").foregroundColor(.secondary).font(.caption)
+                        Text("No shows").foregroundColor(.secondary).font(.caption)
                     }
                 }
 
                 SwiftUI.Section {
-                    Toggle("Includi audio", isOn: $includeAudio)
+                    Toggle("Include audio", isOn: $includeAudio)
                     if includeAudio, estimatedAudioSize > 0 {
                         HStack {
-                            Text("Dimensione stimata")
+                            Text("Estimated size")
                             Spacer()
                             Text(ByteCountFormatter.string(fromByteCount: estimatedAudioSize, countStyle: .file))
                                 .foregroundColor(.secondary)
@@ -91,7 +91,7 @@ struct BackupView: View {
                     }
                 }
             }
-            .navigationTitle("Esporta backup")
+            .navigationTitle("Export backup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -99,7 +99,7 @@ struct BackupView: View {
                         if isExporting {
                             ProgressView()
                         } else {
-                            Text("Esporta")
+                            Text("Export")
                         }
                     }
                     .disabled(isExporting || !canExport)

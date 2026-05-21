@@ -24,14 +24,14 @@ struct SettingsView: View {
                         showLinkSetup = true
                     }
                     if audioEngine.linkEnabled {
-                        Picker("Modalità", selection: Binding(
+                        Picker("Mode", selection: Binding(
                             get: { audioEngine.appSettings.linkMode },
                             set: { newValue in
                                 audioEngine.appSettings.linkMode = newValue
                             }
                         )) {
-                            Text("Direttore").tag(LinkMode.direttore)
-                            Text("Collaborativa").tag(LinkMode.collaborativa)
+                            Text("Director").tag(LinkMode.direttore)
+                            Text("Collaborative").tag(LinkMode.collaborativa)
                         }
                         .pickerStyle(.menu)
                         .disabled(audioEngine.isPlaying)
@@ -53,7 +53,7 @@ struct SettingsView: View {
                 }
 
                 SwiftUI.Section("Audio") {
-                    Toggle("Mostra promemoria Aereo/Non Disturbare", isOn: Binding(
+                    Toggle("Show Airplane Mode / Do Not Disturb reminder", isOn: Binding(
                         get: { audioEngine.appSettings.showDNDReminder },
                         set: { audioEngine.setShowDNDReminder($0) }
                     ))

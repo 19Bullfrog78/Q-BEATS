@@ -35,21 +35,21 @@ struct ImportView: View {
                 Form {
                     SwiftUI.Section {
                         HStack {
-                            Text("Esportato il")
+                            Text("Exported on")
                             Spacer()
                             Text(manifest.exportedAt, style: .date).foregroundColor(.secondary)
                         }
                     }
 
                     if manifest.hasSettings {
-                        SwiftUI.Section("Impostazioni") {
-                            Toggle("Impostazioni app", isOn: $importSettings)
+                        SwiftUI.Section("Settings") {
+                            Toggle("App settings", isOn: $importSettings)
                         }
                     }
 
                     SwiftUI.Section("Songs (\(manifest.songs.count))") {
                         if manifest.songs.isEmpty {
-                            Text("Nessuna song nel backup").foregroundColor(.secondary).font(.caption)
+                            Text("No songs in backup").foregroundColor(.secondary).font(.caption)
                         } else {
                             ForEach(manifest.songs, id: \.song.id) { entry in
                                 HStack {
@@ -78,7 +78,7 @@ struct ImportView: View {
 
                     SwiftUI.Section("Shows (\(manifest.setlists.count))") {
                         if manifest.setlists.isEmpty {
-                            Text("Nessuno show nel backup").foregroundColor(.secondary).font(.caption)
+                            Text("No shows in backup").foregroundColor(.secondary).font(.caption)
                         } else {
                             ForEach(manifest.setlists, id: \.setlist.id) { entry in
                                 CheckRow(
@@ -97,7 +97,7 @@ struct ImportView: View {
 
                     if manifest.songs.contains(where: { $0.audioFilename != nil }) {
                         SwiftUI.Section {
-                            Toggle("Includi audio", isOn: $includeAudio)
+                            Toggle("Include audio", isOn: $includeAudio)
                         }
                     }
 
@@ -107,18 +107,18 @@ struct ImportView: View {
                         }
                     }
                 }
-                .navigationTitle("Importa backup")
+                .navigationTitle("Import backup")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Annulla") { dismiss() }
+                        Button("Cancel") { dismiss() }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: doImport) {
                             if isImporting {
                                 ProgressView()
                             } else {
-                                Text("Importa")
+                                Text("Import")
                             }
                         }
                         .disabled(isImporting || !canImport)
@@ -134,38 +134,38 @@ struct ImportView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 64))
                 .foregroundColor(.green)
-            Text("Importazione completata")
+            Text("Import complete")
                 .font(.headline)
             List {
                 if result.settingsImported {
-                    Label("Impostazioni importate", systemImage: "gearshape.fill")
+                    Label("Settings imported", systemImage: "gearshape.fill")
                 }
                 Label(
-                    "\(result.songsImported) song importat\(result.songsImported == 1 ? "a" : "e")",
+                    "\(result.songsImported) song\(result.songsImported == 1 ? "" : "s") imported",
                     systemImage: "music.note"
                 )
                 if result.songsDuplicated > 0 {
                     Label(
-                        "\(result.songsDuplicated) duplicat\(result.songsDuplicated == 1 ? "a" : "e") (rinominat\(result.songsDuplicated == 1 ? "a" : "e"))",
+                        "\(result.songsDuplicated) duplicate\(result.songsDuplicated == 1 ? "" : "s") (renamed)",
                         systemImage: "doc.on.doc"
                     )
                     .foregroundColor(.orange)
                 }
                 if result.setlistsImported > 0 {
                     Label(
-                        "\(result.setlistsImported) show importat\(result.setlistsImported == 1 ? "o" : "i")",
+                        "\(result.setlistsImported) show\(result.setlistsImported == 1 ? "" : "s") imported",
                         systemImage: "list.bullet"
                     )
                 }
                 if result.audioFilesImported > 0 {
                     Label(
-                        "\(result.audioFilesImported) file audio importat\(result.audioFilesImported == 1 ? "o" : "i")",
+                        "\(result.audioFilesImported) audio file\(result.audioFilesImported == 1 ? "" : "s") imported",
                         systemImage: "waveform"
                     )
                 }
             }
             .frame(maxHeight: 200)
-            Button("Chiudi") { dismiss() }
+            Button("Close") { dismiss() }
                 .buttonStyle(.borderedProminent)
         }
         .padding()
