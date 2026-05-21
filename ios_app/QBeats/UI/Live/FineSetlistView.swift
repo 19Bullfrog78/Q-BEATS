@@ -10,15 +10,15 @@ struct FineSetlistView: View {
         ZStack {
             Color(hex: "#0e0e10").ignoresSafeArea()
             VStack(spacing: 24) {
-                Text("FINE SHOW")
+                Text("END SHOW")
                     .font(.jbMono(.bold, size: 28 * scaleFactor))
                     .foregroundColor(.white)
                     .tracking(2)
 
                 VStack(spacing: 12) {
-                    Button("TORNA AGLI SHOWS") { /* navigazione — Fase successiva */ }
+                    Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }
                         .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
-                    Button("RICOMINCIA") { /* restart setlist — Fase successiva */ }
+                    Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
                         .buttonStyle(OverlayStopButtonStyle(primary: false, scaleFactor: scaleFactor))
                 }
             }
