@@ -1,8 +1,8 @@
 # STATO_QBEATS — Libro mastro cross-team
 
-**Versione:** 4
+**Versione:** 5
 **Ultima modifica:** 2026-05-21
-**Edit author:** CC chat principale 21/05/2026 (ratifica Q11=A: PROSSIMA → NEXT; nuova Q12 aperta per cascading rename completo R-CD5-10 scoperto via Grep generico)
+**Edit author:** CC chat principale 21/05/2026 (Q12=A risolta + cascading rename Swift completato commit `cf3f0b5` 30 stringhe in 4 file + EMERGENZA → EMERGENCY in sez. 1)
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -133,7 +133,8 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | Restart Setlist | Bottone CD-3 in `.fineSetlist`: ricomincia la setlist appena suonata | proposto (CD-3) |
 | BACK TO SHOWS | Bottone fine setlist (FineSetlistView): torna alla libreria SHOWS | attivo (ratificato 21/05 R-CD5-10) |
 | END SHOW | Bottone fine setlist (FineSetlistView): marca fine performance | attivo (ratificato 21/05 R-CD5-10) |
-| EMERGENZA (BR pulsantiera CD-4) | Bottone in basso-destra della pulsantiera CD-4 che fa switch da Vista Q-Live a Vista LISTA (ex Vista Emergenza). Sempre visibile durante `.playing` / `.standby`, nascosto durante `.stoppedMidSong` (Q7=A) | attivo (brief Fase 4 19/05) |
+| EMERGENZA (BR pulsantiera CD-4) | Sigla italiana storica, rinominata EMERGENCY 21/05 per coerenza R-CD5-10 | superseded da Q12=A (21/05) |
+| EMERGENCY (BR pulsantiera CD-4) | Bottone in basso-destra della pulsantiera CD-4 che fa switch da Vista Q-Live a Vista LISTA (ex Vista Emergenza). Sempre visibile durante `.playing` / `.standby`, nascosto durante `.stoppedMidSong` (Q7=A) | attivo (brief Fase 4 19/05, label inglese ratificata 21/05 Q12=A) |
 
 ### Stati LiveSession
 | Stato | Definizione | Note |
@@ -209,6 +210,7 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-21 | R-CD5-08 — CD-5 (schermata STOP a metà song) è formalmente nuovo deliverable del brief Fase 4 (era stato aggiunto nella sessione 20/05 ma non era nel brief 19/05) | CD | spec CD-5 sez. 3. ⚠️ Implica aggiornamento documento `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (dominio CD) | attiva | — |
 | 2026-05-21 | R-CD5-09 — Bookmark cross-song = β: conservato in RAM per la sessione, sopravvive cross-song dentro stessa setlist, cancellato a uscita Q-Live (β.1) e cambio setlist (β.2) | CD | spec CD-5 sez. 3 | attiva | — |
 | 2026-05-21 | Q11=A — Tasto avanza canzone rinominato PROSSIMA → NEXT (coerente con R-CD5-10 UI tutta inglese). PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), niente cascading rename codice | Mauro | sez. 4 Q11 v3 + questa chat 21/05 | attiva | — |
+| 2026-05-21 | Q12=A — Cascading rename Swift R-CD5-10 completo: 30 stringhe italiane in 4 file produzione (`BackupView.swift`, `ImportView.swift`, `SettingsView.swift`, `BarCounterView.swift`) rinominate in inglese. DebugView escluso (scaffold dev). Sigla EMERGENZA → EMERGENCY in sez. 1 libro mastro. Implementato in commit Swift `cf3f0b5` | Mauro + CD + CC | sez. 4 Q12 v4 + questa chat 21/05 + commit `cf3f0b5` | attiva | — |
 
 ---
 
@@ -235,11 +237,9 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 
 Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una risposta arriva, CC sposta la voce in sezione 2 con la data di ratifica.
 
-### Domande aperte residue (post-v4 21/05)
+### Domande aperte residue (post-v5 21/05)
 
-| ID | Domanda | In attesa di |
-|---|---|---|
-| Q12 | **Cascading rename R-CD5-10 completo — debito tecnico scoperto via Grep generico 21/05**. R-CD5-10 ratifica "UI tutta in inglese universale", ma il commit Swift `899be2c` ha rinominato solo `FineSetlistView.swift`. Grep generico ha rivelato 14 stringhe italiane in 5 file Swift (`BackupView.swift`, `ImportView.swift`, `SettingsView.swift`, `BarCounterView.swift`, `DebugView.swift`) + 1 sigla del libro mastro (`EMERGENZA`). A) sì, completa cascading rename ora su tutti i 5 file Swift produzione + rename EMERGENZA → EMERGENCY in libro mastro (DebugView escluso = scaffold dev) / B) sì ma DebugView pure inglese (universale = universale, no eccezioni) / C) no, rimanda — apri TD#45 nel backlog e lascia italiano corrente / D) modifica con "..." (es. specifica file/stringhe da escludere) | Mauro |
+**Nessuna domanda aperta al 21/05** — tutte le domande Q1-Q12 + β.1-β.2 + R-CD5-01-10 risolte tra v3 e v5. Sezione 4 vive come placeholder per future domande aperte.
 
 ### Voci risolte come moot (non ratificate, non più rilevanti)
 
@@ -270,6 +270,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 2 | 2026-05-21 | CC chat principale 21/05, integrazione review CD | Naming UI completato post-review CD del v1: aggiunti 9 termini in sez. 1 — `Q-Stage > Songs` / `Q-Stage > SHOWS` / `Q-Stage > MEDIA` / `Select Setlist` in "App e modalità"; `Resume from {section.name}` / `Restart {song.name}` / `Restart Setlist` / `BACK TO SHOWS` / `END SHOW` in "Tasti / azioni"; `<< X / Y >>` in "Componenti UI Vista LIVE"; `.stoppedMidSong` in "Stati LiveSession". Aperte 4 nuove domande Q7-Q10 in sez. 4 per ratificare formalmente le decisioni UX 20-21/05 (schermo STOP full-screen modale + pulsantiera CD-4 nascosta; layout STOP Resume+Restart+swipe+`<< X / Y >>`; CD-1 esteso con swipe + indicatore; opzione 1 dopo swipe = resta CD-1 cambia solo nome song). Nessuna modifica a sez. 2, sez. 3, sez. 5 e protocollo R1-R6. |
 | 3 | 2026-05-21 | CC chat principale 21/05, ratifica batch Mauro | Batch ratifiche post-review CD del v2: 13 risposte chiare (Q1-Q10 + β.1, β.2 + R-CD5-10) + 8 R-CD5 letterali (R-CD5-01, 02, 04, 05, 06, 07, 08, 09 — testo girato da Mauro in chat 21/05 da spec CD-5 sez. 3) + R-CD5-03 marcata moot (risolta da Q7=A). Sigla EMERGENZA aggiunta in sez. 1 "Tasti / azioni" (definizione: bottone BR pulsantiera CD-4, switch a Vista LISTA, nascosto durante `.stoppedMidSong`). Implicazioni a cascata applicate: KILL BASE → `superseded`, KILL TRACK → `attivo`; FINE SHOW e TORNA AGLI SHOWS → `superseded`, END SHOW e BACK TO SHOWS → `attivo`; CD-1 deliverable scope esteso; CD-5 deliverable in attesa implementazione Layer 3. Stati `.stopped` (disambiguato), `.standby` (nota Q10=A), `.countIn` (Q3=A Resume), `.loopActive` (R-CD5-05 reset su STOP), `.stoppedMidSong` (Q4=A + R-CD5-01 + R-CD5-02 attivo). Sez. 4 ripulita: 22 voci risolte rimosse, resta solo Q11 (PROSSIMA→NEXT, non ratificato esplicitamente nel batch 21/05) + tabella R-CD5-03 moot. Vista LISTA / Vista Emergenza lasciate distinte in sez. 1 (fusione "ex Vista Emergenza" non applicata automaticamente per scelta conservativa CC, in attesa eventuale ratifica esplicita Mauro). |
 | 4 | 2026-05-21 | CC chat principale 21/05, ratifica Q11=A + apertura Q12 | Ratifica Q11=A (PROSSIMA → NEXT, coerente con R-CD5-10): riga PROSSIMA → `superseded`, riga NEXT → `attivo`. PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), nessun cascading rename codice. Fix di consistency in sez. 1 "App e modalità": riga `Vista LIVE` aggiornata da "KILL BASE" a "KILL TRACK" nella descrizione descrittiva. Aperta nuova Q12 in sez. 4: cascading rename completo R-CD5-10 — debito tecnico scoperto applicando per la prima volta la regola `feedback_qbeats_grep_generico_pre_cascading_rename.md`. Grep generico rivela 14 stringhe UI italiane in 5 file Swift (`BackupView`, `ImportView`, `SettingsView`, `BarCounterView`, `DebugView`) + sigla `EMERGENZA` nel libro mastro. Mauro deve ratificare scope (tutti i 5 file produzione + EMERGENZA → EMERGENCY? DebugView pure? rimanda come TD?). Sez. 4 ora: Q12 + R-CD5-03 moot. |
+| 5 | 2026-05-21 | CC chat principale 21/05, Q12=A + cascading rename Swift completo | Q12=A ratificato (cascading rename Swift R-CD5-10 completo su 4 file produzione, **30 stringhe** italiane rinominate in inglese — Read completo dei file ha rivelato 16 stringhe in ImportView, 8 in BackupView, 4 in SettingsView, 2 in BarCounterView; il Grep regex iniziale aveva stimato solo 14 perché non catturava `Toggle("...")` / `Picker("...")` / `SwiftUI.Section("...")` / stringhe pluralizzate interpolate / label sciolti come `" di "`). DebugView escluso (scaffold dev, no UI utente). Sigla EMERGENZA → EMERGENCY in sez. 1 "Tasti / azioni" (riga superseded + nuova riga attiva). Riga Q12 rimossa da sez. 4 (nessuna domanda aperta residua post-v5). Commit Swift cascading rename: `cf3f0b5`. **Feedback memory `feedback_qbeats_grep_generico_pre_cascading_rename.md` da affinare**: regola corretta = "Grep generico identifica file sospetti, Read completo del file è obbligatorio per inventario letterale (Grep regex sottostima)". |
 
 ---
 
