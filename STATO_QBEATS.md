@@ -1,8 +1,8 @@
 # STATO_QBEATS — Libro mastro cross-team
 
-**Versione:** 2
+**Versione:** 3
 **Ultima modifica:** 2026-05-21
-**Edit author:** CC chat principale 21/05/2026 (integrazione review CD del v1)
+**Edit author:** CC chat principale 21/05/2026 (ratifica batch Mauro: 13 risposte chiare + 8 R-CD5 + sigla EMERGENZA + implicazioni a cascata)
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -116,33 +116,34 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | MacroBar | Barra macro progresso canzone |
 | HEAD | Layer alto Vista LIVE (BPM, time signature, nome canzone) |
 | FineSetlistView | Schermata fine setlist con bottoni "FINE SHOW" / "TORNA AGLI SHOWS" |
-| `<< X / Y >>` | Indicatore posizione corrente nella setlist + segnale visivo possibilità swipe orizzontale (proposto, CD-1 ext + CD-5) |
+| `<< X / Y >>` | Indicatore posizione corrente nella setlist + segnale visivo possibilità swipe orizzontale (attivo, ratificato 21/05 Q8=A / Q9=A) |
 
 ### Tasti / azioni
 | Termine | Definizione | Stato |
 |---|---|---|
-| KILL BASE | Tasto che zittisce il backtrack | attivo (brief Fase 4 19/05) |
-| KILL TRACK | Rinomina proposta in CD-5 di KILL BASE | **proposto — IN CONFLITTO con brief Fase 4 (Q5 sez. 4)** |
+| KILL BASE | Tasto che zittisce il backtrack (label italiana storica) | superseded da Q5=B / R-CD5-07 (21/05) |
+| KILL TRACK | Tasto che zittisce il backtrack (rinomina di KILL BASE) | attivo (ratificato 21/05 Q5=B / R-CD5-07) |
 | PROSSIMA | Tasto avanza canzone | attivo |
 | NEXT | Rinomina proposta in CD-5 di PROSSIMA | **proposto — citato come "ratificato" in CD-5 ma non verificabile in brief 19/05 / CLAUDE.md V23 / memorie CC (Q6 sez. 4)** |
 | STOP | Tasto stop esecuzione | attivo |
-| FINE SHOW | Bottone fine setlist (FineSetlistView) | attivo (ratificato 19/05) |
-| TORNA AGLI SHOWS | Bottone fine setlist (FineSetlistView) | attivo (ratificato 19/05) |
-| Resume from {section.name} | Bottone schermo STOP a metà song: riparte da inizio sezione bookmarkata | proposto (CD-5) |
-| Restart {song.name} | Bottone schermo STOP a metà song: ricomincia song corrente | proposto (CD-5) |
+| FINE SHOW | Bottone fine setlist (FineSetlistView), label italiana storica | superseded da R-CD5-10 (21/05, UI tutta inglese) |
+| TORNA AGLI SHOWS | Bottone fine setlist (FineSetlistView), label italiana storica | superseded da R-CD5-10 (21/05, UI tutta inglese) |
+| Resume from {section.name} | Bottone schermo STOP a metà song: riparte da inizio sezione bookmarkata | attivo (ratificato 21/05 Q8=A) |
+| Restart {song.name} | Bottone schermo STOP a metà song: ricomincia song corrente | attivo (ratificato 21/05 Q8=A) |
 | Restart Setlist | Bottone CD-3 in `.fineSetlist`: ricomincia la setlist appena suonata | proposto (CD-3) |
-| BACK TO SHOWS | Rinomina inglese di "TORNA AGLI SHOWS" | proposto (rename pendente Q5 / R-CD5-10) |
-| END SHOW | Rinomina inglese di "FINE SHOW" | proposto (rename pendente Q5 / R-CD5-10) |
+| BACK TO SHOWS | Bottone fine setlist (FineSetlistView): torna alla libreria SHOWS | attivo (ratificato 21/05 R-CD5-10) |
+| END SHOW | Bottone fine setlist (FineSetlistView): marca fine performance | attivo (ratificato 21/05 R-CD5-10) |
+| EMERGENZA (BR pulsantiera CD-4) | Bottone in basso-destra della pulsantiera CD-4 che fa switch da Vista Q-Live a Vista LISTA (ex Vista Emergenza). Sempre visibile durante `.playing` / `.standby`, nascosto durante `.stoppedMidSong` (Q7=A) | attivo (brief Fase 4 19/05) |
 
 ### Stati LiveSession
 | Stato | Definizione | Note |
 |---|---|---|
-| `.stopped` | **definizione ambigua** | Doppio significato emerso in CD-5 (Q4 sez. 4): CD-1 iniziale (stato all'apertura Vista LIVE) vs swipe nav post-STOP. Da chiarire con discriminator o flag esterno. |
-| `.standby` | Overlay tra canzoni | attivo |
-| `.countIn` | Count-in pre-canzone | attivo (oggi solo tra canzoni — Q3 sez. 4 chiede se estendere a resume post-STOP) |
+| `.stopped` | Stato CD-1 cerimoniale (apertura Vista LIVE + swipe-vetrina di Q10=A). Distinto da `.stoppedMidSong` (R-CD5-01 / R-CD5-04) | attivo (ratificato 21/05) |
+| `.standby` | Overlay tra canzoni (transizione standard tra song N e song N+1). NON entrato durante swipe in CD-1 per Q10=A | attivo |
+| `.countIn` | Count-in pre-canzone (4 click). Attivato in: (1) inizio prima song setlist, (2) tra canzoni, (3) Resume dopo STOP a metà song (ratificato 21/05 Q3=A — ri-sincronizzazione mentale batterista con band) | attivo |
 | `.playing` | Esecuzione in corso | attivo |
-| `.loopActive` | Loop attivo su sezione | attivo |
-| `.stoppedMidSong` | Stato STOP a metà song con bookmark (rinomina proposta da CD-5 di `.overlayStop`, mai entrato in codice) | proposto (CD-5) — possibile risposta a Q4 sez. 4 (introduce stato distinto invece di discriminator/flag su `.stopped`) |
+| `.loopActive` | Loop attivo su sezione. Cancellato (reset) su STOP intra-sessione per R-CD5-05 (21/05) | attivo |
+| `.stoppedMidSong` | Stato STOP a metà song con bookmark. Distinto da `.stopped` (R-CD5-01). Nome canonico ratificato 21/05 da R-CD5-02 (era `.overlayStop` solo proposto, mai entrato in codice) | attivo (ratificato 21/05 Q4=A + R-CD5-01 + R-CD5-02) |
 
 ### Schermate ratificate (dominio CD)
 
@@ -187,6 +188,26 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-20 | Semantica gerarchia dati: `SHOWS → Setlist A/B/C → Song 1/2/...` (SHOWS = contenitore-libreria, Setlist = singola entità dentro SHOWS, Songs = canzoni dentro Setlist) | Mauro | conversazione 20/05/2026 chat CC principale | attiva | — |
 | 2026-05-21 | Istituito `STATO_QBEATS.md` come libro mastro cross-team (questo file) | Mauro + CC + CD | questa chat CC 21/05/2026 | attiva | — |
 | 2026-05-21 | Protocollo R1–R6 (rituale apertura / 1 chat CC alla volta / CC review obbligatoria con timeout 24h e escape `no-CC-needed` / ratifiche atomiche numerate / custode CC con diff letterali / naming canonico vincolante) | Mauro + CC + CD | questa chat CC 21/05/2026, sezione "Protocollo di ingaggio" sopra | attiva | — |
+| 2026-05-21 | Q7=A — Schermo STOP a metà song è full-screen modale che sostituisce Vista Q-Live (NON overlay parziale), con pulsantiera CD-4 nascosta durante questo stato (eccezione esplicita a CD-4 del 19/05) | Mauro + CD | sez. 4 Q7 v2 + questa chat 21/05 | attiva | — |
+| 2026-05-21 | Q8=A — Layout schermo STOP: bottone "Resume from {section.name}" + bottone "Restart {song.name}" + zona swipe orizzontale + indicatore `<< X / Y >>` (mockup grezzo 20/05) | Mauro + CD | sez. 4 Q8 v2 + questa chat 21/05 | attiva | — |
+| 2026-05-21 | Q9=A — CD-1 originale (17/05) viene esteso con zona swipe orizzontale + indicatore `<< X / Y >>` per discoverability | Mauro + CD | sez. 4 Q9 v2 + questa chat 21/05 | attiva | — |
+| 2026-05-21 | Q10=A — Dopo swipe in CD-1: resta CD-1 cerimoniale, cambia solo nome song (vetrina che si sfoglia, NON entra in `.standby`) | Mauro + CD | sez. 4 Q10 v2 + questa chat 21/05 | attiva | — |
+| 2026-05-21 | Q5=B / R-CD5-07 — Tasto che zittisce il backtrack si chiama KILL TRACK (rinomina di KILL BASE). Supersede parziale ratifica 19/05 punto 5 brief Fase 4 limitatamente alla label del tasto | Mauro + CD | sez. 4 Q5 v2 + R-CD5-07 + questa chat | attiva | — |
+| 2026-05-21 | Q6=A — Gerarchia 3 ruoli (Mauro / CD / CC), "referee" incluso in CC. Non figura separata | Mauro | sez. 4 Q6 v2 + questa chat | attiva | — |
+| 2026-05-21 | R-CD5-10=A — UI tutta in inglese (universale, anche label future Settings / MIDI Learn / ecc.). Implica rename FINE SHOW → END SHOW, TORNA AGLI SHOWS → BACK TO SHOWS. Supersede parziale ratifica 19/05 (pulsantiera CD-4 FineSetlistView) limitatamente alle label | Mauro + CD | sez. 4 R-CD5-10 v2 + questa chat | attiva | — |
+| 2026-05-21 | Q3=A — Count-in (4 click) sempre al Resume dopo STOP a metà song. Motivo Mauro: ri-sincronizzazione mentale del batterista con la band, necessaria per partenza uniforme | Mauro | sez. 4 Q3 v2 + questa chat | attiva | — |
+| 2026-05-21 | Q2=A — Bookmark v1 a granularità sezione: solo `(songID, sectionID)`. NO `barInSection` (no modifica Layer 1 / C++ DSP) | Mauro | sez. 4 Q2 v2 + questa chat | attiva | — |
+| 2026-05-21 | Q1=A — Le 10 ratifiche dichiarate in spec CD-5 sono confermate. Ratificate individualmente in questa sessione (R-CD5-01...10 sotto) | Mauro | sez. 4 Q1 v2 + questa chat | attiva | — |
+| 2026-05-21 | Q4=A — `.stoppedMidSong` introdotto come stato distinto da `.stopped` (NON discriminator/flag su `.stopped`). Decisione tecnica delegata a CC, ratificata da Mauro come scelta architetturale | Mauro + CC | sez. 4 Q4 v2 + questa chat | attiva | — |
+| 2026-05-21 | β.1=A — Bookmark cancellato all'uscita da Vista Q-Live (no stato latente persistito) | Mauro + CD | sez. 4 β.1 v2 + questa chat | attiva | — |
+| 2026-05-21 | β.2=A — Bookmark cancellato al cambio setlist (anche moot per R-CD5-06: swipe nav non cambia mai setlist, quindi cambio setlist richiede uscita Q-Live → β.1 copre già il caso) | Mauro + CD | sez. 4 β.2 v2 + questa chat | attiva | — |
+| 2026-05-21 | R-CD5-01 — NON fondere `.stopped` e `.stoppedMidSong`: restano stati distinti nel codice e nell'UX | CD | spec CD-5 sez. 3 (girata da Mauro in chat 21/05) | attiva | — |
+| 2026-05-21 | R-CD5-02 — Rename codice (mai entrato in produzione) `.overlayStop` → `.stoppedMidSong` come nome canonico | CD | spec CD-5 sez. 3 | attiva | — |
+| 2026-05-21 | R-CD5-04 — CD-1 (apertura Vista Q-Live) resta schermata distinta da `.stoppedMidSong`: sono due stati con UX diverse, non si fondono | CD | spec CD-5 sez. 3 | attiva | — |
+| 2026-05-21 | R-CD5-05 — Loop reset su STOP intra-sessione: STOP cancella `.loopActive` (loop counter azzerato) | CD | spec CD-5 sez. 3 | attiva | — |
+| 2026-05-21 | R-CD5-06 — Swipe nav song avviene sempre dentro la setlist corrente, mai cambia setlist | CD | spec CD-5 sez. 3 | attiva | — |
+| 2026-05-21 | R-CD5-08 — CD-5 (schermata STOP a metà song) è formalmente nuovo deliverable del brief Fase 4 (era stato aggiunto nella sessione 20/05 ma non era nel brief 19/05) | CD | spec CD-5 sez. 3. ⚠️ Implica aggiornamento documento `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (dominio CD) | attiva | — |
+| 2026-05-21 | R-CD5-09 — Bookmark cross-song = β: conservato in RAM per la sessione, sopravvive cross-song dentro stessa setlist, cancellato a uscita Q-Live (β.1) e cambio setlist (β.2) | CD | spec CD-5 sez. 3 | attiva | — |
 
 ---
 
@@ -195,11 +216,11 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | ID | Titolo | Stato | Ultima mod | Note |
 |---|---|---|---|---|
 | CD-0 | Schermata Q-Stage configurazione | draft 1 consegnato a Mauro | 2026-05-20 | In review Mauro |
-| CD-1 | Standby "vestito" inizio Vista LIVE (esteso 19/05) | proposto | 2026-05-19 | Backlog |
+| CD-1 | Standby "vestito" inizio Vista LIVE — esteso con swipe orizzontale + indicatore `<< X / Y >>` per discoverability (Q9=A) | proposto, estensione ratificata 21/05 | 2026-05-21 | Backlog. Comportamento swipe = vetrina (Q10=A) |
 | CD-2 | Perimetro rosso sfumato pulsante in overlay standby | proposto | 2026-05-17 | Backlog |
 | CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-17 | Backlog |
 | CD-4 | Pulsantiera Vista LIVE 4 quadranti + cerchio | draft 1 consegnato | 2026-05-20 | In review Mauro |
-| CD-5 | Schermata STOP a metà song | review CC fatta 20/05 (8 domande aperte + 10 ratifiche da confermare) | 2026-05-20 | Bloccato su sezione 4 di questo file |
+| CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di implementazione codice Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD |
 | Fase 4 | Vista LISTA | brief Fase 4 ratificato 19/05 | 2026-05-19 | Batch 2 dopo CD-0/4 |
 | Fase 4 | Vista Emergenza | non iniziato | — | Backlog |
 | Fase 6.1 | UI MIDI Learn | non iniziato | — | Backlog |
@@ -211,65 +232,19 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 
 ## Sezione 4 — Domande aperte
 
-Le domande sono numerate. Mauro risponde nel formato `Q1=A, Q2=sì, R-CD5-03=modifica con "..."`. Quando una risposta arriva, CC sposta la voce in sezione 2 con la data di ratifica e marca qui la voce come `risposta data il [data]`.
+Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una risposta arriva, CC sposta la voce in sezione 2 con la data di ratifica.
 
-### Domande CC → Mauro su CD-5 (poste 2026-05-20)
-
-| ID | Domanda | In attesa di |
-|---|---|---|
-| Q1 | Confermi le 10 ratifiche dichiarate in spec CD-5? Vanno ratificate una per una (vedi sub-voci R-CD5-01 … R-CD5-10 sotto) | Mauro |
-| Q2 | Bookmark v1 = solo `(songID, sectionID)` senza `barInSection` (beat-granular)? La forma beat-granular richiederebbe modifica Layer 1 e violerebbe il non-goal di CD-5. A) sì solo (songID, sectionID) / B) include barInSection (con modifica Layer 1) | Mauro |
-| Q3 | Resume dopo STOP a metà song passa per count-in oppure direttamente a `.playing`? Memoria CC: count-in oggi è solo tra canzoni. CD-5 sez. 4.2 dichiara "Resume → countIn → playing". A) sì countIn anche al resume (nuova scelta UX) / B) no, bypass diretto a `.playing` / C) errore documentale CD-5 da correggere | Mauro |
-| Q4 | Stato `.stopped` con doppio significato (CD-1 iniziale vs swipe nav post-STOP): A) discriminator nell'enum (es. `.stopped(.initial)` / `.stopped(.swipeNav)`) / B) flag esterno separato / C) altra soluzione | Mauro |
-| Q5 | KILL BASE vs KILL TRACK: brief Fase 4 (19/05) ratifica "muscle-memory, mantenere KILL BASE". CD-5 propone rename in KILL TRACK. A) tengo KILL BASE / B) passo a KILL TRACK / C) modifica con [altro] | Mauro |
-| Q6 | "Referee" citato da CD-5: nella gerarchia ratificata 20/05 io (CC) sono CC + referee combinati. A) CD si semplifica a 3 ruoli (Mauro / CD / CC), referee è incluso in CC / B) tieni referee separato per il futuro | Mauro |
-
-### Domande CC/CD → Mauro su decisioni UX 20-21/05 (formalizzate 2026-05-21 da review CD del file v1)
-
-Queste 4 decisioni sono state ratificate **verbalmente** in chat CD–Mauro nelle sessioni 20-21/05/2026 ma non risultano in sezione 2 di questo file. Per la Regola d'oro vanno riconfermate via R4 prima di considerarle attive.
+### Domande aperte residue (post-v3 21/05)
 
 | ID | Domanda | In attesa di |
 |---|---|---|
-| Q7 | Schermo STOP a metà song è **full-screen modale** che sostituisce Vista Q-Live (NON overlay parziale), con pulsantiera CD-4 **nascosta** durante questo stato (eccezione esplicita a CD-4 del 19/05)? A) sì / B) no, è overlay parziale / C) modifica con "..." | Mauro |
-| Q8 | Layout schermo STOP: bottone "Resume from {section.name}" + bottone "Restart {song.name}" + zona swipe orizzontale + indicatore `<< X / Y >>` (mockup grezzo 20/05)? A) sì come da mockup / B) no, layout diverso (specificare) / C) modifica con "..." | Mauro |
-| Q9 | CD-1 originale (proposto 17/05, standby cerimoniale all'apertura Vista LIVE, senza swipe) viene **esteso** con: zona swipe orizzontale + indicatore `<< X / Y >>` per discoverability. Approvi l'estensione? A) sì, applico estensione a CD-1 / B) no, mantengo CD-1 originale senza swipe / C) modifica con "..." | Mauro |
-| Q10 | Dopo swipe in CD-1 il sistema cosa fa? A) **Opzione 1** — resta in CD-1 cerimoniale, cambia solo il nome song mostrato (la schermata cerimoniale è una "vetrina" che si sfoglia) / B) **Opzione 2** — esce da CD-1 e entra in `.standby` con overlay nome song (lo swipe agisce come "salto canzone" che porta nello stato di transizione standard tra brani) / C) modifica con "..." | Mauro |
+| Q11 | PROSSIMA → NEXT: tasto avanza canzone. CD-5 lo cita come "già ratificato" ma CC non trova traccia in brief Fase 4 (19/05) / CLAUDE.md V23 / memorie CC / batch ratifiche 21/05. Coerente con R-CD5-10 (UI tutta inglese) ma serve ratifica esplicita. A) sì, PROSSIMA → NEXT (coerente con R-CD5-10) / B) no, mantengo "PROSSIMA" / C) modifica con "..." | Mauro |
 
-### Domande residue β (di CD originali, da CD-5)
+### Voci risolte come moot (non ratificate, non più rilevanti)
 
-| ID | Domanda | Raccomandazione CD | In attesa di |
-|---|---|---|---|
-| β.1 | Bookmark sopravvive uscita da Vista Q-Live? | no, cancellato | Mauro |
-| β.2 | Bookmark sopravvive cambio setlist? | no, cancellato | Mauro |
-
-### 10 ratifiche dichiarate da spec CD-5 (in attesa conferma Mauro)
-
-Queste sono dichiarate da CD-5 ma **mai confermate in chat con CC**. Vanno ratificate riga per riga prima di considerarle attive. CC non ha accesso al testo letterale del documento CD-5 nella memoria di questa chat.
-
-**Azione richiesta**: Mauro o CD integra il testo letterale delle 10 voci dalla spec CD-5 (sezione "Ratifiche") per consentire ratifica riga per riga. CC aggiornerà la tabella sotto con i testi letterali al prossimo turno con diff letterale.
-
-| ID | Voce CD-5 (paraphrased / da estrarre letterale) | In attesa di |
-|---|---|---|
-| R-CD5-01 | [testo letterale da estrarre da spec CD-5 — sezione "Ratifiche" voce 01] | Mauro |
-| R-CD5-02 | [testo letterale da estrarre — voce 02] | Mauro |
-| R-CD5-03 | TL `▶ PLAY` disabled durante STOP a metà song (vs raccomandazione CC = bottone Resume nominale) | Mauro |
-| R-CD5-04 | [testo letterale da estrarre — voce 04] | Mauro |
-| R-CD5-05 | [testo letterale da estrarre — voce 05] | Mauro |
-| R-CD5-06 | [testo letterale da estrarre — voce 06] | Mauro |
-| R-CD5-07 | [testo letterale da estrarre — voce 07] | Mauro |
-| R-CD5-08 | [testo letterale da estrarre — voce 08] | Mauro |
-| R-CD5-09 | [testo letterale da estrarre — voce 09] | Mauro |
-| R-CD5-10 | Lingua UI = inglese universale per tutta l'app | Mauro |
-
-### 💡 Note CC su CD-5 — suggerimenti UX non vincolanti
-
-- TL "▶ PLAY" disabled può risultare ambiguo per il batterista in palco: alternativa = bottone Resume nominale (etichetta esplicita invece di stato disabled).
-- STOP cancella loop counter durante `.loopActive`: verificare con CD se voluto.
-
-### Conflitti di ratifica già identificati
-
-- **KILL BASE vs KILL TRACK** (vedi Q5). Una delle due ratifiche perde. Mauro decide.
-- **PROSSIMA → NEXT**: CD-5 dichiara "già ratificato" ma CC non trova traccia in brief Fase 4 (19/05) / CLAUDE.md V23 / memorie CC. Voce trattata come `proposta`, non ratificata, fino a verifica documentale (vedi Q6 implicito + naming sez. 1 tasti).
+| ID | Motivo della risoluzione |
+|---|---|
+| R-CD5-03 | Moot per Q7=A (21/05): la pulsantiera CD-4 è nascosta durante `.stoppedMidSong`, quindi il bottone `▶ PLAY` non è visibile. La proposta CD-5 (PLAY disabled vs raccomandazione CC bottone Resume nominale) diventa irrilevante. |
 
 ---
 
@@ -292,6 +267,7 @@ Queste sono dichiarate da CD-5 ma **mai confermate in chat con CC**. Vanno ratif
 |---|---|---|---|
 | 1 | 2026-05-21 | CC chat principale 21/05 | Creazione iniziale del file. Scopo + ambito + Regola d'oro. Protocollo R1–R6 (R5 esteso con "Contributi CD al file" + "Contributi CD su processo" dopo correzione ruoli CD del 21/05). Naming canonico (modalità, modello dati, componenti UI, tasti, stati LiveSession, schermate ratificate scheletro vuoto per popolamento CD, tecnologie). 20 decisioni ratificate (2026-04-29 → 2026-05-21). 12 deliverable in volo. 18 domande aperte (6 Q su CD-5 + 2 β residue + 10 R-CD5 da confermare). Note CC + conflitti di ratifica identificati. |
 | 2 | 2026-05-21 | CC chat principale 21/05, integrazione review CD | Naming UI completato post-review CD del v1: aggiunti 9 termini in sez. 1 — `Q-Stage > Songs` / `Q-Stage > SHOWS` / `Q-Stage > MEDIA` / `Select Setlist` in "App e modalità"; `Resume from {section.name}` / `Restart {song.name}` / `Restart Setlist` / `BACK TO SHOWS` / `END SHOW` in "Tasti / azioni"; `<< X / Y >>` in "Componenti UI Vista LIVE"; `.stoppedMidSong` in "Stati LiveSession". Aperte 4 nuove domande Q7-Q10 in sez. 4 per ratificare formalmente le decisioni UX 20-21/05 (schermo STOP full-screen modale + pulsantiera CD-4 nascosta; layout STOP Resume+Restart+swipe+`<< X / Y >>`; CD-1 esteso con swipe + indicatore; opzione 1 dopo swipe = resta CD-1 cambia solo nome song). Nessuna modifica a sez. 2, sez. 3, sez. 5 e protocollo R1-R6. |
+| 3 | 2026-05-21 | CC chat principale 21/05, ratifica batch Mauro | Batch ratifiche post-review CD del v2: 13 risposte chiare (Q1-Q10 + β.1, β.2 + R-CD5-10) + 8 R-CD5 letterali (R-CD5-01, 02, 04, 05, 06, 07, 08, 09 — testo girato da Mauro in chat 21/05 da spec CD-5 sez. 3) + R-CD5-03 marcata moot (risolta da Q7=A). Sigla EMERGENZA aggiunta in sez. 1 "Tasti / azioni" (definizione: bottone BR pulsantiera CD-4, switch a Vista LISTA, nascosto durante `.stoppedMidSong`). Implicazioni a cascata applicate: KILL BASE → `superseded`, KILL TRACK → `attivo`; FINE SHOW e TORNA AGLI SHOWS → `superseded`, END SHOW e BACK TO SHOWS → `attivo`; CD-1 deliverable scope esteso; CD-5 deliverable in attesa implementazione Layer 3. Stati `.stopped` (disambiguato), `.standby` (nota Q10=A), `.countIn` (Q3=A Resume), `.loopActive` (R-CD5-05 reset su STOP), `.stoppedMidSong` (Q4=A + R-CD5-01 + R-CD5-02 attivo). Sez. 4 ripulita: 22 voci risolte rimosse, resta solo Q11 (PROSSIMA→NEXT, non ratificato esplicitamente nel batch 21/05) + tabella R-CD5-03 moot. Vista LISTA / Vista Emergenza lasciate distinte in sez. 1 (fusione "ex Vista Emergenza" non applicata automaticamente per scelta conservativa CC, in attesa eventuale ratifica esplicita Mauro). |
 
 ---
 
