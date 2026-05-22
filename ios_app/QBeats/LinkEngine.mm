@@ -43,9 +43,19 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
-    ABLLinkSetActive(engine->link_, false); // STEP 2 — inattivo fino a toggle utente
-    // Build #177: Link creato ma NON attivato. link_engine_activate() viene chiamato
-    // da AudioEngine.swift dopo la registrazione di tutti i callback.
+    // TD #44 fix (22/05/2026): rimosso ABLLinkSetActive(engine->link_, false)
+    // post-ABLLinkNew. Default LinkKit post-init è "active" (ABLLink.h:57-62
+    // "It is active by default after init"). La vecchia sequenza
+    // Create→SetActive(false)→[registra IsConnectedCallback]→...→SetActive(true)
+    // in activate produceva una transizione false→true con stato callback
+    // incompleto al primo SetActive — ipotesi causa TD #44 (discovery
+    // same-bundle cross-device falliva, mentre cross-bundle QB↔SB funzionava).
+    // Nuova sequenza: nessuna chiamata SetActive qui. La gestione opt-in
+    // utente è interamente in link_engine_activate, biforcata su
+    // ABLLinkIsEnabled persistito, eseguita DOPO la registrazione di tutti
+    // i callback LinkKit (SessionTempo, IsEnabled, StartStop sono registrate
+    // dai setter chiamati da AudioEngine.swift; IsConnectedCallback resta
+    // inline qui sotto).
     ABLLinkSetIsConnectedCallback(engine->link_,
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
@@ -304,32 +314,40 @@ void link_engine_activate(LinkEngineHandle handle) {
     if (!handle) return;
     LinkEngine* le = static_cast<LinkEngine*>(handle);
 
-    // === Boot reconciliation ABLLinkIsEnabled persistito ===
-    // LinkKit persiste ABLLinkIsEnabled tra una sessione e l'altra. Al boot
-    // Q-BEATS si trova sempre con enabled_=false (default struct) e
-    // ABLLinkSetActive(false) (forzato in link_engine_create). Se l'utente
-    // aveva lasciato Link ON, ABLLinkIsEnabled() resta true ma:
-    //   - flag interno enabled_ resta false (i guard di probe_session,
-    //     start_at_*, sync_phase, assert_session_state non passano)
-    //   - ABLLinkSetActive resta false (discovery peer disattiva,
-    //     network multicast spento)
-    //   - ABLLinkSetIsEnabledCallback NON scatta — è invocato solo su
-    //     cambio di stato user-driven, e qui non c'è cambio
-    // Risultato osservato pre-fix: pane Ableton mostra Link "ON" ma nessun
-    // peer compare finché l'utente non chiude/riapre il pane (e nemmeno
-    // allora — il callback resta silente).
+    // === Boot reconciliation ABLLinkIsEnabled persistito — B1'' (22/05/2026) ===
+    // Default post-ABLLinkNew = "active" (ABLLink.h:57-62 "It is active by
+    // default after init"). link_engine_create non chiama più SetActive(false)
+    // (vedi commento TD #44 fix lì). Quindi tra Create e qui Link gira in
+    // default-active per la breve finestra in cui AudioEngine.swift registra
+    // gli altri callback (SessionTempo, IsEnabled, StartStop). IsConnectedCallback
+    // è già piazzato inline da link_engine_create — se un peer si connettesse in
+    // quella finestra, viene gestito.
     //
-    // Fix: leggere ABLLinkIsEnabled qui (chiamata DOPO la registrazione di
-    // tutti i callback Swift) e, se persistito a true, replicare la sequenza
-    // interna di set_is_enabled_callback in modo coerente:
-    //   1. enabled_.store(true)        — flag interno C++ allineato
-    //   2. ABLLinkSetActive(true)      — discovery peer attiva
-    //   3. isEnabledCallback_(true, …) — propaga a Swift → linkEnabled=true,
-    //                                    UI coerente, re-check peers post-2s
-    // No flap activate(true)→(false) al boot: chiamiamo SetActive(true) solo
-    // se ABLLinkIsEnabled è già true (intenzione utente persistita), mai
-    // come default. Il commento storico "flap rompe multicast" si riferiva a
-    // chiamate incondizionate post-create, qui evitate.
+    // Qui, DOPO che tutti i callback LinkKit sono in place, biforchiamo su
+    // ABLLinkIsEnabled persistito:
+    //   - persistedEnabled=true  → SetActive(true) (idempotente col default,
+    //                              esplicito per chiarezza e robustezza) +
+    //                              propaga callback Swift. Zero transizioni
+    //                              false→true: l'ipotesi causa TD #44
+    //                              (discovery same-bundle cross-device rotta
+    //                              dalla transizione false→true con stato
+    //                              callback incompleto) è eliminata su questo
+    //                              percorso.
+    //   - persistedEnabled=false → SetActive(false) una sola volta, eseguito
+    //                              DOPO la registrazione di tutti i callback.
+    //                              Opt-in utente preservato: l'app smette di
+    //                              advertising sulla rete locale finché
+    //                              l'utente non attiva Link dal pane Ableton.
+    //                              Il side-effect ipotizzato per TD #44
+    //                              dipende dalla transizione false→true post
+    //                              callback parziali, non da SetActive(false)
+    //                              di per sé — questo percorso evita la
+    //                              transizione e dovrebbe restare safe.
+    //
+    // Quando l'utente cambia Link toggle dal pane Ableton in qualsiasi
+    // momento successivo, scatta link_engine_set_is_enabled_callback che
+    // chiama ABLLinkSetActive(isEnabled) di conseguenza (gestito già in
+    // LinkEngine.mm:283-300).
     bool persistedEnabled = ABLLinkIsEnabled(le->link_);
     os_log(OS_LOG_DEFAULT,
            "[Q-BEATS][LINK][ACTIVATE] persistedEnabled:%d",
@@ -339,13 +357,14 @@ void link_engine_activate(LinkEngineHandle handle) {
         le->enabled_.store(true, std::memory_order_relaxed);
         ABLLinkSetActive(le->link_, true);
         os_log(OS_LOG_DEFAULT,
-               "[Q-BEATS][LINK][ACTIVATE] reconciled: enabled_=true + ABLLinkSetActive(true) + propagate callback");
+               "[Q-BEATS][LINK][ACTIVATE] reconciled enabled=true: SetActive(true) idempotente + propagate callback (zero transizioni false→true — fix TD #44)");
         if (le->isEnabledCallback_) {
             le->isEnabledCallback_(true, le->isEnabledCallbackContext_);
         }
     } else {
+        ABLLinkSetActive(le->link_, false);
         os_log(OS_LOG_DEFAULT,
-               "[Q-BEATS][LINK][ACTIVATE] no persisted state — Link rimane inattivo fino a toggle utente");
+               "[Q-BEATS][LINK][ACTIVATE] no persisted state: SetActive(false) one-shot post callback registration — opt-in preservato");
     }
 
     // Diagnostic #293: poll stato Link ogni 5s dopo attivazione
