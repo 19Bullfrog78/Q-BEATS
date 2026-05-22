@@ -1,8 +1,8 @@
 # STATO_QBEATS — Libro mastro cross-team
 
-**Versione:** 6
+**Versione:** 7
 **Ultima modifica:** 2026-05-21
-**Edit author:** CC chat principale 21/05/2026 sera (ratifica roadmap batch CD: D1=A ordine, D2=A timing sotto-tabella fine batch, D3=B anticipo CD-3, Extra=A semantica stretta "Layout congelato")
+**Edit author:** CC chat principale 21/05/2026 sera (rollback A su v6 — rimosse righe operative CD interne mescolate per errore: "Roadmap batch CD" in sez. 2 + tag "Batch CD 21/05 — posizione N" in sez. 3. Mantenuta sola riga cross-team "Semantica Layout congelato stretta")
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -211,7 +211,6 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-21 | R-CD5-09 — Bookmark cross-song = β: conservato in RAM per la sessione, sopravvive cross-song dentro stessa setlist, cancellato a uscita Q-Live (β.1) e cambio setlist (β.2) | CD | spec CD-5 sez. 3 | attiva | — |
 | 2026-05-21 | Q11=A — Tasto avanza canzone rinominato PROSSIMA → NEXT (coerente con R-CD5-10 UI tutta inglese). PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), niente cascading rename codice | Mauro | sez. 4 Q11 v3 + questa chat 21/05 | attiva | — |
 | 2026-05-21 | Q12=A — Cascading rename Swift R-CD5-10 completo: 30 stringhe italiane in 4 file produzione (`BackupView.swift`, `ImportView.swift`, `SettingsView.swift`, `BarCounterView.swift`) rinominate in inglese. DebugView escluso (scaffold dev). Sigla EMERGENZA → EMERGENCY in sez. 1 libro mastro. Implementato in commit Swift `cf3f0b5` | Mauro + CD + CC | sez. 4 Q12 v4 + questa chat 21/05 + commit `cf3f0b5` | attiva | — |
-| 2026-05-21 sera | Roadmap batch CD: ordine deliverable CD-5 mockup finale → CD-1 esteso → CD-3 → popolamento sotto-tabella "Schermate ratificate" (sez. 1). 4 punti totali. CD-3 anticipato per coerenza visiva con Restart {song.name} di CD-5 | Mauro + CD + CC | questa chat 21/05 sera | attiva | — |
 | 2026-05-21 sera | Semantica colonna "Layout congelato" (sez. 1 sotto-tabella "Schermate ratificate") resta stretta: "mockup approvato Mauro, CC autorizzato a implementare senza rework UX". Niente colonna aggiuntiva "Stato draft". Schermate in stato draft 1 / draft 2 / in review NON entrano in sotto-tabella finché non congelate | Mauro + CD + CC | questa chat 21/05 sera, decisione Extra=A | attiva | — |
 
 ---
@@ -221,11 +220,11 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | ID | Titolo | Stato | Ultima mod | Note |
 |---|---|---|---|---|
 | CD-0 | Schermata Q-Stage configurazione | draft 1 consegnato a Mauro | 2026-05-20 | In review Mauro |
-| CD-1 | Standby "vestito" inizio Vista LIVE — esteso con swipe orizzontale + indicatore `<< X / Y >>` per discoverability (Q9=A) | proposto, estensione ratificata 21/05 | 2026-05-21 | Backlog. Comportamento swipe = vetrina (Q10=A). **Batch CD 21/05 — posizione 2** |
+| CD-1 | Standby "vestito" inizio Vista LIVE — esteso con swipe orizzontale + indicatore `<< X / Y >>` per discoverability (Q9=A) | proposto, estensione ratificata 21/05 | 2026-05-21 | Backlog. Comportamento swipe = vetrina (Q10=A) |
 | CD-2 | Perimetro rosso sfumato pulsante in overlay standby | proposto | 2026-05-17 | Backlog |
-| CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-21 | Backlog. **Batch CD 21/05 — posizione 3** (anticipato per coerenza visiva con Restart {song.name} CD-5) |
+| CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-17 | Backlog |
 | CD-4 | Pulsantiera Vista LIVE 4 quadranti + cerchio | draft 1 consegnato | 2026-05-20 | In review Mauro |
-| CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di mockup finale CD + implementazione codice CC Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD. **Batch CD 21/05 — posizione 1** |
+| CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di implementazione codice Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD |
 | Fase 4 | Vista LISTA | brief Fase 4 ratificato 19/05 | 2026-05-19 | Batch 2 dopo CD-0/4 |
 | Fase 4 | Vista Emergenza | non iniziato | — | Backlog |
 | Fase 6.1 | UI MIDI Learn | non iniziato | — | Backlog |
@@ -274,6 +273,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 4 | 2026-05-21 | CC chat principale 21/05, ratifica Q11=A + apertura Q12 | Ratifica Q11=A (PROSSIMA → NEXT, coerente con R-CD5-10): riga PROSSIMA → `superseded`, riga NEXT → `attivo`. PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), nessun cascading rename codice. Fix di consistency in sez. 1 "App e modalità": riga `Vista LIVE` aggiornata da "KILL BASE" a "KILL TRACK" nella descrizione descrittiva. Aperta nuova Q12 in sez. 4: cascading rename completo R-CD5-10 — debito tecnico scoperto applicando per la prima volta la regola `feedback_qbeats_grep_generico_pre_cascading_rename.md`. Grep generico rivela 14 stringhe UI italiane in 5 file Swift (`BackupView`, `ImportView`, `SettingsView`, `BarCounterView`, `DebugView`) + sigla `EMERGENZA` nel libro mastro. Mauro deve ratificare scope (tutti i 5 file produzione + EMERGENZA → EMERGENCY? DebugView pure? rimanda come TD?). Sez. 4 ora: Q12 + R-CD5-03 moot. |
 | 5 | 2026-05-21 | CC chat principale 21/05, Q12=A + cascading rename Swift completo | Q12=A ratificato (cascading rename Swift R-CD5-10 completo su 4 file produzione, **30 stringhe** italiane rinominate in inglese — Read completo dei file ha rivelato 16 stringhe in ImportView, 8 in BackupView, 4 in SettingsView, 2 in BarCounterView; il Grep regex iniziale aveva stimato solo 14 perché non catturava `Toggle("...")` / `Picker("...")` / `SwiftUI.Section("...")` / stringhe pluralizzate interpolate / label sciolti come `" di "`). DebugView escluso (scaffold dev, no UI utente). Sigla EMERGENZA → EMERGENCY in sez. 1 "Tasti / azioni" (riga superseded + nuova riga attiva). Riga Q12 rimossa da sez. 4 (nessuna domanda aperta residua post-v5). Commit Swift cascading rename: `cf3f0b5`. **Feedback memory `feedback_qbeats_grep_generico_pre_cascading_rename.md` da affinare**: regola corretta = "Grep generico identifica file sospetti, Read completo del file è obbligatorio per inventario letterale (Grep regex sottostima)". |
 | 6 | 2026-05-21 sera | CC chat principale 21/05, ratifica roadmap batch CD | Ratificata roadmap operativa batch CD post-v5: D1=A ordine deliverable (CD-5 mockup finale → CD-1 esteso → CD-3 → popolamento sotto-tabella "Schermate ratificate"), D2=A timing sotto-tabella popolata a fine batch, D3=B anticipo CD-3 nel batch (4 punti totali, motivazione coerenza visiva Restart Setlist ↔ Restart {song.name}), Extra=A semantica colonna "Layout congelato" stretta (no colonna Stato draft aggiunta). 2 righe nuove in sez. 2 (ordine batch + Extra=A semantica). Tag "**Batch CD 21/05 — posizione N**" aggiunto in note sez. 3 di CD-1 (pos. 2), CD-3 (pos. 3), CD-5 (pos. 1). "Ultima mod" CD-1/CD-3/CD-5 bumpata al 21/05. Sez. 1 invariata (Extra=A). Sez. 4 invariata (zero domande aperte residue post-v5). |
+| 7 | 2026-05-21 sera | CC chat principale 21/05 — rollback A su errore v6 | Riconosciuto errore custode CC in v6: avevo accodato senza filtro R3 le righe operative CD interne proposte nel batch 21/05. Regola libro mastro: "solo ratifiche cross-team prodotto/naming/processo/deliverable/gerarchia, NO piano operativo CD o CC interno". Rollback A applicato: rimossa riga sez. 2 "Roadmap batch CD: ordine deliverable" (operativo interno CD); rimossi 3 tag "**Batch CD 21/05 — posizione N**" da note sez. 3 di CD-1/CD-3/CD-5; "Ultima mod" CD-3 ripristinata al 17/05; descrizione stato CD-5 ripristinata a v5. Mantenuta in sez. 2 la riga "Semantica Layout congelato stretta (Extra=A)" perché regola di processo cross-team del libro mastro stesso (definisce uso sotto-tabella sez. 1, vincolante per ogni chat CD/CC futura). Memoria feedback CC nuova `feedback_qbeats_libro_mastro_solo_cross_team.md` salvata per evitare ripetizione. |
 
 ---
 
