@@ -1,8 +1,8 @@
 # STATO_QBEATS — Libro mastro cross-team
 
-**Versione:** 5
+**Versione:** 6
 **Ultima modifica:** 2026-05-21
-**Edit author:** CC chat principale 21/05/2026 (Q12=A risolta + cascading rename Swift completato commit `cf3f0b5` 30 stringhe in 4 file + EMERGENZA → EMERGENCY in sez. 1)
+**Edit author:** CC chat principale 21/05/2026 sera (ratifica roadmap batch CD: D1=A ordine, D2=A timing sotto-tabella fine batch, D3=B anticipo CD-3, Extra=A semantica stretta "Layout congelato")
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -211,6 +211,8 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-21 | R-CD5-09 — Bookmark cross-song = β: conservato in RAM per la sessione, sopravvive cross-song dentro stessa setlist, cancellato a uscita Q-Live (β.1) e cambio setlist (β.2) | CD | spec CD-5 sez. 3 | attiva | — |
 | 2026-05-21 | Q11=A — Tasto avanza canzone rinominato PROSSIMA → NEXT (coerente con R-CD5-10 UI tutta inglese). PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), niente cascading rename codice | Mauro | sez. 4 Q11 v3 + questa chat 21/05 | attiva | — |
 | 2026-05-21 | Q12=A — Cascading rename Swift R-CD5-10 completo: 30 stringhe italiane in 4 file produzione (`BackupView.swift`, `ImportView.swift`, `SettingsView.swift`, `BarCounterView.swift`) rinominate in inglese. DebugView escluso (scaffold dev). Sigla EMERGENZA → EMERGENCY in sez. 1 libro mastro. Implementato in commit Swift `cf3f0b5` | Mauro + CD + CC | sez. 4 Q12 v4 + questa chat 21/05 + commit `cf3f0b5` | attiva | — |
+| 2026-05-21 sera | Roadmap batch CD: ordine deliverable CD-5 mockup finale → CD-1 esteso → CD-3 → popolamento sotto-tabella "Schermate ratificate" (sez. 1). 4 punti totali. CD-3 anticipato per coerenza visiva con Restart {song.name} di CD-5 | Mauro + CD + CC | questa chat 21/05 sera | attiva | — |
+| 2026-05-21 sera | Semantica colonna "Layout congelato" (sez. 1 sotto-tabella "Schermate ratificate") resta stretta: "mockup approvato Mauro, CC autorizzato a implementare senza rework UX". Niente colonna aggiuntiva "Stato draft". Schermate in stato draft 1 / draft 2 / in review NON entrano in sotto-tabella finché non congelate | Mauro + CD + CC | questa chat 21/05 sera, decisione Extra=A | attiva | — |
 
 ---
 
@@ -219,11 +221,11 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | ID | Titolo | Stato | Ultima mod | Note |
 |---|---|---|---|---|
 | CD-0 | Schermata Q-Stage configurazione | draft 1 consegnato a Mauro | 2026-05-20 | In review Mauro |
-| CD-1 | Standby "vestito" inizio Vista LIVE — esteso con swipe orizzontale + indicatore `<< X / Y >>` per discoverability (Q9=A) | proposto, estensione ratificata 21/05 | 2026-05-21 | Backlog. Comportamento swipe = vetrina (Q10=A) |
+| CD-1 | Standby "vestito" inizio Vista LIVE — esteso con swipe orizzontale + indicatore `<< X / Y >>` per discoverability (Q9=A) | proposto, estensione ratificata 21/05 | 2026-05-21 | Backlog. Comportamento swipe = vetrina (Q10=A). **Batch CD 21/05 — posizione 2** |
 | CD-2 | Perimetro rosso sfumato pulsante in overlay standby | proposto | 2026-05-17 | Backlog |
-| CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-17 | Backlog |
+| CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-21 | Backlog. **Batch CD 21/05 — posizione 3** (anticipato per coerenza visiva con Restart {song.name} CD-5) |
 | CD-4 | Pulsantiera Vista LIVE 4 quadranti + cerchio | draft 1 consegnato | 2026-05-20 | In review Mauro |
-| CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di implementazione codice Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD |
+| CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di mockup finale CD + implementazione codice CC Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD. **Batch CD 21/05 — posizione 1** |
 | Fase 4 | Vista LISTA | brief Fase 4 ratificato 19/05 | 2026-05-19 | Batch 2 dopo CD-0/4 |
 | Fase 4 | Vista Emergenza | non iniziato | — | Backlog |
 | Fase 6.1 | UI MIDI Learn | non iniziato | — | Backlog |
@@ -271,6 +273,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 3 | 2026-05-21 | CC chat principale 21/05, ratifica batch Mauro | Batch ratifiche post-review CD del v2: 13 risposte chiare (Q1-Q10 + β.1, β.2 + R-CD5-10) + 8 R-CD5 letterali (R-CD5-01, 02, 04, 05, 06, 07, 08, 09 — testo girato da Mauro in chat 21/05 da spec CD-5 sez. 3) + R-CD5-03 marcata moot (risolta da Q7=A). Sigla EMERGENZA aggiunta in sez. 1 "Tasti / azioni" (definizione: bottone BR pulsantiera CD-4, switch a Vista LISTA, nascosto durante `.stoppedMidSong`). Implicazioni a cascata applicate: KILL BASE → `superseded`, KILL TRACK → `attivo`; FINE SHOW e TORNA AGLI SHOWS → `superseded`, END SHOW e BACK TO SHOWS → `attivo`; CD-1 deliverable scope esteso; CD-5 deliverable in attesa implementazione Layer 3. Stati `.stopped` (disambiguato), `.standby` (nota Q10=A), `.countIn` (Q3=A Resume), `.loopActive` (R-CD5-05 reset su STOP), `.stoppedMidSong` (Q4=A + R-CD5-01 + R-CD5-02 attivo). Sez. 4 ripulita: 22 voci risolte rimosse, resta solo Q11 (PROSSIMA→NEXT, non ratificato esplicitamente nel batch 21/05) + tabella R-CD5-03 moot. Vista LISTA / Vista Emergenza lasciate distinte in sez. 1 (fusione "ex Vista Emergenza" non applicata automaticamente per scelta conservativa CC, in attesa eventuale ratifica esplicita Mauro). |
 | 4 | 2026-05-21 | CC chat principale 21/05, ratifica Q11=A + apertura Q12 | Ratifica Q11=A (PROSSIMA → NEXT, coerente con R-CD5-10): riga PROSSIMA → `superseded`, riga NEXT → `attivo`. PROSSIMA mai entrata in codice Swift (Grep mirato 21/05 zero match), nessun cascading rename codice. Fix di consistency in sez. 1 "App e modalità": riga `Vista LIVE` aggiornata da "KILL BASE" a "KILL TRACK" nella descrizione descrittiva. Aperta nuova Q12 in sez. 4: cascading rename completo R-CD5-10 — debito tecnico scoperto applicando per la prima volta la regola `feedback_qbeats_grep_generico_pre_cascading_rename.md`. Grep generico rivela 14 stringhe UI italiane in 5 file Swift (`BackupView`, `ImportView`, `SettingsView`, `BarCounterView`, `DebugView`) + sigla `EMERGENZA` nel libro mastro. Mauro deve ratificare scope (tutti i 5 file produzione + EMERGENZA → EMERGENCY? DebugView pure? rimanda come TD?). Sez. 4 ora: Q12 + R-CD5-03 moot. |
 | 5 | 2026-05-21 | CC chat principale 21/05, Q12=A + cascading rename Swift completo | Q12=A ratificato (cascading rename Swift R-CD5-10 completo su 4 file produzione, **30 stringhe** italiane rinominate in inglese — Read completo dei file ha rivelato 16 stringhe in ImportView, 8 in BackupView, 4 in SettingsView, 2 in BarCounterView; il Grep regex iniziale aveva stimato solo 14 perché non catturava `Toggle("...")` / `Picker("...")` / `SwiftUI.Section("...")` / stringhe pluralizzate interpolate / label sciolti come `" di "`). DebugView escluso (scaffold dev, no UI utente). Sigla EMERGENZA → EMERGENCY in sez. 1 "Tasti / azioni" (riga superseded + nuova riga attiva). Riga Q12 rimossa da sez. 4 (nessuna domanda aperta residua post-v5). Commit Swift cascading rename: `cf3f0b5`. **Feedback memory `feedback_qbeats_grep_generico_pre_cascading_rename.md` da affinare**: regola corretta = "Grep generico identifica file sospetti, Read completo del file è obbligatorio per inventario letterale (Grep regex sottostima)". |
+| 6 | 2026-05-21 sera | CC chat principale 21/05, ratifica roadmap batch CD | Ratificata roadmap operativa batch CD post-v5: D1=A ordine deliverable (CD-5 mockup finale → CD-1 esteso → CD-3 → popolamento sotto-tabella "Schermate ratificate"), D2=A timing sotto-tabella popolata a fine batch, D3=B anticipo CD-3 nel batch (4 punti totali, motivazione coerenza visiva Restart Setlist ↔ Restart {song.name}), Extra=A semantica colonna "Layout congelato" stretta (no colonna Stato draft aggiunta). 2 righe nuove in sez. 2 (ordine batch + Extra=A semantica). Tag "**Batch CD 21/05 — posizione N**" aggiunto in note sez. 3 di CD-1 (pos. 2), CD-3 (pos. 3), CD-5 (pos. 1). "Ultima mod" CD-1/CD-3/CD-5 bumpata al 21/05. Sez. 1 invariata (Extra=A). Sez. 4 invariata (zero domande aperte residue post-v5). |
 
 ---
 
