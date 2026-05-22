@@ -32,9 +32,12 @@ jobs:
 
       - name: Download LinkKit
         run: |
-          curl -L $(curl -s https://api.github.com/repos/Ableton/LinkKit/releases/latest \
-            | grep "browser_download_url.*zip" \
-            | cut -d '"' -f 4) -o LinkKit.zip
+          # URL hardcoded a LinkKit-4.0: l'API GitHub anonima rate-limita
+          # i runner (IP condivisi tra migliaia di repo). Quando uscirà
+          # LinkKit 4.1 aggiornare manualmente — dipendenza già tracciata
+          # in memoria CC reference_qbeats_dependencies_watchlist.md.
+          curl -L https://github.com/Ableton/LinkKit/releases/download/LinkKit-4.0/LinkKit.zip \
+            -o LinkKit.zip
           unzip -q LinkKit.zip -d LinkKitSDK
 
       - name: Configure LinkHut
