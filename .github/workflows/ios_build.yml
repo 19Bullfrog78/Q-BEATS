@@ -66,8 +66,9 @@ jobs:
           mkdir verify-extract
           unzip -q "$IPA_FILE" -d verify-extract
           APP_PATH=$(ls -d verify-extract/Payload/*.app | head -1)
-          echo "=== Entitlements finali nel binary IPA ==="
-          codesign -d --xml --entitlements - "$APP_PATH" 2>&1 | plutil -p -
+          echo "=== Entitlements finali nel binary IPA (dump raw) ==="
+          codesign -d --entitlements - "$APP_PATH" 2>&1 || true
+          echo ""
           echo "=== Sanity check TD #44 (multicast entitlement) ==="
           if codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -q "com.apple.developer.networking.multicast"; then
             echo "✅ com.apple.developer.networking.multicast presente nel binary IPA"
