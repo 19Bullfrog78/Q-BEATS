@@ -66,24 +66,30 @@ jobs:
             -archivePath $RUNNER_TEMP/QBeats.xcarchive \
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
+            CODE_SIGN_ENTITLEMENTS=QBeats/QBeats.entitlements \
             archive
-      - name: Manual codesign with entitlements
-        run: |
-          codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
-            --entitlements $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements \
-            --timestamp=none \
-            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
-
-      - name: Verify entitlements
-        run: |
-          echo "=== Entitlements nel binary ==="
-          codesign -d --entitlements :- $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/QBeats.xcarchive \
             -exportPath $RUNNER_TEMP/ipa \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+      - name: Verify entitlements in exported IPA
+        run: |
+          cd $RUNNER_TEMP/ipa
+          IPA_FILE=$(ls *.ipa | head -1)
+          mkdir verify-extract
+          unzip -q "$IPA_FILE" -d verify-extract
+          APP_PATH=$(ls -d verify-extract/Payload/*.app | head -1)
+          echo "=== Entitlements finali nel binary IPA ==="
+          codesign -d --xml --entitlements - "$APP_PATH" 2>&1 | plutil -p -
+          echo "=== Sanity check TD #44 (multicast entitlement) ==="
+          if codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -q "com.apple.developer.networking.multicast"; then
+            echo "✅ com.apple.developer.networking.multicast presente nel binary IPA"
+          else
+            echo "❌ com.apple.developer.networking.multicast MANCANTE nel binary IPA — regressione TD #44"
+            exit 1
+          fi
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
