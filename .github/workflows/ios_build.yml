@@ -46,47 +46,39 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
             archive
-      - name: Inject embedded.mobileprovision into bundle
+      - name: Create ExportOptions.plist
         run: |
-          # Senza il profile dentro il bundle, codesign --entitlements
-          # scarta silenziosamente le entitlements custom (verificato
-          # empiricamente nella build precedente d594f1c: il manual
-          # codesign passava ma produceva un binary con [Dict] vuoto).
-          # Il profile va inserito PRIMA del codesign perché il signing
-          # process verifica gli entitlements contro le capability del
-          # profile presente.
-          cp ~/Library/MobileDevice/Provisioning\ Profiles/QBeats_Dev_Profile.mobileprovision \
-             $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/embedded.mobileprovision
-      - name: DIAG — pre-codesign state
+          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>teamID</key>
+            <string>X42CX3ZP3T</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.bullfrog.qbeats</key>
+              <string>QBeats_Dev_Profile</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+      - name: Manual codesign with entitlements
         run: |
-          echo "=== Source entitlements file content ==="
-          cat $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements
-          echo ""
-          echo "=== Bundle .app structure pre-codesign ==="
-          ls -la $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/ | head -20
-          echo ""
-          echo "=== Embedded.mobileprovision size ==="
-          ls -la $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/embedded.mobileprovision || echo "missing"
-      - name: Manual codesign with entitlements (verbose)
-        run: |
-          codesign --verbose=4 --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
+          codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
             --entitlements $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements \
             --timestamp=none \
-            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1
-      - name: DIAG — post-codesign entitlements (pre-zip)
+            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
+      - name: Export IPA
         run: |
-          echo "=== Entitlements dal bundle .app SUBITO DOPO codesign (pre-zip) ==="
-          codesign -d --entitlements - $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1 || true
-          echo ""
-          echo "=== Codesign signature verification ==="
-          codesign -dvvv $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1 || true
-      - name: Package IPA (manual zip, no re-sign)
-        run: |
-          mkdir -p $RUNNER_TEMP/ipa/Payload
-          cp -r $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app $RUNNER_TEMP/ipa/Payload/
-          cd $RUNNER_TEMP/ipa
-          zip -qr QBeats.ipa Payload
-          rm -rf Payload
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/QBeats.xcarchive \
+            -exportPath $RUNNER_TEMP/ipa \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
       - name: Verify entitlements in exported IPA
         run: |
           cd $RUNNER_TEMP/ipa
