@@ -57,12 +57,29 @@ jobs:
           # profile presente.
           cp ~/Library/MobileDevice/Provisioning\ Profiles/QBeats_Dev_Profile.mobileprovision \
              $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/embedded.mobileprovision
-      - name: Manual codesign with entitlements
+      - name: DIAG — pre-codesign state
         run: |
-          codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
+          echo "=== Source entitlements file content ==="
+          cat $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements
+          echo ""
+          echo "=== Bundle .app structure pre-codesign ==="
+          ls -la $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/ | head -20
+          echo ""
+          echo "=== Embedded.mobileprovision size ==="
+          ls -la $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/embedded.mobileprovision || echo "missing"
+      - name: Manual codesign with entitlements (verbose)
+        run: |
+          codesign --verbose=4 --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
             --entitlements $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements \
             --timestamp=none \
-            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
+            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1
+      - name: DIAG — post-codesign entitlements (pre-zip)
+        run: |
+          echo "=== Entitlements dal bundle .app SUBITO DOPO codesign (pre-zip) ==="
+          codesign -d --entitlements - $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1 || true
+          echo ""
+          echo "=== Codesign signature verification ==="
+          codesign -dvvv $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app 2>&1 || true
       - name: Package IPA (manual zip, no re-sign)
         run: |
           mkdir -p $RUNNER_TEMP/ipa/Payload
