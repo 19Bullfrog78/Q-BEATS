@@ -34,27 +34,6 @@ jobs:
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/QBeats_Dev_Profile.mobileprovision
-      - name: Create ExportOptions.plist
-        run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>teamID</key>
-            <string>X42CX3ZP3T</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.bullfrog.qbeats</key>
-              <string>QBeats_Dev_Profile</string>
-            </dict>
-          </dict>
-          </plist>
-          EOF
       - name: Build and Archive
         working-directory: ios_app
         run: |
@@ -66,14 +45,20 @@ jobs:
             -archivePath $RUNNER_TEMP/QBeats.xcarchive \
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
-            CODE_SIGN_ENTITLEMENTS=QBeats/QBeats.entitlements \
             archive
-      - name: Export IPA
+      - name: Manual codesign with entitlements
         run: |
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/QBeats.xcarchive \
-            -exportPath $RUNNER_TEMP/ipa \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+          codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
+            --entitlements $GITHUB_WORKSPACE/ios_app/QBeats/QBeats.entitlements \
+            --timestamp=none \
+            $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app
+      - name: Package IPA (manual zip, no re-sign)
+        run: |
+          mkdir -p $RUNNER_TEMP/ipa/Payload
+          cp -r $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app $RUNNER_TEMP/ipa/Payload/
+          cd $RUNNER_TEMP/ipa
+          zip -qr QBeats.ipa Payload
+          rm -rf Payload
       - name: Verify entitlements in exported IPA
         run: |
           cd $RUNNER_TEMP/ipa
