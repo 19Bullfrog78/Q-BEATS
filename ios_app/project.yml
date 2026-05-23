@@ -61,10 +61,12 @@ targets:
     entitlements:
       path: QBeats/QBeats.entitlements
       properties:
-        com.apple.developer.icloud-container-identifiers:
-          - iCloud.com.bullfrog.qbeats
-        com.apple.developer.icloud-services:
-          - CloudDocuments
+        # iCloud entitlements rimosse temporaneamente per sbloccare TD #44:
+        # exportArchive falliva perché QBeats_Dev_Profile su Apple Developer
+        # Portal non ha la capability iCloud abilitata. Q-BEATS ha fallback
+        # automatico a Documents locale in QBeatsStore.swift:130-134, quindi
+        # l'app funziona senza iCloud (solo sync cross-device disabilitato).
+        # Ri-aggiungere quando la capability iCloud sarà abilitata nel profile.
         com.apple.developer.networking.multicast: true
         get-task-allow: true
     sources:
