@@ -46,6 +46,17 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
             archive
+      - name: Inject embedded.mobileprovision into bundle
+        run: |
+          # Senza il profile dentro il bundle, codesign --entitlements
+          # scarta silenziosamente le entitlements custom (verificato
+          # empiricamente nella build precedente d594f1c: il manual
+          # codesign passava ma produceva un binary con [Dict] vuoto).
+          # Il profile va inserito PRIMA del codesign perché il signing
+          # process verifica gli entitlements contro le capability del
+          # profile presente.
+          cp ~/Library/MobileDevice/Provisioning\ Profiles/QBeats_Dev_Profile.mobileprovision \
+             $RUNNER_TEMP/QBeats.xcarchive/Products/Applications/QBeats.app/embedded.mobileprovision
       - name: Manual codesign with entitlements
         run: |
           codesign --force --sign "Apple Development: Mauro Martintoni (AZ8V772X7R)" \
