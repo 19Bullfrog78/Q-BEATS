@@ -331,21 +331,6 @@ class AudioEngine: ObservableObject {
         linkEngineHandle = link_engine_create()
         if let lh = linkEngineHandle {
             linkSettingsPresenter = LinkSettingsPresenter(linkHandle: lh)
-
-            // === TD #44 TEST A (22/05/2026) ===
-            // Chiamata runtime a link_engine_set_peer_name() temporaneamente
-            // DISABILITATA per isolare la causa della mancata discovery QB↔QB.
-            // Risposta ufficiale Ableton (Christian, 21/05/2026): LinkKit NON
-            // filtra per bundle ID. Test SB↔SB su 2 device (stesso bundle ID)
-            // funziona. Sospetto: l'uso del simbolo undocumented
-            // ABLLinkSetPeerName rompe l'advertise/discovery in modo silente.
-            // Cade in piedi il valore statico ABLLinkPeerName di Info.plist.
-            // Se il test conferma, decidere se tenere disabilitato o spostare
-            // la chiamata in un punto diverso del lifecycle.
-            //
-            // UIDevice.current.name.withCString {
-            //     link_engine_set_peer_name(lh, $0)
-            // }
         }
 
         if let lh = linkEngineHandle {
