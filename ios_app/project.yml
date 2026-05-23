@@ -60,6 +60,13 @@ targets:
         codeSignOnCopy: true
     entitlements:
       path: QBeats/QBeats.entitlements
+      properties:
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.bullfrog.qbeats
+        com.apple.developer.icloud-services:
+          - CloudDocuments
+        com.apple.developer.networking.multicast: true
+        get-task-allow: true
     sources:
       - path: QBeats
       - path: ../core_engine
