@@ -342,6 +342,11 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.mint)
+                    Button("Carica dati test 3/4 Long") {
+                        loadTestData34Long()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.brown)
                 }
                 #endif
 
@@ -547,6 +552,35 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist BPB Mixed",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico 3/4 Long — Prerequisito Item 5 TD #39 quantum mismatch 3/4.
+    /// Setlist con sezione 3/4 di 16 battute (lunga abbastanza per mismatch progressivo)
+    /// incastonata tra 2 sezioni 4/4 di 8 battute. BPM costante 100 in tutte e 3 le
+    /// sezioni: isola l'effetto del cambio di time signature dal cambio di BPM.
+    /// Step 0 del 25/05/2026 sera ha testato il 3/4 di L1.b ma con sezione di sole
+    /// 2 battute — troppo corta per mismatch progressivo cross-device QB↔QB.
+    /// Questa setlist permette di chiudere/riaprire TD #39 con dato conclusivo.
+    private func loadTestData34Long() {
+        os_log("[DebugView] Carica dati test 3/4 Long", log: .default, type: .default)
+
+        let s1 = SongSection(name: "3/4 Long — 4/4 intro", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 8,  notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "3/4 Long — 3/4 main",  bpm: 100, beatsPerBar: 3, beatUnit: 4,
+                             repetitions: 16, notes: "", accentPattern: [2,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "3/4 Long — 4/4 outro", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 8,  notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song 3/4 Long",
+                        sections: [s1, s2, s3],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist 3/4 Long",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
