@@ -15,7 +15,7 @@ struct AppSettings: Codable {
     var ch3Volume:    Float  = 0.0
     var ch4Volume:    Float  = 0.0
     var showDNDReminder: Bool = true
-    var linkMode:     LinkMode = .direttore
+    var linkMode:     LinkMode = .collaborativa
 }
 
 extension AppSettings {

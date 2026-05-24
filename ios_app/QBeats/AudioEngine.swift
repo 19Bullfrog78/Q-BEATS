@@ -218,7 +218,7 @@ class AudioEngine: ObservableObject {
     private var accentPlayhead       : Int = -1
     private var subdivPlayhead       : Int = -1
     private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
-    private var _linkMode: LinkMode = .direttore   // accesso SOLO su audioQueue
+    private var _linkMode: LinkMode = .collaborativa   // accesso SOLO su audioQueue
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
     // DEFAULT DEVE COINCIDERE con @Published var beatsPerBar (didSet non scatta in init)
     private var _beatsPerBarQ: UInt32 = 4   // accesso SOLO su audioQueue
