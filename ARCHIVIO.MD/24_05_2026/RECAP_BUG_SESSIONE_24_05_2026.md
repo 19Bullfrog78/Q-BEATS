@@ -82,6 +82,40 @@ STATO_QBEATS.md **v8 invariato**. Nessuna ratifica cross-team aperta in questa s
 
 ## Domande critiche pendenti per prossima chat
 
-1. **Bug 1 — Mauro: tap Play premuto su uno o entrambi i device durante i test?** Se solo iPhone (Director) → Bug 1 è gap architetturale Collaborative, va a CD/architettura, possibile soluzione vera = Soluzione C protocollo Wi-Fi proprietario (Fase 6-7). Workaround immediato: premere Play su entrambi. Se entrambi → bug reale di propagation @Published da investigare diversamente
-2. **Bug 8 — CD: label esatti** dopo `PREV SEZ` e `NEXT SEZ` (parola sola? `PREV SECTION` / `PREV` / altro?). `EMERGENCY` e `KILL TRACK` già confermati nel libro mastro
-3. **Bug 3 — CD: in stato `.stopped` CD-1 cerimoniale**, cosa dovrebbe mostrare il teleprompter? Il fallback "BPM gigante" attuale (TeleprompterCapsuleView:30-37) è feature di CD-1 vetrina (TD #25) o bug?
+1. **Bug 8 — CD: label esatti** dopo `PREV SEZ` e `NEXT SEZ` (parola sola? `PREV SECTION` / `PREV` / altro?). `EMERGENCY` e `KILL TRACK` già confermati nel libro mastro
+2. **Bug 3 — CD: in stato `.stopped` CD-1 cerimoniale**, cosa dovrebbe mostrare il teleprompter? Il fallback "BPM gigante" attuale (TeleprompterCapsuleView:30-37) è feature di CD-1 vetrina (TD #25) o bug?
+
+---
+
+## Chiarimento Mauro sul workflow live (24/05 sera) — riformulazione Bug 1
+
+**Confermato da Mauro**: il flusso live previsto è **per design**:
+1. iPhone Director parte da solo (1 bar di intro / pickup / count-in per la band)
+2. I Collaborativi (iPad / altri device) entrano successivamente premendo Play locale
+3. I Collaborativi devono **allinearsi al bar counter del Director** quando entrano (es. "2 di 12" se Director è a bar 2), NON partire da "1 di 12" del proprio counter locale
+
+**Implicazione**: Bug 1 non è "gap architetturale enorme da risolvere con Soluzione C completa", è **feature UX incompleta**. L'intent è giusto, manca solo il broadcast `(songIdx, sectionIdx, currentBar)` dal Director ai Follower.
+
+Bug 2 (LED off-beat) e Bug 3 (140 BPM residuo) **cadono come conseguenza** — sono sintomi dello stesso `currentSectionName / currentBar / playbackState` vuoto su Follower.
+
+Scope tecnico **drasticamente ridotto** vs Soluzione C completa (Fase 6-7):
+- ❌ NON serve sincronizzare audio cross-device (già OK via Link standard)
+- ❌ NON serve protocollo Wi-Fi proprietario completo
+- ✅ SERVE solo broadcast leggero `(songIdx, sectionIdx, currentBar)` Director→Follower via canale ausiliario (LinkKit BeginCustomEncoding se esiste, oppure UDP multicast separato, oppure stato in NWConnection peer-to-peer)
+- ✅ Quando Follower preme Play locale, legge l'ultimo broadcast e imposta i suoi counter su quei valori → `SetlistRunner.updateSessionDisplay` viene chiamato con i valori giusti
+
+**Diventa scope medio Layer 2-3**, non scope grande Soluzione C. Va comunque ratificato cross-team (CD + Mauro per UX + naming feature, CC per fattibilità tecnica) prima dell'implementazione.
+
+**Bug 5 (TD #A 100ms) + Bug 6 (TD beat drop) NON contribuiscono a Bug 1** — sono problemi audio precisione locale iPad, indipendenti dal sync inter-device. Restano in coda separata, non bloccanti.
+
+---
+
+## Ricategorizzazione finale (24/05 sera, dopo chiarimento Mauro)
+
+| Gruppo | Bug | Tipo problema | Note |
+|---|---|---|---|
+| **A — Sync inter-device (UN solo problema)** | Bug 1 + Bug 2 + Bug 3 + Bug 4 | Feature UX incompleta — broadcast section state Director→Follower + Link sleep/wake | Bug 4 sotto-problema separato ma stessa famiglia "Link che rompe il sync inter-device" |
+| **B — Precisione audio locale iPad** | Bug 5 + Bug 6 + Bug 7 | Problemi pre-esistenti, già in lista da settimane | Non peggiorati oggi, solo misurati meglio. Iter Sessione 1 originale 25/05 (sospesa per UI iPad) |
+| **C — Cosmetica** | Bug 8 | Rename label CD-4 incompleto cf3f0b5 | 30 min lavoro quando CD risponde label `PREV / NEXT` |
+
+Quello che è veramente emerso di nuovo oggi = **Gruppo A**. Tutto il resto era già noto o cosmetico.
