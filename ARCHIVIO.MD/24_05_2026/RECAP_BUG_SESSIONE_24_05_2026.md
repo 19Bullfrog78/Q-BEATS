@@ -103,6 +103,10 @@ STATO_QBEATS.md **v8 invariato**. Nessuna ratifica cross-team aperta in questa s
 
 Il broadcast `(songIdx, sectionIdx, currentBar)` NON è emesso dal "Link Director", è emesso dal **performance leader corrente** = device che ha premuto Play per primo nel ciclo corrente. Quando il leader fa Stop e qualcun altro fa Play, il nuovo leader subentra.
 
+**Validazione esterna (Mauro, sera 24/05)**: il pattern first-mover è già implementato in **Soundbrenner** (peer di test storico Q-BEATS, memoria CC `project_qbeats_test_peer` con noti switch a Tick). SB è "più elementare" rispetto a Q-B perché ha solo metronomo + Link tempo, senza teleprompter / Section name / Bar X of Y. Quindi SB **non ha il problema del broadcast section state** — gli basta Link standard.
+
+Q-B per via dell'UI ricca (teleprompter, microbar, macrobar, POI prossima sezione) è il primo del settore a richiedere il broadcast section state cross-device. Il pattern di flusso (first-mover apre, gli altri si aggrappano) è industry-standard; quello che Q-B aggiunge è il payload del broadcast. Coerente con memoria CC `feedback_competitor_research` (cercare conferma in AUM/Soundbrenner/Ableton/GarageBand prima di proporre): pattern di flusso confermato, scope di broadcast da implementare ex-novo lato Q-B.
+
 **Implicazione**: Bug 1 non è "gap architetturale enorme da risolvere con Soluzione C completa", è **feature UX incompleta**. L'intent è giusto, manca solo il broadcast `(songIdx, sectionIdx, currentBar)` dal Director ai Follower.
 
 Bug 2 (LED off-beat) e Bug 3 (140 BPM residuo) **cadono come conseguenza** — sono sintomi dello stesso `currentSectionName / currentBar / playbackState` vuoto su Follower.
