@@ -80,6 +80,47 @@ STATO_QBEATS.md **v8 invariato**. Nessuna ratifica cross-team aperta in questa s
 
 ---
 
+## ⚖️ ROADMAP RATIFICATA REFEREE (24/05 sera, post-confronto AI esterna)
+
+**La roadmap precedente che avevo proposto (Bug 4 → Bug 1 → Bug 5/6/7 → Bug 8) era SBAGLIATA su un punto critico.** Il referee ha riordinato e ratificato. **Questa roadmap è quella da seguire** e supersede tutte le precedenti versioni della "Ricategorizzazione finale" e della sezione "Roadmap finale" sopra.
+
+### Roadmap ratificata
+
+| # | Item | Note |
+|---|---|---|
+| 🔴 1 | **Bug 4** — toggle `setLinkEnabled(false→true)` su `didBecomeActive` | Piccolo, indipendente, prossima sessione |
+| 🔴 2 | **TD #A + Item 4 three-band v2 + Test 2 Audacity** | Bug audio reali, colpiscono tutti gli utenti anche single-device, dati log T0-T9 già pronti |
+| 🟡 3 | **Bug 8** — rename SOLO già ratificati (`KILL BASE → KILL TRACK`, `EMERG → EMERGENCY`) | `PREV / NEXT` aspettano CD. Commit marcato esplicitamente **"parziale, PREV/NEXT pendenti CD"** |
+| 🟠 4 | **Bug 1** — broadcast section state cross-device | **NON è un bug, è un limite architetturale di Link.** Feature Fase 6-7 (Soluzione C). **NON anticipare.** |
+
+### Motivazione del cambio (referee)
+
+Bug 1 richiede un canale broadcast con **discovery, serializzazione, gestione errori** — NON è un fix da 4-8h come avevo stimato. È inizio Soluzione C completa. I bug audio (TD #A 105ms media, beat drop strutturale) colpiscono **tutti gli utenti, anche single-device**. Il palco v1 dichiarato è **un Q-BEATS + un SB**, non due Q-BEATS sincronizzati nella setlist. Quindi precisione audio locale è prioritaria sopra sync cross-device.
+
+### Nota canale broadcast (per Fase 6-7, quando si farà)
+
+L'AI esterna ha suggerito di valutare **MIDI Network (già in Layer 2 esistente)** come canale per il broadcast section state — un PC (Program Change) per section index, un CC (Continuous Controller) per bar number. Vantaggio: protocollo già implementato, niente UDP custom da scrivere. Il referee concorda che **va valutato PRIMA di costruire UDP custom**. La decisione architetturale del canale passa dal referee, CC non sceglie autonomamente.
+
+### Vincolo Bug 8 — niente rename parziale senza traccia
+
+Se si fa rename parziale (solo `KILL BASE → KILL TRACK` + `EMERG → EMERGENCY`, lasciando `prev sez` / `next sez` italiani), il **commit deve essere marcato esplicitamente** nel messaggio: `"parziale, PREV/NEXT pendenti CD"`. Stato incompleto del codice deve avere traccia chiara nel git log, non sparire dietro un nome generico.
+
+### Correzione dato critico — timebase iPad 24 MHz
+
+Il ritardo `T4→T5` nei log T0-T9 è confermato **98-118ms (media ~105ms)**, NON 2.5ms come fraintendimento iniziale. Verifica:
+
+```
+futureHostTime - T4 = 52.949.913 tick
+delaySec dichiarato = 2,206 s
+Quindi: 52.949.913 ÷ 2,206 = ~24.000.000 tick/s = 24 MHz
+```
+
+Quindi **timebase iPad = 24 MHz** (1 tick ≈ 41.666 ns). Coerente con Apple Silicon mach_timebase 125:3 ratio. Il calcolo del ritardo T4→T5 ~105ms è confermato; la formulazione "100-118ms ritardo sistematico cross-play cross-BPM" nel recap iniziale era corretta, solo da formalizzare come media ~105ms.
+
+**Memoria CC aggiornata** con dato corretto (24 MHz, ~105ms media) per coerenza con prossime sessioni.
+
+---
+
 ## Domande critiche pendenti per prossima chat
 
 1. **Bug 8 — CD: label esatti** dopo `PREV SEZ` e `NEXT SEZ` (parola sola? `PREV SECTION` / `PREV` / altro?). `EMERGENCY` e `KILL TRACK` già confermati nel libro mastro
