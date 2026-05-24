@@ -427,12 +427,18 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
+                os_log("[Q-BEATS][DIAG-A][T0] t=%llu isPlaying=%d",
+                       log: .default, type: .default,
+                       mach_absolute_time(), isPlaying ? 1 : 0)
                 // Modalità Direttore in play: ignora start/stop da peer.
                 // Lettura _linkMode da non-audioQueue: enum case è atomic in Swift.
                 if engine.isRunning && engine._linkMode == .direttore { return }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
+                    os_log("[Q-BEATS][DIAG-A][T1] t=%llu isPlaying=%d",
+                           log: .default, type: .default,
+                           mach_absolute_time(), isPlaying ? 1 : 0)
                     if isPlaying && !engine.isPlaying {
                         engine.start()
                     } else if !isPlaying && engine.isPlaying {
@@ -533,6 +539,9 @@ class AudioEngine: ObservableObject {
 
         audioQueue.async { [weak self] in
             guard let self else { return }
+            os_log("[Q-BEATS][DIAG-A][T2] t=%llu",
+                   log: .default, type: .default,
+                   mach_absolute_time())
             guard !self.isRunning, let _ = self.metronomeHandle else {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
@@ -652,6 +661,11 @@ class AudioEngine: ObservableObject {
                                    log: .default, type: .default)
                         } else {
                             // === SESSIONE CONDIVISA (peers > 0) ===
+                            os_log("[Q-BEATS][DIAG-A][T3] t=%llu peers=%u probeIsPlaying=%d probePhase=%.4f probeTempo=%.2f",
+                                   log: .default, type: .default,
+                                   mach_absolute_time(), peersCount,
+                                   probe.isPlaying ? 1 : 0,
+                                   probe.phaseAtHost, probe.tempo)
                             // Peer presenti, qualsiasi loro stato (fermi o in play).
                             // Q-BEATS si adegua alla timeline Link condivisa:
                             // quantized launch al prossimo downbeat con
@@ -683,6 +697,9 @@ class AudioEngine: ObservableObject {
                                    log: .default, type: .default,
                                    peersCount, probe.isPlaying ? 1 : 0,
                                    phase, beatsToWait, delaySeconds, bpm)
+                            os_log("[Q-BEATS][DIAG-A][T4] t=%llu futureHostTime=%llu delaySec=%.6f",
+                                   log: .default, type: .default,
+                                   mach_absolute_time(), futureHostTime, delaySeconds)
 
                             DispatchQueue.main.async {
                                 self.isWaitingForLinkDownbeat = true
@@ -697,19 +714,31 @@ class AudioEngine: ObservableObject {
                             let lhCaptured = self.linkEngineHandle
                             let work = DispatchWorkItem { [weak self] in
                                 guard let self else { return }
+                                os_log("[Q-BEATS][DIAG-A][T5] t=%llu futureHostTime=%llu",
+                                       log: .default, type: .default,
+                                       mach_absolute_time(), futureHostTime)
                                 DispatchQueue.main.async {
                                     self.isWaitingForLinkDownbeat = false
                                 }
                                 if let lh = lhCaptured {
                                     link_engine_join_running_session(lh, futureHostTime)
+                                    os_log("[Q-BEATS][DIAG-A][T6] t=%llu",
+                                           log: .default, type: .default,
+                                           mach_absolute_time())
                                 }
                                 if let h = self.metronomeHandle {
                                     metronome_reset_for_start(h, 0.0)
+                                    os_log("[Q-BEATS][DIAG-A][T7] t=%llu",
+                                           log: .default, type: .default,
+                                           mach_absolute_time())
                                 }
                                 self.linkSyncSkipBuffers = 3
                                 self.scheduleNextBuffer()
                                 self.scheduleNextBuffer()
                                 self.scheduleNextBuffer()
+                                os_log("[Q-BEATS][DIAG-A][T8] t=%llu skipBufs=%d",
+                                       log: .default, type: .default,
+                                       mach_absolute_time(), self.linkSyncSkipBuffers)
                                 // Sovrascrive _startAbsoluteBeat con il valore
                                 // corretto: il primo sample audio reale parte a
                                 // futureHostTime, non al mach_absolute_time() di
@@ -1877,6 +1906,12 @@ class AudioEngine: ObservableObject {
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
+
+        if self.bufferCount == 0 && self.linkSyncSkipBuffers > 0 {
+            os_log("[Q-BEATS][DIAG-A][T9] t=%llu bufCount=0 skipBufs=%d",
+                   log: .default, type: .default,
+                   mach_absolute_time(), self.linkSyncSkipBuffers)
+        }
 
         // === Task D refactor #18 — esponi bufferCount al render thread ===
         // Atomic snapshot del bufferCount audioQueue. Il sink block lo legge
