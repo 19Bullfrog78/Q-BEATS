@@ -7,13 +7,70 @@
 #include <cmath>
 #import <os/log.h>
 
+// === 24/05/2026 — Collaborative sync_phase three-band design ===
+// Costanti per link_engine_sync_phase (path Collaborativa). Tre fasce
+// di comportamento per evitare i salti audio letterali del precedente
+// hard sync a soglia singola 0.01 beat (phaseJumpThresholdBeats_,
+// rimossa con questo design).
+//
+// Filosofia:
+//   |delta| <= DeadBand                -> nessuna correzione. Il drift
+//                                          Director-side sistemico
+//                                          osservato 0.017-0.022 beat
+//                                          (test QB<->QB 24/05/2026)
+//                                          resta sotto soglia, iPad e
+//                                          iPhone driftano insieme,
+//                                          udibilmente in sync.
+//   DeadBand < |delta| <= Emergency    -> correzione graduale al 50%
+//                                          per buffer (convergenza
+//                                          geometrica in 1-3 buffer
+//                                          su delta tipici).
+//   |delta| > Emergency                -> hard sync immediato. Scenario
+//                                          patologico: WiFi reconnect,
+//                                          peer perso e ricomparso,
+//                                          sync completamente saltato.
+//
+// Asimmetria intenzionale con la soglia Director (0.04 beats, definita
+// dentro link_engine_assert_session_state). Il Director impone il
+// proprio clock a Link; il Collaborativo segue Link con tolleranza
+// graduale. Non e' un bug di simmetria — sono ruoli diversi.
+//
+// Confronto con riferimenti canonici (competitor research 24/05/2026):
+//   - LinkHut (esempio ufficiale Ableton, repo Ableton/LinkKit, file
+//     examples/LinkHut/LinkHut/AudioEngine.m): NESSUN sync custom.
+//     Legge ABLLinkBeatAtTime as-is e usa quel valore per il render.
+//     Le piccole correzioni sono delegate ad ABLLink internamente.
+//   - AUM (Kymatica, devnotes.kymatica.com/ios_audio_sync.html):
+//     smoothing IIR alpha~0.10 (~10 buffer convergenza) sul PLAYBACK
+//     RATE, non sulla beat position. Mantiene la beat position di
+//     Link as-is, accelera/decelera lievemente il clock per
+//     riassorbire il jitter.
+//
+// Q-BEATS sceglie una via intermedia (smoothing sulla beat position)
+// per ragioni storiche (BUG-LINK-A: beat 2 anticipato 12-50ms al play
+// start, fix originale era hard sync a soglia 0.01 — vedi commento
+// esteso dentro link_engine_sync_phase) e pragmatiche (rate-based
+// smoothing AUM-style richiederebbe API DSP Layer 1 non esistente per
+// modificare la velocita' di clock del MetronomeDSP).
+//
+// TD aperti alla data di questo design:
+//   1. Drift Director-side (inconsistenza hostTimeAtOutput in regime
+//      vs broadcast in AudioEngine.swift) — vedi mappa architetturale
+//      24/05/2026.
+//   2. Valutazione migrazione Strada B (LinkHut style: rimuovere
+//      sync_phase del tutto) o Strada C (AUM style: rate-based
+//      smoothing) in Fase 5. Prerequisito Strada B: investigare se
+//      BUG-LINK-A e' ancora riproducibile in assenza di sync_phase.
+constexpr double kCollabDeadBandBeats           = 0.03;
+constexpr double kCollabConvergenceFactor       = 0.50;
+constexpr double kCollabEmergencyThresholdBeats = 0.25;
+
 struct LinkEngine {
     ABLLinkRef link_;
     std::atomic<bool> enabled_{false};
     std::atomic<uint32_t> numPeers_{0};
     std::atomic<double> quantum_{4.0};
     std::atomic<int64_t> pendingPhaseJump_{-1};
-    std::atomic<double> phaseJumpThresholdBeats_{0.01};
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
     // Build #309: rimosso suppressNextIsPlayingBroadcast_ — era dead code,
     // nessun setter lo impostava mai a true.
@@ -594,19 +651,82 @@ bool link_engine_sync_phase(LinkEngineHandle handle,
     if (delta >  quantum * 0.5) delta -= quantum;
     if (delta < -quantum * 0.5) delta += quantum;
 
-    double threshold = engine->phaseJumpThresholdBeats_
-                           .load(std::memory_order_relaxed);
-
     // Commit obbligatorio — pattern ABLLink anche in lettura
     ABLLinkCommitAppSessionState(engine->link_, state);
 
-    if (fabs(delta) > threshold) {
-        // Hard sync ASSOLUTO — Phase Correction Policy v1.2.
-        // Allineamento esatto alla posizione beat di Link.
+    // === 24/05/2026 — Three-band correction (design v2) ===
+    // Sostituisce hard sync a soglia singola 0.01 (Phase Correction
+    // Policy v1.2) con tre fasce. Vedi commento esteso in testa al
+    // file (costanti kCollab*) per filosofia, riferimenti canonici
+    // (LinkHut/AUM) e TD aperti.
+    //
+    // Logging [COLLAB-SYNC] throttled per triangolazione empirica
+    // post-fix. Solo fasce gradual/emergency loggano — la fascia
+    // dead sarebbe rumore continuo in regime stabile.
+    double absDelta = fabs(delta);
+
+    if (absDelta <= kCollabDeadBandBeats) {
+        // === FASCIA 1: DEAD-BAND ===
+        // Nessuna correzione. Il drift Director-side sistematico
+        // (osservato 0.017-0.022 beat nei test 24/05) cade qui:
+        // iPad e iPhone driftano insieme, udibili in sync.
+        return false;
+    }
+
+    static std::atomic<uint64_t> g_collabSyncCounter{0};
+    static std::atomic<uint64_t> g_collabSyncBurstRemaining{0};
+    constexpr uint64_t kCollabSyncBurstCalls = 30;
+    constexpr uint64_t kCollabSyncThrottle   = 50;
+
+    uint64_t syncCnt = g_collabSyncCounter.fetch_add(1,
+                                                     std::memory_order_relaxed);
+
+    if (absDelta > kCollabEmergencyThresholdBeats) {
+        // === FASCIA 3: EMERGENZA ===
+        // Hard sync immediato. Scenario patologico: WiFi reconnect,
+        // peer perso/ricomparso, sync completamente saltato.
+        // Manteniamo il comportamento del precedente design (snap
+        // assoluto a linkBeat) — un peer >100ms fuori va riallineato
+        // duramente, non gradualmente.
         *outNewBeatPosition = linkBeat;
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][COLLAB-SYNC] cnt:%llu band:emergency delta:%.4f correction:%.4f target:%.4f",
+               (unsigned long long)syncCnt, delta,
+               linkBeat - projectedBeatPosition, linkBeat);
+        // Arma burst di log per i prossimi 30 buffer (cattura
+        // l'evoluzione post-emergenza).
+        g_collabSyncBurstRemaining.store(kCollabSyncBurstCalls,
+                                         std::memory_order_relaxed);
         return true;
     }
-    return false;
+
+    // === FASCIA 2: CORREZIONE GRADUALE ===
+    // Avvicinamento del 50% per buffer verso linkBeat. Convergenza
+    // geometrica: delta 0.10 -> buffer 1 applica 0.05, buffer 2
+    // applica 0.025, buffer 3 entra dead-band. 1-3 buffer per delta
+    // tipici post-cambio sezione Director.
+    double correction = delta * kCollabConvergenceFactor;
+    *outNewBeatPosition = projectedBeatPosition + correction;
+
+    bool inBurst = false;
+    uint64_t burstRem = g_collabSyncBurstRemaining.load(
+        std::memory_order_relaxed);
+    if (burstRem > 0) {
+        g_collabSyncBurstRemaining.store(burstRem - 1,
+                                         std::memory_order_relaxed);
+        inBurst = true;
+    }
+    bool inBoot     = (syncCnt < kCollabSyncBurstCalls);
+    bool inThrottle = (syncCnt % kCollabSyncThrottle == 0);
+    bool shouldLog  = inBoot || inBurst || inThrottle;
+
+    if (shouldLog) {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][LINK][COLLAB-SYNC] cnt:%llu band:gradual delta:%.4f correction:%.4f residual:%.4f target:%.4f",
+               (unsigned long long)syncCnt, delta,
+               correction, delta - correction, *outNewBeatPosition);
+    }
+    return true;
 }
 
 // === Modalità Direttore — Phase assertion attiva ===
@@ -714,13 +834,16 @@ void link_engine_assert_session_state(LinkEngineHandle handle,
                linkPhase, localPhase, delta);
     }
 
-    // Soglia dedicata Director, separata da phaseJumpThresholdBeats_ usata
-    // da link_engine_sync_phase (Collaborativa). Build #333 ha rivelato un
-    // drift sistematico ~0.025 beat (~12ms a 120 BPM) tra clock locale Q-B
-    // e session state Link, sotto-percettivo ma sopra la soglia 0.01 di
-    // sync_phase → l'assertion scattava ad ogni buffer in regime stabile.
-    // 0.04 lascia spazio al drift sistematico (silenzio in regime) e
-    // scatta solo su deviazioni reali del peer (delta > ~20ms).
+    // Soglia dedicata Director, separata dalle costanti kCollab* del
+    // path Collaborativa (vedi commento esteso in testa al file).
+    // Build #333 ha rivelato un drift sistematico ~0.025 beat (~12ms
+    // a 120 BPM) tra clock locale Q-B e session state Link,
+    // sotto-percettivo ma sopra la vecchia soglia singola 0.01 di
+    // sync_phase (rimossa 24/05/2026 → ora dead-band 0.03 nel path
+    // Collaborativa) → l'assertion scattava ad ogni buffer in regime
+    // stabile. 0.04 lascia spazio al drift sistematico (silenzio in
+    // regime) e scatta solo su deviazioni reali del peer (delta >
+    // ~20ms).
     constexpr double kDirectorPhaseThreshold = 0.04;
 
     if (fabs(delta) > kDirectorPhaseThreshold) {
