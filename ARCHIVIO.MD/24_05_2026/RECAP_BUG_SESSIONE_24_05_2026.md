@@ -89,10 +89,19 @@ STATO_QBEATS.md **v8 invariato**. Nessuna ratifica cross-team aperta in questa s
 
 ## Chiarimento Mauro sul workflow live (24/05 sera) — riformulazione Bug 1
 
-**Confermato da Mauro**: il flusso live previsto è **per design**:
-1. iPhone Director parte da solo (1 bar di intro / pickup / count-in per la band)
-2. I Collaborativi (iPad / altri device) entrano successivamente premendo Play locale
-3. I Collaborativi devono **allinearsi al bar counter del Director** quando entrano (es. "2 di 12" se Director è a bar 2), NON partire da "1 di 12" del proprio counter locale
+**Confermato da Mauro**: il flusso live previsto è **per design** ed è **first-mover-based, NON Director-based**:
+1. Il **primo device che preme Play** (indipendentemente dal ruolo Link Director/Collaborative) "apre" la performance facendo 1 bar di intro da solo
+2. **Tutti gli altri device in Link** (qualsiasi ruolo) che entrano successivamente premendo Play locale devono **allinearsi al bar counter del first-mover**
+3. Esempio: se first-mover è a bar 2 of 12, il successivo entra mostrando "2 of 12", non "1 of 12"
+
+**Implicazione concettuale critica — due concetti separati che oggi nel codice sono confusi**:
+
+| Concetto | Definito da | Cosa governa |
+|---|---|---|
+| Director / Collaborative | Settings utente (`AppSettings.linkMode`) | Tempo authority Link standard (BPM lock) |
+| **Leader / Follower performance** | **Primo tap Play vs successivi nel ciclo di esecuzione corrente** | **Section state authority (broadcast section/bar)** |
+
+Il broadcast `(songIdx, sectionIdx, currentBar)` NON è emesso dal "Link Director", è emesso dal **performance leader corrente** = device che ha premuto Play per primo nel ciclo corrente. Quando il leader fa Stop e qualcun altro fa Play, il nuovo leader subentra.
 
 **Implicazione**: Bug 1 non è "gap architetturale enorme da risolvere con Soluzione C completa", è **feature UX incompleta**. L'intent è giusto, manca solo il broadcast `(songIdx, sectionIdx, currentBar)` dal Director ai Follower.
 
