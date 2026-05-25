@@ -1029,6 +1029,42 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    /// Forza la riapertura del socket multicast UDP usato da Link.
+    ///
+    /// Caso d'uso: `applicationDidBecomeActive`. Quando l'app va in background,
+    /// iOS sospende il socket multicast — al ritorno foreground, LinkKit resta
+    /// in stato `enabled=true` ma il socket è inattivo, quindi il peer discovery
+    /// non riprende. `ABLLinkSetActive(true)` è idempotente (no-op se già true,
+    /// vedi LinkKit doc + commit 9a2e529) — non basta.
+    ///
+    /// Comportamento atteso del toggle:
+    /// `link_engine_set_enabled(lh, false)` scatena `is_enabled_callback` che
+    /// flippa `@Published linkEnabled = false` su main thread. Subito dopo,
+    /// `link_engine_set_enabled(lh, true)` scatena di nuovo il callback che lo
+    /// riporta a `true`. Il flip `true→false→true` arriva sullo stesso run loop
+    /// tick di main, quindi SwiftUI lo coalesca in un singolo render (non viene
+    /// percepito). I @Published `linkIsConnected` e `linkPeers` sono anch'essi
+    /// aggiornati dal callback (e dai callback dedicati `is_connected` /
+    /// `peers_changed` quando i peer si riscoprono dopo il socket reopen).
+    ///
+    /// Idempotente: se Link non è abilitato dall'utente, è no-op (early return
+    /// su `link_engine_is_enabled(lh)` come fonte di verità C++, più affidabile
+    /// del flag Swift).
+    func refreshLinkSocket() {
+        audioQueue.async { [weak self] in
+            guard let self = self, let lh = self.linkEngineHandle else { return }
+            guard link_engine_is_enabled(lh) else {
+                os_log("[Q-BEATS][LINK] refreshLinkSocket: Link non abilitato — no-op",
+                       log: .default, type: .default)
+                return
+            }
+            os_log("[Q-BEATS][LINK] refreshLinkSocket — toggle false→true",
+                   log: .default, type: .default)
+            link_engine_set_enabled(lh, false)
+            link_engine_set_enabled(lh, true)
+        }
+    }
+
     func disableLinkOnTerminate() {
         audioQueue.sync {
             if let lh = linkEngineHandle {
