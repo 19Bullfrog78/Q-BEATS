@@ -1,14 +1,32 @@
 import UIKit
+import os
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+
     func applicationWillTerminate(_ application: UIApplication) {
+        os_log("[Q-BEATS][LIFECYCLE] applicationWillTerminate",
+               log: .default, type: .default)
         AudioEngine.shared.disableLinkOnTerminate()
     }
+
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // LinkKit: ABLLinkSetActive(true) è no-op se già true (vedi commit 9a2e529).
-        // iOS sospende il socket multicast UDP in background → al ritorno foreground
-        // serve un toggle false→true a livello C++ per riallocarlo.
-        // refreshLinkSocket() è idempotente — se Link non è abilitato, è no-op.
+        os_log("[Q-BEATS][LIFECYCLE] applicationDidBecomeActive",
+               log: .default, type: .default)
         AudioEngine.shared.refreshLinkSocket()
+    }
+
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        os_log("[Q-BEATS][LIFECYCLE] applicationWillEnterForeground",
+               log: .default, type: .default)
+    }
+
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        os_log("[Q-BEATS][LIFECYCLE] applicationDidEnterBackground",
+               log: .default, type: .default)
+    }
+
+    func applicationWillResignActive(_ application: UIApplication) {
+        os_log("[Q-BEATS][LIFECYCLE] applicationWillResignActive",
+               log: .default, type: .default)
     }
 }

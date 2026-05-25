@@ -5,6 +5,7 @@ import os
 struct QBeatsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var audioEngine = AudioEngine.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var pendingImportManifest: BackupManifest? = nil
     @State private var showImportView = false
 
@@ -41,6 +42,15 @@ struct QBeatsApp: App {
                         }
                     }
                 }
+        }
+        // Diagnostica Bug 4: log scenePhase parallel a UIApplicationDelegate
+        // callback in AppDelegate per disambiguare al prossimo test su device
+        // quale dei due hook scatta effettivamente al lock/sblocco.
+        // NESSUNA chiamata refreshLinkSocket qui — solo log.
+        .onChange(of: scenePhase) { newPhase in
+            os_log("[Q-BEATS][LIFECYCLE] scenePhase changed: → %{public}@",
+                   log: .default, type: .default,
+                   String(describing: newPhase))
         }
     }
 }
