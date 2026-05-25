@@ -43,14 +43,18 @@ struct QBeatsApp: App {
                     }
                 }
         }
-        // Diagnostica Bug 4: log scenePhase parallel a UIApplicationDelegate
-        // callback in AppDelegate per disambiguare al prossimo test su device
-        // quale dei due hook scatta effettivamente al lock/sblocco.
-        // NESSUNA chiamata refreshLinkSocket qui — solo log.
         .onChange(of: scenePhase) { newPhase in
             os_log("[Q-BEATS][LIFECYCLE] scenePhase changed: → %{public}@",
                    log: .default, type: .default,
                    String(describing: newPhase))
+            // Bug 4 fix: refresh Link socket multicast al ritorno foreground.
+            // UIApplicationDelegate.applicationDidBecomeActive non scatta in app
+            // SwiftUI scene-based (verificato empiricamente con diag commit 251183d
+            // — log lifecycle AppDelegate mai apparsi). ScenePhase è la fonte di
+            // verità per lifecycle in Q-BEATS.
+            if newPhase == .active {
+                AudioEngine.shared.refreshLinkSocket()
+            }
         }
     }
 }

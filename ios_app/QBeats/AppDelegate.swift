@@ -12,7 +12,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         os_log("[Q-BEATS][LIFECYCLE] applicationDidBecomeActive",
                log: .default, type: .default)
-        AudioEngine.shared.refreshLinkSocket()
+        // NOTE: refreshLinkSocket() RIMOSSO — questo callback non scatta
+        // in app SwiftUI scene-based (verificato commit 251183d). Fix Bug 4
+        // vive in QBeatsApp.swift via .onChange(of: scenePhase) == .active.
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
