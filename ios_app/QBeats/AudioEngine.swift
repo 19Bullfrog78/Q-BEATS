@@ -390,10 +390,11 @@ class AudioEngine: ObservableObject {
                           let lh = engine.linkEngineHandle else { return }
                     if isEnabled {
                         let isConn = link_engine_is_connected(lh)
+                        let peers = Int(link_engine_num_peers(lh))
                         DispatchQueue.main.async {
                             engine.linkEnabled = true
                             engine.linkIsConnected = isConn
-                            engine.linkPeers = isConn ? 1 : 0
+                            engine.linkPeers = peers
                         }
                         if !isConn {
                             engine.audioQueue.asyncAfter(deadline: .now() + 2.0) {
@@ -402,10 +403,11 @@ class AudioEngine: ObservableObject {
                                       let lh = engine.linkEngineHandle else { return }
                                 guard link_engine_is_enabled(lh) else { return }
                                 let isConn2 = link_engine_is_connected(lh)
+                                let peers2 = Int(link_engine_num_peers(lh))
                                 if isConn2 {
                                     DispatchQueue.main.async {
                                         engine.linkIsConnected = true
-                                        engine.linkPeers = 1
+                                        engine.linkPeers = peers2
                                     }
                                 }
                             }
@@ -999,22 +1001,24 @@ class AudioEngine: ObservableObject {
             link_engine_set_enabled(lh, enabled)
             if enabled {
                 let isConn = link_engine_is_connected(lh)
+                let peers = Int(link_engine_num_peers(lh))
                 DispatchQueue.main.async {
                     self.linkEnabled = true
                     self.linkIsConnected = isConn
-                    self.linkPeers = isConn ? 1 : 0
+                    self.linkPeers = peers
                 }
                 if !isConn {
                     self.audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                         guard let self = self, let lh = self.linkEngineHandle else { return }
                         guard link_engine_is_enabled(lh) else { return }
                         let isConn2 = link_engine_is_connected(lh)
+                        let peers2 = Int(link_engine_num_peers(lh))
                         os_log("[Q-BEATS][LINK][SWIFT] check 2s post-enable — isConn:%{public}@",
                                log: .default, type: .default, isConn2 ? "true" : "false")
                         if isConn2 {
                             DispatchQueue.main.async {
                                 self.linkIsConnected = true
-                                self.linkPeers = 1
+                                self.linkPeers = peers2
                             }
                         }
                     }
