@@ -1,5 +1,5 @@
 // === Build #176 — Facade Pattern Link ===
-// Thin ObjC++ wrapper su ABLLinkRef (API C pura di LinkKit 3.2.2)
+// Thin ObjC++ wrapper su ABLLinkRef (API C pura di LinkKit 4.0)
 #import "LinkEngine.h"
 #include <ABLLink.h>
 #include <atomic>
