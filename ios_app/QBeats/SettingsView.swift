@@ -38,9 +38,8 @@ struct SettingsView: View {
                         HStack {
                             Text("Peers")
                             Spacer()
-                            Text("\(audioEngine.linkPeers)")
-                                .foregroundColor(audioEngine.linkPeers > 0 ? .green : .secondary)
-                                .monospacedDigit()
+                            Text(audioEngine.linkIsConnected ? "Connected" : "Standalone")
+                                .foregroundColor(audioEngine.linkIsConnected ? .green : .secondary)
                         }
                         HStack {
                             Text("BPM")
