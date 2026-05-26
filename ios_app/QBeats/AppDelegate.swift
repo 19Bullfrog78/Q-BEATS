@@ -14,7 +14,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                log: .default, type: .default)
         // NOTE: refreshLinkSocket() RIMOSSO — questo callback non scatta
         // in app SwiftUI scene-based (verificato commit 251183d). Fix Bug 4
-        // vive in QBeatsApp.swift via .onChange(of: scenePhase) == .active.
+        // vive in QBeatsApp.swift via .onChange(of: scenePhase) — pattern
+        // bidirezionale .background/.active.
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
