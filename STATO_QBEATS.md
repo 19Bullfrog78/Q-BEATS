@@ -1,8 +1,8 @@
 # STATO_QBEATS — Libro mastro cross-team
 
-**Versione:** 8
-**Ultima modifica:** 2026-05-22
-**Edit author:** CC chat principale 22/05/2026 (TD #44 svolta: risposta Ableton + Test A confutato + Test B LinkHut peer immediato → causa isolata nel codice Q-BEATS; riga 184 superseded + 4 nuove ratifiche; Soluzione C ripostizionata feature post-v1)
+**Versione:** 9
+**Ultima modifica:** 2026-05-26
+**Edit author:** CC chat principale 26/05/2026 (vincolo strutturale LinkKit 4.0 peer count → cambio display Settings da contatore a stato binario "Connected/Standalone")
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -157,7 +157,7 @@ Sotto-tabella popolata da CD via flusso R5 ("Contributi CD al file"). Una riga p
 ### Tecnologie / debiti
 | Termine | Definizione |
 |---|---|
-| LinkKit 4.0 | SDK Ableton Link |
+| LinkKit 4.0 | SDK Ableton Link. API pubblica `ABLLinkIsConnected` espone solo booleano connesso/non-connesso, **nessuna API per peer count**. Implicazione UX: nessun display "N peers" possibile in Q-BEATS finché Ableton non espone l'API |
 | TD #N | Tech debt numerato (vedi memoria CC `project_qbeats.md` per dettaglio) |
 
 ---
@@ -214,6 +214,7 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-21 sera | Semantica colonna "Layout congelato" (sez. 1 sotto-tabella "Schermate ratificate") resta stretta: "mockup approvato Mauro, CC autorizzato a implementare senza rework UX". Niente colonna aggiuntiva "Stato draft". Schermate in stato draft 1 / draft 2 / in review NON entrano in sotto-tabella finché non congelate | Mauro + CD + CC | questa chat 21/05 sera, decisione Extra=A | attiva | — |
 | 2026-05-22 | TD #44 — Causa isolata nel codice Q-BEATS (NON in `libLinkKit.a`). Investigation codice rimandata a prossima sessione. Workaround v1 (1 QB + SB) resta attivo. Supersede 2026-05-20 riga 184 | Mauro + CC | memoria CC `project_qbeats_td44.md` (da riscrivere) | attiva | — |
 | 2026-05-22 | TD #44 — Soluzione C (protocollo Wi-Fi proprietario) NON è più "soluzione architetturale al TD #44": resta feature di prodotto multi-device cross-app per Fase 6-7 per merito autonomo. La collocazione Fase 6-7 della ratifica 2026-05-20 riga 186 resta valida — cambia solo la giustificazione | Mauro + CC | memoria CC `project_qbeats_td44.md` | attiva | — |
+| 2026-05-26 | Settings → "Peers" display: passa da contatore numerico ("Peers: N") a stato binario ("Peers: Connected" / "Peers: Standalone"), basato su `linkIsConnected`. Motivazione strutturale: LinkKit 4.0 non espone API peer count (header `ABLLink.h` verificato, solo `ABLLinkIsConnected` booleano). Implicazione cross-team CD: nessun display N peers possibile in Q-BEATS (Vista LIVE, Vista Emergenza, pulsantiera CD-4, Settings G1-G8) finché Ableton non espone l'API | Mauro + CC | branch `fix/link-status-ui-honest` commit `b856596` (in attesa test device + merge); memoria CC | attiva | — |
 
 ---
 
@@ -256,7 +257,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 
 - **Memoria CC** (workspace `C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\`): contiene `MEMORY.md` index + memorie dedicate (`project_qbeats.md`, `project_qbeats_td44.md`, `project_qbeats_brief_19_05_2026.md`, `feedback_qbeats_gerarchia_ruoli.md`, …). Comportamento chat-locale CC. **Non vive qui.**
 - **Memoria CD** (workspace separato): comportamento chat-locale CD. **Non vive qui.**
-- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `fe17817`.
+- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `6d1dbbf`.
 - **BOX5 più recente**: `ARCHIVIO.MD/18_05_2026/BOX5_V23_18_05_2026.md`.
 - **Brief Fase 4**: `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (locale, decidere se committare).
 - **Roadmap sblocco app M1-M8**: `ARCHIVIO.MD/19_05_2026/ROADMAP_SBLOCCO_APP_19_05_2026.md` (locale, decidere se committare).
@@ -277,6 +278,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 6 | 2026-05-21 sera | CC chat principale 21/05, ratifica roadmap batch CD | Ratificata roadmap operativa batch CD post-v5: D1=A ordine deliverable (CD-5 mockup finale → CD-1 esteso → CD-3 → popolamento sotto-tabella "Schermate ratificate"), D2=A timing sotto-tabella popolata a fine batch, D3=B anticipo CD-3 nel batch (4 punti totali, motivazione coerenza visiva Restart Setlist ↔ Restart {song.name}), Extra=A semantica colonna "Layout congelato" stretta (no colonna Stato draft aggiunta). 2 righe nuove in sez. 2 (ordine batch + Extra=A semantica). Tag "**Batch CD 21/05 — posizione N**" aggiunto in note sez. 3 di CD-1 (pos. 2), CD-3 (pos. 3), CD-5 (pos. 1). "Ultima mod" CD-1/CD-3/CD-5 bumpata al 21/05. Sez. 1 invariata (Extra=A). Sez. 4 invariata (zero domande aperte residue post-v5). |
 | 7 | 2026-05-21 sera | CC chat principale 21/05 — rollback A su errore v6 | Riconosciuto errore custode CC in v6: avevo accodato senza filtro R3 le righe operative CD interne proposte nel batch 21/05. Regola libro mastro: "solo ratifiche cross-team prodotto/naming/processo/deliverable/gerarchia, NO piano operativo CD o CC interno". Rollback A applicato: rimossa riga sez. 2 "Roadmap batch CD: ordine deliverable" (operativo interno CD); rimossi 3 tag "**Batch CD 21/05 — posizione N**" da note sez. 3 di CD-1/CD-3/CD-5; "Ultima mod" CD-3 ripristinata al 17/05; descrizione stato CD-5 ripristinata a v5. Mantenuta in sez. 2 la riga "Semantica Layout congelato stretta (Extra=A)" perché regola di processo cross-team del libro mastro stesso (definisce uso sotto-tabella sez. 1, vincolante per ogni chat CD/CC futura). Memoria feedback CC nuova `feedback_qbeats_libro_mastro_solo_cross_team.md` salvata per evitare ripetizione. |
 | 8 | 2026-05-22 | CC chat principale 22/05 | TD #44 svolta cross-team: causa isolata nel codice Q-BEATS (non in `libLinkKit.a`). Riga 184 sez. 2 marcata `superseded`. 2 nuove ratifiche aggiunte (causa codice QB confermata + riposizionamento giustificazione Soluzione C — collocazione Fase 6-7 resta valida per merito autonomo). Sez. 3 TD #44 stato aggiornato. Dettagli diagnostici (risposta Ableton 21/05, Test A disabilitazione `ABLLinkSetPeerName` commit `8f879d7`, Test B LinkHut↔LinkHut peer immediato) NON entrati nel libro mastro per regola "solo cross-team" — vivono in memoria CC `project_qbeats_td44.md` (riscrittura pianificata inizio sessione prossima). Custode CC nota: errore di scope evitato in extremis grazie a richiamo Mauro (proposto inizialmente diff con 4 righe operative, ridotto a 2 righe-decisioni). |
+| 9 | 2026-05-26 | CC chat principale 26/05 | Vincolo strutturale LinkKit 4.0 emerso durante chiusura TD `linkPeers`: API pubblica espone solo booleano `ABLLinkIsConnected`, nessun peer count (verificato sull'header `ABLLink.h` della versione attualmente integrata). Tentativo fix lato Swift (commit `72001a5` su branch orfano `fix/td-link-peer-count`) risultato null-op semantico (anche `link_engine_num_peers` interna ritorna sempre 0 o 1 perché alimentata dal callback booleano). Decisione UX cross-team: cambio display Settings "Peers: N" → "Peers: Connected/Standalone" (branch `fix/link-status-ui-honest` commit `b856596`, in attesa test device + merge). 1 ratifica nuova in sez. 2. Sez. 1 Tecnologie aggiornata (LinkKit 4.0 — riga arricchita con limite API esplicito). Sez. 5 HEAD bumpato `fe17817` → `6d1dbbf` (sync stato master). Custode CC nota: errore custode evitato grazie a richiamo Mauro — commento `LinkEngine.mm:2` ancora dice "LinkKit 3.2.2" (obsoleto, va corretto in commit cleanup separato), git log dei vendor file mostra `42424ef` "Update LinkKit 3.2.2 → 4.0". Lezione: verificare git log dei vendor file prima di citare versioni dai commenti del codice. |
 
 ---
 
