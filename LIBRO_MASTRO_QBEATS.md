@@ -2,9 +2,9 @@
 
 > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
 
-**Versione:** 13 (proposta, in attesa ratifica esplicita Mauro su 4 righe nuove sez. 2 + 1 voce nuova sez. 4 + 2 righe naming sez. 1)
-**Ultima modifica:** 2026-05-27 mattina (BOX3 V68 — 3 chiusure cross-team + Bug 2 UX decision + apertura domande CD per Fase 6-7 Bug 4 fix)
-**Edit author:** CC chat principale 27/05/2026 mattina
+**Versione:** 14 (proposta, in attesa ratifica esplicita Mauro su 5 righe naming sez. 1 + 4 ratifiche sez. 2 + 1 supersede sez. 2 + 1 deliverable sez. 3 + ripulitura sez. 4)
+**Ultima modifica:** 2026-05-27 (risposte CD a CD-Q1...Q4 — Bug 2 counter + badge HEAD FOLLOWER/DIRECTOR / Vista WAITING FOR DIRECTOR + CD-6 / switch secco downbeat / ratifica ex-post Problema A)
+**Edit author:** CC chat principale 27/05/2026
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -100,6 +100,7 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | Q-Stage > SHOWS | Sezione di Q-Stage: libreria delle setlist (entità dati = `Setlist` dentro `SHOWS`) |
 | Q-Stage > MEDIA | Sezione di Q-Stage: libreria backtrack (futuro: video HDMI) |
 | Select Setlist | Schermata picker Q-Live per scegliere setlist da caricare |
+| Vista WAITING FOR DIRECTOR | Schermata Q-Live cugina di CD-1 cerimoniale, attivata quando l'utente Follower tap PLAY senza Director peer attivo via Link. Full-screen `#0e0e10`, "WAITING FOR DIRECTOR…" pulse 2.2s, bottoni `START LOCAL` + `CANCEL`. Transiziona seamless in `.countIn` / `.playing` appena Director si attiva. Ratificata 27/05 CD-Q2=B |
 
 ### Modello dati
 | Termine | Definizione |
@@ -119,6 +120,7 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | HEAD | Layer alto Vista LIVE (BPM, time signature, nome canzone) |
 | FineSetlistView | Schermata fine setlist con bottoni "FINE SHOW" / "TORNA AGLI SHOWS" |
 | `<< X / Y >>` | Indicatore posizione corrente nella setlist + segnale visivo possibilità swipe orizzontale (attivo, ratificato 21/05 Q8=A / Q9=A) |
+| Badge ruolo HEAD: `FOLLOWER` / `DIRECTOR` | Badge testuale persistente in HEAD top-left della Vista LIVE che comunica il ruolo del device quando un peer Link è attivo. Stati: `FOLLOWER` (segue Director via Link) / `DIRECTOR` (questo device è leader) / *(assente)* in Standalone. JBMono uppercase, ~12pt × scaleFactor, bianco opacity 0.55, letterspacing 2px. Affianca semanticamente il LED Link verde `#00c96e` esistente (non lo sostituisce). Vietati arancio Q-Live (= "in play") e ambra (= ALERT). Ratificato 27/05 CD-Q1=B |
 
 ### Tasti / azioni
 | Termine | Definizione | Stato |
@@ -137,6 +139,8 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | END SHOW | Bottone fine setlist (FineSetlistView): marca fine performance | attivo (ratificato 21/05 R-CD5-10) |
 | EMERGENZA (BR pulsantiera CD-4) | Sigla italiana storica, rinominata EMERGENCY 21/05 per coerenza R-CD5-10 | superseded da Q12=A (21/05) |
 | EMERGENCY (BR pulsantiera CD-4) | Bottone in basso-destra della pulsantiera CD-4 che fa switch da Vista Q-Live a Vista LISTA (ex Vista Emergenza). Sempre visibile durante `.playing` / `.standby`, nascosto durante `.stoppedMidSong` (Q7=A) | attivo (brief Fase 4 19/05, label inglese ratificata 21/05 Q12=A) |
+| START LOCAL | Bottone in Vista WAITING FOR DIRECTOR che bypassa l'attesa e fa partire Q-BEATS standalone (escape esplicito Follower se Director non risponde — cavo audio saltato, batteria scarica, etc.). Tap unico, niente conferma | attivo (ratificato 27/05 CD-Q2=B) |
+| CANCEL | Bottone in Vista WAITING FOR DIRECTOR che esce dalla Vista e torna a Select Setlist | attivo (ratificato 27/05 CD-Q2=B) |
 
 ### Stati LiveSession
 | Stato | Definizione | Note |
@@ -147,6 +151,7 @@ La sezione 1 di questo file è la fonte di verità per sigle, stati, nomi UI. Ch
 | `.playing` | Esecuzione in corso | attivo |
 | `.loopActive` | Loop attivo su sezione. Cancellato (reset) su STOP intra-sessione per R-CD5-05 (21/05) | attivo |
 | `.stoppedMidSong` | Stato STOP a metà song con bookmark. Distinto da `.stopped` (R-CD5-01). Nome canonico ratificato 21/05 da R-CD5-02 (era `.overlayStop` solo proposto, mai entrato in codice) | attivo (ratificato 21/05 Q4=A + R-CD5-01 + R-CD5-02) |
+| `.waitingForDirector` | Stato attivato quando Follower tap PLAY senza Director peer attivo via Link. Mostra Vista WAITING FOR DIRECTOR. Transizioni in uscita: automatica a `.countIn` / `.playing` quando Director si attiva via Link; esplicita a `.playing` su tap `START LOCAL` (escape); uscita a Select Setlist su tap `CANCEL`. Distinto da `.stopped` (CD-1 standalone) e da `.standby` (overlay tra canzoni) | attivo (ratificato 27/05 CD-Q2=B) |
 
 ### Schermate ratificate (dominio CD)
 
@@ -223,7 +228,11 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-27 mattina | TD #39 quantum 3/4 → **CHIUSO retroattivamente da `cb92faa`** (default LinkMode `.collaborativa`). Metodologia Test 2 Audacity: setlist "3/4 Long" (4/4 8 batt → 3/4 16 batt → 4/4 8 batt), iPad standalone Ableton OFF 100 BPM, 5 misure durata battuta dentro sezione 3/4 main 16 battute → tutti 5 = **1800 ms esatto = zero drift**. Il sospetto "terzo bug fantasma chiuso da cb92faa" confermato empiricamente. Implicazione cross-team: Q-BEATS supporta correttamente cambi di TS 4/4 → 3/4 → 4/4 in setlist live, NON da riaprire | Mauro + CC | BOX3 V68 sez. 1.a + memoria CC `project_qbeats.md` + branch `feat/diag-on-current-master` commit `c85b81a` | attiva | — |
 | 2026-05-27 mattina | TD #A first-beat-fuori → **baseline locale = 78 ms ratificata** (set 2 Test 1, mediana di 6 play standalone con intervalli 15s, range 74.8-80.8 ms, σ molto bassa). Misura cross-device completa **rimandata a Fase 6-7** (no inferenza prematura sul delta vs ~105 ms storico cross-device). Anomalia aperta non chiusa: ΔT2→T9 set 1 (33 ms) vs set 2 (78 ms) — da confermare se riemerge. Implicazione cross-team: 78 ms è il baseline di riferimento per misure future di precisione first-beat | Mauro + CC | BOX3 V68 sez. 1.b + memoria CC `project_qbeats.md` + branch `feat/diag-on-current-master` commit `7167355` (log T0-T9) | attiva | — |
 | 2026-05-27 mattina | **Problema A** (display init pre-Play in Vista LIVE, device locale) → **CHIUSO e MERGIATO** `441d543`. Fix: `SetlistRunner.primeDisplay()` (+30 righe) + `LiveView.onAppear` (+21 righe). Validato iPad + iPhone (IPA #449 con fix + diagnostica). Behavior: all'apertura Vista LIVE pre-Play, nome canzone + "bar 1 di N" visibili (non più placeholder vuoto). Implicazione cross-team UX: l'utente vede già la prima canzone della setlist appena entra in Vista LIVE | Mauro + CC | BOX3 V68 sez. 1.c + commit `441d543` (cherry-pick di `d085f58`) | attiva | — |
-| 2026-05-27 mattina | **Bug 2 counter Collaborativo** → decisione UX: *"Director fa bar 1 da solo, Collaborativo entra a bar 2 allineato via Link"* → counter Follower parte da `bar 2 di N`, non `bar 1 di N`. Dipendenza tecnica: **Bug 2 ⊆ Bug 4** (Follower deve conoscere "di N" dal SetlistRunner, che oggi non viene avviato cross-device — causa root in `AudioEngine.swift:442-446`). Implementazione contestuale al fix Bug 4 in Fase 6-7 | Mauro + CC + AI esterna referee | BOX3 V68 sez. 2 + memoria CC `project_qbeats_problema_b_causa_root` | attiva — **merito UX da pondera CD in review formale brief Fase 6-7 Bug 4 fix** (vedi sez. 4 domanda CD-Q1) | — |
+| 2026-05-27 mattina | **Bug 2 counter Collaborativo** → decisione UX: *"Director fa bar 1 da solo, Collaborativo entra a bar 2 allineato via Link"* → counter Follower parte da `bar 2 di N`, non `bar 1 di N`. Dipendenza tecnica: **Bug 2 ⊆ Bug 4** (Follower deve conoscere "di N" dal SetlistRunner, che oggi non viene avviato cross-device — causa root in `AudioEngine.swift:442-446`). Implementazione contestuale al fix Bug 4 in Fase 6-7 | Mauro + CC + AI esterna referee | BOX3 V68 sez. 2 + memoria CC `project_qbeats_problema_b_causa_root` | **superseded** | 2026-05-27 CD-Q1=B (accorpa counter + badge HEAD in unica decisione) |
+| 2026-05-27 | **CD-Q1=B** — Counter Follower Collaborativo parte da `bar 2 di N` (Director fa bar 1 da solo, Follower entra a bar 2 allineato via Link) **+** introdotto badge HEAD persistente `FOLLOWER` / `DIRECTOR` per comunicare il ruolo cross-device. Motivazione UX: counter `bar 2 di N` da solo è asimmetria silenziosa che viola Glanceability (drummer in penombra a 2m non deve inferire "perché parte da 2?"); badge in HEAD risolve senza sovraccaricare la zona dati del counter (già densa con BPM + TS + lucchetto post-CD-0). Caveat layout: badge dimensioni piccole (~12pt) per non invadere spazio titolo canzone (vincolo CD-0 Punto 1). Supersede ratifica Bug 2 v13 27/05 mattina (accorpa counter + badge HEAD in unica decisione) | Mauro + CD | sez. 4 CD-Q1 v13 + risposte CD 27/05/2026 (`ARCHIVIO.MD/27_05_2026/RISPOSTE_CD_27_05_2026.md`) | attiva | — |
+| 2026-05-27 | **CD-Q2=B con escape** — Tap PLAY su Follower senza Director peer attivo via Link → entra in nuovo stato `LiveSession.waitingForDirector` con Vista WAITING FOR DIRECTOR (`#0e0e10`, pulse 2.2s "WAITING FOR DIRECTOR…", bottoni `START LOCAL` + `CANCEL`). Auto-transizione seamless a `.countIn` / `.playing` appena Director si attiva via Link. Motivazione UX: A viola Predictability (mode Collaborative parte standalone in silenzio = bug attuale travestito da feature); C viola Forgiveness + Stress-degradation (modal popup al tap PLAY in contesto palco è inaccettabile, drummer ha bacchette in mano e luci in faccia). Nuovo deliverable CD-6 in sez. 3 | Mauro + CD | sez. 4 CD-Q2 v13 + risposte CD 27/05/2026 | attiva | — |
+| 2026-05-27 | **CD-Q3=A** — Cambio sezione runtime Director → Follower è switch immediato secco al downbeat, zero animazione (teleprompter, microbar segmenti, accent pattern LED switchano al sample del downbeat). Motivazione UX: fade 300ms violerebbe invarianti Vista LIVE locale (`CLAUDE.md` §14: slot metronomo flash netto singolo frame ~16ms, teleprompter flash secco nessuna dissolvenza); 300ms = ~1.5 battute a 200 BPM, copre proprio il momento in cui la lettura serve di più; asimmetria local vs cross-device violerebbe Predictability. Coerente con regola `feedback_qbeats_l1b_fade_rule` (fade SOLO a fine vera, non al cambio sezione runtime) | Mauro + CD | sez. 4 CD-Q3 v13 + risposte CD 27/05/2026 | attiva | — |
+| 2026-05-27 | **CD-Q4=A** — Ratifica ex-post Problema A fix `441d543` confermato come UX corretta senza modifiche. 3 osservazioni B proposte da CC (teleprompter grigio pre-Play / counter `bar 0 di N` / microbar invisibile pre-Play) respinte con motivazione di merito CD: peggiorerebbero leggibilità palco in penombra a 2m o introdurrebbero invenzioni semantiche senza guadagno (convenzione musicale standard: bar 1 = prima battuta, mai bar 0). Behavior Problema A si compone naturalmente con CD-1 cerimoniale (Q9/Q10 ratificate 21/05): Problema A = livello dato (mostra contenuto setlist), CD-1 cerimoniale = livello chrome (pulse + swipe + indicatore). Non c'è conflitto | Mauro + CD | sez. 4 CD-Q4 v13 + risposte CD 27/05/2026 + commit `441d543` | attiva | — |
 
 ---
 
@@ -237,6 +246,7 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | CD-3 | Bottone "Ricomincia setlist" a fine setlist | proposto | 2026-05-17 | Backlog |
 | CD-4 | Pulsantiera Vista LIVE 4 quadranti + cerchio | draft 1 consegnato | 2026-05-20 | In review Mauro |
 | CD-5 | Schermata STOP a metà song | ratificato 21/05 (Q7-Q10 + 9 R-CD5 + β in sez. 2). In attesa di implementazione codice Layer 3 | 2026-05-21 | Deliverable entrato nel brief Fase 4 (R-CD5-08). Aggiornamento documento brief dominio CD |
+| CD-6 | Vista WAITING FOR DIRECTOR (Follower tap PLAY senza Director attivo via Link) | proposto, wireframe draft 1 da disegnare CD | 2026-05-27 | Ratificato 27/05 CD-Q2=B. Layout proposto da CD nella risposta 27/05: full-screen `#0e0e10`, "WAITING FOR DIRECTOR…" Inter-Black 52pt × scaleFactor pulse 2.2s, sotto nome canzone + NEXT prima sezione, bottoni `START LOCAL` (pillola outline 25px) + `CANCEL`. Auto-transizione seamless a `.countIn` / `.playing` su Director attivo. Consiglio CC: implementare INSIEME a fix Bug 4 in unica sessione Fase 6-7 (entrambi toccano orchestrazione start cross-device `AudioEngine.swift:442-446`) |
 | Fase 4 | Vista LISTA | brief Fase 4 ratificato 19/05 | 2026-05-19 | Batch 2 dopo CD-0/4 |
 | Fase 4 | Vista Emergenza | non iniziato | — | Backlog |
 | Fase 6.1 | UI MIDI Learn | non iniziato | — | Backlog |
@@ -254,34 +264,13 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 
 **Nessuna domanda aperta al 21/05** — tutte le domande Q1-Q12 + β.1-β.2 + R-CD5-01-10 risolte tra v3 e v5.
 
-### Domande aperte CD per Fase 6-7 Bug 4 fix (aggiunte 27/05/2026 mattina)
+### Domande aperte CD per Fase 6-7 Bug 4 fix — RISOLTE 2026-05-27
 
-**CD-Q1 — Bug 2 counter Collaborativo `bar 2 di N`** *(ratifica merito UX)*:
-La decisione UX "Director fa bar 1 da solo, Collaborativo entra a bar 2 allineato via Link" è stata ratificata Mauro + CC + AI esterna referee 27/05 (sez. 2 sopra), ma **CD non ha ponderato il merito UX**. Domande:
-- A) Accetti il behavior così com'è? (counter Follower parte da `bar 2 di N`)
-- B) Accetti il behavior ma proponi un **indicatore visivo** che dispositivo è in Collaborative/Follower mode (badge "FOLLOWER", icona Link, colore counter, …)?
-- C) Proponi alternativa UX (specificare)?
-
-**CD-Q2 — Vista "in attesa di Director"** *(potenziale nuovo deliverable CD-X)*:
-Quando l'utente tap Play su Follower **senza peer Director attivo**, che behavior atteso?
-- A) Follower parte locale (standalone autonomo, ignora che è in mode Collaborative).
-- B) Follower resta in stato "waiting" con messaggio UI "In attesa di Director…" finché un peer Director non avvia il play.
-- C) Modal/popup che chiede all'utente "Vuoi partire locale o aspettare Director?".
-Decisione bloccante per design Opzione C/D fix Bug 4. Eventuale nuovo deliverable CD-X "Vista Waiting Director".
-
-**CD-Q3 — Sync sezione runtime Director → Follower** *(transizione visiva cross-device)*:
-Quando Director avanza alla sezione N+1, come comunicare visivamente al Follower il cambio sezione?
-- A) Transizione visiva immediata (Follower switcha teleprompter + microbar + accent pattern senza animazione).
-- B) Smooth fade ~300ms (allineato al fade fine-setlist esistente).
-- C) Animazione dedicata (specificare).
-Decisione integrabile con CD-1 esteso (`<< X / Y >>` swipe) o entry separata.
-
-**CD-Q4 — Ratifica ex-post Problema A** *(behavior già su master)*:
-Il fix Problema A display init pre-Play è già su master `441d543`, validato iPad + iPhone. Domanda formale:
-- A) Confermi il behavior (all'apertura Vista LIVE pre-Play, nome canzone + "bar 1 di N" visibili) come UX corretta?
-- B) Hai osservazioni di merito UX (es. dovrebbe esserci indicatore "non ancora avviato"? counter macrobar `0 di N` invece di `1 di N`? altro)?
-
-**Timeout R3**: 24h dalla data di apertura di queste domande. Se CD non risponde, Mauro decide comunque e la voce viene marcata `ratificata-no-CD-review` (simmetrica a `ratificata-no-CC-review`).
+Le 4 domande CD-Q1...CD-Q4 aperte in v13 sono state risolte 27/05/2026 (file risposte CD `ARCHIVIO.MD/27_05_2026/RISPOSTE_CD_27_05_2026.md`):
+- **CD-Q1=B** → counter Follower `bar 2 di N` + badge HEAD `FOLLOWER` / `DIRECTOR` (sez. 2 sopra)
+- **CD-Q2=B con escape** → nuovo stato `.waitingForDirector` + Vista WAITING FOR DIRECTOR + nuovo deliverable CD-6 (sez. 2 + sez. 3 sopra)
+- **CD-Q3=A** → switch secco al downbeat, zero animazione (sez. 2 sopra)
+- **CD-Q4=A** → ratifica ex-post Problema A behavior corrente (sez. 2 sopra)
 
 ### Voci risolte come moot (non ratificate, non più rilevanti)
 
@@ -295,14 +284,15 @@ Il fix Problema A display init pre-Play è già su master `441d543`, validato iP
 
 - **Memoria CC** (workspace `C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\`): contiene `MEMORY.md` index + memorie dedicate (`project_qbeats.md`, `project_qbeats_td44.md`, `project_qbeats_brief_19_05_2026.md`, `feedback_qbeats_gerarchia_ruoli.md`, …). Comportamento chat-locale CC. **Non vive qui.**
 - **Memoria CD** (workspace separato): comportamento chat-locale CD. **Non vive qui.**
-- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `441d543`.
+- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `944f01f` (post v13).
 - **BOX5 più recente**: `ARCHIVIO.MD/18_05_2026/BOX5_V23_18_05_2026.md`.
 - **Brief Fase 4**: `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (locale, decidere se committare).
 - **Roadmap sblocco app M1-M8**: `ARCHIVIO.MD/19_05_2026/ROADMAP_SBLOCCO_APP_19_05_2026.md` (locale, decidere se committare).
 - **TD #44 report**: `ARCHIVIO.MD/20_05_2026/TD44_REPORT_20_05_2026.md` (committato in `fe17817`).
 - **Registro test Audacity ground truth**: `ARCHIVIO.MD/SENZA COLLOCAZIONE/REGISTRO_TEST_AUDACITY_V1.md`.
 - **BOX3 V68**: `ARCHIVIO.MD/27_05_2026/BOX3_V68_27_05_2026.md` (locale, 3 chiusure cross-team + causa root Problema B + Bug 2 UX decision, 27/05/2026 mattina).
-- **Brief CD 27/05**: `ARCHIVIO.MD/27_05_2026/BRIEF_CD_27_05_2026.md` (locale, 4 domande aperte CD per Fase 6-7 Bug 4 fix + ratifica ex-post Problema A).
+- **Brief CD 27/05**: `ARCHIVIO.MD/27_05_2026/BRIEF_CD_27_05_2026.md` (locale, 4 domande aperte CD per Fase 6-7 Bug 4 fix + ratifica ex-post Problema A — risolte 27/05).
+- **Risposte CD 27/05**: `ARCHIVIO.MD/27_05_2026/RISPOSTE_CD_27_05_2026.md` (locale, risposte CD a CD-Q1...Q4: B con badge HEAD / B con escape e CD-6 / A switch secco / A ratifica Problema A).
 - **Tracker bug centralizzato**: `BUGS_QBEATS.md` in root repo (committato in `153711c`, 27/05/2026 mattina).
 
 ---
@@ -324,6 +314,7 @@ Il fix Problema A display init pre-Play è già su master `441d543`, validato iP
 | 11 | 2026-05-26 sera tardi | CC chat principale 26/05 sera tardi | **Rename file `STATO_QBEATS.md` → `LIBRO_MASTRO_QBEATS.md`** per chiarezza scopo. Motivazione: il nome "STATO" era ambiguo perché 3 file diversi descrivono "stato" (`project_qbeats.md` = stato codice in memoria CC, `BUGS_QBEATS.md` = stato bug nel root repo, questo file = ratifiche cross-team). Confusione confermata da Mauro 26/05 sera tardi (*"continuo a sbagliarlo nonostante le ripetute regole"*). Nuovo nome cattura la terminologia già usata nel file stesso ("libro mastro cross-team" riga 1 pre-rename) e da Mauro in chat. Rename via `git mv` (preserva storia git). Cascading update: auto-reference R1 (formula apertura chat) + R5 (pattern commit message standard) + header titolo + HEAD master bumpato `863bc99` → `153711c` (sync post-commit BUGS_QBEATS.md v1 oggi). Archivi storici (BOX3 V65, V67, SINTESI 25/05) NON aggiornati per veridicità archeologica — al tempo del documento il file si chiamava STATO. Memorie CC workspace personale aggiornate in cascading separato (8 file). Nota rename strutturale in header file (banner ⚠️ pre-versione). Custode CC nota: secondo rename file cross-team della storia Q-BEATS (primo: nessuno) — operazione strutturale rara, motivata da disambiguazione semantica. |
 | 12 | 2026-05-26 sera tardi (dopo R1) | CC chat principale 26/05 sera tardi | **R1 aggiornata**: formula apertura chat esplicita riferimento a memorie del proprio workspace. Pre-v12 era generica (*"Letto LIBRO_MASTRO_QBEATS.md v[N] del [data], procedo da lì."*) → rischio chat futura apre senza leggere il tracker bug `BUGS_QBEATS.md` o memorie locali e propone fix duplicati / scarta lezioni note. Nuova R1 (versione sintetica B ratificata da Mauro): *"Letto LIBRO_MASTRO_QBEATS.md v[N] del [data] + memorie del proprio workspace (CC: tracker bug + memoria progetto + feedback rilevanti / CD: memorie CD + brief deliverable specifici), procedo da lì."* Scelta sintetica vs versione A esplicita con nomi file specifici (per future-proof: se aggiungiamo nuovi file/memorie non serve ri-aggiornare R1 ogni volta). Custode CC nota: suggerimento di AI esterna girato da Mauro, ratificato dopo correzione di processo — Mauro ha richiamato che il libro mastro stesso è il canale di allineamento CD↔CC (no messaggi ad-hoc copia/incolla per chat parallele, trust the file: CD legge il file aggiornato alla prossima apertura R1). |
 | 13 | 2026-05-27 mattina (PROPOSTA, in attesa ratifica Mauro) | CC chat principale 27/05 mattina | **3 chiusure cross-team della sessione + 1 decisione UX + 4 domande aperte CD per Fase 6-7**. Sez. 1 "Tecnologie / debiti" estesa con 2 righe nomenclatura: **Problema A** (display init pre-Play device locale, chiuso) e **Problema B** (sintomi cross-device Bug 4, fix Fase 6-7) — disambiguazione cross-team vincolante per evitare confusioni in chat future. Sez. 2 estesa con 4 righe nuove: (1) TD #39 chiuso retroattivamente da `cb92faa` post Test 2 Audacity (5 misure 1800 ms esatti dentro 3/4 main 16 battute); (2) TD #A baseline locale ratificata 78 ms (set 2 Test 1, mediana 6 play, range 74.8-80.8 ms); (3) Problema A chiuso e mergiato `441d543` (validato iPad+iPhone); (4) Bug 2 counter Collaborativo decisione UX "Director bar 1 da solo, Collaborativo entra a bar 2 via Link" ratificata Mauro+CC+AI esterna, **stato attiva con merito UX da pondera CD** in review formale brief Fase 6-7 Bug 4 fix. Sez. 4 estesa con 4 domande aperte CD (CD-Q1 ratifica merito Bug 2 + eventuale indicatore visivo FOLLOWER; CD-Q2 Vista "in attesa di Director" potenziale CD-X; CD-Q3 sync sezione runtime Director→Follower transizione visiva; CD-Q4 ratifica ex-post Problema A). Sez. 5 HEAD master bumpato `153711c` → `441d543`. Custode CC nota: ratifiche cross-team della giornata (TD #39 / TD #A / Problema A / Bug 2 UX) entrano nel libro mastro per regola "scope cross-team" — le operative CC interne (causa root tecnica AudioEngine.swift:442-446, opzioni fix C/D, anomalia ΔT2→T9, branch diagnostico) restano in BOX3 V68 + memoria CC, non entrano qui (regola `feedback_qbeats_libro_mastro_solo_cross_team`). |
+| 14 | 2026-05-27 (PROPOSTA, in attesa ratifica Mauro) | CC chat principale 27/05 | **Risposte CD a CD-Q1...Q4 ratificate** (file `ARCHIVIO.MD/27_05_2026/RISPOSTE_CD_27_05_2026.md`). Sez. 1 estesa con 5 voci naming: Vista WAITING FOR DIRECTOR (App e modalità), badge HEAD `FOLLOWER`/`DIRECTOR` (Componenti UI Vista LIVE), START LOCAL + CANCEL (Tasti/azioni), `.waitingForDirector` (Stati LiveSession). Sez. 2 estesa con 4 ratifiche: CD-Q1=B counter + badge HEAD (supersede riga Bug 2 v13 27/05 mattina, accorpa counter + badge in unica decisione); CD-Q2=B con escape nuovo stato `.waitingForDirector` + Vista + deliverable CD-6; CD-Q3=A switch secco al downbeat zero animazione (allineato invarianti `CLAUDE.md` §14); CD-Q4=A ratifica ex-post Problema A con 3 osservazioni B CC respinte con motivazione di merito CD. Sez. 3 estesa con CD-6 nuovo deliverable (Vista WAITING FOR DIRECTOR, wireframe draft 1 da disegnare CD, implementazione contestuale fix Bug 4 in Fase 6-7). Sez. 4 ripulita: 4 domande CD-Q1...Q4 → audit trail risoluzione con riferimento file risposte. Sez. 5 HEAD master bumpato `441d543` → `944f01f` + aggiunto riferimento file risposte CD 27/05. Custode CC nota: nessuna obiezione tecnica bloccante. Consiglio CC per Fase 6-7: implementare CD-6 INSIEME a fix Bug 4 in unica sessione (entrambi toccano orchestrazione start cross-device `AudioEngine.swift:442-446`). Costo implementativo CD-Q2=B significativo (nuovo stato `LiveSession` + nuova Vista + intreccio causa root callback Link). |
 
 ---
 
