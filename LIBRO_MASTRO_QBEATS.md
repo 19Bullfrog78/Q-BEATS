@@ -1,8 +1,10 @@
-# STATO_QBEATS — Libro mastro cross-team
+# LIBRO_MASTRO_QBEATS — Libro mastro cross-team CD↔CC
 
-**Versione:** 10
-**Ultima modifica:** 2026-05-26 sera
-**Edit author:** CC chat principale 26/05/2026 sera (fix display Settings Peers validato test device + scope Q-BEATS iOS-only confermato a fronte test cross-platform Android)
+> ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+
+**Versione:** 11
+**Ultima modifica:** 2026-05-26 sera tardi
+**Edit author:** CC chat principale 26/05/2026 sera tardi (rename `STATO_QBEATS.md` → `LIBRO_MASTRO_QBEATS.md` per chiarezza scopo + cascading update auto-reference R1/R5 + storico)
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -24,7 +26,7 @@ Le memorie locali (workspace CC: `feedback_qbeats_*.md`, `project_qbeats*.md`, e
 ### R1 — Rituale d'apertura chat
 Ogni nuova chat CD o CC che lavora su Q-BEATS apre dichiarando:
 
-> *"Letto STATO_QBEATS.md v[N] del [data], procedo da lì."*
+> *"Letto LIBRO_MASTRO_QBEATS.md v[N] del [data], procedo da lì."*
 
 Se la chat propone qualcosa **senza** aver dichiarato la versione letta, Mauro è autorizzato a fermare la conversazione con:
 
@@ -67,7 +69,7 @@ Proposte CD→Mauro (e CC→Mauro) sempre nel formato:
 Mauro risponde `1=A, 2=sì, 3=modifica con "..."`. **Mai ratifiche in blocco di pacchetti multi-decisione.**
 
 ### R5 — Custode del file = CC, con diff letterali
-CC mantiene il file. A fine turno (quando ci sono modifiche da applicare), CC propone diff **letterali** (riga aggiunta `+`, riga rimossa `-`) a Mauro. Mauro conferma con ratifica esplicita → CC scrive → CC committa subito sul repo con messaggio standard `STATO_QBEATS.md: vN — [decisione]`.
+CC mantiene il file. A fine turno (quando ci sono modifiche da applicare), CC propone diff **letterali** (riga aggiunta `+`, riga rimossa `-`) a Mauro. Mauro conferma con ratifica esplicita → CC scrive → CC committa subito sul repo con messaggio standard `LIBRO_MASTRO_QBEATS.md: vN — [decisione]`.
 
 **Diff sempre letterali, mai descritti a parole.** Mauro vede esattamente la riga, non la parafrasi del custode. Protegge Mauro dal rischio che il custode mascheri un errore in un diff descritto.
 
@@ -258,7 +260,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 
 - **Memoria CC** (workspace `C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\`): contiene `MEMORY.md` index + memorie dedicate (`project_qbeats.md`, `project_qbeats_td44.md`, `project_qbeats_brief_19_05_2026.md`, `feedback_qbeats_gerarchia_ruoli.md`, …). Comportamento chat-locale CC. **Non vive qui.**
 - **Memoria CD** (workspace separato): comportamento chat-locale CD. **Non vive qui.**
-- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `863bc99`.
+- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `153711c`.
 - **BOX5 più recente**: `ARCHIVIO.MD/18_05_2026/BOX5_V23_18_05_2026.md`.
 - **Brief Fase 4**: `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (locale, decidere se committare).
 - **Roadmap sblocco app M1-M8**: `ARCHIVIO.MD/19_05_2026/ROADMAP_SBLOCCO_APP_19_05_2026.md` (locale, decidere se committare).
@@ -281,6 +283,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 8 | 2026-05-22 | CC chat principale 22/05 | TD #44 svolta cross-team: causa isolata nel codice Q-BEATS (non in `libLinkKit.a`). Riga 184 sez. 2 marcata `superseded`. 2 nuove ratifiche aggiunte (causa codice QB confermata + riposizionamento giustificazione Soluzione C — collocazione Fase 6-7 resta valida per merito autonomo). Sez. 3 TD #44 stato aggiornato. Dettagli diagnostici (risposta Ableton 21/05, Test A disabilitazione `ABLLinkSetPeerName` commit `8f879d7`, Test B LinkHut↔LinkHut peer immediato) NON entrati nel libro mastro per regola "solo cross-team" — vivono in memoria CC `project_qbeats_td44.md` (riscrittura pianificata inizio sessione prossima). Custode CC nota: errore di scope evitato in extremis grazie a richiamo Mauro (proposto inizialmente diff con 4 righe operative, ridotto a 2 righe-decisioni). |
 | 9 | 2026-05-26 | CC chat principale 26/05 | Vincolo strutturale LinkKit 4.0 emerso durante chiusura TD `linkPeers`: API pubblica espone solo booleano `ABLLinkIsConnected`, nessun peer count (verificato sull'header `ABLLink.h` della versione attualmente integrata). Tentativo fix lato Swift (commit `72001a5` su branch orfano `fix/td-link-peer-count`) risultato null-op semantico (anche `link_engine_num_peers` interna ritorna sempre 0 o 1 perché alimentata dal callback booleano). Decisione UX cross-team: cambio display Settings "Peers: N" → "Peers: Connected/Standalone" (branch `fix/link-status-ui-honest` commit `b856596`, in attesa test device + merge). 1 ratifica nuova in sez. 2. Sez. 1 Tecnologie aggiornata (LinkKit 4.0 — riga arricchita con limite API esplicito). Sez. 5 HEAD bumpato `fe17817` → `6d1dbbf` (sync stato master). Custode CC nota: errore custode evitato grazie a richiamo Mauro — commento `LinkEngine.mm:2` ancora dice "LinkKit 3.2.2" (obsoleto, va corretto in commit cleanup separato), git log dei vendor file mostra `42424ef` "Update LinkKit 3.2.2 → 4.0". Lezione: verificare git log dei vendor file prima di citare versioni dai commenti del codice. |
 | 10 | 2026-05-26 sera | CC chat principale 26/05 sera | Test device fix display Settings Peers PASSATO: iPad QB + iPhone QB connessi mostrano "Connected" verde, disconnesso mostra "Standalone" grigio, transizione OK. Ratifica 26/05 mattina (riga sez. 2) aggiornata con esito validazione + SHA corretta `f9a6f1c` (era `b856596` pre-amend del commit message). Test esteso cross-platform (Android SB) ha rivelato drift fuori-fase atteso lato Android → 1 nuova ratifica in sez. 2 che dichiara scope Q-BEATS = iOS-only per v1 (cross-team rilevante per CD = FAQ/copy commerciale). HEAD master bumpato `6d1dbbf` → `863bc99` (sync post-commit libro mastro v9). Custode CC nota: cause tecniche drift Android (latenza Core Audio vs OpenSL/AAudio, multicast WiFi Android variabile, power management, clock skew) NON entrate nel libro mastro perché operativa tecnica — vivono in memoria CC. |
+| 11 | 2026-05-26 sera tardi | CC chat principale 26/05 sera tardi | **Rename file `STATO_QBEATS.md` → `LIBRO_MASTRO_QBEATS.md`** per chiarezza scopo. Motivazione: il nome "STATO" era ambiguo perché 3 file diversi descrivono "stato" (`project_qbeats.md` = stato codice in memoria CC, `BUGS_QBEATS.md` = stato bug nel root repo, questo file = ratifiche cross-team). Confusione confermata da Mauro 26/05 sera tardi (*"continuo a sbagliarlo nonostante le ripetute regole"*). Nuovo nome cattura la terminologia già usata nel file stesso ("libro mastro cross-team" riga 1 pre-rename) e da Mauro in chat. Rename via `git mv` (preserva storia git). Cascading update: auto-reference R1 (formula apertura chat) + R5 (pattern commit message standard) + header titolo + HEAD master bumpato `863bc99` → `153711c` (sync post-commit BUGS_QBEATS.md v1 oggi). Archivi storici (BOX3 V65, V67, SINTESI 25/05) NON aggiornati per veridicità archeologica — al tempo del documento il file si chiamava STATO. Memorie CC workspace personale aggiornate in cascading separato (8 file). Nota rename strutturale in header file (banner ⚠️ pre-versione). Custode CC nota: secondo rename file cross-team della storia Q-BEATS (primo: nessuno) — operazione strutturale rara, motivata da disambiguazione semantica. |
 
 ---
 

@@ -9,7 +9,7 @@
 
 ## Scopo e ambito
 
-Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Aggrega in un unico posto ciò che prima era distribuito tra `project_qbeats.md` (memoria CC), `STATO_QBEATS.md` (libro mastro), `BOX3` (briefing sessione), e chat sparse.
+Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Aggrega in un unico posto ciò che prima era distribuito tra `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` (libro mastro), `BOX3` (briefing sessione), e chat sparse.
 
 **Regola d'oro:** se un bug non è qui non esiste come voce tracciata. Se compare in una chat ma non finisce qui, viene perso.
 
@@ -21,8 +21,8 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - Bug scartati / smentiti (per evitare ri-aperture)
 
 **Cosa NON entra qui:**
-- Deliverable di prodotto / UX (vivono in `STATO_QBEATS.md` Sezione 3)
-- Decisioni cross-team ratificate (vivono in `STATO_QBEATS.md` Sezione 2)
+- Deliverable di prodotto / UX (vivono in `LIBRO_MASTRO_QBEATS.md` Sezione 3)
+- Decisioni cross-team ratificate (vivono in `LIBRO_MASTRO_QBEATS.md` Sezione 2)
 - Lezioni di processo (vivono in memoria CC `feedback_qbeats_*.md`)
 - Cronologia commit operativa (vive in memoria CC `project_qbeats.md`)
 
@@ -183,12 +183,12 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
-Riferimento `STATO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
+Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
 - **CD-1 esteso** (zona swipe orizzontale + indicatore `<< X / Y >>`) — proposto, in attesa di implementazione
 - **CD-2** (perimetro rosso sfumato pulsante overlay standby) — proposto
 - **CD-3** (bottone "Restart Setlist" a fine setlist) — proposto
 
-Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `STATO_QBEATS.md` Sezione 3.
+Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `LIBRO_MASTRO_QBEATS.md` Sezione 3.
 
 ---
 
@@ -214,7 +214,7 @@ Per data di chiusura, decrescente.
 - **Fix vero:** PR #1 squash merge in commit `0de5aa0` master 26/05/2026 sera. Display cambiato a stato binario "Connected/Standalone" basato su `linkIsConnected` (verde/grigio).
 - **Validato device:** 26/05 sera (iPad QB + iPhone QB connessi → "Connected" verde / disconnesso → "Standalone" grigio, transizione OK).
 - **Memoria correlata:** `feedback_qbeats_linkkit_peer_count_no_api.md` (lezione doppia: vincolo tecnico permanente + verifica C++ alla sorgente prima di accettare premesse).
-- **Ratifica cross-team:** `STATO_QBEATS.md` v9 (commit `863bc99`) + v10 (commit `c20f9d9`).
+- **Ratifica cross-team:** `LIBRO_MASTRO_QBEATS.md` v9 (commit `863bc99`) + v10 (commit `c20f9d9`).
 
 ### TD #44 — Bug Link discovery QB↔QB
 - **Sintomo:** due istanze Q-BEATS su device diversi non si scoprivano via Ableton Link. Discovery QB↔SB funzionava, solo QB↔QB rotta.
@@ -347,7 +347,7 @@ Per data di chiusura, decrescente.
 - **Sintomo:** iPad QB + iPhone QB + Android Soundbrenner → Android fuori-fase ~10-50ms drift.
 - **Diagnosi:** NON bug Q-BEATS. Causa fuori dal controllo Q-B (territorio Ableton + Soundbrenner Android: implementazione LinkKit Android, audio stack Android latenza > Core Audio, multicast WiFi Android variabile, power management Android).
 - **Verifica controllo:** iPad SB + iPhone QB → in fase ✓ (iOS-only OK).
-- **Ratifica cross-team:** `STATO_QBEATS.md` v10 — scope Q-BEATS = iOS-only per v1.
+- **Ratifica cross-team:** `LIBRO_MASTRO_QBEATS.md` v10 — scope Q-BEATS = iOS-only per v1.
 - **Implicazione CD:** dichiarare iOS-only in materiale commerciale, FAQ, copy app store.
 
 ### Sync Start/Stop Soundbrenner OFF default
@@ -380,7 +380,7 @@ Per data di chiusura, decrescente.
 
 | Versione | Data | Autore | Modifiche principali |
 |---|---|---|---|
-| 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `STATO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
+| 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
 
 ---
 
