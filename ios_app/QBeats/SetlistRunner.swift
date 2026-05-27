@@ -234,6 +234,36 @@ final class SetlistRunner: ObservableObject {
         session.macroBarTotal      = song.sections.count
     }
 
+    // MARK: - Problema A fix (27/05/2026) — Display init pre-Play device locale
+    //
+    // NB nomenclatura: NON confondere con "Bug 1" del RECAP 24/05 (Follower no
+    // update quando Director fa Play cross-device — Problema B, fuori scope).
+    // Questo è Problema A: display vuoto pre-Play su singolo device.
+
+    /// Popola il display LiveSession con la prima sezione della setlist
+    /// caricata, SENZA avviare l'audio. Chiamato dall'`onAppear` di LiveView
+    /// per evitare che la videata appaia "vuota" (nome canzone/sezione/next
+    /// blank) al primo ingresso prima del tap Play.
+    ///
+    /// Coerente con TD #28 (17/05/2026): stato iniziale Vista LIVE è `.stopped`,
+    /// nessun overlay standby — la videata deve mostrare i dati della setlist
+    /// caricata già in stato `.stopped`.
+    ///
+    /// Sicuro chiamarlo più volte: idempotente quando il runner è in stato
+    /// iniziale (currentSongIdx=0, currentSectionIdx=0). NON tocca AudioEngine,
+    /// NON modifica `pendingDisplayUpdate` né `sectionEndedClosure`.
+    ///
+    /// In aggiunta a `updateSessionDisplay` (che popola solo nomi + macrobar),
+    /// setta anche `currentBPM` e `totalBarsInSection` dalla prima sezione
+    /// del catalogo runner — così il display pre-Play è coerente con la
+    /// setlist caricata, non con i default LiveSession (120 BPM, 4 battute).
+    func primeDisplay(session: LiveSession) {
+        guard let section = currentSection else { return }
+        updateSessionDisplay(session: session)
+        session.currentBPM         = section.bpm
+        session.totalBarsInSection = Int(section.repetitions)
+    }
+
     // MARK: - Closure end-of-section (autopropagante)
 
     /// Closure passata a `loadSection(onEnd:)`. Eseguita su main thread

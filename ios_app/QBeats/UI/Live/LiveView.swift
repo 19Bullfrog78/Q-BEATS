@@ -139,6 +139,27 @@ struct LiveView: View {
             // fino al primo beat tick.
             displayBpb = audioEngine.beatsPerBar
             displayAccentPattern = audioEngine.currentAccentPattern
+            // Problema A fix (27/05/2026) — Popola il display LiveSession dalla
+            // prima sezione della setlist caricata, così al primo ingresso in
+            // Vista LIVE l'utente vede subito nome canzone, sezione corrente,
+            // next sezione, macrobar — senza dover tappare Play. Prima di questo
+            // fix la videata appariva "vuota" finché non partiva il playback
+            // (updateSessionDisplay veniva chiamato solo in
+            // prepareAndStartCurrentSection, dentro Play).
+            //
+            // NB nomenclatura: questo NON è il "Bug 1" del RECAP 24/05 (Follower
+            // no update cross-device — Problema B). Questo è Problema A locale.
+            // Coerente con TD #28 (17/05/2026): stato iniziale `.stopped`, no
+            // overlay standby, videata deve mostrare dati setlist caricata.
+            runner.primeDisplay(session: session)
+            // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
+            // Override il sync da audioEngine sopra: la setlist caricata è "verità"
+            // di display, lo stato pendente in audioEngine può essere stale
+            // (es. utente ha aperto Studio dopo aver caricato la setlist).
+            if let section = runner.currentSection {
+                displayBpb = section.beatsPerBar
+                displayAccentPattern = section.accentPattern
+            }
         }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
