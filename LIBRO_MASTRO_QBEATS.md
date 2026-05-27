@@ -2,9 +2,9 @@
 
 > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
 
-**Versione:** 12
-**Ultima modifica:** 2026-05-26 sera tardi (dopo R1 aggiornata)
-**Edit author:** CC chat principale 26/05/2026 sera tardi (R1 aggiornata con riferimento esplicito a memorie del proprio workspace — CC: tracker bug + memoria progetto + feedback; CD: memorie CD + brief deliverable)
+**Versione:** 13 (proposta, in attesa ratifica esplicita Mauro su 4 righe nuove sez. 2 + 1 voce nuova sez. 4 + 2 righe naming sez. 1)
+**Ultima modifica:** 2026-05-27 mattina (BOX3 V68 — 3 chiusure cross-team + Bug 2 UX decision + apertura domande CD per Fase 6-7 Bug 4 fix)
+**Edit author:** CC chat principale 27/05/2026 mattina
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -161,6 +161,8 @@ Sotto-tabella popolata da CD via flusso R5 ("Contributi CD al file"). Una riga p
 |---|---|
 | LinkKit 4.0 | SDK Ableton Link. API pubblica `ABLLinkIsConnected` espone solo booleano connesso/non-connesso, **nessuna API per peer count**. Implicazione UX: nessun display "N peers" possibile in Q-BEATS finché Ableton non espone l'API |
 | TD #N | Tech debt numerato (vedi memoria CC `project_qbeats.md` per dettaglio) |
+| Problema A | Sintomo cross-team: in Vista LIVE, **prima del tap Play**, nome canzone + counter macrobar erano vuoti (placeholder) invece di mostrare già la prima canzone della setlist + "bar 1 di N". CHIUSO `441d543` (27/05/2026). Scope: **device locale**, indipendente da Link. NON confondere con Problema B |
+| Problema B | Sintomi cross-team Bug 4 cross-device (Director + Collaborative): iPhone Follower (a) non mostra nome canzone, (b) counter macrobar avanza all'infinito oltre bar 8. Causa root tecnica identificata 27/05 (operativa CC, vedi memoria CC `project_qbeats_problema_b_causa_root`). Fix collocato in Fase 6-7. NON confondere con Problema A |
 
 ---
 
@@ -218,6 +220,10 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
 | 2026-05-22 | TD #44 — Soluzione C (protocollo Wi-Fi proprietario) NON è più "soluzione architetturale al TD #44": resta feature di prodotto multi-device cross-app per Fase 6-7 per merito autonomo. La collocazione Fase 6-7 della ratifica 2026-05-20 riga 186 resta valida — cambia solo la giustificazione | Mauro + CC | memoria CC `project_qbeats_td44.md` | attiva | — |
 | 2026-05-26 | Settings → "Peers" display: passa da contatore numerico ("Peers: N") a stato binario ("Peers: Connected" / "Peers: Standalone"), basato su `linkIsConnected`. Motivazione strutturale: LinkKit 4.0 non espone API peer count (header `ABLLink.h` verificato, solo `ABLLinkIsConnected` booleano). Implicazione cross-team CD: nessun display N peers possibile in Q-BEATS (Vista LIVE, Vista Emergenza, pulsantiera CD-4, Settings G1-G8) finché Ableton non espone l'API | Mauro + CC | branch `fix/link-status-ui-honest` commit `f9a6f1c` (validato test device 26/05/2026 sera: iPad QB + iPhone QB connessi → "Connected" verde / disconnesso → "Standalone" grigio, transizione OK); merge squash master pending; memoria CC | attiva | — |
 | 2026-05-26 sera | Scope Q-BEATS = **iOS-only** confermato per v1. Test cross-platform Link iOS↔Android (iPad QB Collaborative + iPhone QB Director + Android Soundbrenner) ha rivelato drift fuori-fase lato Android: implementazione LinkKit Android + audio stack Android (latenza maggiore di Core Audio, multicast WiFi variabile per device) producono jitter incompatibile con uso live cross-device. Test controllo iOS-only (iPad SB + iPhone QB) confermato in fase. Implicazione cross-team CD: dichiarare iOS-only in materiale commerciale, FAQ utente, copy app store / sito. Q-BEATS v1 non supporta Android come peer Link per uso live. Causa root fuori dal controllo Q-BEATS (territorio Ableton + Soundbrenner Android, non Q-BEATS) | Mauro + CC | test device 26/05/2026 sera; memoria CC | attiva | — |
+| 2026-05-27 mattina | TD #39 quantum 3/4 → **CHIUSO retroattivamente da `cb92faa`** (default LinkMode `.collaborativa`). Metodologia Test 2 Audacity: setlist "3/4 Long" (4/4 8 batt → 3/4 16 batt → 4/4 8 batt), iPad standalone Ableton OFF 100 BPM, 5 misure durata battuta dentro sezione 3/4 main 16 battute → tutti 5 = **1800 ms esatto = zero drift**. Il sospetto "terzo bug fantasma chiuso da cb92faa" confermato empiricamente. Implicazione cross-team: Q-BEATS supporta correttamente cambi di TS 4/4 → 3/4 → 4/4 in setlist live, NON da riaprire | Mauro + CC | BOX3 V68 sez. 1.a + memoria CC `project_qbeats.md` + branch `feat/diag-on-current-master` commit `c85b81a` | attiva | — |
+| 2026-05-27 mattina | TD #A first-beat-fuori → **baseline locale = 78 ms ratificata** (set 2 Test 1, mediana di 6 play standalone con intervalli 15s, range 74.8-80.8 ms, σ molto bassa). Misura cross-device completa **rimandata a Fase 6-7** (no inferenza prematura sul delta vs ~105 ms storico cross-device). Anomalia aperta non chiusa: ΔT2→T9 set 1 (33 ms) vs set 2 (78 ms) — da confermare se riemerge. Implicazione cross-team: 78 ms è il baseline di riferimento per misure future di precisione first-beat | Mauro + CC | BOX3 V68 sez. 1.b + memoria CC `project_qbeats.md` + branch `feat/diag-on-current-master` commit `7167355` (log T0-T9) | attiva | — |
+| 2026-05-27 mattina | **Problema A** (display init pre-Play in Vista LIVE, device locale) → **CHIUSO e MERGIATO** `441d543`. Fix: `SetlistRunner.primeDisplay()` (+30 righe) + `LiveView.onAppear` (+21 righe). Validato iPad + iPhone (IPA #449 con fix + diagnostica). Behavior: all'apertura Vista LIVE pre-Play, nome canzone + "bar 1 di N" visibili (non più placeholder vuoto). Implicazione cross-team UX: l'utente vede già la prima canzone della setlist appena entra in Vista LIVE | Mauro + CC | BOX3 V68 sez. 1.c + commit `441d543` (cherry-pick di `d085f58`) | attiva | — |
+| 2026-05-27 mattina | **Bug 2 counter Collaborativo** → decisione UX: *"Director fa bar 1 da solo, Collaborativo entra a bar 2 allineato via Link"* → counter Follower parte da `bar 2 di N`, non `bar 1 di N`. Dipendenza tecnica: **Bug 2 ⊆ Bug 4** (Follower deve conoscere "di N" dal SetlistRunner, che oggi non viene avviato cross-device — causa root in `AudioEngine.swift:442-446`). Implementazione contestuale al fix Bug 4 in Fase 6-7 | Mauro + CC + AI esterna referee | BOX3 V68 sez. 2 + memoria CC `project_qbeats_problema_b_causa_root` | attiva — **merito UX da pondera CD in review formale brief Fase 6-7 Bug 4 fix** (vedi sez. 4 domanda CD-Q1) | — |
 
 ---
 
@@ -246,7 +252,36 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 
 ### Domande aperte residue (post-v5 21/05)
 
-**Nessuna domanda aperta al 21/05** — tutte le domande Q1-Q12 + β.1-β.2 + R-CD5-01-10 risolte tra v3 e v5. Sezione 4 vive come placeholder per future domande aperte.
+**Nessuna domanda aperta al 21/05** — tutte le domande Q1-Q12 + β.1-β.2 + R-CD5-01-10 risolte tra v3 e v5.
+
+### Domande aperte CD per Fase 6-7 Bug 4 fix (aggiunte 27/05/2026 mattina)
+
+**CD-Q1 — Bug 2 counter Collaborativo `bar 2 di N`** *(ratifica merito UX)*:
+La decisione UX "Director fa bar 1 da solo, Collaborativo entra a bar 2 allineato via Link" è stata ratificata Mauro + CC + AI esterna referee 27/05 (sez. 2 sopra), ma **CD non ha ponderato il merito UX**. Domande:
+- A) Accetti il behavior così com'è? (counter Follower parte da `bar 2 di N`)
+- B) Accetti il behavior ma proponi un **indicatore visivo** che dispositivo è in Collaborative/Follower mode (badge "FOLLOWER", icona Link, colore counter, …)?
+- C) Proponi alternativa UX (specificare)?
+
+**CD-Q2 — Vista "in attesa di Director"** *(potenziale nuovo deliverable CD-X)*:
+Quando l'utente tap Play su Follower **senza peer Director attivo**, che behavior atteso?
+- A) Follower parte locale (standalone autonomo, ignora che è in mode Collaborative).
+- B) Follower resta in stato "waiting" con messaggio UI "In attesa di Director…" finché un peer Director non avvia il play.
+- C) Modal/popup che chiede all'utente "Vuoi partire locale o aspettare Director?".
+Decisione bloccante per design Opzione C/D fix Bug 4. Eventuale nuovo deliverable CD-X "Vista Waiting Director".
+
+**CD-Q3 — Sync sezione runtime Director → Follower** *(transizione visiva cross-device)*:
+Quando Director avanza alla sezione N+1, come comunicare visivamente al Follower il cambio sezione?
+- A) Transizione visiva immediata (Follower switcha teleprompter + microbar + accent pattern senza animazione).
+- B) Smooth fade ~300ms (allineato al fade fine-setlist esistente).
+- C) Animazione dedicata (specificare).
+Decisione integrabile con CD-1 esteso (`<< X / Y >>` swipe) o entry separata.
+
+**CD-Q4 — Ratifica ex-post Problema A** *(behavior già su master)*:
+Il fix Problema A display init pre-Play è già su master `441d543`, validato iPad + iPhone. Domanda formale:
+- A) Confermi il behavior (all'apertura Vista LIVE pre-Play, nome canzone + "bar 1 di N" visibili) come UX corretta?
+- B) Hai osservazioni di merito UX (es. dovrebbe esserci indicatore "non ancora avviato"? counter macrobar `0 di N` invece di `1 di N`? altro)?
+
+**Timeout R3**: 24h dalla data di apertura di queste domande. Se CD non risponde, Mauro decide comunque e la voce viene marcata `ratificata-no-CD-review` (simmetrica a `ratificata-no-CC-review`).
 
 ### Voci risolte come moot (non ratificate, non più rilevanti)
 
@@ -260,12 +295,15 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 
 - **Memoria CC** (workspace `C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\`): contiene `MEMORY.md` index + memorie dedicate (`project_qbeats.md`, `project_qbeats_td44.md`, `project_qbeats_brief_19_05_2026.md`, `feedback_qbeats_gerarchia_ruoli.md`, …). Comportamento chat-locale CC. **Non vive qui.**
 - **Memoria CD** (workspace separato): comportamento chat-locale CD. **Non vive qui.**
-- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `153711c`.
+- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. HEAD corrente: `441d543`.
 - **BOX5 più recente**: `ARCHIVIO.MD/18_05_2026/BOX5_V23_18_05_2026.md`.
 - **Brief Fase 4**: `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (locale, decidere se committare).
 - **Roadmap sblocco app M1-M8**: `ARCHIVIO.MD/19_05_2026/ROADMAP_SBLOCCO_APP_19_05_2026.md` (locale, decidere se committare).
 - **TD #44 report**: `ARCHIVIO.MD/20_05_2026/TD44_REPORT_20_05_2026.md` (committato in `fe17817`).
 - **Registro test Audacity ground truth**: `ARCHIVIO.MD/SENZA COLLOCAZIONE/REGISTRO_TEST_AUDACITY_V1.md`.
+- **BOX3 V68**: `ARCHIVIO.MD/27_05_2026/BOX3_V68_27_05_2026.md` (locale, 3 chiusure cross-team + causa root Problema B + Bug 2 UX decision, 27/05/2026 mattina).
+- **Brief CD 27/05**: `ARCHIVIO.MD/27_05_2026/BRIEF_CD_27_05_2026.md` (locale, 4 domande aperte CD per Fase 6-7 Bug 4 fix + ratifica ex-post Problema A).
+- **Tracker bug centralizzato**: `BUGS_QBEATS.md` in root repo (committato in `153711c`, 27/05/2026 mattina).
 
 ---
 
@@ -285,6 +323,7 @@ Le domande sono numerate. Mauro risponde nel formato `Q11=A, ecc.`. Quando una r
 | 10 | 2026-05-26 sera | CC chat principale 26/05 sera | Test device fix display Settings Peers PASSATO: iPad QB + iPhone QB connessi mostrano "Connected" verde, disconnesso mostra "Standalone" grigio, transizione OK. Ratifica 26/05 mattina (riga sez. 2) aggiornata con esito validazione + SHA corretta `f9a6f1c` (era `b856596` pre-amend del commit message). Test esteso cross-platform (Android SB) ha rivelato drift fuori-fase atteso lato Android → 1 nuova ratifica in sez. 2 che dichiara scope Q-BEATS = iOS-only per v1 (cross-team rilevante per CD = FAQ/copy commerciale). HEAD master bumpato `6d1dbbf` → `863bc99` (sync post-commit libro mastro v9). Custode CC nota: cause tecniche drift Android (latenza Core Audio vs OpenSL/AAudio, multicast WiFi Android variabile, power management, clock skew) NON entrate nel libro mastro perché operativa tecnica — vivono in memoria CC. |
 | 11 | 2026-05-26 sera tardi | CC chat principale 26/05 sera tardi | **Rename file `STATO_QBEATS.md` → `LIBRO_MASTRO_QBEATS.md`** per chiarezza scopo. Motivazione: il nome "STATO" era ambiguo perché 3 file diversi descrivono "stato" (`project_qbeats.md` = stato codice in memoria CC, `BUGS_QBEATS.md` = stato bug nel root repo, questo file = ratifiche cross-team). Confusione confermata da Mauro 26/05 sera tardi (*"continuo a sbagliarlo nonostante le ripetute regole"*). Nuovo nome cattura la terminologia già usata nel file stesso ("libro mastro cross-team" riga 1 pre-rename) e da Mauro in chat. Rename via `git mv` (preserva storia git). Cascading update: auto-reference R1 (formula apertura chat) + R5 (pattern commit message standard) + header titolo + HEAD master bumpato `863bc99` → `153711c` (sync post-commit BUGS_QBEATS.md v1 oggi). Archivi storici (BOX3 V65, V67, SINTESI 25/05) NON aggiornati per veridicità archeologica — al tempo del documento il file si chiamava STATO. Memorie CC workspace personale aggiornate in cascading separato (8 file). Nota rename strutturale in header file (banner ⚠️ pre-versione). Custode CC nota: secondo rename file cross-team della storia Q-BEATS (primo: nessuno) — operazione strutturale rara, motivata da disambiguazione semantica. |
 | 12 | 2026-05-26 sera tardi (dopo R1) | CC chat principale 26/05 sera tardi | **R1 aggiornata**: formula apertura chat esplicita riferimento a memorie del proprio workspace. Pre-v12 era generica (*"Letto LIBRO_MASTRO_QBEATS.md v[N] del [data], procedo da lì."*) → rischio chat futura apre senza leggere il tracker bug `BUGS_QBEATS.md` o memorie locali e propone fix duplicati / scarta lezioni note. Nuova R1 (versione sintetica B ratificata da Mauro): *"Letto LIBRO_MASTRO_QBEATS.md v[N] del [data] + memorie del proprio workspace (CC: tracker bug + memoria progetto + feedback rilevanti / CD: memorie CD + brief deliverable specifici), procedo da lì."* Scelta sintetica vs versione A esplicita con nomi file specifici (per future-proof: se aggiungiamo nuovi file/memorie non serve ri-aggiornare R1 ogni volta). Custode CC nota: suggerimento di AI esterna girato da Mauro, ratificato dopo correzione di processo — Mauro ha richiamato che il libro mastro stesso è il canale di allineamento CD↔CC (no messaggi ad-hoc copia/incolla per chat parallele, trust the file: CD legge il file aggiornato alla prossima apertura R1). |
+| 13 | 2026-05-27 mattina (PROPOSTA, in attesa ratifica Mauro) | CC chat principale 27/05 mattina | **3 chiusure cross-team della sessione + 1 decisione UX + 4 domande aperte CD per Fase 6-7**. Sez. 1 "Tecnologie / debiti" estesa con 2 righe nomenclatura: **Problema A** (display init pre-Play device locale, chiuso) e **Problema B** (sintomi cross-device Bug 4, fix Fase 6-7) — disambiguazione cross-team vincolante per evitare confusioni in chat future. Sez. 2 estesa con 4 righe nuove: (1) TD #39 chiuso retroattivamente da `cb92faa` post Test 2 Audacity (5 misure 1800 ms esatti dentro 3/4 main 16 battute); (2) TD #A baseline locale ratificata 78 ms (set 2 Test 1, mediana 6 play, range 74.8-80.8 ms); (3) Problema A chiuso e mergiato `441d543` (validato iPad+iPhone); (4) Bug 2 counter Collaborativo decisione UX "Director bar 1 da solo, Collaborativo entra a bar 2 via Link" ratificata Mauro+CC+AI esterna, **stato attiva con merito UX da pondera CD** in review formale brief Fase 6-7 Bug 4 fix. Sez. 4 estesa con 4 domande aperte CD (CD-Q1 ratifica merito Bug 2 + eventuale indicatore visivo FOLLOWER; CD-Q2 Vista "in attesa di Director" potenziale CD-X; CD-Q3 sync sezione runtime Director→Follower transizione visiva; CD-Q4 ratifica ex-post Problema A). Sez. 5 HEAD master bumpato `153711c` → `441d543`. Custode CC nota: ratifiche cross-team della giornata (TD #39 / TD #A / Problema A / Bug 2 UX) entrano nel libro mastro per regola "scope cross-team" — le operative CC interne (causa root tecnica AudioEngine.swift:442-446, opzioni fix C/D, anomalia ΔT2→T9, branch diagnostico) restano in BOX3 V68 + memoria CC, non entrano qui (regola `feedback_qbeats_libro_mastro_solo_cross_team`). |
 
 ---
 
