@@ -1,0 +1,387 @@
+# BUGS_QBEATS — Tracker centralizzato bug e tech debt
+
+**Versione:** 1
+**Ultima modifica:** 2026-05-26 sera
+**Autore iniziale:** CC chat principale 26/05/2026 sera
+**Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+
+---
+
+## Scopo e ambito
+
+Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Aggrega in un unico posto ciò che prima era distribuito tra `project_qbeats.md` (memoria CC), `STATO_QBEATS.md` (libro mastro), `BOX3` (briefing sessione), e chat sparse.
+
+**Regola d'oro:** se un bug non è qui non esiste come voce tracciata. Se compare in una chat ma non finisce qui, viene perso.
+
+**Cosa entra qui:**
+- Bug funzionali (sintomo visibile utente)
+- Tech debt (codice/architettura da pulire)
+- Anomalie diagnostiche aperte
+- Bug chiusi (per riferimento storico, non si cancellano mai)
+- Bug scartati / smentiti (per evitare ri-aperture)
+
+**Cosa NON entra qui:**
+- Deliverable di prodotto / UX (vivono in `STATO_QBEATS.md` Sezione 3)
+- Decisioni cross-team ratificate (vivono in `STATO_QBEATS.md` Sezione 2)
+- Lezioni di processo (vivono in memoria CC `feedback_qbeats_*.md`)
+- Cronologia commit operativa (vive in memoria CC `project_qbeats.md`)
+
+---
+
+## Convenzioni
+
+### ID bug
+- `TD #N` — numerazione storica esistente (non riassegnare)
+- `TD-<short>` — bug non numerati (sintomo descrittivo)
+- `Bug N` — bug funzionali numerati separatamente (es. Bug 4 Link sleep/wake)
+
+### Stato
+- 🔴 **OPEN ALTA** — bloccante palco o richiesto entro 2 settimane
+- 🟠 **OPEN MEDIA** — non bloccante palco, da chiudere pre-release v1
+- 🟡 **OPEN BASSA / SOSPESO** — backlog post-v1 o sospeso in attesa di dati / decisione
+- 🟢 **CHIUSO** — fixato e validato su device (regola `feedback_qbeats_chiuso_solo_dopo_device`)
+- ⚫ **SCARTATO** — diagnosi smentita o causa fuori controllo Q-BEATS
+
+### Priorità palco
+- 🚨 **BLOCCANTE PALCO** — non possiamo suonare live con questo bug aperto
+- ⚠️ **NON BLOCCANTE** — fastidio ma palco fattibile
+- 📦 **BACKLOG** — pre-release v1 o post-v1
+
+### Workflow aggiornamento
+1. Nuovo bug emerge in chat → CC lo aggiunge qui PRIMA di proporre fix
+2. Bug viene fixato → CC aggiorna stato a 🟢 CHIUSO con commit di riferimento
+3. Diagnosi smentita → CC sposta in Sezione "Scartati / smentiti" con motivazione
+4. Modifiche al file → diff letterale in chat, commit `BUGS_QBEATS.md: vN — [decisione]`
+
+---
+
+# Sezione 1 — Bug APERTI
+
+## 🚨 1.1 — Bloccanti palco (🔴 OPEN ALTA)
+
+### TD #A — First-beat-fuori cross-device
+- **Sintomo:** al primo beat dopo `play`, il device Collaborativo entra 30-105ms dopo il Director. Sistematico cross-BPM (non rumore). Misurato cross-play, cross-device.
+- **Misura:** ritardo `T4→T5` (calcolo `futureHostTime` → primo render buffer audio post pre-roll) = 98-118ms media ~105ms. Single-sample iniziale 24/05 era ~70ms (sottostima). Timebase iPad confermato = 24 MHz (1 tick ≈ 41,666 ns). startBeat finale 0,032-0,036 beat ≈ 32-36ms a 100 BPM.
+- **Causa ipotizzata:** delta tra arrival time del play start callback su iPad Collaborative vs initial Force di iPhone Director. Possibile dispatch chain main→audioQueue→pre-roll dominante.
+- **Stato:** in attesa raccolta dati Sessione 1 (vedi sotto). Senza dati nuovi non si può progettare fix.
+- **Branch diagnostico:** `feat/diag-first-beat-and-beat-drop-and-3-4-long` (commit `70bb86a` + `31dddbb`). CI run [`26361824809`](https://github.com/19Bullfrog78/Q-BEATS/actions/runs/26361824809) ✅ verde, IPA pronto.
+- **Test da fare (Mauro su device):** installa IPA, setup 1D+1C (iPad Collaborative, iPhone Director), play, raccogli log iMazing iPad `[Q-BEATS][DIAG-A][T0]→[T9]`. Ripeti 3-4 play per campioni multipli.
+- **Analisi delta attesi:** T0→T1 main dispatch jitter; T1→T2 main→audioQueue; T4→T5 dovrebbe match `delaySec` loggato in T4; T8→T9 ~immediato. Discrimina pre-roll latency vs dispatch chain dominante.
+- **Vincolo metodologico:** NIENTE fix prima della causale chiarita (regola memoria attiva).
+- **Note:** vive sul baseline `cb92faa` indipendentemente dal three-band — esisteva già su master prima del fix three-band. **Generalizzato a "ogni inizio sezione"** (Build 110 entrata 26ms vs regime 13ms = first-beat-fuori intra-setlist, non solo play start).
+- **Roadmap:** parte del blocco audio unitario 🔴 referee 24/05 (TD #A + three-band v2 + Test 2 Audacity).
+
+### TD beat drop scheduling click iPad Collaborativo
+- **Sintomo:** iPad Collaborativo **era in sync** (non perde fase, beat successivo torna normale, niente drift cumulativo), **ma non genera il click** su quel beat. Osservato a 49s di Slow 90 ("iPad non parte c'è solo click iPhone") e a Intro 100 baseline. Confermato 25/05 con Audacity (foto baseline `cb92faa` ~13.6s mostra cluster con solo onda iPhone, manca onda iPad).
+- **Causa ipotizzata:** **bug di scheduling/rendering del click lato Collaborativo**, NON sincronizzazione Link. `MetronomeDSP` iPad salta l'emissione del `BeatEvent` audio in `processBuffer` per quel sample, ma `_currentBeatInBar` e `_exactNextBeatSample` restano corretti. Race condition tra `metronome_set_beat_position` (chiamato da `sync_phase` su audioQueue) e `processBuffer` (audio thread) → sovrascrittura/salto BeatEvent.
+- **Confermato strutturale dal log iPad** (Sessione 25/05): Phase sync triggered ogni buffer, 6245/6364 righe del log = 98% = `setBeatPosition` chiamato decine al secondo → race con `processBuffer` continua.
+- **Stato:** in attesa logging mirato DSP. NON loggato in Sessione 1 (scope AI esterna ha escluso modifiche C++/DSP).
+- **Test da fare:** logging mirato in `MetronomeDSP::processBuffer` per catturare quando `currentAbsolute == roundedNextBeat` ma `BeatEvent` non emesso. Sessione DSP separata.
+- **Vincolo:** NIENTE codice prima della diagnosi causale.
+- **Note:** **non specifico** a Song B build 110 (era ipotesi iniziale errata) — osservato anche su Intro 100 baseline. Generalizzato.
+- **Roadmap:** Item 2 roadmap CC. Potenziale effetto collaterale di Item 4 three-band v2 oppure sessione log DSP separata.
+
+### TD #17 — Link perde peer dopo sessioni lunghe (parzialmente coperto)
+- **Sintomo:** dopo sessioni lunghe Link smette di vedere peer. Recovery manuale: toggle Link OFF/ON.
+- **Stato:** parzialmente coperto da fix Bug 4 (commit `6d1dbbf` 26/05 — pattern Ableton bidirezionale ScenePhase) per il caso background/foreground cycle. **Resta aperto** per scenario "sessioni lunghe foreground attivo" se mai si manifesta.
+- **Test da fare:** pre-palco, sessione live foreground attiva ≥30 min, verificare se peer scompaiono.
+
+## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
+
+### TD #34 — Race condition `link_engine_set_start_stop_callback`
+- **Sintomo:** potenziale crash mid-session su transizioni start/stop rapide.
+- **Stato:** da verificare empiricamente. NON consolidare a priori "stessa causa TD beat drop": race su scope diversi (main↔audioQueue vs audioQueue↔audio thread).
+- **Test da fare:** stress test start/stop rapidi cross-device.
+- **Roadmap:** Item 3 roadmap CC.
+
+### TD #39 — Link sync quantum mismatch peer in TS incompatibile (🟡 SOSPESO post-Step 0)
+- **Sintomo:** cambio BPB con peer SB attivo via Link → click orfano + accent shift permanente ~3s dopo transizione. Sparisce in Q-B standalone. Si manifesta SOLO con peer Link + cambio BPB.
+- **Causa nota:** post-scadenza `linkSyncSkipBuffers=100`, `link_engine_sync_phase` legge consensus Link inconsistente (Q-B quantum=NEW, SB quantum=OLD hardcoded) → `metronome_set_beat_position` riscrive `_currentBeatInBar`/`_exactNextBeatSample`.
+- **Stato:** 🟡 sospeso post-Step 0. Test 3/4 di Step 0 era 2 battute, troppo corto per mismatch progressivo. Step 0 ha misurato 21ms regime su 2 battute = prove of life ma non conclusivo. Per chiudere o riaprire serve test su sezione 3/4 di 8-16 battute.
+- **Prerequisito:** Item 5b setlist 3/4 Long DebugView (✅ già committata `70bb86a` sul branch diagnostico, in attesa test device).
+- **Test da fare:** Audacity 5 misure dentro sezione 3/4 16 battute (inizio + ¼ + ½ + ¾ + fine). Confronto con baseline 4/4 Intro 100 12ms (Step 0). Se 3/4 lungo drifta progressivamente → TD #39 riaperto 🔴. Se stabile → TD #39 chiuso retroattivamente da `cb92faa`.
+- **Possibili fix (se confermato):** estendere `linkSyncSkipBuffers` post-cambio BPB / bloccare `sync_phase` post-quantum-change / verificare consenso peer prima di applicare.
+- **Roadmap:** Item 5 roadmap CC. Sblocco condizionato a Item 5b + test.
+
+### Three-band v2 — Riprogettazione smoothing `sync_phase`
+- **Contesto:** Step 0 ha misurato Slow 90 baseline `cb92faa` regime = 25ms (fuori target stretch <15ms). Versione three-band originale `c766fd5` peggiora Slow 90 a 30ms → NON mergeata.
+- **Design alternativo:** smoothing a valle in `metronome_set_beat_position` + `midi_engine_set_beat_position` (DSP locale), `sync_phase` ritorna `linkBeat` puro.
+- **Stato:** in attesa di analisi codice completa PRIMA di qualsiasi implementazione. Branch dedicato `feat/sync-smoothing-downstream` quando attivato.
+- **Vincolo metodologico:** smoke test cross-device PRIMA dei test di precisione (lezione three-band v1 24/05).
+- **Branch di riferimento storico:** `feat/collab-sync-three-band` (commit `c766fd5`) — open su origin, NON merged, riferimento per design da cui prendere spunto + da evitare.
+- **Roadmap:** Item 4 roadmap CC. Motivazione empirica c'è (Slow 90 fuori target stretch).
+
+## 📦 1.3 — Backlog (🟡 OPEN BASSA)
+
+### TD #19 — Popup "Non Disturbare o Aereo" da aggiornare
+- **Sintomo:** popup esistente in app dice "abilita Non Disturbare o Aereo" ma non spiega che Modalità Aereo "pura" spegne WiFi → Link KO.
+- **Fix:** aggiornare copy popup con istruzione "Aereo + WiFi manuale ON" per uso live Link-friendly.
+- **Dominio:** CD per copy + CC per implementazione.
+- **Riferimento:** memoria `project_qbeats_link_aereo_popup.md`.
+
+### TD #20 — Test G doc — codice difensivo non testabile
+- **Note:** codice di guard difensivo che non si può testare su device direttamente (richiede condizioni rare). Da documentare per test review futuro.
+
+### TD #21 — `when.isHostTimeValid` guard non implementato
+- **Sintomo:** nel tap block manca guard `when.isHostTimeValid` per gestire timing invalidi.
+- **Impatto:** non bloccante, edge case raro.
+
+### TD #22 — Pin Xcode runner GitHub Actions
+- **Note:** Xcode su runner GitHub Actions usa `xcode-latest`. Per dev install via iMazing OK. Diventa hard requirement quando si apre discorso App Store submission (build determinismo).
+- **Insieme a:** TD #31 (Node.js 20 deprecation), TD #32 (Dual entitlements).
+
+### TD #30 — Workflow CI step `Verify entitlements` rotto
+- **Sintomo:** comando `codesign -d --entitlements :- ...` usa sintassi `:-` deprecata in macOS toolchain recente. Su `macos-latest` produce silenziosamente `<dict></dict>` vuoto invece dell'output reale.
+- **Impatto funzionalità app:** zero — gli entitlements vengono comunque applicati al binary (confermato indirettamente da TD #27 verde su device + multicast preservato post-TD #44 fix).
+- **Impatto diagnostica:** alto — perso strumento per verificare regressioni future entitlements.
+- **Fix proposto:** sostituire `:-` con path file temp (`codesign -d --entitlements /tmp/ent.xml ... && cat /tmp/ent.xml`) o flag `--xml --entitlements -`. Una riga nel workflow.
+- **Priorità:** bassa, da fixare insieme a TD #31 + TD #32.
+
+### TD #31 — Workflow CI Node.js 20 deprecation
+- **Sintomo:** warning nelle GitHub Actions per `actions/checkout@v4` e `actions/upload-artifact@v4` su Node.js 20.
+- **Impatto:** hard fail prevedibile entro 2-3 mesi.
+- **Fix:** aggiornare actions a versioni Node.js 22.
+
+### TD #32 — Dual entitlements file Dev/Distribution
+- **Sintomo:** `get-task-allow=true` di TD #27 è compatibile solo con Development profile.
+- **Impatto:** pre-submission App Store servirà secondo file entitlements senza la chiave + variante CI.
+- **Insieme a:** TD #22 + TD #30 + TD #31.
+
+### TD #33 — Formula bpb-dipendente in `scheduleBPMChange`
+- **Sintomo:** bypassata da `atNextBeat:true` ma residua per altri caller.
+- **Impatto:** non bloccante finché tutti i caller usano `atNextBeat:true`.
+
+### TD #37 — `currentBeat` unused in firma C `link_engine_set_bpm_and_beat_at_time`
+- **Stato:** parametro lasciato in signature C con `(void)currentBeat` per non toccare callsite Swift post-Strada C (commit `6c4a9cc`).
+- **Fix:** cleanup firma C + callsite Swift, quando bug Link sync chiuso e validato a regime.
+
+### TD #38(b) — 4/4 con accent backbeat `[2,1,2,1]` visivo "2/4"
+- **Sintomo:** accent pattern `[2,1,2,1]` mostra correttamente 2 accenti su 4 beat, ma percezione visiva "2/4" invece di "4/4".
+- **Stato:** spostato a **backlog CD** dopo analisi: NON è bug tecnico ma decisione di design.
+- **Decisione richiesta:** CD deve decidere se rendere visivamente i 4 beat distinti o se il comportamento attuale è quello voluto.
+
+### TD #38(c) — Potenziale off-by-one rendering 5/4
+- **Stato:** non emerso al test 17/05. Solo se rifacciamo 5/4 e vediamo off-by-one rendering separato.
+
+### iCloud Opzione B (Apple Developer Portal)
+- **Contesto:** rimossa iCloud capability da `project.yml` (commit `4e9d12f`) per sbloccare exportArchive durante TD #44 fix. Reverse possibile quando serve iCloud sync cross-device.
+- **Lavoro Mauro (~15 min):** enable iCloud capability su identifier `com.bullfrog.qbeats` su Apple Developer Portal + regenerate `QBeats_Dev_Profile` + base64 generation via PowerShell + update GitHub Secret `PROVISIONING_PROFILE`.
+- **Lavoro CC (~5 min):** reverse del commit `4e9d12f` re-aggiungendo `com.apple.developer.icloud-container-identifiers` + `com.apple.developer.icloud-services` sia in `project.yml.properties` sia in `QBeats.entitlements` checked-in.
+- **Scadenza:** prima che serva la feature iCloud sync cross-device. Nessuna deadline.
+
+### Step 2 warning UX SettingsView (post fail-safe LinkMode .collaborativa)
+- **Contesto:** commit `cb92faa` 25/05 ha cambiato default LinkMode da `.direttore` a `.collaborativa` come fail-safe vs scenario 2-Q-B sulla stessa rete (tug-of-war su `ABLLinkForceBeatAtTime`). UX warning quando utente sceglie manualmente `.direttore` con peer Q-B connesso.
+- **Dominio:** CD per design warning.
+
+### Step 3 lock cross-device automatico (post fail-safe LinkMode)
+- **Contesto:** prevenire scenario 2-Q-B Director automaticamente (lock cross-device che impedisce a 2 device QB di essere entrambi Director simultaneamente).
+- **3 strade tecniche identificate:** non esplorate, backlog.
+- **Dominio:** decisione architetturale + CD per UX.
+
+### Dual entitlements warning Node.js 20 + commento dead `currentBeat`
+- Vedi TD #30/31/32/37 sopra (raggruppabili in singolo commit "CI cleanup" a release).
+
+## 1.4 — Backlog UX puro (📦, dominio CD)
+
+Riferimento `STATO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
+- **CD-1 esteso** (zona swipe orizzontale + indicatore `<< X / Y >>`) — proposto, in attesa di implementazione
+- **CD-2** (perimetro rosso sfumato pulsante overlay standby) — proposto
+- **CD-3** (bottone "Restart Setlist" a fine setlist) — proposto
+
+Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `STATO_QBEATS.md` Sezione 3.
+
+---
+
+# Sezione 2 — Bug CHIUSI (storico, non si cancellano)
+
+Per data di chiusura, decrescente.
+
+## 🟢 Maggio 2026
+
+### Bug 4 — Link sleep/wake socket refresh
+- **Sintomo:** Link perdeva peer dopo lock schermo + sblocco.
+- **Causa root:** lifecycle `ABLLinkSetActive(false/true)` non gestito su ScenePhase background/active → socket multicast non rinegoziato dopo lock.
+- **Fix:** commit `6d1dbbf` (squash merge branch `fix/bug-4-link-socket-refresh`) 26/05/2026 mattina. Pattern bidirezionale ScenePhase + flag `linkSuspendedByBackground` per preservare preferenza utente.
+- **Validato device:** 26/05 mattino test PID 7496 (lock 7s + sblocco → peer ritrovato istantaneo, `isConn:true` a 2s post-enable).
+- **Memoria correlata:** `feedback_qbeats_lifecycle_scenephase_only.md` (UIApplicationDelegate non scatta in Q-BEATS SwiftUI, ScenePhase unica fonte).
+- **Branch archeologia:** `fix/bug-4-link-socket-refresh` preservato su origin (4 commit storici).
+- **Copertura collaterale:** TD #17 caso background/foreground cycle. TD #17 resta aperto per "sessioni lunghe foreground attivo".
+
+### TD linkPeers — Display Settings "Peers" da contatore numerico a stato binario
+- **Sintomo:** display "Peers: N" mostrava sempre 0 o 1 anche con N peer connessi → fuorviante per l'utente.
+- **Causa root:** LinkKit 4.0 non espone API pubblica peer count. `peers_changed_callback` Swift alimentato da callback C++ `ABLLinkSetIsConnectedCallback` con `peers = isConnected ? 1 : 0`.
+- **Tentativo precedente null-op:** commit `72001a5` su branch orfano `fix/td-link-peer-count` chiamava `link_engine_num_peers` — semanticamente equivalente al pattern hardcoded perché `numPeers_` interno C++ è popolato solo dal callback booleano. Branch preservato come archeologia per evitare ri-tentativi.
+- **Fix vero:** PR #1 squash merge in commit `0de5aa0` master 26/05/2026 sera. Display cambiato a stato binario "Connected/Standalone" basato su `linkIsConnected` (verde/grigio).
+- **Validato device:** 26/05 sera (iPad QB + iPhone QB connessi → "Connected" verde / disconnesso → "Standalone" grigio, transizione OK).
+- **Memoria correlata:** `feedback_qbeats_linkkit_peer_count_no_api.md` (lezione doppia: vincolo tecnico permanente + verifica C++ alla sorgente prima di accettare premesse).
+- **Ratifica cross-team:** `STATO_QBEATS.md` v9 (commit `863bc99`) + v10 (commit `c20f9d9`).
+
+### TD #44 — Bug Link discovery QB↔QB
+- **Sintomo:** due istanze Q-BEATS su device diversi non si scoprivano via Ableton Link. Discovery QB↔SB funzionava, solo QB↔QB rotta.
+- **Causa root:** `xcodegen generate` su CI sovrascriveva `QBeats.entitlements` con `<dict/>` vuoto perché `project.yml.entitlements` aveva solo `path:` senza `properties:` → binary firmato senza `com.apple.developer.networking.multicast` → kernel iOS scartava annunci Link via `necp_check_restricted_multicast_drop`.
+- **Fix:** commit `be2f035` (project.yml properties esplicite) + `4e9d12f` (rimossa iCloud per sbloccare exportArchive) + cleanup `8560443` (rimosso iCloud da QBeats.entitlements checked-in). 23/05/2026.
+- **Validato device:** 23/05/2026 sera (peer QB↔QB visibile iPhone+iPad). Falso drop intermedio = WiFi iPhone caduto, non bug Q-B.
+- **Diagnosi precedenti smentite:** filtro libLinkKit per bundle ID (Christian/Ableton ha confermato che NON esiste); ABLLinkSetPeerName (E1 cleanup commit `373f0d1`); SetActive sequence (B1'' restano come allineamento canonico ma non causa).
+- **Memoria correlata:** `project_qbeats_td44.md` (storia completa).
+- **Documento:** `ARCHIVIO.MD/20_05_2026/TD44_REPORT_20_05_2026.md` + `ARCHIVIO.MD/23_05_2026/BOX3_V65_23_05_2026.md`.
+
+### TD-E1 — Cleanup `ABLLinkSetPeerName` codice morto
+- **Causa:** symbol undocumented `ABLLinkSetPeerName` rimosso da LinkEngine.mm + MIDIEngineBridge.h + AudioEngine.swift (41 righe rimosse).
+- **Fix:** commit `373f0d1` 23/05/2026 sera.
+- **CI:** run [`26342746970`](https://github.com/19Bullfrog78/Q-BEATS/actions/runs/26342746970) ✅ verde 1m33s. Multicast preservato nel binary IPA (anti-regressione TD #44).
+- **Decisione UX:** peer-name Q-BEATS configurabile via campo "Peer Name" editabile del pannello Ableton (`LinkSettingsPresenter`), persistito da LinkKit in NSUserDefaults. Niente runtime override automatico.
+
+### Bug Link sync L1.b — Accumulo offset ai cambi sezione
+- **Sintomo:** offset SB→Q-B (SB in anticipo sul master): Sez 1 baseline ~15ms, Sez 2 ~50ms (+35), Sez 3 ~100ms (+50), Sez 4 ~150ms (+50). Accumulo costante ai cambi, dentro sezione offset stabile.
+- **Causa root:** `ABLLinkForceBeatAtTime` usato per cambi tempo (`link_engine_set_bpm_and_beat_at_time`). Force per cambi tempo è errore semantico — Force è per reset espliciti beat (es. utente riparte da beat zero), non per cambi BPM. Ogni Force con beat anche minimamente impreciso sovrascrive consensus Link e l'errore resta permanente.
+- **Fix:** **Strada C** commit `6c4a9cc` 16/05/2026 notte. Solo `ABLLinkSetTempo`, niente `ForceBeatAtTime`. Pattern canonico LinkHut.
+- **Validato:** ground truth Audacity 16/05 (offset costante tra Sez 130/110/140 senza somma).
+- **Strade scartate:** Strada A (proiezione OLD BPM, parzialmente efficace), Strada B (Force a NOW, bug semantico), Step 5 (skip 3→30, irrilevante).
+
+### TD #43 — FineSetlistView sfondo opaco
+- **Fix:** commit `7e1e4de` 18/05/2026 (rimosso `.opacity(0.95)` da `FineSetlistView.swift:11`, sfondo `#0e0e10` ora copre 100% Vista LIVE sottostante).
+
+### TD #23 — Font responsive iPad (Strada A scaling)
+- **Sintomo:** font/spacing non si adattavano a iPad portrait.
+- **Fix:** commit `adfcc39` (Fase 1 log baseline 390pt) + `8a5432b` (Fase 2 refactor 11 file, 24 callsite) 18/05/2026.
+- **Pattern ratificato:** `pt_originale * scaleFactor` con `scaleFactor: CGFloat = geo.size.width / 390` calcolato in LiveView e propagato come parametro esplicito.
+- **Validato:** iPhone 13 + iPad portrait pre-2018.
+- **Memoria correlata:** `feedback_qbeats_scaling_responsive.md` (vietati `@ScaledMetric`, `UIFont.preferredFont`, `sizeCategory`).
+
+### TD #28 — Default `.stopped` LiveSession
+- **Fix:** commit `224fd78` 17/05/2026 (em-dash all'avvio Vista LIVE rimosso; overlay standby resta dinamico tra canzoni con `nextSongName` reale).
+
+### TD #40 + TD #41 — Cambio sezione SEAMLESS
+- **Fix:** commit `d4c9e1f` (v1) + `dc1da0b` (v2, ratificata dopo v1 ROSSO) 17/05/2026.
+- **Pattern:** mirror @State `displayBpb`/`displayAccentPattern` letti dal body in LiveView, buffer `pendingBpb`/`pendingAccentPattern`/`pendingReps` applicati al primo beat tick post-arrivo. TD #41 v2: subscribe a `session.$beatActive` filter `==1` invece di `audioEngine.beatTickSubject` con `.receive(on:)` (race FIFO non-deterministica).
+
+### TD #38(a) — Mirror @State pending cambio sezione
+- **Fix:** chiuso 17/05/2026 commit `d4c9e1f` (insieme a TD #40 + #41).
+
+### Tap tempo algorithm
+- **Refactored:** commit `259a09f` 17/05/2026 (mediana invece di media, finestra 6 era 8, min 4 tap era 2 — allineato Pro Metronome/SB).
+
+### TD #36 — Quantum al cambio sezione
+- **Stato:** chiuso de facto da Strada A 16/05 pomeriggio. `link_engine_set_quantum(lh, Double(pendingBPB))` viene chiamato al cambio sezione nel ramo SEAMLESS. Validato in T-BPB.
+- **Da verificare:** se restano scenari aperti in modalità Studio.
+
+### TD #25 / TD #26 / TD #27 / TD #29
+- **TD #25:** chiuso 14/05/2026 sera commit `3ef30d8` (TeleprompterCapsuleView guard standby).
+- **TD #26:** chiuso 14/05/2026 sera commit `a5dea34` (MetSlotStripView accent verde `#28cd41` + token BOX5 conformi).
+- **TD #27:** chiuso 14/05/2026 sera commit `81635d0` (get-task-allow entitlements, log iMazing ripristinati).
+- **TD #29:** chiuso 14/05/2026 sera commit `06838d5` (MicroSegBarView + MacroBarView guard standby).
+
+### TD #15 / TD #16
+- **TD #15:** chiuso 14/05/2026 mattina commit `4ed7171`.
+- **TD #16:** chiuso 14/05/2026 mattina commit `3d2dd4c` (sectionEndedSubject spostato al callsite Layer 3).
+
+### TD #18 — Task D refactor audio-thread Link mutations
+- **Fix:** chiuso V53. Catena commit: `29afd2a` (base) → `3c8091a` (sample rate) → `bdc01fc` (OpaquePointer) → `1d57216` (diag TEMP) → `9f5e06d` (installTap) → `db07efe` (pulizia DIAG).
+
+### TD #14 — Mirror `_beatsPerBarQ` audioQueue-private
+- **Fix:** chiuso V54 commit `13d3c83` (base, build rossa per collisione synthesized backing storage @Published) + `fca5707` (rename `_beatsPerBar`→`_beatsPerBarQ`, build verde).
+- **Validato:** test A.2 audio (4 cambi time signature, metronomo fermo: 3/4 → 5/4 → 7/8 → 6/8).
+
+### TD-1 — Rename Section → SongSection
+- **Fix:** commit `ef03006`. Riferimento residuo nel commento BOX5 V22 modello dati obsoleto, da pulire alla prossima revisione BOX5.
+
+---
+
+# Sezione 3 — Bug SCARTATI / SMENTITI (per evitare ri-aperture)
+
+### TD #35 — Drift sistemico Q-B↔Link clock
+- **Diagnosi originale:** drift sistematico Q-B vs Link consensus.
+- **Smentita 16/05/2026:** log post-Strada C mostrano `bpm == lTempo` sempre, delta interno costante. Non c'è divergenza Q-B↔Link in regime.
+- **Strade α/β/γ non applicate**, non più rilevanti.
+
+### Drift Q-B↔Link in regime stabile (AI esterna 16/05)
+- **Diagnosi originale:** "DIRECTOR-ASSERT continuo causa drift intra-sezione".
+- **Smentita 16/05:** log mostrano un solo Force all'avvio, zero in regime. Drift intra-sezione 110 NON è causato da Force.
+
+### Linkkit filtro per bundle ID (diagnosi pre-TD #44 fix vero)
+- **Diagnosi originale:** LinkKit filtrava annunci per bundle ID → discovery QB↔QB rotta.
+- **Smentita:** risposta Ableton Support 21/05 (Christian, `link-devs@ableton.com`) ha confermato che LinkKit NON filtra per bundle ID.
+- **Risolta:** causa vera era multicast entitlement mancante (TD #44 chiuso 23/05).
+
+### `ABLLinkSetPeerName` come causa TD #44
+- **Diagnosi originale:** symbol undocumented forzato come fix.
+- **Smentita:** Test A (disabilitazione runtime call) ha mostrato che NON era la causa. E1 ha rimosso il codice come cleanup separato (commit `373f0d1`).
+
+### LinkKit `SetActive` sequence come causa TD #44
+- **Diagnosi originale:** sequenza `Create→SetActive(false)→callbacks→SetActive(true)` produceva discovery rotta.
+- **Smentita:** B1'' (reorder `SetActive` in `link_engine_create`/`link_engine_activate`) restano in vigore come allineamento canonico a `ABLLink.h:57-62` ma NON erano la causa root. Causa vera era entitlement.
+
+### Quantum 3/4 come causa drift Sez 110 (16/05)
+- **Diagnosi originale:** quantum 3/4 mismatch causava drift Sez 110 L2.b.
+- **Smentita 16/05:** test L2.b è tutto 4/4 (verifica DebugView.swift:386-397).
+
+### `linkSyncSkipBuffers` come fix drift (15/05 sera)
+- **Diagnosi originale:** estendere skip-buffers risolve drift.
+- **Smentita 15/05 stesso.** Step 5 cassato.
+
+### Strada A (proiezione OLD BPM in `set_bpm_and_beat_at_time`)
+- **Stato:** parzialmente efficace ma NON risolutiva. Superata da Strada C 16/05 notte.
+- **Branch:** commit `1acdf40` archeologia.
+
+### Strada B (Force a NOW)
+- **Diagnosi:** `ABLLinkForceBeatAtTime(state, currentBeat, mach_absolute_time(), quantum)`.
+- **Scartata pre-Edit:** bug semantico (`currentBeat` è beat di hostTime futuro, non di NOW). SB avrebbe saltato avanti di ~150ms.
+
+### Step 5 — Skip 3 → 30 buffer post-cambio
+- **Cassato:** non c'entra col bug di Force.
+
+### Disable DIRECTOR-ASSERT
+- **Rifiutato da Mauro:** 15/05.
+
+### Strade D (re-broadcast periodico), E/F speculative
+- **Bloccate:** vincolo "no fix speculativi in fase diagnostica" durante bug Link sync.
+
+### Three-band v1 (`feat/collab-sync-three-band` `c766fd5`)
+- **Stato:** scartato. Branch open su origin come riferimento storico — NON merged.
+- **Verdetto Opzione α 25/05 sera:** peggiora Slow 90 di +14ms vs baseline `cb92faa` (16ms → 30ms).
+- **Causa root regressione "catastrofica" del 24/05 sera:** **riformulata 25/05** — era setup 2-Director tug-of-war (entrambi i device sul vecchio default `.direttore` post-TD #44), NON il design three-band.
+- **Memoria correlata:** `feedback_qbeats_sync_phase_smoothing_strutturale.md` (audit trail).
+- **Eredità:** design alternativo (smoothing a valle DSP) resta linea guida per three-band v2.
+
+### Android peer Link drift (osservato 26/05 sera test extended)
+- **Sintomo:** iPad QB + iPhone QB + Android Soundbrenner → Android fuori-fase ~10-50ms drift.
+- **Diagnosi:** NON bug Q-BEATS. Causa fuori dal controllo Q-B (territorio Ableton + Soundbrenner Android: implementazione LinkKit Android, audio stack Android latenza > Core Audio, multicast WiFi Android variabile, power management Android).
+- **Verifica controllo:** iPad SB + iPhone QB → in fase ✓ (iOS-only OK).
+- **Ratifica cross-team:** `STATO_QBEATS.md` v10 — scope Q-BEATS = iOS-only per v1.
+- **Implicazione CD:** dichiarare iOS-only in materiale commerciale, FAQ, copy app store.
+
+### Sync Start/Stop Soundbrenner OFF default
+- **Diagnosi originale:** regressione start/stop SB durante test Opzione A → codice rotto.
+- **Smentita:** era impostazione device Soundbrenner "Sync Start/Stop" OFF di default. Config utente, NON bug Q-B.
+- **Memoria correlata:** `project_qbeats_sb_link_sync_config.md`. Vale solo per transport, NON per tempo/fase.
+
+---
+
+# Sezione 4 — Diagnostiche aperte / in attesa di dati
+
+## Sessione 1 (branch `feat/diag-first-beat-and-beat-drop-and-3-4-long`, in attesa test device Mauro)
+
+- **Commit `70bb86a`** (Round 1, Item 5b): setlist 3/4 Long DebugView. Bottone `.brown` "3/4 Long" + factory `loadTestData34Long()`. Setlist 4/4 100 BPM 8 batt → 3/4 100 BPM 16 batt → 4/4 100 BPM 8 batt. BPM costante 100 → isola effetto cambio TS dal cambio BPM.
+- **Commit `31dddbb`** (Round 2, Item 1 PARTE A): 10 log `[Q-BEATS][DIAG-A][T0]` → `[T9]` in `AudioEngine.swift`. Misurano timing dispatch chain iPad-side dal callback Link `isPlaying=true` (T0) fino all'entry primo buffer pre-roll (T9).
+- **CI:** run [`26361824809`](https://github.com/19Bullfrog78/Q-BEATS/actions/runs/26361824809) ✅ verde 50s. IPA pronto.
+- **Bloccante:** Mauro raccoglie dati su device. Senza dati nuovi non si può progettare fix TD #A né dare verdetto su TD #39.
+
+## Lezioni metodologiche attive (no fix prima della diagnosi)
+
+- `feedback_log_vs_ground_truth.md` v2: nessun fix Layer 2 motivato da soli log Q-B-side, neanche se inferenza architetturale impeccabile.
+- `feedback_qbeats_chiuso_solo_dopo_device.md`: "chiuso" solo dopo validazione device, non al commit/push.
+- `feedback_qbeats_linkkit_peer_count_no_api.md`: verificare implementazione C++ alla sorgente PRIMA di accettare premesse fix.
+- Setup 1D+1C esplicito in tutti i test cross-device (lezione 25/05: setup 2-Director era causa fantasma).
+- Smoke test cross-device PRIMA dei test di precisione su ogni fix Layer 2.
+
+---
+
+# Sezione 5 — Storico versioni file
+
+| Versione | Data | Autore | Modifiche principali |
+|---|---|---|---|
+| 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `STATO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
+
+---
+
+**Fine documento.**
