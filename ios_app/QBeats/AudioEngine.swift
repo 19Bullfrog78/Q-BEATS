@@ -38,6 +38,13 @@ class AudioEngine: ObservableObject {
     @Published var linkIsConnected: Bool = false
     @Published var linkPeers: Int = 0
     @Published var isWaitingForLinkDownbeat: Bool = false
+    // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
+    // `_linkMode` audio-queue per consumo da UI (LiveView calcola
+    // `linkRoleBadge` per LiveHeaderView). Sync nel blocco `main.async` di
+    // `applySettings(_)`. Fonte di verità autoritativa resta
+    // `appSettings.linkMode` (settato da SettingsView). Q-D1 ratificato:
+    // AppSettings è struct, non ObservableObject → mirror obbligatorio.
+    @Published var linkMode: LinkMode = .collaborativa
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
@@ -104,6 +111,17 @@ class AudioEngine: ObservableObject {
     // Accesso esclusivamente su main thread.
     private var _suppressBeatsPerBarDidSet: Bool = false
 
+    // === CD-6 / Bug 4 fix (28/05/2026) — Gate anti double-emit linkStartedSubject ===
+    // Settato `true` nel branch `isPlaying && !engine.isPlaying` del callback
+    // Link `set_start_stop_callback`, resettato `false` in
+    // `DispatchQueue.main.async` di `start()` (righe ~745-750) dove
+    // `self.isPlaying = true`. Tra `engine.start()` e il flip di `isPlaying`
+    // ci sono ≥3 hop di dispatch (audioQueue.async + main.async annidato) —
+    // questa finestra è vulnerabile a doppio callback Link (burst peer
+    // reannounce) che ri-passerebbe il guard `!engine.isPlaying`.
+    // Q-D4 esteso ratificato libro mastro v15. Accesso ESCLUSIVAMENTE su main.
+    private var _linkStartEmitInFlight: Bool = false
+
     // === Task D — Section BPM broadcast su Link ===
     // Pattern identico a L1.a (closure single-shot a beat-target).
     // Quando scheduleBPMChange viene chiamato:
@@ -130,6 +148,23 @@ class AudioEngine: ObservableObject {
     // beat al BPM corrente, poi spegnimento). Stop manuale chiama stop()
     // senza emettere il subject — LED spento netto.
     let sectionEndedSubject = PassthroughSubject<Void, Never>()
+
+    // CD-6 / Bug 4 fix (28/05/2026) — Opzione C orchestrazione cross-device.
+    // Emesso dal callback Link `set_start_stop_callback` (righe ~436-442)
+    // quando `engine.isPlaying` flippa false→true a causa di un Director
+    // peer che ha premuto Play. LiveView observer chiama
+    // `runner.startSetlist(...)` per orchestrare la sezione corrente sul
+    // Follower: prima del fix, il callback Link chiamava solo
+    // `engine.start()` ignorando il runner → `_sectionTotalBeats=0` su
+    // Follower → check `_sectionTotalBeats > 0` non passava → counter
+    // macrobar all'infinito + nome canzone non mostrato (Problema B / Bug 4).
+    // Gate anti double-emit: `_linkStartEmitInFlight` (vedi callback).
+    // Gate idempotenza observer: `guard session.playbackState != .playing`
+    // in LiveView (Q-D3 ratificato). NB: in modalità Direttore (linkMode ==
+    // .direttore) il guard early-return riga ~432 del callback impedisce
+    // di entrare nel branch — il Subject NON viene emesso quando Q-BEATS è
+    // sorgente. Q-D2/Q-D3/Q-D4 ratificati libro mastro v15.
+    let linkStartedSubject = PassthroughSubject<Void, Never>()
 
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
@@ -166,7 +201,15 @@ class AudioEngine: ObservableObject {
             self.ch3MixerNode.outputVolume = s.ch3Volume
             self.ch4MixerNode.outputVolume = s.ch4Volume
             let vols = [s.ch1Volume, s.ch2Volume, s.ch3Volume, s.ch4Volume]
-            DispatchQueue.main.async { self.channelVolumes = vols }
+            let linkModeMirror = s.linkMode
+            DispatchQueue.main.async {
+                self.channelVolumes = vols
+                // CD-Q1=B mirror UI — sync @Published `linkMode` dal valore
+                // appena applicato a `_linkMode` audio-queue. Cattura locale
+                // per evitare read di `s` su main (s.linkMode è copia di
+                // valore struct, ma `linkModeMirror` rende l'intent esplicito).
+                self.linkMode = linkModeMirror
+            }
             os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@ ch=[%.2f,%.2f,%.2f,%.2f]",
                    log: .default, type: .default,
                    s.accentVolume, s.beatVolume, s.subdivVolume, "\(s.clickMuted)",
@@ -422,6 +465,21 @@ class AudioEngine: ObservableObject {
         }
 
         // === AGGIUNTO 6D — Start/Stop sync callback da peer Link ===
+        //
+        // CD-6 / Bug 4 fix (28/05/2026) — Opzione C: oltre a propagare lo
+        // start/stop al motore audio locale, emette `linkStartedSubject` per
+        // far orchestrare LiveView (→ runner.startSetlist). Senza emit il
+        // Follower partirebbe audio ma con `_sectionTotalBeats=0` → counter
+        // all'infinito + nome canzone non mostrato (Bug 4 / Problema B).
+        //
+        // Doppia protezione anti race:
+        //  (1) Gate `_linkStartEmitInFlight` lato AudioEngine (qui sotto):
+        //      evita doppia emissione se il callback arriva 2 volte ravvicinato
+        //      prima che `engine.isPlaying` flippi a true (≥3 hop dispatch fra
+        //      `engine.start()` audioQueue.async e `main.async` riga ~745).
+        //  (2) Gate `playbackState != .playing` lato LiveView observer
+        //      (Q-D3 ratificato).
+        // Q-D4 esteso ratificato libro mastro v15.
         if let lh = linkEngineHandle {
             link_engine_set_start_stop_callback(lh, { isPlaying, ctx in
                 guard let ctx = ctx else { return }
@@ -434,7 +492,12 @@ class AudioEngine: ObservableObject {
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
                     if isPlaying && !engine.isPlaying {
+                        // Q-D4 esteso — Gate anti double-emit (vedi commento
+                        // su `_linkStartEmitInFlight` decl).
+                        guard !engine._linkStartEmitInFlight else { return }
+                        engine._linkStartEmitInFlight = true
                         engine.start()
+                        engine.linkStartedSubject.send()
                     } else if !isPlaying && engine.isPlaying {
                         engine.stop()
                     }
@@ -747,6 +810,11 @@ class AudioEngine: ObservableObject {
                     self.playbackState        = .playing
                     self.clickStatus          = statusStr
                     self.currentAccentPattern = uiPattern
+                    // CD-6 / Bug 4 fix (Q-D4 esteso) — Reset gate anti
+                    // double-emit linkStartedSubject. Da qui `isPlaying == true`
+                    // → il guard `!engine.isPlaying` del callback Link
+                    // protegge da double-start senza più bisogno del flag.
+                    self._linkStartEmitInFlight = false
                 }
 
                 let avSession = AVAudioSession.sharedInstance()

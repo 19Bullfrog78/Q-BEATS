@@ -35,7 +35,27 @@ struct TransportView: View {
                     scaleFactor: scaleFactor) {
                         if audioEngine.isPlaying {
                             audioEngine.stop()
+                        } else if audioEngine.linkMode == .collaborativa {
+                            // CD-Q2=B + Bug 4 fix (Q-D1 ratificato libro mastro v15) —
+                            // In modalità Collaborativa il Follower NON parte
+                            // standalone al tap Play: entra in `.waitingForDirector`.
+                            // Uscita: (a) Director cross-device preme Play →
+                            // callback Link → audioEngine.linkStartedSubject →
+                            // LiveView observer chiama runner.startSetlist;
+                            // (b) tap START LOCAL nella WaitingForDirectorView;
+                            // (c) tap CANCEL → dismiss a Bivio.
+                            //
+                            // Correzione AI esterna #1 (Fase C): condizione SENZA
+                            // `&& !audioEngine.linkIsConnected` — anche con Link
+                            // connesso ai peer, finché Director non ha premuto
+                            // Play il Follower aspetta (CD-Q2=B letterale).
+                            //
+                            // Lettura `linkMode` da @Published mirror su AudioEngine
+                            // (Q-D1: AppSettings è struct, mirror obbligatorio).
+                            session.playbackState = .waitingForDirector
                         } else {
+                            // Modalità Direttore: Q-BEATS è sorgente, parte
+                            // standalone immediatamente.
                             runner.startSetlist(audioEngine: audioEngine, session: session)
                         }
                 }

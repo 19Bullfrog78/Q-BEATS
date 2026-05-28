@@ -12,6 +12,13 @@ struct LiveHeaderView: View {
     /// per questo fattore.
     let scaleFactor: CGFloat
 
+    /// Badge HEAD CD-Q1=B (libro mastro v14) — `"FOLLOWER"` / `"DIRECTOR"` /
+    /// `nil` (Link disabilitato → nessun badge). Calcolato in LiveView dal
+    /// mirror `@Published audioEngine.linkMode` + `audioEngine.linkEnabled`.
+    /// LiveHeaderView resta presentational: nessuna logica di mode-mapping
+    /// qui, solo render del testo se non-nil.
+    let linkRoleBadge: String?
+
     var body: some View {
         HStack(spacing: 8) {
 
@@ -72,6 +79,18 @@ struct LiveHeaderView: View {
             // ── LED status: Link · BT · WiFi ──
             // Visibili SOLO se connessione attiva. Spento = non renderizzato.
             HStack(spacing: 4) {
+                // CD-Q1=B (libro mastro v14, 27/05/2026) — Badge HEAD persistente
+                // FOLLOWER/DIRECTOR. Render solo se non-nil (Link enabled).
+                // Caveat R3-α: in Fase 6-7 implementiamo solo il badge; il
+                // counter offset "bar 2 di N" (Bug 2.b) è rimandato a
+                // Fase 6-7-bis. Ratifica CD-Q1=B nel libro mastro resta
+                // target di design completo, no comunicazione CD ora.
+                if let role = linkRoleBadge {
+                    Text(role)
+                        .font(.jbMono(.regular, size: 12 * scaleFactor))
+                        .foregroundColor(Color.white.opacity(0.55))
+                        .padding(.trailing, 4)
+                }
                 if audioEngine.linkIsConnected {
                     Circle()
                         .fill(Color(hex: "#00c96e"))
