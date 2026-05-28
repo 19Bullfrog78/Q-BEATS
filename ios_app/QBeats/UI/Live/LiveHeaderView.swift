@@ -14,7 +14,7 @@ struct LiveHeaderView: View {
 
     /// Badge HEAD CD-Q1=B (libro mastro v14) — `"FOLLOWER"` / `"DIRECTOR"` /
     /// `nil` (Link disabilitato → nessun badge). Calcolato in LiveView dal
-    /// mirror `@Published audioEngine.linkMode` + `audioEngine.linkEnabled`.
+    /// mirror `@Published audioEngine.currentLinkMode` + `audioEngine.linkEnabled`.
     /// LiveHeaderView resta presentational: nessuna logica di mode-mapping
     /// qui, solo render del testo se non-nil.
     let linkRoleBadge: String?

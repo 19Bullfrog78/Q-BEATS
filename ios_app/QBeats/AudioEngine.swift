@@ -44,7 +44,15 @@ class AudioEngine: ObservableObject {
     // `applySettings(_)`. Fonte di verità autoritativa resta
     // `appSettings.linkMode` (settato da SettingsView). Q-D1 ratificato:
     // AppSettings è struct, non ObservableObject → mirror obbligatorio.
-    @Published var linkMode: LinkMode = .collaborativa
+    //
+    // NOMENCLATURA: `currentLinkMode` (non `linkMode`) per evitare collisione
+    // con la property privata `_linkMode: LinkMode` (audio-queue copy, riga
+    // ~264): `@Published var linkMode` sintetizzerebbe un backing
+    // `_linkMode: Published<LinkMode>` che collide letteralmente col nome
+    // esistente → CI failure run 26581236612 28/05/2026 sera. Naming allineato
+    // con `currentBPM`, `currentAccentPattern`, `currentSectionRepetitions`
+    // già esistenti nel file (linea "current* = mirror UI di stato audio").
+    @Published var currentLinkMode: LinkMode = .collaborativa
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
@@ -204,11 +212,11 @@ class AudioEngine: ObservableObject {
             let linkModeMirror = s.linkMode
             DispatchQueue.main.async {
                 self.channelVolumes = vols
-                // CD-Q1=B mirror UI — sync @Published `linkMode` dal valore
-                // appena applicato a `_linkMode` audio-queue. Cattura locale
-                // per evitare read di `s` su main (s.linkMode è copia di
-                // valore struct, ma `linkModeMirror` rende l'intent esplicito).
-                self.linkMode = linkModeMirror
+                // CD-Q1=B mirror UI — sync @Published `currentLinkMode` dal
+                // valore appena applicato a `_linkMode` audio-queue. Cattura
+                // locale per evitare read di `s` su main (s.linkMode è copia
+                // di valore struct, ma `linkModeMirror` rende l'intent esplicito).
+                self.currentLinkMode = linkModeMirror
             }
             os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@ ch=[%.2f,%.2f,%.2f,%.2f]",
                    log: .default, type: .default,

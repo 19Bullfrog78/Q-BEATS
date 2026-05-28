@@ -47,18 +47,21 @@ struct LiveView: View {
     /// coerente con i LED di connessione che pure scompaiono quando
     /// `linkIsConnected == false`).
     ///
-    /// `audioEngine.linkMode` è il mirror `@Published` su AudioEngine
+    /// `audioEngine.currentLinkMode` è il mirror `@Published` su AudioEngine
     /// (Q-D1 ratificato libro mastro v15: AppSettings è `struct`, non
-    /// `ObservableObject` → mirror obbligatorio). SwiftUI ri-renderizza
-    /// LiveView quando `linkMode` o `linkEnabled` cambiano → questa
-    /// computed viene ricalcolata automaticamente.
+    /// `ObservableObject` → mirror obbligatorio; nome `currentLinkMode`
+    /// invece di `linkMode` per evitare collisione del backing field
+    /// sintetizzato `_linkMode: Published<...>` con `_linkMode: LinkMode`
+    /// audio-queue privato — CI failure run 26581236612). SwiftUI
+    /// ri-renderizza LiveView quando `currentLinkMode` o `linkEnabled`
+    /// cambiano → questa computed viene ricalcolata automaticamente.
     ///
     /// Caveat R3-α: in Fase 6-7 implementiamo solo il badge HEAD
     /// (Bug 2.a). Il counter offset "bar 2 di N" (Bug 2.b) è rimandato a
     /// Fase 6-7-bis.
     private var linkRoleBadge: String? {
         guard audioEngine.linkEnabled else { return nil }
-        switch audioEngine.linkMode {
+        switch audioEngine.currentLinkMode {
         case .direttore:     return "DIRECTOR"
         case .collaborativa: return "FOLLOWER"
         }

@@ -35,7 +35,7 @@ struct TransportView: View {
                     scaleFactor: scaleFactor) {
                         if audioEngine.isPlaying {
                             audioEngine.stop()
-                        } else if audioEngine.linkMode == .collaborativa {
+                        } else if audioEngine.currentLinkMode == .collaborativa {
                             // CD-Q2=B + Bug 4 fix (Q-D1 ratificato libro mastro v15) —
                             // In modalità Collaborativa il Follower NON parte
                             // standalone al tap Play: entra in `.waitingForDirector`.
@@ -50,8 +50,11 @@ struct TransportView: View {
                             // connesso ai peer, finché Director non ha premuto
                             // Play il Follower aspetta (CD-Q2=B letterale).
                             //
-                            // Lettura `linkMode` da @Published mirror su AudioEngine
-                            // (Q-D1: AppSettings è struct, mirror obbligatorio).
+                            // Lettura `currentLinkMode` da @Published mirror su
+                            // AudioEngine (Q-D1: AppSettings è struct, mirror
+                            // obbligatorio; nome `currentLinkMode` evita collision
+                            // con `_linkMode` audio-queue privato — CI failure run
+                            // 26581236612).
                             session.playbackState = .waitingForDirector
                         } else {
                             // Modalità Direttore: Q-BEATS è sorgente, parte
