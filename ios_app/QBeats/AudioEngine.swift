@@ -390,11 +390,13 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
-                    // Modalità Direttore in play: ri-asserisci il proprio tempo
-                    // per vincere la negoziazione Link (Q-B detta, peer seguono).
-                    // Il check bpm != _audioBPM evita loop di re-broadcast quando
-                    // peer riceve il valore Q-B e ritorna lo stesso.
-                    if engine.isRunning && engine._linkMode == .direttore {
+                    // Modalità Direttore: ignora SEMPRE BPM da peer (sorgente unica del tempo).
+                    // Bug 5-BPM fix 28/05/2026 — pre-fix richiedeva isRunning: Director in
+                    // stop avrebbe adottato BPM del peer Collab.
+                    // Director re-broadcasta _audioBPM vincendo la negoziazione in ogni stato.
+                    // Check bpm != _audioBPM (riga seguente) preservato: evita loop di
+                    // re-broadcast quando peer riceve il valore Q-B e ritorna lo stesso.
+                    if engine._linkMode == .direttore {
                         if bpm != engine._audioBPM, let lh = engine.linkEngineHandle {
                             link_engine_set_bpm(lh, engine._audioBPM)
                         }
@@ -493,9 +495,12 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
-                // Modalità Direttore in play: ignora start/stop da peer.
-                // Lettura _linkMode da non-audioQueue: enum case è atomic in Swift.
-                if engine.isRunning && engine._linkMode == .direttore { return }
+                // Modalità Direttore: ignora SEMPRE start/stop da peer in qualsiasi
+                // stato (sorgente unica autoritativa).
+                // Bug 5 fix 28/05/2026 — pre-fix richiedeva isRunning: Director in
+                // stop accettava start da peer Collab via START LOCAL (CD-6).
+                // Lettura _linkMode da non-audioQueue: Swift enum è safe per lettura concorrente.
+                if engine._linkMode == .direttore { return }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
@@ -703,12 +708,18 @@ class AudioEngine: ObservableObject {
                             peersCount = link_engine_num_peers(lh)
                         }
 
-                        if peersCount == 0 && !probe.isPlaying {
-                            // === STANDALONE PURO (peers == 0) ===
-                            // Q-BEATS è solo nella sessione Link (o Link disabled).
-                            // Detta la timeline: chiede a Link di mappare beat 0
-                            // a hostNow. Funziona anche con Link disabled (la
-                            // funzione bridge fa early return su !enabled).
+                        if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
+                            // === STANDALONE PURO o DIRETTORE (sorgente unica autoritativa) ===
+                            // Director forza la timeline indipendentemente dallo stato dei
+                            // peer: start_at_beat_zero mappa beat 0 a hostNow.
+                            // I peer ricevono la nuova timeline via Link e si allineano a
+                            // beat 0 — partenza musicalmente corretta dall'inizio del brano.
+                            // Fix 1.j 28/05/2026 — pre-fix Director con peer in stop prendeva
+                            // ramo SHARED → join → latenza fino a ~1s + avvio a metà battuta.
+                            // Edge case (peer già in play): Director forza comunque beat 0,
+                            // peer si riallinea. Progettato e ratificato.
+                            // (Standalone puro: stesso comportamento, Q-BEATS solo nella
+                            // sessione Link o Link disabled — bridge early return su !enabled.)
                             if let h = self.metronomeHandle {
                                 metronome_reset_for_start(h, 0.0)
                             }
@@ -719,17 +730,17 @@ class AudioEngine: ObservableObject {
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
-                            os_log("[Q-BEATS][LINK][START] standalone avviato",
-                                   log: .default, type: .default)
+                            os_log("[Q-BEATS][LINK][START] standalone/direttore avviato (mode:%{public}@ peers:%u)",
+                                   log: .default, type: .default,
+                                   self._linkMode == .direttore ? "direttore" : "standalone",
+                                   peersCount)
                         } else {
-                            // === SESSIONE CONDIVISA (peers > 0) ===
-                            // Peer presenti, qualsiasi loro stato (fermi o in play).
-                            // Q-BEATS si adegua alla timeline Link condivisa:
-                            // quantized launch al prossimo downbeat con
-                            // join_running_session, NESSUN override della timeline.
-                            // Pattern aderente alla doc Ableton: "chi entra si
-                            // adegua, chi c'è già non si muove" (dove "già nella
-                            // sessione" significa "presente", non "in play").
+                            // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
+                            // Q-BEATS si adegua alla timeline Link esistente: quantized
+                            // launch al prossimo downbeat via join_running_session.
+                            // Pattern aderente alla doc Ableton: "chi entra si adegua,
+                            // chi c'è già non si muove".
+                            // (Il ramo .direttore non arriva mai qui — gestito sopra.)
                             let bpm = probe.tempo > 0.0 ? probe.tempo : self.currentBPM
                             let phase = probe.phaseAtHost
                             // Se phase ≈ 0 o ≈ quantum siamo già sul downbeat → no wait.

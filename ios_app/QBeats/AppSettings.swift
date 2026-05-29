@@ -1,7 +1,9 @@
 import Foundation
 
 enum LinkMode: String, Codable {
-    case direttore       // Q-BEATS detta. Durante play ignora BPM/phase/stop dai peer.
+    case direttore       // Q-BEATS sorgente unica autoritativa: detta start/stop, BPM, phase.
+                         // Ignora SEMPRE input dai peer — in play e in stop. Timeline e tempo
+                         // imposti dal Director, i peer si adeguano.
     case collaborativa   // Standard Link peer-to-peer. Q-BEATS accetta tutto dai peer.
 }
 
