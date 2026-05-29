@@ -271,11 +271,16 @@ struct LiveView: View {
             // return) applica subito al mirror.
             if audioEngine.isPlaying {
                 pendingBpb = beats
+                // Bug 2.b fix: in playing currentTimeSig NON è più applicato
+                // subito (anticipava la barretta di 1 beat → desync visivo
+                // cross-device). È differito al primo beat della nuova sezione
+                // nell'handler beatTickSubject, nello stesso blocco di displayBpb.
             } else {
                 displayBpb = beats
+                // Pre-Play / setup / Stop / Studio→LiveView: applica subito,
+                // display coerente fuori dalla finestra SEAMLESS.
+                session.currentTimeSig = timeSigString(for: beats)
             }
-            // currentTimeSig è display testuale, non race-sensitive: applica subito.
-            session.currentTimeSig = timeSigString(for: beats)
         }
         .onReceive(audioEngine.$currentAccentPattern) { ap in
             // TD #38(a) fix: stesso pattern di $beatsPerBar.
@@ -305,6 +310,11 @@ struct LiveView: View {
             // tick post-arrivo @Published (= primo beat nuova sezione audio).
             if let bpb = pendingBpb {
                 displayBpb = bpb
+                // Bug 2.b fix: il time-sig dell'header flippa QUI, sullo stesso
+                // tick della barretta (displayBpb) e del cambio audio (downbeat
+                // Link-synced) → header e barretta condividono un unico punto di
+                // applicazione e non possono più divergere per costruzione.
+                session.currentTimeSig = timeSigString(for: bpb)
                 pendingBpb = nil
             }
             if let ap = pendingAccentPattern {
