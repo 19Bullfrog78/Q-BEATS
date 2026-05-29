@@ -390,14 +390,17 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
-                    // Modalità Direttore: ignora SEMPRE BPM da peer (sorgente unica del tempo).
-                    // Bug 5-BPM fix 28/05/2026 — pre-fix richiedeva isRunning: Director in
-                    // stop avrebbe adottato BPM del peer Collab.
-                    // Director re-broadcasta _audioBPM vincendo la negoziazione in ogni stato.
-                    // Check bpm != _audioBPM (riga seguente) preservato: evita loop di
-                    // re-broadcast quando peer riceve il valore Q-B e ritorna lo stesso.
+                    // Modalità Direttore: non subisce MAI il BPM del peer (Bug 5-BPM chiuso).
+                    // Affinamento 29/05/2026 (test R2/R6 su device):
+                    // - In play: re-broadcasta _audioBPM e vince la negoziazione Link
+                    //   (check bpm != _audioBPM evita loop quando il peer rimanda il valore Q-B).
+                    // - In stop: NON adotta il BPM del peer e NON combatte la sessione, così un
+                    //   Follower in START LOCAL (CD-6) può seguire il tempo della propria setlist.
+                    // Il return (sotto) garantisce entrambi: il Direttore esce sempre prima del
+                    // blocco di adozione interna (metronome / MIDI / currentBPM, righe seguenti).
                     if engine._linkMode == .direttore {
-                        if bpm != engine._audioBPM, let lh = engine.linkEngineHandle {
+                        if engine.isRunning, bpm != engine._audioBPM,
+                           let lh = engine.linkEngineHandle {
                             link_engine_set_bpm(lh, engine._audioBPM)
                         }
                         return
