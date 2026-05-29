@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 1
-**Ultima modifica:** 2026-05-26 sera
+**Versione:** 2
+**Ultima modifica:** 2026-05-29
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -88,6 +88,13 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
 
+### Bug 2.b — Counter offset "bar 2 di N" + desync visivo sezione/time-sig cross-device
+- **Sintomo:** sul Follower, al cambio di sezione/tempo (es. 120 4/4 → 3/4, o Intro→Verse), la barretta delle battute si desincronizza **visivamente**: la battuta n.2 non si accende per un attimo, il primo accento audio non corrisponde al primo accento visivo, un device passa al nuovo time-sig mentre l'altro è ancora sul precedente. **L'audio è corretto** (batte all'unisono), il problema è solo visivo.
+- **Causa ipotizzata:** contatore battute/sezione del Follower sfasato dopo quantized launch + cambio sezione runtime non sincronizzato cross-device.
+- **Diagnostica device 29/05:** R2 (Intro→Verse) e R7 (Verse 120→Bridge 3/4) mostrano il desync. Timing audio delle sezioni confermato esatto dai log (`TaskD-AQ broadcast` bpm corretto, durate sezioni al secondo).
+- **Stato:** 🟠 rimandato a **Fase 6-7-bis** (split ratificato R3-α: in Fase 6-7 implementato solo il badge HEAD; counter offset e sync sezione runtime rimandati).
+- **Dominio:** CC (sync runtime cross-device) + CD (UX counter "bar 2 di N").
+
 ### TD #34 — Race condition `link_engine_set_start_stop_callback`
 - **Sintomo:** potenziale crash mid-session su transizioni start/stop rapide.
 - **Stato:** da verificare empiricamente. NON consolidare a priori "stessa causa TD beat drop": race su scope diversi (main↔audioQueue vs audioQueue↔audio thread).
@@ -112,6 +119,17 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Roadmap:** Item 4 roadmap CC. Motivazione empirica c'è (Slow 90 fuori target stretch).
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
+
+### Header BPM·tempo errato pre-Play al primo caricamento setlist
+- **Sintomo:** al primo caricamento di una setlist dopo l'avvio dell'app, l'header (`Test Song A · 120 · 4/4`) mostra il BPM/tempo di **default del motore (120)** invece di quello della prima sezione (es. Intro 100). Si **auto-corregge premendo Play** e non si ripresenta finché l'app resta aperta.
+- **Causa (verificata 29/05):** `primeDisplay` (`SetlistRunner.swift`) setta correttamente `session.currentBPM` alla prima sezione, ma `onReceive(audioEngine.$currentBPM)` in `LiveView.swift` lo **sovrascrive** col valore corrente del motore (default 120 finché non parte il Play). Residuo del "Problema A" (display init pre-Play).
+- **Fix probabile:** guardare l'`onReceive` perché aggiorni l'header solo durante il Play, lasciando valido il valore primato pre-Play. Poche righe, modifica separata e dedicata.
+- **Stato:** 🟡 cosmetico, non bloccante (audio sempre corretto). Verificato che L1.b (dato setlist) è corretto.
+
+### Issue B — Microbar fantasma pre-Play
+- **Sintomo:** tra il tap su Play e la partenza dell'audio, 2-4 microbar bianchi si accendono in modo errato per ~1s, poi si spengono allineandosi quando parte la canzone. Osservato anche al riavvio in START LOCAL.
+- **Stato:** 🟡 backlog, investigazione separata. Render gating su stato brano armato.
+- **Dominio:** CC.
 
 ### TD #19 — Popup "Non Disturbare o Aereo" da aggiornare
 - **Sintomo:** popup esistente in app dice "abilita Non Disturbare o Aereo" ma non spiega che Modalità Aereo "pura" spegne WiFi → Link KO.
@@ -187,6 +205,7 @@ Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
 - **CD-1 esteso** (zona swipe orizzontale + indicatore `<< X / Y >>`) — proposto, in attesa di implementazione
 - **CD-2** (perimetro rosso sfumato pulsante overlay standby) — proposto
 - **CD-3** (bottone "Restart Setlist" a fine setlist) — proposto
+- **Issue A — Titolo header troncato su iPhone** — il titolo canzone si tronca su iPhone. Proposta Mauro: spostare BPM + time signature sulla riga del bar counter per liberare spazio al titolo. Emersa 29/05.
 
 Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `LIBRO_MASTRO_QBEATS.md` Sezione 3.
 
@@ -197,6 +216,32 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 Per data di chiusura, decrescente.
 
 ## 🟢 Maggio 2026
+
+### Problema B — Orchestrazione start cross-device del Follower (alias storico "Bug 4/Problema B" — NON confondere con "Bug 4 — Link sleep/wake")
+- **Sintomo:** iPhone Collaborativo + iPad Director in play → iPhone non mostrava il nome canzone e il counter macrobar avanzava all'infinito (oltre `macroBarTotal`).
+- **Causa root:** callback Link `set_start_stop_callback` chiamava solo `engine.start()` NON `runner.startSetlist(...)` → su Follower `_sectionTotalBeats=0` → check salta → counter mai incrementato → closure `_onSectionEnd` mai dispatchata → `currentSectionIdx` resta 0.
+- **Fix:** Fase D (Opzione C: LiveView observer su `linkStartedSubject` + TransportView check pre-Play). Squash merge `007de87` (ex `8016c97` + rename `b64cf67`).
+- **Validato device:** 28/05/2026 (nome canzone presente, counter macrobar avanza fino a `macroBarTotal`).
+- **Memoria correlata:** `project_qbeats_problema_b_causa_root.md`.
+- **Rimandato a Fase 6-7-bis:** sync sezione runtime cross-device + counter offset (vedi Bug 2.b in Sezione 1).
+
+### Bug 5 — Direttore fermo parte allo START LOCAL di un peer
+- **Sintomo:** iPad Direttore fermo partiva involontariamente quando un peer Collaborativo faceva START LOCAL (CD-6).
+- **Causa root:** callback Link start/stop con guard `isRunning && _linkMode == .direttore` → da fermo (`isRunning` falso) non ignorava lo start del peer.
+- **Fix:** `007de87` (ex `611d4ee`). Guard → `if engine._linkMode == .direttore { return }` (ignora SEMPRE start/stop da peer, in play e in stop).
+- **Validato device:** 29/05/2026 (START LOCAL su iPhone → iPad resta fermo).
+
+### Bug 5-BPM — Direttore fermo adotta il BPM di un peer
+- **Sintomo:** iPad Direttore fermo adottava il BPM di un peer Collaborativo (peer a 120 → iPad saltava a 120).
+- **Causa root:** callback Link tempo con guard `isRunning && _linkMode == .direttore` → da fermo cadeva nel ramo collaborativo che adotta il BPM del peer.
+- **Fix-storia:** `611d4ee` rimuoveva `isRunning` ma era troppo aggressivo (Direttore fermo *dominava* il BPM → inchiodava il Follower in START LOCAL, scoperto al test R2 29/05) → **affinato in `46ba0f3`**: `if engine._linkMode == .direttore { if engine.isRunning { ri-trasmette } return }`. Da fermo non adotta e non domina; in play ri-trasmette il proprio.
+- **Validato device:** 29/05/2026 (R2: iPhone in START LOCAL sale a 120 seguendo la setlist; R6: iPad fermo resta a 100 mentre iPhone va a 120, anche in standby).
+
+### 1.j — Latenza Direttore con peer connessi
+- **Sintomo:** iPad Direttore con peer connessi → fino a ~1s di latenza all'avvio + partenza a metà battuta.
+- **Causa root:** con peer presenti il Direttore prendeva il ramo SHARED (`join_running_session`) invece di forzare la propria timeline.
+- **Fix:** `007de87` (ex `611d4ee`). `start()` branching: `if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore` → il Direttore forza sempre `start_at_beat_zero`.
+- **Validato device:** 29/05/2026 (R7: iPad in Play, audio parte subito, battono all'unisono col Follower).
 
 ### Bug 4 — Link sleep/wake socket refresh
 - **Sintomo:** Link perdeva peer dopo lock schermo + sblocco.
@@ -381,6 +426,7 @@ Per data di chiusura, decrescente.
 | Versione | Data | Autore | Modifiche principali |
 |---|---|---|---|
 | 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
+| 2 | 2026-05-29 | CC chat principale 29/05 | Chiusure Fase 6-7 (squash merge `007de87` su master, validato device 28-29/05): Problema B (orchestrazione start cross-device Follower), Bug 5 (START LOCAL non avvia il Direttore), Bug 5-BPM (Direttore conserva il proprio BPM, affinato `46ba0f3`), 1.j (latenza Direttore con peer). Nuove voci APERTE: Bug 2.b (counter offset "bar 2 di N" + desync visivo sezione/time-sig cross-device → Fase 6-7-bis, OPEN MEDIA), header BPM pre-Play primo caricamento (display, backlog), Issue B microbar fantasma (backlog), Issue A titolo header troncato (CD). |
 
 ---
 
