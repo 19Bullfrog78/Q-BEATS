@@ -40,6 +40,33 @@ struct LiveView: View {
     @State private var pendingAccentPattern: [UInt8]? = nil
     @State private var pendingReps: Int? = nil
 
+    // MARK: - Computed UI helpers
+
+    /// Badge HEAD CD-Q1=B (libro mastro v14, 27/05/2026) propagato a
+    /// `LiveHeaderView`. Nil se Link disabilitato (nessun badge visibile —
+    /// coerente con i LED di connessione che pure scompaiono quando
+    /// `linkIsConnected == false`).
+    ///
+    /// `audioEngine.currentLinkMode` è il mirror `@Published` su AudioEngine
+    /// (Q-D1 ratificato libro mastro v15: AppSettings è `struct`, non
+    /// `ObservableObject` → mirror obbligatorio; nome `currentLinkMode`
+    /// invece di `linkMode` per evitare collisione del backing field
+    /// sintetizzato `_linkMode: Published<...>` con `_linkMode: LinkMode`
+    /// audio-queue privato — CI failure run 26581236612). SwiftUI
+    /// ri-renderizza LiveView quando `currentLinkMode` o `linkEnabled`
+    /// cambiano → questa computed viene ricalcolata automaticamente.
+    ///
+    /// Caveat R3-α: in Fase 6-7 implementiamo solo il badge HEAD
+    /// (Bug 2.a). Il counter offset "bar 2 di N" (Bug 2.b) è rimandato a
+    /// Fase 6-7-bis.
+    private var linkRoleBadge: String? {
+        guard audioEngine.linkEnabled else { return nil }
+        switch audioEngine.currentLinkMode {
+        case .direttore:     return "DIRECTOR"
+        case .collaborativa: return "FOLLOWER"
+        }
+    }
+
     var body: some View {
         GeometryReader { geo in
             // TD #23 (17/05/2026) — scaleFactor responsive iPad v1.
@@ -62,7 +89,7 @@ struct LiveView: View {
                 }()
 
                 VStack(spacing: 0) {
-                    LiveHeaderView(session: session, scaleFactor: scaleFactor)
+                    LiveHeaderView(session: session, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
                         .frame(height: geo.size.height * 0.08)
                     MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                         .frame(height: geo.size.height * 0.10)
@@ -111,6 +138,33 @@ struct LiveView: View {
 
                 if case .fineSetlist = session.playbackState {
                     FineSetlistView(scaleFactor: scaleFactor)
+                }
+
+                // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR
+                // DIRECTOR per Follower Collaborativo in attesa che il
+                // Director cross-device prema Play. Entry da TransportView
+                // tap Play con `linkMode == .collaborativa`. Uscite:
+                //  (a) Director starta → callback Link → linkStartedSubject
+                //      → observer più sotto → runner.startSetlist →
+                //      session.playbackState = .playing (via runner →
+                //      audioEngine.start → audioEngine.$playbackState
+                //      observer riga ~165) → questa view scompare;
+                //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
+                //      → runner.startSetlist standalone;
+                //  (c) tap CANCEL → `dismiss()` Environment in
+                //      WaitingForDirectorView → UIHostingController
+                //      dismissato → ritorno a Bivio (deviazione esplicita
+                //      da CD-Q2=B "→ Select Setlist" — Select Setlist non
+                //      esiste ancora, F2.3 aperto; ratificata 28/05/2026).
+                if case .waitingForDirector = session.playbackState {
+                    WaitingForDirectorView(scaleFactor: scaleFactor) {
+                        // START LOCAL — utente decide di partire standalone
+                        // ignorando l'attesa Director. Nessun guard idempotenza
+                        // esplicito: WaitingForDirectorView è renderizzata
+                        // SOLO in `.waitingForDirector`, quindi questa
+                        // closure scatta solo in quello stato.
+                        runner.startSetlist(audioEngine: audioEngine, session: session)
+                    }
                 }
 
                 VStack(spacing: 0) {
@@ -300,6 +354,34 @@ struct LiveView: View {
                     session.beatActive = 0
                 }
             }
+        }
+        // CD-6 / Bug 4 fix (28/05/2026) — Observer Opzione C orchestrazione
+        // cross-device. AudioEngine emette `linkStartedSubject` dal callback
+        // Link `set_start_stop_callback` (righe ~436-442 di AudioEngine.swift)
+        // DOPO `engine.start()` quando un Director peer ha premuto Play e
+        // il nostro engine flippa da non-playing a starting. Qui orchestriamo
+        // la sezione corrente chiamando `runner.startSetlist(...)` che
+        // resetta indici a 0 e fa il setup completo (setBeatsPerBar,
+        // setAccentPattern, loadSection, setBPM) — senza questo il Follower
+        // partirebbe audio ma `_sectionTotalBeats=0` → counter all'infinito
+        // + nome canzone vuoto (Problema B / Bug 4).
+        //
+        // Gate idempotenza Q-D3 ratificato: se siamo già in `.playing` —
+        // o perché un precedente callback ha già orchestrato (transizione
+        // .waitingForDirector → .playing tramite startSetlist →
+        // audioEngine.start → `.onReceive(audioEngine.$playbackState)`
+        // riga ~165 mirrora su session), o perché Q-B è sorgente Direttore
+        // (in quel caso il callback non arriva neanche: guard early-return
+        // AudioEngine.swift riga ~432) — return silenzioso per evitare
+        // doppio reset indici runner (`startSetlist` resetta brutalmente
+        // `currentSongIdx=0` `currentSectionIdx=0` — Q-D3 Read).
+        //
+        // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
+        // (subscription legata al lifetime della view), nessun
+        // `AnyCancellable` manuale necessario.
+        .onReceive(audioEngine.linkStartedSubject) { _ in
+            guard session.playbackState != .playing else { return }
+            runner.startSetlist(audioEngine: audioEngine, session: session)
         }
     }
 

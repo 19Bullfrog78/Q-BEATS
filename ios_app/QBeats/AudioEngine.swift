@@ -38,6 +38,21 @@ class AudioEngine: ObservableObject {
     @Published var linkIsConnected: Bool = false
     @Published var linkPeers: Int = 0
     @Published var isWaitingForLinkDownbeat: Bool = false
+    // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
+    // `_linkMode` audio-queue per consumo da UI (LiveView calcola
+    // `linkRoleBadge` per LiveHeaderView). Sync nel blocco `main.async` di
+    // `applySettings(_)`. Fonte di verità autoritativa resta
+    // `appSettings.linkMode` (settato da SettingsView). Q-D1 ratificato:
+    // AppSettings è struct, non ObservableObject → mirror obbligatorio.
+    //
+    // NOMENCLATURA: `currentLinkMode` (non `linkMode`) per evitare collisione
+    // con la property privata `_linkMode: LinkMode` (audio-queue copy, riga
+    // ~264): `@Published var linkMode` sintetizzerebbe un backing
+    // `_linkMode: Published<LinkMode>` che collide letteralmente col nome
+    // esistente → CI failure run 26581236612 28/05/2026 sera. Naming allineato
+    // con `currentBPM`, `currentAccentPattern`, `currentSectionRepetitions`
+    // già esistenti nel file (linea "current* = mirror UI di stato audio").
+    @Published var currentLinkMode: LinkMode = .collaborativa
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
@@ -104,6 +119,17 @@ class AudioEngine: ObservableObject {
     // Accesso esclusivamente su main thread.
     private var _suppressBeatsPerBarDidSet: Bool = false
 
+    // === CD-6 / Bug 4 fix (28/05/2026) — Gate anti double-emit linkStartedSubject ===
+    // Settato `true` nel branch `isPlaying && !engine.isPlaying` del callback
+    // Link `set_start_stop_callback`, resettato `false` in
+    // `DispatchQueue.main.async` di `start()` (righe ~745-750) dove
+    // `self.isPlaying = true`. Tra `engine.start()` e il flip di `isPlaying`
+    // ci sono ≥3 hop di dispatch (audioQueue.async + main.async annidato) —
+    // questa finestra è vulnerabile a doppio callback Link (burst peer
+    // reannounce) che ri-passerebbe il guard `!engine.isPlaying`.
+    // Q-D4 esteso ratificato libro mastro v15. Accesso ESCLUSIVAMENTE su main.
+    private var _linkStartEmitInFlight: Bool = false
+
     // === Task D — Section BPM broadcast su Link ===
     // Pattern identico a L1.a (closure single-shot a beat-target).
     // Quando scheduleBPMChange viene chiamato:
@@ -130,6 +156,23 @@ class AudioEngine: ObservableObject {
     // beat al BPM corrente, poi spegnimento). Stop manuale chiama stop()
     // senza emettere il subject — LED spento netto.
     let sectionEndedSubject = PassthroughSubject<Void, Never>()
+
+    // CD-6 / Bug 4 fix (28/05/2026) — Opzione C orchestrazione cross-device.
+    // Emesso dal callback Link `set_start_stop_callback` (righe ~436-442)
+    // quando `engine.isPlaying` flippa false→true a causa di un Director
+    // peer che ha premuto Play. LiveView observer chiama
+    // `runner.startSetlist(...)` per orchestrare la sezione corrente sul
+    // Follower: prima del fix, il callback Link chiamava solo
+    // `engine.start()` ignorando il runner → `_sectionTotalBeats=0` su
+    // Follower → check `_sectionTotalBeats > 0` non passava → counter
+    // macrobar all'infinito + nome canzone non mostrato (Problema B / Bug 4).
+    // Gate anti double-emit: `_linkStartEmitInFlight` (vedi callback).
+    // Gate idempotenza observer: `guard session.playbackState != .playing`
+    // in LiveView (Q-D3 ratificato). NB: in modalità Direttore (linkMode ==
+    // .direttore) il guard early-return riga ~432 del callback impedisce
+    // di entrare nel branch — il Subject NON viene emesso quando Q-BEATS è
+    // sorgente. Q-D2/Q-D3/Q-D4 ratificati libro mastro v15.
+    let linkStartedSubject = PassthroughSubject<Void, Never>()
 
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
@@ -166,7 +209,15 @@ class AudioEngine: ObservableObject {
             self.ch3MixerNode.outputVolume = s.ch3Volume
             self.ch4MixerNode.outputVolume = s.ch4Volume
             let vols = [s.ch1Volume, s.ch2Volume, s.ch3Volume, s.ch4Volume]
-            DispatchQueue.main.async { self.channelVolumes = vols }
+            let linkModeMirror = s.linkMode
+            DispatchQueue.main.async {
+                self.channelVolumes = vols
+                // CD-Q1=B mirror UI — sync @Published `currentLinkMode` dal
+                // valore appena applicato a `_linkMode` audio-queue. Cattura
+                // locale per evitare read di `s` su main (s.linkMode è copia
+                // di valore struct, ma `linkModeMirror` rende l'intent esplicito).
+                self.currentLinkMode = linkModeMirror
+            }
             os_log("applySettings accent=%.2f beat=%.2f subdiv=%.2f muted=%{public}@ ch=[%.2f,%.2f,%.2f,%.2f]",
                    log: .default, type: .default,
                    s.accentVolume, s.beatVolume, s.subdivVolume, "\(s.clickMuted)",
@@ -339,12 +390,17 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
-                    // Modalità Direttore in play: ri-asserisci il proprio tempo
-                    // per vincere la negoziazione Link (Q-B detta, peer seguono).
-                    // Il check bpm != _audioBPM evita loop di re-broadcast quando
-                    // peer riceve il valore Q-B e ritorna lo stesso.
-                    if engine.isRunning && engine._linkMode == .direttore {
-                        if bpm != engine._audioBPM, let lh = engine.linkEngineHandle {
+                    // Modalità Direttore: non subisce MAI il BPM del peer (Bug 5-BPM chiuso).
+                    // Affinamento 29/05/2026 (test R2/R6 su device):
+                    // - In play: re-broadcasta _audioBPM e vince la negoziazione Link
+                    //   (check bpm != _audioBPM evita loop quando il peer rimanda il valore Q-B).
+                    // - In stop: NON adotta il BPM del peer e NON combatte la sessione, così un
+                    //   Follower in START LOCAL (CD-6) può seguire il tempo della propria setlist.
+                    // Il return (sotto) garantisce entrambi: il Direttore esce sempre prima del
+                    // blocco di adozione interna (metronome / MIDI / currentBPM, righe seguenti).
+                    if engine._linkMode == .direttore {
+                        if engine.isRunning, bpm != engine._audioBPM,
+                           let lh = engine.linkEngineHandle {
                             link_engine_set_bpm(lh, engine._audioBPM)
                         }
                         return
@@ -422,19 +478,42 @@ class AudioEngine: ObservableObject {
         }
 
         // === AGGIUNTO 6D — Start/Stop sync callback da peer Link ===
+        //
+        // CD-6 / Bug 4 fix (28/05/2026) — Opzione C: oltre a propagare lo
+        // start/stop al motore audio locale, emette `linkStartedSubject` per
+        // far orchestrare LiveView (→ runner.startSetlist). Senza emit il
+        // Follower partirebbe audio ma con `_sectionTotalBeats=0` → counter
+        // all'infinito + nome canzone non mostrato (Bug 4 / Problema B).
+        //
+        // Doppia protezione anti race:
+        //  (1) Gate `_linkStartEmitInFlight` lato AudioEngine (qui sotto):
+        //      evita doppia emissione se il callback arriva 2 volte ravvicinato
+        //      prima che `engine.isPlaying` flippi a true (≥3 hop dispatch fra
+        //      `engine.start()` audioQueue.async e `main.async` riga ~745).
+        //  (2) Gate `playbackState != .playing` lato LiveView observer
+        //      (Q-D3 ratificato).
+        // Q-D4 esteso ratificato libro mastro v15.
         if let lh = linkEngineHandle {
             link_engine_set_start_stop_callback(lh, { isPlaying, ctx in
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
-                // Modalità Direttore in play: ignora start/stop da peer.
-                // Lettura _linkMode da non-audioQueue: enum case è atomic in Swift.
-                if engine.isRunning && engine._linkMode == .direttore { return }
+                // Modalità Direttore: ignora SEMPRE start/stop da peer in qualsiasi
+                // stato (sorgente unica autoritativa).
+                // Bug 5 fix 28/05/2026 — pre-fix richiedeva isRunning: Director in
+                // stop accettava start da peer Collab via START LOCAL (CD-6).
+                // Lettura _linkMode da non-audioQueue: Swift enum è safe per lettura concorrente.
+                if engine._linkMode == .direttore { return }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
                     if isPlaying && !engine.isPlaying {
+                        // Q-D4 esteso — Gate anti double-emit (vedi commento
+                        // su `_linkStartEmitInFlight` decl).
+                        guard !engine._linkStartEmitInFlight else { return }
+                        engine._linkStartEmitInFlight = true
                         engine.start()
+                        engine.linkStartedSubject.send()
                     } else if !isPlaying && engine.isPlaying {
                         engine.stop()
                     }
@@ -632,12 +711,18 @@ class AudioEngine: ObservableObject {
                             peersCount = link_engine_num_peers(lh)
                         }
 
-                        if peersCount == 0 && !probe.isPlaying {
-                            // === STANDALONE PURO (peers == 0) ===
-                            // Q-BEATS è solo nella sessione Link (o Link disabled).
-                            // Detta la timeline: chiede a Link di mappare beat 0
-                            // a hostNow. Funziona anche con Link disabled (la
-                            // funzione bridge fa early return su !enabled).
+                        if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
+                            // === STANDALONE PURO o DIRETTORE (sorgente unica autoritativa) ===
+                            // Director forza la timeline indipendentemente dallo stato dei
+                            // peer: start_at_beat_zero mappa beat 0 a hostNow.
+                            // I peer ricevono la nuova timeline via Link e si allineano a
+                            // beat 0 — partenza musicalmente corretta dall'inizio del brano.
+                            // Fix 1.j 28/05/2026 — pre-fix Director con peer in stop prendeva
+                            // ramo SHARED → join → latenza fino a ~1s + avvio a metà battuta.
+                            // Edge case (peer già in play): Director forza comunque beat 0,
+                            // peer si riallinea. Progettato e ratificato.
+                            // (Standalone puro: stesso comportamento, Q-BEATS solo nella
+                            // sessione Link o Link disabled — bridge early return su !enabled.)
                             if let h = self.metronomeHandle {
                                 metronome_reset_for_start(h, 0.0)
                             }
@@ -648,17 +733,17 @@ class AudioEngine: ObservableObject {
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
-                            os_log("[Q-BEATS][LINK][START] standalone avviato",
-                                   log: .default, type: .default)
+                            os_log("[Q-BEATS][LINK][START] standalone/direttore avviato (mode:%{public}@ peers:%u)",
+                                   log: .default, type: .default,
+                                   self._linkMode == .direttore ? "direttore" : "standalone",
+                                   peersCount)
                         } else {
-                            // === SESSIONE CONDIVISA (peers > 0) ===
-                            // Peer presenti, qualsiasi loro stato (fermi o in play).
-                            // Q-BEATS si adegua alla timeline Link condivisa:
-                            // quantized launch al prossimo downbeat con
-                            // join_running_session, NESSUN override della timeline.
-                            // Pattern aderente alla doc Ableton: "chi entra si
-                            // adegua, chi c'è già non si muove" (dove "già nella
-                            // sessione" significa "presente", non "in play").
+                            // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
+                            // Q-BEATS si adegua alla timeline Link esistente: quantized
+                            // launch al prossimo downbeat via join_running_session.
+                            // Pattern aderente alla doc Ableton: "chi entra si adegua,
+                            // chi c'è già non si muove".
+                            // (Il ramo .direttore non arriva mai qui — gestito sopra.)
                             let bpm = probe.tempo > 0.0 ? probe.tempo : self.currentBPM
                             let phase = probe.phaseAtHost
                             // Se phase ≈ 0 o ≈ quantum siamo già sul downbeat → no wait.
@@ -747,6 +832,11 @@ class AudioEngine: ObservableObject {
                     self.playbackState        = .playing
                     self.clickStatus          = statusStr
                     self.currentAccentPattern = uiPattern
+                    // CD-6 / Bug 4 fix (Q-D4 esteso) — Reset gate anti
+                    // double-emit linkStartedSubject. Da qui `isPlaying == true`
+                    // → il guard `!engine.isPlaying` del callback Link
+                    // protegge da double-start senza più bisogno del flag.
+                    self._linkStartEmitInFlight = false
                 }
 
                 let avSession = AVAudioSession.sharedInstance()
