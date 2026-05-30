@@ -11,6 +11,12 @@ struct LiveView: View {
     // il primo tick della sezione corrente, e calcoliamo `currentBar` come tick relativo.
     @State private var sectionStartTick: Int = 1
     @State private var pendingSectionStart: Bool = false
+    // Bug 2.b ramo X — true tra il .playing e il primo beat tick: al primo tick
+    // sectionStartTick è seminato da audioEngine.startBeatOffset (il Follower
+    // entra a bar 2 dopo il count-in del Director). Sostituisce il vecchio
+    // sectionStartTick=1 fisso del case .playing. Init false; true solo in
+    // .playing; consumato al primo tick; reset a false nel percorso stop/standby.
+    @State private var awaitingFirstTick: Bool = false
     // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
     // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
     @State private var sectionHold: Bool = false
@@ -217,6 +223,12 @@ struct LiveView: View {
         }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
+            // Bug 2.b ramo X — reset del flag di seed su OGNI transizione a stato
+            // non-playing (stopped, countIn, pausedAwaitingChoice), presente e
+            // futura. Simmetrico a startBeatOffset=0 in stopSync. Al prossimo
+            // .playing si ri-arma e il primo tick risemina. PlaybackState (enum
+            // engine) NON è Equatable → if-case invece di != .playing.
+            if case .playing = state {} else { awaitingFirstTick = false }
             switch state {
             case .stopped:
                 // L1.b: il runner gestisce .standby e .fineSetlist impostando
@@ -251,10 +263,11 @@ struct LiveView: View {
                 // P2: chiusura della finestra fade se l'utente preme Play durante
                 // i ~500ms post-autostop (asyncAfter pendente sara' poi no-op via guard).
                 sectionHold = false
-                // L1.b — audioEngine.start() ha resettato beatTickCounter a 0 →
-                // il prossimo tick sarà 1. Resetta il marker della sezione di
-                // partenza per la prima sezione di una nuova performance.
-                sectionStartTick = 1
+                // Bug 2.b ramo X — il primo beat tick semina sectionStartTick da
+                // audioEngine.startBeatOffset (Follower: bar d'ingresso; Director: 0
+                // → sectionStartTick=1, identico a prima). Sostituisce il vecchio
+                // sectionStartTick=1 fisso, che ignorava il count-in del Director.
+                awaitingFirstTick = true
                 pendingSectionStart = false
             case .pausedAwaitingChoice(let sec, let song):
                 session.playbackState = .overlayStop(sectionName: sec, songName: song)
@@ -299,6 +312,14 @@ struct LiveView: View {
             }
         }
         .onReceive(audioEngine.beatTickSubject) { tickN in
+            // Bug 2.b ramo X — primo tick post-play: semina sectionStartTick con
+            // l'offset di ingresso del Follower (entra a bar 2 dopo il count-in
+            // del Director). Director/standalone: startBeatOffset=0 → sectionStartTick
+            // = tickN(=1) → currentBar=1, identico a prima. Consumato qui (una volta).
+            if awaitingFirstTick {
+                sectionStartTick = tickN - audioEngine.startBeatOffset
+                awaitingFirstTick = false
+            }
             // L1.b — Al cambio sezione (runner.$currentSectionIdx triggera
             // pendingSectionStart=true), il prossimo tick è il primo della
             // nuova sezione: lo registriamo come sectionStartTick.

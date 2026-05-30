@@ -330,6 +330,11 @@ class AudioEngine: ObservableObject {
     private var currentResumeToken: Int = 0
     // Beat assoluto di clock al momento del Play originale — usato per snap relativo.
     private var _startAbsoluteBeat: Double = 0.0
+    // Bug 2.b ramo X — offset d'ingresso del Follower in BEAT (multiplo di bpb
+    // su downbeat); 0 per Director/standalone/resume. Seminato nel work item
+    // SHARED prima del pre-roll; letto da LiveView al primo tick per allineare
+    // sectionStartTick (visivo). Accesso scrittura su audioQueue, lettura su main.
+    private(set) var startBeatOffset: Int = 0
     // Opzione B — Link downbeat wait (accesso SOLO su audioQueue)
     private var pendingLinkStart: DispatchWorkItem? = nil
     // Build 303 — salta sync Link nei primi 3 buffer dopo fresh play
@@ -685,6 +690,9 @@ class AudioEngine: ObservableObject {
                         // Q-BEATS detta la timeline a beat noto. snappedBeat è in
                         // scope sopra dentro l'`if let beat = resumeBeat`,
                         // qui lo ricalcoliamo coerentemente per il branch link.
+                        // Bug 2.b ramo X — resume non semina: snap già gestito da
+                        // _startAbsoluteBeat. Offset azzerato.
+                        self.startBeatOffset = 0
                         let beatsPerBarD = Double(self._beatsPerBarQ)
                         let relativePhase = (resumeAtBeat ?? 0.0) - self._startAbsoluteBeat
                         let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
@@ -713,6 +721,9 @@ class AudioEngine: ObservableObject {
 
                         if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
                             // === STANDALONE PURO o DIRETTORE (sorgente unica autoritativa) ===
+                            // Bug 2.b ramo X — sorgente autoritativa parte da bar 1: nessun
+                            // offset d'ingresso. Garantisce Director/standalone bit-identici.
+                            self.startBeatOffset = 0
                             // Director forza la timeline indipendentemente dallo stato dei
                             // peer: start_at_beat_zero mappa beat 0 a hostNow.
                             // I peer ricevono la nuova timeline via Link e si allineano a
@@ -790,6 +801,49 @@ class AudioEngine: ObservableObject {
                                 }
                                 if let h = self.metronomeHandle {
                                     metronome_reset_for_start(h, 0.0)
+                                }
+                                // === Bug 2.b ramo X — SEED contatore sezione del Follower ===
+                                // Il Follower entra dopo il count-in del Director (≥1 bar).
+                                // _sectionBeatCounter è già stato azzerato da loadSection (936-944)
+                                // e da start() (~634), ENTRAMBI prima di questo work item ritardato.
+                                // Seminiamo QUI, PRIMA del pre-roll sottostante: il primo
+                                // scheduleNextBuffer emette già il primo beat (resetForStart fissa
+                                // _exactNextBeatSample=0 → beat al sample 0) che fa
+                                // _sectionBeatCounter += 1. Seminare dopo il pre-roll = off-by-one.
+                                //
+                                // startBeat = fase allineata alla sessione Link al momento del join
+                                // (≈ bar saltati nel count-in del Director). È within-section e NON
+                                // si accumula tra brani perché il Director rimappa Link a beat 0 a
+                                // ogni canzone (link_engine_start_at_beat_zero, LinkEngine.mm:427-445).
+                                // Variabile LOCALE: NON tocchiamo _startAbsoluteBeat (snap resume).
+                                if let mh = self.midiEngineHandle {
+                                    let startBeat = midi_engine_get_beat_at_time(
+                                        mh,
+                                        futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
+                                    // Spia: aggancio non sul downbeat (frazione in valore assoluto).
+                                    // Problema a monte da non mascherare — log, non correzione.
+                                    if abs(startBeat - startBeat.rounded()) > 0.1 {
+                                        os_log("[Q-BEATS][Bug2b] WARN aggancio non su downbeat — startBeat:%.4f frazione:%.3f",
+                                               log: .default, type: .error,
+                                               startBeat, startBeat - startBeat.rounded())
+                                    }
+                                    let offset = Int(startBeat.rounded())
+                                    // Rete portante: semina SOLO se l'offset è coerente con la
+                                    // sezione. Fuori (0, _sectionTotalBeats) → no-op = comportamento
+                                    // di oggi (counter da bar 1), niente swap immediato né brano rotto.
+                                    if offset > 0 && offset < self._sectionTotalBeats {
+                                        self.startBeatOffset = offset
+                                        self._sectionBeatCounter = offset
+                                    } else {
+                                        self.startBeatOffset = 0
+                                        self._sectionBeatCounter = 0
+                                        // Il ramo SHARED si aspetta SEMPRE offset > 0 (il Follower
+                                        // entra dopo il count-in del Director): qualsiasi else —
+                                        // incluso offset == 0 — è un'anomalia da loggare sempre.
+                                        os_log("[Q-BEATS][Bug2b] seed SKIP su SHARED — offset:%d fuori range [1,%d) — no-op safe (atteso >0)",
+                                               log: .default, type: .error,
+                                               offset, self._sectionTotalBeats)
+                                    }
                                 }
                                 self.linkSyncSkipBuffers = 3
                                 self.scheduleNextBuffer()
@@ -1439,6 +1493,8 @@ class AudioEngine: ObservableObject {
             // metà sezione e poi Play — la sezione ricomincia da capo, non
             // viene "scaricata"). Solo il counter va azzerato.
             self._sectionBeatCounter = 0
+            // Bug 2.b ramo X — nessun offset d'ingresso stale al prossimo play.
+            self.startBeatOffset = 0
             // Task D — Stop manuale o autostop: annulla cambio BPM pending.
             // Senza questo, un cambio armato pre-stop scatterebbe al replay
             // (DSP riapplicherebbe _pendingBPM al primo downbeat post-Play).
