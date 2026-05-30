@@ -378,7 +378,8 @@ struct LiveView: View {
         // Link `set_start_stop_callback` (righe ~436-442 di AudioEngine.swift)
         // DOPO `engine.start()` quando un Director peer ha premuto Play e
         // il nostro engine flippa da non-playing a starting. Qui orchestriamo
-        // la sezione corrente chiamando `runner.startSetlist(...)` che
+        // la sezione corrente: in `.standby` `runner.startCurrentSong(...)`
+        // (preserva `currentSongIdx`), altrimenti `runner.startSetlist(...)` che
         // resetta indici a 0 e fa il setup completo (setBeatsPerBar,
         // setAccentPattern, loadSection, setBPM) — senza questo il Follower
         // partirebbe audio ma `_sectionTotalBeats=0` → counter all'infinito
@@ -391,7 +392,7 @@ struct LiveView: View {
         // riga ~165 mirrora su session), o perché Q-B è sorgente Direttore
         // (in quel caso il callback non arriva neanche: guard early-return
         // AudioEngine.swift riga ~432) — return silenzioso per evitare
-        // doppio reset indici runner (`startSetlist` resetta brutalmente
+        // doppio reset indici runner (ramo `else`: `startSetlist` resetta
         // `currentSongIdx=0` `currentSectionIdx=0` — Q-D3 Read).
         //
         // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
