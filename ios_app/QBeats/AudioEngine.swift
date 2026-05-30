@@ -802,19 +802,20 @@ class AudioEngine: ObservableObject {
                                 if let h = self.metronomeHandle {
                                     metronome_reset_for_start(h, 0.0)
                                 }
-                                // === Bug 2.b — offset d'ingresso del Follower (SOLO visivo) ===
+                                // === Bug 2.b ramo X — SEED contatore sezione del Follower ===
                                 // Il Follower entra dopo il count-in del Director (≥1 bar).
-                                // Calcoliamo la fase Link al join (≈ bar saltati) e la pubblichiamo
-                                // in startBeatOffset: LiveView la legge al primo tick per ancorare
-                                // sectionStartTick = 1 - offset. startBeatOffset è audio-inerte
-                                // (scritto qui, letto SOLO da LiveView).
+                                // _sectionBeatCounter è già stato azzerato da loadSection (936-944)
+                                // e da start() (~634), ENTRAMBI prima di questo work item ritardato.
+                                // Seminiamo QUI, PRIMA del pre-roll sottostante: il primo
+                                // scheduleNextBuffer emette già il primo beat (resetForStart fissa
+                                // _exactNextBeatSample=0 → beat al sample 0) che fa
+                                // _sectionBeatCounter += 1. Seminare dopo il pre-roll = off-by-one.
                                 //
-                                // Piano ratificato punto (2): NON tocchiamo _sectionBeatCounter
-                                // (contatore audio). L'audio resta identico a master → R7 isola se
-                                // X (accenti fuori 1 bar al cambio metro) è reale PRIMA di toccare
-                                // il percorso audio. Within-section, NON cumulativo tra brani
-                                // (Director rimappa Link a beat 0, LinkEngine.mm:427-445).
-                                // _startAbsoluteBeat NON toccato (snap resume).
+                                // startBeat = fase allineata alla sessione Link al momento del join
+                                // (≈ bar saltati nel count-in del Director). È within-section e NON
+                                // si accumula tra brani perché il Director rimappa Link a beat 0 a
+                                // ogni canzone (link_engine_start_at_beat_zero, LinkEngine.mm:427-445).
+                                // Variabile LOCALE: NON tocchiamo _startAbsoluteBeat (snap resume).
                                 if let mh = self.midiEngineHandle {
                                     let startBeat = midi_engine_get_beat_at_time(
                                         mh,
@@ -827,16 +828,19 @@ class AudioEngine: ObservableObject {
                                                startBeat, startBeat - startBeat.rounded())
                                     }
                                     let offset = Int(startBeat.rounded())
-                                    // Rete portante: pubblica l'offset SOLO se coerente con la
-                                    // sezione. Fuori (0, _sectionTotalBeats) → 0 = counter visivo da bar 1.
+                                    // Rete portante: semina SOLO se l'offset è coerente con la
+                                    // sezione. Fuori (0, _sectionTotalBeats) → no-op = comportamento
+                                    // di oggi (counter da bar 1), niente swap immediato né brano rotto.
                                     if offset > 0 && offset < self._sectionTotalBeats {
                                         self.startBeatOffset = offset
+                                        self._sectionBeatCounter = offset
                                     } else {
                                         self.startBeatOffset = 0
+                                        self._sectionBeatCounter = 0
                                         // Il ramo SHARED si aspetta SEMPRE offset > 0 (il Follower
                                         // entra dopo il count-in del Director): qualsiasi else —
                                         // incluso offset == 0 — è un'anomalia da loggare sempre.
-                                        os_log("[Q-BEATS][Bug2b] offset SKIP su SHARED — offset:%d fuori range [1,%d) — startBeatOffset=0 (atteso >0)",
+                                        os_log("[Q-BEATS][Bug2b] seed SKIP su SHARED — offset:%d fuori range [1,%d) — no-op safe (atteso >0)",
                                                log: .default, type: .error,
                                                offset, self._sectionTotalBeats)
                                     }
