@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 2
-**Ultima modifica:** 2026-05-29
+**Versione:** 3
+**Ultima modifica:** 2026-05-30
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -85,6 +85,15 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Sintomo:** dopo sessioni lunghe Link smette di vedere peer. Recovery manuale: toggle Link OFF/ON.
 - **Stato:** parzialmente coperto da fix Bug 4 (commit `6d1dbbf` 26/05 — pattern Ableton bidirezionale ScenePhase) per il caso background/foreground cycle. **Resta aperto** per scenario "sessioni lunghe foreground attivo" se mai si manifesta.
 - **Test da fare:** pre-palco, sessione live foreground attiva ≥30 min, verificare se peer scompaiono.
+
+### Bug cambio-canzone cross-device — Follower riparte da Song A allo standby
+- **Sintomo:** in setup cross-device (Director + Follower Collaborativo), allo **standby tra una canzone e la successiva** (es. fine Song A → standby "next: Song B"), quando il Director preme Play il **Follower riparte da Song A / Intro 100** invece di proseguire con Song B / Slow 90. Il tempo arriva corretto da Link, ma il **contenuto di sezione è quello della canzone sbagliata** (la precedente). In un set multi-canzone live il Follower suona la canzone sbagliata.
+- **Causa root (confermata al codice 30/05):** il gestore `.onReceive(audioEngine.linkStartedSubject)` in `LiveView.swift:400-403` ha guard solo su `.playing` e chiama `runner.startSetlist(...)` in modo incondizionato. `startSetlist` azzera `currentSongIdx = 0` (`SetlistRunner.swift:107-117`). In `.standby` (che è `!= .playing`, entrato a `SetlistRunner.swift:330` con `currentSongIdx` già avanzato alla canzone successiva) il guard passa → reset a songIdx 0 → Follower torna alla prima canzone.
+- **Inquadramento:** buco nella copertura multi-canzone di **Problema B / Opzione C / CD-6** (alias storico "Bug 4/Problema B", fix orchestrazione start cross-device `007de87`). L'Opzione C risolse solo il **primo** start della setlist; il cambio-canzone allo standby non era coperto. **NON** è il "Bug 4 — Link sleep/wake" (`6d1dbbf`), **NON** è Bug 2.b (desync visivo): è un bug di orchestrazione distinto.
+- **Direzione fix:** nel gestore `linkStartedSubject`, intercettare lo stato `.standby` → `runner.startCurrentSong(...)` (preserva `currentSongIdx`, riparte dalla prima sezione della canzone corrente); tutti gli altri stati restano su `startSetlist`. NB tecnico: `LivePlaybackState.standby` ha valore associato (`nextSongName`) → match con `if case .standby = session.playbackState`, non `==`.
+- **Stato:** 🔴 OPEN ALTA · 🚨 BLOCCANTE PALCO per il set multi-canzone cross-device (Follower suona la canzone sbagliata dopo un cambio). Single-device e singola-canzone non affetti. Blocca la validazione device del multi-canzone, prerequisito per chiudere Bug 2.b (counter + accenti su più canzoni).
+- **Dominio:** CC (orchestrazione start cross-device).
+- **Fix in lavorazione:** branch `fix/bug-2b-visual-section-sync` (30/05), diff in review gate.
 
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
 
@@ -427,6 +436,7 @@ Per data di chiusura, decrescente.
 |---|---|---|---|
 | 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
 | 2 | 2026-05-29 | CC chat principale 29/05 | Chiusure Fase 6-7 (squash merge `007de87` su master, validato device 28-29/05): Problema B (orchestrazione start cross-device Follower), Bug 5 (START LOCAL non avvia il Direttore), Bug 5-BPM (Direttore conserva il proprio BPM, affinato `46ba0f3`), 1.j (latenza Direttore con peer). Nuove voci APERTE: Bug 2.b (counter offset "bar 2 di N" + desync visivo sezione/time-sig cross-device → Fase 6-7-bis, OPEN MEDIA), header BPM pre-Play primo caricamento (display, backlog), Issue B microbar fantasma (backlog), Issue A titolo header troncato (CD). |
+| 3 | 2026-05-30 | CC chat principale 30/05 | Registrazione nuova voce APERTA in Sez. 1.1: "Bug cambio-canzone cross-device — Follower riparte da Song A allo standby" — buco nella copertura multi-canzone di Problema B / Opzione C / CD-6 (l'Opzione C `007de87` copriva solo il primo start della setlist; al cambio-canzone allo standby il Follower veniva resettato a songIdx 0 e ripartiva da Song A invece di proseguire). 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO per il set multi-canzone cross-device (single-device e singola-canzone non affetti). Root: `LiveView.swift:400-403`, gestore `linkStartedSubject` chiama `startSetlist` con guard solo su `.playing`, nessun ramo `.standby`. Registrazione prima del fix (branch `fix/bug-2b-visual-section-sync`). |
 
 ---
 
