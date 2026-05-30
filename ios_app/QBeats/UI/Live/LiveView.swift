@@ -399,7 +399,15 @@ struct LiveView: View {
         // `AnyCancellable` manuale necessario.
         .onReceive(audioEngine.linkStartedSubject) { _ in
             guard session.playbackState != .playing else { return }
-            runner.startSetlist(audioEngine: audioEngine, session: session)
+            // Cambio-canzone cross-device (buco copertura Opzione C/CD-6):
+            // in .standby il Follower ha currentSongIdx già avanzato →
+            // startCurrentSong preserva la canzone corrente; startSetlist
+            // la resetterebbe a songIdx 0 (Song A). Vedi BUGS_QBEATS.md.
+            if case .standby = session.playbackState {
+                runner.startCurrentSong(audioEngine: audioEngine, session: session)
+            } else {
+                runner.startSetlist(audioEngine: audioEngine, session: session)
+            }
         }
     }
 
