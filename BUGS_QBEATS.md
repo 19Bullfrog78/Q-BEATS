@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 3
-**Ultima modifica:** 2026-05-30
+**Versione:** 4
+**Ultima modifica:** 2026-05-31
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -59,6 +59,19 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 
 ## 🚨 1.1 — Bloccanti palco (🔴 OPEN ALTA)
 
+### Bug 2.b — Counter offset "bar 2 di N" + desync sezione/time-sig cross-device (audio + visivo)
+- **Sintomo:** sul device in ruolo **Collaborative/Follower**, al cambio sezione la sync di sezione/time-sig si rompe. Caso peggiore confermato: **4/4 → 3/4 a BPM costante** → la sezione 4/4 sfora di un beat ("**bar 9 di 8**"), confine sfasato. **L'audio NON è solo "corretto/visivo"**: al confine il Follower fa un **doppio accento (1+2)** e poi per tutta la sezione 3/4 accenta il **beat 2** invece dell'1, mentre il verde visivo resta sull'1. Standalone (START LOCAL) e Director: **puliti** (verificati su device 31/05).
+- **Legato al RUOLO Collaborative, non al device** (test Mauro 31/05: l'iPad in Collaborative fa lo stesso errore che faceva l'iPhone). **Discriminante = Link attivo/disattivo** (`ABLLinkIsEnabled`/`SetActive`), NON `_linkMode` (che persiste in memoria).
+- **Modello "due facce" (stessa radice — confine Follower sfasato di un beat):** senza peer → si vede il "9 di 8" **visivo** (contatore Swift grezzo); con peer → `sync_phase` **maschera il visivo** (contatore raddrizzato) ma la riscrittura di posizione al confine **sporca l'accento audio**.
+- **Asse BPM-vs-BPB (da separare empiricamente, NON assumere il meccanismo):**
+  - R2 (Intro 100→Verse 120, **solo BPM**, 4/4→4/4): in **standalone con Link OFF = pulito su tutti gli assi** (lucette, contatore, accento audio) — ri-test 31/05, 4 prove. NB: il desync visivo "battuta 2" registrato in BOX3 V69 R2 (29/05) era in START LOCAL con **Link ancora attivo** (START LOCAL non spegne Link); con Link OFF non si presenta → conferma il discriminante Link-attivo.
+  - Verse→Bridge (**BPB+BPM**, 120→3/4) = **trambusto visivo già riportato in R7** (BOX3 V69: un device in 3/4, l'altro ancora 4/4 per un attimo → classificato Bug 2.b, deferred). **Comportamento audio NON verificato** — da accertare con setup mirato; NON assumere pulito.
+  - 3/4 Long (**solo BPB, BPM costante**) = **rotto su entrambi gli assi** (visivo "9 di 8" + accento audio sul beat 2). Complemento da fare: stesso test in **standalone Link OFF** (se pulito → inchioda il discriminante Link-attivo).
+  Lettura: ogni caso con cambio BPB mostra rottura; l'unico senza BPB (R2), in standalone con Link OFF, è pulito su tutti gli assi → il trigger sembra il **cambio BPB (time-sig)**. Se/quanto il BPM concomitante mascheri l'**audio** è **ipotesi, NON assunta**. Meccanismo (`scheduleBPMChange` vs swap SEAMLESS inline `AudioEngine.swift:2354`) **da confermare**. **Nessun caso va escluso come "pulito" senza verifica mirata** (R2 ora verificato in standalone Link OFF; restano Verse→Bridge audio e 3/4 Long standalone).
+- **Causale: in diagnosi.** Sospetti (NON root confermato): seme `_sectionBeatCounter` lato Follower (`AudioEngine.swift:805-847`) + `sync_phase`/`metronome_set_beat_position` al confine (`:2096-2117`). Nessun fix da soli log Q-B-side — ground truth = accento sul device.
+- **Stato:** 🔴 **OPEN ALTA — 🚨 BLOCCANTE PALCO** (Fase 6-7-bis). Severità decisa 31/05 (Mauro + referee): accento audio errato in Collaborative ai cambi di **time-signature puri** (BPM costante) = **errore musicale, non cosmesi**; il costrutto che lo innesca (es. strofa 4/4 → bridge 3/4 stesso tempo) è **musica normale, non edge case** → soglia di prodotto, non del palco specifico. Elevato da 🟠 e ricollocato da Sez. 1.2 a Sez. 1.1.
+- **Dominio:** CC (sync runtime cross-device) + CD (UX counter "bar 2 di N").
+
 ### TD #A — First-beat-fuori cross-device
 - **Sintomo:** al primo beat dopo `play`, il device Collaborativo entra 30-105ms dopo il Director. Sistematico cross-BPM (non rumore). Misurato cross-play, cross-device.
 - **Misura:** ritardo `T4→T5` (calcolo `futureHostTime` → primo render buffer audio post pre-roll) = 98-118ms media ~105ms. Single-sample iniziale 24/05 era ~70ms (sottostima). Timebase iPad confermato = 24 MHz (1 tick ≈ 41,666 ns). startBeat finale 0,032-0,036 beat ≈ 32-36ms a 100 BPM.
@@ -86,23 +99,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Stato:** parzialmente coperto da fix Bug 4 (commit `6d1dbbf` 26/05 — pattern Ableton bidirezionale ScenePhase) per il caso background/foreground cycle. **Resta aperto** per scenario "sessioni lunghe foreground attivo" se mai si manifesta.
 - **Test da fare:** pre-palco, sessione live foreground attiva ≥30 min, verificare se peer scompaiono.
 
-### Bug cambio-canzone cross-device — Follower riparte da Song A allo standby
-- **Sintomo:** in setup cross-device (Director + Follower Collaborativo), allo **standby tra una canzone e la successiva** (es. fine Song A → standby "next: Song B"), quando il Director preme Play il **Follower riparte da Song A / Intro 100** invece di proseguire con Song B / Slow 90. Il tempo arriva corretto da Link, ma il **contenuto di sezione è quello della canzone sbagliata** (la precedente). In un set multi-canzone live il Follower suona la canzone sbagliata.
-- **Causa root (confermata al codice 30/05):** il gestore `.onReceive(audioEngine.linkStartedSubject)` in `LiveView.swift:400-403` ha guard solo su `.playing` e chiama `runner.startSetlist(...)` in modo incondizionato. `startSetlist` azzera `currentSongIdx = 0` (`SetlistRunner.swift:107-117`). In `.standby` (che è `!= .playing`, entrato a `SetlistRunner.swift:330` con `currentSongIdx` già avanzato alla canzone successiva) il guard passa → reset a songIdx 0 → Follower torna alla prima canzone.
-- **Inquadramento:** buco nella copertura multi-canzone di **Problema B / Opzione C / CD-6** (alias storico "Bug 4/Problema B", fix orchestrazione start cross-device `007de87`). L'Opzione C risolse solo il **primo** start della setlist; il cambio-canzone allo standby non era coperto. **NON** è il "Bug 4 — Link sleep/wake" (`6d1dbbf`), **NON** è Bug 2.b (desync visivo): è un bug di orchestrazione distinto.
-- **Direzione fix:** nel gestore `linkStartedSubject`, intercettare lo stato `.standby` → `runner.startCurrentSong(...)` (preserva `currentSongIdx`, riparte dalla prima sezione della canzone corrente); tutti gli altri stati restano su `startSetlist`. NB tecnico: `LivePlaybackState.standby` ha valore associato (`nextSongName`) → match con `if case .standby = session.playbackState`, non `==`.
-- **Stato:** 🔴 OPEN ALTA · 🚨 BLOCCANTE PALCO per il set multi-canzone cross-device (Follower suona la canzone sbagliata dopo un cambio). Single-device e singola-canzone non affetti. Blocca la validazione device del multi-canzone, prerequisito per chiudere Bug 2.b (counter + accenti su più canzoni).
-- **Dominio:** CC (orchestrazione start cross-device).
-- **Fix in lavorazione:** branch `fix/bug-2b-visual-section-sync` (30/05), diff in review gate.
-
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
-
-### Bug 2.b — Counter offset "bar 2 di N" + desync visivo sezione/time-sig cross-device
-- **Sintomo:** sul Follower, al cambio di sezione/tempo (es. 120 4/4 → 3/4, o Intro→Verse), la barretta delle battute si desincronizza **visivamente**: la battuta n.2 non si accende per un attimo, il primo accento audio non corrisponde al primo accento visivo, un device passa al nuovo time-sig mentre l'altro è ancora sul precedente. **L'audio è corretto** (batte all'unisono), il problema è solo visivo.
-- **Causa ipotizzata:** contatore battute/sezione del Follower sfasato dopo quantized launch + cambio sezione runtime non sincronizzato cross-device.
-- **Diagnostica device 29/05:** R2 (Intro→Verse) e R7 (Verse 120→Bridge 3/4) mostrano il desync. Timing audio delle sezioni confermato esatto dai log (`TaskD-AQ broadcast` bpm corretto, durate sezioni al secondo).
-- **Stato:** 🟠 rimandato a **Fase 6-7-bis** (split ratificato R3-α: in Fase 6-7 implementato solo il badge HEAD; counter offset e sync sezione runtime rimandati).
-- **Dominio:** CC (sync runtime cross-device) + CD (UX counter "bar 2 di N").
 
 ### TD #34 — Race condition `link_engine_set_start_stop_callback`
 - **Sintomo:** potenziale crash mid-session su transizioni start/stop rapide.
@@ -128,6 +125,13 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Roadmap:** Item 4 roadmap CC. Motivazione empirica c'è (Slow 90 fuori target stretch).
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
+
+### WAITING FOR DIRECTOR persiste con Ableton Link OFF (candidato)
+- **Sintomo:** con Ableton Link disattivato, tap Play in modalità Collaborative → resta in WAITING FOR DIRECTOR invece di partire normale. Il badge FOLLOWER sparisce correttamente (NON è il problema); `_linkMode == .collaborativa` resta in memoria (corretto, preferenza utente fail-safe `cb92faa`).
+- **Causa ipotizzata (da confermare al codice):** il trigger della Vista WAITING FOR DIRECTOR è gated su `_linkMode` (che persiste) invece che sullo stato **Link-attivo** (`ABLLinkIsEnabled`/`SetActive`) — asimmetria col percorso di start del metronomo, gated correttamente su Link-attivo.
+- **Stato:** 🟡 candidato, separato da R7/Bug 2.b.
+- **Note:** WAITING con Link **ON** senza peer = comportamento **ratificato CD-Q2=B** (non bug). La domanda UX "Link off / no peer = modalità normale" è riapertura di design ratificato → da girare a **CD**.
+- **Dominio:** CC (gate del trigger) + CD (UX).
 
 ### Header BPM·tempo errato pre-Play al primo caricamento setlist
 - **Sintomo:** al primo caricamento di una setlist dopo l'avvio dell'app, l'header (`Test Song A · 120 · 4/4`) mostra il BPM/tempo di **default del motore (120)** invece di quello della prima sezione (es. Intro 100). Si **auto-corregge premendo Play** e non si ripresenta finché l'app resta aperta.
@@ -225,6 +229,13 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 Per data di chiusura, decrescente.
 
 ## 🟢 Maggio 2026
+
+### Bug cambio-canzone cross-device — Follower riparte da Song A allo standby
+- **Sintomo:** in setup cross-device (Director + Follower Collaborativo), allo standby tra una canzone e la successiva (es. fine Song A → standby "next: Song B"), premendo Play su Director il Follower ripartiva da Song A / Intro 100 invece di proseguire con Song B / Slow 90 (tempo corretto da Link, ma contenuto di sezione della canzone sbagliata).
+- **Causa root:** gestore `.onReceive(audioEngine.linkStartedSubject)` (`LiveView.swift:400-403`) con guard solo su `.playing` → chiamava `runner.startSetlist(...)` incondizionato anche in `.standby`; `startSetlist` azzera `currentSongIdx = 0` → reset a Song A. Buco nella copertura multi-canzone di **Problema B / Opzione C / CD-6** (l'Opzione C copriva solo il primo start della setlist; il cambio-canzone allo standby no). NON è "Bug 4 — Link sleep/wake".
+- **Fix:** branch `fix/bug-2b-visual-section-sync`, commit `2475487` — `if case .standby = session.playbackState → runner.startCurrentSong(...)` (preserva `currentSongIdx`), `else → runner.startSetlist(...)`, guard `!= .playing` invariato. Commento gestore aggiornato (`dbd76a2`); harness test "3/4 Long" rientrato (`7e61958`).
+- **Validato device:** 31/05/2026 — orchestrazione validata (Follower entra su Slow 90, bar multi-canzone sincronizzati). **NB:** il conteggio segmenti del metronomo stantio all'ingresso di Slow 90 (mostra 3 invece di 4 per un attimo) è **Bug 2.b** (desync sezione/time-sig cross-device — vedi Bug 2.b, ora 🔴 in Sez. 1.1), **non** questo bug.
+- **Merge:** branch NON ancora mergiato su master — HOLD fino alla chiusura di Bug 2.b (il branch trascina il seme `0693e39`, sospetto R7).
 
 ### Problema B — Orchestrazione start cross-device del Follower (alias storico "Bug 4/Problema B" — NON confondere con "Bug 4 — Link sleep/wake")
 - **Sintomo:** iPhone Collaborativo + iPad Director in play → iPhone non mostrava il nome canzone e il counter macrobar avanzava all'infinito (oltre `macroBarTotal`).
@@ -437,6 +448,7 @@ Per data di chiusura, decrescente.
 | 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
 | 2 | 2026-05-29 | CC chat principale 29/05 | Chiusure Fase 6-7 (squash merge `007de87` su master, validato device 28-29/05): Problema B (orchestrazione start cross-device Follower), Bug 5 (START LOCAL non avvia il Direttore), Bug 5-BPM (Direttore conserva il proprio BPM, affinato `46ba0f3`), 1.j (latenza Direttore con peer). Nuove voci APERTE: Bug 2.b (counter offset "bar 2 di N" + desync visivo sezione/time-sig cross-device → Fase 6-7-bis, OPEN MEDIA), header BPM pre-Play primo caricamento (display, backlog), Issue B microbar fantasma (backlog), Issue A titolo header troncato (CD). |
 | 3 | 2026-05-30 | CC chat principale 30/05 | Registrazione nuova voce APERTA in Sez. 1.1: "Bug cambio-canzone cross-device — Follower riparte da Song A allo standby" — buco nella copertura multi-canzone di Problema B / Opzione C / CD-6 (l'Opzione C `007de87` copriva solo il primo start della setlist; al cambio-canzone allo standby il Follower veniva resettato a songIdx 0 e ripartiva da Song A invece di proseguire). 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO per il set multi-canzone cross-device (single-device e singola-canzone non affetti). Root: `LiveView.swift:400-403`, gestore `linkStartedSubject` chiama `startSetlist` con guard solo su `.playing`, nessun ramo `.standby`. Registrazione prima del fix (branch `fix/bug-2b-visual-section-sync`). |
+| 4 | 2026-05-31 | CC chat principale 31/05 | Esiti validazione device 31/05. **Bug cambio-canzone cross-device → 🟢 CHIUSO** (spostato in Sez. 2): orchestrazione validata (Follower su Slow 90, bar multi-canzone sincronizzati); fix `2475487` (`if case .standby → startCurrentSong`) + `dbd76a2` (commento) + `7e61958` (harness 3/4 Long); branch `fix/bug-2b-visual-section-sync` NON mergiato (HOLD merge fino a chiusura Bug 2.b — trascina il seme `0693e39`). **Bug 2.b → elevato 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO e ricollocato da Sez. 1.2 a Sez. 1.1.** Motivo: accento audio errato (non solo visivo) in Collaborative ai cambi di TS puri (BPM costante) = errore musicale; costrutto comune, soglia di prodotto. Aggiornati: legato al ruolo Collaborative (non al device); radice "confine Follower sfasato / 9-di-8"; discriminante Link-attivo (non `_linkMode`); modello due facce; **asse BPM-vs-BPB corretto** (Verse→Bridge NON "pulito" — trambusto visivo in R7 per BOX3 V69, audio da verificare; R2 pulito su tutti gli assi in standalone Link OFF, ri-test 31/05 4 prove — il desync visivo BOX3 V69 R2 era con Link attivo; 3/4 Long rotto su entrambi); causale in diagnosi (sospetti seme `_sectionBeatCounter` + `sync_phase`). **Nuova voce candidato (Sez. 1.3):** WAITING FOR DIRECTOR persiste con Link OFF (🟡, separato). |
 
 ---
 
