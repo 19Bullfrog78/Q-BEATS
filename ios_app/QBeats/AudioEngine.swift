@@ -2114,7 +2114,9 @@ class AudioEngine: ObservableObject {
                                                     currentBeat, _audioBPM)
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
-                    metronome_set_beat_position(h, newBeat)
+                    // Bug 2.b — solo timeline a campioni: la fase di battuta resta
+                    // governata dal contatore di sezione (no riscrittura _currentBeatInBar).
+                    metronome_set_beat_position_time_only(h, newBeat)
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
                            log: .default, type: .default,
                            currentBeat, newBeat)

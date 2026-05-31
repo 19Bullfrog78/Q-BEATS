@@ -164,7 +164,9 @@ void MetronomeDSP::resetForStart(double startBeat) {
 }
 
 void MetronomeDSP::setBeatPosition(double beatPosition) {
-    // Resume / Link phase sync: NON tocca _startAbsoluteBeat.
+    // Resume (post-interruzione/recovery): NON tocca _startAbsoluteBeat.
+    // NB (Bug 2.b): il Link phase sync NON passa più di qui — usa
+    // setBeatPositionTimeOnly. Questa resta per il solo Resume.
     // Griglia coerente relativa a _startAbsoluteBeat per entrambi
     // _currentBeatInBar e _exactNextBeatSample.
     double spb              = (_sampleRate * 60.0) / _bpm;
@@ -180,6 +182,38 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     _currentBeatInBar       = (uint32_t)beatInBar;
 
     // Sample del prossimo beat: phase origin + indice relativo
+    double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
+    _exactNextBeatSample    = nextAbsoluteBeat * spb;
+    // Sincronizza tracker suddivisioni al prossimo confine di beat
+    _swingPhase = false;
+    if (_subdivisionMultiplier > 1) {
+        double firstInterval = subdivIntervalForPhase(spb, false);
+        double fromPrevBeat  = _exactNextBeatSample - spb + firstInterval;
+        _exactNextSubdivSample = (fromPrevBeat > (double)_absoluteSamplePosition)
+                                 ? fromPrevBeat
+                                 : _exactNextBeatSample + firstInterval;
+    } else {
+        _exactNextSubdivSample = std::numeric_limits<double>::max();
+    }
+}
+
+// === Bug 2.b — Variante solo-temporale di setBeatPosition (Direzione 2) ===
+// Allinea la timeline a campioni (_absoluteSamplePosition / _exactNextBeatSample
+// + tracker suddivisioni) al beat assoluto richiesto da Link sync_phase, SENZA
+// ri-derivare _currentBeatInBar. La fase di battuta resta governata dal contatore
+// di sezione in processBuffer, ancorato al downbeat dallo swap SEAMLESS. Identica a
+// setBeatPosition tranne l'omissione del blocco beatIdx/beatInBar/_currentBeatInBar,
+// che era la causa dello sfasamento dell'accento al cambio BPB in peer
+// (ceil(linkBeat - _startAbsoluteBeat) % _beatsPerBar).
+void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
+    double spb              = (_sampleRate * 60.0) / _bpm;
+    _absoluteSamplePosition = (uint64_t)std::round(beatPosition * spb);
+    double epsilon          = 0.5 / _sampleRate * (_bpm / 60.0);
+
+    // Sample del prossimo beat: phase origin + indice relativo.
+    // NB: nessuna scrittura di _currentBeatInBar (vedi commento sopra).
+    double relative         = beatPosition - _startAbsoluteBeat;
+    double nextRelativeIdx  = std::ceil(relative - epsilon);
     double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
     _exactNextBeatSample    = nextAbsoluteBeat * spb;
     // Sincronizza tracker suddivisioni al prossimo confine di beat

@@ -44,6 +44,17 @@ void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
            _dsp->getCurrentBeatInBar());
 }
 
+void metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    _dsp->setBeatPositionTimeOnly(beatPosition);
+    os_log(OS_LOG_DEFAULT,
+           "[METRO] setBeatPositionTimeOnly: beat=%.6f startAbs=%.6f beatInBar=%u",
+           beatPosition,
+           _dsp->getStartAbsoluteBeat(),
+           _dsp->getCurrentBeatInBar());
+}
+
 uint32_t metronome_processBuffer(MetronomeHandle handle,
                                   uint32_t        bufferSize,
                                   uint32_t*       offsets,

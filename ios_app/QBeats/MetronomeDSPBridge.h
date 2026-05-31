@@ -34,8 +34,14 @@ void            metronome_set_muted(MetronomeHandle handle, bool muted);
 // Chiamare SOLO su start() senza resume.
 void            metronome_reset_for_start(MetronomeHandle handle, double startBeat);
 
-// Resume / Link phase sync: aggiorna posizione senza toccare phase origin.
+// Resume (post-interruzione/recovery): aggiorna posizione senza toccare phase origin.
+// NB (Bug 2.b): il Link phase sync usa metronome_set_beat_position_time_only;
+// questa resta per il solo Resume.
 void            metronome_set_beat_position(MetronomeHandle handle, double beatPosition);
+
+// Bug 2.b — variante solo-temporale: allinea la timeline a campioni senza toccare
+// la fase di battuta (_currentBeatInBar). Usata da Link sync_phase.
+void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
 
 uint32_t        metronome_processBuffer(MetronomeHandle handle,
                                         uint32_t        bufferSize,

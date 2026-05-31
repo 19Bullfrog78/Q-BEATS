@@ -59,9 +59,15 @@ public:
     // Chiamare SOLO su start() senza resume.
     void resetForStart(double startBeat);
 
-    // Resume / Link phase sync: aggiorna posizione senza toccare _startAbsoluteBeat.
-    // Chiamare su resume dopo interruzione e su ogni phase sync Link.
+    // Resume (post-interruzione/recovery): aggiorna posizione senza toccare
+    // _startAbsoluteBeat. NB (Bug 2.b): il Link phase sync NON usa più questa
+    // funzione — usa setBeatPositionTimeOnly. Questa resta per il solo Resume.
     void setBeatPosition(double beatPosition);
+
+    // Bug 2.b — Variante solo-temporale: allinea la timeline a campioni SENZA
+    // ri-derivare _currentBeatInBar (governato dal contatore di sezione). Usata da
+    // Link sync_phase per non sfasare l'accento al cambio BPB in peer.
+    void setBeatPositionTimeOnly(double beatPosition);
 
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
     uint32_t getCurrentBeatInBar() const { return _currentBeatInBar; }
