@@ -65,11 +65,19 @@ class AudioEngine: ObservableObject {
             // prima, due sezioni con stesso BPB (es. 4/4 → 4/4) lascerebbero
             // il flag bruciato per i didSet successivi.
             if _suppressBeatsPerBarDidSet {
+                os_log("[Q-BEATS][Bug2b-BPB] setBeatsPerBar req:%d old:%d → SKIP (suppress flag attivo)",
+                       log: .default, type: .default, Int(beatsPerBar), Int(oldValue))
                 _suppressBeatsPerBarDidSet = false
                 return
             }
-            guard beatsPerBar != oldValue else { return }
+            guard beatsPerBar != oldValue else {
+                os_log("[Q-BEATS][Bug2b-BPB] setBeatsPerBar req:%d old:%d → SKIP (valore uguale, nessun push al motore)",
+                       log: .default, type: .default, Int(beatsPerBar), Int(oldValue))
+                return
+            }
             guard let h = metronomeHandle else { return }
+            os_log("[Q-BEATS][Bug2b-BPB] setBeatsPerBar req:%d old:%d → PUSH al motore (DSP + Link quantum)",
+                   log: .default, type: .default, Int(beatsPerBar), Int(oldValue))
             let bpb = beatsPerBar
             let pattern = defaultAccentPattern(for: bpb)
             let mappedPattern: [UInt8] = pattern.map { $0 > 0 ? 2 : 1 }
