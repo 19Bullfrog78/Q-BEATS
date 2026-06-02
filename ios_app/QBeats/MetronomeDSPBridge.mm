@@ -91,7 +91,14 @@ void metronome_cancel_pending_bpm(MetronomeHandle handle) {
 // Strada A — Bridge per nuove API DSP.
 void metronome_schedule_bpb_change(MetronomeHandle handle, uint32_t bpb) {
     if (!handle) return;
-    static_cast<MetronomeDSP*>(handle)->scheduleBeatsPerBarChange(bpb);
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    // Bug 2.b — diagnostica arm-after-emit: fase di battuta del DSP all'ISTANTE
+    // dell'arm, PRIMA dello store del dirty flag. beatInBarAtArm != 0 al confine
+    // ⇒ il downbeat è già passato ⇒ swap perso ⇒ +1 bar. Letta come la riga [METRO].
+    os_log(OS_LOG_DEFAULT,
+           "[Q-BEATS][Bug2b-ARM] schedule_bpb_change reqBpb=%u beatInBarAtArm=%u",
+           bpb, _dsp->getCurrentBeatInBar());
+    _dsp->scheduleBeatsPerBarChange(bpb);
 }
 
 void metronome_cancel_pending_bpb(MetronomeHandle handle) {
