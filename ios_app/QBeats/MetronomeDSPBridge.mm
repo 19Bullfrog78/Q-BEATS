@@ -55,6 +55,35 @@ void metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPo
            _dsp->getCurrentBeatInBar());
 }
 
+// === Bug 2.b — SPIA passiva L1: enable + flush (os_log, thread NON-RT) ===
+void metronome_set_diag_enabled(MetronomeHandle handle, bool enabled) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setDiagEnabled(enabled);
+}
+
+void metronome_flush_diag(MetronomeHandle handle) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    MetronomeDiagRecord buf[256];
+    size_t n;
+    while ((n = _dsp->drainDiag(buf, 256)) > 0) {
+        for (size_t k = 0; k < n; ++k) {
+            const MetronomeDiagRecord& r = buf[k];
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][Bug2b-SPY-L1] seq=%u absSample=%llu beatInBar=%u bpb=%u downbeat=%u bpbSwap=%u exactNextBeat=%.3f",
+                   r.seq, (unsigned long long)r.absSample,
+                   r.currentBeatInBar, r.beatsPerBar,
+                   r.isDownbeat, r.bpbSwapFired, r.exactNextBeatSample);
+        }
+    }
+    const uint64_t dropped = _dsp->diagDropped();
+    if (dropped > 0) {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][Bug2b-SPY-L1] WARN ring overflow dropped=%llu",
+               (unsigned long long)dropped);
+    }
+}
+
 uint32_t metronome_processBuffer(MetronomeHandle handle,
                                   uint32_t        bufferSize,
                                   uint32_t*       offsets,

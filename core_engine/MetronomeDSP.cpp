@@ -229,6 +229,21 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
     }
 }
 
+// === Bug 2.b — SPIA passiva: drain consumer (thread NON-RT). ===
+// SPSC: unico consumer (questo), unico producer (thread audio via pushDiag).
+// Copia i record disponibili in `out`, avanza readIdx. Nessun lock.
+size_t MetronomeDSP::drainDiag(MetronomeDiagRecord* out, size_t maxOut) {
+    uint64_t r = _diagRead.load(std::memory_order_relaxed);
+    const uint64_t w = _diagWrite.load(std::memory_order_acquire);
+    size_t n = 0;
+    while (r < w && n < maxOut) {
+        out[n++] = _diagRing[r & (kDiagRingCap - 1)];
+        ++r;
+    }
+    _diagRead.store(r, std::memory_order_release);
+    return n;
+}
+
 std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
     // --- Fase VOL: PRIMA istruzione assoluta — dirty-check volume/mute ---
     if (_volumeDirty.load(std::memory_order_acquire)) {
@@ -273,6 +288,11 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
         }
 
         if (isBeatSample) {
+            // === Bug 2.b — SPIA passiva (no-op se disabilitata) ===
+            // Snapshot dell'asse ACCENTO PRIMA dello swap/incremento. Nessun
+            // os_log/malloc/lock: solo cattura locale + push lock-free a valle.
+            const uint32_t _diagBeatInBar = _currentBeatInBar;  // indice accento di QUESTO beat
+            const uint32_t _diagBpbBefore = _beatsPerBar;       // metro prima dello swap
             if (!_muted) {
                 BeatEvent ev;
                 ev.offset = i;
@@ -297,6 +317,14 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                     _bpm = _pendingBPM;
                     spb  = (_sampleRate * 60.0) / _bpm;
                 }
+            }
+            // Push spia DOPO lo swap (beatsPerBar aggiornato), PRIMA dell'incremento.
+            // bpbSwapFired inferito dal post-stato (nessuna scrittura aggiunta alle
+            // righe di produzione sopra): downbeat + metro cambiato ⇒ swap scattato.
+            if (_diagEnabled.load(std::memory_order_acquire)) {   // acquire: vede _diagSeq=0 (release in setDiagEnabled)
+                pushDiag((uint64_t)currentAbsolute, _exactNextBeatSample,
+                         _diagBeatInBar, _beatsPerBar,
+                         (_diagBeatInBar == 0u) && (_beatsPerBar != _diagBpbBefore));
             }
             _currentBeatInBar = (_currentBeatInBar + 1) % _beatsPerBar;
             _exactNextBeatSample += spb;

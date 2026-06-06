@@ -323,6 +323,16 @@ class AudioEngine: ObservableObject {
     private var outputLatencyTicks : UInt64 = 0
     private var bufferDurationTicks: UInt64 = 0
 
+#if QB_DIAG_SPY
+    // === Bug 2.b — SPIA passiva L3 (asse CONTATORE + griglia). OFF salvo QB_DIAG_SPY. ===
+    // Marker in SOLA LETTURA: gridBeat (engine, sync a Link) al 1° beat di sezione.
+    // Mai variabile di produzione, mai scritto nel path audio di emissione.
+    // La round()/modulo della fase derivata-griglia si calcola al FLUSH (offline).
+    private var _spySectionStartMarker: Double = 0.0
+    private var _spySectionInstanceIdx: Int = 0
+    private var _spyMarkerPending: Bool = true   // cattura il marker al 1° beat di sezione
+#endif
+
     // QA-1 drift analysis — eseguito su audioQueue
     private var qa1BeatCounter: UInt64 = 0
     private var qa1StartTime: UInt64 = 0  // mach_absolute_time al beat 0
@@ -608,7 +618,12 @@ class AudioEngine: ObservableObject {
         // thread che sta ancora eseguendo il tap block → use-after-free.
         engine.stop()
         engine.mainMixerNode.removeTap(onBus: 0)
-        if let h = metronomeHandle { metronome_destroy(h) }
+        if let h = metronomeHandle {
+#if QB_DIAG_SPY
+            metronome_flush_diag(h)   // SPIA passiva: ultimo flush prima del destroy
+#endif
+            metronome_destroy(h)
+        }
         if let mh = midiEngineHandle { midi_engine_destroy(mh) }
         // === MODIFICATO 6A ===
         if let lh = linkEngineHandle { link_engine_destroy(lh) }
@@ -653,6 +668,16 @@ class AudioEngine: ObservableObject {
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
+
+#if QB_DIAG_SPY
+                // SPIA passiva: abilita il ring L1 (seq azzerato → join con beatTick L3)
+                // e ri-arma i marker di sezione. Drain/flush solo allo stop (audio fermo).
+                if let h = self.metronomeHandle { metronome_set_diag_enabled(h, true) }
+                self._spySectionInstanceIdx = 0
+                self._spyMarkerPending = true
+                os_log("[Q-BEATS][Bug2b-SPY] enabled — start (ring L1 ON, marker pending)",
+                       log: .default, type: .default)
+#endif
 
                 if let mh = self.midiEngineHandle {
                     let resumeBeat: Double? = resumeAtBeat
@@ -770,7 +795,21 @@ class AudioEngine: ObservableObject {
                             let beatsToWait = (phase < 0.001 || phase > quantum - 0.001)
                                               ? 0.0
                                               : (quantum - phase)
-                            let delaySeconds = beatsToWait * (60.0 / bpm)
+                            let delaySecondsBase = beatsToWait * (60.0 / bpm)
+#if DIAG_FORCE_BORN_OFFSET
+                            // === HARNESS forzatura born — SEPARATO dalla spia passiva ===
+                            // Modifica di COMPORTAMENTO (NON osservazione): aggiunge 0.5 beat
+                            // all'attesa così l'aggancio cade FUORI dal downbeat
+                            // (round(startBeat)≠0) → riproduce il born oltre N=1.
+                            // Dati TAGGATI [Bug2b-SPY-FORCED] = distinti dai giri passivi.
+                            // Compilato SOLO con DIAG_FORCE_BORN_OFFSET (config dedicata, MAI
+                            // il build di default; si usa insieme a QB_DIAG_SPY per osservare).
+                            let delaySeconds = delaySecondsBase + 0.5 * (60.0 / bpm)
+                            os_log("[Q-BEATS][Bug2b-SPY-FORCED] born forzato +0.5 beat (delay %.3f→%.3f s)",
+                                   log: .default, type: .default, delaySecondsBase, delaySeconds)
+#else
+                            let delaySeconds = delaySecondsBase
+#endif
 
                             // Conversione delaySeconds → mach ticks per
                             // futureHostTime esatto (timestamp Link insensibile
@@ -869,6 +908,23 @@ class AudioEngine: ObservableObject {
                                 os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
                                        log: .default, type: .default,
                                        self._startAbsoluteBeat)
+
+#if QB_DIAG_SPY
+                                // SPIA passiva — TRE sorgenti all'aggancio (campo concomitante,
+                                // letture PASSIVE su audioQueue, nessun cambio di comportamento):
+                                //  linkPhase_schedule = Link ABLLinkPhaseAtTime @hostNow (R1, già usata da prod)
+                                //  linkPhase_fire     = Link ABLLinkPhaseAtTime @fireHostTime (probe passiva)
+                                //  midiBeat_fire      = MIDI engine @fireHostTime (R2/R3, usata da prod)
+                                // Coerenza Link↔MIDI osservabile: linkPhase_fire vs (midiBeat_fire mod quantum).
+                                if let lhSpy = lhCaptured, let mhSpy = self.midiEngineHandle {
+                                    let fireHostTime = futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks
+                                    let probeFire = link_engine_probe_session(lhSpy, fireHostTime, quantum)
+                                    let midiBeatFire = midi_engine_get_beat_at_time(mhSpy, fireHostTime)
+                                    os_log("[Q-BEATS][Bug2b-SPY-ATTACH] linkPhase_schedule:%.4f linkPhase_fire:%.4f midiBeat_fire:%.4f quantum:%.1f startAbs:%.4f",
+                                           log: .default, type: .default,
+                                           phase, probeFire.phaseAtHost, midiBeatFire, quantum, self._startAbsoluteBeat)
+                                }
+#endif
                             }
                             self.pendingLinkStart = work
                             self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
@@ -934,6 +990,10 @@ class AudioEngine: ObservableObject {
 
     func stop() {
         stopSync()
+#if QB_DIAG_SPY
+        // SPIA passiva: flush finale del ring L1 (audio già fermo da stopSync → no race).
+        if let h = metronomeHandle { metronome_flush_diag(h) }
+#endif
         // P1+P3 fix: allinea playbackState all'isPlaying su ogni percorso di stop.
         // Pattern già usato in handleStop() (.countIn/.playing) e restartFromBeginning().
         // Senza questo dispatch, lo stop manuale lasciava playbackState=.playing
@@ -2213,6 +2273,25 @@ class AudioEngine: ObservableObject {
                         self?.beatTickSubject.send(tickN)
                     }
 
+#if QB_DIAG_SPY
+                    // SPIA passiva L3 — per OGNI beat: asse CONTATORE + riferimento griglia
+                    // (gridBeat = engine beat, sincronizzato a Link). Campi GREZZI: la fase
+                    // derivata round(gridBeat − sectionStartMarker) % bpbQ si calcola al FLUSH.
+                    // L'asse ACCENTO (_currentBeatInBar) arriva dal ring L1 (join beatTick↔seq).
+                    if let mhSpy = self.midiEngineHandle {
+                        let gridBeat = midi_engine_get_beat_position(mhSpy)
+                        if self._spyMarkerPending {
+                            self._spySectionStartMarker = gridBeat   // SOLA LETTURA, marker passivo
+                            self._spyMarkerPending = false
+                        }
+                        os_log("[Q-BEATS][Bug2b-SPY-L3] beatTick:%d sectionBeatCounter:%d sectionInstance:%d bpbQ:%u gridBeat:%.4f sectionStartMarker:%.4f offset:%d",
+                               log: .default, type: .default,
+                               self.beatTickCounter, self._sectionBeatCounter,
+                               self._spySectionInstanceIdx, self._beatsPerBarQ,
+                               gridBeat, self._spySectionStartMarker, offset)
+                    }
+#endif
+
                     if self.beatTickCounter % 32 == 0 {
                         let sinkCount = qbeats_link_pending_get_render_buffer_id(self.linkPending)
                         os_log("[Q-BEATS][SinkDiag-AQ] relay — renderBufferId:%llu beatTick:%d",
@@ -2348,6 +2427,13 @@ class AudioEngine: ObservableObject {
                                 self._onSectionEnd = pendingOnSectionEnd
                                 self._beatsPerBarQ = pendingBPB
                                 self._audioBPM = pendingBPM
+
+#if QB_DIAG_SPY
+                                // SPIA passiva: nuova sezione → ri-cattura il marker griglia
+                                // al 1° beat della sezione e incrementa l'indice di sezione.
+                                self._spySectionInstanceIdx += 1
+                                self._spyMarkerPending = true
+#endif
 
                                 // (d) Arm DSP Layer 1 — atomic exchange al downbeat
                                 // di transizione. Conversione accent UI→DSP:

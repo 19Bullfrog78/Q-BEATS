@@ -3,6 +3,11 @@ on:
   push:
     branches: [ "master" ]
   workflow_dispatch:
+    inputs:
+      diag_flags:
+        description: "Bug 2.b — Swift compilation conditions diagnostiche. Vuoto = build pulito; 'QB_DIAG_SPY' = spia passiva; 'QB_DIAG_SPY DIAG_FORCE_BORN_OFFSET' = spia + forzatura born. NON tocca entitlements/signing (TD #44)."
+        required: false
+        default: ""
 jobs:
   build:
     runs-on: macos-latest
@@ -45,6 +50,7 @@ jobs:
             -archivePath $RUNNER_TEMP/QBeats.xcarchive \
             CODE_SIGN_IDENTITY="Apple Development" \
             DEVELOPMENT_TEAM=X42CX3ZP3T \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG ${{ github.event.inputs.diag_flags }}" \
             archive
       - name: Create ExportOptions.plist
         run: |
