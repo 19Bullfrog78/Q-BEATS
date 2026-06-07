@@ -874,7 +874,15 @@ class AudioEngine: ObservableObject {
                                                log: .default, type: .error,
                                                startBeat, startBeat - startBeat.rounded())
                                     }
-                                    let offset = Int(startBeat.rounded())
+                                    // Bug 2.b faccia D — SNAP-TO-BAR. L'attesa quantizza l'aggancio al
+                                    // confine di BARRA (wait = quantum − phase, quantum = _beatsPerBarQ,
+                                    // :745/:795) → il Follower entra su un downbeat → il seme è un
+                                    // multiplo intero di beatsPerBar. round() al BEAT era la granularità
+                                    // sbagliata (scatter osservato 3,27–3,87 ribaltava 3↔4 a metà-beat).
+                                    let bpb = Int(self._beatsPerBarQ)
+                                    let offset = bpb > 0
+                                        ? Int((startBeat / Double(bpb)).rounded()) * bpb
+                                        : Int(startBeat.rounded())
                                     // Rete portante: semina SOLO se l'offset è coerente con la
                                     // sezione. Fuori (0, _sectionTotalBeats) → no-op = comportamento
                                     // di oggi (counter da bar 1), niente swap immediato né brano rotto.
