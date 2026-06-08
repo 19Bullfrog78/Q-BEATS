@@ -43,6 +43,9 @@ void            metronome_set_beat_position(MetronomeHandle handle, double beatP
 // la fase di battuta (_currentBeatInBar). Usata da Link sync_phase.
 void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
 
+// Bug 2.b α — L2 fornisce la beat-position Link del downbeat di sezione.
+void            metronome_set_section_anchor(MetronomeHandle handle, double linkBeat);
+
 // === Bug 2.b — SPIA passiva L1 (diagnostica, OFF di default) ===
 // Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
 void            metronome_set_diag_enabled(MetronomeHandle handle, bool enabled);

@@ -83,6 +83,9 @@ public:
     // Link sync_phase per non sfasare l'accento al cambio BPB in peer.
     void setBeatPositionTimeOnly(double beatPosition);
 
+    // Bug 2.b α — L2 fornisce la beat-position Link del downbeat di sezione.
+    void setSectionAnchor(double linkBeat);
+
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
     uint32_t getCurrentBeatInBar() const { return _currentBeatInBar; }
 
@@ -115,6 +118,12 @@ private:
     // setBeatPosition calcola _currentBeatInBar come
     // floor(nextBeatIndex - _startAbsoluteBeat) % _beatsPerBar.
     double   _startAbsoluteBeat;
+    // Bug 2.b α — àncora PER-SEZIONE: beat-position Link del downbeat di sezione,
+    // alimentata da L2 (setSectionAnchor) al 1° beat di ogni sezione. L1 ne deriva
+    // _currentBeatInBar in setBeatPositionTimeOnly. Lock-free (set 1x/sezione, read
+    // per-buffer). _valid=false finché L2 non fornisce la 1ª àncora (free-run).
+    std::atomic<double> _sectionAnchorBeat;
+    std::atomic<bool>   _sectionAnchorValid;
 
     // Double buffer accent pattern (thread safety: RT legge, audioQueue scrive)
     uint8_t           _accentPattern[16];

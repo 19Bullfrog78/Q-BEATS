@@ -55,6 +55,13 @@ void metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPo
            _dsp->getCurrentBeatInBar());
 }
 
+// Bug 2.b α — L2 → L1: beat-position Link del downbeat di sezione (passthrough lock-free).
+void metronome_set_section_anchor(MetronomeHandle handle, double linkBeat) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    _dsp->setSectionAnchor(linkBeat);
+}
+
 // === Bug 2.b — SPIA passiva L1: enable + flush (os_log, thread NON-RT) ===
 void metronome_set_diag_enabled(MetronomeHandle handle, bool enabled) {
     if (!handle) return;

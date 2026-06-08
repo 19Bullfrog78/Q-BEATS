@@ -127,6 +127,13 @@ class AudioEngine: ObservableObject {
     // Accesso esclusivamente su main thread.
     private var _suppressBeatsPerBarDidSet: Bool = false
 
+    // === Bug 2.b α — àncora per-sezione (L3 → L1) ===
+    // _sectionAnchorPending: true → il prossimo beat fornisce anchor_0 (sez 0) a L1.
+    // _sectionAnchorLinkBeat: downbeat della sezione corrente in beat-Link (cumulativo,
+    // deterministico dalle lunghezze-config; avanzato nell'handler SEAMLESS).
+    private var _sectionAnchorPending: Bool = false
+    private var _sectionAnchorLinkBeat: Double = 0.0
+
     // === CD-6 / Bug 4 fix (28/05/2026) — Gate anti double-emit linkStartedSubject ===
     // Settato `true` nel branch `isPlaying && !engine.isPlaying` del callback
     // Link `set_start_stop_callback`, resettato `false` in
@@ -668,6 +675,8 @@ class AudioEngine: ObservableObject {
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
+                // Bug 2.b α — sez 0: anchor_0 catturata al 1° beat (start = downbeat pulito).
+                self._sectionAnchorPending = true
 
 #if QB_DIAG_SPY
                 // SPIA passiva: abilita il ring L1 (seq azzerato → join con beatTick L3)
@@ -2281,6 +2290,14 @@ class AudioEngine: ObservableObject {
                         self?.beatTickSubject.send(tickN)
                     }
 
+                    // Bug 2.b α — anchor_0 (sezione 0): valore-griglia di produzione
+                    // (midi_engine_get_beat_position un-gated, come :2267) al 1° beat.
+                    if self._sectionAnchorPending, let mhA = self.midiEngineHandle {
+                        self._sectionAnchorLinkBeat = midi_engine_get_beat_position(mhA)
+                        metronome_set_section_anchor(h, self._sectionAnchorLinkBeat)
+                        self._sectionAnchorPending = false
+                    }
+
 #if QB_DIAG_SPY
                     // SPIA passiva L3 — per OGNI beat: asse CONTATORE + riferimento griglia
                     // (gridBeat = engine beat, sincronizzato a Link). Campi GREZZI: la fase
@@ -2416,6 +2433,20 @@ class AudioEngine: ObservableObject {
                                 let pendingTotalBeats    = self._pendingNextSectionTotalBeats!
                                 let pendingOnSectionEnd  = self._pendingNextOnSectionEnd
                                 let pendingRepetitions   = self._pendingNextRepetitions!
+
+                                // Bug 2.b α — àncora nuova sezione = downbeat corrente +
+                                // lunghezza VECCHIA sezione (config, beat-Link). DETERMINISTICA:
+                                // immune al timing-di-cattura, al contatore decouplato e agli
+                                // skip d'emissione. INVARIANTE (verificata SetlistRunner:281-361):
+                                // questo handler SEAMLESS è raggiunto SOLO dall'avanzamento
+                                // SEQUENZIALE (currentSectionIdx += 1, :291); i confini di canzone
+                                // passano per stop()+restart → start() ri-bootstrappa anchor_0.
+                                // Se si aggiunge skip/loop NON sequenziale intra-canzone, DEVE
+                                // ri-bootstrappare (_sectionAnchorPending=true) o calcolare
+                                // l'àncora in assoluto dall'indice di sezione.
+                                // _sectionTotalBeats è ancora il totale VECCHIO qui.
+                                self._sectionAnchorLinkBeat += Double(self._sectionTotalBeats)
+                                metronome_set_section_anchor(h, self._sectionAnchorLinkBeat)
 
                                 // (b) Reset _pendingNext* (safe — locali già catturati).
                                 self._pendingNextBPB = nil

@@ -9,6 +9,8 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
     , _absoluteSamplePosition(0)
     , _exactNextBeatSample(0.0)
     , _startAbsoluteBeat(0.0)
+    , _sectionAnchorBeat(0.0)
+    , _sectionAnchorValid(false)
     , _pendingPatternLength(4)
     , _patternDirty(false)
     , _subdivisionMultiplier(1)
@@ -60,6 +62,15 @@ void MetronomeDSP::cancelPendingBPM() {
 void MetronomeDSP::scheduleBeatsPerBarChange(uint32_t bpb) {
     _pendingBeatsPerBar = bpb;
     _bpbChangeDirty.store(true, std::memory_order_release);
+}
+
+// Bug 2.b α — L2 (al 1° beat di sezione) fornisce la beat-position Link del
+// downbeat. Lock-free, bassa frequenza (1x/sezione). store valore relaxed →
+// store flag release; il consumer (setBeatPositionTimeOnly) load flag acquire
+// → load valore relaxed (publish pattern, come setDiagEnabled/_diagSeq).
+void MetronomeDSP::setSectionAnchor(double linkBeat) {
+    _sectionAnchorBeat.store(linkBeat, std::memory_order_relaxed);
+    _sectionAnchorValid.store(true,    std::memory_order_release);
 }
 
 // Strada A — Cancella cambio BPB schedulato non ancora scattato.
@@ -154,6 +165,8 @@ void MetronomeDSP::resetForStart(double startBeat) {
     double spb              = (_sampleRate * 60.0) / _bpm;
     _absoluteSamplePosition = (uint64_t)std::round(startBeat * spb);
     _currentBeatInBar       = 0;
+    // Bug 2.b α — nuova esecuzione: l'àncora va ri-catturata al 1° beat (L2).
+    _sectionAnchorValid.store(false, std::memory_order_release);
     _exactNextBeatSample    = startBeat * spb;
     _swingPhase = false;
     if (_subdivisionMultiplier > 1) {
@@ -215,6 +228,19 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
     double relative         = beatPosition - _startAbsoluteBeat;
     double nextRelativeIdx  = std::ceil(relative - epsilon);
     double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
+    // === Bug 2.b α — bar-phase del prossimo beat ri-derivata dalla GRIGLIA contro
+    // l'àncora PER-SEZIONE (L2). Derivazione IDENTICA a setBeatPosition:177-182
+    // (stesso ceil, stesso epsilon); cambia SOLO l'àncora. anchor e beatPosition
+    // sono lo STESSO frame (engine beat). Gira solo qui = solo a griglia stabile
+    // (in transizione linkSyncSkipBuffers>0 → sync saltato → non chiamata).
+    // Free-run finché L2 non ha fornito la 1ª àncora.
+    if (_sectionAnchorValid.load(std::memory_order_acquire)) {
+        double  anchor    = _sectionAnchorBeat.load(std::memory_order_relaxed);
+        int64_t idx       = (int64_t)std::ceil((beatPosition - anchor) - epsilon);
+        int64_t beatInBar = idx % (int64_t)_beatsPerBar;
+        if (beatInBar < 0) beatInBar += (int64_t)_beatsPerBar;
+        _currentBeatInBar = (uint32_t)beatInBar;
+    }
     _exactNextBeatSample    = nextAbsoluteBeat * spb;
     // Sincronizza tracker suddivisioni al prossimo confine di beat
     _swingPhase = false;
