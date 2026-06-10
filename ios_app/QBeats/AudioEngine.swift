@@ -632,6 +632,218 @@ class AudioEngine: ObservableObject {
 
     // MARK: - Public API (chiamabile da qualsiasi thread)
 
+    // === Bug 2.b / Ferita A — Ingresso SHARED finalizzato AL FIRE (10/06/2026) ===
+    // Diagnosi ratificata (referee + Mauro): nel flusso cross-device il
+    // callback Link avvia start() PRIMA del setup del runner (ordine
+    // deliberato Opzione C, vedi set_start_stop_callback). L'attesa
+    // d'ingresso era calcolata UNA volta, al probe, con stato potenzialmente
+    // pre-start: (i) quantum stantio del giro precedente (TEST5 RUN1/6:
+    // attesa=5−fase con prima sezione in 4/4), (ii) timeline ri-azzerata dal
+    // Director DOPO il probe (TEST5 RUN2/7). Esito: atterraggio fuori barra,
+    // WARN aggancio, seed fallback, Follower sfasato per tutta la canzone.
+    //
+    // Fix (direzione BUGS_QBEATS.md:95 "ri-legge la fase AL FIRE / attende
+    // il beat-zero del Director"): l'istante d'ingresso è FINALIZZATO AL
+    // FIRE. Ogni arm ri-legge fase/quantum/tempo correnti; al fire il work
+    // item ri-valida il target contro lo stato corrente e, se non è più su
+    // un confine di barra, ri-arma (bounded da kSharedJoinMaxRearms). A
+    // regime (stato già fresco) il percorso è identico al precedente:
+    // stesso join_running_session, stesso seed, stessi log d'ingresso.
+    // SOLO L3 (nessuna nuova API bridge/DSP). Gira esclusivamente su
+    // audioQueue (chiamata dal blocco start() + asyncAfter su audioQueue):
+    // _beatsPerBarQ e pendingLinkStart restano queue-confined.
+    private static let kSharedJoinPhaseTolBeats = 0.1   // allineata alla soglia WARN del seed
+    private static let kSharedJoinMaxRearms     = 2     // copre (i)+(ii) anche combinate
+
+    private func armSharedJoin(retriesLeft: Int) {
+        guard let lh = self.linkEngineHandle else { return }
+        // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
+        // Q-BEATS si adegua alla timeline Link esistente: quantized
+        // launch al prossimo downbeat via join_running_session.
+        // Pattern aderente alla doc Ableton: "chi entra si adegua,
+        // chi c'è già non si muove".
+        // (Il ramo .direttore non arriva mai qui — gestito sopra.)
+        // Bug 2.b / Ferita A — stato CORRENTE, ri-letto a OGNI arm: il probe
+        // di branching in start() può essere pre-setup (quantum stantio).
+        // Qui e nella ri-validazione al fire si usa SOLO stato fresco.
+        let hostNow = mach_absolute_time()
+        let quantum = Double(self._beatsPerBarQ)
+        let probe = link_engine_probe_session(lh, hostNow, quantum)
+        let peersCount = link_engine_num_peers(lh)
+        let bpm = probe.tempo > 0.0 ? probe.tempo : self.currentBPM
+        let phase = probe.phaseAtHost
+        // Se phase ≈ 0 o ≈ quantum siamo già sul downbeat → no wait.
+        // Altrimenti aspettiamo (quantum - phase) beat.
+        let beatsToWait = (phase < 0.001 || phase > quantum - 0.001)
+                          ? 0.0
+                          : (quantum - phase)
+        let delaySecondsBase = beatsToWait * (60.0 / bpm)
+#if DIAG_FORCE_BORN_OFFSET
+        // === HARNESS forzatura born — SEPARATO dalla spia passiva ===
+        // Modifica di COMPORTAMENTO (NON osservazione): aggiunge 0.5 beat
+        // all'attesa così l'aggancio cade FUORI dal downbeat
+        // (round(startBeat)≠0) → riproduce il born oltre N=1.
+        // Dati TAGGATI [Bug2b-SPY-FORCED] = distinti dai giri passivi.
+        // Compilato SOLO con DIAG_FORCE_BORN_OFFSET (config dedicata, MAI
+        // il build di default; si usa insieme a QB_DIAG_SPY per osservare).
+        let delaySeconds = delaySecondsBase + 0.5 * (60.0 / bpm)
+        os_log("[Q-BEATS][Bug2b-SPY-FORCED] born forzato +0.5 beat (delay %.3f→%.3f s)",
+               log: .default, type: .default, delaySecondsBase, delaySeconds)
+#else
+        let delaySeconds = delaySecondsBase
+#endif
+
+        // Conversione delaySeconds → mach ticks per
+        // futureHostTime esatto (timestamp Link insensibile
+        // al jitter dispatch).
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        let delayNs = delaySeconds * 1_000_000_000.0
+        let delayTicks = UInt64(delayNs
+                                * Double(timebase.denom)
+                                / Double(timebase.numer))
+        let futureHostTime = hostNow + delayTicks
+
+        os_log("[Q-BEATS][LINK][SHARED] peers:%u isPlaying:%d phase:%.4f attesa:%.4f beat (%.3f s) bpm:%.2f quantum:%.1f retriesLeft:%d",
+               log: .default, type: .default,
+               peersCount, probe.isPlaying ? 1 : 0,
+               phase, beatsToWait, delaySeconds, bpm, quantum, retriesLeft)
+
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = true
+        }
+
+        // ROTTA α (Build #307→#309): l'annuncio Link è DENTRO
+        // il work item. Se l'utente preme stop prima del fire,
+        // pendingLinkStart?.cancel() impedisce ogni
+        // pubblicazione di stato a Link → atomicità by design.
+        // Timestamp = futureHostTime catturato in closure,
+        // NON mach_absolute_time() rileggiuto al fire.
+        let lhCaptured = self.linkEngineHandle
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            // === Ferita A — RI-VALIDAZIONE AL FIRE (stato post-setup/post-rezero) ===
+            // Il target calcolato all'arm vale solo se, ADESSO, cade ancora su
+            // un confine di barra dello stato corrente della sessione. Se nel
+            // frattempo il setup ha corretto il metro (sotto-faccia i) o il
+            // Director ha ri-azzerato la timeline (sotto-faccia ii), si ri-arma
+            // una nuova attesa calcolata dallo stato corrente. Bound: esauriti
+            // i re-arm si entra col comportamento precedente (WARN del seed
+            // compreso) — mai peggio della baseline.
+            if let lhNow = lhCaptured {
+                let qNow = Double(self._beatsPerBarQ)
+                let probeNow = link_engine_probe_session(lhNow, futureHostTime, qNow)
+                let distToBar = min(probeNow.phaseAtHost, qNow - probeNow.phaseAtHost)
+                if distToBar > AudioEngine.kSharedJoinPhaseTolBeats {
+                    if retriesLeft > 0 {
+                        os_log("[Q-BEATS][LINK][SHARED] fire NON su barra (dist:%.4f quantum:%.1f) → re-arm, residui:%d",
+                               log: .default, type: .default,
+                               distToBar, qNow, retriesLeft - 1)
+                        self.armSharedJoin(retriesLeft: retriesLeft - 1)
+                        return
+                    }
+                    os_log("[Q-BEATS][LINK][SHARED] WARN re-arm esauriti (dist:%.4f quantum:%.1f) — ingresso con comportamento pre-fix",
+                           log: .default, type: .error, distToBar, qNow)
+                }
+            }
+            DispatchQueue.main.async {
+                self.isWaitingForLinkDownbeat = false
+            }
+            if let lh = lhCaptured {
+                link_engine_join_running_session(lh, futureHostTime)
+            }
+            if let h = self.metronomeHandle {
+                metronome_reset_for_start(h, 0.0)
+            }
+            // === Bug 2.b ramo X — SEED contatore sezione del Follower ===
+            // Il Follower entra dopo il count-in del Director (≥1 bar).
+            // _sectionBeatCounter è già stato azzerato da loadSection (936-944)
+            // e da start() (~634), ENTRAMBI prima di questo work item ritardato.
+            // Seminiamo QUI, PRIMA del pre-roll sottostante: il primo
+            // scheduleNextBuffer emette già il primo beat (resetForStart fissa
+            // _exactNextBeatSample=0 → beat al sample 0) che fa
+            // _sectionBeatCounter += 1. Seminare dopo il pre-roll = off-by-one.
+            //
+            // startBeat = fase allineata alla sessione Link al momento del join
+            // (≈ bar saltati nel count-in del Director). È within-section e NON
+            // si accumula tra brani perché il Director rimappa Link a beat 0 a
+            // ogni canzone (link_engine_start_at_beat_zero, LinkEngine.mm:427-445).
+            // Variabile LOCALE: NON tocchiamo _startAbsoluteBeat (snap resume).
+            if let mh = self.midiEngineHandle {
+                let startBeat = midi_engine_get_beat_at_time(
+                    mh,
+                    futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
+                // Spia: aggancio non sul downbeat (frazione in valore assoluto).
+                // Problema a monte da non mascherare — log, non correzione.
+                if abs(startBeat - startBeat.rounded()) > 0.1 {
+                    os_log("[Q-BEATS][Bug2b] WARN aggancio non su downbeat — startBeat:%.4f frazione:%.3f",
+                           log: .default, type: .error,
+                           startBeat, startBeat - startBeat.rounded())
+                }
+                // Bug 2.b faccia D — SNAP-TO-BAR. L'attesa quantizza l'aggancio al
+                // confine di BARRA (wait = quantum − phase, quantum = _beatsPerBarQ,
+                // :745/:795) → il Follower entra su un downbeat → il seme è un
+                // multiplo intero di beatsPerBar. round() al BEAT era la granularità
+                // sbagliata (scatter osservato 3,27–3,87 ribaltava 3↔4 a metà-beat).
+                let bpb = Int(self._beatsPerBarQ)
+                let offset = bpb > 0
+                    ? Int((startBeat / Double(bpb)).rounded()) * bpb
+                    : Int(startBeat.rounded())
+                // Rete portante: semina SOLO se l'offset è coerente con la
+                // sezione. Fuori (0, _sectionTotalBeats) → no-op = comportamento
+                // di oggi (counter da bar 1), niente swap immediato né brano rotto.
+                if offset > 0 && offset < self._sectionTotalBeats {
+                    self.startBeatOffset = offset
+                    self._sectionBeatCounter = offset
+                } else {
+                    self.startBeatOffset = 0
+                    self._sectionBeatCounter = 0
+                    // Il ramo SHARED si aspetta SEMPRE offset > 0 (il Follower
+                    // entra dopo il count-in del Director): qualsiasi else —
+                    // incluso offset == 0 — è un'anomalia da loggare sempre.
+                    os_log("[Q-BEATS][Bug2b] seed SKIP su SHARED — offset:%d fuori range [1,%d) — no-op safe (atteso >0)",
+                           log: .default, type: .error,
+                           offset, self._sectionTotalBeats)
+                }
+            }
+            self.linkSyncSkipBuffers = 3
+            self.scheduleNextBuffer()
+            self.scheduleNextBuffer()
+            self.scheduleNextBuffer()
+            // Sovrascrive _startAbsoluteBeat con il valore
+            // corretto: il primo sample audio reale parte a
+            // futureHostTime, non al mach_absolute_time() di
+            // quando è stato schedulato il work item.
+            if let mh = self.midiEngineHandle {
+                self._startAbsoluteBeat = midi_engine_get_beat_at_time(
+                    mh,
+                    futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
+            }
+            os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
+                   log: .default, type: .default,
+                   self._startAbsoluteBeat)
+
+#if QB_DIAG_SPY
+            // SPIA passiva — TRE sorgenti all'aggancio (campo concomitante,
+            // letture PASSIVE su audioQueue, nessun cambio di comportamento):
+            //  linkPhase_schedule = Link ABLLinkPhaseAtTime @hostNow (R1, già usata da prod)
+            //  linkPhase_fire     = Link ABLLinkPhaseAtTime @fireHostTime (probe passiva)
+            //  midiBeat_fire      = MIDI engine @fireHostTime (R2/R3, usata da prod)
+            // Coerenza Link↔MIDI osservabile: linkPhase_fire vs (midiBeat_fire mod quantum).
+            if let lhSpy = lhCaptured, let mhSpy = self.midiEngineHandle {
+                let fireHostTime = futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks
+                let probeFire = link_engine_probe_session(lhSpy, fireHostTime, quantum)
+                let midiBeatFire = midi_engine_get_beat_at_time(mhSpy, fireHostTime)
+                os_log("[Q-BEATS][Bug2b-SPY-ATTACH] linkPhase_schedule:%.4f linkPhase_fire:%.4f midiBeat_fire:%.4f quantum:%.1f startAbs:%.4f",
+                       log: .default, type: .default,
+                       phase, probeFire.phaseAtHost, midiBeatFire, quantum, self._startAbsoluteBeat)
+            }
+#endif
+        }
+        self.pendingLinkStart = work
+        self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
+    }
+
     func start(resumeAtBeat: Double? = nil) {
         os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
                log: .default, type: .default,
@@ -783,159 +995,12 @@ class AudioEngine: ObservableObject {
                                    peersCount)
                         } else {
                             // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
-                            // Q-BEATS si adegua alla timeline Link esistente: quantized
-                            // launch al prossimo downbeat via join_running_session.
-                            // Pattern aderente alla doc Ableton: "chi entra si adegua,
-                            // chi c'è già non si muove".
-                            // (Il ramo .direttore non arriva mai qui — gestito sopra.)
-                            let bpm = probe.tempo > 0.0 ? probe.tempo : self.currentBPM
-                            let phase = probe.phaseAtHost
-                            // Se phase ≈ 0 o ≈ quantum siamo già sul downbeat → no wait.
-                            // Altrimenti aspettiamo (quantum - phase) beat.
-                            let beatsToWait = (phase < 0.001 || phase > quantum - 0.001)
-                                              ? 0.0
-                                              : (quantum - phase)
-                            let delaySecondsBase = beatsToWait * (60.0 / bpm)
-#if DIAG_FORCE_BORN_OFFSET
-                            // === HARNESS forzatura born — SEPARATO dalla spia passiva ===
-                            // Modifica di COMPORTAMENTO (NON osservazione): aggiunge 0.5 beat
-                            // all'attesa così l'aggancio cade FUORI dal downbeat
-                            // (round(startBeat)≠0) → riproduce il born oltre N=1.
-                            // Dati TAGGATI [Bug2b-SPY-FORCED] = distinti dai giri passivi.
-                            // Compilato SOLO con DIAG_FORCE_BORN_OFFSET (config dedicata, MAI
-                            // il build di default; si usa insieme a QB_DIAG_SPY per osservare).
-                            let delaySeconds = delaySecondsBase + 0.5 * (60.0 / bpm)
-                            os_log("[Q-BEATS][Bug2b-SPY-FORCED] born forzato +0.5 beat (delay %.3f→%.3f s)",
-                                   log: .default, type: .default, delaySecondsBase, delaySeconds)
-#else
-                            let delaySeconds = delaySecondsBase
-#endif
-
-                            // Conversione delaySeconds → mach ticks per
-                            // futureHostTime esatto (timestamp Link insensibile
-                            // al jitter dispatch).
-                            var timebase = mach_timebase_info_data_t()
-                            mach_timebase_info(&timebase)
-                            let delayNs = delaySeconds * 1_000_000_000.0
-                            let delayTicks = UInt64(delayNs
-                                                    * Double(timebase.denom)
-                                                    / Double(timebase.numer))
-                            let futureHostTime = hostNow + delayTicks
-
-                            os_log("[Q-BEATS][LINK][SHARED] peers:%u isPlaying:%d phase:%.4f attesa:%.4f beat (%.3f s) bpm:%.2f",
-                                   log: .default, type: .default,
-                                   peersCount, probe.isPlaying ? 1 : 0,
-                                   phase, beatsToWait, delaySeconds, bpm)
-
-                            DispatchQueue.main.async {
-                                self.isWaitingForLinkDownbeat = true
-                            }
-
-                            // ROTTA α (Build #307→#309): l'annuncio Link è DENTRO
-                            // il work item. Se l'utente preme stop prima del fire,
-                            // pendingLinkStart?.cancel() impedisce ogni
-                            // pubblicazione di stato a Link → atomicità by design.
-                            // Timestamp = futureHostTime catturato in closure,
-                            // NON mach_absolute_time() rileggiuto al fire.
-                            let lhCaptured = self.linkEngineHandle
-                            let work = DispatchWorkItem { [weak self] in
-                                guard let self else { return }
-                                DispatchQueue.main.async {
-                                    self.isWaitingForLinkDownbeat = false
-                                }
-                                if let lh = lhCaptured {
-                                    link_engine_join_running_session(lh, futureHostTime)
-                                }
-                                if let h = self.metronomeHandle {
-                                    metronome_reset_for_start(h, 0.0)
-                                }
-                                // === Bug 2.b ramo X — SEED contatore sezione del Follower ===
-                                // Il Follower entra dopo il count-in del Director (≥1 bar).
-                                // _sectionBeatCounter è già stato azzerato da loadSection (936-944)
-                                // e da start() (~634), ENTRAMBI prima di questo work item ritardato.
-                                // Seminiamo QUI, PRIMA del pre-roll sottostante: il primo
-                                // scheduleNextBuffer emette già il primo beat (resetForStart fissa
-                                // _exactNextBeatSample=0 → beat al sample 0) che fa
-                                // _sectionBeatCounter += 1. Seminare dopo il pre-roll = off-by-one.
-                                //
-                                // startBeat = fase allineata alla sessione Link al momento del join
-                                // (≈ bar saltati nel count-in del Director). È within-section e NON
-                                // si accumula tra brani perché il Director rimappa Link a beat 0 a
-                                // ogni canzone (link_engine_start_at_beat_zero, LinkEngine.mm:427-445).
-                                // Variabile LOCALE: NON tocchiamo _startAbsoluteBeat (snap resume).
-                                if let mh = self.midiEngineHandle {
-                                    let startBeat = midi_engine_get_beat_at_time(
-                                        mh,
-                                        futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
-                                    // Spia: aggancio non sul downbeat (frazione in valore assoluto).
-                                    // Problema a monte da non mascherare — log, non correzione.
-                                    if abs(startBeat - startBeat.rounded()) > 0.1 {
-                                        os_log("[Q-BEATS][Bug2b] WARN aggancio non su downbeat — startBeat:%.4f frazione:%.3f",
-                                               log: .default, type: .error,
-                                               startBeat, startBeat - startBeat.rounded())
-                                    }
-                                    // Bug 2.b faccia D — SNAP-TO-BAR. L'attesa quantizza l'aggancio al
-                                    // confine di BARRA (wait = quantum − phase, quantum = _beatsPerBarQ,
-                                    // :745/:795) → il Follower entra su un downbeat → il seme è un
-                                    // multiplo intero di beatsPerBar. round() al BEAT era la granularità
-                                    // sbagliata (scatter osservato 3,27–3,87 ribaltava 3↔4 a metà-beat).
-                                    let bpb = Int(self._beatsPerBarQ)
-                                    let offset = bpb > 0
-                                        ? Int((startBeat / Double(bpb)).rounded()) * bpb
-                                        : Int(startBeat.rounded())
-                                    // Rete portante: semina SOLO se l'offset è coerente con la
-                                    // sezione. Fuori (0, _sectionTotalBeats) → no-op = comportamento
-                                    // di oggi (counter da bar 1), niente swap immediato né brano rotto.
-                                    if offset > 0 && offset < self._sectionTotalBeats {
-                                        self.startBeatOffset = offset
-                                        self._sectionBeatCounter = offset
-                                    } else {
-                                        self.startBeatOffset = 0
-                                        self._sectionBeatCounter = 0
-                                        // Il ramo SHARED si aspetta SEMPRE offset > 0 (il Follower
-                                        // entra dopo il count-in del Director): qualsiasi else —
-                                        // incluso offset == 0 — è un'anomalia da loggare sempre.
-                                        os_log("[Q-BEATS][Bug2b] seed SKIP su SHARED — offset:%d fuori range [1,%d) — no-op safe (atteso >0)",
-                                               log: .default, type: .error,
-                                               offset, self._sectionTotalBeats)
-                                    }
-                                }
-                                self.linkSyncSkipBuffers = 3
-                                self.scheduleNextBuffer()
-                                self.scheduleNextBuffer()
-                                self.scheduleNextBuffer()
-                                // Sovrascrive _startAbsoluteBeat con il valore
-                                // corretto: il primo sample audio reale parte a
-                                // futureHostTime, non al mach_absolute_time() di
-                                // quando è stato schedulato il work item.
-                                if let mh = self.midiEngineHandle {
-                                    self._startAbsoluteBeat = midi_engine_get_beat_at_time(
-                                        mh,
-                                        futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
-                                }
-                                os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
-                                       log: .default, type: .default,
-                                       self._startAbsoluteBeat)
-
-#if QB_DIAG_SPY
-                                // SPIA passiva — TRE sorgenti all'aggancio (campo concomitante,
-                                // letture PASSIVE su audioQueue, nessun cambio di comportamento):
-                                //  linkPhase_schedule = Link ABLLinkPhaseAtTime @hostNow (R1, già usata da prod)
-                                //  linkPhase_fire     = Link ABLLinkPhaseAtTime @fireHostTime (probe passiva)
-                                //  midiBeat_fire      = MIDI engine @fireHostTime (R2/R3, usata da prod)
-                                // Coerenza Link↔MIDI osservabile: linkPhase_fire vs (midiBeat_fire mod quantum).
-                                if let lhSpy = lhCaptured, let mhSpy = self.midiEngineHandle {
-                                    let fireHostTime = futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks
-                                    let probeFire = link_engine_probe_session(lhSpy, fireHostTime, quantum)
-                                    let midiBeatFire = midi_engine_get_beat_at_time(mhSpy, fireHostTime)
-                                    os_log("[Q-BEATS][Bug2b-SPY-ATTACH] linkPhase_schedule:%.4f linkPhase_fire:%.4f midiBeat_fire:%.4f quantum:%.1f startAbs:%.4f",
-                                           log: .default, type: .default,
-                                           phase, probeFire.phaseAtHost, midiBeatFire, quantum, self._startAbsoluteBeat)
-                                }
-#endif
-                            }
-                            self.pendingLinkStart = work
-                            self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
+                            // Bug 2.b / Ferita A (10/06/2026): l'ingresso quantizzato è
+                            // armato e FINALIZZATO da armSharedJoin — l'attesa viene
+                            // ri-validata AL FIRE su stato post-setup/post-rezero e
+                            // ri-armata se il target non è più su un confine di barra.
+                            // Logica, commenti storici e seed: vedi armSharedJoin.
+                            self.armSharedJoin(retriesLeft: AudioEngine.kSharedJoinMaxRearms)
                         }
                     }
 
