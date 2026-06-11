@@ -11,6 +11,20 @@ struct BeatEvent {
     bool     isBeat;   // true = beat principale, false = suddivisione
 };
 
+// === Bug 2.b — SPIA passiva: record per-beat dell'asse ACCENTO (L1/DSP). ===
+// POD: scritto lock-free dal thread audio (processBuffer), letto da thread
+// non-RT (drainDiag). NB: _sectionBeatCounter (asse CONTATORE) è stato
+// Swift/L3, NON è qui — si unisce a questi record al flush, per absSample.
+struct MetronomeDiagRecord {
+    uint64_t absSample;            // _absoluteSamplePosition + i del beat emesso
+    double   exactNextBeatSample;  // snapshot al beat (pre-incremento += spb)
+    uint32_t currentBeatInBar;     // indice accento di QUESTO beat (pre-incremento)
+    uint32_t beatsPerBar;          // metro corrente (post eventuale swap seamless)
+    uint32_t isDownbeat;           // 1 se currentBeatInBar==0 al beat
+    uint32_t bpbSwapFired;         // 1 se lo swap seamless BPB è scattato a questo beat
+    uint32_t seq;                  // 1-based ↔ beatTick L3 (join/ordering)
+};
+
 class MetronomeDSP {
 public:
     MetronomeDSP(double sampleRate, double bpm);
@@ -59,12 +73,34 @@ public:
     // Chiamare SOLO su start() senza resume.
     void resetForStart(double startBeat);
 
-    // Resume / Link phase sync: aggiorna posizione senza toccare _startAbsoluteBeat.
-    // Chiamare su resume dopo interruzione e su ogni phase sync Link.
+    // Resume (post-interruzione/recovery): aggiorna posizione senza toccare
+    // _startAbsoluteBeat. NB (Bug 2.b): il Link phase sync NON usa più questa
+    // funzione — usa setBeatPositionTimeOnly. Questa resta per il solo Resume.
     void setBeatPosition(double beatPosition);
+
+    // Bug 2.b — Variante solo-temporale: allinea la timeline a campioni SENZA
+    // ri-derivare _currentBeatInBar (governato dal contatore di sezione). Usata da
+    // Link sync_phase per non sfasare l'accento al cambio BPB in peer.
+    void setBeatPositionTimeOnly(double beatPosition);
 
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
     uint32_t getCurrentBeatInBar() const { return _currentBeatInBar; }
+
+    // === Bug 2.b — SPIA passiva (diagnostica, OFF di default) ===
+    // Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
+    // Su enable ri-azzera il seq (chiamare PRE-play, thread audio idle): il 1°
+    // beat avrà seq=1 (++_diagSeq) = beatTickCounter=1 (L3) → join 1:1 per ordinale.
+    void setDiagEnabled(bool on) {
+        if (on) { _diagSeq = 0; }
+        // release: pubblica _diagSeq=0 PRIMA che il thread audio veda l'enable
+        // (load-acquire nel cancello) → happens-before, primo seq allineato.
+        _diagEnabled.store(on, std::memory_order_release);
+    }
+    // Consumer NON-RT: copia fino a maxOut record dal ring, avanza readIdx.
+    // Ritorna il numero copiato. Chiamare SOLO da thread non audio.
+    size_t drainDiag(MetronomeDiagRecord* out, size_t maxOut);
+    // Record persi per overflow del ring (monotono; 0 = nessuna perdita).
+    uint64_t diagDropped() const { return _diagDropped.load(std::memory_order_relaxed); }
 
     std::vector<BeatEvent> processBuffer(uint32_t bufferSize);
 
@@ -119,6 +155,40 @@ private:
     double _beatVolume   { 0.8 };
     double _subdivVolume { 0.4 };
     bool   _muted        { false };
+
+    // === Bug 2.b — SPIA passiva: ring-buffer lock-free SPSC ===
+    // Producer = thread audio (processBuffer). Consumer = thread non-RT (drainDiag).
+    // Pre-allocato (membro fisso, allocato col costruttore off-audio-thread).
+    // Nessun malloc/lock/os_log nel path audio. Cap potenza di 2 → modulo via &.
+    static constexpr size_t kDiagRingCap = 4096;   // ~34 min @120bpm prima di overflow (drop contato)
+    MetronomeDiagRecord   _diagRing[kDiagRingCap];
+    std::atomic<uint64_t> _diagWrite   { 0 };   // solo producer (thread audio)
+    std::atomic<uint64_t> _diagRead    { 0 };   // solo consumer (thread non-RT)
+    std::atomic<uint64_t> _diagDropped { 0 };   // overflow contati
+    std::atomic<bool>     _diagEnabled { false };
+    uint32_t              _diagSeq      { 0 };   // solo producer
+
+    // Push wait-free dal thread audio. Ring pieno ⇒ conta il drop e ritorna
+    // (mai bloccare il path audio). Nessun malloc/lock/os_log.
+    inline void pushDiag(uint64_t absSample, double exactNextBeatSample,
+                         uint32_t currentBeatInBar, uint32_t beatsPerBar,
+                         bool bpbSwapFired) {
+        const uint64_t w = _diagWrite.load(std::memory_order_relaxed);
+        const uint64_t r = _diagRead.load(std::memory_order_acquire);
+        if (w - r >= kDiagRingCap) {
+            _diagDropped.fetch_add(1, std::memory_order_relaxed);
+            return;
+        }
+        MetronomeDiagRecord& rec = _diagRing[w & (kDiagRingCap - 1)];
+        rec.absSample           = absSample;
+        rec.exactNextBeatSample = exactNextBeatSample;
+        rec.currentBeatInBar    = currentBeatInBar;
+        rec.beatsPerBar         = beatsPerBar;
+        rec.isDownbeat          = (currentBeatInBar == 0u) ? 1u : 0u;
+        rec.bpbSwapFired        = bpbSwapFired ? 1u : 0u;
+        rec.seq                 = ++_diagSeq;   // 1-based ⇒ join 1:1 con beatTickCounter (L3)
+        _diagWrite.store(w + 1, std::memory_order_release);
+    }
 
     double subdivIntervalForPhase(double spb, bool phase) const;
 };

@@ -33,6 +33,19 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
 }
 
 void MetronomeDSP::setBPM(double bpm) {
+    // FIX-B hardening — il path IMMEDIATO (tempo-callback Link sul Follower,
+    // AudioEngine:432) cambiava l'unità di misura del tempo senza ri-scalare
+    // il mark pendente: la prima correzione successiva leggeva la distanza
+    // al mark in unità vecchie (flip ±1 possibile = 1 click mangiato o
+    // duplicato al cambio tempo). Qui la distanza, in campioni, viene
+    // ri-scalata nella nuova durata di beat: l'IDENTITÀ di beat del mark è
+    // preservata. Il path setlist (scheduleBPMChange → swap al downbeat in
+    // processBuffer) era ed è sano. Il tracker suddivisioni si riallinea da
+    // solo al fire/alla correzione successivi.
+    if (bpm > 0.0 && _bpm > 0.0 && bpm != _bpm) {
+        _exactNextBeatSample = (double)_absoluteSamplePosition
+            + (_exactNextBeatSample - (double)_absoluteSamplePosition) * (_bpm / bpm);
+    }
     _bpm = bpm;
 }
 
@@ -164,7 +177,9 @@ void MetronomeDSP::resetForStart(double startBeat) {
 }
 
 void MetronomeDSP::setBeatPosition(double beatPosition) {
-    // Resume / Link phase sync: NON tocca _startAbsoluteBeat.
+    // Resume (post-interruzione/recovery): NON tocca _startAbsoluteBeat.
+    // NB (Bug 2.b): il Link phase sync NON passa più di qui — usa
+    // setBeatPositionTimeOnly. Questa resta per il solo Resume.
     // Griglia coerente relativa a _startAbsoluteBeat per entrambi
     // _currentBeatInBar e _exactNextBeatSample.
     double spb              = (_sampleRate * 60.0) / _bpm;
@@ -193,6 +208,93 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     } else {
         _exactNextSubdivSample = std::numeric_limits<double>::max();
     }
+}
+
+// === Bug 2.b — Variante solo-temporale di setBeatPosition (Direzione 2) ===
+// Allinea la timeline a campioni (_absoluteSamplePosition / _exactNextBeatSample
+// + tracker suddivisioni) al beat assoluto richiesto da Link sync_phase, SENZA
+// ri-derivare _currentBeatInBar. La fase di battuta resta governata dal contatore
+// di sezione in processBuffer, ancorato al downbeat dallo swap SEAMLESS.
+// FIX-B (Ferita B): la ri-derivazione del prossimo beat è MARK-PRESERVING —
+// l'etichetta del mark pendente attraversa la correzione invariata (frazionaria)
+// o shiftata della sola parte intera del salto (re-map quantum, benigno come
+// sempre). Il ceil amnesico, che mangiava (avanti) o duplicava (indietro) un
+// click reale quando la correzione attraversava un confine di beat, esce dal
+// percorso insieme alla sua finestra epsilon.
+void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
+    // Guardia: beat negativi (beat-zero di sessione nel futuro, re-anchor
+    // post-attach) renderebbero UB il cast uint64 sotto, con mitraglia di
+    // click a sample 0. Hazard PRE-esistente e identico col vecchio ceil:
+    // chiuso alla fonte. Nessuna correzione persa: il gate L2 richiama a
+    // ogni buffer finché il beat non è ≥ 0.
+    if (beatPosition < 0.0) return;
+
+    double spb              = (_sampleRate * 60.0) / _bpm;
+
+    // Distanza fisica al mark pendente, in beat, catturata PRIMA di muovere
+    // la timeline (ORDINE OBBLIGATORIO). Differenza CORTA sull'asse campioni:
+    // mai posizioni assolute storiche, robusta attraverso i cambi tempo.
+    // Clamp difensivo: sotto 0 = mark perso dalla race storica dell'== (il
+    // fire-asap sotto lo recupera entro mezzo beat); sopra 1.5 = stato fuori
+    // contratto, limitato per non flippare l'etichetta.
+    double aheadBeats       = (_exactNextBeatSample
+                               - (double)_absoluteSamplePosition) / spb;
+    if (aheadBeats < 0.0) aheadBeats = 0.0;
+    if (aheadBeats > 1.5) aheadBeats = 1.5;
+
+    _absoluteSamplePosition = (uint64_t)std::round(beatPosition * spb);
+
+    // Etichetta del mark pendente nella NUOVA timeline = etichetta nuova di
+    // "adesso" + distanza fisica. Identità: relative+aheadBeats = R + δ (la
+    // frazione d'anticipo del mark si elide). round(): |frac(δ)| < 0.5 →
+    // etichetta PRESERVATA (gate 0.01 / drift ~0.025 → margine >10×);
+    // re-map intero ±k → etichetta shiftata di k (= comportamento storico:
+    // cambia il nome del beat, non la fisica del click).
+    // NB: nessuna scrittura di _currentBeatInBar (vedi commento sopra).
+    double relative         = beatPosition - _startAbsoluteBeat;
+    double pendingRelIdx    = std::round(relative + aheadBeats);
+    _exactNextBeatSample    = (_startAbsoluteBeat + pendingRelIdx) * spb;
+
+    // Fire-asap: se la correzione ha scavalcato in avanti il mark pendente,
+    // il suo sample è nel passato del nuovo cursore e l'uguaglianza stretta
+    // di processBuffer (:283) non scatterebbe MAI PIÙ (silenzio perpetuo).
+    // Col clamp il click arretrato esce al 1° sample del processBuffer dello
+    // STESSO giro di scheduleNextBuffer, in ritardo dell'ampiezza dello
+    // scavalco (0,2 ms nel caso RUN6; fino a ~δ nei casi sopra-soglia); la
+    // griglia rientra alla prima correzione gated successiva. Durante il
+    // drain (_sectionEndPending) processBuffer è saltato: il mark "surfa"
+    // sul cursore senza mai sparare, e ogni ripartenza passa da
+    // resetForStart/setBeatPosition che riscrivono la terna.
+    if (_exactNextBeatSample < (double)_absoluteSamplePosition) {
+        _exactNextBeatSample = (double)_absoluteSamplePosition;
+    }
+
+    // Sincronizza tracker suddivisioni al prossimo confine di beat
+    _swingPhase = false;
+    if (_subdivisionMultiplier > 1) {
+        double firstInterval = subdivIntervalForPhase(spb, false);
+        double fromPrevBeat  = _exactNextBeatSample - spb + firstInterval;
+        _exactNextSubdivSample = (fromPrevBeat > (double)_absoluteSamplePosition)
+                                 ? fromPrevBeat
+                                 : _exactNextBeatSample + firstInterval;
+    } else {
+        _exactNextSubdivSample = std::numeric_limits<double>::max();
+    }
+}
+
+// === Bug 2.b — SPIA passiva: drain consumer (thread NON-RT). ===
+// SPSC: unico consumer (questo), unico producer (thread audio via pushDiag).
+// Copia i record disponibili in `out`, avanza readIdx. Nessun lock.
+size_t MetronomeDSP::drainDiag(MetronomeDiagRecord* out, size_t maxOut) {
+    uint64_t r = _diagRead.load(std::memory_order_relaxed);
+    const uint64_t w = _diagWrite.load(std::memory_order_acquire);
+    size_t n = 0;
+    while (r < w && n < maxOut) {
+        out[n++] = _diagRing[r & (kDiagRingCap - 1)];
+        ++r;
+    }
+    _diagRead.store(r, std::memory_order_release);
+    return n;
 }
 
 std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
@@ -239,6 +341,11 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
         }
 
         if (isBeatSample) {
+            // === Bug 2.b — SPIA passiva (no-op se disabilitata) ===
+            // Snapshot dell'asse ACCENTO PRIMA dello swap/incremento. Nessun
+            // os_log/malloc/lock: solo cattura locale + push lock-free a valle.
+            const uint32_t _diagBeatInBar = _currentBeatInBar;  // indice accento di QUESTO beat
+            const uint32_t _diagBpbBefore = _beatsPerBar;       // metro prima dello swap
             if (!_muted) {
                 BeatEvent ev;
                 ev.offset = i;
@@ -263,6 +370,14 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                     _bpm = _pendingBPM;
                     spb  = (_sampleRate * 60.0) / _bpm;
                 }
+            }
+            // Push spia DOPO lo swap (beatsPerBar aggiornato), PRIMA dell'incremento.
+            // bpbSwapFired inferito dal post-stato (nessuna scrittura aggiunta alle
+            // righe di produzione sopra): downbeat + metro cambiato ⇒ swap scattato.
+            if (_diagEnabled.load(std::memory_order_acquire)) {   // acquire: vede _diagSeq=0 (release in setDiagEnabled)
+                pushDiag((uint64_t)currentAbsolute, _exactNextBeatSample,
+                         _diagBeatInBar, _beatsPerBar,
+                         (_diagBeatInBar == 0u) && (_beatsPerBar != _diagBpbBefore));
             }
             _currentBeatInBar = (_currentBeatInBar + 1) % _beatsPerBar;
             _exactNextBeatSample += spb;

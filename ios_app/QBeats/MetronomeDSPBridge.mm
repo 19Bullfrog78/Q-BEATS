@@ -44,6 +44,46 @@ void metronome_set_beat_position(MetronomeHandle handle, double beatPosition) {
            _dsp->getCurrentBeatInBar());
 }
 
+void metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    _dsp->setBeatPositionTimeOnly(beatPosition);
+    os_log(OS_LOG_DEFAULT,
+           "[METRO] setBeatPositionTimeOnly: beat=%.6f startAbs=%.6f beatInBar=%u",
+           beatPosition,
+           _dsp->getStartAbsoluteBeat(),
+           _dsp->getCurrentBeatInBar());
+}
+
+// === Bug 2.b — SPIA passiva L1: enable + flush (os_log, thread NON-RT) ===
+void metronome_set_diag_enabled(MetronomeHandle handle, bool enabled) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->setDiagEnabled(enabled);
+}
+
+void metronome_flush_diag(MetronomeHandle handle) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    MetronomeDiagRecord buf[256];
+    size_t n;
+    while ((n = _dsp->drainDiag(buf, 256)) > 0) {
+        for (size_t k = 0; k < n; ++k) {
+            const MetronomeDiagRecord& r = buf[k];
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][Bug2b-SPY-L1] seq=%u absSample=%llu beatInBar=%u bpb=%u downbeat=%u bpbSwap=%u exactNextBeat=%.3f",
+                   r.seq, (unsigned long long)r.absSample,
+                   r.currentBeatInBar, r.beatsPerBar,
+                   r.isDownbeat, r.bpbSwapFired, r.exactNextBeatSample);
+        }
+    }
+    const uint64_t dropped = _dsp->diagDropped();
+    if (dropped > 0) {
+        os_log(OS_LOG_DEFAULT,
+               "[Q-BEATS][Bug2b-SPY-L1] WARN ring overflow dropped=%llu",
+               (unsigned long long)dropped);
+    }
+}
+
 uint32_t metronome_processBuffer(MetronomeHandle handle,
                                   uint32_t        bufferSize,
                                   uint32_t*       offsets,
@@ -80,7 +120,14 @@ void metronome_cancel_pending_bpm(MetronomeHandle handle) {
 // Strada A — Bridge per nuove API DSP.
 void metronome_schedule_bpb_change(MetronomeHandle handle, uint32_t bpb) {
     if (!handle) return;
-    static_cast<MetronomeDSP*>(handle)->scheduleBeatsPerBarChange(bpb);
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    // Bug 2.b — diagnostica arm-after-emit: fase di battuta del DSP all'ISTANTE
+    // dell'arm, PRIMA dello store del dirty flag. beatInBarAtArm != 0 al confine
+    // ⇒ il downbeat è già passato ⇒ swap perso ⇒ +1 bar. Letta come la riga [METRO].
+    os_log(OS_LOG_DEFAULT,
+           "[Q-BEATS][Bug2b-ARM] schedule_bpb_change reqBpb=%u beatInBarAtArm=%u",
+           bpb, _dsp->getCurrentBeatInBar());
+    _dsp->scheduleBeatsPerBarChange(bpb);
 }
 
 void metronome_cancel_pending_bpb(MetronomeHandle handle) {

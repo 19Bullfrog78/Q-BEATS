@@ -251,10 +251,6 @@ struct LiveView: View {
                 // P2: chiusura della finestra fade se l'utente preme Play durante
                 // i ~500ms post-autostop (asyncAfter pendente sara' poi no-op via guard).
                 sectionHold = false
-                // L1.b — audioEngine.start() ha resettato beatTickCounter a 0 →
-                // il prossimo tick sarà 1. Resetta il marker della sezione di
-                // partenza per la prima sezione di una nuova performance.
-                sectionStartTick = 1
                 pendingSectionStart = false
             case .pausedAwaitingChoice(let sec, let song):
                 session.playbackState = .overlayStop(sectionName: sec, songName: song)
@@ -271,11 +267,16 @@ struct LiveView: View {
             // return) applica subito al mirror.
             if audioEngine.isPlaying {
                 pendingBpb = beats
+                // Bug 2.b fix: in playing currentTimeSig NON è più applicato
+                // subito (anticipava la barretta di 1 beat → desync visivo
+                // cross-device). È differito al primo beat della nuova sezione
+                // nell'handler beatTickSubject, nello stesso blocco di displayBpb.
             } else {
                 displayBpb = beats
+                // Pre-Play / setup / Stop / Studio→LiveView: applica subito,
+                // display coerente fuori dalla finestra SEAMLESS.
+                session.currentTimeSig = timeSigString(for: beats)
             }
-            // currentTimeSig è display testuale, non race-sensitive: applica subito.
-            session.currentTimeSig = timeSigString(for: beats)
         }
         .onReceive(audioEngine.$currentAccentPattern) { ap in
             // TD #38(a) fix: stesso pattern di $beatsPerBar.
@@ -294,10 +295,22 @@ struct LiveView: View {
             }
         }
         .onReceive(audioEngine.beatTickSubject) { tickN in
-            // L1.b — Al cambio sezione (runner.$currentSectionIdx triggera
-            // pendingSectionStart=true), il prossimo tick è il primo della
-            // nuova sezione: lo registriamo come sectionStartTick.
-            if pendingSectionStart {
+            // Bug 2.b — ancora deterministica del 1° beat di un avvio fresco.
+            // tickN==1 identifica intrinsecamente il primo beat dopo start()
+            // (beatTickCounter azzerato in start(), AudioEngine.swift:635): nessun
+            // flag armato in .playing, nessuna corsa col primo tick. L'offset è
+            // già finale qui (work item SHARED pubblica startBeatOffset PRIMA del
+            // 1° scheduleNextBuffer). Director/standalone: startBeatOffset=0 →
+            // sectionStartTick=1. Follower: startBeatOffset = bar d'ingresso →
+            // sectionStartTick = 1 - offset. Un avvio fresco supera SEMPRE il marker
+            // di cambio sezione (un avanzamento mid-canzone NON riavvia il motore
+            // → tickN!=1) → azzera pendingSectionStart.
+            if tickN == 1 {
+                sectionStartTick = 1 - audioEngine.startBeatOffset
+                pendingSectionStart = false
+            } else if pendingSectionStart {
+                // L1.b — avanzamento sezione mid-canzone (seamless): il 1° tick
+                // della nuova sezione diventa l'ancora → currentBar=1.
                 sectionStartTick = tickN
                 pendingSectionStart = false
             }
@@ -305,6 +318,11 @@ struct LiveView: View {
             // tick post-arrivo @Published (= primo beat nuova sezione audio).
             if let bpb = pendingBpb {
                 displayBpb = bpb
+                // Bug 2.b fix: il time-sig dell'header flippa QUI, sullo stesso
+                // tick della barretta (displayBpb) e del cambio audio (downbeat
+                // Link-synced) → header e barretta condividono un unico punto di
+                // applicazione e non possono più divergere per costruzione.
+                session.currentTimeSig = timeSigString(for: bpb)
                 pendingBpb = nil
             }
             if let ap = pendingAccentPattern {
@@ -360,7 +378,8 @@ struct LiveView: View {
         // Link `set_start_stop_callback` (righe ~436-442 di AudioEngine.swift)
         // DOPO `engine.start()` quando un Director peer ha premuto Play e
         // il nostro engine flippa da non-playing a starting. Qui orchestriamo
-        // la sezione corrente chiamando `runner.startSetlist(...)` che
+        // la sezione corrente: in `.standby` `runner.startCurrentSong(...)`
+        // (preserva `currentSongIdx`), altrimenti `runner.startSetlist(...)` che
         // resetta indici a 0 e fa il setup completo (setBeatsPerBar,
         // setAccentPattern, loadSection, setBPM) — senza questo il Follower
         // partirebbe audio ma `_sectionTotalBeats=0` → counter all'infinito
@@ -373,7 +392,7 @@ struct LiveView: View {
         // riga ~165 mirrora su session), o perché Q-B è sorgente Direttore
         // (in quel caso il callback non arriva neanche: guard early-return
         // AudioEngine.swift riga ~432) — return silenzioso per evitare
-        // doppio reset indici runner (`startSetlist` resetta brutalmente
+        // doppio reset indici runner (ramo `else`: `startSetlist` resetta
         // `currentSongIdx=0` `currentSectionIdx=0` — Q-D3 Read).
         //
         // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
@@ -381,7 +400,15 @@ struct LiveView: View {
         // `AnyCancellable` manuale necessario.
         .onReceive(audioEngine.linkStartedSubject) { _ in
             guard session.playbackState != .playing else { return }
-            runner.startSetlist(audioEngine: audioEngine, session: session)
+            // Cambio-canzone cross-device (buco copertura Opzione C/CD-6):
+            // in .standby il Follower ha currentSongIdx già avanzato →
+            // startCurrentSong preserva la canzone corrente; startSetlist
+            // la resetterebbe a songIdx 0 (Song A). Vedi BUGS_QBEATS.md.
+            if case .standby = session.playbackState {
+                runner.startCurrentSong(audioEngine: audioEngine, session: session)
+            } else {
+                runner.startSetlist(audioEngine: audioEngine, session: session)
+            }
         }
     }
 

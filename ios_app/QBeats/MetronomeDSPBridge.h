@@ -34,8 +34,21 @@ void            metronome_set_muted(MetronomeHandle handle, bool muted);
 // Chiamare SOLO su start() senza resume.
 void            metronome_reset_for_start(MetronomeHandle handle, double startBeat);
 
-// Resume / Link phase sync: aggiorna posizione senza toccare phase origin.
+// Resume (post-interruzione/recovery): aggiorna posizione senza toccare phase origin.
+// NB (Bug 2.b): il Link phase sync usa metronome_set_beat_position_time_only;
+// questa resta per il solo Resume.
 void            metronome_set_beat_position(MetronomeHandle handle, double beatPosition);
+
+// Bug 2.b — variante solo-temporale: allinea la timeline a campioni senza toccare
+// la fase di battuta (_currentBeatInBar). Usata da Link sync_phase.
+void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
+
+// === Bug 2.b — SPIA passiva L1 (diagnostica, OFF di default) ===
+// Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
+void            metronome_set_diag_enabled(MetronomeHandle handle, bool enabled);
+// Drena il ring-buffer diagnostico ed emette i record via os_log.
+// Chiamare SOLO da thread NON-RT (es. timer di background / su stop).
+void            metronome_flush_diag(MetronomeHandle handle);
 
 uint32_t        metronome_processBuffer(MetronomeHandle handle,
                                         uint32_t        bufferSize,
