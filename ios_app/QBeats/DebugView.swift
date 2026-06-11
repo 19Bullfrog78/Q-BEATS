@@ -342,6 +342,11 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.mint)
+                    Button("Carica dati test BPB Mixed 121") {
+                        loadTestDataBpbMixed121()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.pink)
                     Button("Carica dati test 3/4 Long") {
                         loadTestData34Long()
                     }
@@ -552,6 +557,38 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist BPB Mixed",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// TEST7 (Bug 2.b / Ferita B) — gemello del BPB Mixed a 121.0 BPM.
+    /// Struttura IDENTICA al 120 (4/4 → 3/4 → 5/4 → 4/4 alt, 4 misure
+    /// ciascuna, accent pattern identici): cambia SOLO il tempo.
+    /// 121 BPM = spb NON intero (48000*60/121 ≈ 23801,65 campioni):
+    /// esercita il round-then-compare di processBuffer con mark frazionario
+    /// (Condizione 2 della review FIX-B — il giro a 121 è OBBLIGATORIO,
+    /// a 120 spb è intero e si valida solo il caso facile).
+    private func loadTestDataBpbMixed121() {
+        os_log("[DebugView] Carica dati test BPB Mixed 121", log: .default, type: .default)
+
+        let s1 = SongSection(name: "BPB Mixed 121 — 4/4", bpm: 121, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "BPB Mixed 121 — 3/4", bpm: 121, beatsPerBar: 3, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "BPB Mixed 121 — 5/4", bpm: 121, beatsPerBar: 5, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,1,2,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4 = SongSection(name: "BPB Mixed 121 — 4/4 alt", bpm: 121, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 4, notes: "", accentPattern: [2,1,2,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song BPB Mixed 121",
+                        sections: [s1, s2, s3, s4],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist BPB Mixed 121",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
