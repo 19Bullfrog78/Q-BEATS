@@ -347,6 +347,11 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.brown)
+                    Button("Carica dati test TD#17 Long") {
+                        loadTestDataTD17Long()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.pink)
                 }
                 #endif
 
@@ -581,6 +586,46 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist 3/4 Long",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Test diagnostico TD#17 Long — sessione lunga per riprodurre la perdita
+    /// peer Link in foreground (RUN9, 11/06/2026: peer perso mid-play, app in
+    /// primo piano, recovery solo con socket nuovo). 121 BPM costante, ciclo BPB
+    /// 4/4 → 3/4 → 5/4 → 4/4 ripetuto 23 volte: 92 sezioni, ~61 minuti, 91 cambi
+    /// sezione (~uno ogni 40 s) per massimizzare la copertura del candidato
+    /// "il processing del cambio sezione sul Direttore fa saltare il keepalive
+    /// LinkKit". Nessun requisito musicale: fixture diagnostica. Da compilare con
+    /// QB_DIAG_SPY OFF per tenere magro il log del Direttore sulla sessione lunga.
+    private func loadTestDataTD17Long() {
+        os_log("[DebugView] Carica dati test TD#17 Long", log: .default, type: .default)
+
+        // (nome, beatsPerBar, accentPattern, repetitions). Invariante: accentPattern.count == beatsPerBar.
+        let cycle: [(String, UInt32, [UInt8], Int)] = [
+            ("4/4", 4, [2, 1, 1, 1],    20),   // ~39,7 s
+            ("3/4", 3, [2, 1, 1],       27),   // ~40,2 s
+            ("5/4", 5, [2, 1, 1, 1, 1], 16),   // ~39,7 s
+            ("4/4", 4, [2, 1, 1, 1],    20),   // ~39,7 s
+        ]
+
+        var sections: [SongSection] = []
+        for c in 0..<23 {
+            for (label, bpb, accent, reps) in cycle {
+                sections.append(SongSection(name: "TD17 c\(c + 1) \(label)",
+                                            bpm: 121, beatsPerBar: bpb, beatUnit: 4,
+                                            repetitions: reps, notes: "",
+                                            accentPattern: accent,
+                                            subdivisionMultiplier: 1, swingRatio: 0.5))
+            }
+        }
+
+        let song = Song(id: UUID(), name: "Test Song TD#17 Long",
+                        sections: sections,
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist TD#17 Long",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
