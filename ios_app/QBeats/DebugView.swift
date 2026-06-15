@@ -594,10 +594,12 @@ struct DebugView: View {
     /// Test diagnostico TD#17 Long — sessione lunga per riprodurre la perdita
     /// peer Link in foreground (RUN9, 11/06/2026: peer perso mid-play, app in
     /// primo piano, recovery solo con socket nuovo). 121 BPM costante, ciclo BPB
-    /// 4/4 → 3/4 → 5/4 → 4/4 ripetuto 23 volte: 92 sezioni, ~61 minuti, 91 cambi
+    /// 4/4 → 3/4 → 5/4 → 4/4 ripetuto 200 volte: 800 sezioni, ~8,8 ore, 799 cambi
     /// sezione (~uno ogni 40 s) per massimizzare la copertura del candidato
     /// "il processing del cambio sezione sul Direttore fa saltare il keepalive
-    /// LinkKit". Nessun requisito musicale: fixture diagnostica. Da compilare con
+    /// LinkKit". Durata estesa (15/06/2026, TD#17 step ②: 23→200 cicli) così la
+    /// run a oltranza NON presidiata non raggiunge END SHOW nella finestra di
+    /// cattura. Nessun requisito musicale: fixture diagnostica. Da compilare con
     /// QB_DIAG_SPY OFF per tenere magro il log del Direttore sulla sessione lunga.
     private func loadTestDataTD17Long() {
         os_log("[DebugView] Carica dati test TD#17 Long", log: .default, type: .default)
@@ -611,7 +613,7 @@ struct DebugView: View {
         ]
 
         var sections: [SongSection] = []
-        for c in 0..<23 {
+        for c in 0..<200 {
             for (label, bpb, accent, reps) in cycle {
                 sections.append(SongSection(name: "TD17 c\(c + 1) \(label)",
                                             bpm: 121, beatsPerBar: bpb, beatUnit: 4,
