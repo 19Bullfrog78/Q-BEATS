@@ -1017,12 +1017,22 @@ class AudioEngine: ObservableObject {
                 let sr  = AVAudioSession.sharedInstance().sampleRate
                 let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
                 let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
-                let uiPattern = self.defaultAccentPattern(for: self._beatsPerBarQ).map { $0 > 0 ? 2 : 1 as UInt8 }
                 DispatchQueue.main.async {
                     self.isPlaying            = true
                     self.playbackState        = .playing
                     self.clickStatus          = statusStr
-                    self.currentAccentPattern = uiPattern
+                    // Bug 1 (faccia visiva di Bug 2.b, BUGS §1.2) — NON ripubblicare
+                    // qui currentAccentPattern da _beatsPerBarQ. Al join cross-device
+                    // start() gira col _beatsPerBarQ della sezione PRECEDENTE (stantio)
+                    // e questo publish, differito su main.async, atterrava DOPO il
+                    // pattern corretto del runner → la striscia segmenti (MetSlotStripView)
+                    // disegnava il conteggio vecchio (es. 3 invece di 4), mentre
+                    // beatActive — calcolato da displayBpb/$beatsPerBar, che start() NON
+                    // tocca — restava a 4: il 4° beat non aveva segmento da accendere.
+                    // Il pattern è già pubblicato dalla via autoritativa (setBeatsPerBar
+                    // didSet in Studio; runner/sezione + ramo SEAMLESS in Live), quindi
+                    // il republish era ridondante oltre che dannoso. Rimosso il vecchio
+                    // fix 282e8d8 (03/05, pre-runner/pre-join), oggi superato.
                     // CD-6 / Bug 4 fix (Q-D4 esteso) — Reset gate anti
                     // double-emit linkStartedSubject. Da qui `isPlaying == true`
                     // → il guard `!engine.isPlaying` del callback Link
