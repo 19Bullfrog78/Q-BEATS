@@ -352,6 +352,22 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.pink)
+                    // --- Bug 1 (striscia segmenti al join) — fixture di verifica Test 2-4 ---
+                    Button("Bug1 T2 — Cold 3/4 first") {
+                        loadTestDataBug1ColdNon44()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                    Button("Bug1 T3 — Custom accents") {
+                        loadTestDataBug1CustomAccents()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    Button("Bug1 T4 — 4/4→3/4→7/8") {
+                        loadTestDataBug1Mixed78()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
                 }
                 #endif
 
@@ -628,6 +644,80 @@ struct DebugView: View {
                         countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "Test Setlist TD#17 Long",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    // MARK: - Bug 1 — fixture di verifica (striscia segmenti al join, fix dfe758d)
+
+    /// Bug 1 — Test 2: prima sezione NON-4/4, Play a freddo.
+    /// La striscia deve mostrare 3 segmenti dalla PRIMA battuta e accendere i
+    /// beat 1-2-3 senza residui da uno stale beatsPerBar=4. NON toccare il
+    /// time signature in LiveView: la 1ª sezione è già 3/4 alla partenza.
+    private func loadTestDataBug1ColdNon44() {
+        os_log("[DebugView] Carica dati test Bug1 Cold 3/4 first", log: .default, type: .default)
+
+        let s1 = SongSection(name: "Bug1 T2 — 3/4 cold", bpm: 100, beatsPerBar: 3, beatUnit: 4,
+                             repetitions: 8, notes: "", accentPattern: [2, 1, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "Bug1 T2 — 4/4 next", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 8, notes: "", accentPattern: [2, 1, 1, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song Bug1 Cold 3/4",
+                        sections: [s1, s2],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist Bug1 Cold 3/4",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Bug 1 — Test 3: accenti CUSTOM + resume da telefonata.
+    /// Sezione lunga in 4/4 con accenti su beat 1 E 3 ([2,1,2,1], non-default).
+    /// Far partire, ricevere una chiamata a metà sezione, rientrare: gli accenti
+    /// devono restare i SUOI (1 e 3), non azzerarsi al default per il republish
+    /// stantio rimosso in start().
+    private func loadTestDataBug1CustomAccents() {
+        os_log("[DebugView] Carica dati test Bug1 Custom accents", log: .default, type: .default)
+
+        let s1 = SongSection(name: "Bug1 T3 — 4/4 acc 1&3", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 20, notes: "", accentPattern: [2, 1, 2, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song Bug1 Custom Accents",
+                        sections: [s1],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist Bug1 Custom Accents",
+                              date: Date(), songIDs: [song.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// Bug 1 — Test 4: non-regressione 4/4 → 3/4 → 7/8 (standalone + cross-device).
+    /// BPM 100 costante per isolare il cambio di metro dal cambio di BPM. Il 7/8
+    /// (denominatore 8) è producibile solo da fixture: nessuna UI imposta beatUnit.
+    /// Accenti 7/8 = raggruppamento 3+2+2 (beat 1,4,6) come TimeSignature.all.
+    /// Verifica: a ogni transizione striscia col conteggio giusto (4→3→7),
+    /// accenti in posizione, nessun segmento "fantasma" dal pattern precedente.
+    private func loadTestDataBug1Mixed78() {
+        os_log("[DebugView] Carica dati test Bug1 4/4-3/4-7/8", log: .default, type: .default)
+
+        let s1 = SongSection(name: "Bug1 T4 — 4/4", bpm: 100, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 6, notes: "", accentPattern: [2, 1, 1, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s2 = SongSection(name: "Bug1 T4 — 3/4", bpm: 100, beatsPerBar: 3, beatUnit: 4,
+                             repetitions: 6, notes: "", accentPattern: [2, 1, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3 = SongSection(name: "Bug1 T4 — 7/8", bpm: 100, beatsPerBar: 7, beatUnit: 8,
+                             repetitions: 6, notes: "", accentPattern: [2, 1, 1, 2, 1, 2, 1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song = Song(id: UUID(), name: "Test Song Bug1 Mixed 7/8",
+                        sections: [s1, s2, s3],
+                        countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "Test Setlist Bug1 Mixed 7/8",
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
