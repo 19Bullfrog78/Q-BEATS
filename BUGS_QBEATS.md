@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 15
-**Ultima modifica:** 2026-06-23
+**Versione:** 16
+**Ultima modifica:** 2026-06-24
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -112,7 +112,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
 
-### TD-link-indicator-stale — Indicatore peer/LED Direttore "stale" se Link attivato con peer già presente (🟠 OPEN MEDIA)
+### TD-link-indicator-stale — Indicatore peer/LED Direttore "stale" se Link attivato con peer già presente (🔵 COSMETICO — SOSPESO 24/06)
 - **Sintomo (device-confermato 23/06):** sul **Direttore** l'indicatore Q-BEATS mostra **"standalone" / LED spento** mentre il peer **È** collegato — visibile nel **pannello Ableton nativo** e con **sync precisa** (il Follower segue corretto). Il **Follower** mostra "Peer"/LED verde. **Recovery device-confermato:** aprire+chiudere il pannello Ableton nativo (o toggle Link OFF/ON) sul Direttore → LED verde.
 - **NON è TD #17:** nessuna perdita reale di peer (baseline `peers:1` stabile, sniffer pulito). È **solo l'indicatore** rimasto indietro; la sessione Link è viva (per questo suona in sync).
 - **Asimmetria NON di ruolo (verificato):** lo stesso `linkIsConnected` governa entrambi i ruoli — nessun ramo lo tratta diversamente per `.direttore`/`.collaborativa`; il ramo `.direttore` di `start()` (`AudioEngine.swift:967`) NON pilota l'indicatore (depistaggio escluso dai verificatori). **Osservato:** Follower (Link acceso per primo, da solo) → LED verde; Direttore → indicatore spento. **Perché il Direttore differisca dal Follower non è risolto:** segue il sotto-meccanismo (a|b) in Causa — sotto **(a)** è l'ordine d'accensione (peer già presente all'enable del Direttore), sotto **(b)** l'ordine è identico per entrambi e la differenza resta nel **fronte soppresso**.
@@ -122,10 +122,14 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
   - `AudioEngine.swift:464-500` (callback IsEnabled) **e** `:1285-1325` (`setLinkEnabled`) — **entrambi** i rami enable seminano dallo stato vivo (`link_engine_is_connected`) + **un SOLO re-check a +2s** (`asyncAfter .now()+2.0`) se `!isConn`. L'enable iniziale passa di qui via `LinkEngine.mm:344` (`isEnabledCallback_(true)` da `link_engine_activate`). → **non esiste un ramo enable "senza semina".**
   - `LinkEngine.mm:353-364` — poll diagnostico **one-shot** a +5s: **scrive solo `os_log`, NON aggiorna lo stato**.
 - **Causa — tre livelli, tenuti distinti:**
-  - **VERIFICATO (codice + log iPad `td17_IPAD_20260623_124507`):** semina e re-check del Direttore hanno letto `false` (LED spento); il peer era presente entro lo START (`peers:1` @ 12:47:48); **zero** `[Q-BEATS][LINK][CONNECTED]` per ~10 min fino al primo roam. → l'indicatore non ha **mai** registrato la connessione, pur essendo la sessione Link viva.
-  - **NON determinabile da questo log:** il momento esatto dell'aggancio (tra enable @ 12:46:31 e START @ 12:47:48 non c'è riga sul peer), quindi quale sotto-meccanismo: **(a)** peer già a 1 all'enable → nessun fronte 0→1 da catturare + semina che legge `false`; oppure **(b)** peer agganciato dopo il re-check +2s → fronte vero ma soppresso. In **entrambi** i casi nessun fronte corregge, e la semina+re-check one-shot lo manca.
+  - **PARZIALMENTE SUPPORTATO / causa NON confermata dal log** (riletto verbatim 24/06):
+    - **FATTO stampato:** `zero` `[Q-BEATS][LINK][CONNECTED]` per ~10 min (12:46:31→12:56:33); `numPeers:1` all'enable = cache `numPeers_`, scritta da un `[CONNECTED]` scattato **prima** dell'inizio cattura (12:45:07).
+    - **INFERENZA dal codice (NON stampata):** in tutto il log manca la riga `check 2s post-enable`; poiché il re-check +2s parte solo `if !isConn`, sotto il codice attuale la semina avrebbe letto **connesso** → spia **verde** quei 10 min, NON spenta. (Lettura del codice, non un valore loggato.)
+    - **NON stampato affatto:** il read vivo (`link_engine_is_connected`) in un istante di stallo — questa build lo legge solo nel +2s condizionale, mai in continuo. Stallo candidato = il **flapping** dalle 12:56 (fronti che *scattano*; perdita-vera vs spia-indietro non separabili senza pannello/read-vivo).
+    - **RIMOSSO** il precedente *"semina/re-check letto `false`, LED spento 10 min"*: era il **rovescio** dell'inferenza dal log.
+  - **(a)/(b) MOOT per questa cattura:** il framing "fronte mancato all'enable" — (a) peer già a 1 → semina `false`; (b) fronte tardivo soppresso — presupponeva una semina `false` che l'inferenza sopra **non** sostiene qui. Resta **ipotesi generale** solo se un diagnostico mostrasse un enable con read-vivo `false` + peer presente.
   - **IPOTESI (LinkKit closed-source):** la sequenza di `link_engine_activate`, costruita per **"zero transizioni false→true"** (`LinkEngine.mm:343`, fix TD #44), plausibilmente sopprime il primo CONNECTED e/o fa leggere `false` a `link_engine_is_connected` subito dopo l'activate.
-  - **Perché il fix tiene comunque:** la lettura ricorrente dello stato vivo riallinea l'indicatore in **ogni** variante sopra — non dipende dal distinguere (a) da (b).
+  - **Perché il fix POTREBBE tenere (condizionato):** se il read vivo è fedele (Mondo 1) la lettura ricorrente riallinea senza distinguere (a)/(b) — ma "read vivo fedele" è l'assunzione **non ancora provata** (gate-zero, vedi Stato).
 - **Direzione fix (proposta, NON ratificata) — lato Swift, NIENTE bridge L2:** l'indicatore legge lo **stato VIVO** della connessione (`link_engine_is_connected` → lo stesso `ABLLinkIsConnected` che mostra il pannello Ableton nativo) in modo **RICORRENTE finché Link è attivo** (ogni 1–2 s) e si adegua in **entrambe le direzioni**: peer compare → verde, peer sparisce → spento. Guidato **sempre** dallo stato vivo, **mai** dal callback a fronti in nessuna delle due direzioni. Vive in `AudioEngine.swift` (timer + lettura del getter già esistente) → **non tocca `LinkEngine.mm`** (niente flag L2, niente audit RT §4).
   - **Principio:** non costruire la cura sull'**unico meccanismo già visto rompersi** (il callback a fronti, interno a LinkKit, codice chiuso). Per questo niente "poi mi fido del callback" in nessuna direzione.
   - ❌ **SCARTATA — "a tempo" (controlla per N secondi poi stop):** buco sull'**arrivo tardivo** — se il peer entra dopo la finestra, ci si appoggia al callback, che nel log ha mancato **proprio il primo arrivo**.
@@ -133,7 +137,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
   - ✅ **SCELTA — "ricorrente in entrambe le direzioni":** **nessuno** dei due buchi (non si fida mai del callback, legge sempre la verità viva) e **costo zero in più** della versione "finché disconnesso" (stesso poll, solo senza condizione di stop).
 - **Workaround palco (immediato):** aprire+chiudere il pannello Ableton nativo sul Direttore dopo che il peer è connesso (più gentile del toggle Link: non lascia cadere la sessione).
 - **Scope:** indicatore **binario** (verde = peer presente, spento = nessun peer); obiettivo = il Direttore vede l'aggancio. Distinto da `TD linkPeers` (Sez.2): qui il problema è il **booleano stale**.
-- **Stato:** 🟠 **OPEN MEDIA.** Sintomo + recovery **device-confermati 23/06**; percorso codice **verbatim** (master `f5c6dea`); meccanismo LinkKit = **ipotesi**. Fix subordinato a **gate pieno** (diff verbatim → OK Mauro → commit, lato Swift). **NON 🟢 CHIUSO** (regola `feedback_qbeats_chiuso_solo_dopo_device`).
+- **Stato:** 🔵 **COSMETICO — SOSPESO (24/06).** Non bloccante: **il peer NON viene perso**, la sync è sempre corretta — è **solo l'indicatore**, intermittente (prova 24/06: regolare anche col Direttore acceso dopo il Follower; trigger ignoto). Sintomo + recovery **device-confermati 23/06** (resta ground truth). Meccanismo LinkKit = **ipotesi**; questa build **non logga il read vivo** → un eventuale fix va deciso solo dopo un diagnostico (FASE 0). **NON 🟢 CHIUSO, NON inseguito ora:** lavoro fatto (ricognizione + review + direzione fix 129-133 + lean "Mondo 1") **agganciato qui** → se diventa più che cosmetico si riparte da lì. Decisione 24/06: energie su fronti core (Control Center audio). Workaround utente → INFORMATION (Pre-volo).
 - **Dominio:** CC.
 
 ### TD #34 — Race condition `link_engine_set_start_stop_callback`
