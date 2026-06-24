@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 16
+**Versione:** 17
 **Ultima modifica:** 2026-06-24
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -139,6 +139,18 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Scope:** indicatore **binario** (verde = peer presente, spento = nessun peer); obiettivo = il Direttore vede l'aggancio. Distinto da `TD linkPeers` (Sez.2): qui il problema è il **booleano stale**.
 - **Stato:** 🔵 **COSMETICO — SOSPESO (24/06).** Non bloccante: **il peer NON viene perso**, la sync è sempre corretta — è **solo l'indicatore**, intermittente (prova 24/06: regolare anche col Direttore acceso dopo il Follower; trigger ignoto). Sintomo + recovery **device-confermati 23/06** (resta ground truth). Meccanismo LinkKit = **ipotesi**; questa build **non logga il read vivo** → un eventuale fix va deciso solo dopo un diagnostico (FASE 0). **NON 🟢 CHIUSO, NON inseguito ora:** lavoro fatto (ricognizione + review + direzione fix 129-133 + lean "Mondo 1") **agganciato qui** → se diventa più che cosmetico si riparte da lì. Decisione 24/06: energie su fronti core (Control Center audio). Workaround utente → INFORMATION (Pre-volo).
 - **Dominio:** CC.
+
+### TD-control-center-slide-audio — Click rallenta durante l'ANIMAZIONE dello slide del Control Center (🔵 COSMETICO / AMBIENTALE — non bloccante / mitigato)
+- **FATTO osservato (device, Mauro 24/06, ground truth):** rallentamento del click **solo durante l'animazione dello slide** (mentre si tira giù la tendina). **Assente** a tendina **completamente aperta e ferma**; **assente** a tendina chiusa. **Recupero pulito** a tempo alla chiusura (nessuno sfasamento residuo). **Solo iPad A10 (iPad 7), NON iPhone.** **Solo con setlist LONG (9h), NON con la L1b normale.**
+- **CAUSA verificata alla fonte (master `af2e3bd`, file:line):** il click esce da `AVAudioPlayerNode` (`AudioEngine.swift:263`) via `scheduleBuffer`; la continuità tra buffer è un loop JIT — il completion handler ri-accoda `scheduleNextBuffer` su `audioQueue` (coda GCD **non-RT**, `:2613-14`). **Nessun** `AVAudioSourceNode`/`AURenderCallback`/`manualRenderingMode` (grep negativo) → il click **non** è su un render thread RT vero; l'`installTap` su mainMixerNode è "RT-equivalente, **NON** il vero render thread Core Audio" (`:1966-67`), ed è per il broadcast Link. `scheduleNextBuffer` fa **sync Link per-buffer** sulla stessa `audioQueue` (`:2235+`). **Punto debole = riarmo JIT su `audioQueue` non-RT, NON il render.**
+- **INFERENZA (etichettata, NON fatto):** l'**animazione dello slide**, *mentre in corso*, sottrae priorità ai thread non-RT → `audioQueue` resta indietro oltre il cuscinetto di pochi buffer → il playerNode va a secco → il click rallenta; **ad animazione conclusa** (aperta-ferma o chiusa) la priorità rientra e il click **recupera pulito**. Coerente coi fatti device. **→ SOSTITUISCE l'inferenza precedente "Control-Center-aperto-in-sé strozza i thread" (SUPERATA): non è l'overlay aperto, è l'animazione in movimento.**
+- **"Solo LONG" → INFERENZA (non fatto):** setlist lunga = più lavoro di stato/rifornimento per-buffer → cuscinetto più fragile sotto il picco dell'animazione. Etichettata, da verificare.
+- **RECORDED non-riconfermato (`project_qbeats_control_center_audio_slowdown.md`, 5 gg, point-in-time):** il vecchio claim "rallenta **solo col peer reale**" NON è menzionato nell'osservazione 24/06 (peer non dichiarato in questa prova). Rapporto "LONG" ↔ vecchio "solo col peer" = **dettaglio aperto, NON assunto risolto.** Cuscinetto **~20-32 ms** = RECORDED, non ri-misurato qui.
+- **Livello:** vive nel **riarmo/scheduling su `audioQueue`** — coda GCD applicativa **non-RT**, confine **L2/L3**. **NON L3-presentazione**, **NON render RT vero L1.** La cura strutturale toccherebbe **L1/L2**.
+- **Mitigazione (dichiarata):** **Accesso Guidato** sul palco rende il gesto quasi impossibile (→ user-facing in INFORMATION); **Direttore su device non-A10** non lo vede; **setlist normale** non lo vede. Transitorio ~1s che recupera da solo.
+- **Fix strutturale = opzione FUTURA GRANDE, esplicitamente NON perseguita ora (Strada B, 24/06):** click su **render-callback RT vero** (`AVAudioSourceNode`/`AURenderCallback`, lock-free, **zero** alloc/`os_log`/`main.async` sul cammino RT) → toglie il click dalla coda contesa. **Tocca L1/L2, il cammino RT §4 e il codice Link/sync/Bug 2.b già stabilizzato** → sproporzionato per un transitorio ~1s, non bloccante, gesto raro, device non principale, setlist estrema, con recupero pulito. **Resume-path agganciato:** ricognizione punto-alla-fonte (af2e3bd, sopra) + file-memoria.
+- **Stato:** 🔵 **COSMETICO / AMBIENTALE — SOSPESO (Strada B, 24/06).** Non bloccante, mitigato, **NON inseguito**. **NON 🟢 CHIUSO** — se si manifesta su un device capace/sano o con setlist normale, si riparte da qui. Fronte prima **non tracciato in BUGS** (solo memoria) → tracciato ora.
+- **Dominio:** CC (+ audio L1/L2 se un giorno si fa il fix).
 
 ### TD #34 — Race condition `link_engine_set_start_stop_callback`
 - **Sintomo:** potenziale crash mid-session su transizioni start/stop rapide.
