@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StudioRootView: View {
+struct QStageRootView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

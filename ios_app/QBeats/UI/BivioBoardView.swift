@@ -22,8 +22,8 @@ struct BivioBoardView: View {
 
                 VStack(spacing: 20) {
                     Button {
-                        os_log("Bivio: STUDIO selezionato")
-                        path.append(AppDestination.studio)
+                        os_log("Bivio: Q-STAGE selezionato")
+                        path.append(AppDestination.qStage)
                     } label: {
                         BivioButton(title: "Q-STAGE", background: Color(hex: "#16161a"), isAccent: false)
                     }

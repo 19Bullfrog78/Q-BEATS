@@ -2,7 +2,7 @@ import SwiftUI
 import os
 
 enum AppDestination: Hashable {
-    case studio
+    case qStage
 }
 
 struct AppRootView: View {
@@ -27,8 +27,8 @@ struct AppRootView: View {
                     BivioBoardView(path: $path)
                         .navigationDestination(for: AppDestination.self) { destination in
                             switch destination {
-                            case .studio:
-                                StudioRootView()
+                            case .qStage:
+                                QStageRootView()
                                     .environmentObject(audioEngine)
                             }
                         }
