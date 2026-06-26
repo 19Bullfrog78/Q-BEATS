@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 18
+**Versione:** 19
 **Ultima modifica:** 2026-06-26
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -215,6 +215,14 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Priorità:** **dietro TD#17** (affidabilità prima della feature mancante), candidato forte alla prima pausa di Q-Stage. Posizione esatta vs TD#17 = chiamata di Mauro.
 - **Validazione:** device, con tastiera/pedaliera MIDI (Mauro). Parte **Q-Studio** = arriva col container (non ancora costruito) → cablare a un controllo di riproduzione **condiviso** (Live + Q-Studio), non setlist-only.
 - **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (feature-completion), schedulato.
+
+### Base audio non suona in Live da una Song — cablaggio mancante (🟠 OPEN MEDIA / feature-completion — cantiere Tracce)
+- **Cos'è:** una Song si ricorda la sua base (`Song.backtrackFilename`) e l'app sa suonare una base (`armBacktrack` + `backtrackPlayerNode`), ma **nel flusso Live reale la base NON viene caricata/avviata da una Song**: `armBacktrack` è chiamata **solo da `DebugView.swift:186`** (test). Manca quindi il "**un solo START → base + metronomo partono insieme e restano allineati**".
+- **Non è una regressione:** non ha mai funzionato nel flusso vero — è feature **da costruire**, non rotta. Loggato per visibilità (non dare per scontato che già funzioni — emerso dal brief Media di CD, 26/06).
+- **Sede del lavoro:** **cantiere "Tracce" (Media › Tracks)** — far suonare la base dal vivo è parte integrante di quel cantiere (libreria basi + picker nell'Editor + cablaggio playback sincronizzato al click). Coerente con LIBRO (Media, una base/Song).
+- **Scope tecnico (quando si costruisce):** all'avvio canzone caricare la base da `QBeatsStore.backtrackBaseURL()`, avviarla in sync col metronomo (un solo START), gestire stop/standby. Niente streaming (vincolo). `Song` invariato.
+- **Validazione:** device (Mauro), con una base reale assegnata a una Song.
+- **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (feature-completion), gated dietro l'apertura del cantiere Tracce.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -587,6 +595,7 @@ Per data di chiusura, decrescente.
 | 16 | 2026-06-24 | CC chat principale 24/06 | LED `TD-link-indicator-stale` declassato 🟠 OPEN MEDIA → 🔵 COSMETICO-SOSPESO + causa-dal-log corretta (`BUGS:125-129`): etichetta "VERIFICATO" → "PARZIALMENTE SUPPORTATO / non confermata dal log", rimosso "seed-false/LED-spento 10 min" (resta solo il fatto stampato: zero `[CONNECTED]` ~10 min). Doc-only. Commit `af2e3bd`. |
 | 17 | 2026-06-24 | CC chat principale 24/06 | Nuovo ticket §1.2 `TD-control-center-slide-audio` 🔵 COSMETICO/AMBIENTALE-SOSPESO (Strada B): click rallenta solo durante l'animazione slide Control Center, solo iPad A10 + setlist LONG, recupero pulito; causa verificata alla fonte (`AudioEngine.swift:263`/`:2613-14`, riarmo JIT su `audioQueue` non-RT, no render RT). Fronte prima NON in BUGS. Doc-only. Commit `7c35074`. |
 | 18 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **MIDI azioni-contenuto non cablate a L3** (🟠 feature-completion, NON cosmetico, dietro TD#17): transport base wired; navigazione contenuto (Next/Prev Section, Next Song, Start Song=sblocco standby, Loop) = stub «richiede Layer 3» (`AudioEngine.swift:1608`). Thread-safety già OK (exec main `:1576`, I/O off-RT `:1464`); lavoro = handoff L2→L3 (no reference diretta engine→runner). Confermato alla fonte: `nextSection`/`prevSection` = equivalente UI mid-play (`TransportView:28`/`:68`) → mirror TAP; **`nextSong` mid-play = comportamento NUOVO** (nessun controllo UI oggi); `startSong` = mirror standby tap (`LiveView:131`). Decisioni-bandiere correlate in LIBRO v22. Bump header 17→18. Doc-only, nessun fix codice. |
+| 19 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **Base audio non suona in Live da una Song** (🟠 feature-completion, cantiere Tracce): oggi `armBacktrack` chiamata solo da `DebugView:186`; nel flusso Live reale la base non è caricata/avviata da una Song → manca "un solo START → base + metronomo insieme". Non regressione = feature da costruire col cantiere Tracce. Emerso dal brief Media di CD, verificato alla fonte (26/06). Bump header 18→19. Doc-only, nessun fix codice. |
 
 ---
 
