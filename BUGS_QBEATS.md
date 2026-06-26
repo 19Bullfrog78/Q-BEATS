@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 17
-**Ultima modifica:** 2026-06-24
+**Versione:** 18
+**Ultima modifica:** 2026-06-26
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -205,6 +205,16 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Vincolo di processo (ratificato Mauro 18/06):** **NON impacchettare nel diff di Bug 1** (renderebbe il test device non attribuibile — rimozione vs indurimento). Round separato, diff separato, **test device separato**, **DOPO** il verde device di Bug 1. Opzione "tutto in un diff" = ESCLUSA.
 - **Stato:** 🟠 OPEN MEDIA per Scenario B (integrità dati); A in attesa di conferma. ⚠️ non bloccante coi dati attuali. Verde solo dopo device.
 - **Dominio:** CC.
+
+### MIDI azioni-contenuto non cablate a L3 — pedaliera mani-libere (🟠 OPEN MEDIA / feature-completion, NON cosmetico — dietro TD#17)
+- **Cos'è:** transport base **wired** (Play/Pause, Stop, Tap Tempo, Mute Click, Stop Backtrack); la **navigazione del contenuto** è stub che logga «richiede Layer 3» (`AudioEngine.swift:1608`): **Next/Prev Section, Next Song, Start Song (= sblocco standby), Loop**. Promessa-palco: pedaliera/tastiera MIDI **mani-libere** pilota canzoni/sezioni in Q-Live + prova Q-Studio (il batterista a metà brano non tocca lo schermo). NON cosmetico (≠ LED / Control Center parcheggiati 🔵).
+- **Thread-safety = già OK** (concesso): `executeMIDIAction` gira su **main** (`handleMIDIInput` → `DispatchQueue.main.async` `AudioEngine.swift:1576`); I/O backtrack già **fuori dal RT** in `armBacktrack` (`audioQueue.async` `:1464`). Il rischio NON è il thread.
+- **Lavoro = handoff L2→L3**, rispettando «AudioEngine ignora il setlist» (per design): pubblicare l'azione su un canale engine→L3 (pattern `beatTickSubject`/`@Published`) e far eseguire a L3 ciò che fa il TAP. **Mai** reference diretta engine→`SetlistRunner`. Completa l'handoff a L3 che il codice stesso documenta — non lo bypassa.
+- **Audit di build (§4) — il rischio vero = timing della transizione, non il plumbing:** ogni comando deve passare per la stessa transizione del suo equivalente UI. `nextSection`/`prevSection`/`nextSong` a brano in corso → ri-armatura quantizzata al beat tick (finestra SEAMLESS, `LiveView.swift:31-35`/`263-266`), zona race confine-sezione (cfr. §1.3 «Doppio-click Direttore al confine di sezione» / `BUGS:116-124`) — il percorso L3 **non deve saltarla**. `startSong` esente (audio fermo, nessuna finestra seamless).
+- **Confermato alla fonte (26/06):** `nextSection`/`prevSection` = equivalente UI mid-play **ESISTE** (`TransportView.swift:28`/`:68` → `prevSection()`/`nextSection()`) ⇒ MIDI = **mirror del TAP**. **`nextSong` = NESSUN controllo UI per saltare canzone a brano in corso** (oggi l'avanzamento canzone è solo: fine sezione → standby [audio fermo] → tap → `startCurrentSong`) ⇒ **`nextSong` mid-play via MIDI = comportamento NUOVO**, non "specchia il TAP" → richiede **design di transizione proprio** (la canzone in corso: taglio netto? finisce la sezione? va a standby?) — da decidere Mauro + CD quando si costruisce. `startSong` = mirror dello standby tap (`LiveView.swift:131`), esente.
+- **Priorità:** **dietro TD#17** (affidabilità prima della feature mancante), candidato forte alla prima pausa di Q-Stage. Posizione esatta vs TD#17 = chiamata di Mauro.
+- **Validazione:** device, con tastiera/pedaliera MIDI (Mauro). Parte **Q-Studio** = arriva col container (non ancora costruito) → cablare a un controllo di riproduzione **condiviso** (Live + Q-Studio), non setlist-only.
+- **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (feature-completion), schedulato.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -576,6 +586,7 @@ Per data di chiusura, decrescente.
 | 15 | 2026-06-23 | CC chat principale 23/06 | **Sweep changelog (doc-only, hygiene).** Backfill Sezione 5 delle righe mancanti **v11→v14** (il changelog si era fermato a v10 mentre l'header era avanzato — stessa categoria di divergenza header-vs-storia che stiamo chiudendo altrove). Bump header 14→15; snapshot/mirror allineati a **v15**. Nessun cambiamento ai ticket, nessun fix codice. |
 | 16 | 2026-06-24 | CC chat principale 24/06 | LED `TD-link-indicator-stale` declassato 🟠 OPEN MEDIA → 🔵 COSMETICO-SOSPESO + causa-dal-log corretta (`BUGS:125-129`): etichetta "VERIFICATO" → "PARZIALMENTE SUPPORTATO / non confermata dal log", rimosso "seed-false/LED-spento 10 min" (resta solo il fatto stampato: zero `[CONNECTED]` ~10 min). Doc-only. Commit `af2e3bd`. |
 | 17 | 2026-06-24 | CC chat principale 24/06 | Nuovo ticket §1.2 `TD-control-center-slide-audio` 🔵 COSMETICO/AMBIENTALE-SOSPESO (Strada B): click rallenta solo durante l'animazione slide Control Center, solo iPad A10 + setlist LONG, recupero pulito; causa verificata alla fonte (`AudioEngine.swift:263`/`:2613-14`, riarmo JIT su `audioQueue` non-RT, no render RT). Fronte prima NON in BUGS. Doc-only. Commit `7c35074`. |
+| 18 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **MIDI azioni-contenuto non cablate a L3** (🟠 feature-completion, NON cosmetico, dietro TD#17): transport base wired; navigazione contenuto (Next/Prev Section, Next Song, Start Song=sblocco standby, Loop) = stub «richiede Layer 3» (`AudioEngine.swift:1608`). Thread-safety già OK (exec main `:1576`, I/O off-RT `:1464`); lavoro = handoff L2→L3 (no reference diretta engine→runner). Confermato alla fonte: `nextSection`/`prevSection` = equivalente UI mid-play (`TransportView:28`/`:68`) → mirror TAP; **`nextSong` mid-play = comportamento NUOVO** (nessun controllo UI oggi); `startSong` = mirror standby tap (`LiveView:131`). Decisioni-bandiere correlate in LIBRO v22. Bump header 17→18. Doc-only, nessun fix codice. |
 
 ---
 
