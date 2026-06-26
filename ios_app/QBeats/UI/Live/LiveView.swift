@@ -31,7 +31,7 @@ struct LiveView: View {
     //
     // Strategia: mirror @State (`display*`) usati dal body. Su arrivo @Published,
     // se `audioEngine.isPlaying == true` siamo in finestra SEAMLESS → bufferizza
-    // in `pending*`. Altrimenti (setup, post-Stop, Studio→LiveView return)
+    // in `pending*`. Altrimenti (setup, post-Stop, Q-Stage→LiveView return)
     // applica subito al mirror. Il handler `beatTickSubject` applica i pending
     // al primo tick post-arrivo (= primo beat nuova sezione audio).
     @State private var displayBpb: UInt32 = 4
@@ -263,7 +263,7 @@ struct LiveView: View {
         }
         .onReceive(audioEngine.$beatsPerBar) { beats in
             // TD #38(a) fix: durante setlist playing bufferizza al next tick
-            // (finestra SEAMLESS). Fuori playing (setup, Stop, Studio→LiveView
+            // (finestra SEAMLESS). Fuori playing (setup, Stop, Q-Stage→LiveView
             // return) applica subito al mirror.
             if audioEngine.isPlaying {
                 pendingBpb = beats
@@ -273,7 +273,7 @@ struct LiveView: View {
                 // nell'handler beatTickSubject, nello stesso blocco di displayBpb.
             } else {
                 displayBpb = beats
-                // Pre-Play / setup / Stop / Studio→LiveView: applica subito,
+                // Pre-Play / setup / Stop / Q-Stage→LiveView: applica subito,
                 // display coerente fuori dalla finestra SEAMLESS.
                 session.currentTimeSig = timeSigString(for: beats)
             }
