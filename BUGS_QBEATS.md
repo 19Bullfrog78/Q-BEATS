@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 19
+**Versione:** 20
 **Ultima modifica:** 2026-06-26
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -328,6 +328,19 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 ### Dual entitlements warning Node.js 20 + commento dead `currentBeat`
 - Vedi TD #30/31/32/37 sopra (raggruppabili in singolo commit "CI cleanup" a release).
 
+### Fase 5 — B7 metronomo adattivo: scouting librerie BPM/tempo + direzione (📦, 26/06)
+- **Obiettivo (direzione Mauro 26/06):** puntare al **vero adattivo** (griglia beat + confidenza, "traccia che respira"), non solo BPM fisso. È il **differenziatore** (Stage Traxx / ShowOne / AbleSet non ce l'hanno — vedi doc B7).
+- **Architettura abilitante (riduce il rischio RT):** B7 analizza la base **all'import (offline)** → estrae **mappa-tempo + confidenza** → le **salva**; in riproduzione il click **segue la griglia pre-calcolata**. Quindi **NON è DSP real-time sul thread audio**: l'analisi gira all'import (qualche secondo = accettabile), non durante lo show.
+- **Filtro:** C/C++/ObjC/Swift (compilabile iOS); licenza **permissiva (MIT/BSD/Apache) o LGPL**, **MAI GPL/AGPL** (trappola app commerciale chiusa) né "no-license"; on-device/offline; capacità beat-grid + confidenza; manutenzione. Ricerca GitHub diretta (`gh`) 26/06.
+- **LEAD → `tillt/BeatIt`** (MIT · C++/ObjC++ · **CoreML** modello "Beat This!" + Accelerate · attivo, v0.3 / 408 commit): dà **BPM + griglia beat/downbeat + confidenza** = lista desideri B7. Caveat: oggi **macOS** → **da portare su iOS** (CoreML è iOS-compatibile; via solo-CoreML evita Torch ~200 MB).
+- **RIFERIMENTO algoritmo → `mosynthkey/beat_this_cpp`** (MIT · transformer "Beat This!" SOTA · modello ~97 MB + ONNX): non pronto iOS / pesante → studio dell'approccio, non innesto.
+- **FALLBACK leggero → `ryanfrancesconi/spfk-tempo`** (Swift Package · iOS 16+ · MIT · solo Apple Accelerate/AVFoundation · on-device · v1.0.3): dà **solo BPM globale** (modalità Fixed). Rete di sicurezza se il modello AI è troppo pesante per hardware vecchio.
+- **DE-RISK prima di costruire (Fase 5):** prototipo BeatIt su iOS + verificare che il modello **CoreML giri on-device sull'iPad vecchio (A10)** in tempo/peso accettabili. Prova-prima-di-costruire.
+- **DA EVITARE (qualità ok, licenza no):** `adamstark/BTrack` GPL-3 (422⭐, il più famoso), `teragonaudio/BeatCounter` GPL-2, `nathanstep55/bpm-offset-detector` GPL-3, `Tatsh/bpmdetect` GPL-3, `c4dm/beatroot-vamp` GPL-2; **aubio = GPL** (⚠️ correzione: era citato in watchlist per Fase 5, NON usabile commerciale); **Essentia = AGPL** (o licenza commerciale a pagamento).
+- **INUTILIZZABILI (no-license = tutti i diritti riservati):** `Venetian/TempoTracker` (iOS), `yaizudamashii/BPMDetection-iOS`. **Alternative non-open:** SoundTouch (LGPL, solo BPM), Superpowered (SDK commerciale a pagamento).
+- **Posizione CC:** direzione full-adaptive condivisa (differenziatore + fattibile via analisi-all'import). BeatIt = lead da de-riskare; beat_this_cpp = riferimento; spfk-tempo = rete di sicurezza. **Niente GPL.** Decisione finale Fase 5 col referee (vincoli on-device).
+- **Stato:** 📦 scouting/direzione Fase 5 (nessun lavoro ora). **Dominio:** CC.
+
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
 Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
@@ -596,6 +609,7 @@ Per data di chiusura, decrescente.
 | 17 | 2026-06-24 | CC chat principale 24/06 | Nuovo ticket §1.2 `TD-control-center-slide-audio` 🔵 COSMETICO/AMBIENTALE-SOSPESO (Strada B): click rallenta solo durante l'animazione slide Control Center, solo iPad A10 + setlist LONG, recupero pulito; causa verificata alla fonte (`AudioEngine.swift:263`/`:2613-14`, riarmo JIT su `audioQueue` non-RT, no render RT). Fronte prima NON in BUGS. Doc-only. Commit `7c35074`. |
 | 18 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **MIDI azioni-contenuto non cablate a L3** (🟠 feature-completion, NON cosmetico, dietro TD#17): transport base wired; navigazione contenuto (Next/Prev Section, Next Song, Start Song=sblocco standby, Loop) = stub «richiede Layer 3» (`AudioEngine.swift:1608`). Thread-safety già OK (exec main `:1576`, I/O off-RT `:1464`); lavoro = handoff L2→L3 (no reference diretta engine→runner). Confermato alla fonte: `nextSection`/`prevSection` = equivalente UI mid-play (`TransportView:28`/`:68`) → mirror TAP; **`nextSong` mid-play = comportamento NUOVO** (nessun controllo UI oggi); `startSong` = mirror standby tap (`LiveView:131`). Decisioni-bandiere correlate in LIBRO v22. Bump header 17→18. Doc-only, nessun fix codice. |
 | 19 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **Base audio non suona in Live da una Song** (🟠 feature-completion, cantiere Tracce): oggi `armBacktrack` chiamata solo da `DebugView:186`; nel flusso Live reale la base non è caricata/avviata da una Song → manca "un solo START → base + metronomo insieme". Non regressione = feature da costruire col cantiere Tracce. Emerso dal brief Media di CD, verificato alla fonte (26/06). Bump header 18→19. Doc-only, nessun fix codice. |
+| 20 | 2026-06-26 | CC chat principale 26/06 | +nota §1.3 backlog **Fase 5 — B7 scouting librerie BPM + direzione** (ricerca GitHub via gh): direzione Mauro = puntare al **vero adattivo** (griglia+confidenza); architettura abilitante = analisi **all'import** (offline, no DSP real-time). **Lead `tillt/BeatIt`** (MIT/CoreML, da portare iOS); riferimento `mosynthkey/beat_this_cpp` (MIT/AI); fallback `ryanfrancesconi/spfk-tempo` (Swift/MIT/Accelerate, solo BPM). De-risk: provare modello CoreML on-device su iPad A10 prima di costruire. Evitare GPL (BTrack/aubio/BeatCounter…)/AGPL(Essentia)/no-license. Header bump 19→20. Doc-only, nessun fix codice. |
 
 ---
 
