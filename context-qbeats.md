@@ -79,7 +79,7 @@
 1. **Implementazione DebugView**: Bottoni transport, slider volumi 4ch, log eventi a schermo.
 2. **Validazione su device**: Test del mixer e del routing con `test_backtrack.mp3`.
 3. **Fase 1.5a**: Logica software per la detection Base/Pro (`audioMode`).
-4. **Fase 2**: Sviluppo della struttura app (Studio vs Live) e della **Vista Bella**.
+4. **Fase 2**: Sviluppo della struttura app (Q-Stage vs Live) e della **Vista Bella**.
 
 ---
 

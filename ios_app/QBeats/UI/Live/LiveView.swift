@@ -209,7 +209,7 @@ struct LiveView: View {
             // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
             // Override il sync da audioEngine sopra: la setlist caricata è "verità"
             // di display, lo stato pendente in audioEngine può essere stale
-            // (es. utente ha aperto Studio dopo aver caricato la setlist).
+            // (es. utente ha aperto Q-Stage dopo aver caricato la setlist).
             if let section = runner.currentSection {
                 displayBpb = section.beatsPerBar
                 displayAccentPattern = section.accentPattern
