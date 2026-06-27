@@ -1,15 +1,16 @@
 import SwiftUI
 import os
 
-enum AppDestination: Hashable {
-    case qStage
-}
-
 struct AppRootView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
-    @State private var path = NavigationPath()
+    @State private var screen: Screen = .bivio
+
+    /// Routing top-level del Bivio: commutazione di schermata (NON push).
+    /// Q-Live resta una modale UIKit presentata a parte (cfr. BivioBoardView),
+    /// fuori da questo enum — riconciliazione top-level = Nodo A (a verbale).
+    private enum Screen { case bivio, qStage }
 
     var body: some View {
         ZStack {
@@ -23,15 +24,12 @@ struct AppRootView: View {
                         }
                     }
             } else {
-                NavigationStack(path: $path) {
-                    BivioBoardView(path: $path)
-                        .navigationDestination(for: AppDestination.self) { destination in
-                            switch destination {
-                            case .qStage:
-                                QStageRootView()
-                                    .environmentObject(audioEngine)
-                            }
-                        }
+                switch screen {
+                case .bivio:
+                    BivioBoardView(onOpenQStage: { screen = .qStage })
+                case .qStage:
+                    QStageRootView(onExit: { screen = .bivio })
+                        .environmentObject(audioEngine)
                 }
             }
         }

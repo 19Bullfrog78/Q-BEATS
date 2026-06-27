@@ -2,7 +2,7 @@ import SwiftUI
 import os
 
 struct BivioBoardView: View {
-    @Binding var path: NavigationPath
+    let onOpenQStage: () -> Void
     @EnvironmentObject var audioEngine: AudioEngine
     #if DEBUG
     @State private var showDebug = false
@@ -23,7 +23,7 @@ struct BivioBoardView: View {
                 VStack(spacing: 20) {
                     Button {
                         os_log("Bivio: Q-STAGE selezionato")
-                        path.append(AppDestination.qStage)
+                        onOpenQStage()
                     } label: {
                         BivioButton(title: "Q-STAGE", background: Color(hex: "#16161a"), isAccent: false)
                     }
