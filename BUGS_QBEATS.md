@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 20
-**Ultima modifica:** 2026-06-26
+**Versione:** 21
+**Ultima modifica:** 2026-06-28
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -223,6 +223,21 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Scope tecnico (quando si costruisce):** all'avvio canzone caricare la base da `QBeatsStore.backtrackBaseURL()`, avviarla in sync col metronomo (un solo START), gestire stop/standby. Niente streaming (vincolo). `Song` invariato.
 - **Validazione:** device (Mauro), con una base reale assegnata a una Song.
 - **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (feature-completion), gated dietro l'apertura del cantiere Tracce.
+
+### Nodo A — Q-Live montata FUORI dal NavigationStack (modale UIKit) — navigazione/plumbing L3 (🟠 OPEN MEDIA / struttura — gate device "parità firing stop")
+- **Cos'è:** la radice dell'app commuta tra due schermate (`AppRootView.swift:8,13,27-33`: enum `Screen{bivio,qStage}`, `BivioBoardView`↔`QStageRootView`). **Q-Live NON è in questo enum:** è montata come **modale UIKit** — `UIHostingController(LiveRootView)` + `modalPresentationStyle=.overFullScreen` + `.present()` sul `rootViewController` della window (`BivioBoardView.swift:34-41`). Lo dichiara il codice stesso: commento `AppRootView.swift:10-12` "Q-Live resta una modale UIKit … riconciliazione top-level = Nodo A (a verbale)".
+- **Sizing (referee 27/06): è L3 navigazione/plumbing, NON ri-architettura.** L'engine NON è accoppiato allo stile di mount: parte su **azione** (`SetlistRunner.swift:222 audioEngine.start()`), si ferma su **ciclo-vita-vista** (`LiveView.swift:187 .onDisappear{audioEngine.stop()}` + `BivioBoardView.swift:61 .onAppear{audioEngine.stop()}`). Convertire present→push **non tocca L2/L1** (niente audit RT §4).
+- **🔴 GATE DEVICE (quando si costruirà la conversione present→push):** **parità del firing dello stop tra modale `.overFullScreen` e push.** In `.overFullScreen` il presenter (Bivio) **non viene rimosso** → `BivioBoardView.swift:61 .onAppear{stop}` può **non** scattare alla dismiss; lo stop primario `LiveView.swift:187 .onDisappear{stop}` va verificato equivalente tra dismiss-modale e pop. Parità **INFERITA, non sourced** → da provare su device ("L3" ≠ "chiuso a CI verde").
+- **Stessa radice del DEV-fallback `LiveRootView.swift:6-10`** (Nodo B, selezione setlist incondizionata) e del ticket "Base audio non suona in Live": "Q-Live gira su un percorso provvisorio". Ticket distinti, da affrontare insieme quando si costruisce il ponte **Select Setlist→Live**. Gata SOLO quel ponte; non blocca l'authoring né `b81e3a8`.
+- **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (struttura/plumbing L3), non bloccante; gate device alla costruzione.
+
+### SettingsView — unico ingresso dietro #if DEBUG, nessun ingresso in build Release (🟠 OPEN MEDIA / ingresso latente — accoppiata al fronte ⚙ Settings)
+- **Cos'è:** `SettingsView` (config modalità Link, pannello Ableton, promemoria DND) ha **un solo ingresso, dietro `#if DEBUG`**. Catena verificata alla fonte (`b81e3a8`): è una `.sheet` di `ContentView` aperta dal gear in toolbar (`ContentView.swift:76-84`); `ContentView` è montata **solo** dentro `.fullScreenCover(isPresented:$showDebug)` sotto `#if DEBUG` (`BivioBoardView.swift:64-79`), aperta dal bottone "⚙ DEBUG" anch'esso `#if DEBUG` (`BivioBoardView.swift:48-55`).
+- **Stato attuale (NON un guasto oggi):** la CI *iOS Signed Build* firma l'IPA in **`-configuration Debug`** con flag `DEBUG` attivo (`.github/workflows/ios_build.yml:48,53`) → sull'IPA che la band usa **adesso** il bottone "⚙ DEBUG" c'è e **Settings È raggiungibile** ("⚙ DEBUG" → `ContentView` → gear → sheet). *(Correzione 28/06: la prima stesura diceva "nessun ingresso in produzione" assumendo una build Release — falso, l'IPA corrente è Debug; assunzione non sourced ritirata.)*
+- **Gap LATENTE (morde alla prima build Release):** una build **Release** (App Store / TestFlight / qualunque `-configuration Release`) **compila via** l'unico ingresso → Settings **irraggiungibile**, l'utente non può cambiare `linkMode` (`AudioEngine.swift:45`) né aprire il pannello Ableton → ruoli/collaborativo non raggiungibili. Da risolvere **prima** di spedire una build Release/v1 (per questo 🟠 §1.2, non backlog).
+- **Origine:** `ContentView` è il vecchio metronomo standalone, **demansionato a schermata di DEBUG** nel ridisegno Bivio/Q-Stage (`dd0fcaa` + `91897b1`); l'ingresso Settings non è stato ricollocato nella nuova architettura (Bivio / Q-Stage / Q-Live).
+- **Accoppiato al fronte ⚙ Settings (CD):** Mauro+CC hanno RINVIATO la ⚙ nell'header; la `SettingsView` esistente **≠** da quella che CD immagina → l'ingresso di produzione va disegnato col fronte Settings, non rattoppato isolato.
+- **Dominio:** CC (ingresso) + CD (disegno fronte Settings). **Stato:** 🟠 OPEN MEDIA (latente, pre-release v1).
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -610,6 +625,7 @@ Per data di chiusura, decrescente.
 | 18 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **MIDI azioni-contenuto non cablate a L3** (🟠 feature-completion, NON cosmetico, dietro TD#17): transport base wired; navigazione contenuto (Next/Prev Section, Next Song, Start Song=sblocco standby, Loop) = stub «richiede Layer 3» (`AudioEngine.swift:1608`). Thread-safety già OK (exec main `:1576`, I/O off-RT `:1464`); lavoro = handoff L2→L3 (no reference diretta engine→runner). Confermato alla fonte: `nextSection`/`prevSection` = equivalente UI mid-play (`TransportView:28`/`:68`) → mirror TAP; **`nextSong` mid-play = comportamento NUOVO** (nessun controllo UI oggi); `startSong` = mirror standby tap (`LiveView:131`). Decisioni-bandiere correlate in LIBRO v22. Bump header 17→18. Doc-only, nessun fix codice. |
 | 19 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **Base audio non suona in Live da una Song** (🟠 feature-completion, cantiere Tracce): oggi `armBacktrack` chiamata solo da `DebugView:186`; nel flusso Live reale la base non è caricata/avviata da una Song → manca "un solo START → base + metronomo insieme". Non regressione = feature da costruire col cantiere Tracce. Emerso dal brief Media di CD, verificato alla fonte (26/06). Bump header 18→19. Doc-only, nessun fix codice. |
 | 20 | 2026-06-26 | CC chat principale 26/06 | +nota §1.3 backlog **Fase 5 — B7 scouting librerie BPM + direzione** (ricerca GitHub via gh): direzione Mauro = puntare al **vero adattivo** (griglia+confidenza); architettura abilitante = analisi **all'import** (offline, no DSP real-time). **Lead `tillt/BeatIt`** (MIT/CoreML, da portare iOS); riferimento `mosynthkey/beat_this_cpp` (MIT/AI); fallback `ryanfrancesconi/spfk-tempo` (Swift/MIT/Accelerate, solo BPM). De-risk: provare modello CoreML on-device su iPad A10 prima di costruire. Evitare GPL (BTrack/aubio/BeatCounter…)/AGPL(Essentia)/no-license. Header bump 19→20. Doc-only, nessun fix codice. |
+| 21 | 2026-06-28 | CC chat principale 28/06 | Due nuovi ticket §1.2 (doc-only): **Nodo A — Q-Live montata fuori dal NavigationStack** (modale UIKit `BivioBoardView.swift:34-41`; root = commutazione `AppRootView.swift:27-33`; engine non accoppiato al mount → sizing referee L3 plumbing; **gate device "parità firing stop modale .overFullScreen↔push"**, stop `LiveView.swift:187`+`BivioBoardView.swift:61`; gata solo il ponte Select Setlist→Live) + **SettingsView: unico ingresso dietro `#if DEBUG`** (gear `ContentView.swift:76-84` → `ContentView` solo in `.fullScreenCover($showDebug)` `BivioBoardView.swift:64-79`); IPA CI = Debug (`ios_build.yml:48,53`) → Settings raggiungibile **oggi**, ma una build **Release** compila via l'ingresso = gap **latente** pre-v1; accoppiata al fronte ⚙ Settings CD. Chiude il debito "gate Nodo A vive solo in memoria CC" (regola d'oro BUGS). Bump header 20→21. Doc-only, nessun fix codice. |
 
 ---
 
