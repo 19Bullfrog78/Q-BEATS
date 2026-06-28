@@ -13,6 +13,11 @@ enum QStageTheme {
     static let text2    = Color.white.opacity(0.55)  // sottotitolo, meta, gear, back
     static let text3    = Color.white.opacity(0.30)  // crumb, tab inattiva
     static let blue     = Color(hex: "#2a6bd6")      // accento Q-Stage · stati selezionati
+    static let orange     = Color(hex: "#d43f00")    // accento Q-Live · BRAND Q-Live condiviso (§3.4) — non duplicare
+    static let teal       = Color(hex: "#17a8a8")    // accento Q-Studio (§3.4)
+    static let blueTint   = Color(hex: "#9cc0f5")    // -tint blu (§3.4) · doppio uso = testo-su-blu selezionato §7
+    static let orangeTint = Color(hex: "#ff8a5c")    // -tint orange (§3.4)
+    static let tealTint   = Color(hex: "#5fc8c8")    // -tint teal (§3.4)
     static let amber    = Color(hex: "#f5b820")      // azione primaria (FAB +), tab attiva
     static let green    = Color(hex: "#28cd41")      // chip IN SYNC (solo stile, non funzione)
     static let stop     = Color(hex: "#ff3b30")      // BLOCKED / distruttivo
@@ -77,7 +82,7 @@ struct QStagePlaceholderTab: View {
             ZStack {
                 QStageTheme.bg.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    QStageNavBar(backTitle: "BIVIO", onBack: onExit, crumb: "Q-STAGE")
+                    QStageNavBar(backTitle: "HOME", onBack: onExit, crumb: "Q-STAGE")
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: systemImage)

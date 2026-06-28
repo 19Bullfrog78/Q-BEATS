@@ -3,10 +3,10 @@ import SwiftUI
 /// Contenitore di Q-Stage (authoring): 3 sezioni Songs · Shows · Media.
 /// È la RADICE di Q-Stage: `TabView` in cima, una pila di navigazione dentro
 /// ogni linguetta (pattern canonico SwiftUI). Raggiunto per commutazione di
-/// schermata dal Bivio (AppRootView), NON più come push di `AppDestination`.
+/// schermata dalla Home (AppRootView), NON più come push di `AppDestination`.
 /// PRIMA FETTA: completa solo la tab Songs; Shows e Media sono placeholder.
-/// Nav-bar nativa nascosta ovunque: si usano header custom (stile app, cfr. BivioBoardView).
-/// `onExit()` torna al Bivio (commutazione di schermata in AppRootView).
+/// Nav-bar nativa nascosta ovunque: si usano header custom (stile app, cfr. HomeRootView).
+/// `onExit()` torna alla Home (commutazione di schermata in AppRootView).
 struct QStageRootView: View {
     let onExit: () -> Void
     @State private var tab: Tab = .songs

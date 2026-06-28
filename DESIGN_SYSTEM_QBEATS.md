@@ -107,7 +107,9 @@ ACCENTO (base)               -TINT
 - **MAI SF Pro. MAI Dynamic Type.**
 
 ### 4.1 Regola d'uso (vale per tutta l'app)
-> **Inter SOLO per: titolo schermata + nome brano. Tutto il resto = JetBrains Mono.**
+> **Inter SOLO per: titolo schermata + nome brano + nomi-modulo della Home (Q-STAGE / Q-LIVE / Q-STUDIO). Tutto il resto = JetBrains Mono.**
+>
+> *(Estensione 28/06: i nomi-modulo della Home sono destinazioni = classe-titolo, coerenti col titolo «Songs» → Inter ExtraBold. Il wordmark «Q-BEATS» è **logotipo**, resta JetBrains Mono.)*
 
 ### 4.2 Pesi Inter (PostScript)
 ```
@@ -129,7 +131,7 @@ Inter-Bold (700) · Inter-ExtraBold (800) · Inter-Black (900)
 | Sottotitolo "N songs in catalog" | JetBrains | 12 · Medium · ls 0.5 · `--text2` |
 | Riga meta "N sections · BPM · 4/4" | JetBrains | 11 · Medium · ls 0.3 · `--text2` |
 | Crumb header "Q-STAGE" | JetBrains | 10 · UPPER · ls 2.5 · `--text3` |
-| Back "BIVIO" | JetBrains | 12 · Medium · `--text2` |
+| Back "HOME" | JetBrains | 12 · Medium · `--text2` |
 | Label tabbar (SONGS/SHOWS/MEDIA) | JetBrains | 10 · 600 · UPPER · ls 1.5 |
 | Chip "IN SYNC" | JetBrains | 10 · 700 · ls 0.5 |
 | Status bar | JetBrains | 14 · 600 |

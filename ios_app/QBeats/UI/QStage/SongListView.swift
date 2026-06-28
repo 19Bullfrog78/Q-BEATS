@@ -22,7 +22,7 @@ struct SongListView: View {
                 ZStack {
                     QStageTheme.bg.ignoresSafeArea()
                     VStack(spacing: 0) {
-                        QStageNavBar(backTitle: "BIVIO", onBack: onExit, crumb: "Q-STAGE", sf: sf)
+                        QStageNavBar(backTitle: "HOME", onBack: onExit, crumb: "Q-STAGE", sf: sf)
                         titleBlock(sf)
                         listOrEmpty(sf)
                     }

@@ -5,12 +5,12 @@ struct AppRootView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
-    @State private var screen: Screen = .bivio
+    @State private var screen: Screen = .home
 
-    /// Routing top-level del Bivio: commutazione di schermata (NON push).
-    /// Q-Live resta una modale UIKit presentata a parte (cfr. BivioBoardView),
+    /// Routing top-level della Home: commutazione di schermata (NON push).
+    /// Q-Live resta una modale UIKit presentata a parte (cfr. HomeRootView),
     /// fuori da questo enum — riconciliazione top-level = Nodo A (a verbale).
-    private enum Screen { case bivio, qStage }
+    private enum Screen { case home, qStage }
 
     var body: some View {
         ZStack {
@@ -25,10 +25,10 @@ struct AppRootView: View {
                     }
             } else {
                 switch screen {
-                case .bivio:
-                    BivioBoardView(onOpenQStage: { screen = .qStage })
+                case .home:
+                    HomeRootView(onOpenQStage: { screen = .qStage })
                 case .qStage:
-                    QStageRootView(onExit: { screen = .bivio })
+                    QStageRootView(onExit: { screen = .home })
                         .environmentObject(audioEngine)
                 }
             }
