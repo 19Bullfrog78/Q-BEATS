@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 21
+**Versione:** 22
 **Ultima modifica:** 2026-06-28
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -239,6 +239,20 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Accoppiato al fronte ⚙ Settings (CD):** Mauro+CC hanno RINVIATO la ⚙ nell'header; la `SettingsView` esistente **≠** da quella che CD immagina → l'ingresso di produzione va disegnato col fronte Settings, non rattoppato isolato.
 - **Dominio:** CC (ingresso) + CD (disegno fronte Settings). **Stato:** 🟠 OPEN MEDIA (latente, pre-release v1).
 
+### TD-qlive-libero-limbo — Q-Live "libero" intrappola l'utente (🟠 OPEN MEDIA / flusso pre-produzione — severità d'uso ALTA)
+- **Sintomo (device, collaudo `59ab33e` 28/06, Mauro):** Q-LIVE dalla Home senza Show → videata non popolata ("Bar — of —"); Play → WAITING FOR DIRECTOR; START LOCAL → END SHOW immediato; i bottoni fine-show non rispondono → l'utente DEVE chiudere l'app.
+- **Causa sourced (3 pezzi):** (i) DEV fallback `LiveRootView.swift:8` (`setlists.first ?? Setlist.makeDefault()` = setlist degenere) → END SHOW istantaneo; (ii) Play in default `.collaborativa` → waiting (`TransportView.swift:38-58`, ramo senza check peer, commento `:48-51`; fronte Standalone §1.4); (iii) bottoni fine-show vuoti: `FineSetlistView.swift:19` `Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }` + `:21` RESTART SETLIST idem.
+- **NON regressione di `59ab33e`** (`--stat` = 0 file `UI/Live/`): pre-esistente, reso raggiungibile dalla porta Q-LIVE.
+- **Cura:** scelta d'ingresso A) metronomo libero · B) setlist (memoria `project_qbeats_metronomo_libero`) → risolve il limbo alla radice + cablaggio bottoni + ponte Select Setlist→Live. Stessa radice di Nodo A (§1.2) + Nodo B (`LiveRootView.swift:6-10`).
+- **Dominio:** CC (+ CD videata, Brief Fronte 2). **Stato:** 🟠 OPEN MEDIA (severità d'uso alta).
+
+### TD-ipad-home — overflow portrait + landscape non bloccato (🟠 OPEN MEDIA / schermata principale su iPad)
+- **Sintomo (device 28/06):** iPad verticale → Home trabocca, porta Q-LIVE tagliata in fondo. iPad orizzontale → Home rotta (solo wordmark + Q-STUDIO; Q-STAGE/Q-LIVE fuori).
+- **Causa (i) overflow:** gruppo porte centrato tra due `Spacer(minLength:0)` (`HomeRootView.swift:24,26`); le altezze fisse (3 card `115·sf` `:174` + lockup + gap `14·sf` `:52`) crescono col `sf=geo.size.width/390` `:18` → su iPad superano l'altezza-schermo → Spacer a 0 → ultima porta sotto. NON "scala in larghezza quindi raddoppia in altezza": è le altezze-card-fisse × sf.
+- **Causa (ii) landscape:** manca `UISupportedInterfaceOrientations~ipad` (assente in `Info.plist`/`project.yml`) → iPad eredita tutte le orientazioni (iPhone ha già `=[Portrait]`).
+- **Fix (2 atomi distinti):** (a) layout — tetto allo scaleFactor *(proposta CC `min(width/390, height/844)` DA VALIDARE: rimpicciolisce iPhone SE/tozzi ratio<2.16 → solo-iPad o ricalibrare)* o layout iPad dedicato (CD, Brief Fronte 3); (b) config — `~ipad`=Portrait + `UIRequiresFullScreen` (commit a sé). ⚠️ "portrait-only su tutti" NON è ratificato al LIBRO (verificato assente: solo archivi BOX5 V22-V24 + handoff 25/06) → confermare/promuovere prima di scolpire (b).
+- **Dominio:** CC (+ CD layout iPad). **Stato:** 🟠 OPEN MEDIA.
+
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
 ### Ripresa da interruzione (telefonata) riparte da capo — single-device (🟡 OPEN BASSA / da tracciare)
@@ -247,6 +261,17 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **NON è il limite del Test 1 / setlist-gate:** quello = Link che non trasporta la posizione scaletta (**cross-device, L2**). Questo è **single-device, nessun peer, nessun Link** → **fronti separati, NON fondere.** Stesso sintomo (riparte da capo), causa diversa.
 - **Priorità/blocco:** **non bloccante** (mitigato sul palco da DND + Accesso Guidato). **Sotto TD#17:** loggato ora, indagine nel suo turno **dopo** TD#17 — non prima.
 - **Dominio:** CC.
+
+### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 in lavorazione CC)
+- **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **In lavorazione (editor-polish CC).**
+- **Default "Sezione" (IT) + non si svuota:** `SongSection.swift:59` `name: "Sezione"` → cura `name: ""` (placeholder `"Section name"` già in `SectionEditorView.swift:35`). **In lavorazione (editor-polish CC).**
+- **"Reorder" testo non simbolo:** `SongListView.swift:61` + `SongEditorView.swift:69` (`accent`); deciso simbolo+toggle, glifo/colore = CD (Brief Fronte 1). **CD-pending.**
+- **Dominio:** CC + CD (glifo). **Stato:** 🟡 OPEN BASSA.
+
+### TD-live-pulsantiera-EN — residui bilingui pulsantiera Live (🟡 OPEN BASSA)
+- **"prev sez / next sez" (IT):** `TransportView.swift:26,66` → uniformare EN. Lane label = CD (Brief Fronte 2.8).
+- **Label ruoli EN:** Director/Follower/Standalone (oggi `direttore` IT interno + EN a video `LiveView.swift:66`/`SettingsView.swift:34`). Va col rename `collaborativa→Follower` (§1.4).
+- **Dominio:** CD (label) + CC. **Stato:** 🟡 OPEN BASSA.
 
 ### Doppio-click Direttore al confine di sezione (pre-esistente, NON FIX-B)
 - **Sintomo:** sul canale Direttore, al cambio di metro, click **sdoppiato** (2 attacchi ripidi, gap **13–18 ms**, 2° lobo 0,5–0,9 del primo). Udibile come leggera distorsione; **non bloccante** (il beat esce in posizione).
@@ -367,6 +392,7 @@ Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
 - **END SHOW prematuro allo stop manuale del Direttore (→ CD-Q5 libro mastro)** — se il Direttore stoppa vicino a fine canzone, il Follower fa 1 beat extra (latenza Link) e, se quel beat chiude l'ultima sezione, scatta su END SHOW (`SetlistRunner.swift:354-361`); provato WAV TEST7 RUN3/4 (RUN6 = nessun extra). **NON è un guasto** (fisica della rete). Domanda design CD: allo stop manuale nell'ultima battuta, END SHOW o stop semplice? Emersa 11/06.
 
 - **Modalità collaborativa — ridisegno avvio (DIREZIONE RATIFICATA Mauro 12/06 → libro mastro Sez. 1/2/3/4)** — assorbe il sintomo segnalato da Mauro 12/06 (iPhone Follower con iPad spento / zero peer → tap Play entra sempre in WAITING FOR DIRECTOR, `TransportView.swift:38-58` — comportamento voluto CD-Q2=B che non copriva il caso zero-peer, aggravato dal default `.collaborativa` `cb92faa`; via d'uscita START LOCAL già esistente → percorso di default sbagliato, non blocco). Direzione: l'app parte **sempre Standalone**; il collaborativo è **opt-in**, con ruoli **Standalone / Direttore / Follower** assegnati a mano dalla band per device. Cambiano il **default di avvio** (`.collaborativa` → Standalone) e il flusso di opt-in. **CD-Q2=B: regola invariata («il Follower aspetta il Direttore»), ambito ristretto dall'opt-in (vale solo col ruolo Follower assegnato a mano, non più di default) — non riaperta.** Scenari senza Direttore (tutto solo con Link attivo; senza peer → standalone): **(i) senza scaletta** = metronomo libero stile Ableton (Link nativo, ruoli opzionali, parte il primo e gli altri seguono); **(ii) con scaletta** = Direttore obbligatorio → popup "nessun Direttore assegnato". **Verifiche di fattibilità (CC — da investigare in codice, NON ancora fatte):** (a) scenario 1: verificare se oggi l'app obbliga la scelta Direttore/Follower anche senza scaletta; se sì, sganciare l'obbligo nel caso puro-Link; (b) scenario 2: Link trasporta solo tempo/avvio, NON i ruoli → nel breve il rilevamento "nessun Direttore" richiede un **timeout** (rischio "Direttore lento a premere Play", da tarare); il rilevamento immediato dei ruoli aspetta il canale proprietario QB↔QB (= **Soluzione C**, backlog Fase 6-7; NB: il TD#44 — entitlement multicast — era un prerequisito di rete già CHIUSO 23/05 `be2f035`, cosa distinta dal protocollo). Via da scegliere; (c) modello modalità: l'enum `LinkMode` oggi è a 2 valori (`.direttore`/`.collaborativa`, `AppSettings.swift`) → tre scelte flat implicano un refactor (definire "Standalone": Link off vs Link on senza ruolo). **Domande di disegno residue → CD-Q6** (libro mastro Sez. 4); deliverable disegno = **CD-7** (Sez. 3). Emersa 12/06. Dominio: CD (disegno) + CC (fattibilità). Nessun fix finché CD-7 non è ratificato — verde solo dopo device.
+- **AGG 28/06 (collaudo `59ab33e`):** default `.collaborativa` confermato device = causa del WAITING FOR DIRECTOR nel flusso Q-Live libero (`TransportView.swift:38-58` senza check peer; `AppSettings.swift:20` + `AudioEngine.swift:55`/`:280`; `.standalone` NON è un case, solo log `:994`). **Mauro ratifica: uniformare `collaborativa`→"FOLLOWER"** (nome interno + UI; oggi incoerente `LiveView.swift:66`="FOLLOWER" vs `SettingsView.swift:34`="Collaborative"). Scenario (i) "senza scaletta = metronomo libero" prende faccia UI nel pulsante A/B d'ingresso Q-Live (memoria `project_qbeats_metronomo_libero`). Refactor `LinkMode`→3 stati = motore Link, fronte SERIO (referee+device), NON polish.
 
 Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `LIBRO_MASTRO_QBEATS.md` Sezione 3.
 
@@ -514,6 +540,10 @@ Per data di chiusura, decrescente.
 
 # Sezione 3 — Bug SCARTATI / SMENTITI (per evitare ri-aperture)
 
+### Beat read-only / primo beat bianco (collaudo 28/06) — NON è un bug
+- **Segnalato (device):** gli accenti nell'editor sezione non si modificano, il 1° è bianco non verde.
+- **Verificato non-bug:** in v1 gli accenti sono sola lettura by-design — lo dichiara la UI (`SectionEditorView.swift:64` "Accents are read-only in v1…"). Il 1° bianco = default `accentPattern: [1,0,0,0]` (`SongSection.swift:65`). Editing + accento downbeat arrivano col nodo encoding accenti (ratifica separata; cfr. §1.2 "Striscia segmenti" Scenario B). NON tracciare come bug.
+
 ### TD #35 — Drift sistemico Q-B↔Link clock
 - **Diagnosi originale:** drift sistematico Q-B vs Link consensus.
 - **Smentita 16/05/2026:** log post-Strada C mostrano `bpm == lTempo` sempre, delta interno costante. Non c'è divergenza Q-B↔Link in regime.
@@ -626,6 +656,7 @@ Per data di chiusura, decrescente.
 | 19 | 2026-06-26 | CC chat principale 26/06 | Nuovo ticket §1.2 **Base audio non suona in Live da una Song** (🟠 feature-completion, cantiere Tracce): oggi `armBacktrack` chiamata solo da `DebugView:186`; nel flusso Live reale la base non è caricata/avviata da una Song → manca "un solo START → base + metronomo insieme". Non regressione = feature da costruire col cantiere Tracce. Emerso dal brief Media di CD, verificato alla fonte (26/06). Bump header 18→19. Doc-only, nessun fix codice. |
 | 20 | 2026-06-26 | CC chat principale 26/06 | +nota §1.3 backlog **Fase 5 — B7 scouting librerie BPM + direzione** (ricerca GitHub via gh): direzione Mauro = puntare al **vero adattivo** (griglia+confidenza); architettura abilitante = analisi **all'import** (offline, no DSP real-time). **Lead `tillt/BeatIt`** (MIT/CoreML, da portare iOS); riferimento `mosynthkey/beat_this_cpp` (MIT/AI); fallback `ryanfrancesconi/spfk-tempo` (Swift/MIT/Accelerate, solo BPM). De-risk: provare modello CoreML on-device su iPad A10 prima di costruire. Evitare GPL (BTrack/aubio/BeatCounter…)/AGPL(Essentia)/no-license. Header bump 19→20. Doc-only, nessun fix codice. |
 | 21 | 2026-06-28 | CC chat principale 28/06 | Due nuovi ticket §1.2 (doc-only): **Nodo A — Q-Live montata fuori dal NavigationStack** (modale UIKit `BivioBoardView.swift:34-41`; root = commutazione `AppRootView.swift:27-33`; engine non accoppiato al mount → sizing referee L3 plumbing; **gate device "parità firing stop modale .overFullScreen↔push"**, stop `LiveView.swift:187`+`BivioBoardView.swift:61`; gata solo il ponte Select Setlist→Live) + **SettingsView: unico ingresso dietro `#if DEBUG`** (gear `ContentView.swift:76-84` → `ContentView` solo in `.fullScreenCover($showDebug)` `BivioBoardView.swift:64-79`); IPA CI = Debug (`ios_build.yml:48,53`) → Settings raggiungibile **oggi**, ma una build **Release** compila via l'ingresso = gap **latente** pre-v1; accoppiata al fronte ⚙ Settings CD. Chiude il debito "gate Nodo A vive solo in memoria CC" (regola d'oro BUGS). Bump header 20→21. Doc-only, nessun fix codice. |
+| 22 | 2026-06-28 | CC chat principale 28/06 | **Ticket collaudo device `59ab33e`.** NUOVI §1.2: TD-qlive-libero-limbo (limbo `LiveRootView:8` + waiting default `.collaborativa` `TransportView:38-58` + bottoni fine-show morti `FineSetlistView:19,21`; pre-esistente, raggiungibile dalla porta Home) + TD-ipad-home (overflow = altezze-card-fisse `115·sf×3` × sf saturano lo spazio fra Spacer `HomeRootView:24,26`; landscape = `~ipad` mancante; "portrait-only" NON al LIBRO→confermare). NUOVI §1.3: TD-editor-authoring-polish (Add Section auto-enter + `"Sezione"`→`""` `SongSection:59` + Reorder→simbolo) + TD-live-pulsantiera-EN (`TransportView:26,66`). AGG §1.4: collaudo conferma default `.collaborativa`=causa waiting, naming `collaborativa`→FOLLOWER ratificato Mauro, metronomo-libero A/B = faccia UI scenario (i). §3: beat read-only = non-bug (`SectionEditorView:64`). Citazioni blindate (13 agenti, 17/17 byte). Bump header 21→22. Doc-only, nessun fix codice. |
 
 ---
 
