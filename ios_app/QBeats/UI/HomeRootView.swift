@@ -15,7 +15,13 @@ struct HomeRootView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let sf = geo.size.width / 390
+            // TD-ipad-home: iPhone INVARIATO (sf = width/390). Su iPad la sola larghezza
+            // dà sf enormi (12.9" portrait ≈ 2.63) → Home in overflow verticale; quindi su
+            // iPad si limita anche con l'altezza (baseline 844 pt, margine ~8%). Il gating
+            // .pad evita di rimpicciolire iPhone tozzi (SE/8, ratio < 2.16).
+            let sf = UIDevice.current.userInterfaceIdiom == .pad
+                ? min(geo.size.width / 390, geo.size.height * 0.92 / 844)
+                : geo.size.width / 390
             ZStack {
                 QStageTheme.bg.ignoresSafeArea()
                 VStack(spacing: 0) {
