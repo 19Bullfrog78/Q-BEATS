@@ -27,6 +27,13 @@ targets:
           - audio
         UILaunchScreen:
           UIColorName: ""
+        # Portrait-only su tutti (LIBRO v24) + iPad sempre full-screen: disabilita
+        # Slide Over/Split View, che altrimenti forzano il supporto a TUTTE le orientazioni.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: true
         UIAppFonts:
           - JetBrainsMono-Regular.ttf
           - JetBrainsMono-Medium.ttf
