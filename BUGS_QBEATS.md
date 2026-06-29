@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 22
-**Ultima modifica:** 2026-06-28
+**Versione:** 23
+**Ultima modifica:** 2026-06-29
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -262,10 +262,11 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Priorità/blocco:** **non bloccante** (mitigato sul palco da DND + Accesso Guidato). **Sotto TD#17:** loggato ora, indagine nel suo turno **dopo** TD#17 — non prima.
 - **Dominio:** CC.
 
-### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 in lavorazione CC)
-- **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **In lavorazione (editor-polish CC).**
-- **Default "Sezione" (IT) + non si svuota:** `SongSection.swift:59` `name: "Sezione"` → cura `name: ""` (placeholder `"Section name"` già in `SectionEditorView.swift:35`). **In lavorazione (editor-polish CC).**
+### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 committate device-pending + 1 CD + 1 debito)
+- **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **FATTO — commit `5839e4f` (`.navigationDestination(isPresented:)`), device-pending.**
+- **Default "Sezione" (IT) + non si svuota:** `SongSection.swift:59` `name: "Sezione"` → cura `name: ""` (placeholder `"Section name"` già in `SectionEditorView.swift:35`). **FATTO — commit `5839e4f`; gate §7 nome-vuoto PULITO (save id-based, nessun assert/id-da-nome), device-pending.**
 - **"Reorder" testo non simbolo:** `SongListView.swift:61` + `SongEditorView.swift:69` (`accent`); deciso simbolo+toggle, glifo/colore = CD (Brief Fronte 1). **CD-pending.**
+- **Auto-enter binding per-indice (debito, da `5839e4f`):** `.navigationDestination(isPresented:)` apre `$draft.sections[draft.sections.indices.last]` (per-INDICE). Sicuro oggi per invariante append-adiacente (`append` immediatamente prima di `pushNewSection = true` → `.last` = la sezione nuova). **Da spostare a binding per-ID** se l'editor sezioni evolve (append multipli / riordino concorrente / eliminazioni durante il push). Annotato in-code (`5839e4f`). Dominio CC.
 - **Dominio:** CC + CD (glifo). **Stato:** 🟡 OPEN BASSA.
 
 ### TD-live-pulsantiera-EN — residui bilingui pulsantiera Live (🟡 OPEN BASSA)
@@ -657,6 +658,7 @@ Per data di chiusura, decrescente.
 | 20 | 2026-06-26 | CC chat principale 26/06 | +nota §1.3 backlog **Fase 5 — B7 scouting librerie BPM + direzione** (ricerca GitHub via gh): direzione Mauro = puntare al **vero adattivo** (griglia+confidenza); architettura abilitante = analisi **all'import** (offline, no DSP real-time). **Lead `tillt/BeatIt`** (MIT/CoreML, da portare iOS); riferimento `mosynthkey/beat_this_cpp` (MIT/AI); fallback `ryanfrancesconi/spfk-tempo` (Swift/MIT/Accelerate, solo BPM). De-risk: provare modello CoreML on-device su iPad A10 prima di costruire. Evitare GPL (BTrack/aubio/BeatCounter…)/AGPL(Essentia)/no-license. Header bump 19→20. Doc-only, nessun fix codice. |
 | 21 | 2026-06-28 | CC chat principale 28/06 | Due nuovi ticket §1.2 (doc-only): **Nodo A — Q-Live montata fuori dal NavigationStack** (modale UIKit `BivioBoardView.swift:34-41`; root = commutazione `AppRootView.swift:27-33`; engine non accoppiato al mount → sizing referee L3 plumbing; **gate device "parità firing stop modale .overFullScreen↔push"**, stop `LiveView.swift:187`+`BivioBoardView.swift:61`; gata solo il ponte Select Setlist→Live) + **SettingsView: unico ingresso dietro `#if DEBUG`** (gear `ContentView.swift:76-84` → `ContentView` solo in `.fullScreenCover($showDebug)` `BivioBoardView.swift:64-79`); IPA CI = Debug (`ios_build.yml:48,53`) → Settings raggiungibile **oggi**, ma una build **Release** compila via l'ingresso = gap **latente** pre-v1; accoppiata al fronte ⚙ Settings CD. Chiude il debito "gate Nodo A vive solo in memoria CC" (regola d'oro BUGS). Bump header 20→21. Doc-only, nessun fix codice. |
 | 22 | 2026-06-28 | CC chat principale 28/06 | **Ticket collaudo device `59ab33e`.** NUOVI §1.2: TD-qlive-libero-limbo (limbo `LiveRootView:8` + waiting default `.collaborativa` `TransportView:38-58` + bottoni fine-show morti `FineSetlistView:19,21`; pre-esistente, raggiungibile dalla porta Home) + TD-ipad-home (overflow = altezze-card-fisse `115·sf×3` × sf saturano lo spazio fra Spacer `HomeRootView:24,26`; landscape = `~ipad` mancante; "portrait-only" NON al LIBRO→confermare). NUOVI §1.3: TD-editor-authoring-polish (Add Section auto-enter + `"Sezione"`→`""` `SongSection:59` + Reorder→simbolo) + TD-live-pulsantiera-EN (`TransportView:26,66`). AGG §1.4: collaudo conferma default `.collaborativa`=causa waiting, naming `collaborativa`→FOLLOWER ratificato Mauro, metronomo-libero A/B = faccia UI scenario (i). §3: beat read-only = non-bug (`SectionEditorView:64`). Citazioni blindate (13 agenti, 17/17 byte). Bump header 21→22. Doc-only, nessun fix codice. |
+| 23 | 2026-06-29 | CC chat principale 29/06 | **§1.3 editor-polish committato + debito binding annotato.** TD-editor-authoring-polish: i 2 item CC → **FATTI, commit `5839e4f`** (Add Section auto-enter via `.navigationDestination(isPresented:)`; default `name: "Sezione"`→`""` `SongSection.swift:59`; gate §7 nome-vuoto PULITO — save id-based `QBeatsStore.swift:54`, nessun assert/id-da-nome; CI verde `28366276760`; **device-pending**). +bullet **debito binding auto-enter per-indice** (`$draft.sections[.last]`, sicuro per invariante append-adiacente, → per-ID se l'editor evolve; annotato in-code). Contesto (commit codice a sé, NON in questa riga doc): atomi iPad `TD-ipad-home` = scaleFactor cap `87d22a9` + blocco landscape `4b3e91d`; plist-IPA verificato (`~ipad`=Portrait + `UIRequiresFullScreen` + UIAppFonts 10/10); device-pending. Bump header 22→23. Doc-only, nessun fix codice. |
 
 ---
 
