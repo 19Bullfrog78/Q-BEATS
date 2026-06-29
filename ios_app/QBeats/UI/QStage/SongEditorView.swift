@@ -8,6 +8,7 @@ struct SongEditorView: View {
     @ObservedObject private var store = QBeatsStore.shared
     @State private var draft: Song
     @State private var editMode: EditMode = .inactive
+    @State private var pushNewSection = false
 
     init(song: Song) {
         _draft = State(initialValue: song)
@@ -52,6 +53,7 @@ struct SongEditorView: View {
 
                         Button {
                             draft.sections.append(SongSection.makeDefault())
+                            pushNewSection = true   // auto-enter: apri subito l'editor della nuova sezione
                         } label: {
                             Label("Add Section", systemImage: "plus.circle")
                                 .foregroundColor(QStageTheme.accent)
@@ -74,6 +76,16 @@ struct SongEditorView: View {
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, $editMode)
+                // auto-enter: dopo "Add Section" entra nell'editor della sezione appena creata.
+                // NB binding PER-INDICE (.last): sicuro QUI perché l'append precede immediatamente
+                // pushNewSection=true, quindi .last è sempre la nuova sezione. Se l'editor evolve
+                // (append multipli / riordino concorrente / delete durante il push) va spostato a
+                // binding per-ID. (debito annotato — referee 29/06)
+                .navigationDestination(isPresented: $pushNewSection) {
+                    if let last = draft.sections.indices.last {
+                        SectionEditorView(section: $draft.sections[last])
+                    }
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)

@@ -56,7 +56,7 @@ extension SongSection {
     static func makeDefault() -> SongSection {
         SongSection(
             id: UUID(),
-            name: "Sezione",
+            name: "",
             bpm: 120.0,
             beatsPerBar: 4,
             beatUnit: 4,
