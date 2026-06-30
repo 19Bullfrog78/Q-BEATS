@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 23
-**Ultima modifica:** 2026-06-29
+**Versione:** 24
+**Ultima modifica:** 2026-06-30
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -246,12 +246,18 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Cura:** scelta d'ingresso A) metronomo libero · B) setlist (memoria `project_qbeats_metronomo_libero`) → risolve il limbo alla radice + cablaggio bottoni + ponte Select Setlist→Live. Stessa radice di Nodo A (§1.2) + Nodo B (`LiveRootView.swift:6-10`).
 - **Dominio:** CC (+ CD videata, Brief Fronte 2). **Stato:** 🟠 OPEN MEDIA (severità d'uso alta).
 
-### TD-ipad-home — overflow portrait + landscape non bloccato (🟠 OPEN MEDIA / schermata principale su iPad)
-- **Sintomo (device 28/06):** iPad verticale → Home trabocca, porta Q-LIVE tagliata in fondo. iPad orizzontale → Home rotta (solo wordmark + Q-STUDIO; Q-STAGE/Q-LIVE fuori).
-- **Causa (i) overflow:** gruppo porte centrato tra due `Spacer(minLength:0)` (`HomeRootView.swift:24,26`); le altezze fisse (3 card `115·sf` `:174` + lockup + gap `14·sf` `:52`) crescono col `sf=geo.size.width/390` `:18` → su iPad superano l'altezza-schermo → Spacer a 0 → ultima porta sotto. NON "scala in larghezza quindi raddoppia in altezza": è le altezze-card-fisse × sf.
-- **Causa (ii) landscape:** manca `UISupportedInterfaceOrientations~ipad` (assente in `Info.plist`/`project.yml`) → iPad eredita tutte le orientazioni (iPhone ha già `=[Portrait]`).
-- **Fix (2 atomi distinti):** (a) layout — tetto allo scaleFactor *(proposta CC `min(width/390, height/844)` DA VALIDARE: rimpicciolisce iPhone SE/tozzi ratio<2.16 → solo-iPad o ricalibrare)* o layout iPad dedicato (CD, Brief Fronte 3); (b) config — `~ipad`=Portrait + `UIRequiresFullScreen` (commit a sé). ⚠️ "portrait-only su tutti" NON è ratificato al LIBRO (verificato assente: solo archivi BOX5 V22-V24 + handoff 25/06) → confermare/promuovere prima di scolpire (b).
-- **Dominio:** CC (+ CD layout iPad). **Stato:** 🟠 OPEN MEDIA.
+### TD-shows-authoring — tab Shows = segnaposto, manca l'authoring setlist (🟠 OPEN MEDIA / feature-completion — fronte grosso, CD+referee)
+- **Sintomo (device, collaudo `b1c50ab` 30/06, Mauro):** in Q-Stage la tab **Shows** non crea nulla — nessun `+`, nessuna lista. **NON è "manca il +": è tutta da costruire.**
+- **Causa sourced:** `QStageRootView.swift:7` ("PRIMA FETTA: completa solo la tab Songs; Shows e Media sono placeholder") → `QStageRootView.swift:22-27` monta `QStagePlaceholderTab(title: "Shows", message: "Setlist authoring — prossima fetta.")`; segnaposto = `QStageKit.swift:73-104`.
+- **≠ "Shows" di Q-Live (palco, Opzione B):** quella è la **vista di esecuzione** della serata; questa è l'**authoring** (creare/ordinare le setlist dalle Songs). Due schermate, **un solo modello dati** (sotto).
+- **De-risk (sourced S3+S4):** (a) modello **unico, già esistente** — `struct Setlist` (`Models/Setlist.swift:3`); CRUD store pronto (`QBeatsStore.swift:72-89` + `resolve` `:95`, `setlists.json`); stesso `Setlist` per palco (`SetlistRunner.swift:59`) e backup (`QBeatsBackupManager.swift:27-29`) → niente "due verità". (b) mount **pulito** — tab dentro il `TabView` (`QStageRootView.swift:17`) via commutazione (`AppRootView.swift:27-33`), **NON** eredita Nodo A (modale Q-Live, `HomeRootView.swift:76-88`); monterebbe come Songs (proprio `NavigationStack`, `SongListView.swift:19`).
+- **Dominio:** CD (UX/flusso) + referee (architettura) → poi CC. **Stato:** 🟠 OPEN MEDIA.
+
+### TD-ipad-editor-fontsize — editor Q-Stage con testo non scalato su iPad (🟠 OPEN MEDIA / schermata editor su iPad)
+- **Sintomo (device, collaudo `b1c50ab` 30/06, Mauro):** su iPad Home e Songs sono dimensionate bene, ma aprendo l'editor (`+` → editor canzone/sezione) **le scritte sono piccole** rispetto a Home/Songs.
+- **Causa sourced:** Home/Songs scalano col pattern `sf = geo.size.width / 390` in `GeometryReader`, applicato ovunque (`SongListView.swift:20-21`, `:47`, `:60`; navbar `sf:sf` `:25`). L'**editor NO**: `SongEditorView`/`SectionEditorView` senza `GeometryReader`/`sf`, misure **letterali** (`SongEditorView.swift:28-29` `size:17`; `SectionEditorView.swift:36` `size:16`, `:43` `size:17`) + `QStageNavBar` chiamata **senza** `sf` → default `sf=1` (`QStageKit.swift:38`). iPhone `sf≈1` invisibile; iPad `sf>1` → editor a baseline-iPhone.
+- **Fix:** propagare lo stesso `sf` da `geo.size` all'editor (memoria `feedback_qbeats_scaling_responsive`); **VIETATI** `@ScaledMetric`/`preferredFont`/`sizeCategory`.
+- **Dominio:** CC (+ CD misure DS). **Stato:** 🟠 OPEN MEDIA.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -262,12 +268,18 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Priorità/blocco:** **non bloccante** (mitigato sul palco da DND + Accesso Guidato). **Sotto TD#17:** loggato ora, indagine nel suo turno **dopo** TD#17 — non prima.
 - **Dominio:** CC.
 
-### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 committate device-pending + 1 CD + 1 debito)
-- **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **FATTO — commit `5839e4f` (`.navigationDestination(isPresented:)`), device-pending.**
-- **Default "Sezione" (IT) + non si svuota:** `SongSection.swift:59` `name: "Sezione"` → cura `name: ""` (placeholder `"Section name"` già in `SectionEditorView.swift:35`). **FATTO — commit `5839e4f`; gate §7 nome-vuoto PULITO (save id-based, nessun assert/id-da-nome), device-pending.**
-- **"Reorder" testo non simbolo:** `SongListView.swift:61` + `SongEditorView.swift:69` (`accent`); deciso simbolo+toggle, glifo/colore = CD (Brief Fronte 1). **CD-pending.**
+### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 CC CHIUSE device + 1 CD + 1 debito)
+- **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **🟢 CHIUSO — commit `5839e4f` (`.navigationDestination(isPresented:)`), device-confermato (collaudo `b1c50ab`, Mauro 30/06).**
+- **Default "Sezione" (IT) + non si svuota:** `SongSection.swift:59` `name: "Sezione"` → cura `name: ""` (placeholder `"Section name"` già in `SectionEditorView.swift:35`). **🟢 CHIUSO — commit `5839e4f`; gate §7 nome-vuoto PULITO (save id-based, nessun assert/id-da-nome), device-confermato (collaudo `b1c50ab`).**
+- **"Reorder" testo non simbolo + nessuna affordance:** l'header Sections mostra la PAROLA "Reorder"/"Done" (toggle `editMode`, `SongEditorView.swift:67`; idem catalogo Songs `SongListView.swift:57`); le maniglie ≡ compaiono SOLO dopo il tap → **prova dal vivo (collaudo `b1c50ab`, Mauro): l'utente non capisce che le sezioni si spostano.** Decisione CD = **drag diretto (Opzione C, no toggle)** (handoff 29/06); `.onMove` già presente (`SongEditorView.swift:52`, `SongListView.swift:123`). **CD→CC, va col mockup CD.**
 - **Auto-enter binding per-indice (debito, da `5839e4f`):** `.navigationDestination(isPresented:)` apre `$draft.sections[draft.sections.indices.last]` (per-INDICE). Sicuro oggi per invariante append-adiacente (`append` immediatamente prima di `pushNewSection = true` → `.last` = la sezione nuova). **Da spostare a binding per-ID** se l'editor sezioni evolve (append multipli / riordino concorrente / eliminazioni durante il push). Annotato in-code (`5839e4f`). Dominio CC.
-- **Dominio:** CC + CD (glifo). **Stato:** 🟡 OPEN BASSA.
+- **Dominio:** CC + CD (drag). **Stato:** 🟡 OPEN BASSA — i **2 item CC CHIUSI device** (`5839e4f`); restano Reorder (CD, drag Opzione C) + debito binding per-indice.
+
+### TD-editor-bpm-typeable — BPM solo +/- nell'editor sezione, manca l'input scrivibile (🟡 OPEN BASSA / feature editor — CC, quick win)
+- **Richiesta (device, collaudo `b1c50ab` 30/06, Mauro):** nell'editor sezione il BPM si cambia **solo** con +/− (`SectionEditorView.swift:38` `Stepper(value: $section.bpm, in: 20...400, step: 1)`); serve poterlo **scrivere** (es. 230), tenendo anche i +/−.
+- **Range — sourcing §7 (NON inventare):** il campo è limitato a **`20...400`** dallo Stepper (`SectionEditorView.swift:38`). **Il motore NON impone clamp:** `MetronomeDSP.cpp:35-49` (solo `bpm > 0.0` per il ri-scaling, poi `_bpm = bpm`), `AudioEngine.swift:1091-1123` inoltra senza limiti, bridge `MetronomeDSPBridge.mm:13-14` passante. **Reperto: tre range UI diversi, nessuna costante condivisa** — `20...400` (editor `SectionEditorView.swift:38`), `40...240` (metronomo legacy `ContentView.swift:29`, dietro `#if DEBUG`), `40...250` (tap-tempo `TapTempoEngine.swift:20-21`/`:65`). L'input scrivibile deve usare **il range del campo = `20...400`**.
+- **Write-path (sourced):** lo Stepper scrive **solo sul modello** (`$section.bpm` → `@State draft: Song` → `store.updateSong` `SongEditorView.swift:96-97`); `SongSection.bpm` senza `didSet` (`SongSection.swift:6`); l'editor non referenzia il motore (vede `section.bpm` solo in play, `SetlistRunner.swift:203`). L'input scrivibile resta **model-only**.
+- **Dominio:** CC. **Stato:** 🟡 OPEN BASSA (quick win, prossimo atomo codice = DIFF B).
 
 ### TD-live-pulsantiera-EN — residui bilingui pulsantiera Live (🟡 OPEN BASSA)
 - **"prev sez / next sez" (IT):** `TransportView.swift:26,66` → uniformare EN. Lane label = CD (Brief Fronte 2.8).
@@ -404,6 +416,12 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 Per data di chiusura, decrescente.
 
 ## 🟢 Giugno 2026
+
+### TD-ipad-home — overflow portrait + landscape iPad — 🟢 CHIUSO 30/06/2026
+- **🟢 CHIUSO 30/06/2026 (device-confermato, collaudo `b1c50ab`, Mauro):** "home va benissimo" + "non si gira resta bloccato in verticale".
+- **Causa (i) overflow portrait:** altezze-card-fisse × `sf` saturavano lo spazio tra gli Spacer su iPad. **Fix = tetto scaleFactor solo-iPad**, commit `87d22a9` (`HomeRootView.swift`: `sf = .pad ? min(width/390, height*0.92/844) : width/390`; iPhone invariato; `0.92` = manopola di taratura a vista, lasciata com'è per decisione Mauro).
+- **Causa (ii) landscape:** mancava `UISupportedInterfaceOrientations~ipad`. **Fix = portrait-only + full-screen**, commit `4b3e91d` (`project.yml`: `~ipad`=Portrait + `UIRequiresFullScreen`); plist verificato dentro l'IPA reale (`~ipad`=Portrait + `UIRequiresFullScreen` + UIAppFonts 10/10). LIBRO v24 ratifica "portrait-only".
+- **Dominio:** CC. CI verdi `28368080139` (`87d22a9`) + `28368123438` (`4b3e91d`).
 
 ### Bug 2.b — Ferita A + Ferita B (sync runtime cross-device / accento ai cambi sezione)
 - **🟢 CHIUSO 11/06/2026 — entrambe le ferite (perimetro = AUDIO + ingresso), device-validate + mergiato su master `ee0cbc0` (squash).**
@@ -659,6 +677,7 @@ Per data di chiusura, decrescente.
 | 21 | 2026-06-28 | CC chat principale 28/06 | Due nuovi ticket §1.2 (doc-only): **Nodo A — Q-Live montata fuori dal NavigationStack** (modale UIKit `BivioBoardView.swift:34-41`; root = commutazione `AppRootView.swift:27-33`; engine non accoppiato al mount → sizing referee L3 plumbing; **gate device "parità firing stop modale .overFullScreen↔push"**, stop `LiveView.swift:187`+`BivioBoardView.swift:61`; gata solo il ponte Select Setlist→Live) + **SettingsView: unico ingresso dietro `#if DEBUG`** (gear `ContentView.swift:76-84` → `ContentView` solo in `.fullScreenCover($showDebug)` `BivioBoardView.swift:64-79`); IPA CI = Debug (`ios_build.yml:48,53`) → Settings raggiungibile **oggi**, ma una build **Release** compila via l'ingresso = gap **latente** pre-v1; accoppiata al fronte ⚙ Settings CD. Chiude il debito "gate Nodo A vive solo in memoria CC" (regola d'oro BUGS). Bump header 20→21. Doc-only, nessun fix codice. |
 | 22 | 2026-06-28 | CC chat principale 28/06 | **Ticket collaudo device `59ab33e`.** NUOVI §1.2: TD-qlive-libero-limbo (limbo `LiveRootView:8` + waiting default `.collaborativa` `TransportView:38-58` + bottoni fine-show morti `FineSetlistView:19,21`; pre-esistente, raggiungibile dalla porta Home) + TD-ipad-home (overflow = altezze-card-fisse `115·sf×3` × sf saturano lo spazio fra Spacer `HomeRootView:24,26`; landscape = `~ipad` mancante; "portrait-only" NON al LIBRO→confermare). NUOVI §1.3: TD-editor-authoring-polish (Add Section auto-enter + `"Sezione"`→`""` `SongSection:59` + Reorder→simbolo) + TD-live-pulsantiera-EN (`TransportView:26,66`). AGG §1.4: collaudo conferma default `.collaborativa`=causa waiting, naming `collaborativa`→FOLLOWER ratificato Mauro, metronomo-libero A/B = faccia UI scenario (i). §3: beat read-only = non-bug (`SectionEditorView:64`). Citazioni blindate (13 agenti, 17/17 byte). Bump header 21→22. Doc-only, nessun fix codice. |
 | 23 | 2026-06-29 | CC chat principale 29/06 | **§1.3 editor-polish committato + debito binding annotato.** TD-editor-authoring-polish: i 2 item CC → **FATTI, commit `5839e4f`** (Add Section auto-enter via `.navigationDestination(isPresented:)`; default `name: "Sezione"`→`""` `SongSection.swift:59`; gate §7 nome-vuoto PULITO — save id-based `QBeatsStore.swift:54`, nessun assert/id-da-nome; CI verde `28366276760`; **device-pending**). +bullet **debito binding auto-enter per-indice** (`$draft.sections[.last]`, sicuro per invariante append-adiacente, → per-ID se l'editor evolve; annotato in-code). Contesto (commit codice a sé, NON in questa riga doc): atomi iPad `TD-ipad-home` = scaleFactor cap `87d22a9` + blocco landscape `4b3e91d`; plist-IPA verificato (`~ipad`=Portrait + `UIRequiresFullScreen` + UIAppFonts 10/10); device-pending. Bump header 22→23. Doc-only, nessun fix codice. |
+| 24 | 2026-06-30 | CC chat principale 30/06 | **Collaudo device `b1c50ab` — 3 fix CHIUSI + 4 riscontri.** I 3 commit device-confermati (Mauro 30/06): editor-polish `5839e4f` (Add Section auto-enter + default `""`) → §1.3 i 2 item CC 🟢; iPad-A `87d22a9` (scaleFactor cap) + iPad-B `4b3e91d` (portrait-only) → **TD-ipad-home 🟢 CHIUSO, spostato in Sez.2**. NUOVI §1.2: **TD-shows-authoring** (tab Shows = segnaposto `QStageRootView.swift:7`/`:22-27`, `QStageKit.swift:73`; modello unico `Setlist` `Models/Setlist.swift:3` + mount pulito no-Nodo-A; ≠ Shows-palco Q-Live; 🟠 CD+referee) + **TD-ipad-editor-fontsize** (editor non scala su iPad: misure letterali `SongEditorView.swift:28-29` vs `sf` Home/Songs; 🟠 CC). NUOVO §1.3: **TD-editor-bpm-typeable** (BPM solo +/- `SectionEditorView.swift:38`, manca input scrivibile; range campo `20...400`, motore NO clamp `MetronomeDSP.cpp:35-49`/`AudioEngine.swift:1091-1123`, tre range UI distinti incl. `ContentView.swift:29` 40...240 + `TapTempoEngine.swift:20-21` 40...250; 🟡 CC) + aggiornato bullet Reorder (prova dal vivo, drag Opzione C). Sourcing S1-S5 verificato avversarialmente (workflow 5 agenti: S1 corretto con `ContentView.swift:29`; S3/S4/S5 confermati). Bump header 23→24. Doc-only, nessun fix codice. |
 
 ---
 
