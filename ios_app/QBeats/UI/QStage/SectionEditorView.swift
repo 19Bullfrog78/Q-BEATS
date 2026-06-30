@@ -60,14 +60,27 @@ struct SectionEditorView: View {
                     .foregroundColor(QStageTheme.text)
                     .frame(maxWidth: 64)
                     .onSubmit { commitBPM() }
-                // +/- come Stepper STANDALONE (label nascosta), FUORI dalla label dello Stepper:
-                // prima il TextField viveva DENTRO la label → in focus i +/- erano INERTI
-                // (regione hit-test posseduta dal first-responder, caso device confermato).
-                // Separati = controllo autonomo, hold-to-repeat nativo, FUORI dalla regione del campo.
-                // NB §7: SE il tap +/- col campo in focus risenta o no il first-responder e' comportamento
-                // framework (device), non sourcabile qui. La logica regge in ENTRAMBI i rami: il valore
-                // digitato vince al commit (focus-loss/Done -> commitBPM), deterministico, niente crash.
-                Stepper("", value: $section.bpm, in: bpmRange, step: 1)
+                // +/- come Stepper STANDALONE (label nascosta), separato dal campo (l'anti-pattern
+                // Test 5 — campo DENTRO la label — NON torna). onIncrement/onDecrement (non value:)
+                // per controllare la SEQUENZA, fix della combinazione "digito poi +/-":
+                //   1) commitBPM() PRIMA → consegna il bpmText pendente a section.bpm (clampato)
+                //      → l'incremento parte dal digitato (es. 120), non dal valore vecchio;
+                //   2) ±1 RI-clampato a bpmRange (400 + → resta 400; 20 - → resta 20);
+                //   3) refresh esplicito bpmText → il display si muove anche col campo in focus
+                //      (non dipende più dalla guardia !bpmFocused).
+                // NB §7: hold-to-repeat (tieni-premuto) ATTESO preservato con onIncrement/onDecrement,
+                // ma è comportamento framework → CONFERMA DEVICE (non asserito).
+                Stepper("",
+                        onIncrement: {
+                            commitBPM()
+                            section.bpm = min(bpmRange.upperBound, section.bpm + 1)
+                            bpmText = String(Int(section.bpm))
+                        },
+                        onDecrement: {
+                            commitBPM()
+                            section.bpm = max(bpmRange.lowerBound, section.bpm - 1)
+                            bpmText = String(Int(section.bpm))
+                        })
                     .labelsHidden()
                     .fixedSize()
             }
