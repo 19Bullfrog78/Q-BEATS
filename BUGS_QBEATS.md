@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 25
+**Versione:** 26
 **Ultima modifica:** 2026-06-30
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -283,11 +283,11 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Auto-enter binding per-indice (debito, da `5839e4f`):** `.navigationDestination(isPresented:)` apre `$draft.sections[draft.sections.indices.last]` (per-INDICE). Sicuro oggi per invariante append-adiacente (`append` immediatamente prima di `pushNewSection = true` → `.last` = la sezione nuova). **Da spostare a binding per-ID** se l'editor sezioni evolve (append multipli / riordino concorrente / eliminazioni durante il push). Annotato in-code (`5839e4f`). Dominio CC.
 - **Dominio:** CC + CD (drag). **Stato:** 🟡 OPEN BASSA — i **2 item CC CHIUSI device** (`5839e4f`); restano Reorder (CD, drag Opzione C) + debito binding per-indice.
 
-### TD-editor-bpm-typeable — BPM solo +/- nell'editor sezione, manca l'input scrivibile (🟡 OPEN BASSA / feature editor — CC, quick win)
-- **Richiesta (device, collaudo `b1c50ab` 30/06, Mauro):** nell'editor sezione il BPM si cambia **solo** con +/− (`SectionEditorView.swift:38` `Stepper(value: $section.bpm, in: 20...400, step: 1)`); serve poterlo **scrivere** (es. 230), tenendo anche i +/−.
-- **Range — sourcing §7 (NON inventare):** il campo è limitato a **`20...400`** dallo Stepper (`SectionEditorView.swift:38`). **Il motore NON impone clamp:** `MetronomeDSP.cpp:35-49` (solo `bpm > 0.0` per il ri-scaling, poi `_bpm = bpm`), `AudioEngine.swift:1091-1123` inoltra senza limiti, bridge `MetronomeDSPBridge.mm:13-14` passante. **Reperto: tre range UI diversi, nessuna costante condivisa** — `20...400` (editor `SectionEditorView.swift:38`), `40...240` (metronomo legacy `ContentView.swift:29`, dietro `#if DEBUG`), `40...250` (tap-tempo `TapTempoEngine.swift:20-21`/`:65`). L'input scrivibile deve usare **il range del campo = `20...400`**.
-- **Write-path (sourced):** lo Stepper scrive **solo sul modello** (`$section.bpm` → `@State draft: Song` → `store.updateSong` `SongEditorView.swift:96-97`); `SongSection.bpm` senza `didSet` (`SongSection.swift:6`); l'editor non referenzia il motore (vede `section.bpm` solo in play, `SetlistRunner.swift:203`). L'input scrivibile resta **model-only**.
-- **Dominio:** CC. **Stato:** 🟡 OPEN BASSA (quick win, prossimo atomo codice = DIFF B).
+### TD-editor-bpm-spacing — numero BPM troppo vicino ai +/-, il dito copre il valore (🟡 OPEN BASSA / polish layout editor)
+- **Sintomo (device, collaudo `51dabab` 30/06, Mauro):** nell'editor sezione il numero BPM è troppo vicino alla pulsantiera +/−; premendo **"−"** il dito **copre fisicamente il numero** che scende → non si vede il valore calare.
+- **Causa:** layout `nameTempo` (`SectionEditorView.swift`) — `HStack { Text("BPM"); Spacer(); TextField(bpm); Stepper(+/-) }`: numero e `Stepper` **adiacenti**, nessuno spazio fra i due.
+- **Cura (UX/DS → CD):** distanziare numero e +/− (gap fisso fra `TextField` e `Stepper`, o numero più a sinistra) così il dito sul "−" non copre il valore. Misura/posizione = Design System (CD); applicazione = CC.
+- **Dominio:** CD (spacing/DS) + CC. **Stato:** 🟡 OPEN BASSA.
 
 ### TD-live-pulsantiera-EN — residui bilingui pulsantiera Live (🟡 OPEN BASSA)
 - **"prev sez / next sez" (IT):** `TransportView.swift:26,66` → uniformare EN. Lane label = CD (Brief Fronte 2.8).
@@ -424,6 +424,12 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 Per data di chiusura, decrescente.
 
 ## 🟢 Giugno 2026
+
+### TD-editor-bpm-typeable — BPM digitabile nell'editor sezione — 🟢 CHIUSO 30/06/2026
+- **🟢 CHIUSO 30/06/2026 (device-confermato, check a 5 stati, Mauro):** campo BPM scrivibile + +/− attivi insieme. 5/5 verdi: scrittura sola (+revert su vuoto/"0"/"99999"; numberPad blocca le lettere), +/− soli (video+modello, **hold-to-repeat confermato**), combinazione digito 120→+1→121, combinazione sporca (cancello→+1→riparte dal valido, no crash), Test 3/delta on-exit.
+- **Implementazione (3 commit):** `9d047e0` `TextField` digitabile (commit a focus-loss/Done, revert su sporco, range campo `20...400`, write model-only) + `commitBPM()`-on-exit (`SectionEditorView.swift:29`/`:32`); `726246f` decouple +/− (campo e `Stepper` separati — risolve i +/− inerti col campo in focus); `51dabab` `Stepper(onIncrement:onDecrement:)` commit-first + ri-clamp + refresh display (fix combinazione "digito poi +/−"). L3 puro, motore mai toccato.
+- **Strascico aperto (ticket a parte):** `TD-editor-bpm-spacing` (§1.3) — numero coperto dal dito sul "−".
+- **Dominio:** CC. CI verdi `28433118641` (`9d047e0`) + `28438450967` (`726246f`) + `28463889740` (`51dabab`).
 
 ### TD-ipad-home — overflow portrait + landscape iPad — 🟢 CHIUSO 30/06/2026
 - **🟢 CHIUSO 30/06/2026 (device-confermato, collaudo `b1c50ab`, Mauro):** "home va benissimo" + "non si gira resta bloccato in verticale".
@@ -687,6 +693,7 @@ Per data di chiusura, decrescente.
 | 23 | 2026-06-29 | CC chat principale 29/06 | **§1.3 editor-polish committato + debito binding annotato.** TD-editor-authoring-polish: i 2 item CC → **FATTI, commit `5839e4f`** (Add Section auto-enter via `.navigationDestination(isPresented:)`; default `name: "Sezione"`→`""` `SongSection.swift:59`; gate §7 nome-vuoto PULITO — save id-based `QBeatsStore.swift:54`, nessun assert/id-da-nome; CI verde `28366276760`; **device-pending**). +bullet **debito binding auto-enter per-indice** (`$draft.sections[.last]`, sicuro per invariante append-adiacente, → per-ID se l'editor evolve; annotato in-code). Contesto (commit codice a sé, NON in questa riga doc): atomi iPad `TD-ipad-home` = scaleFactor cap `87d22a9` + blocco landscape `4b3e91d`; plist-IPA verificato (`~ipad`=Portrait + `UIRequiresFullScreen` + UIAppFonts 10/10); device-pending. Bump header 22→23. Doc-only, nessun fix codice. |
 | 24 | 2026-06-30 | CC chat principale 30/06 | **Collaudo device `b1c50ab` — 3 fix CHIUSI + 4 riscontri.** I 3 commit device-confermati (Mauro 30/06): editor-polish `5839e4f` (Add Section auto-enter + default `""`) → §1.3 i 2 item CC 🟢; iPad-A `87d22a9` (scaleFactor cap) + iPad-B `4b3e91d` (portrait-only) → **TD-ipad-home 🟢 CHIUSO, spostato in Sez.2**. NUOVI §1.2: **TD-shows-authoring** (tab Shows = segnaposto `QStageRootView.swift:7`/`:22-27`, `QStageKit.swift:73`; modello unico `Setlist` `Models/Setlist.swift:3` + mount pulito no-Nodo-A; ≠ Shows-palco Q-Live; 🟠 CD+referee) + **TD-ipad-editor-fontsize** (editor non scala su iPad: misure letterali `SongEditorView.swift:28-29` vs `sf` Home/Songs; 🟠 CC). NUOVO §1.3: **TD-editor-bpm-typeable** (BPM solo +/- `SectionEditorView.swift:38`, manca input scrivibile; range campo `20...400`, motore NO clamp `MetronomeDSP.cpp:35-49`/`AudioEngine.swift:1091-1123`, tre range UI distinti incl. `ContentView.swift:29` 40...240 + `TapTempoEngine.swift:20-21` 40...250; 🟡 CC) + aggiornato bullet Reorder (prova dal vivo, drag Opzione C). Sourcing S1-S5 verificato avversarialmente (workflow 5 agenti: S1 corretto con `ContentView.swift:29`; S3/S4/S5 confermati). Bump header 23→24. Doc-only, nessun fix codice. |
 | 25 | 2026-06-30 | CC chat principale 30/06 | **Nuovo ticket §1.2 `TD-editor-back-discard` (doc-only).** Freccia indietro editor canzone (`SongEditorView.swift:22` `onBack: { dismiss() }`) scarta il draft **senza avviso**; persiste solo SAVE (`save()` → `store.updateSong(draft)` `:95-98`, bottone `:25`). **Perimetro verificato (grep onBack):** `:22` = UNICO scarto-silenzioso (`SectionEditorView:29` committa-poi-dismiss; `SongListView:25`/`QStageKit:85` senza draft). 🟠 **PRE-ESISTENTE — NON regressione DIFF B `9d047e0`** (riga `:22` da `dd0fcaa` 27/06; `9d047e0` tocca solo `SectionEditorView`). Emerso dal collaudo `b1c50ab` (BPM 230→back→120). Cura UX → CD. Bump header 24→25. Doc-only, nessun fix codice. |
+| 26 | 2026-06-30 | CC chat principale 30/06 | **`TD-editor-bpm-typeable` 🟢 CHIUSO (device 5/5) + nuovo ticket spacing.** Collaudo device `51dabab`: campo BPM scrivibile + +/− insieme, 5 stati verdi (scrittura · +/− soli con hold-to-repeat · combinazione 120→121 · sporco cancella→+1 · Test 3/delta). 3 commit codice: `9d047e0` (TextField digitabile + commit-on-exit `:29/:32`) + `726246f` (decouple +/−) + `51dabab` (`Stepper(onIncrement/onDecrement)` commit-first + ri-clamp). `TD-editor-bpm-typeable` → §2. NUOVO §1.3 **`TD-editor-bpm-spacing`** (numero BPM troppo vicino ai +/− → dito copre il valore sul "−"; layout `nameTempo`; cura UX/DS → CD+CC; 🟡). Bump header 25→26. Doc-only, nessun fix codice. |
 
 ---
 
