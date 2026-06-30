@@ -49,34 +49,41 @@ struct SectionEditorView: View {
             TextField("Section name", text: $section.name)
                 .font(.custom("JetBrainsMono-SemiBold", size: 16))
                 .foregroundColor(QStageTheme.text)
-            Stepper(value: $section.bpm, in: bpmRange, step: 1) {
-                HStack {
-                    Text("BPM").foregroundColor(QStageTheme.text2)
-                    Spacer()
-                    TextField("", text: $bpmText)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .focused($bpmFocused)
-                        .font(.custom("JetBrainsMono-Bold", size: 17))
-                        .foregroundColor(QStageTheme.text)
-                        .frame(maxWidth: 72)
-                        .onSubmit { commitBPM() }
-                        .onChange(of: bpmFocused) { focused in
-                            if !focused { commitBPM() }          // perdita focus = commit
-                        }
-                        .onChange(of: section.bpm) { newValue in
-                            // Stepper +/- (o revert) ha mosso il modello: riallinea il testo
-                            // SOLO se non sto digitando (niente sovrascrittura mid-typing).
-                            if !bpmFocused { bpmText = String(Int(newValue)) }
-                        }
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                if bpmFocused {
-                                    Spacer()
-                                    Button("Done") { bpmFocused = false }   // numberPad: no return → Done resigna → commit
-                                }
-                            }
-                        }
+            HStack {
+                Text("BPM").foregroundColor(QStageTheme.text2)
+                Spacer()
+                TextField("", text: $bpmText)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .focused($bpmFocused)
+                    .font(.custom("JetBrainsMono-Bold", size: 17))
+                    .foregroundColor(QStageTheme.text)
+                    .frame(maxWidth: 64)
+                    .onSubmit { commitBPM() }
+                // +/- come Stepper STANDALONE (label nascosta), FUORI dalla label dello Stepper:
+                // prima il TextField viveva DENTRO la label → in focus i +/- erano INERTI
+                // (regione hit-test posseduta dal first-responder, caso device confermato).
+                // Separati = controllo autonomo, hold-to-repeat nativo, FUORI dalla regione del campo.
+                // NB §7: SE il tap +/- col campo in focus risenta o no il first-responder e' comportamento
+                // framework (device), non sourcabile qui. La logica regge in ENTRAMBI i rami: il valore
+                // digitato vince al commit (focus-loss/Done -> commitBPM), deterministico, niente crash.
+                Stepper("", value: $section.bpm, in: bpmRange, step: 1)
+                    .labelsHidden()
+                    .fixedSize()
+            }
+            .onChange(of: bpmFocused) { focused in
+                if !focused { commitBPM() }          // perdita focus = commit
+            }
+            .onChange(of: section.bpm) { newValue in
+                // +/- (o revert) ha mosso il modello: riallinea il testo SOLO se non sto digitando.
+                if !bpmFocused { bpmText = String(Int(newValue)) }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    if bpmFocused {
+                        Spacer()
+                        Button("Done") { bpmFocused = false }   // numberPad: no return → Done resigna → commit
+                    }
                 }
             }
         }
