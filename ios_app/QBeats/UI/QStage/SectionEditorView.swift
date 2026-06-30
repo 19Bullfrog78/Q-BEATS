@@ -6,16 +6,30 @@ import SwiftUI
 struct SectionEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var section: SongSection
+    // Campo BPM digitabile: bozza testuale + focus. Il commit (parse + validazione) avviene
+    // a fine digitazione (Done / perdita focus), MAI per-keystroke → si scrive libero.
+    @State private var bpmText: String
+    @FocusState private var bpmFocused: Bool
+
+    // Dominio del campo BPM = 20...400: UNA costante, condivisa da Stepper +/- e input scrivibile
+    // (era il literal inline dello Stepper). Il motore NON clampa (MetronomeDSP.cpp:35-49 /
+    // AudioEngine.swift:1091-1123) → il limite vive qui, a livello UI/L3.
+    private let bpmRange: ClosedRange<Double> = 20...400
+
+    init(section: Binding<SongSection>) {
+        self._section = section
+        self._bpmText = State(initialValue: String(Int(section.wrappedValue.bpm)))
+    }
 
     var body: some View {
         ZStack {
             QStageTheme.bg.ignoresSafeArea()
             VStack(spacing: 0) {
                 QStageNavBar(backTitle: "SONG",
-                             onBack: { dismiss() },
+                             onBack: { commitBPM(); dismiss() },
                              crumb: "SECTION",
                              trailingTitle: "DONE",
-                             trailingAction: { dismiss() })
+                             trailingAction: { commitBPM(); dismiss() })
                 List {
                     nameTempo
                     meterAccents
@@ -35,17 +49,50 @@ struct SectionEditorView: View {
             TextField("Section name", text: $section.name)
                 .font(.custom("JetBrainsMono-SemiBold", size: 16))
                 .foregroundColor(QStageTheme.text)
-            Stepper(value: $section.bpm, in: 20...400, step: 1) {
+            Stepper(value: $section.bpm, in: bpmRange, step: 1) {
                 HStack {
                     Text("BPM").foregroundColor(QStageTheme.text2)
                     Spacer()
-                    Text("\(Int(section.bpm))")
+                    TextField("", text: $bpmText)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($bpmFocused)
                         .font(.custom("JetBrainsMono-Bold", size: 17))
                         .foregroundColor(QStageTheme.text)
+                        .frame(maxWidth: 72)
+                        .onSubmit { commitBPM() }
+                        .onChange(of: bpmFocused) { focused in
+                            if !focused { commitBPM() }          // perdita focus = commit
+                        }
+                        .onChange(of: section.bpm) { newValue in
+                            // Stepper +/- (o revert) ha mosso il modello: riallinea il testo
+                            // SOLO se non sto digitando (niente sovrascrittura mid-typing).
+                            if !bpmFocused { bpmText = String(Int(newValue)) }
+                        }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                if bpmFocused {
+                                    Spacer()
+                                    Button("Done") { bpmFocused = false }   // numberPad: no return → Done resigna → commit
+                                }
+                            }
+                        }
                 }
             }
         }
         .listRowBackground(QStageTheme.surface)
+    }
+
+    /// Commit del campo BPM scrivibile. Chiamato a fine digitazione (Done / perdita focus), MAI per-keystroke.
+    /// Dominio = bpmRange (20...400). In-range → accetta; vuoto / non-numerico / fuori-range → REVERT al
+    /// valore corrente del modello (sempre in-range) — niente clamp-a-min silenzioso, niente assert/crash/
+    /// force-unwrap. Write SOLO sul modello (`section.bpm`), MAI sul motore vivo (L3 puro).
+    private func commitBPM() {
+        let trimmed = bpmText.trimmingCharacters(in: .whitespaces)
+        if let v = Int(trimmed), bpmRange.contains(Double(v)) {
+            section.bpm = Double(v)
+        }
+        bpmText = String(Int(section.bpm))   // riallinea SEMPRE il testo al modello (valore accettato o revert)
     }
 
     private var meterAccents: some View {
