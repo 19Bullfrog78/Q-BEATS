@@ -130,7 +130,7 @@ struct SectionEditorView: View {
             }
             AccentDisplay(beatsPerBar: Int(section.beatsPerBar), pattern: section.accentPattern, sf: sf)
         } header: {
-            Text("Meter & Accents").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
+            Text("Meter & Accents").font(.jbMono(.medium, size: 10 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
         } footer: {
             Text("Accents are read-only in v1 (they mirror the Live display). Editing arrives with the ratified accent encoding.")
                 .font(.jbMono(.regular, size: 11 * sf))
@@ -188,7 +188,7 @@ struct SectionEditorView: View {
                 }
             }
         } header: {
-            Text("Repeat & Feel").foregroundColor(QStageTheme.text2)
+            Text("Repeat & Feel").font(.jbMono(.medium, size: 10 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
         }
         .listRowBackground(QStageTheme.surface)
     }
@@ -200,7 +200,7 @@ struct SectionEditorView: View {
                 .lineLimit(1...4)
                 .foregroundColor(QStageTheme.text)
         } header: {
-            Text("Notes").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
+            Text("Notes").font(.jbMono(.medium, size: 10 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
         }
         .listRowBackground(QStageTheme.surface)
     }
