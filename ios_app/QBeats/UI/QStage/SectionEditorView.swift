@@ -37,7 +37,7 @@ struct SectionEditorView: View {
                         nameTempo(sf)
                         meterAccents(sf)
                         repeatFeel(sf)
-                        notesField
+                        notesField(sf)
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
@@ -54,7 +54,7 @@ struct SectionEditorView: View {
                 .font(.custom("JetBrainsMono-SemiBold", size: 16 * sf))
                 .foregroundColor(QStageTheme.text)
             HStack {
-                Text("BPM").foregroundColor(QStageTheme.text2)
+                Text("BPM").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
                 Spacer()
                 TextField("", text: $bpmText)
                     .keyboardType(.numberPad)
@@ -126,13 +126,14 @@ struct SectionEditorView: View {
                     Text(ts.label).tag(ts.label)
                 }
             } label: {
-                Text("Meter").foregroundColor(QStageTheme.text2)
+                Text("Meter").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
             }
             AccentDisplay(beatsPerBar: Int(section.beatsPerBar), pattern: section.accentPattern, sf: sf)
         } header: {
-            Text("Meter & Accents").foregroundColor(QStageTheme.text2)
+            Text("Meter & Accents").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
         } footer: {
             Text("Accents are read-only in v1 (they mirror the Live display). Editing arrives with the ratified accent encoding.")
+                .font(.jbMono(.regular, size: 11 * sf))
                 .foregroundColor(QStageTheme.text3)
         }
         .listRowBackground(QStageTheme.surface)
@@ -141,14 +142,14 @@ struct SectionEditorView: View {
     private func repeatFeel(_ sf: CGFloat) -> some View {
         Section {
             Toggle(isOn: loopBinding) {
-                Text("Loop ∞").foregroundColor(QStageTheme.text2)
+                Text("Loop ∞").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
             }
             .tint(QStageTheme.accent)
 
             if section.repetitions >= 0 {
                 Stepper(value: $section.repetitions, in: 1...64) {
                     HStack {
-                        Text("Repeat").foregroundColor(QStageTheme.text2)
+                        Text("Repeat").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
                         Spacer()
                         Text("×\(section.repetitions)")
                             .font(.custom("JetBrainsMono-Bold", size: 16 * sf))
@@ -159,18 +160,20 @@ struct SectionEditorView: View {
 
             Stepper(value: subdivBinding, in: 1...4) {
                 HStack {
-                    Text("Subdivision").foregroundColor(QStageTheme.text2)
+                    Text("Subdivision").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
                     Spacer()
                     Text("\(section.subdivisionMultiplier)×")
+                        .font(.jbMono(.bold, size: 16 * sf))
                         .foregroundColor(QStageTheme.text)
                 }
             }
 
             VStack(alignment: .leading, spacing: 6 * sf) {
                 HStack {
-                    Text("Swing").foregroundColor(QStageTheme.text2)
+                    Text("Swing").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
                     Spacer()
                     Text(section.subdivisionMultiplier == 2 ? "\(Int(section.swingRatio * 100))%" : "—")
+                        .font(.jbMono(.bold, size: 16 * sf))
                         .foregroundColor(QStageTheme.text)
                 }
                 // CONTRATTO L1 (sourced): MetronomeDSP.h:37 swingRatio valido in [0.5, 1.0[;
@@ -180,7 +183,7 @@ struct SectionEditorView: View {
                     .disabled(section.subdivisionMultiplier != 2)
                 if section.subdivisionMultiplier != 2 {
                     Text("Swing applies only with eighth-note subdivision (×2).")
-                        .font(.system(size: 11 * sf))
+                        .font(.jbMono(.regular, size: 11 * sf))
                         .foregroundColor(QStageTheme.text3)
                 }
             }
@@ -190,13 +193,14 @@ struct SectionEditorView: View {
         .listRowBackground(QStageTheme.surface)
     }
 
-    private var notesField: some View {
+    private func notesField(_ sf: CGFloat) -> some View {
         Section {
             TextField("Notes", text: $section.notes, axis: .vertical)
+                .font(.jbMono(.regular, size: 15 * sf))
                 .lineLimit(1...4)
                 .foregroundColor(QStageTheme.text)
         } header: {
-            Text("Notes").foregroundColor(QStageTheme.text2)
+            Text("Notes").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
         }
         .listRowBackground(QStageTheme.surface)
     }
@@ -279,7 +283,7 @@ private struct AccentDisplay: View {
                 Spacer()
                 Text("read-only").foregroundColor(QStageTheme.text3)
             }
-            .font(.system(size: 10 * sf))
+            .font(.jbMono(.regular, size: 10 * sf))
             .foregroundColor(QStageTheme.text3)
         }
         .padding(.vertical, 4 * sf)
