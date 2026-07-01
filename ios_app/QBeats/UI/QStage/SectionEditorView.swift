@@ -162,7 +162,7 @@ struct SectionEditorView: View {
                 HStack {
                     Text("Subdivision").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
                     Spacer()
-                    Text("\(section.subdivisionMultiplier)×")
+                    Text("×\(section.subdivisionMultiplier)")
                         .font(.jbMono(.bold, size: 16 * sf))
                         .foregroundColor(QStageTheme.text)
                 }
