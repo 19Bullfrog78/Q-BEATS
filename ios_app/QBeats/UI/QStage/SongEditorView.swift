@@ -65,7 +65,7 @@ struct SongEditorView: View {
                             .listRowBackground(QStageTheme.surface)
                         } header: {
                             HStack {
-                                Text("Sections").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
+                                Text("Sections").font(.jbMono(.medium, size: 10 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
                                 Spacer()
                                 if !draft.sections.isEmpty {
                                     Button(editMode == .active ? "Done" : "Reorder") {
