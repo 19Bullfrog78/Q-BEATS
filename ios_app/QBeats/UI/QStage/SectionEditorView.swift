@@ -22,32 +22,36 @@ struct SectionEditorView: View {
     }
 
     var body: some View {
-        ZStack {
-            QStageTheme.bg.ignoresSafeArea()
-            VStack(spacing: 0) {
-                QStageNavBar(backTitle: "SONG",
-                             onBack: { commitBPM(); dismiss() },
-                             crumb: "SECTION",
-                             trailingTitle: "DONE",
-                             trailingAction: { commitBPM(); dismiss() })
-                List {
-                    nameTempo
-                    meterAccents
-                    repeatFeel
-                    notesField
+        GeometryReader { geo in
+            let sf = geo.size.width / 390
+            ZStack {
+                QStageTheme.bg.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    QStageNavBar(backTitle: "SONG",
+                                 onBack: { commitBPM(); dismiss() },
+                                 crumb: "SECTION",
+                                 trailingTitle: "DONE",
+                                 trailingAction: { commitBPM(); dismiss() },
+                                 sf: sf)
+                    List {
+                        nameTempo(sf)
+                        meterAccents(sf)
+                        repeatFeel(sf)
+                        notesField
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
     }
 
-    private var nameTempo: some View {
+    private func nameTempo(_ sf: CGFloat) -> some View {
         Section {
             TextField("Section name", text: $section.name)
-                .font(.custom("JetBrainsMono-SemiBold", size: 16))
+                .font(.custom("JetBrainsMono-SemiBold", size: 16 * sf))
                 .foregroundColor(QStageTheme.text)
             HStack {
                 Text("BPM").foregroundColor(QStageTheme.text2)
@@ -56,9 +60,9 @@ struct SectionEditorView: View {
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
                     .focused($bpmFocused)
-                    .font(.custom("JetBrainsMono-Bold", size: 17))
+                    .font(.custom("JetBrainsMono-Bold", size: 17 * sf))
                     .foregroundColor(QStageTheme.text)
-                    .frame(maxWidth: 64)
+                    .frame(maxWidth: 64 * sf)
                     .onSubmit { commitBPM() }
                 // +/- come Stepper STANDALONE (label nascosta), separato dal campo (l'anti-pattern
                 // Test 5 — campo DENTRO la label — NON torna). onIncrement/onDecrement (non value:)
@@ -115,7 +119,7 @@ struct SectionEditorView: View {
         bpmText = String(Int(section.bpm))   // riallinea SEMPRE il testo al modello (valore accettato o revert)
     }
 
-    private var meterAccents: some View {
+    private func meterAccents(_ sf: CGFloat) -> some View {
         Section {
             Picker(selection: meterBinding) {
                 ForEach(TimeSignature.all) { ts in
@@ -124,7 +128,7 @@ struct SectionEditorView: View {
             } label: {
                 Text("Meter").foregroundColor(QStageTheme.text2)
             }
-            AccentDisplay(beatsPerBar: Int(section.beatsPerBar), pattern: section.accentPattern)
+            AccentDisplay(beatsPerBar: Int(section.beatsPerBar), pattern: section.accentPattern, sf: sf)
         } header: {
             Text("Meter & Accents").foregroundColor(QStageTheme.text2)
         } footer: {
@@ -134,7 +138,7 @@ struct SectionEditorView: View {
         .listRowBackground(QStageTheme.surface)
     }
 
-    private var repeatFeel: some View {
+    private func repeatFeel(_ sf: CGFloat) -> some View {
         Section {
             Toggle(isOn: loopBinding) {
                 Text("Loop ∞").foregroundColor(QStageTheme.text2)
@@ -147,7 +151,7 @@ struct SectionEditorView: View {
                         Text("Repeat").foregroundColor(QStageTheme.text2)
                         Spacer()
                         Text("×\(section.repetitions)")
-                            .font(.custom("JetBrainsMono-Bold", size: 16))
+                            .font(.custom("JetBrainsMono-Bold", size: 16 * sf))
                             .foregroundColor(QStageTheme.text)
                     }
                 }
@@ -162,7 +166,7 @@ struct SectionEditorView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6 * sf) {
                 HStack {
                     Text("Swing").foregroundColor(QStageTheme.text2)
                     Spacer()
@@ -176,7 +180,7 @@ struct SectionEditorView: View {
                     .disabled(section.subdivisionMultiplier != 2)
                 if section.subdivisionMultiplier != 2 {
                     Text("Swing applies only with eighth-note subdivision (×2).")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11 * sf))
                         .foregroundColor(QStageTheme.text3)
                 }
             }
@@ -251,33 +255,34 @@ struct SectionEditorView: View {
 private struct AccentDisplay: View {
     let beatsPerBar: Int
     let pattern: [UInt8]
+    let sf: CGFloat
 
-    private let columns = [GridItem(.adaptive(minimum: 40), spacing: 8)]
+    private var columns: [GridItem] { [GridItem(.adaptive(minimum: 40 * sf), spacing: 8 * sf)] }
     private let accentColor = Color(hex: "#28cd41")   // = MetSlotStripView accent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8 * sf) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8 * sf) {
                 ForEach(0..<max(beatsPerBar, 0), id: \.self) { i in
                     Text("\(i + 1)")
-                        .font(.custom("JetBrainsMono-Bold", size: 13))
-                        .frame(width: 40, height: 40)
+                        .font(.custom("JetBrainsMono-Bold", size: 13 * sf))
+                        .frame(width: 40 * sf, height: 40 * sf)
                         .background(background(value(i)))
                         .foregroundColor(value(i) == 0 ? QStageTheme.text3 : QStageTheme.bg)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .clipShape(RoundedRectangle(cornerRadius: 8 * sf))
                 }
             }
-            HStack(spacing: 14) {
+            HStack(spacing: 14 * sf) {
                 legend(accentColor, "Accent")
                 legend(QStageTheme.text.opacity(0.85), "Beat")
                 legend(QStageTheme.text.opacity(0.20), "Subdiv")
                 Spacer()
                 Text("read-only").foregroundColor(QStageTheme.text3)
             }
-            .font(.system(size: 10))
+            .font(.system(size: 10 * sf))
             .foregroundColor(QStageTheme.text3)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4 * sf)
     }
 
     // Valore della cella i: pattern[i] se presente, altrimenti default VISIVO "beat" (1). Nessuna scrittura.
@@ -292,8 +297,8 @@ private struct AccentDisplay: View {
     }
 
     private func legend(_ color: Color, _ label: String) -> some View {
-        HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 12, height: 12)
+        HStack(spacing: 4 * sf) {
+            RoundedRectangle(cornerRadius: 3 * sf).fill(color).frame(width: 12 * sf, height: 12 * sf)
             Text(label)
         }
     }
