@@ -36,7 +36,7 @@ struct SongEditorView: View {
                                 Text("1 bar").tag(1)
                                 Text("2 bars").tag(2)
                             } label: {
-                                Text("Count-in")
+                                Text("Count-in").font(.jbMono(.medium, size: 15 * sf))
                             }
                             .pickerStyle(.segmented)
                         }
@@ -59,12 +59,13 @@ struct SongEditorView: View {
                                 pushNewSection = true   // auto-enter: apri subito l'editor della nuova sezione
                             } label: {
                                 Label("Add Section", systemImage: "plus.circle")
+                                    .font(.jbMono(.medium, size: 15 * sf))
                                     .foregroundColor(QStageTheme.accent)
                             }
                             .listRowBackground(QStageTheme.surface)
                         } header: {
                             HStack {
-                                Text("Sections").foregroundColor(QStageTheme.text2)
+                                Text("Sections").font(.jbMono(.medium, size: 11 * sf)).textCase(.uppercase).foregroundColor(QStageTheme.text2)
                                 Spacer()
                                 if !draft.sections.isEmpty {
                                     Button(editMode == .active ? "Done" : "Reorder") {
