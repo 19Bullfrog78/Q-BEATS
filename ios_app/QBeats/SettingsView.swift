@@ -31,7 +31,7 @@ struct SettingsView: View {
                             }
                         )) {
                             Text("Director").tag(LinkMode.direttore)
-                            Text("Collaborative").tag(LinkMode.collaborativa)
+                            Text("Follower").tag(LinkMode.collaborativa)
                         }
                         .pickerStyle(.menu)
                         .disabled(audioEngine.isPlaying)
