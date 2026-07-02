@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 26
-**Ultima modifica:** 2026-06-30
+**Versione:** 27
+**Ultima modifica:** 2026-07-01
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -253,12 +253,6 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **De-risk (sourced S3+S4):** (a) modello **unico, già esistente** — `struct Setlist` (`Models/Setlist.swift:3`); CRUD store pronto (`QBeatsStore.swift:72-89` + `resolve` `:95`, `setlists.json`); stesso `Setlist` per palco (`SetlistRunner.swift:59`) e backup (`QBeatsBackupManager.swift:27-29`) → niente "due verità". (b) mount **pulito** — tab dentro il `TabView` (`QStageRootView.swift:17`) via commutazione (`AppRootView.swift:27-33`), **NON** eredita Nodo A (modale Q-Live, `HomeRootView.swift:76-88`); monterebbe come Songs (proprio `NavigationStack`, `SongListView.swift:19`).
 - **Dominio:** CD (UX/flusso) + referee (architettura) → poi CC. **Stato:** 🟠 OPEN MEDIA.
 
-### TD-ipad-editor-fontsize — editor Q-Stage con testo non scalato su iPad (🟠 OPEN MEDIA / schermata editor su iPad)
-- **Sintomo (device, collaudo `b1c50ab` 30/06, Mauro):** su iPad Home e Songs sono dimensionate bene, ma aprendo l'editor (`+` → editor canzone/sezione) **le scritte sono piccole** rispetto a Home/Songs.
-- **Causa sourced:** Home/Songs scalano col pattern `sf = geo.size.width / 390` in `GeometryReader`, applicato ovunque (`SongListView.swift:20-21`, `:47`, `:60`; navbar `sf:sf` `:25`). L'**editor NO**: `SongEditorView`/`SectionEditorView` senza `GeometryReader`/`sf`, misure **letterali** (`SongEditorView.swift:28-29` `size:17`; `SectionEditorView.swift:36` `size:16`, `:43` `size:17`) + `QStageNavBar` chiamata **senza** `sf` → default `sf=1` (`QStageKit.swift:38`). iPhone `sf≈1` invisibile; iPad `sf>1` → editor a baseline-iPhone.
-- **Fix:** propagare lo stesso `sf` da `geo.size` all'editor (memoria `feedback_qbeats_scaling_responsive`); **VIETATI** `@ScaledMetric`/`preferredFont`/`sizeCategory`.
-- **Dominio:** CC (+ CD misure DS). **Stato:** 🟠 OPEN MEDIA.
-
 ### TD-editor-back-discard — la freccia indietro dell'editor canzone scarta le modifiche senza avviso (🟠 OPEN MEDIA / perdita-dati silenziosa — pre-esistente)
 - **Sintomo (emerso dal collaudo `b1c50ab`, Mauro 30/06):** nell'editor canzone la **freccia indietro** scarta le modifiche del draft **senza avviso**; persiste **solo** il bottone SAVE. Riproduzione: BPM 230 → freccia indietro → riapri → torna a 120 (con SAVE resta).
 - **Causa sourced (verbatim):** `SongEditorView.swift:22` `onBack: { dismiss() }` → `dismiss()` **non salva** il draft (`@State draft: Song`, copia di lavoro); il commit reale è **solo** `save()` (`SongEditorView.swift:95-98`, `await store.updateSong(draft)` `:97`), legato al bottone SAVE (`:25` `trailingAction: save`).
@@ -422,6 +416,14 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 # Sezione 2 — Bug CHIUSI (storico, non si cancellano)
 
 Per data di chiusura, decrescente.
+
+## 🟢 Luglio 2026
+
+### TD-ipad-editor-fontsize — editor Q-Stage con testo non scalato su iPad — 🟢 CHIUSO 01/07/2026
+- **🟢 CHIUSO 01/07/2026 (device-confermato, Mauro «ok tutto bene»):** su HEAD `11e5017`, editor canzone/sezione **scalati su iPad** + **tipografia DS uniforme** — 4 header sezione uniformi (JBMono 10 UPPER) + Repeat&Feel coerente iPhone/iPad. *(Il device ha confermato scaling + tipografia = il bug vero; per il glifo Subdivision vedi PIN ②.)*
+- **Implementazione (7 atomi single-purpose, autore Mauro, zero Co-Auth, CI verdi, sopra `3b43627`):** `sf = geo.size.width/390` propagato all'editor via `GeometryReader` (full-mirror Songs-list) — `d7bdc81` (`SectionEditorView`) + `d650ccd` (`SongEditorView`); tipografia DS SF-Pro→JetBrains Mono ×sf, gerarchia neighbor-sourced — `99cc0ce` + `4ba7f42` (Round-2); 4 header sezione uniformi JBMono 10 UPPER + Repeat&Feel convertito — `033f192` + `47906cd`; Subdivision `1×`→`×N` — `11e5017`. `@ScaledMetric`/`preferredFont`/`sizeCategory` non usati (`feedback_qbeats_scaling_responsive`); `accentPattern` non toccato. L3 puro.
+- **② Subdivision (PIN, non-derivabile):** display Subdivision = **`×N`** (moltiplicatore, `SectionEditorView.swift:165 Text("×\(section.subdivisionMultiplier)")`). **Àncora primaria = coerenza codice, verificabile a HEAD:** Repeat (`:154`), Subdivision (`:165`) e hint Swing `(×2)` (`:185`) sono **tutti `×N`** → `×N` è coerente, `N×` sarebbe l'anomalia. Scelta **ratificata da Mauro 01/07** (uniformità display, override reco CC+referee). Il **glifo `×N` specifico non è ri-testato a sé sul device** (cambio 1-char di display, zero impatto sullo scaling — immateriale). **NON `N×`.** Eventuale ripensamento notazione = nota-lane CD; `×N` resta baseline.
+- **Dominio:** CC. CI verdi (4 run, push a coppie): `28504107176` (`d650ccd`) · `28528804273` (`4ba7f42`) · `28532044151` (`47906cd`) · `28532925786` (`11e5017`).
 
 ## 🟢 Giugno 2026
 
@@ -694,6 +696,7 @@ Per data di chiusura, decrescente.
 | 24 | 2026-06-30 | CC chat principale 30/06 | **Collaudo device `b1c50ab` — 3 fix CHIUSI + 4 riscontri.** I 3 commit device-confermati (Mauro 30/06): editor-polish `5839e4f` (Add Section auto-enter + default `""`) → §1.3 i 2 item CC 🟢; iPad-A `87d22a9` (scaleFactor cap) + iPad-B `4b3e91d` (portrait-only) → **TD-ipad-home 🟢 CHIUSO, spostato in Sez.2**. NUOVI §1.2: **TD-shows-authoring** (tab Shows = segnaposto `QStageRootView.swift:7`/`:22-27`, `QStageKit.swift:73`; modello unico `Setlist` `Models/Setlist.swift:3` + mount pulito no-Nodo-A; ≠ Shows-palco Q-Live; 🟠 CD+referee) + **TD-ipad-editor-fontsize** (editor non scala su iPad: misure letterali `SongEditorView.swift:28-29` vs `sf` Home/Songs; 🟠 CC). NUOVO §1.3: **TD-editor-bpm-typeable** (BPM solo +/- `SectionEditorView.swift:38`, manca input scrivibile; range campo `20...400`, motore NO clamp `MetronomeDSP.cpp:35-49`/`AudioEngine.swift:1091-1123`, tre range UI distinti incl. `ContentView.swift:29` 40...240 + `TapTempoEngine.swift:20-21` 40...250; 🟡 CC) + aggiornato bullet Reorder (prova dal vivo, drag Opzione C). Sourcing S1-S5 verificato avversarialmente (workflow 5 agenti: S1 corretto con `ContentView.swift:29`; S3/S4/S5 confermati). Bump header 23→24. Doc-only, nessun fix codice. |
 | 25 | 2026-06-30 | CC chat principale 30/06 | **Nuovo ticket §1.2 `TD-editor-back-discard` (doc-only).** Freccia indietro editor canzone (`SongEditorView.swift:22` `onBack: { dismiss() }`) scarta il draft **senza avviso**; persiste solo SAVE (`save()` → `store.updateSong(draft)` `:95-98`, bottone `:25`). **Perimetro verificato (grep onBack):** `:22` = UNICO scarto-silenzioso (`SectionEditorView:29` committa-poi-dismiss; `SongListView:25`/`QStageKit:85` senza draft). 🟠 **PRE-ESISTENTE — NON regressione DIFF B `9d047e0`** (riga `:22` da `dd0fcaa` 27/06; `9d047e0` tocca solo `SectionEditorView`). Emerso dal collaudo `b1c50ab` (BPM 230→back→120). Cura UX → CD. Bump header 24→25. Doc-only, nessun fix codice. |
 | 26 | 2026-06-30 | CC chat principale 30/06 | **`TD-editor-bpm-typeable` 🟢 CHIUSO (device 5/5) + nuovo ticket spacing.** Collaudo device `51dabab`: campo BPM scrivibile + +/− insieme, 5 stati verdi (scrittura · +/− soli con hold-to-repeat · combinazione 120→121 · sporco cancella→+1 · Test 3/delta). 3 commit codice: `9d047e0` (TextField digitabile + commit-on-exit `:29/:32`) + `726246f` (decouple +/−) + `51dabab` (`Stepper(onIncrement/onDecrement)` commit-first + ri-clamp). `TD-editor-bpm-typeable` → §2. NUOVO §1.3 **`TD-editor-bpm-spacing`** (numero BPM troppo vicino ai +/− → dito copre il valore sul "−"; layout `nameTempo`; cura UX/DS → CD+CC; 🟡). Bump header 25→26. Doc-only, nessun fix codice. |
+| 27 | 2026-07-01 | CC chat principale 01/07 | **`TD-ipad-editor-fontsize` 🟢 CHIUSO (device 01/07, Mauro «ok tutto bene»).** Fix = 7 atomi Mauro/zero-Co-Auth/CI-verdi su HEAD `11e5017` (scaleFactor editor `d7bdc81`+`d650ccd` · tipografia DS JBMono `99cc0ce`+`4ba7f42` · 4 header uniformi + Repeat&Feel `033f192`+`47906cd` · Subdivision `1×`→`×N` `11e5017`). **② pinnata:** Subdivision = `×N` (àncora = coerenza codice `:154`/`:165`/`:185`; scelta Mauro 01/07; glifo non ri-testato a sé), NON `N×` — notazione a baseline, ripensamento = lane-CD. Bump header 26→27. Doc-only, nessun fix codice. |
 
 ---
 
