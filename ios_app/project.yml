@@ -120,3 +120,36 @@ targets:
           EXCLUDED_SOURCE_FILE_NAMES[sdk=iphoneos*]: ""
         Release:
           EXCLUDED_SOURCE_FILE_NAMES: "test_backtrack.mp3"
+
+  # === B7-A5-pre — Banco Swift (infra, ratifica referee 03/07/2026) ===
+  # Target unit-test STANDALONE (D1): nessuna host app, nessuna dependency
+  # sull'app — compila direttamente QBeats/Models (cartella auto-contenuta,
+  # solo Foundation/Combine) + i file di test. NIENTE LinkKit/core_engine/
+  # bridging: il banco testa i modelli Codable, isolato da firma e C++.
+  QBeatsTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: QBeatsTests
+      - path: QBeats/Models
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats.tests
+      configs:
+        Debug:
+          CODE_SIGNING_ALLOWED: NO
+          CODE_SIGNING_IDENTITY: ""
+          PROVISIONING_PROFILE_SPECIFIER: ""
+
+# Scheme ESPLICITO per il banco (D1: xcodebuild test -scheme esige uno scheme
+# condiviso; non affidiamo il banco all'auto-generazione).
+schemes:
+  QBeatsTests:
+    build:
+      targets:
+        QBeatsTests: test
+    test:
+      config: Debug
+      targets:
+        - QBeatsTests

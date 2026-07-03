@@ -19,6 +19,36 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios_app
         run: xcodegen generate
+      # === B7-A5-pre — Banco Swift (ratifica referee 03/07/2026) ===
+      # PRIMA di certificato/firma/archive: fail-fast, e il simulatore non ha
+      # bisogno di keychain. Test rosso = pipeline rossa (nessun || true /
+      # continue-on-error attorno a xcodebuild).
+      - name: Run Swift model tests (simulator)
+        working-directory: ios_app
+        run: |
+          set -o pipefail
+          # D3 — destination DINAMICA: primo iPhone disponibile sul runner
+          # (macos-latest in migrazione macOS 26: niente nomi device scolpiti).
+          # Il "|| true" è SOLO sul grep di ricerca (con bash -e un no-match
+          # ucciderebbe lo step qui, senza messaggio): il fallimento vero è
+          # gestito ESPLICITAMENTE dal check sotto, mai mascherato.
+          UDID=$(xcrun simctl list devices available \
+            | grep 'iPhone' \
+            | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' \
+            | head -1 || true)
+          if [ -z "$UDID" ]; then
+            echo "::error::Nessun simulatore iPhone disponibile sul runner — banco Swift non eseguibile"
+            xcrun simctl list devices available || true
+            exit 1
+          fi
+          echo "Simulatore selezionato:"
+          xcrun simctl list devices available | grep "$UDID"
+          xcodebuild test \
+            -project QBeats.xcodeproj \
+            -scheme QBeatsTests \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            CODE_SIGNING_ALLOWED=NO
       - name: Install Apple Certificate
         env:
           P12_CERTIFICATE: ${{ secrets.P12_CERTIFICATE }}
