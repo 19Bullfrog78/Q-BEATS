@@ -1,5 +1,6 @@
 #include "MetronomeDSP.h"
 #include <cassert>
+#include <cstdio>
 #include <iostream>
 #include <cmath>
 
@@ -372,10 +373,183 @@ void SampleRateUpdateTakesEffect() {
     std::cout << "SampleRateUpdateTakesEffect passed" << std::endl;
 }
 
+// ═══ B7-A4 — Anti-drift "121 ±2" con ORACOLO IN FORMA CHIUSA ════════════════
+// Estende test_long_term_drift: da bpm FISSO a TempoMap oscillante ±2 attorno
+// a 121 (triangolo 119↔123, media 121).
+//
+// ORACOLO PRIMARIO (ratifica referee 03/07, chiodo ③ + ruling punto 6): la
+// fase-in-beat è l'INTEGRALE della mappa, B(s) = ∫ bpm(u) du / (60·SR); sui
+// segmenti lineari il trapezio è ESATTO, e il sample del k-esimo beat esce
+// per INVERSIONE (quadratica dentro il segmento). Long double, test-side,
+// NESSUN codice condiviso col follower (ZOH per-buffer + "+= spb"): metodi
+// indipendenti sulla stessa mappa-dato LETTERALE del test (non via bpmAt).
+// L'integratore per-buffer long double è solo CROSS-CHECK SECONDARIO
+// (ratifica: MAI oracolo primario — è la stessa matematica del follower) e
+// serve a isolare la componente ZOH pura.
+//
+// SOGLIE: PROPOSTE — il numero finale lo approva il referee al gate A4
+// (procedura ratificata: bound caratterizzato + margine).
+
+struct OraclePoint { long double s; long double bpm; };
+
+// Sample del k-esimo beat per integrazione + inversione (forma chiusa).
+static long double oracleBeatSample(const std::vector<OraclePoint>& pts,
+                                    long double SR, uint64_t k) {
+    const long double target = (long double)k;
+    long double accBeats = 0.0L;
+    for (size_t i = 0; i + 1 < pts.size(); ++i) {
+        const long double s0 = pts[i].s,   s1 = pts[i + 1].s;
+        const long double b0 = pts[i].bpm, b1 = pts[i + 1].bpm;
+        const long double segBeats = (b0 + b1) / 2.0L * (s1 - s0) / (60.0L * SR);
+        if (accBeats + segBeats < target) { accBeats += segBeats; continue; }
+        const long double R = target - accBeats;         // beat residui nel segmento
+        const long double m = (b1 - b0) / (s1 - s0);     // pendenza bpm/sample
+        if (m == 0.0L) return s0 + R * 60.0L * SR / b0;
+        // (m/2)·x² + b0·x − R·60·SR = 0 → radice positiva (disc tra b0² e b1², sempre > 0)
+        const long double disc = b0 * b0 + 2.0L * m * R * 60.0L * SR;
+        return s0 + (-b0 + sqrtl(disc)) / m;
+    }
+    const OraclePoint& last = pts.back();                // clamp: bpm costante
+    return last.s + (target - accBeats) * 60.0L * SR / last.bpm;
+}
+
+// bpm della mappa a un sample (interp lineare + clamp), long double — usato
+// SOLO dal cross-check secondario per-buffer.
+static long double mapBpmAtLD(const std::vector<OraclePoint>& pts, long double s) {
+    if (s <= pts.front().s) return pts.front().bpm;
+    if (s >= pts.back().s)  return pts.back().bpm;
+    size_t i = 0;
+    while (pts[i + 1].s <= s) ++i;
+    const long double t = (s - pts[i].s) / (pts[i + 1].s - pts[i].s);
+    return pts[i].bpm + t * (pts[i + 1].bpm - pts[i].bpm);
+}
+
+static void runAdaptiveDriftCase(uint32_t bufSize) {
+    const long double SR = 48000.0L;
+    // Mappa LETTERALE: triangolo 119↔123 (media 121), un punto ogni 15 s
+    // (720000 campioni), 41 punti = 20 periodi interi da 30 s (600 s totali).
+    std::vector<OraclePoint> opts;
+    std::vector<TempoPoint>  tpts;
+    for (int i = 0; i <= 40; ++i) {
+        const uint64_t off = (uint64_t)i * 720000ULL;
+        const double   b   = (i % 2 == 0) ? 119.0 : 123.0;
+        opts.push_back({ (long double)off, (long double)b });
+        tpts.push_back({ off, b });
+    }
+    TempoMap map;
+    assert(TempoMap::make(tpts, 48000.0, map));
+
+    MetronomeDSP dsp(48000.0, 90.0);   // bpm iniziale ininfluente: vince la mappa
+    assert(dsp.setTempoMap(map));
+    dsp.resetForStart(0.0);
+
+    const size_t kBeats = 1200;        // ~595 s, dentro i 600 s coperti dalla mappa
+    std::vector<uint64_t> beats;
+    beats.reserve(kBeats);
+    uint64_t pos = 0;
+    while (beats.size() < kBeats && pos < 28800000ULL) {
+        auto evs = dsp.processBuffer(bufSize);
+        for (const auto& e : evs)
+            if (e.isBeat) beats.push_back(pos + e.offset);
+        pos += bufSize;
+    }
+    assert(beats.size() == kBeats);    // nessun beat perso sull'intera corsa
+
+    // Oracolo precalcolato una volta (riusato da follower-check e cross-check).
+    std::vector<long double> oracleS(kBeats);
+    for (size_t k = 0; k < kBeats; ++k)
+        oracleS[k] = oracleBeatSample(opts, SR, (uint64_t)k);
+
+    // Deviazioni follower vs oracolo (in ms) + caratterizzazione.
+    std::vector<long double> devMs(kBeats);
+    long double maxAbs = 0.0L, maxFirst = 0.0L, maxSecond = 0.0L;
+    for (size_t k = 0; k < kBeats; ++k) {
+        devMs[k] = ((long double)beats[k] - oracleS[k]) / 48.0L;
+        const long double a = fabsl(devMs[k]);
+        if (a > maxAbs) maxAbs = a;
+        if (k < kBeats / 2) { if (a > maxFirst)  maxFirst  = a; }
+        else                { if (a > maxSecond) maxSecond = a; }
+    }
+
+    // Deriva NETTA ai confini di DOPPIO periodo (60 s = 121 beat ESATTI:
+    // media 121 sul triangolo simmetrico → l'errore oscillante si elide).
+    long double maxBoundary = 0.0L;
+    printf("  [A4][buf=%u] deriva netta ai confini 60s (n=1..9, ms):", bufSize);
+    for (int n = 1; n <= 9; ++n) {
+        const long double a = fabsl(devMs[(size_t)n * 121]);
+        printf(" %.3f", (double)a);
+        if (a > maxBoundary) maxBoundary = a;
+    }
+    printf("\n");
+
+    // CROSS-CHECK SECONDARIO: integratore long double con lo STESSO
+    // campionamento per-buffer del follower → isola la componente ZOH pura
+    // (attesa sotto-millisecondo, ruling punto 6).
+    long double zohMax = 0.0L;
+    {
+        long double phase = 0.0L;
+        uint64_t p = 0;
+        size_t next = 0;
+        while (next < kBeats && p < 28800000ULL) {
+            const long double bpmTop = mapBpmAtLD(opts, (long double)p);
+            const long double dph = bpmTop * (long double)bufSize / (60.0L * SR);
+            while (next < kBeats && phase + dph >= (long double)next) {
+                const long double frac = ((long double)next - phase) / dph;
+                const long double sBeat = (long double)p + frac * (long double)bufSize;
+                const long double d = fabsl(sBeat - oracleS[next]) / 48.0L;
+                if (d > zohMax) zohMax = d;
+                ++next;
+            }
+            phase += dph;
+            p += bufSize;
+        }
+        assert(next == kBeats);
+    }
+
+    // Componente di deriva LINEARE (trovata dalla serie dei confini):
+    // bias di 2° ordine del campionamento a inizio-gap — la convessità di
+    // 1/bpm non si elide sul triangolo (i termini di 1° ordine sì). Tasso
+    // QUADRATICO nella pendenza della mappa: su questa fixture aggressiva
+    // (+/-2 BPM per 15 s) ~0.065-0.070 ms/min. Su materiale reale la deriva
+    // si accumula SOLO sui tratti a tempo VARIABILE (brevi e alternati) →
+    // pochi ms al massimo su un set intero; un accelerando ripido è
+    // localmente più pendente della fixture, ma dura secondi e poi
+    // l'accumulo si ferma a tempo costante. (Correzione referee: NON
+    // "collassa sempre 100x".)
+    const long double netRatePerMin =
+        (fabsl(devMs[(size_t)9 * 121]) - fabsl(devMs[121])) / 8.0L;
+    printf("  [A4][buf=%u] peak=%.3f ms | 1a meta'=%.3f | 2a meta'=%.3f | confini-60s=%.3f | ZOH-only=%.3f ms | deriva=%.4f ms/min\n",
+           bufSize, (double)maxAbs, (double)maxFirst, (double)maxSecond,
+           (double)maxBoundary, (double)zohMax, (double)netRatePerMin);
+
+    // SOGLIE FISSATE DAL REFEREE (gate A4 03/07, opzione (a) di Mauro):
+    assert(zohMax        <= 0.5L);            // (i) componente ZOH: sotto-millisecondo
+    assert(maxAbs        <= 12.0L);           // picco totale (lag-1-beat ratificato, ~8.8 ms)
+    // (ii) NB: l'errore NON è "bounded" in senso assoluto — CRESCE (deriva
+    // lineare sopra). Su 10 min la crescita resta < 0.5 ms, quindi questo
+    // slack regge SOLO perché legato alla durata della corsa (non è
+    // scale-invariante). Il guardiano di lungo termine è il TASSO (assert
+    // sotto), non questo slack.
+    assert(maxSecond     <= maxFirst + 0.5L);
+    assert(maxBoundary   <= 2.5L);            // deriva netta contenuta a ogni doppio periodo
+    // Guardiano di regressione (referee): quasi-deterministico su fixture
+    // fissa (misurato 0.065-0.070 ms/min) → 0.10 scatta se la deriva
+    // ~raddoppia (~0.14); 0.15 l'avrebbe lasciata passare. Margine ~1.4x
+    // sul rumore.
+    assert(netRatePerMin <= 0.10L);
+}
+
+void test_adaptive_drift_121_pm2_closed_form_oracle() {
+    runAdaptiveDriftCase(512);   // buffer target del ruling (punto 6)
+    runAdaptiveDriftCase(256);   // conferma alla dimensione standard del banco
+    std::cout << "test_adaptive_drift_121_pm2_closed_form_oracle passed" << std::endl;
+}
+
 int main() {
     test_basic_beat();
     test_buffer_wrap();
     test_long_term_drift();
+    test_adaptive_drift_121_pm2_closed_form_oracle();
     test_accent_default_downbeat();
     test_accent_pattern_6_8();
     test_accent_pattern_7_8();
