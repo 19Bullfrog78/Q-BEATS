@@ -66,6 +66,49 @@ void MetronomeDSP::cancelPendingBPM() {
     _bpmChangeDirty.store(false, std::memory_order_release);
 }
 
+// === B7-A3 — Follower adattivo: setter non-RT (audioQueue) ===
+bool MetronomeDSP::setTempoMap(const TempoMap& map) {
+    // Precondizione ② (contratto dominio-clock, TempoMap.h): il rate della
+    // mappa DEVE coincidere col rate del DSP — in RT nessuna conversione,
+    // i due assi devono essere numericamente lo stesso asse.
+    if (!map.isValid()) return false;
+    if (map.sourceSampleRate() != _sampleRate) return false;
+    if (map.size() > TempoMap::kMaxPoints) return false;  // difensivo (già garantito da make)
+
+    // Guardia anti-flip sul CONTATORE RT, non wall-clock: l'orologio non sa
+    // se il thread RT ha davvero girato nel frattempo (media-services reset,
+    // backgrounding — §6); il contatore incrementato da processBuffer sì.
+    // Non applicabile al PRIMO flip: nessun "ultimo flip riuscito" da
+    // proteggere, nessuno slot è mai stato letto in RT.
+    const uint64_t processed = _processedBufferCount.load(std::memory_order_acquire);
+    if (_hasEverFlipped && processed - _lastFlipBufferCount < 2) return false;
+
+    // Copia nello slot INATTIVO (il RT legge solo l'attivo), poi flip con
+    // release: chi acquisisce l'indice nuovo vede punti e count già scritti.
+    const uint32_t inactive = 1u - _activeMapSlot.load(std::memory_order_relaxed);
+    MapSlot& slot = _mapSlots[inactive];
+    std::memcpy(slot.points, map.points().data(), map.size() * sizeof(TempoPoint));
+    slot.count = map.size();
+    _activeMapSlot.store(inactive, std::memory_order_release);
+    _adaptiveActive.store(true, std::memory_order_release);
+    _hasEverFlipped      = true;
+    _lastFlipBufferCount = processed;
+
+    // Anti-stantio (ratifica 03/07): un cambio BPM schedulato prima
+    // dell'ingresso in adaptive non deve sopravvivere al modo — né sparare
+    // durante (l'exchange al downbeat è gated) né al rientro in fixed.
+    cancelPendingBPM();
+    return true;
+}
+
+void MetronomeDSP::clearTempoMap() {
+    _adaptiveActive.store(false, std::memory_order_release);
+    // Ri-armo pulito del path fixed (ratifica 03/07): niente swap stantio al
+    // primo downbeat dopo l'uscita. _bpm resta all'ultimo valore derivato
+    // dalla mappa finché UI/setlist non impostano un nuovo tempo.
+    cancelPendingBPM();
+}
+
 // Strada A — Schedula cambio BeatsPerBar al prossimo downbeat.
 // Pattern parallelo a scheduleBPMChange. Il valore _pendingBeatsPerBar
 // viene applicato a _beatsPerBar nell'exchange di processBuffer quando
@@ -169,6 +212,17 @@ void MetronomeDSP::resetForStart(double startBeat) {
     _currentBeatInBar       = 0;
     _exactNextBeatSample    = startBeat * spb;
     _swingPhase = false;
+    // B7-A3 — nota di correttezza (ratifica 03/07): con startBeat=0 la
+    // giustificazione "0·spb=0" copre _absoluteSamplePosition e
+    // _exactNextBeatSample, NON questo ramo: _exactNextSubdivSample resta
+    // proporzionale allo spb del _bpm corrente (potenzialmente vecchio in
+    // adaptive, dove _bpm arriva dalla mappa solo al primo buffer-top). È
+    // comunque sicuro: con startBeat=0 il primo sample processato È il
+    // downbeat (_exactNextBeatSample=0 coincide con currentAbsolute=0 a i=0)
+    // → isBeatSample vero al primo giro → isSubdivSample forzato false dalla
+    // guardia "&& !isBeatSample" (processBuffer) → questo tracker viene
+    // riscritto al beat con lo spb GIÀ aggiornato dal follower, prima che
+    // una sottodivisione possa mai uscire col valore vecchio.
     if (_subdivisionMultiplier > 1) {
         _exactNextSubdivSample = _exactNextBeatSample + subdivIntervalForPhase(spb, false);
     } else {
@@ -308,6 +362,26 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
     }
 
     std::vector<BeatEvent> beats;
+
+    // === B7-A3 — Follower adattivo: update di _bpm a INIZIO buffer ===
+    // Mappa-vince (ratifica 03/07): in adaptive il tempo viene dalla TempoMap,
+    // letta UNA volta per buffer alla posizione corrente. Scrittura DIRETTA di
+    // _bpm (stessa ownership dello swap al downbeat sotto): NIENTE setBPM, che
+    // riscala il mark e sposterebbe un beat già schedulato a metà gap — salto
+    // di fase vietato; il nuovo tempo agisce dal += spb successivo.
+    // Contratto dominio-clock (② in TempoMap.h): _absoluteSamplePosition è
+    // legittimo qui SOLO sotto le precondizioni IMPOSTE dal setter — stesso
+    // sample-rate (rifiuto al set) e start allineato (resetForStart(0), nessun
+    // reposition con mappa attiva nello scope A3). Lo stato adaptive è letto
+    // UNA volta per buffer (decisione coerente per l'intero giro, anche per il
+    // gate al downbeat sotto). RT-safe: atomic acquire + binary search su
+    // array preallocato — zero alloc/lock/syscall (Costituzione §4).
+    const bool adaptive = _adaptiveActive.load(std::memory_order_acquire);
+    if (adaptive) {
+        const MapSlot& slot = _mapSlots[_activeMapSlot.load(std::memory_order_acquire)];
+        _bpm = tempomap::bpmAt(slot.points, slot.count, _absoluteSamplePosition);
+    }
+
     double spb = (_sampleRate * 60.0) / _bpm;
 
     if (_patternDirty.exchange(false, std::memory_order_acquire)) {
@@ -366,7 +440,16 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                 if (_bpbChangeDirty.exchange(false, std::memory_order_acquire)) {
                     _beatsPerBar = _pendingBeatsPerBar;
                 }
-                if (_bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
+                // B7-A3 — GATING SELETTIVO (ratifica 03/07): in adaptive viene
+                // saltato SOLO lo scambio BPM (mappa-vince sul TEMPO); lo
+                // scambio BPB qui sopra resta ATTIVO — tempo e metro sono
+                // ortogonali, il metro continua a seguire le sezioni anche in
+                // adaptive. Il flag _bpmChangeDirty NON viene consumato qui:
+                // i transiti di modo lo azzerano via cancelPendingBPM()
+                // (setter, non-RT). `adaptive` è lo snapshot di inizio buffer:
+                // decisione coerente per l'intero giro.
+                if (!adaptive
+                    && _bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
                     _bpm = _pendingBPM;
                     spb  = (_sampleRate * 60.0) / _bpm;
                 }
@@ -399,5 +482,9 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
     }
 
     _absoluteSamplePosition += bufferSize;
+    // B7-A3 — battito cardiaco RT per la guardia anti-flip di setTempoMap
+    // (incremento a FINE buffer = "questo giro è concluso, slot non più in
+    // lettura"). Relaxed: conta e basta, stesso pattern di _diagWrite.
+    _processedBufferCount.fetch_add(1, std::memory_order_relaxed);
     return beats;
 }

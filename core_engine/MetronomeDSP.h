@@ -4,6 +4,7 @@
 #include <cstring>
 #include <limits>
 #include <vector>
+#include "beat_tracker/TempoMap.h"
 
 struct BeatEvent {
     uint32_t offset;
@@ -41,6 +42,26 @@ public:
     // Cancella un cambio BPM schedulato non ancora scattato (thread-safe, non-RT).
     // No-op se nessun cambio è pendente. Simmetrica a scheduleBPMChange.
     void cancelPendingBPM();
+
+    // === B7-A3 — Follower adattivo (piano ratificato referee 03/07) ===
+    // Setter non-RT (audioQueue). Rifiuta: mappa non valida · sourceSampleRate
+    // != _sampleRate (contratto dominio-clock ② di TempoMap.h: in RT nessuna
+    // conversione, i domini devono coincidere numericamente) · flip a meno di
+    // 2 buffer RT dall'ultimo riuscito (guardia sul contatore RT
+    // _processedBufferCount, NON wall-clock: l'orologio non sa se il thread
+    // RT ha davvero girato — media-services reset/backgrounding, §6; il
+    // contatore sì). Su successo: copia nello slot INATTIVO + flip atomico +
+    // adaptive ON + cancelPendingBPM() (anti-stantio, ratifica 03/07).
+    bool setTempoMap(const TempoMap& map);
+
+    // non-RT. Adaptive OFF + cancelPendingBPM() (ri-armo pulito del path
+    // fixed). _bpm resta all'ultimo valore derivato dalla mappa finché
+    // UI/setlist non impostano un nuovo tempo.
+    void clearTempoMap();
+
+    bool isAdaptiveActive() const {
+        return _adaptiveActive.load(std::memory_order_acquire);
+    }
 
     // Strada A — Schedula cambio BeatsPerBar al prossimo downbeat
     // (thread-safe, non-RT). Estende il pattern di scheduleBPMChange
@@ -142,6 +163,30 @@ private:
     // (BPB precede il modulo % _beatsPerBar, BPM precede += spb).
     uint32_t          _pendingBeatsPerBar;
     std::atomic<bool> _bpbChangeDirty;
+
+    // === B7-A3 — Follower adattivo: double-buffer mappa PREALLOCATO ===
+    // 2 slot a capacità fissa (~128 KB l'uno, membri fissi allocati col
+    // costruttore off-audio-thread). Il thread lento scrive SOLO lo slot
+    // inattivo e poi flippa l'indice (release); il thread RT legge indice
+    // (acquire) + punti una volta per buffer: mai alloc/free/lock nel render
+    // path (Costituzione §4).
+    struct MapSlot {
+        TempoPoint points[TempoMap::kMaxPoints];
+        size_t     count = 0;
+    };
+    MapSlot               _mapSlots[2];
+    std::atomic<uint32_t> _activeMapSlot { 0 };
+    std::atomic<bool>     _adaptiveActive { false };
+
+    // Contatore buffer RT (monotono, incremento relaxed a fine processBuffer,
+    // stesso pattern di _diagWrite): la guardia anti-flip di setTempoMap lo
+    // legge dal thread lento per sapere se il RT ha DAVVERO girato tra due
+    // flip — un wall-clock non lo saprebbe.
+    std::atomic<uint64_t> _processedBufferCount { 0 };
+    uint64_t              _lastFlipBufferCount = 0;  // solo thread setter (non-RT)
+    bool                  _hasEverFlipped      = false;  // idem; al 1° flip la guardia
+                                                         // non si applica (nessuno slot
+                                                         // mai letto in RT prima)
 
     // --- Fase VOL: volume click — double-buffer + atomic dirty ---
     std::atomic<bool> _volumeDirty { false };
