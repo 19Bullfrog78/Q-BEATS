@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 27
-**Ultima modifica:** 2026-07-01
+**Versione:** 28
+**Ultima modifica:** 2026-07-03
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -396,6 +396,13 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Posizione CC:** direzione full-adaptive condivisa (differenziatore + fattibile via analisi-all'import). BeatIt = lead da de-riskare; beat_this_cpp = riferimento; spfk-tempo = rete di sicurezza. **Niente GPL.** Decisione finale Fase 5 col referee (vincoli on-device).
 - **Stato:** 📦 scouting/direzione Fase 5 (nessun lavoro ora). **Dominio:** CC.
 
+### TD-rt-vector-beatevent — allocazione heap nel render path (`vector<BeatEvent>` in `processBuffer`) (🟡 OPEN BASSA / rischio latente — PRE-ESISTENTE, non introdotto da A3)
+- **Fatto tecnico (righe verificate a HEAD `4dfa2f8`):** `MetronomeDSP::processBuffer` — il render path, thread audio RT — costruisce un `std::vector<BeatEvent>` locale e lo ritorna per valore (`core_engine/MetronomeDSP.cpp:354`, costruzione `:364`) con `push_back` per ogni evento emesso (`:432`, `:477`) → allocazioni/riallocazioni heap dentro il render callback. La Costituzione §4 vieta malloc/free/new/delete in RT: è una violazione formale.
+- **Attribuzione (esplicita):** PRE-ESISTENTE — architettura storica del bridge MetronomeDSP→AudioEngine. **A3 non l'ha introdotto e non l'ha toccato**: l'ha solo reso visibile leggendo §4 alla lettera durante il piano A3 (nota onesta agli atti, sprint 03/07). Il delta A3 in sé è RT-pulito (atomic + binary search su array preallocato). NON attribuire ad A3.
+- **Impatto:** rischio LATENTE, NON osservato — l'app gira, il banco è 5/5 (48 verdi), nessun glitch attribuito a questo. Il vector è piccolo (pochi eventi per buffer) e in pratica l'allocatore tende a riusare; resta però un rischio di glitch sotto pressione di memoria / con buffer piccoli. Nessun claim «causa xrun»: non misurato (§7).
+- **Fix possibile (solo annotato, NON in questo commit):** sostituire il vector di ritorno con un buffer pre-allocato a capacità fissa + count — il massimo di beat per buffer ha un tetto calcolabile (bpm max × buffer max) — stesso pattern del ring `_diagRing[kDiagRingCap]` già in `MetronomeDSP.h:208-209`. Fronte separato, gate RT pieno quando/se si affronta — decisione referee+Mauro.
+- **Priorità:** 🟡 bassa / 📦 non bloccante palco. **Dominio:** CC.
+
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
 Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
@@ -697,6 +704,7 @@ Per data di chiusura, decrescente.
 | 25 | 2026-06-30 | CC chat principale 30/06 | **Nuovo ticket §1.2 `TD-editor-back-discard` (doc-only).** Freccia indietro editor canzone (`SongEditorView.swift:22` `onBack: { dismiss() }`) scarta il draft **senza avviso**; persiste solo SAVE (`save()` → `store.updateSong(draft)` `:95-98`, bottone `:25`). **Perimetro verificato (grep onBack):** `:22` = UNICO scarto-silenzioso (`SectionEditorView:29` committa-poi-dismiss; `SongListView:25`/`QStageKit:85` senza draft). 🟠 **PRE-ESISTENTE — NON regressione DIFF B `9d047e0`** (riga `:22` da `dd0fcaa` 27/06; `9d047e0` tocca solo `SectionEditorView`). Emerso dal collaudo `b1c50ab` (BPM 230→back→120). Cura UX → CD. Bump header 24→25. Doc-only, nessun fix codice. |
 | 26 | 2026-06-30 | CC chat principale 30/06 | **`TD-editor-bpm-typeable` 🟢 CHIUSO (device 5/5) + nuovo ticket spacing.** Collaudo device `51dabab`: campo BPM scrivibile + +/− insieme, 5 stati verdi (scrittura · +/− soli con hold-to-repeat · combinazione 120→121 · sporco cancella→+1 · Test 3/delta). 3 commit codice: `9d047e0` (TextField digitabile + commit-on-exit `:29/:32`) + `726246f` (decouple +/−) + `51dabab` (`Stepper(onIncrement/onDecrement)` commit-first + ri-clamp). `TD-editor-bpm-typeable` → §2. NUOVO §1.3 **`TD-editor-bpm-spacing`** (numero BPM troppo vicino ai +/− → dito copre il valore sul "−"; layout `nameTempo`; cura UX/DS → CD+CC; 🟡). Bump header 25→26. Doc-only, nessun fix codice. |
 | 27 | 2026-07-01 | CC chat principale 01/07 | **`TD-ipad-editor-fontsize` 🟢 CHIUSO (device 01/07, Mauro «ok tutto bene»).** Fix = 7 atomi Mauro/zero-Co-Auth/CI-verdi su HEAD `11e5017` (scaleFactor editor `d7bdc81`+`d650ccd` · tipografia DS JBMono `99cc0ce`+`4ba7f42` · 4 header uniformi + Repeat&Feel `033f192`+`47906cd` · Subdivision `1×`→`×N` `11e5017`). **② pinnata:** Subdivision = `×N` (àncora = coerenza codice `:154`/`:165`/`:185`; scelta Mauro 01/07; glifo non ri-testato a sé), NON `N×` — notazione a baseline, ripensamento = lane-CD. Bump header 26→27. Doc-only, nessun fix codice. |
+| 28 | 2026-07-03 | CC chat principale 03/07 | **Nuovo ticket §1.3 `TD-rt-vector-beatevent` (doc-only).** Allocazione heap nel render path: `processBuffer` (thread RT) costruisce `std::vector<BeatEvent>` e fa `push_back` per evento (`MetronomeDSP.cpp:354`/`:364`/`:432`/`:477`, righe verificate a HEAD `4dfa2f8`) = violazione formale §4. **PRE-ESISTENTE (bridge storico MetronomeDSP→AudioEngine), NON introdotto né toccato da A3** — solo reso visibile dal piano A3 (nota onesta agli atti). Rischio latente, NON osservato (banco 48 verdi); fix annotato = buffer pre-allocato a capacità fissa + count (pattern `_diagRing`), fronte separato con gate RT pieno. Bump header 27→28. Doc-only, nessun fix codice. |
 
 ---
 
