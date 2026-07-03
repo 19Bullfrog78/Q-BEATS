@@ -1,6 +1,6 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 28
+**Versione:** 29
 **Ultima modifica:** 2026-07-03
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
@@ -260,6 +260,13 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Attribuzione: 🟠 PRE-ESISTENTE — NON regressione DIFF B (`9d047e0`).** Verificato: riga `:22` da `dd0fcaa` (27/06); `9d047e0` tocca **solo** `SectionEditorView.swift` (git show --stat).
 - **Cura = decisione UX → CD** (es. avviso "salvare le modifiche?" alla dismiss con modifiche pendenti, oppure auto-save). NON implementare qui: fronte CD.
 - **Dominio:** CD (UX) → poi CC. **Stato:** 🟠 OPEN MEDIA.
+
+### TD-store-decode-swallow — errore di decode ingoiato in `coordinatedRead` (catalogo vuoto silenzioso) (🟠 OPEN MEDIA / perdita-dati se innescato — pre-esistente)
+- **Fatto tecnico (righe verificate a HEAD `b4d3596`):** `QBeatsStore.coordinatedRead` (`ios_app/QBeats/Store/QBeatsStore.swift:148-172`) cattura l'errore di `JSONDecoder.decode` con **solo `logger.error`** e lascia `result` al default (`catch` a `:163-165`); `load()` passa default `[]` per `songs.json`/`setlists.json` (`:22-27`) → il chiamante riceve un catalogo vuoto come se fosse legittimo. **Contrasto preciso:** l'errore del COORDINATOR viene invece PROPAGATO (`throw`, `:167-170`) — l'I/O di coordinamento propaga, il decode no. Precisione: il `catch` copre l'intero blocco coordinato, quindi ingoia anche un'eventuale `Data(contentsOf:)` fallita (`:158`), non solo il decode; il caso "file assente" è invece gestito a monte come default legittimo (`:149-152`).
+- **Impatto:** uno schema-break su `songs.json` (o `setlists.json`) si manifesta come **CATALOGO VUOTO IN SILENZIO** — per l'utente è perdita dati. NON è "latente e non osservato" come `TD-rt-vector-beatevent`: è un percorso reale che si INNESCA a ogni cambio di schema non gestito. Nell'uso corrente non si è ancora manifestato (oggi nessuno schema-break in produzione). **Rischio ALTO se innescato; trigger = qualunque modifica di formato senza retro-compat.**
+- **Collegamento B7-A5:** A5 MITIGA il caso specifico "campo nuovo mancante" col decoder retro-compat (`decodeIfPresent ?? .fixed`), ma NON risolve il swallow come meccanismo — il decoder di A5 è la difesa per UN campo, il swallow è la crepa generale. Questo TD resta aperto anche a A5 chiusa.
+- **Fix possibile (solo annotato, NON in questo commit):** distinguere "file assente/vuoto" = default legittimo (già così, `:149-152`) da "decode fallito" = errore da PROPAGARE al chiamante (o gestire con backup/migrazione), invece di ingoiarlo. Fronte separato con gate pieno.
+- **Priorità:** 🟠 MEDIA (sopra `TD-rt-vector-beatevent` 🟡): impatto = perdita del catalogo utente; non bloccante palco nell'uso normale. **Dominio:** CC.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -705,6 +712,7 @@ Per data di chiusura, decrescente.
 | 26 | 2026-06-30 | CC chat principale 30/06 | **`TD-editor-bpm-typeable` 🟢 CHIUSO (device 5/5) + nuovo ticket spacing.** Collaudo device `51dabab`: campo BPM scrivibile + +/− insieme, 5 stati verdi (scrittura · +/− soli con hold-to-repeat · combinazione 120→121 · sporco cancella→+1 · Test 3/delta). 3 commit codice: `9d047e0` (TextField digitabile + commit-on-exit `:29/:32`) + `726246f` (decouple +/−) + `51dabab` (`Stepper(onIncrement/onDecrement)` commit-first + ri-clamp). `TD-editor-bpm-typeable` → §2. NUOVO §1.3 **`TD-editor-bpm-spacing`** (numero BPM troppo vicino ai +/− → dito copre il valore sul "−"; layout `nameTempo`; cura UX/DS → CD+CC; 🟡). Bump header 25→26. Doc-only, nessun fix codice. |
 | 27 | 2026-07-01 | CC chat principale 01/07 | **`TD-ipad-editor-fontsize` 🟢 CHIUSO (device 01/07, Mauro «ok tutto bene»).** Fix = 7 atomi Mauro/zero-Co-Auth/CI-verdi su HEAD `11e5017` (scaleFactor editor `d7bdc81`+`d650ccd` · tipografia DS JBMono `99cc0ce`+`4ba7f42` · 4 header uniformi + Repeat&Feel `033f192`+`47906cd` · Subdivision `1×`→`×N` `11e5017`). **② pinnata:** Subdivision = `×N` (àncora = coerenza codice `:154`/`:165`/`:185`; scelta Mauro 01/07; glifo non ri-testato a sé), NON `N×` — notazione a baseline, ripensamento = lane-CD. Bump header 26→27. Doc-only, nessun fix codice. |
 | 28 | 2026-07-03 | CC chat principale 03/07 | **Nuovo ticket §1.3 `TD-rt-vector-beatevent` (doc-only).** Allocazione heap nel render path: `processBuffer` (thread RT) costruisce `std::vector<BeatEvent>` e fa `push_back` per evento (`MetronomeDSP.cpp:354`/`:364`/`:432`/`:477`, righe verificate a HEAD `4dfa2f8`) = violazione formale §4. **PRE-ESISTENTE (bridge storico MetronomeDSP→AudioEngine), NON introdotto né toccato da A3** — solo reso visibile dal piano A3 (nota onesta agli atti). Rischio latente, NON osservato (banco 48 verdi); fix annotato = buffer pre-allocato a capacità fissa + count (pattern `_diagRing`), fronte separato con gate RT pieno. Bump header 27→28. Doc-only, nessun fix codice. |
+| 29 | 2026-07-03 | CC chat principale 03/07 | **Nuovo ticket §1.2 `TD-store-decode-swallow` (doc-only).** Errore di decode ingoiato in `QBeatsStore.coordinatedRead` (`Store/QBeatsStore.swift:163-165` a HEAD `b4d3596`, solo `logger.error` + default `[]` da `:22-27`) mentre l'errore del coordinator viene propagato (`throw :167-170`) — I/O propaga, decode no. Schema-break su songs/setlists = **catalogo vuoto silenzioso** = perdita dati per l'utente: percorso reale che si innesca a ogni cambio di formato non gestito (NON "latente non osservato"; rischio ALTO se innescato, oggi mai manifestato). A5 mitiga il caso "campo nuovo" (decodeIfPresent) ma NON il meccanismo. Fix annotato = propagare il decode-fail (o backup/migrazione), fronte separato. 🟠 MEDIA. Bump header 28→29. Doc-only, nessun fix codice. |
 
 ---
 
