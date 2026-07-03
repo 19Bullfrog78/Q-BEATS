@@ -23,7 +23,15 @@ add_executable(test_tempo_map
 )
 target_include_directories(test_tempo_map PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_executable(test_reference_analyzer
+    tests/test_reference_analyzer.cpp
+    beat_tracker/TempoMap.cpp
+    beat_tracker/ReferenceTempoAnalyzer.cpp
+)
+target_include_directories(test_reference_analyzer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 enable_testing()
 add_test(NAME metronome_dsp_tests COMMAND metronome_dsp_tests)
 add_test(NAME test_midi_sequencer COMMAND test_midi_sequencer)
 add_test(NAME test_tempo_map COMMAND test_tempo_map)
+add_test(NAME test_reference_analyzer COMMAND test_reference_analyzer)
