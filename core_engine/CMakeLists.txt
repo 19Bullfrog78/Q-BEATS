@@ -16,5 +16,13 @@ add_executable(test_midi_sequencer
 )
 target_include_directories(test_midi_sequencer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_executable(test_tempo_map
+    tests/test_tempo_map.cpp
+    beat_tracker/TempoMap.cpp
+    beat_tracker/TempoMapJSON.cpp
+)
+target_include_directories(test_tempo_map PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 enable_testing()
 add_test(NAME test_midi_sequencer COMMAND test_midi_sequencer)
+add_test(NAME test_tempo_map COMMAND test_tempo_map)
