@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import os
+import UniformTypeIdentifiers
 
 struct DebugView: View {
     @ObservedObject var audioEngine = AudioEngine.shared
@@ -9,9 +10,124 @@ struct DebugView: View {
     @State private var sectionLoopEnabled: Bool = false
     @State private var subdivisionMultiplier: Int = 1
 
+    // --- Backup / Restore (.qbeats) — strumenti di TEST device (B7-A5c) ---
+    // Gli ingressi export/import sono assenti dall'UI di produzione (BackupView
+    // orfana; import solo via onOpenURL — TD-backup-restore-no-ui, BUGS §1.3):
+    // questi 2 pulsanti danno un round-trip REALE sul device (export → "Salva
+    // su File" → re-import) per esercitare il restore A5c-2 su dati veri
+    // (collisione id al re-import → ricostruzione Song duplicata, riga :219).
+    // Solo #if DEBUG: nessun impatto sulla build di produzione.
+    @State private var exportedURL: URL? = nil
+    @State private var showExportShare = false
+    @State private var showImporter = false
+    @State private var pendingImportManifest: BackupManifest? = nil
+    @State private var showImportSheet = false
+    @State private var backupError: String? = nil
+
+    // Tipi accettati dal selettore file: il tipo custom .qbeats (registrato in
+    // project.yml) + zip (conformità) + data come rete di sicurezza debug.
+    private var qbeatsImportTypes: [UTType] {
+        var types: [UTType] = []
+        if let t = UTType("com.bullfrog.qbeats.backup") { types.append(t) }
+        types.append(.zip)
+        types.append(.data)
+        return types
+    }
+
+    private func doDebugExport() {
+        backupError = nil
+        Task {
+            do {
+                // settings: nil = backup del SOLO catalogo per il round-trip
+                // (niente sovrascrittura delle impostazioni al re-import).
+                let songs = QBeatsStore.shared.songs
+                let setlists = QBeatsStore.shared.setlists
+                let url = try await QBeatsBackupManager.export(
+                    settings: nil,
+                    songs: songs,
+                    setlists: setlists,
+                    includeAudio: false,
+                    store: QBeatsStore.shared
+                )
+                await MainActor.run {
+                    exportedURL = url
+                    showExportShare = true
+                    os_log("[DebugView] Export OK: %{public}@", log: .default, type: .default, url.lastPathComponent)
+                }
+            } catch {
+                await MainActor.run {
+                    backupError = "Export fallito: \(error.localizedDescription)"
+                    os_log("[DebugView] Export error: %{public}@", log: .default, type: .error, error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func handleImporterResult(_ result: Result<URL, Error>) {
+        backupError = nil
+        switch result {
+        case .success(let url):
+            Task {
+                // File scelto dal picker = security-scoped: va aperto prima di
+                // leggerlo (parse fa unzip+read) e chiuso dopo l'await.
+                let didAccess = url.startAccessingSecurityScopedResource()
+                defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    let manifest = try await QBeatsBackupManager.parse(url)
+                    await MainActor.run {
+                        pendingImportManifest = manifest
+                        showImportSheet = true
+                        os_log("[DebugView] Import parse OK: %d song(s)", log: .default, type: .default, manifest.songs.count)
+                    }
+                } catch {
+                    await MainActor.run {
+                        backupError = "Import fallito: \(error.localizedDescription)"
+                        os_log("[DebugView] Import parse error: %{public}@", log: .default, type: .error, error.localizedDescription)
+                    }
+                }
+            }
+        case .failure(let err):
+            backupError = "Selezione file fallita: \(err.localizedDescription)"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
+                // --- BACKUP / RESTORE (.qbeats) — TEST device B7-A5c ---
+                SwiftUI.Section("Backup / Restore (.qbeats · TEST)") {
+                    Button(action: { doDebugExport() }) {
+                        Label("Export backup (.qbeats)", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .sheet(isPresented: $showExportShare) {
+                        if let url = exportedURL { ActivitySheet(items: [url]) }
+                    }
+
+                    Button(action: { showImporter = true }) {
+                        Label("Import backup (.qbeats)", systemImage: "square.and.arrow.down")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.indigo)
+
+                    if let err = backupError {
+                        Text(err).foregroundColor(.red).font(.caption)
+                    }
+                    Text("Export → foglio di condivisione → \"Salva su File\". Poi Import → scegli il .qbeats da File.")
+                        .font(.caption2).foregroundColor(.secondary)
+                }
+                .fileImporter(isPresented: $showImporter, allowedContentTypes: qbeatsImportTypes) { result in
+                    handleImporterResult(result)
+                }
+                .sheet(isPresented: $showImportSheet) {
+                    if let m = pendingImportManifest {
+                        ImportView(manifest: m, store: QBeatsStore.shared)
+                    }
+                }
+
                 // --- INFO HARDWARE ---
                 SwiftUI.Section("Stato Hardware") {
                     HStack {
