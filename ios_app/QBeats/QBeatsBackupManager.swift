@@ -215,7 +215,11 @@ enum QBeatsBackupManager {
                     name: "\(song.name) (importato \(dateTag))",
                     sections: song.sections,
                     countIn: song.countIn,
-                    backtrackFilename: song.backtrackFilename
+                    backtrackFilename: song.backtrackFilename,
+                    // A5c-2 — senza questa riga la duplicata regredirebbe al
+                    // default .fixed dell'init: reset SILENZIOSO del campo
+                    // (task flaggato dal referee 04/07, differito da A5b).
+                    metronomeMode: song.metronomeMode
                 )
                 songsDuplicated += 1
             }
@@ -228,6 +232,30 @@ enum QBeatsBackupManager {
         let selectedSetlists = manifest.setlists.filter { setlistIDs.contains($0.setlist.id) }
         for entry in selectedSetlists { await store.addSetlist(entry.setlist) }
         logger.info("importSelected — \(selectedSetlists.count) setlists")
+
+        // Backtrack metadata (A5c-2) — SELEZIONE + MERGE non-distruttivo.
+        // Selezione: solo le entry di manifest.backtracks il cui filename
+        // appartiene alle song SELEZIONATE (le duplicate conservano il
+        // filename, vedi ricostruzione sopra). Backup VECCHIO senza chiave →
+        // `?? []`: zero entry, zero throw (FS2/FS4 pinnano l'optionality).
+        // La POLITICA vive in BacktrackFile.merged (pura, banco FS5) — qui
+        // solo applicazione: si upserta il VINCITORE, e SOLO se differisce
+        // dall'esistente. Zero scritture superflue del terzo catalogo:
+        // il restore rende viva la finestra TD backtracks-load-riscrive-
+        // vuoto (BUGS v30) e non deve aggravarla con save inutili.
+        var backtracksMerged = 0
+        let selectedBacktrackFilenames = Set(selectedEntries.compactMap(\.song.backtrackFilename))
+        let incomingBacktracks = (manifest.backtracks ?? [])
+            .filter { selectedBacktrackFilenames.contains($0.filename) }
+        for incoming in incomingBacktracks {
+            let existing = await store.backtrack(for: incoming.filename)
+            let winner = BacktrackFile.merged(existing: existing, incoming: incoming)
+            if winner != existing {
+                await store.upsertBacktrack(winner)
+                backtracksMerged += 1
+            }
+        }
+        logger.info("importSelected — backtracks: \(incomingBacktracks.count) selected, \(backtracksMerged) merged")
 
         // Audio
         var audioFilesImported = 0

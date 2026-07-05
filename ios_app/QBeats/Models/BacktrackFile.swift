@@ -36,3 +36,33 @@ struct BacktrackFile: Codable, Identifiable, Equatable {
         case tempoMapAnalyzedAt = "tempoMapAnalyzedAt"
     }
 }
+
+// === B7-A5c-2 — Politica di merge del RESTORE (funzione pura) ===
+// Il restore non fa MAI blind-upsert dell'entry in arrivo (piano A5c v2
+// §3.4, rimedio B3): un backup vecchio con entry pre-analisi non deve
+// clobberare un'analisi locale più nuova. La regola vive QUI, pura e senza
+// I/O, perché il banco QBeatsTests compila solo Models: la verità sta nelle
+// fixture FS5, il manager APPLICA soltanto il vincitore.
+// Precondizione del chiamante: existing (se presente) e incoming
+// condividono lo stesso filename (la selezione a monte è per-filename).
+extension BacktrackFile {
+    // Regole (piano §3.4; tie-break esplicitato in A5c-2):
+    // 1. esistente ASSENTE o mai-analizzata (tempoMap == nil) → entra
+    //    l'arrivo (anche un arrivo mai-analizzato: lettera del piano);
+    // 2. arrivo mai-analizzato NON sostituisce un'esistente analizzata;
+    // 3. entrambe analizzate → vince tempoMapAnalyzedAt più recente
+    //    (nil = più vecchia); PAREGGIO ESATTO (incluso doppio nil) → si
+    //    TIENE l'esistente: a parità di informazione la scelta meno
+    //    distruttiva è non toccare il dato locale.
+    static func merged(existing: BacktrackFile?, incoming: BacktrackFile) -> BacktrackFile {
+        guard let existing else { return incoming }               // (1) assente
+        guard existing.tempoMap != nil else { return incoming }   // (1) mai analizzata
+        guard incoming.tempoMap != nil else { return existing }   // (2)
+        switch (existing.tempoMapAnalyzedAt, incoming.tempoMapAnalyzedAt) {
+        case (nil, nil):   return existing                        // (3) pareggio di non-datate
+        case (_?, nil):    return existing                        // (3) nil = più vecchia
+        case (nil, _?):    return incoming
+        case let (e?, i?): return i > e ? incoming : existing     // (3) pareggio esatto → esistente
+        }
+    }
+}

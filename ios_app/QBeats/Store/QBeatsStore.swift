@@ -110,9 +110,10 @@ final class QBeatsStore: ObservableObject {
     // MARK: - Backtracks CRUD (A5c-1)
 
     // Path di SCRITTURA del futuro analyzer: upsert secco per filename.
-    // ⚠️ NON è il path del restore — il restore (A5c-2) usa il merge
-    // NON-distruttivo, mai questo upsert (un entry in arrivo non deve
-    // clobberare un'analisi locale più nuova).
+    // ⚠️ Il restore (A5c-2) non upserta MAI l'entry in arrivo as-is: passa
+    // dal merge NON-distruttivo (BacktrackFile.merged) e upserta solo il
+    // VINCITORE, quando differisce dall'esistente — così un entry in arrivo
+    // non può clobberare un'analisi locale più nuova, per costruzione.
     func upsertBacktrack(_ backtrack: BacktrackFile) async {
         if let idx = backtracks.firstIndex(where: { $0.filename == backtrack.filename }) {
             backtracks[idx] = backtrack
