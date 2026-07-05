@@ -10,13 +10,14 @@ final class QBeatsStore: ObservableObject {
 
     @Published private(set) var songs: [Song] = []
     @Published private(set) var setlists: [Setlist] = []
+    @Published private(set) var backtracks: [BacktrackFile] = []   // A5c-1: terzo catalogo
 
     private init() {}
 
     // MARK: - Load / Save
 
     func load() async throws {
-        let (loadedSongs, loadedSetlists) = try await Task.detached(priority: .utility) {
+        let (loadedSongs, loadedSetlists, loadedBacktracks) = try await Task.detached(priority: .utility) {
             let base = QBeatsStore.resolveBaseURL()
             try QBeatsStore.ensureDirectory(base)
             let songs: [Song] = try QBeatsStore.coordinatedRead(
@@ -25,23 +26,39 @@ final class QBeatsStore: ObservableObject {
             let setlists: [Setlist] = try QBeatsStore.coordinatedRead(
                 at: base.appendingPathComponent("setlists.json"), default: []
             )
-            return (songs, setlists)
+            // A5c-1 — terzo catalogo, lettura ISOLATA e NON-FATALE (piano v2,
+            // rimedio m3): un errore I/O sul SOLO backtracks.json non deve MAI
+            // abortire il load di songs/setlists — un load abortito lascia
+            // songs=[] in RAM e il primo save() renderebbe il vuoto permanente
+            // (wipe). Catalogo NUOVO: il default [] non perde nulla.
+            var backtracks: [BacktrackFile] = []
+            do {
+                backtracks = try QBeatsStore.coordinatedRead(
+                    at: base.appendingPathComponent("backtracks.json"), default: []
+                )
+            } catch {
+                logger.error("load — backtracks.json read error (non-fatal): \(error)")
+            }
+            return (songs, setlists, backtracks)
         }.value
         songs = loadedSongs
         setlists = loadedSetlists
-        logger.info("load — songs: \(self.songs.count), setlists: \(self.setlists.count)")
+        backtracks = loadedBacktracks
+        logger.info("load — songs: \(self.songs.count), setlists: \(self.setlists.count), backtracks: \(self.backtracks.count)")
     }
 
     func save() async throws {
         let songsSnapshot = songs
         let setlistsSnapshot = setlists
-        try await Task.detached(priority: .utility) { [songsSnapshot, setlistsSnapshot] in
+        let backtracksSnapshot = backtracks
+        try await Task.detached(priority: .utility) { [songsSnapshot, setlistsSnapshot, backtracksSnapshot] in
             let base = QBeatsStore.resolveBaseURL()
             try QBeatsStore.ensureDirectory(base)
             try QBeatsStore.coordinatedWrite(songsSnapshot, to: base.appendingPathComponent("songs.json"))
             try QBeatsStore.coordinatedWrite(setlistsSnapshot, to: base.appendingPathComponent("setlists.json"))
+            try QBeatsStore.coordinatedWrite(backtracksSnapshot, to: base.appendingPathComponent("backtracks.json"))
         }.value
-        logger.info("save — songs: \(self.songs.count), setlists: \(self.setlists.count)")
+        logger.info("save — songs: \(self.songs.count), setlists: \(self.setlists.count), backtracks: \(self.backtracks.count)")
     }
 
     // MARK: - Songs CRUD
@@ -88,6 +105,30 @@ final class QBeatsStore: ObservableObject {
     func moveSetlists(from source: IndexSet, to destination: Int) async {
         setlists.move(fromOffsets: source, toOffset: destination)
         try? await save()
+    }
+
+    // MARK: - Backtracks CRUD (A5c-1)
+
+    // Path di SCRITTURA del futuro analyzer: upsert secco per filename.
+    // ⚠️ NON è il path del restore — il restore (A5c-2) usa il merge
+    // NON-distruttivo, mai questo upsert (un entry in arrivo non deve
+    // clobberare un'analisi locale più nuova).
+    func upsertBacktrack(_ backtrack: BacktrackFile) async {
+        if let idx = backtracks.firstIndex(where: { $0.filename == backtrack.filename }) {
+            backtracks[idx] = backtrack
+        } else {
+            backtracks.append(backtrack)
+        }
+        try? await save()
+    }
+
+    func deleteBacktrack(filename: String) async {
+        backtracks.removeAll { $0.filename == filename }
+        try? await save()
+    }
+
+    func backtrack(for filename: String) -> BacktrackFile? {
+        backtracks.first { $0.filename == filename }
     }
 
     // MARK: - Resolution

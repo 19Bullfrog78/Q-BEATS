@@ -3,30 +3,9 @@ import ZIPFoundation
 import os
 
 // MARK: - Models
-
-struct BackupManifest: Codable, Sendable {
-    var version: Int = 1
-    var exportedAt: Date
-    var hasSettings: Bool
-    var songs: [BackupSongEntry]
-    var setlists: [BackupSetlistEntry]
-
-    // Runtime only — path to the extracted temp dir set by parse(), not serialized.
-    var extractedDir: URL? = nil
-
-    enum CodingKeys: String, CodingKey {
-        case version, exportedAt, hasSettings, songs, setlists
-    }
-}
-
-struct BackupSongEntry: Codable, Sendable {
-    var song: Song
-    var audioFilename: String?
-}
-
-struct BackupSetlistEntry: Codable, Sendable {
-    var setlist: Setlist
-}
+// BackupManifest/BackupSongEntry/BackupSetlistEntry vivono in
+// Models/BackupManifest.swift (B7-A5c-1: move per renderli testabili nel
+// banco QBeatsTests, che compila solo QBeats/Models). Qui resta la logica.
 
 struct ImportResult: Sendable {
     var settingsImported: Bool
@@ -59,7 +38,15 @@ enum QBeatsBackupManager {
         includeAudio: Bool,
         store: QBeatsStore
     ) async throws -> URL {
-        _ = store
+        // A5c-1 — snapshot dei metadati mappa sul MainActor PRIMA del task
+        // staccato (lo store è @MainActor: toccarlo dentro Task.detached
+        // senza hop sarebbe un data-race). Simmetria del filtro: i METADATI
+        // seguono le song selezionate SEMPRE (pesano nulla — un backup senza
+        // audio porta comunque le analisi); l'AUDIO resta gated da includeAudio.
+        let selectedFilenames = Set(songs.compactMap(\.backtrackFilename))
+        let backtrackEntries = await MainActor.run {
+            store.backtracks.filter { selectedFilenames.contains($0.filename) }
+        }
         return try await Task.detached(priority: .utility) {
             let fm = FileManager.default
             let tempBase = fm.temporaryDirectory
@@ -127,12 +114,19 @@ enum QBeatsBackupManager {
                 entries = songs.map { BackupSongEntry(song: $0, audioFilename: nil) }
             }
 
+            // backtracks.json (metadati mappa, A5c-1) — copia parallela per
+            // ispezione; la fonte-di-verità all'import resta il manifest.
+            try makeEncoder().encode(backtrackEntries)
+                .write(to: tempBase.appendingPathComponent("backtracks.json"))
+            logger.info("export — backtracks.json written (\(backtrackEntries.count))")
+
             // manifest.json
             let manifest = BackupManifest(
                 exportedAt: Date(),
                 hasSettings: settings != nil,
                 songs: entries,
-                setlists: setlists.map { BackupSetlistEntry(setlist: $0) }
+                setlists: setlists.map { BackupSetlistEntry(setlist: $0) },
+                backtracks: backtrackEntries
             )
             try makeEncoder().encode(manifest)
                 .write(to: tempBase.appendingPathComponent("manifest.json"))
