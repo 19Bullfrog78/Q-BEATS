@@ -197,6 +197,13 @@ final class SetlistRunner: ObservableObject {
         // 1-4: ordine ratificato setup audio.
         audioEngine.setBeatsPerBar(section.beatsPerBar)
         audioEngine.setAccentPattern(section.accentPattern)
+        // W1 (wiring subdivision/swing → Live): il valore authoring della
+        // sezione (SectionEditorView) finalmente arriva al DSP anche a Play
+        // — prima lo consumava solo DebugView. Setter secco RT-safe (hop su
+        // audioQueue in AudioEngine.setSubdivision): qui l'audio è fermo o
+        // in setup, nessuna finestra seamless in corso.
+        audioEngine.setSubdivision(multiplier: section.subdivisionMultiplier,
+                                   swingRatio: section.swingRatio)
         audioEngine.loadSection(beatsPerBar: section.beatsPerBar,
                                 repetitions: section.repetitions,
                                 onEnd: closure)
@@ -297,6 +304,20 @@ final class SetlistRunner: ObservableObject {
                 os_log("[Q-BEATS][L1.b] avanza (seamless) — songIdx:%d sectionIdx:%d",
                        log: .default, type: .default,
                        self.currentSongIdx, self.currentSectionIdx)
+                // W1 — subdivision/swing della sezione APPENA corrente.
+                // Il ramo SEAMLESS di AudioEngine swappa bpm/bpb/accent via
+                // metronome_schedule_* (armate al downbeat) ma una
+                // schedule_subdivision NON esiste nel bridge: la suddivisione
+                // si applica QUI, post-confine, via setter secco (hop su
+                // audioQueue). Lag dichiarato: ~1 dispatch+buffer dopo il
+                // downbeat di transizione — i beat principali/accenti restano
+                // esatti (viaggiano con le schedule_*), può slittare solo la
+                // prima suddivisione intermedia. Upgrade a schedule_* nel DSP
+                // = fronte core_engine separato, se il device rivela artefatti.
+                if let newSection = self.currentSection {
+                    audioEngine.setSubdivision(multiplier: newSection.subdivisionMultiplier,
+                                               swingRatio: newSection.swingRatio)
+                }
                 // TD #41 fix: rinvia updateSessionDisplay al primo beat tick
                 // della nuova sezione. Senza rinvio, il display si aggiornava
                 // all'ULTIMO beat sezione precedente (dispatch step (i) di
