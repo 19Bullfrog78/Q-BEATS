@@ -17,11 +17,24 @@ struct DebugView: View {
     // su File" → re-import) per esercitare il restore A5c-2 su dati veri
     // (collisione id al re-import → ricostruzione Song duplicata, riga :219).
     // Solo #if DEBUG: nessun impatto sulla build di produzione.
-    @State private var exportedURL: URL? = nil
-    @State private var showExportShare = false
+    // Presentazione UNIFICATA item-driven (fix bug "foglio bianco" 05/07):
+    // un solo .sheet(item:) ancorato al CONTENITORE (List), non alle righe —
+    // le righe di un List sono riciclate/lazy e i modifier di presentazione
+    // attaccati lì non si presentano in modo affidabile (foglio vuoto). Un
+    // solo sheet elimina anche la competizione fra due .sheet(isPresented:)
+    // (il "si sblocca alternando export/import"). enum = quale schermata.
+    private enum ActiveModal: Identifiable {
+        case export(URL)
+        case importReview(BackupManifest)
+        var id: String {
+            switch self {
+            case .export(let u): return "export:\(u.path)"
+            case .importReview:  return "import"
+            }
+        }
+    }
+    @State private var activeModal: ActiveModal? = nil
     @State private var showImporter = false
-    @State private var pendingImportManifest: BackupManifest? = nil
-    @State private var showImportSheet = false
     @State private var backupError: String? = nil
 
     // Tipi accettati dal selettore file: il tipo custom .qbeats (registrato in
@@ -50,8 +63,7 @@ struct DebugView: View {
                     store: QBeatsStore.shared
                 )
                 await MainActor.run {
-                    exportedURL = url
-                    showExportShare = true
+                    activeModal = .export(url)
                     os_log("[DebugView] Export OK: %{public}@", log: .default, type: .default, url.lastPathComponent)
                 }
             } catch {
@@ -75,8 +87,7 @@ struct DebugView: View {
                 do {
                     let manifest = try await QBeatsBackupManager.parse(url)
                     await MainActor.run {
-                        pendingImportManifest = manifest
-                        showImportSheet = true
+                        activeModal = .importReview(manifest)
                         os_log("[DebugView] Import parse OK: %d song(s)", log: .default, type: .default, manifest.songs.count)
                     }
                 } catch {
@@ -102,9 +113,6 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.blue)
-                    .sheet(isPresented: $showExportShare) {
-                        if let url = exportedURL { ActivitySheet(items: [url]) }
-                    }
 
                     Button(action: { showImporter = true }) {
                         Label("Import backup (.qbeats)", systemImage: "square.and.arrow.down")
@@ -118,14 +126,6 @@ struct DebugView: View {
                     }
                     Text("Export → foglio di condivisione → \"Salva su File\". Poi Import → scegli il .qbeats da File.")
                         .font(.caption2).foregroundColor(.secondary)
-                }
-                .fileImporter(isPresented: $showImporter, allowedContentTypes: qbeatsImportTypes) { result in
-                    handleImporterResult(result)
-                }
-                .sheet(isPresented: $showImportSheet) {
-                    if let m = pendingImportManifest {
-                        ImportView(manifest: m, store: QBeatsStore.shared)
-                    }
                 }
 
                 // --- INFO HARDWARE ---
@@ -482,6 +482,19 @@ struct DebugView: View {
             }
             .navigationTitle("Debug Scaffolding")
             .navigationBarTitleDisplayMode(.inline)
+            // Presentazione ancorata al List (contenitore stabile), NON alle
+            // righe: il fileImporter + un unico .sheet(item:) per export/import.
+            .fileImporter(isPresented: $showImporter, allowedContentTypes: qbeatsImportTypes) { result in
+                handleImporterResult(result)
+            }
+            .sheet(item: $activeModal) { modal in
+                switch modal {
+                case .export(let url):
+                    ActivitySheet(items: [url])
+                case .importReview(let manifest):
+                    ImportView(manifest: manifest, store: QBeatsStore.shared)
+                }
+            }
         }
     }
 
