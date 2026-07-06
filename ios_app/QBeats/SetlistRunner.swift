@@ -217,6 +217,8 @@ final class SetlistRunner: ObservableObject {
             audioEngine.preloadNextSection(bpm: n1.bpm,
                                            beatsPerBar: n1.beatsPerBar,
                                            accentPattern: n1.accentPattern,
+                                           subdivisionMultiplier: n1.subdivisionMultiplier,
+                                           swingRatio: n1.swingRatio,
                                            repetitions: n1.repetitions,
                                            onEnd: closure)
         }
@@ -304,20 +306,11 @@ final class SetlistRunner: ObservableObject {
                 os_log("[Q-BEATS][L1.b] avanza (seamless) — songIdx:%d sectionIdx:%d",
                        log: .default, type: .default,
                        self.currentSongIdx, self.currentSectionIdx)
-                // W1 — subdivision/swing della sezione APPENA corrente.
-                // Il ramo SEAMLESS di AudioEngine swappa bpm/bpb/accent via
-                // metronome_schedule_* (armate al downbeat) ma una
-                // schedule_subdivision NON esiste nel bridge: la suddivisione
-                // si applica QUI, post-confine, via setter secco (hop su
-                // audioQueue). Lag dichiarato: ~1 dispatch+buffer dopo il
-                // downbeat di transizione — i beat principali/accenti restano
-                // esatti (viaggiano con le schedule_*), può slittare solo la
-                // prima suddivisione intermedia. Upgrade a schedule_* nel DSP
-                // = fronte core_engine separato, se il device rivela artefatti.
-                if let newSection = self.currentSection {
-                    audioEngine.setSubdivision(multiplier: newSection.subdivisionMultiplier,
-                                               swingRatio: newSection.swingRatio)
-                }
+                // ATOM C — il setter-post-confine di W1 è stato RIMOSSO: la
+                // subdivision della sezione entrante ora viaggia col preload
+                // (preloadNextSection) e si arma al downbeat nel ramo
+                // SEAMLESS di AudioEngine via metronome_schedule_subdivision,
+                // sample-accurate come bpm/bpb/accent. Qui non serve altro.
                 // TD #41 fix: rinvia updateSessionDisplay al primo beat tick
                 // della nuova sezione. Senza rinvio, il display si aggiornava
                 // all'ULTIMO beat sezione precedente (dispatch step (i) di
@@ -336,6 +329,8 @@ final class SetlistRunner: ObservableObject {
                     audioEngine.preloadNextSection(bpm: n2.bpm,
                                                    beatsPerBar: n2.beatsPerBar,
                                                    accentPattern: n2.accentPattern,
+                                                   subdivisionMultiplier: n2.subdivisionMultiplier,
+                                                   swingRatio: n2.swingRatio,
                                                    repetitions: n2.repetitions,
                                                    onEnd: closure)
                 }

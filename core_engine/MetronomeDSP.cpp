@@ -25,6 +25,11 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
     // (il costruttore non ha parametro beatsPerBar, solo bpm).
     , _pendingBeatsPerBar(4)
     , _bpbChangeDirty(false)
+    // ATOM C — pending schedulati subdivision, coerenti coi default
+    // _subdivisionMultiplier(1) / _swingRatio(0.5).
+    , _pendingScheduledMultiplier(1)
+    , _pendingScheduledSwing(0.5)
+    , _subdivScheduleDirty(false)
 {
     std::memset(_accentPattern,  0, sizeof(_accentPattern));
     std::memset(_pendingPattern, 0, sizeof(_pendingPattern));
@@ -123,6 +128,30 @@ void MetronomeDSP::scheduleBeatsPerBarChange(uint32_t bpb) {
 // _bpbChangeDirty è false. Simmetrico a cancelPendingBPM.
 void MetronomeDSP::cancelPendingBPB() {
     _bpbChangeDirty.store(false, std::memory_order_release);
+}
+
+// ATOM C — Schedula cambio subdivision/swing al prossimo downbeat.
+// Pattern parallelo a scheduleBeatsPerBarChange; stessa validazione di
+// setSubdivision (rifiuto fuori dominio; swing forzato a 0.5 se il
+// multiplier non è 2 — lo swing esiste solo sulle crome).
+void MetronomeDSP::scheduleSubdivisionChange(uint8_t multiplier, double swingRatio) {
+    if (multiplier < 1 || multiplier > 4) return;
+    if (swingRatio < 0.5 || swingRatio >= 1.0) return;
+    _pendingScheduledMultiplier = multiplier;
+    _pendingScheduledSwing      = (multiplier == 2) ? swingRatio : 0.5;
+    _subdivScheduleDirty.store(true, std::memory_order_release);
+}
+
+// ATOM C — Cancella cambio subdivision schedulato non ancora scattato.
+// I _pendingScheduled* non vengono toccati: non saranno letti finché
+// _subdivScheduleDirty è false. Simmetrico a cancelPendingBPB.
+// Chiamata INCONDIZIONATA allo stop (B1): se lo stop arriva tra l'armo
+// (step d seamless) e il downbeat, il pending della transizione morta
+// scatterebbe al primo downbeat del replay, sovrascrivendo il valore
+// corretto del prepare (canale scheduled ≠ canale secco: il reload
+// risana solo il secco).
+void MetronomeDSP::cancelPendingSubdivision() {
+    _subdivScheduleDirty.store(false, std::memory_order_release);
 }
 
 // Strada A — Schedula cambio accent pattern senza il check length
@@ -452,6 +481,20 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
                     && _bpmChangeDirty.exchange(false, std::memory_order_acquire)) {
                     _bpm = _pendingBPM;
                     spb  = (_sampleRate * 60.0) / _bpm;
+                }
+                // ATOM C — swap subdivision al downbeat (blocco separato,
+                // ratifica ①). NON gated su `adaptive` (come BPB sopra:
+                // la suddivisione segue la sezione, tempo⊥suddivisione).
+                // Ratifica ③: _swingPhase NON toccato qui — lo resetta il
+                // ri-arm del tracker più sotto quando multiplier>1;
+                // irrilevante a multiplier==1. Ratifica ⑤:
+                // _exactNextSubdivSample NON toccato qui — lo ricalcola lo
+                // stesso ri-arm col multiplier/spb nuovi; a multiplier==1
+                // resta stantio ma MAI letto (isSubdivSample è calcolato
+                // solo con _subdivisionMultiplier > 1).
+                if (_subdivScheduleDirty.exchange(false, std::memory_order_acquire)) {
+                    _subdivisionMultiplier = _pendingScheduledMultiplier;
+                    _swingRatio            = _pendingScheduledSwing;
                 }
             }
             // Push spia DOPO lo swap (beatsPerBar aggiornato), PRIMA dell'incremento.

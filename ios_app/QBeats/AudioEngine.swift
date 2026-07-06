@@ -309,6 +309,10 @@ class AudioEngine: ObservableObject {
     private var _pendingNextSectionTotalBeats: Int? = nil
     private var _pendingNextOnSectionEnd: (() -> Void)? = nil
     private var _pendingNextRepetitions: Int? = nil
+    // ATOM C — subdivision/swing della sezione N+1 (viaggiano col preload,
+    // armate al downbeat nel ramo SEAMLESS via metronome_schedule_subdivision).
+    private var _pendingNextSubdivisionMultiplier: UInt8? = nil
+    private var _pendingNextSwingRatio: Double? = nil
 
     private var offsets              : [UInt32]
     private var accents              : [UInt8]
@@ -1169,6 +1173,8 @@ class AudioEngine: ObservableObject {
     func preloadNextSection(bpm: Double,
                             beatsPerBar: UInt32,
                             accentPattern: [UInt8],
+                            subdivisionMultiplier: UInt8,
+                            swingRatio: Double,
                             repetitions: Int,
                             onEnd: @escaping () -> Void) {
         audioQueue.async { [weak self] in
@@ -1179,6 +1185,10 @@ class AudioEngine: ObservableObject {
             self._pendingNextSectionTotalBeats = repetitions * Int(beatsPerBar)
             self._pendingNextOnSectionEnd = onEnd
             self._pendingNextRepetitions = repetitions
+            // ATOM C — la suddivisione della sezione entrante viaggia col
+            // preload e si arma al downbeat (step d), come bpm/bpb/accent.
+            self._pendingNextSubdivisionMultiplier = subdivisionMultiplier
+            self._pendingNextSwingRatio = swingRatio
         }
     }
 
@@ -1662,6 +1672,14 @@ class AudioEngine: ObservableObject {
                 // applicato al replay successivo.
                 // No-op se _bpbChangeDirty già false — zero costo.
                 metronome_cancel_pending_bpb(mh)
+                // ATOM C (B1) — Cancel subdivision INCONDIZIONATO, stesso
+                // rationale del BPB qui sopra: il canale scheduled
+                // (_subdivScheduleDirty) NON è risanato dal reload — il
+                // prepare usa il setter secco (canale _subdivDirty) — quindi
+                // un pending armato in step d e mai scattato applicherebbe
+                // al primo downbeat del replay la suddivisione della
+                // transizione morta, sovrascrivendo quella corretta.
+                metronome_cancel_pending_subdivision(mh)
             }
             self._pendingBPMValue = nil
             self._pendingBPMTargetTick = 0
@@ -1674,6 +1692,8 @@ class AudioEngine: ObservableObject {
             self._pendingNextSectionTotalBeats = nil
             self._pendingNextOnSectionEnd = nil
             self._pendingNextRepetitions = nil
+            self._pendingNextSubdivisionMultiplier = nil
+            self._pendingNextSwingRatio = nil
             // L1.a — Stop manuale durante drain: aborta dispatch pending.
             // Non chiamiamo la closure: stopSync sta già facendo il lavoro che
             // la closure di L1.a avrebbe fatto (stop motore + reset). Lasciarla
@@ -2491,6 +2511,10 @@ class AudioEngine: ObservableObject {
                                 let pendingTotalBeats    = self._pendingNextSectionTotalBeats!
                                 let pendingOnSectionEnd  = self._pendingNextOnSectionEnd
                                 let pendingRepetitions   = self._pendingNextRepetitions!
+                                // ATOM C — sempre valorizzati insieme agli altri
+                                // (stessa preloadNextSection), stesso force-unwrap.
+                                let pendingSubdivMult    = self._pendingNextSubdivisionMultiplier!
+                                let pendingSwing         = self._pendingNextSwingRatio!
 
                                 // (b) Reset _pendingNext* (safe — locali già catturati).
                                 self._pendingNextBPB = nil
@@ -2499,6 +2523,8 @@ class AudioEngine: ObservableObject {
                                 self._pendingNextSectionTotalBeats = nil
                                 self._pendingNextOnSectionEnd = nil
                                 self._pendingNextRepetitions = nil
+                                self._pendingNextSubdivisionMultiplier = nil
+                                self._pendingNextSwingRatio = nil
 
                                 // (c) Swap contatori Swift.
                                 // _sectionEndPending resta false — il ramo SEAMLESS
@@ -2531,6 +2557,10 @@ class AudioEngine: ObservableObject {
                                         h, ptr.baseAddress, UInt32(dspPattern.count))
                                 }
                                 metronome_schedule_bpm_change(h, pendingBPM)
+                                // ATOM C — subdivision armata allo STESSO downbeat
+                                // di bpb/accent/bpm: la 1ª sub-nota della sezione
+                                // entrante è sample-accurate (chiude il lag W1).
+                                metronome_schedule_subdivision(h, pendingSubdivMult, pendingSwing)
 
                                 // (e) Arm Link — quantum aggiornato per il nuovo BPB.
                                 if let lh = self.linkEngineHandle {

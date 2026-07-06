@@ -142,6 +142,17 @@ void metronome_schedule_accent_pattern_change(MetronomeHandle handle,
     static_cast<MetronomeDSP*>(handle)->scheduleAccentPatternChange(pattern, length);
 }
 
+// ATOM C — Bridge subdivision schedulata al downbeat (+ cancel allo stop).
+void metronome_schedule_subdivision(MetronomeHandle handle, uint8_t multiplier, double swingRatio) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->scheduleSubdivisionChange(multiplier, swingRatio);
+}
+
+void metronome_cancel_pending_subdivision(MetronomeHandle handle) {
+    if (!handle) return;
+    static_cast<MetronomeDSP*>(handle)->cancelPendingSubdivision();
+}
+
 void metronome_set_accent_volume(MetronomeHandle handle, double v) {
     if (!handle) return;
     static_cast<MetronomeDSP*>(handle)->setAccentVolume(v);

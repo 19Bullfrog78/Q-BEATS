@@ -339,6 +339,74 @@ void test_bpm_change_subdiv_coherent() {
     std::cout << "test_bpm_change_subdiv_coherent passed" << std::endl;
 }
 
+// === ATOM C — subdivision schedulata al downbeat ===
+void test_schedule_subdivision_at_downbeat() {
+    // 48000 Hz, 120 BPM (spb=24000), bpb=4: beat a 0/24000/48000/72000,
+    // downbeat bar-2 a 96000. Multiplier iniziale 1 (default, zero sub).
+    // Armo scheduleSubdivisionChange(2, 0.5) DOPO il beat 0 (mid-bar):
+    // deve applicare SOLO al downbeat 96000 — NESSUNA sub ai beat 1/2/3
+    // (24000/48000/72000 non sono downbeat), prima sub ESATTAMENTE a
+    // 96000 + 12000 (spb/2 = 24000/2). Attesi letterali a mano (§7).
+    MetronomeDSP dsp(48000.0, 120.0);
+    dsp.setBeatsPerBar(4);
+
+    std::vector<AbsoluteBeat> result;
+    uint64_t processed = 0;
+    bool scheduled = false;
+    while (result.size() < 6 && processed < 500000) {
+        auto beats = dsp.processBuffer(256);
+        for (const auto& ev : beats)
+            result.push_back({processed + ev.offset, ev.accent, ev.isBeat});
+        processed += 256;
+        // Arm dopo che il beat 0 è passato — mid-bar-1, come il test BPM sopra.
+        if (!scheduled && result.size() >= 1) {
+            dsp.scheduleSubdivisionChange(2, 0.5);
+            scheduled = true;
+        }
+    }
+    // Bar 1: quattro beat PULITI, nessuna sub (l'arm non applica mid-bar).
+    assert(result[0].absoluteSample == 0     && result[0].isBeat == true);
+    assert(result[1].absoluteSample == 24000 && result[1].isBeat == true);
+    assert(result[2].absoluteSample == 48000 && result[2].isBeat == true);
+    assert(result[3].absoluteSample == 72000 && result[3].isBeat == true);
+    // Downbeat bar-2: apply qui (accent intatto = zero regressione beat).
+    assert(result[4].absoluteSample == 96000 && result[4].isBeat == true);
+    assert(result[4].accent == true);
+    // Prima sub-nota ESATTAMENTE a metà del primo beat della bar-2.
+    assert(result[5].absoluteSample == 96000 + 12000);
+    assert(result[5].isBeat == false);
+    std::cout << "test_schedule_subdivision_at_downbeat passed" << std::endl;
+}
+
+void test_cancel_pending_subdivision() {
+    // B1 (stop-mid-transizione): armo la schedule e la CANCELLO prima del
+    // downbeat → il downbeat NON deve applicare nulla: 6 beat puliti,
+    // nessuna sub-nota mai emessa (multiplier resta 1).
+    MetronomeDSP dsp(48000.0, 120.0);
+    dsp.setBeatsPerBar(4);
+
+    std::vector<AbsoluteBeat> result;
+    uint64_t processed = 0;
+    bool armed = false;
+    while (result.size() < 6 && processed < 500000) {
+        auto beats = dsp.processBuffer(256);
+        for (const auto& ev : beats)
+            result.push_back({processed + ev.offset, ev.accent, ev.isBeat});
+        processed += 256;
+        if (!armed && result.size() >= 1) {
+            dsp.scheduleSubdivisionChange(2, 0.5);
+            dsp.cancelPendingSubdivision();   // lo stop arriva prima del downbeat
+            armed = true;
+        }
+    }
+    // Sei beat puliti sulla griglia 24000 — zero eventi isBeat=false.
+    for (size_t i = 0; i < 6; ++i) {
+        assert(result[i].absoluteSample == (uint64_t)(i * 24000));
+        assert(result[i].isBeat == true);
+    }
+    std::cout << "test_cancel_pending_subdivision passed" << std::endl;
+}
+
 void test_bpm_no_change_without_schedule() {
     // Senza scheduleBPMChange, il BPM rimane invariato — 9 beat (2 bar + 1 extra)
     MetronomeDSP dsp(48000.0, 120.0);
@@ -563,6 +631,8 @@ int main() {
     test_bpm_change_on_bar_boundary();
     test_bpm_change_mid_buffer();
     test_bpm_change_subdiv_coherent();
+    test_schedule_subdivision_at_downbeat();
+    test_cancel_pending_subdivision();
     test_bpm_no_change_without_schedule();
     SampleRateUpdateTakesEffect();
     std::cout << "All C++ Core Engine tests passed successfully!" << std::endl;

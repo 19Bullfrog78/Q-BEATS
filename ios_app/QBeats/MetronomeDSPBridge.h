@@ -25,6 +25,11 @@ void            metronome_schedule_accent_pattern_change(MetronomeHandle handle,
                                                           const uint8_t* pattern,
                                                           uint32_t length);
 
+// ATOM C — subdivision schedulata al downbeat (seamless sample-accurate)
+// + cancel incondizionato allo stop (B1: stop-mid-transizione).
+void            metronome_schedule_subdivision(MetronomeHandle handle, uint8_t multiplier, double swingRatio);
+void            metronome_cancel_pending_subdivision(MetronomeHandle handle);
+
 void            metronome_set_accent_volume(MetronomeHandle handle, double v);
 void            metronome_set_beat_volume(MetronomeHandle handle, double v);
 void            metronome_set_subdiv_volume(MetronomeHandle handle, double v);

@@ -82,6 +82,25 @@ public:
     // _beatsPerBar è ancora 4).
     void scheduleAccentPatternChange(const uint8_t* pattern, uint32_t length);
 
+    // === ATOM C — Schedula cambio subdivision/swing al prossimo downbeat ===
+    // (thread-safe, non-RT). Estende il pattern di scheduleBeatsPerBarChange
+    // alla suddivisione: transizioni di sezione seamless sample-accurate
+    // (il setter secco setSubdivision applica a inizio buffer = lag ~1
+    // buffer al confine; questa si arma e scatta a _currentBeatInBar == 0).
+    // Canale DISTINTO dal setter secco (_subdivScheduleDirty vs _subdivDirty):
+    // il secco resta per prepare/DebugView (audio fermo o cambio immediato).
+    // Stessa validazione di setSubdivision (multiplier 1-4, swing [0.5,1.0[,
+    // swing→0.5 se multiplier≠2).
+    void scheduleSubdivisionChange(uint8_t multiplier, double swingRatio);
+
+    // ATOM C — Cancella un cambio subdivision schedulato non ancora scattato
+    // (thread-safe, non-RT). No-op se nessun cambio è pendente. Simmetrica a
+    // cancelPendingBPB: spegne SOLO il flag dirty, i _pendingScheduled* non
+    // vengono toccati (mai letti finché il dirty è false). OBBLIGATORIA allo
+    // stop (stop-mid-transizione: senza, il pending della transizione morta
+    // scatterebbe al primo downbeat del replay — B1 piano C v2).
+    void cancelPendingSubdivision();
+
     void setAbsolutePositionForTesting(uint64_t pos);
 
     // --- Fase VOL: volume click + mute (chiamare solo da audioQueue) ---
@@ -163,6 +182,14 @@ private:
     // (BPB precede il modulo % _beatsPerBar, BPM precede += spb).
     uint32_t          _pendingBeatsPerBar;
     std::atomic<bool> _bpbChangeDirty;
+
+    // ATOM C — Scheduled subdivision change — applied at next downbeat
+    // (_currentBeatInBar == 0), PRIMA del ri-arm del tracker suddivisioni
+    // (che così riparte col multiplier nuovo). Canale distinto dal setter
+    // secco (_pendingMultiplier/_subdivDirty, applicato a inizio buffer).
+    uint8_t           _pendingScheduledMultiplier;
+    double            _pendingScheduledSwing;
+    std::atomic<bool> _subdivScheduleDirty;
 
     // === B7-A3 — Follower adattivo: double-buffer mappa PREALLOCATO ===
     // 2 slot a capacità fissa (~128 KB l'uno, membri fissi allocati col
