@@ -70,3 +70,24 @@ cmake_install.cmake
 Makefile
 install_manifest.txt
 *.cmake
+
+# ============================================================
+# Q-BEATS housekeeping — guard pre-N0 (rev. referee, 10/07)
+# ============================================================
+
+# Tooling di sessione
+.claude/
+
+# Build-dir CMake seconda (build/ e core_engine/build/ gia' coperti sopra)
+core_engine/build2/
+
+# Binari build iOS (mai versionati, ovunque)
+ipa-fase-d*/
+*.ipa
+
+# Archivio doc untracked — fuori da git per scelta consapevole (Mauro 10/07)
+# NB: NON de-traccia i BOX pre-V62 gia' versionati sotto ARCHIVIO.MD/
+ARCHIVIO.MD/
+
+# Scarti di lavorazione CC (diff / verifiche / fixture usa-e-getta)
+/_cc_processo/

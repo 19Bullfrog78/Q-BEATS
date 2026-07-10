@@ -1,0 +1,80 @@
+[
+  {
+    "backtrackFilename" : null,
+    "countIn" : 0,
+    "id" : "894e6603-b73b-4e89-9af4-d4cf34300c52",
+    "metronomeMode" : "fixed",
+    "name" : "Test Song A",
+    "sections" : [
+      {
+        "accentPattern" : [2, 1, 1, 1],
+        "beatUnit" : 4,
+        "beatsPerBar" : 4,
+        "bpm" : 100,
+        "id" : "29fd087c-2134-4bfc-a6c2-1e3fadf4b647",
+        "name" : "Intro 100",
+        "notes" : "",
+        "repetitions" : 12,
+        "subdivisionMultiplier" : 1,
+        "swingRatio" : 0.5
+      },
+      {
+        "accentPattern" : [2, 1, 1, 1],
+        "beatUnit" : 4,
+        "beatsPerBar" : 4,
+        "bpm" : 120,
+        "id" : "d53f29e6-817e-4ef5-971e-2a6d0e2d0a12",
+        "name" : "Verse 120",
+        "notes" : "",
+        "repetitions" : 3,
+        "subdivisionMultiplier" : 1,
+        "swingRatio" : 0.5
+      },
+      {
+        "accentPattern" : [2, 1, 1],
+        "beatUnit" : 4,
+        "beatsPerBar" : 3,
+        "bpm" : 140,
+        "id" : "c4bbc149-0f41-4200-8848-f8e2edcb5d1f",
+        "name" : "Bridge 3/4",
+        "notes" : "",
+        "repetitions" : 2,
+        "subdivisionMultiplier" : 1,
+        "swingRatio" : 0.5
+      }
+    ]
+  },
+  {
+    "backtrackFilename" : null,
+    "countIn" : 0,
+    "id" : "f262a0e4-7e00-4436-9d79-7fc0a59d8d8a",
+    "metronomeMode" : "fixed",
+    "name" : "Test Song B",
+    "sections" : [
+      {
+        "accentPattern" : [2, 1, 1, 1],
+        "beatUnit" : 4,
+        "beatsPerBar" : 4,
+        "bpm" : 90,
+        "id" : "90c476dd-2954-4a87-8bc2-6d7a61f5a95e",
+        "name" : "Slow 90",
+        "notes" : "",
+        "repetitions" : 3,
+        "subdivisionMultiplier" : 1,
+        "swingRatio" : 0.5
+      },
+      {
+        "accentPattern" : [2, 1, 1, 1],
+        "beatUnit" : 4,
+        "beatsPerBar" : 4,
+        "bpm" : 110,
+        "id" : "cbc48543-53f7-4baa-8846-54043de08e32",
+        "name" : "Build 110",
+        "notes" : "",
+        "repetitions" : 12,
+        "subdivisionMultiplier" : 1,
+        "swingRatio" : 0.5
+      }
+    ]
+  }
+]
