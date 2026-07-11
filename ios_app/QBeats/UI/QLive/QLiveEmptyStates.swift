@@ -169,12 +169,14 @@ private struct ChevronLeftShape: Shape {
     }
 }
 
-// MARK: - CTA "Go to Q-Stage" (.cta.dead, §CSS :749-750) — INERTE
+// MARK: - CTA "Go to Q-Stage" (.cta.ghost, §CSS :749-750) — closure non cablata (S6)
 
-// CD-Q9 aperta: .cta.dead = stile visivamente "attivo" nel freeze (nessuna nota
-// disabled/opacity a differenza di .startbtn.dead §CSS :739) o è comunque da trattare
-// come disabled? Qui resa come Button REALE (hit-area 44pt, closure cablabile) ma con
-// default no-op — la domanda riguarda SOLO lo stile, non la interattività strutturale.
+// CD-Q9 RISOLTA (11/07, CD + referee): bottone ATTIVO, non disabilitato. Omonimia
+// sciolta: `.dead` ora significa SOLO stile disabilitato (opacity:var(--disabled),
+// es. `.startbtn.dead`) — questa CTA non lo è. L'attivo low-emphasis si chiama
+// `.cta.ghost`: stesso layout/padding/bordo di prima, testo+icona salgono da
+// `--text3` a `--text2`. "closure non cablata" nel titolo sopra è SOLO lo stato di
+// `onGoToQStage` (vedi REGISTRO RESI sotto) — non più una domanda sullo stile.
 // ⚠️ REGISTRO RESI — VINCOLO ESPLICITO PER S6: `onGoToQStage` è `() -> Void = {}`, un
 // no-op silenzioso. Se S4/S6 dimenticano di cablarlo, il risultato è un bottone che si
 // preme (hit-area 44pt reale, feedback visivo del tap) e NON fa nulla — il compilatore
@@ -188,13 +190,13 @@ private struct GoToQStageCTA: View {
         Button(action: onGoToQStage) {
             HStack(spacing: 8) {
                 ChevronLeftShape()
-                    .stroke(QStageTheme.text3, style: StrokeStyle(lineWidth: 2 * 13 / 24, lineCap: .round, lineJoin: .round))
+                    .stroke(QStageTheme.text2, style: StrokeStyle(lineWidth: 2 * 13 / 24, lineCap: .round, lineJoin: .round))
                     .frame(width: 13, height: 13)
                 Text("Go to Q-Stage")
                     .font(.jbMono(.bold, size: 12))
                     .tracking(0.8)
             }
-            .foregroundColor(QStageTheme.text3)
+            .foregroundColor(QStageTheme.text2)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .frame(minHeight: 44)
@@ -275,18 +277,12 @@ struct ThisShowIsEmptyState: View {
 // Empty-state del dettaglio show quando la lista è piena ma nessuna canzone è
 // suonabile (tutte orfane/cancellate dal catalogo). Nessuno startfoot/conteggio
 // "0 playable · N unavailable": quello è `.dhead .mt.a` (§CSS :716-717), S5.
+// CD-Q10 RISOLTA (11/07, CD + referee): copy N-agnostica, niente ramo singolare/
+// plurale (l'app non è localizzata) — supera il problema di pluralizzazione che la
+// versione precedente (interpolazione di `unavailableCount`, ora rimosso) lasciava
+// aperto per N=1. "tracks" rimosso dal testo (ambiguo vs Media/file audio). Il
+// conteggio resta solo in `.dhead .mt.a` (S5), non qui.
 struct NoPlayableSongsEmptyState: View {
-    let unavailableCount: Int
-
-    // CD-Q10 aperta: il freeze mostra SOLO il caso N=4 (§markup :1009, "All 4 songs...
-    // are unavailable"). Per N=1 questo template produce "All 1 songs...are" —
-    // grammaticalmente scorretto in inglese, ma nessuna variante singolare è sourced
-    // nel freeze da cui derivare la regola di pluralizzazione. Interpolazione letterale,
-    // non corretta di iniziativa (§7: niente fonte → non si inventa la regola).
-    private var descriptionText: String {
-        "All \(unavailableCount) songs in this show are unavailable — their tracks were deleted from the catalog. Restore or replace them in Q-Stage."
-    }
-
     var body: some View {
         EmptyStateLayout(
             icon: EmptyIconBadge(strokeColor: QStageTheme.amber.opacity(0.3)) {
@@ -308,7 +304,7 @@ struct NoPlayableSongsEmptyState: View {
                 .frame(width: 34, height: 34)
             },
             title: "No playable songs",
-            description: descriptionText
+            description: "Every song in this show was deleted from the catalog. Restore them or rebuild the show in Q-Stage."
         ) {
             EmptyView()
         }
@@ -324,8 +320,8 @@ struct QLiveEmptyStates_Previews: PreviewProvider {
                 .previewDisplayName("E · No shows to play")
             ThisShowIsEmptyState()
                 .previewDisplayName("F · This show is empty")
-            NoPlayableSongsEmptyState(unavailableCount: 4)
-                .previewDisplayName("G · No playable songs (4)")
+            NoPlayableSongsEmptyState()
+                .previewDisplayName("G · No playable songs")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: "#0e0e10").ignoresSafeArea())
