@@ -13,6 +13,7 @@
 - **A** (runner-prima-o-crash): **non si esercita STRUTTURALMENTE a N1b** — `LiveRootView:15 .environmentObject(runner)` inietta il `@StateObject runner` (`:7`) in `LiveView`, e `QLiveRootView` renderizza `LiveRootView` (mai `LiveView` diretto) → al flip il runner è già presente, niente crash `@EnvironmentObject`. Il rischio-A vero (LiveView runner-less) è a **step 2** (dove `LiveRootView` è rimpiazzato dall'entry lista-Shows e `LiveView` è a valle della scelta). MA — dato che `LiveView` È live al flip — **check A cheap aggiunto al gate N1b** (entrata `.qLive` a freddo → metronomo, nessun crash).
 - **B** (import-sotto-modale): **risolto in N1b** (ritiro modale → sheet import `QBeatsApp:26` su AppRootView, sopra). Test B = **gate N1b** (in N0/N1a la modale c'è ancora → B non risolto prima).
 - **C** (audio-stop su transizione): lo stop **canonico** è `AppRootView.onChange(of: screen)` → `audioEngine.stop()` quando lascia `.qLive` (deterministico, punto-di-mutazione, copre ogni uscita incl. step-3 RoomSwitchBar). **NON** delegato a `LiveView:187 .onDisappear` (non-deterministico: può non sparare su view riusata/cachata = «il click a volte non si ferma» = il bug C). `:187` resta ridondanza innocua, non ci si appoggia. Pre-piazzato N1a (inerte), attivo N1b.
+  ⚠️ **SUPERATO da E1 (11/07) — vedi EMENDAMENTI POST-RATIFICA in coda.**
 
 ---
 
@@ -34,6 +35,7 @@
 **PRESERVA:** tutto (dead code). **ROLLBACK:** cancella `.qLive` + `QLiveRootView` + plumbing. **INTERMEDIO:** identico. **BENCH:** compila e gira identico.
 
 ## ATOMO N1b — FLIP (esattamente 2 edit accoppiati, il pezzo isolato rischioso)
+⚠️ **SUPERATO da E1 (11/07) — vedi EMENDAMENTI POST-RATIFICA in coda.**
 **COSA:** (1) porta Q-Live `HomeRootView:72` → `onOpenQLive()` (AppRootView passa `{ screen = .qLive }`), specchio di `onOpenQStage`; (2) **elimina `presentLive()`** (`:77-88`) + la modale + la sua `triggerDNDReminderIfNeeded` (ora pre-piazzata in N1a).
 **PRESERVA:** destinazione metronomo, uscita, stop, DND-parità. **INDIRIZZA:** rischio B (modale sparita). **ROLLBACK:** ripristina porta→`presentLive` + `presentLive()` (**~15 righe, 2 file**). **INTERMEDIO:** Q-Live via screen-swap → metronomo; back/CANCEL → `.home`; audio si ferma. **BENCH:** compila. **DEVICE (gate N1b):** **B** (import con Q-Live aperta = sheet visibile, non persa) · **C** (uscita `.qLive→.home` col click attivo → **tace**, via `AppRootView.onChange(of:screen)`) · **A-cheap** (entrata `.qLive` a freddo NON crasha). C-pieno (Home-bypass) = step 3; A-strutturale = step 2.
 
@@ -64,3 +66,18 @@
 **DND** — riformulato: Nodo A **NEUTRO** (no-op prima/dopo). Feature-persa-vs-voluto → **mini-TD dedicato, fuori Nodo A**.
 
 **Zero codice finché il referee non ratifica-pieno questo piano.**
+
+---
+
+## EMENDAMENTI POST-RATIFICA
+
+### E1 (11/07/2026) — N1b RIMUOVE `LiveView.swift:187 .onDisappear{ audioEngine.stop() }`
+**Ratificato:** referee + Mauro, 11/07/2026. Emenda l'ATOMO N1b e **supera** la nota «`:187` resta ridondanza innocua, non ci si appoggia» in «3 RISCHI D'AVVIO → C» (sopra) e il conteggio «esattamente 2 edit accoppiati» di N1b.
+
+**Cosa cambia:** in N1b si **rimuove** `LiveView.swift:187 .onDisappear{ audioEngine.stop() }` (verificato a fonte 11/07: `LiveView.swift:187` = `.onDisappear { audioEngine.stop() }`). N1b passa **da 2 a 3 file**: ai 2 edit già previsti (porta Q-Live `HomeRootView:72` → `onOpenQLive()`, con `AppRootView` che passa `{ screen = .qLive }`; `presentLive()` `:77-88` rimosso) si aggiunge la rimozione di `LiveView:187`.
+
+**Motivazione — NON «l'ombra è pericolosa».** La doppia chiamata a `stop()` (nuovo `onChange` + vecchio `.onDisappear`) **È PROVATA SICURA a fonte**: doppia guardia — interna `guard self.isRunning else { return }` `AudioEngine.swift:1638` (dentro `audioQueue.sync`); esterna `guard wasRunning else { return }` `AudioEngine.swift:1705` (fuori dal blocco). Quindi «`:187` è innocua per il motore» è **VERO — ma vero e IRRILEVANTE**. Il problema è il **TEST**: lasciando `:187` in piedi, il **GATE C di N1b** (esci da `.qLive` col click attivo → il metronomo tace) **NON DISCRIMINA** — se tace, non sappiamo se l'ha fermato il **nuovo** `AppRootView.onChange(of: screen)` (il meccanismo che stiamo validando) o il **vecchio** `.onDisappear` (quello che stiamo rimpiazzando). Un test che non separa il meccanismo nuovo dal vecchio **NON PROVA NULLA**. E allo **step 3** (RoomSwitchBar) `.onDisappear` **NON copre** l'uscita → lo stop rotto si scoprirebbe sul palco.
+
+**Copertura (nessun path scoperto):** le uniche 2 uscite reali da Q-Live — `LiveHeaderView` back + `WaitingForDirectorView` CANCEL — passano **ENTRAMBE** da `onExit()` → `screen = .home` → `AppRootView.onChange(of: screen)` → `stop()`. Rimuovere `:187` non lascia scoperta nessuna uscita.
+
+**Fonti (verify-at-source 11/07):** `LiveView.swift:187` · `AudioEngine.swift:1638` · `AudioEngine.swift:1705`.
