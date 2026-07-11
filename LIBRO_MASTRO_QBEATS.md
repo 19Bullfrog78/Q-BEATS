@@ -2,9 +2,9 @@
 
 > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
 
-**Versione:** 27 (RATIFICATA 10/07/2026)
-**Ultima modifica:** 2026-07-10 (**Doc-commit ratifiche pivot SHOWS** — Sez.2 +2 righe: (A) Modello dati tag SHOWS = HYBRID (09/07, 5 condizioni anti-wipe/anti-garbage); (B) Navigazione Q-Live §6 = freeze CD + Nodo A (10/07, 4 condizioni + gate device A/B/C, piano NODO_A ratifica-piena referee sha `77d081f6…`). Header bump 26→27. ⚠️ buco storico Sez.6 v25/v26 tracciato come mini-TD `LIBRO-sez6-buco-v25-v26` in BUGS §1.3)
-**Edit author:** CC chat principale 28/06/2026
+**Versione:** 28 (11/07/2026)
+**Ultima modifica:** 2026-07-11 (**Doc-commit S1/S2F + 2 domande aperte CD** — Sez.4 +2 domande: CD-Q7 header Q-Stage›Shows interim senza «+» (S1 `RoomSwitchBar.swift` implementa solo `.roombar.center`/layout Q-Live, «+ create show» è §8 differito → layout Q-Stage non costruibile oggi); CD-Q8 hit-area `.seg-mini` 30pt, sotto i 44pt HIG (nessuna claim sourced nel freeze, a differenza di `.roomseg` §CSS :669). Header bump 27→28. Verificato a fonte: nessuna formula stale "solo su mirror" sul piano Nodo A in questo file — la citazione v27 già punta solo a `HANDOFF/NODO_A_PIANO_2026-07-10.md` + sha, nulla da correggere)
+**Edit author:** CC chat principale 11/07/2026
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
 ---
@@ -310,6 +310,18 @@ La **direzione è ratificata** (Mauro 12/06, sez. 2: avvio default Standalone + 
 - **CD-Q6b:** cosa conta come "**scaletta presente**" (rende il Direttore obbligatorio): scaletta **condivisa** cross-device, o **caricata su un device** qualsiasi?
 - → **Risposta Mauro/CD:** ____________________
 
+### CD-Q7 (aperta 11/07) — Header Q-Stage›Shows, interim senza «+» (→ CD)
+
+Il freeze ha DUE layout `.full` (spec CD verbatim, §markup :937): **Q-Stage›Shows** = home sx · seg centrato · «+» a dx (`.roombar` piatta, §markup :834-837); **Q-Live›Shows** = home sx · seg centrato · NESSUN «+» (`.roombar.center`, §markup :864-866). Ma «+ create show» è **§8 DIFFERITO** → oggi il layout Q-Stage non è costruibile. S1 (`RoomSwitchBar.swift`, commit `87a8280`) implementa **solo** `.roombar.center` e lo chiama `.full` — non deciso da CC né dal referee, solo l'unica scelta disponibile senza il «+».
+- **CD-Q7:** come si presenta l'header Q-Stage›Shows finché «+» non arriva? (a) `.roombar.center` anche lì [scelta interim adottata di fatto in S1, da ratificare o respingere]; (b) altro layout interim.
+- → **Risposta Mauro/CD:** ____________________
+
+### CD-Q8 (aperta 11/07) — Pill `.seg-mini` a 30pt, sotto i 44pt HIG (→ CD)
+
+Il freeze dà `.navbar .seg-mini .o{min-height:30px}` (§CSS :711) e **non** ha una nota hit-area equivalente a quella di `.roomseg` (§CSS :669 verbatim: *"hit-area: il segmento riempie tutta l'altezza barra (54pt ≥ 44pt) — pill visibile 34pt"*). La navbar è alta 50pt (§CSS :708) → c'è spazio per espandere. S1 oggi NON espande l'hit-area di `.seg-mini` (nessuna claim sourced su cui appoggiarsi).
+- **CD-Q8:** la `.seg-mini` deve avere hit-area espansa (es. 44-50pt) con chrome visibile a 30pt, come fa `.roomseg`?
+- → **Risposta Mauro/CD:** ____________________
+
 ### Voci risolte come moot (non ratificate, non più rilevanti)
 
 | ID | Motivo della risoluzione |
@@ -365,6 +377,7 @@ La **direzione è ratificata** (Mauro 12/06, sez. 2: avvio default Standalone + 
 | 23 | 2026-06-26 | CC chat principale 26/06 | **Media = Tracks + Video (sez. 1 + sez. 2):** sez. 1 — `Q-Stage > Media` (contenitore) + `> Tracks` + `> Video`; sez. 2 +1 decisione (Mauro 26/06): Media 3ª sezione con 2 librerie; Song = base + video sincronizzati, un solo START; **v1 = solo Tracks** (`BacktrackFile`/`backtracks.json` da costruire, `Song` invariato; base-in-Live da cablare → BUGS §1.2); **Video = Fase 7**; B7 (Fase 5) modalità+analisi **sulla base**. «Media» confermato come nome contenitore. Header bump 22→23. Doc-only, nessun fix codice. |
 | 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisione di prodotto* (Mauro 28/06) — app portrait-only su tutti i device, landscape=v2. *(Il mezzo su iPad — config `~ipad`/`UIRequiresFullScreen` — è implementazione CC, fuori dalla ratifica.)* iPhone già solo-portrait (`Info.plist:20`); iPad da bloccare via config (chiave `~ipad` mancante → `BUGS_QBEATS.md` v22 §1.2 `TD-ipad-home`). Promuove una direzione finora solo in archivi (BOX5 V22-V24 + HANDOFF 25/06), mai cross-team. Header bump 23→24. **Single-purpose** (solo LIBRO). Doc-only, nessun fix codice. |
 | 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag SHOWS = HYBRID (09/07, 5 condizioni; fixture nuova family Setlist-hybrid, distinta da A5b/Song); (B) Navigazione Q-Live §6 = freeze CD + Nodo A (10/07; 4 condizioni + gate device A/B/C; piano `HANDOFF/NODO_A_PIANO_2026-07-10.md` ratifica-piena referee sha `77d081f6…`; DND neutro → mini-TD). Header 26→27. ⚠️ **Buco storico pre-esistente:** righe changelog v25/v26 mancanti da questa Sez.6 (header era già a v26); NON backfillate a memoria (verify-at-source) → tracciate come debito nel mini-TD `LIBRO-sez6-buco-v25-v26` (BUGS §1.3). Doc-only. |
+| 28 | 2026-07-11 | Mauro + CC + referee | **Doc-commit S1/S2F (sez. 4 +2 domande):** `RoomSwitchBar.swift` (`87a8280`) + `MetroFAB.swift` (`f91533f`) committati, CI verde (non device-chiusi). Aperte **CD-Q7** (header Q-Stage›Shows interim senza «+», S1 implementa solo il layout Q-Live `.roombar.center`) e **CD-Q8** (pill `.seg-mini` 30pt, sotto 44pt HIG, nessuna claim sourced nel freeze). Header bump 27→28. Verificato: nessuna formula stale "solo su mirror" per il piano Nodo A in questo file (già correttamente citato come `HANDOFF/NODO_A_PIANO_2026-07-10.md` da v27, nulla da correggere). Doc-only. |
 
 ---
 
