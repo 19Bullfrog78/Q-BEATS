@@ -1,15 +1,18 @@
 import SwiftUI
 
 // MARK: - QLiveEmptyStates — S2, Design System CD
-// Sorgente UNICA: FREEZE_QLIVE_NAV_DECODED_2026-07-11.txt
-// (sha256 438fcaf3ba73fb1dc379368b29474ec9fd1ac171d50839efe763d140f9b568a4).
+// Sorgente: freeze Q-Live Nav di CD — base 09/07 + taglio emendato 11/07 (Q7-Q10).
+// Riferimenti citati per SELETTORE, mai per riga: il taglio emendato AGGIUNGE righe,
+// quindi le citazioni a riga slittano e falliscono in silenzio (prescrizione CD, CD-02).
+// ⚠️ TD APERTO: il freeze NON è versionato in git — vive solo su mirror E:. Finché non
+//    entra in git, la provenienza esatta di questo file NON è verificabile a fonte.
 // ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). CI-verde ≠ chiuso.
 //    Chiusura visiva = gate device S3, con il freeze aperto a fianco.
-// 3 subview riusabili — SOLO il blocco `.empty` (§CSS :741-750). Zero header/navbar/
+// 3 subview riusabili — SOLO il blocco `.empty`→`.cta.quiet` (§CSS). Zero header/navbar/
 // statusbar/startfoot/routing: quelli sono altri atomi (S1/S2F già fatti; startfoot
 // "Start show" + conteggio "N unavailable" del `.dhead` sono S5, non qui).
 //
-// Layout condiviso `.empty` (§CSS :742): flex:1, column, center, gap 15,
+// Layout condiviso `.empty` (§CSS): flex:1, column, center, gap 15,
 // padding 24px 34px, text-align:center → VStack(spacing:15) espanso a riempire lo
 // spazio verticale disponibile nel genitore, contenuto centrato.
 
@@ -24,7 +27,7 @@ private struct EmptyStateLayout<Icon: View, Extra: View>: View {
     var body: some View {
         VStack(spacing: 15) {
             icon
-            // .et (§CSS :747): Inter 800/ExtraBold 20px, colore #fff, letter-spacing -0.4px
+            // .et (§CSS): Inter 800/ExtraBold 20px, colore #fff, letter-spacing -0.4px
             // → .tracking(-0.4) (px→pt 1:1, esatta — nessuna conversione, il freeze è già in pt).
             // line-height:1.15 → 23.0pt target: NESSUN .lineSpacing applicato, DICHIARATO non
             // dimenticato — misurato a fonte (tabella hhea di Inter-ExtraBold.ttf: ascender=1984
@@ -40,7 +43,7 @@ private struct EmptyStateLayout<Icon: View, Extra: View>: View {
                 .tracking(-0.4)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            // .ed (§CSS :748): JetBrains Mono regular 11px, --text3, max-width 255,
+            // .ed (§CSS): JetBrains Mono regular 11px, --text3, max-width 255,
             // letter-spacing 0.2px → .tracking(0.2) (px→pt 1:1, esatta).
             // line-height:1.6 → 17.6pt target: lineSpacing = target − naturale. Naturale
             // misurato a fonte (tabella hhea di JetBrainsMono-Regular.ttf: ascender=1020
@@ -64,7 +67,7 @@ private struct EmptyStateLayout<Icon: View, Extra: View>: View {
     }
 }
 
-// MARK: - Badge icona (.eic, §CSS :743): 78×78, radius 22, inset highlight in cima
+// MARK: - Badge icona (.eic): 78×78, radius 22, inset highlight in cima
 
 private struct EmptyIconBadge<Background: View, Content: View>: View {
     let strokeColor: Color
@@ -80,7 +83,7 @@ private struct EmptyIconBadge<Background: View, Content: View>: View {
                     .strokeBorder(strokeColor, lineWidth: 1.5)
             )
             .overlay(
-                // box-shadow:inset 0 1px 0 rgba(255,255,255,.05) (§CSS :743) = riga 1px
+                // box-shadow:inset 0 1px 0 rgba(255,255,255,.05) (§CSS .eic) = riga 1px
                 // SOLO sul bordo superiore interno. Stessa tecnica mask-su-strip-2pt già
                 // usata in RoomSwitchBar.swift (FIX 3) per lo stesso tipo di inner-shadow —
                 // NON ancora verificata a schermo nemmeno lì (reso aperto pre-esistente).
@@ -94,7 +97,7 @@ private struct EmptyIconBadge<Background: View, Content: View>: View {
 
 // MARK: - Icone (path SVG verbatim dal freeze, viewBox 24×24)
 
-// Ⓔ .eic.dim (§markup :960): 3 linee orizzontali "M4 6h16M4 12h16M4 18h9", stroke 1.7.
+// Ⓔ .eic.dim (§markup): 3 linee orizzontali "M4 6h16M4 12h16M4 18h9", stroke 1.7.
 private struct NoShowsIconShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
@@ -107,7 +110,7 @@ private struct NoShowsIconShape: Shape {
     }
 }
 
-// Ⓕ .eic.live (§markup :983): barra "M9 18V6l11-2v12" + 2 note (circle r=3, stesso
+// Ⓕ .eic.live (§markup): barra "M9 18V6l11-2v12" + 2 note (circle r=3, stesso
 // stroke-width della barra → un solo Shape/stroke, come MetronomeBodyShape in MetroFAB).
 private struct ShowEmptyIconShape: Shape {
     func path(in rect: CGRect) -> Path {
@@ -126,7 +129,7 @@ private struct ShowEmptyIconShape: Shape {
     }
 }
 
-// Ⓖ .eic.amber (§markup :1007): triangolo "M12 3l9 16H3z", stroke 1.7 — Shape separata
+// Ⓖ .eic.amber (§markup): triangolo "M12 3l9 16H3z", stroke 1.7 — Shape separata
 // dal punto esclamativo perché ha stroke-width DIVERSO (1.7 vs 1.8, vedi sotto).
 private struct WarningTriangleShape: Shape {
     func path(in rect: CGRect) -> Path {
@@ -141,7 +144,7 @@ private struct WarningTriangleShape: Shape {
     }
 }
 
-// Punto esclamativo dentro il triangolo: "M12 9v4.5M12 16.5v0.5", stroke 1.8 (§markup :1007).
+// Punto esclamativo dentro il triangolo: "M12 9v4.5M12 16.5v0.5", stroke 1.8 (§markup .eic.amber).
 // ⚠️ Il 2° sottopath (12,16.5)→(12,17) è un segmento di 0.5pt: con .lineCap(.round) SwiftUI
 // dovrebbe renderlo come un disco pieno (raggio = lineWidth/2), coerente col "punto" SVG —
 // caso limite (segmento quasi degenere), non verificato a schermo.
@@ -156,7 +159,7 @@ private struct WarningMarkShape: Shape {
     }
 }
 
-// Chevron sinistro della CTA (§markup :963): "M14 6l-6 6 6 6", stroke 2, box 13×13.
+// Chevron sinistro della CTA (§markup .cta.quiet): "M14 6l-6 6 6 6", stroke 2, box 13×13.
 private struct ChevronLeftShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
@@ -169,14 +172,19 @@ private struct ChevronLeftShape: Shape {
     }
 }
 
-// MARK: - CTA "Go to Q-Stage" (.cta.ghost, §CSS :749-750) — closure non cablata (S6)
+// MARK: - CTA "Go to Q-Stage" (.cta.quiet) — closure non cablata (S6)
 
 // CD-Q9 RISOLTA (11/07, CD + referee): bottone ATTIVO, non disabilitato. Omonimia
 // sciolta: `.dead` ora significa SOLO stile disabilitato (opacity:var(--disabled),
 // es. `.startbtn.dead`) — questa CTA non lo è. L'attivo low-emphasis si chiama
-// `.cta.ghost`: stesso layout/padding/bordo di prima, testo+icona salgono da
+// `.cta.quiet`: stesso layout/padding/bordo di prima, testo+icona salgono da
 // `--text3` a `--text2`. "closure non cablata" nel titolo sopra è SOLO lo stato di
 // `onGoToQStage` (vedi REGISTRO RESI sotto) — non più una domanda sullo stile.
+// ⚠️ CORREZIONE S2c: S2b aveva scritto `.cta.ghost` — nome SBAGLIATO. Verificato
+// contro il freeze emendato di CD (taglio 11/07, emendamenti Q7-Q10), selettore
+// `.cta.quiet`. Vocabolario ratificato da CD: `.dead` = disabilitato (opacity) ·
+// `.quiet` = nav secondaria ATTIVA, neutro solido (questa CTA) · `.ghost` = CTA di
+// CREAZIONE attiva, blu tratteggiato ("Create in Songs", fuori da questo freeze).
 // ⚠️ REGISTRO RESI — VINCOLO ESPLICITO PER S6: `onGoToQStage` è `() -> Void = {}`, un
 // no-op silenzioso. Se S4/S6 dimenticano di cablarlo, il risultato è un bottone che si
 // preme (hit-area 44pt reale, feedback visivo del tap) e NON fa nulla — il compilatore
@@ -211,13 +219,13 @@ private struct GoToQStageCTA: View {
     }
 }
 
-// MARK: - Ⓔ NO SHOWS TO PLAY (§markup :959-969, §CSS :742-750, :703-705)
+// MARK: - Ⓔ NO SHOWS TO PLAY (§markup Frame E, §CSS `.empty`→`.cta.quiet` + `.metrofab`)
 
 // Empty-state della lista Shows quando non esiste alcuno show. CTA inerte + MetroFAB
 // (riuso S2F, `UI/QLive/MetroFAB.swift`) come uscita al metronomo-libero.
 // Cablaggio (onGoToQStage / onMetroTap) = S6, qui restano no-op di default.
-// ⚠️ Il pinning "empty centrato sopra, MetroFAB in fondo con 30pt di margine" (§CSS :703
-// `margin-top:auto; padding:0 0 30px`) FUNZIONA solo se il container che ospiterà questa
+// ⚠️ Il pinning "empty centrato sopra, MetroFAB in fondo con 30pt di margine" (§CSS
+// .metrofab `margin-top:auto; padding:0 0 30px`) FUNZIONA solo se il container che ospiterà questa
 // view ha un'altezza esplicita/espansa (`.frame(maxHeight:.infinity)`), non deducibile
 // da qui: è un vincolo per l'integrazione futura (routing = fuori scope in questo atomo).
 struct NoShowsToPlayEmptyState: View {
@@ -237,7 +245,7 @@ struct NoShowsToPlayEmptyState: View {
                 title: "No shows to play",
                 description: "No shows built yet — create one in Q-Stage. Or just start the metronome below: no show needed."
             ) {
-                // .cta margin-top:4px (§CSS :749) — EXTRA rispetto al gap:15 uniforme di
+                // .cta margin-top:4px (§CSS) — EXTRA rispetto al gap:15 uniforme di
                 // EmptyStateLayout (`:25`). Applicato al CALL SITE, non dentro il Button:
                 // dentro falserebbe il padding interno (12→16) e il min-height 44.
                 GoToQStageCTA(onGoToQStage: onGoToQStage)
@@ -250,7 +258,7 @@ struct NoShowsToPlayEmptyState: View {
     }
 }
 
-// MARK: - Ⓕ THIS SHOW IS EMPTY (§markup :982-986)
+// MARK: - Ⓕ THIS SHOW IS EMPTY (§markup Frame F)
 
 // Empty-state del dettaglio show quando lo show non ha canzoni. Nessun CTA, nessuno
 // startfoot: il bottone "Start show" disabled è S5 (fuori da questo atomo).
@@ -272,11 +280,11 @@ struct ThisShowIsEmptyState: View {
     }
 }
 
-// MARK: - Ⓖ NO PLAYABLE SONGS (§markup :1006-1010)
+// MARK: - Ⓖ NO PLAYABLE SONGS (§markup Frame G)
 
 // Empty-state del dettaglio show quando la lista è piena ma nessuna canzone è
 // suonabile (tutte orfane/cancellate dal catalogo). Nessuno startfoot/conteggio
-// "0 playable · N unavailable": quello è `.dhead .mt.a` (§CSS :716-717), S5.
+// "0 playable · N unavailable": quello è `.dhead .mt.a` (§CSS), S5.
 // CD-Q10 RISOLTA (11/07, CD + referee): copy N-agnostica, niente ramo singolare/
 // plurale (l'app non è localizzata) — supera il problema di pluralizzazione che la
 // versione precedente (interpolazione di `unavailableCount`, ora rimosso) lasciava
@@ -287,7 +295,7 @@ struct NoPlayableSongsEmptyState: View {
         EmptyStateLayout(
             icon: EmptyIconBadge(strokeColor: QStageTheme.amber.opacity(0.3)) {
                 // linear-gradient(150deg, rgba(245,184,32,.14), rgba(245,184,32,.04))
-                // (§CSS :746). 150deg CSS non ha una conversione lineare esatta in
+                // (§CSS .eic.amber). 150deg CSS non ha una conversione lineare esatta in
                 // UnitPoint SwiftUI: .topLeading→.bottomTrailing è un'APPROSSIMAZIONE
                 // dichiarata (≈135°), non un valore sourced.
                 LinearGradient(
