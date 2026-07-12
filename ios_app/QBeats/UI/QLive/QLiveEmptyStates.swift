@@ -1,13 +1,21 @@
 import SwiftUI
 
 // MARK: - QLiveEmptyStates — S2, Design System CD
-// Sorgente: freeze Q-Live Nav di CD — base 09/07 + taglio emendato 11/07 (Q7-Q10).
-// Riferimenti citati per SELETTORE, mai per riga: il taglio emendato AGGIUNGE righe,
-// quindi le citazioni a riga slittano e falliscono in silenzio (prescrizione CD, CD-02).
-// ⚠️ TD APERTO: il freeze NON è versionato in git — vive solo su mirror E:. Finché non
-//    entra in git, la provenienza esatta di questo file NON è verificabile a fonte.
+// Sorgente: freeze QLive Nav di CD, contratto vivo DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html
+// @ 9994bc0 (base 09/07 + emendamenti Q7-Q16). Il freeze È IN GIT dal commit 9994bc0
+// (DESIGN/QLive_Nav/): la provenienza di questo file è ora verificabile a fonte — il vecchio
+// «TD: freeze non versionato, solo su mirror E:» è CHIUSO.
+// Riferimenti citati per SELETTORE, mai per riga (R7, LIBRO v31 / prescrizione CD CD-02): il
+// freeze cresce a ogni taglio, le citazioni a riga slittano e falliscono in silenzio.
 // ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). CI-verde ≠ chiuso.
-//    Chiusura visiva = gate device S3, con il freeze aperto a fianco.
+//    🔴 Gate NON uniforme, distinguere per componente (verificato a fonte, R1 12/07):
+//    · componenti CONDIVISI (EmptyStateLayout lineSpacing, EmptyIconBadge inner-shadow,
+//      NoShowsIconShape) → gate device S3, ma SOLO via Q13 «No shows yet» di Q-Stage e SOLO
+//      dopo S2d (estrazione in EmptyStateKit). Prima di S2d nulla li monta a S3.
+//    · subview INTERE Ⓔ/Ⓕ/Ⓖ (con CTA/MetroFAB, gradiente amber, punto esclamativo) → Ⓔ è di
+//      Q-LIVE, Ⓕ/Ⓖ del dettaglio show → gate S4/S5, dopo il Nodo A. NON a S3.
+//    Oggi le 3 subview vivono solo nel PreviewProvider in coda: nessuna è montata in una vista
+//    reale finché S3 (Q13) / S4 non le istanziano.
 // 3 subview riusabili — SOLO il blocco `.empty`→`.cta.quiet` (§CSS). Zero header/navbar/
 // statusbar/startfoot/routing: quelli sono altri atomi (S1/S2F già fatti; startfoot
 // "Start show" + conteggio "N unavailable" del `.dhead` sono S5, non qui).
@@ -34,8 +42,8 @@ private struct EmptyStateLayout<Icon: View, Extra: View>: View {
             // descender=-494 lineGap=0 unitsPerEm=2048 → fattore naturale 1.21 → 24.2pt @ 20px)
             // il leading NATURALE del font è già > del target CSS: non c'è spazio da aggiungere,
             // e SwiftUI non ha un modo pulito per sottrarre sotto il naturale. Registro resi: da
-            // confermare a schermo (gate S3) se CoreText usa hhea o OS/2 typo metrics — possono
-            // differire leggermente, non verificabile senza rendering reale.
+            // confermare a schermo (gate S3 via Q13, dopo S2d) se CoreText usa hhea o OS/2 typo
+            // metrics — possono differire leggermente, non verificabile senza rendering reale.
             // Stesso pattern "Inter-ExtraBold" già in uso (HomeRootView.swift:165,
             // QStageKit.swift:92) — nessun terzo approccio introdotto.
             Text(title)
@@ -51,7 +59,7 @@ private struct EmptyStateLayout<Icon: View, Extra: View>: View {
             // lineSpacing = 17.6 − 14.52 = 3.08 — APPROSSIMAZIONE dichiarata (CoreText può
             // derivare il leading nativo da OS/2 invece che hhea; il valore è calcolato da
             // metrici reali, non inventato, ma non garantito pixel-esatto). Registro resi:
-            // conferma a schermo, gate S3.
+            // conferma a schermo, gate S3 via Q13, dopo S2d.
             Text(description)
                 .font(.jbMono(.regular, size: 11))
                 .tracking(0.2)
@@ -87,6 +95,8 @@ private struct EmptyIconBadge<Background: View, Content: View>: View {
                 // SOLO sul bordo superiore interno. Stessa tecnica mask-su-strip-2pt già
                 // usata in RoomSwitchBar.swift (FIX 3) per lo stesso tipo di inner-shadow —
                 // NON ancora verificata a schermo nemmeno lì (reso aperto pre-esistente).
+                // GATE: S3 via Q13 (il badge .eic.dim di «No shows yet», Q-Stage, usa
+                // EmptyIconBadge), dopo S2d — è un componente CONDIVISO, arriva a schermo a S3.
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
                     .mask(VStack(spacing: 0) { Rectangle().frame(height: 2); Spacer(minLength: 0) })
@@ -98,6 +108,10 @@ private struct EmptyIconBadge<Background: View, Content: View>: View {
 // MARK: - Icone (path SVG verbatim dal freeze, viewBox 24×24)
 
 // Ⓔ .eic.dim (§markup): 3 linee orizzontali "M4 6h16M4 12h16M4 18h9", stroke 1.7.
+// ⚠️ NON riusare per l'icona tab-bar «Shows» di Q13 (Q-Stage): glifo QUASI identico ma
+// DIVERSO — path "…M4 18h10" (h10, non h9) e stroke 1.8 (non 1.7), verificato nel freeze.
+// Chi la riusasse sbaglierebbe di 1 unità e nessuno se ne accorgerebbe (compila, gira,
+// sembra giusto). Due Shape distinte per un motivo: quando S3 costruirà la tab-bar, glifo a sé.
 private struct NoShowsIconShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
@@ -147,7 +161,8 @@ private struct WarningTriangleShape: Shape {
 // Punto esclamativo dentro il triangolo: "M12 9v4.5M12 16.5v0.5", stroke 1.8 (§markup .eic.amber).
 // ⚠️ Il 2° sottopath (12,16.5)→(12,17) è un segmento di 0.5pt: con .lineCap(.round) SwiftUI
 // dovrebbe renderlo come un disco pieno (raggio = lineWidth/2), coerente col "punto" SVG —
-// caso limite (segmento quasi degenere), non verificato a schermo.
+// caso limite (segmento quasi degenere), non verificato a schermo. GATE: S4/S5 — vive solo
+// in Ⓖ NoPlayableSongs (dettaglio show), NON a schermo al gate S3.
 private struct WarningMarkShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
@@ -297,7 +312,8 @@ struct NoPlayableSongsEmptyState: View {
                 // linear-gradient(150deg, rgba(245,184,32,.14), rgba(245,184,32,.04))
                 // (§CSS .eic.amber). 150deg CSS non ha una conversione lineare esatta in
                 // UnitPoint SwiftUI: .topLeading→.bottomTrailing è un'APPROSSIMAZIONE
-                // dichiarata (≈135°), non un valore sourced.
+                // dichiarata (≈135°), non un valore sourced. GATE: S4/S5 — Ⓖ è del dettaglio
+                // show, NON a schermo al gate S3.
                 LinearGradient(
                     colors: [QStageTheme.amber.opacity(0.14), QStageTheme.amber.opacity(0.04)],
                     startPoint: .topLeading, endPoint: .bottomTrailing

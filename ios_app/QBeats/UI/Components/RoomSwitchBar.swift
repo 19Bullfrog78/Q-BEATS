@@ -1,18 +1,23 @@
 import SwiftUI
 
-// MARK: - RoomSwitchBar — Design System CD, freeze "Cancello 1" (sha256 b23dfc78…) — §1.4 FROZEN
+// MARK: - RoomSwitchBar — Design System CD, freeze QLive Nav — §1.4 FROZEN
+// Contratto vivo: DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0 (contiene le regole
+// .roombar/.homebtn/.roomseg/.metrofab). Questo componente fu scritto in origine contro il
+// predecessore "standalone" (09/07) — file DISTINTO dalla "base", NON lo stesso documento,
+// che però condivide quelle stesse regole CSS, verificate identiche byte-per-byte in FREEZE-GIT.
+// R7 (LIBRO v31): nessuno sha inciso nei commenti; si cita path @ commit, git verifica.
 // ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). CI-verde ≠ chiuso.
-//    Chiusura visiva = gate device S3, con il freeze aperto a fianco.
+//    Chiusura visiva del reso hit-area 54pt = gate device S3: S3 monta QUESTO componente
+//    come header Q-Stage›Shows (vedi CD-Q7 sotto), quindi il reso si chiude davvero lì.
 // Componente presentazionale INERTE: highlight pilotato da `active` (no @State), zero logica di switch/navigazione.
 // «+» create show è §8 DIFFERITO — FUORI PERIMETRO qui: nessun addmini/showsPlus/onAdd in questo atomo.
 // Sorgente: `.roombar.center`/`.homebtn`/`.roomseg` (variant .full) e `.navbar .seg-mini` (variant .segMini).
-// FIX 5 (referee, dichiarazione): il freeze ha DUE layout `.full` (spec CD verbatim §markup :937):
-// Q-Stage›Shows = home sx · seg centrato · «+» a dx (§markup :834-837, `.roombar` piatta).
-// Q-Live›Shows  = home sx · seg centrato · NESSUN «+» (§markup :864-866, `.roombar.center`).
-// Qui è implementato SOLO il secondo (`.roombar.center`) e chiamato `.full` — senza il «+»
-// (§8 differito) il layout Q-Stage non è nemmeno costruibile in questo atomo. Decisione presa
-// da CC in questa sede: l'header Q-Stage con «+» resta un'apertura per CD, non ancora deciso
-// come si presenti nel frattempo — segnalato a Mauro/referee per LIBRO, non scritto qui.
+// CD-Q7 RISOLTA e RATIFICATA (LIBRO v31, sez.2, riga 2026-07-11): «+» OMESSO finché §8 non
+// arriva; l'header Q-Stage è IDENTICO a Q-Live (`.roombar.center`/`.roomseg`), nessun bottone
+// morto o disabilitato al suo posto. Quando §8 arriverà il «+» rientra ancorato a destra —
+// il segmento è già centrato, NESSUN reflow. Quindi il `.full` implementato qui (solo
+// `.roombar.center`) NON è provvisorio: è il layout definitivo dell'header Q-Stage finché §8
+// non arriva. (Prima di CD-Q7 era un'apertura per CD; ora è deciso.)
 struct RoomSwitchBar: View {
     enum Room {
         case qStage, qLive
@@ -31,7 +36,7 @@ struct RoomSwitchBar: View {
     var body: some View {
         switch variant {
         case .full:
-            // .roombar.center: seg centrato sull'INTERA barra, home in `position:absolute;left:14px` (§CSS :668)
+            // .roombar.center: seg centrato sull'INTERA barra, home in `position:absolute;left:14px` (§CSS .roombar.center)
             // → ZStack (non HStack+Spacer): il centraggio del segment non dipende dalla presenza dell'home.
             ZStack {
                 segment
@@ -47,7 +52,7 @@ struct RoomSwitchBar: View {
             // ORDINE dei modificatori (SwiftUI wrappa dall'interno all'esterno, `.padding`
             // DEVE restare l'ULTIMO/esterno): `.frame(maxWidth:.infinity)` fa reclamare al
             // contenuto (W−28) proposti dal padding; `.padding(.horizontal,14)` riaggiunge 14
-            // per lato → barra a larghezza piena W, contenuto inset 14/lato (= §CSS :665
+            // per lato → barra a larghezza piena W, contenuto inset 14/lato (= §CSS .roombar
             // `padding:0 14px`, border-box), home ancorato al bordo interno sx (HStack riempie
             // W−28, Spacer spinge), seg centrato dallo ZStack. Invertendo (padding interno,
             // frame esterno) il contenuto galleggerebbe centrato con 14 di minimo ma senza
@@ -60,8 +65,8 @@ struct RoomSwitchBar: View {
         }
     }
 
-    // .homebtn: 34×34, radius 10, bg white .05, bordo white .09 (§CSS :667).
-    // FIX 1 (referee): icona = path SVG verbatim (§markup :835), NON SF Symbol "house" —
+    // .homebtn: 34×34, radius 10, bg white .05, bordo white .09 (§CSS .homebtn).
+    // FIX 1 (referee): icona = path SVG verbatim (§markup .homebtn), NON SF Symbol "house" —
     // glifo diverso da CD e senza dimensione fissa si sarebbe scalato col Dynamic Type
     // dentro il box fisso 34×34. Stroke-width SVG=1.7 in unità viewBox(24), reso a 18pt →
     // 1.7 × 18/24 = 1.275 sullo schermo (NON 1.7).
@@ -81,7 +86,7 @@ struct RoomSwitchBar: View {
         .buttonStyle(.plain)
     }
 
-    // .roomseg / .navbar .seg-mini: container bg white .05, bordo white .10 (§CSS :670, :710)
+    // .roomseg / .navbar .seg-mini: container bg white .05, bordo white .10 (§CSS .roomseg / .seg-mini)
     private var segment: some View {
         let containerPadding: CGFloat = variant == .full ? 4 : 3
         let containerRadius: CGFloat = variant == .full ? 12 : 10
@@ -98,7 +103,7 @@ struct RoomSwitchBar: View {
         )
     }
 
-    // .roomseg .opt(.stage-on/.live-on) e .navbar .seg-mini .o(.live-on) (§CSS :672-674, :711-712)
+    // .roomseg .opt(.stage-on/.live-on) e .navbar .seg-mini .o(.live-on) (§CSS .roomseg .opt / .seg-mini .o)
     private func pill(_ room: Room, label: String) -> some View {
         let isOn = room == active
         let tint: Color = room == .qStage ? QStageTheme.blue : QStageTheme.orange
@@ -107,11 +112,24 @@ struct RoomSwitchBar: View {
         let vPad: CGFloat = variant == .full ? 7 : 5
         let radius: CGFloat = variant == .full ? 9 : 8
         let minHeight: CGFloat = variant == .full ? 34 : 30
-        // FIX 4-bis (referee): hit-area 54pt su tutta l'altezza barra (§CSS :669, commento CD
+        // FIX 4-bis (referee): hit-area 54pt su tutta l'altezza barra (§CSS .roomseg, commento CD
         // verbatim), chrome visibile resta 34/30. Scoping: solo `.full` ha la claim sourced
-        // (la nota :669 sta subito sopra `.roomseg`, la variante piena; `.navbar .seg-mini`
-        // non ha un commento equivalente — 30pt, sotto i 44pt HIG: APERTO PER CD, non deciso
-        // qui). Il primo tentativo (`.contentShape(Rectangle().inset(by: -N))`) insettava
+        // (la nota hit-area sta sul `.roomseg`, la variante piena).
+        // ── `.navbar .seg-mini` — CD-Q8 RISOLTA e RATIFICATA (LIBRO v31, sez.4): hit-area
+        // ≥44pt, chrome visibile 30pt. NON è un'omissione del freeze — i 44pt sono regola
+        // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
+        // e `.seg-mini .o{min-height:30px}`). ⚠️ La TECNICA che CD aveva prescritto
+        // (`minHeight:44` sulla cella) è RESPINTA dal referee: farebbe crescere anche
+        // background/bordo/clipShape → pill 44pt VISIBILI, contraddicendo il «chrome resta 30pt»
+        // di CD stesso. CD owna il RISULTATO; la tecnica è dominio CC/referee = lo stesso
+        // pad→contentShape→pad-negativo usato qui sotto per `.full`. 🔒 IMPLEMENTAZIONE GATTATA
+        // DAL GATE DEVICE S3: NON dare l'hit-area a `.segMini` finché il gate S3 non prova che
+        // la tecnica FUNZIONA su `.full`. Se il `.clipShape` del container mangia l'hit-test
+        // ereditato, l'espansione è INERTE e il bersaglio resta 30pt SENZA SEGNALE (compila,
+        // gira, sembra a posto) → si ristruttura UNA volta sola. Lavoro per S5, NON per S3.
+        // Se il gate S3 passa: `hitExpansion` di `.segMini` = (50 − 30) / 2 = 10pt (navbar
+        // 50pt, coerente con `.roomseg` che riempie i 54).
+        // Il primo tentativo (`.contentShape(Rectangle().inset(by: -N))`) insettava
         // TUTTI E 4 I LATI: le due pill (3pt di gap) finivano con hit-area sovrapposte di 17pt,
         // e nella sovrapposizione vince il sibling successivo → toccando il bordo destro di
         // "Q-Stage" si attivava "Q-Live". Bug funzionale, trovato dal referee. Fix: espandere
@@ -145,9 +163,9 @@ struct RoomSwitchBar: View {
                     // sui 4 lati. SwiftUI non ha inner-shadow nativo: si traccia il bordo
                     // completo e si maschera a una fascia di 2pt in cima (il centro del
                     // tratto 1pt cade lì; la maschera esclude lati/basso). Solo variant .full
-                    // attivo (assente su .seg-mini nel freeze, §CSS :673-674 vs :712).
+                    // attivo (assente su .seg-mini nel freeze, §CSS .roomseg .opt vs .seg-mini .o).
                     // Rifinitura (referee): .strokeBorder invece di .stroke — il CSS globale è
-                    // box-sizing:border-box (§CSS :618), bordo/inset stanno DENTRO; .stroke è
+                    // box-sizing:border-box (§CSS globale), bordo/inset stanno DENTRO; .stroke è
                     // centrato sul bordo e sborda 0.5pt fuori.
                     Group {
                         if variant == .full && isOn {
@@ -170,7 +188,7 @@ struct RoomSwitchBar: View {
     }
 }
 
-// Icona home, viewBox 24×24: roofline "M4 11l8-6 8 6" + pareti "M6 10v9h12v-9" (§markup :835)
+// Icona home, viewBox 24×24: roofline "M4 11l8-6 8 6" + pareti "M6 10v9h12v-9" (§markup .homebtn)
 private struct HomeShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24

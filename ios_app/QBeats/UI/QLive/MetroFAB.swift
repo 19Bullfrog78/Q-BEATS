@@ -1,11 +1,19 @@
 import SwiftUI
 
-// MARK: - MetroFAB — Design System CD, freeze "Cancello 1" (sha256 b23dfc78…) — §1.3 FROZEN
+// MARK: - MetroFAB — Design System CD, freeze QLive Nav — §1.3 FROZEN
+// Contratto vivo: DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0 (contiene le regole
+// .metrofab). Scritto in origine contro il predecessore "standalone" (09/07) — file DISTINTO
+// dalla "base", NON lo stesso documento, ma con le stesse regole CSS verificate byte-per-byte
+// in FREEZE-GIT. R7 (LIBRO v31): nessuno sha inciso; si cita path @ commit, git verifica.
 // ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). CI-verde ≠ chiuso.
-//    Chiusura visiva = gate device S3, con il freeze aperto a fianco.
+//    🔴 Chiusura visiva = gate device S4, NON S3. Questo componente è istanziato SOLO dentro
+//    NoShowsToPlayEmptyState (Frame Ⓔ = Q-Live), e Q-Live non esiste finché il Nodo A non è
+//    sciolto (S4). L'unico empty-state che S3 monta è Q13 «No shows yet» di Q-Stage, che per
+//    decisione CD (LIBRO v31, Q13) NON ha CTA né MetroFAB. Al gate S3 il MetroFAB NON è a
+//    schermo: chi lo cerca lì per verificarlo non lo trova. (Reso ombra sotto: stesso gate S4.)
 // Uscita esplicita al metronomo-libero (senza show). Componente condiviso Q-Live Shows + empty-state.
-// Sorgente: `.metrofab .c` / `.metrofab .l` (§CSS :703-705); path icona verbatim §markup :878.
-// NOTA (referee): `.metrofab{margin-top:auto; padding:0 0 30px}` (§CSS :703) = layout del
+// Sorgente: `.metrofab .c` / `.metrofab .l` (§CSS .metrofab); path icona verbatim §markup .metrofab.
+// NOTA (referee): `.metrofab{margin-top:auto; padding:0 0 30px}` (§CSS .metrofab) = layout del
 // CONTENITORE (posizione in coda alla lista/empty), NON del componente → DIFFERITO a S2/S6,
 // non implementato qui.
 struct MetroFAB: View {
@@ -25,7 +33,7 @@ struct MetroFAB: View {
         .buttonStyle(.plain)   // FIX 7 (referee): niente tint/dim di default SwiftUI (coerente con RoomSwitchBar)
     }
 
-    // .metrofab .c: 64×64 cerchio, bg orange .14, bordo orange .5 (1.5pt), shadow nero .55 (§CSS :704).
+    // .metrofab .c: 64×64 cerchio, bg orange .14, bordo orange .5 (1.5pt), shadow nero .55 (§CSS .metrofab .c).
     // FIX 6 (referee): l'ombra è sul solo cerchio (CSS box-shadow è sull'elemento `.c`, non sul
     // contenuto). Prima era sullo ZStack intero → SwiftUI proiettava anche l'ombra dell'icona,
     // che trapelava attraverso il fill al 14% come un alone offset di 6pt. L'icona ora è un
@@ -34,8 +42,9 @@ struct MetroFAB: View {
     // (opaco). In SwiftUI `.shadow()` deriva l'ombra dall'ALPHA del contenuto renderizzato, e il
     // fill è al 14% → l'ombra potrebbe risultare molto più debole del freeze (alone slavato
     // invece di ombra profonda). SOSPETTO, NON VERIFICATO: è rendering, non deducibile dal
-    // codice. → GATE DEVICE S3, insieme all'hit-area. Se sul device l'ombra è slavata, si casta
-    // da una shape opaca.
+    // codice. → GATE DEVICE S4 (NON S3): il MetroFAB appare a schermo solo quando Q-Live monta
+    // Frame Ⓔ, dopo il Nodo A — vedi la nota di gate in testa al file. Se sul device l'ombra è
+    // slavata, si casta da una shape opaca.
     private var circle: some View {
         ZStack {
             Circle()
@@ -62,7 +71,7 @@ struct MetroFAB: View {
     }
 }
 
-// Corpo + braccio, viewBox 24×24: "M9 3h6l3.2 18H5.8z" + "M12 20l3.2-11" (§markup :878)
+// Corpo + braccio, viewBox 24×24: "M9 3h6l3.2 18H5.8z" + "M12 20l3.2-11" (§markup .metrofab)
 private struct MetronomeBodyShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
@@ -81,7 +90,7 @@ private struct MetronomeBodyShape: Shape {
     }
 }
 
-// Pivot: circle cx=13.7 cy=9.5 r=1.5, viewBox 24×24 (§markup :878)
+// Pivot: circle cx=13.7 cy=9.5 r=1.5, viewBox 24×24 (§markup .metrofab)
 private struct MetronomePivotShape: Shape {
     func path(in rect: CGRect) -> Path {
         let scale = rect.width / 24
