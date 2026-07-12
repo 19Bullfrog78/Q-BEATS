@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 34
-**Ultima modifica:** 2026-07-11
+**Versione:** 35
+**Ultima modifica:** 2026-07-12
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -456,6 +456,12 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
 - **Fix possibile (solo annotato, NON in questo commit):** cablare gli ingressi — bottone "Esporta backup" che monta `BackupView` + bottone "Importa backup" con `.fileImporter` (UTType `com.bullfrog.qbeats.backup`) → stesso `parse`→`ImportView`; in una schermata Backup/Settings raggiungibile anche in Release (coordinare col fronte ⚙ Settings / `SettingsView`-latente §1.2). Fronte UX (CD per la collocazione) + nota INFORMATION nel frattempo ("per ripristinare, apri il `.qbeats` da File"). Gate device.
 - **Priorità:** 🟡 bassa / 📦 backlog. **Dominio:** CC (+ CD per gli ingressi UI).
 
+### TD-emptystatekit-theme-dep — token condivisi di `EmptyStateKit` dipendono da `QStageKit` (🔵 COSMETICO / struttura — PRE-ESISTENTE, non introdotto da S2d)
+- **Fatto tecnico (a HEAD `ab6b553`):** `EmptyStateLayout` (`UI/Components/EmptyStateKit.swift`, `.foregroundColor(QStageTheme.text3)`) usa un token di `QStageKit` — il tema della stanza Q-Stage. Un componente in `UI/Components/`, per natura condiviso Q-Stage/Q-Live (Q13 «No shows yet» di Q-Stage lo riusa), dipende così dal tema di UNA stanza. Compila (stesso modulo Swift), ma è un odore: un "condiviso" legato a una stanza specifica.
+- **Attribuzione:** PRE-ESISTENTE — il colore era già `QStageTheme.text3` in `QLiveEmptyStates.swift` PRIMA dell'estrazione (verificato a fonte: `git show 7550476:…QLiveEmptyStates.swift:67`, dentro `EmptyStateLayout`). S2d (move puro, `ab6b553`) ha solo RILOCATO la dipendenza, NON l'ha introdotta. `QLiveEmptyStates` continua a usare lo stesso token nella subview Ⓔ.
+- **Fix possibile (solo annotato, NON in questo commit):** un `CoreTheme` neutro che ospiti i token realmente condivisi (`text3` ecc.), da cui attingano sia `QStageKit` sia i componenti di `EmptyStateKit` — così `UI/Components/` non dipende più da un tema di stanza. Valutazione a sé, fuori perimetro S2d.
+- **Priorità:** 🔵 cosmetico/struttura, non schedulato. **Dominio:** CC.
+
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
 Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
@@ -764,6 +770,7 @@ Per data di chiusura, decrescente.
 | 32 | 2026-07-06 | CC chat principale 06/07 | **Promozione §1.3 WAIT-DIRECTOR (doc-only) — da "candidato" a CONFERMATO-con-repro-device.** Causa confermata a source (verbatim `TransportView.swift:36-63`): gate `currentLinkMode == .collaborativa` (`:38`/`:58`), LinkMode PERSISTITO, NON Link-attivo (`ABLLinkIsEnabled`)/`linkIsConnected` (commento `:48-51`). Repro device Mauro 06/07: `.collaborativa`/Follower+Link OFF → WAIT DIRECTOR; `.direttore`+Link OFF → Play/Stop liberi. Fix = CD-7 (default Standalone, ratificato DIREZIONE 12/06 non implementato). 🟡 bassa. Bump header 31→32. Doc-only, nessun fix codice. |
 | 33 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS + famiglia swallow (doc-only).** Nuovo §1.3 `TD-persist-silent-fail` (faccia WRITE della famiglia swallow→wipe: `save()` `async throws` ingoiato da `try?` in 10 CRUD, `QBeatsStore.swift:50`+`:57-59`; 🟡 CC) + cross-ref reciproco alle cugine v29 `TD-store-decode-swallow` (`:264`) e v30 `TD-backtracks-load-riscrive-vuoto` (`:413`). Nuovo §1.3 `LIBRO-sez6-buco-v25-v26` (doc-hygiene: righe changelog v25/v26 mancanti in LIBRO Sez.6, tracciate come debito onesto, non backfillate a memoria; 🟡 CC). Accompagna il doc-commit LIBRO v27 (ratifiche HYBRID + §6 nav). Bump header 32→33. Doc-only, nessun fix codice. |
 | 34 | 2026-07-11 | Mauro + CC | **Nuovo ticket §1.2 `TD-peer-reconnect-button` (doc-only) — pulsante di riaggancio manuale del peer in Q-Live.** Rete di sicurezza a valle di TD#17 (🟠 OPEN MEDIA dal 22/06, NON più 🚨): a peer Link perso il re-join automatico c'è ma è ~10 min (`BUGS:104`), mentre il ri-init manuale (uscire/rientrare dalla vista → «peer ri-formato all'istante», `BUGS:103`) è istantaneo → il bottone lo espone IN Q-Live senza far uscire il batterista. **Scopo preciso (device-confermato 11/06, `BUGS:103`):** durante il drop il tempo NON va fuori e il metronomo continua (−11 ms/16,6 s); il danno è SOLO FINALE (stop non propagato ~1,5 s = END SHOW) → il bottone ricuce PRIMA dello stop, si preme con calma sulla spia. Distinto dal recovery automatico e da una spia «peer perso» (fonti = memorie CC, NON BUGS/LIBRO, qualificate nel ticket). Idea Mauro, non negli atti → registrata. 🟠 OPEN MEDIA, CC+CD, da progettare. Non in LIBRO. Bump header 33→34. Doc-only, nessun fix codice. |
+| 35 | 2026-07-12 | Mauro + CC + referee | **Nuovo §1.3 `TD-emptystatekit-theme-dep` (doc-only) — mini-TD 🔵 COSMETICO/struttura, PRE-ESISTENTE.** Emerso da S2d (estrazione `EmptyStateKit`, commit `ab6b553`): `EmptyStateLayout` (ora in `UI/Components/EmptyStateKit.swift`) usa `QStageTheme.text3` via QStageKit → un componente "condiviso" dipende dal tema di una stanza (Q-Stage). Compila (stesso modulo), ma è un odore architetturale. **NON introdotto dal move** — il colore era già `QStageTheme.text3` in `QLiveEmptyStates` prima di S2d (verificato a fonte `7550476:…:67`). Fix futuro: valutare un `CoreTheme` neutro per i token condivisi. 🔵 non schedulato, CC. Bump header 34→35. Doc-only, nessun fix codice. |
 
 ---
 
