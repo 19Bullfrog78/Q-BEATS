@@ -4,6 +4,12 @@ import os
 private let logger = Logger(subsystem: "com.bullfrog.qbeats", category: "QBeatsStore")
 private let iCloudContainerID = "iCloud.com.bullfrog.qbeats"
 
+/// Chiave di ordinamento della lista Shows (S3). Stato di presentazione condiviso Q-Stage/Q-Live.
+enum ShowsSortKey: Equatable {
+    case name   // Name (A–Z)
+    case date   // Concert date
+}
+
 @MainActor
 final class QBeatsStore: ObservableObject {
     static let shared = QBeatsStore()
@@ -11,6 +17,15 @@ final class QBeatsStore: ObservableObject {
     @Published private(set) var songs: [Song] = []
     @Published private(set) var setlists: [Setlist] = []
     @Published private(set) var backtracks: [BacktrackFile] = []   // A5c-1: terzo catalogo
+
+    // MARK: - Shows sort (S3, Q15/Q16) — stato di PRESENTAZIONE volatile, NON persistito
+    // Vive QUI (singleton .shared) perché Q15 IMPONE che Q-Live (S4) erediti l'ORDINE in sola
+    // lettura. ASSENTE da save()/load() → zero disco (Q16); si resetta al riavvio. Debito
+    // architetturale lieve, DICHIARATO e ACCETTATO (BOX3 V92 §4). ⚠️ SOLO l'ordine è condiviso
+    // (Q15): la SEARCH è LOCALE alle viste (Q-Live ha la sua «search no-sort», SCALETTA:130) →
+    // NON sta qui, sta in @State di ShowsListView.
+    @Published var showsSortKey: ShowsSortKey = .name
+    @Published var showsSortAscending: Bool = true
 
     private init() {}
 
@@ -150,6 +165,27 @@ final class QBeatsStore: ObservableObject {
 
     func estimatedDuration(for setlist: Setlist) -> Double {
         resolve(setlist).songs.reduce(0.0) { $0 + $1.estimatedDurationSeconds }
+    }
+
+    // MARK: - Shows sort (applicazione ordine)
+
+    /// Setlist ordinate secondo lo stato sort corrente. La leggono sia Q-Stage (S3) sia Q-Live
+    /// (S4, sola lettura — Q15). Ordinamento su copia: zero mutazione di `setlists`, zero disco.
+    var sortedSetlists: [Setlist] {
+        sortedSetlists(setlists)
+    }
+
+    /// Applica l'ordine corrente a un sottoinsieme arbitrario (es. la lista già filtrata dalla
+    /// search LOCALE della vista). Ordinamento stabile; nome case-insensitive.
+    func sortedSetlists(_ input: [Setlist]) -> [Setlist] {
+        let ascending: [Setlist]
+        switch showsSortKey {
+        case .name:
+            ascending = input.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .date:
+            ascending = input.sorted { $0.date < $1.date }
+        }
+        return showsSortAscending ? ascending : ascending.reversed()
     }
 
     // MARK: - Test data injection (DEBUG only)

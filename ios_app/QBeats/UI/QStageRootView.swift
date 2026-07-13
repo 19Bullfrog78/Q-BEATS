@@ -19,10 +19,7 @@ struct QStageRootView: View {
                 .tabItem { Label("Songs", systemImage: "music.note.list") }
                 .tag(Tab.songs)
 
-            QStagePlaceholderTab(title: "Shows",
-                                 message: "Setlist authoring — prossima fetta.",
-                                 systemImage: "rectangle.stack",
-                                 onExit: onExit)
+            ShowsListView(onExit: onExit)
                 .tabItem { Label("Shows", systemImage: "rectangle.stack") }
                 .tag(Tab.shows)
 
