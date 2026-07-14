@@ -12,16 +12,21 @@ import os
 //
 // 🔴 PRIMO GATE DEVICE DI TUTTO §6. Chiude 3 dei 6 resi VISIVI (1 hit-area · 3 inner-shadow .eic ·
 //    5 lineSpacing empty-state). Sonda del gate = os_log iniettato in RoomSwitchBar.onSwitch
-//    (soluzione B, referee): RoomSwitchBar resta FROZEN, la sonda vive nel CHIAMANTE (qui).
+//    (soluzione B, referee): la sonda vive nel CHIAMANTE (qui). ⚠️ STORIA: il 1° gate
+//    (2026-07-14) è FALLITO sui tocchi [2]/[3] — hit-area inerte; RoomSwitchBar è stato
+//    ristrutturato su mandato Mauro (bug FUNZIONALE del componente, non rottura del freeze
+//    estetico; resa visiva invariata). Il RI-gate ripete TUTTI e 4 i tocchi da capo.
 //    GATE DEVICE — 4 TOCCHI (Mauro, col dito):
 //      [1] CENTRO di Q-LIVE            → il log DEVE apparire (sanity: se non appare nemmeno qui,
 //          il problema è il log/Button, non l'hit-area)
 //      [2] 8-10pt SOPRA il bordo Q-LIVE → il log DEVE apparire (espansione alta funziona)
 //      [3] 8-10pt SOTTO il bordo Q-LIVE → il log DEVE apparire (espansione bassa funziona)
 //      [4] BORDO DESTRO di Q-STAGE (pill attiva) → il log NON deve apparire (nessuna
-//          sovrapposizione col sibling; RoomSwitchBar:145 `if !isOn` non chiama onSwitch su Q-Stage)
-//    Testare Q-Live è sufficiente/rappresentativo: `.contentShape(Rectangle())` (RoomSwitchBar:186)
-//    ridefinisce l'area interattiva indipendentemente dal contenuto della pill.
+//          sovrapposizione col sibling; RoomSwitchBar `pill()`: `if !isOn` non chiama onSwitch
+//          su Q-Stage)
+//    Testare Q-Live è sufficiente/rappresentativo: `.contentShape(Rectangle())` (RoomSwitchBar
+//    `pill()`, DENTRO la label del Button — GATE-FIX 2026-07-14) ridefinisce l'area interattiva
+//    indipendentemente dal contenuto della pill.
 //    ⚠️ NOTA GATE (per Mauro, così non segnala un falso reso): la tab-bar in fondo NON assomiglia al
 //       freeze — usa SF Symbols nativi (systemImage:"rectangle.stack"), NON i glifi SVG del design.
 //       È NOTO, PRE-ESISTENTE (TabView di QStageRootView), NON è un reso di S3. Non segnalarlo.

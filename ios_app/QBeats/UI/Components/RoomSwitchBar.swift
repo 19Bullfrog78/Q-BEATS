@@ -6,9 +6,11 @@ import SwiftUI
 // predecessore "standalone" (09/07) — file DISTINTO dalla "base", NON lo stesso documento,
 // che però condivide quelle stesse regole CSS, verificate identiche byte-per-byte in FREEZE-GIT.
 // R7 (LIBRO v31): nessuno sha inciso nei commenti; si cita path @ commit, git verifica.
-// ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). CI-verde ≠ chiuso.
-//    Chiusura visiva del reso hit-area 54pt = gate device S3: S3 monta QUESTO componente
-//    come header Q-Stage›Shows (vedi CD-Q7 sotto), quindi il reso si chiude davvero lì.
+// ⚠️ GATE DEVICE S3 — ESITO 2026-07-14 (Mauro, device reale): [1] centro Q-Live PASS ·
+//    [2]/[3] tocchi 8-10pt oltre il bordo pill FAIL (espansione hit-area INERTE a runtime,
+//    bersaglio reale 34pt) · [4] bordo dx pill attiva PASS (nessun log, corretto).
+//    → hit-test RISTRUTTURATO in questa revisione (vedi segment/pill). CI-verde ≠ chiuso:
+//    il RI-gate device ripete TUTTI e 4 i tocchi da capo, non solo [2]/[3].
 // Componente presentazionale INERTE: highlight pilotato da `active` (no @State), zero logica di switch/navigazione.
 // «+» create show è §8 DIFFERITO — FUORI PERIMETRO qui: nessun addmini/showsPlus/onAdd in questo atomo.
 // Sorgente: `.roombar.center`/`.homebtn`/`.roomseg` (variant .full) e `.navbar .seg-mini` (variant .segMini).
@@ -87,20 +89,37 @@ struct RoomSwitchBar: View {
     }
 
     // .roomseg / .navbar .seg-mini: container bg white .05, bordo white .10 (§CSS .roomseg / .seg-mini)
+    // GATE-FIX S3 (2026-07-14): chrome reso come .background shape-fill (fill + stroke della
+    // stessa RoundedRectangle) al posto di background(Color)+clipShape+overlay. Resa IDENTICA
+    // (clippare un colore full-bleed con una shape = riempire la stessa shape; lo .stroke resta
+    // centrato sul medesimo perimetro), ma NESSUN clipShape antenato tra i Button e la barra —
+    // il clip era il sospettato #1 del gate fallito e qui esce dal percorso dell'hit-test.
+    // L'HStack è ora alto quanto l'hit-area REALE dei Button (54 su .full, vedi pill()); il
+    // chrome VISIVO resta 42/36, centrato via .frame(height:). Su .segMini (espansione 0)
+    // .frame(minHeight:) tiene il layout a 36 come prima: geometria riportata INVARIATA
+    // per entrambe le varianti (.full riportava 42 al ZStack che la centrava in 54; ora
+    // riporta 54 in 54 — chrome negli stessi pixel).
     private var segment: some View {
         let containerPadding: CGFloat = variant == .full ? 4 : 3
         let containerRadius: CGFloat = variant == .full ? 12 : 10
+        // Altezza VISIVA del chrome: pill (34/30) + anello padding sopra/sotto (4/3)
+        // → 42 (.full) / 36 (.segMini). NON è l'altezza dell'hit-area (54 su .full).
+        let chromeHeight: CGFloat = (variant == .full ? 34 : 30) + containerPadding * 2
         return HStack(spacing: 3) {
             pill(.qStage, label: "Q-Stage")
             pill(.qLive, label: "Q-Live")
         }
-        .padding(containerPadding)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: containerRadius, style: .continuous))
-        .overlay(
+        .padding(.horizontal, containerPadding)
+        .frame(minHeight: chromeHeight)
+        .background {
             RoundedRectangle(cornerRadius: containerRadius, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: containerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+                .frame(height: chromeHeight)
+        }
     }
 
     // .roomseg .opt(.stage-on/.live-on) e .navbar .seg-mini .o(.live-on) (§CSS .roomseg .opt / .seg-mini .o)
@@ -120,26 +139,29 @@ struct RoomSwitchBar: View {
         // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
         // e `.seg-mini .o{min-height:30px}`). ⚠️ La TECNICA che CD aveva prescritto
         // (`minHeight:44` sulla cella) è RESPINTA dal referee: farebbe crescere anche
-        // background/bordo/clipShape → pill 44pt VISIBILI, contraddicendo il «chrome resta 30pt»
-        // di CD stesso. CD owna il RISULTATO; la tecnica è dominio CC/referee = lo stesso
-        // pad→contentShape→pad-negativo usato qui sotto per `.full`. 🔒 IMPLEMENTAZIONE GATTATA
-        // DAL GATE DEVICE S3: NON dare l'hit-area a `.segMini` finché il gate S3 non prova che
-        // la tecnica FUNZIONA su `.full`. Se il `.clipShape` del container mangia l'hit-test
-        // ereditato, l'espansione è INERTE e il bersaglio resta 30pt SENZA SEGNALE (compila,
-        // gira, sembra a posto) → si ristruttura UNA volta sola. Lavoro per S5, NON per S3.
-        // Se il gate S3 passa: `hitExpansion` di `.segMini` = (50 − 30) / 2 = 10pt (navbar
-        // 50pt, coerente con `.roomseg` che riempie i 54).
+        // background/bordo → pill 44pt VISIBILI, contraddicendo il «chrome resta 30pt» di CD
+        // stesso. CD owna il RISULTATO; la tecnica è dominio CC/referee. 🔒 GATTATA DAL
+        // RI-GATE S3: NON dare l'hit-area a `.segMini` finché il ri-gate non prova la tecnica
+        // ristrutturata su `.full`. Quando sblocca: `hitExpansion` .segMini = (50 − 30) / 2 =
+        // 10pt (navbar 50pt, coerente con `.roomseg` che riempie i 54). Lavoro per S5, NON qui.
         // Il primo tentativo (`.contentShape(Rectangle().inset(by: -N))`) insettava
         // TUTTI E 4 I LATI: le due pill (3pt di gap) finivano con hit-area sovrapposte di 17pt,
         // e nella sovrapposizione vince il sibling successivo → toccando il bordo destro di
-        // "Q-Stage" si attivava "Q-Live". Bug funzionale, trovato dal referee. Fix: espandere
-        // SOLO in verticale con l'idioma pad→contentShape→pad-negativo (la larghezza non è
-        // mai toccata, zero sovrapposizione orizzontale).
-        // ⚠️ hit-area NON VERIFICATA: il container ha `.clipShape`; se SwiftUI clippa anche
-        // l'hit-test ereditato dall'antenato, l'espansione è INERTE e il bersaglio resta
-        // 34pt (< 44 HIG) senza alcun segnale — compila, gira, sembra a posto. → GATE DEVICE
-        // S3: toccare 8pt SOPRA il bordo visibile della pill deve commutare. Se non commuta,
-        // il fix è una foglia di fico e va ristrutturato. Non deducibile dal codice: è runtime.
+        // "Q-Stage" si attivava "Q-Live". Bug funzionale, trovato dal referee. → espansione
+        // SOLO verticale: la larghezza non è MAI toccata, zero sovrapposizione orizzontale.
+        // ── GATE DEVICE S3 2026-07-14: FALLITO con la tecnica precedente (pad→contentShape→
+        // pad-negativo applicati FUORI dal Button, sul suo wrapper): tocchi [2]/[3] mai
+        // loggati, espansione INERTE, bersaglio reale 34pt. CAUSA PRIMARIA (a source): il
+        // `.contentShape` esteso apparteneva al wrapper — una vista SENZA gesto; il gesto del
+        // Button copriva solo la label (34pt). Il `.clipShape` del container (sospettato #1
+        // originario) non è escluso come strato aggiuntivo, ma il tocco moriva già prima.
+        // RISTRUTTURAZIONE (questa revisione) — elimina ENTRAMBI i meccanismi per costruzione:
+        //  (1) espansione DENTRO la label → il gesto del Button copre i 54pt REALI;
+        //  (2) chrome container = .background shape-fill (vedi segment) → nessun clipShape
+        //      antenato sul percorso dell'hit-test;
+        //  (3) ZERO padding negativo → Button alto 54 REALI = altezza barra (.frame(height:54)
+        //      nel body): nessun tocco deve atterrare fuori dai bounds di alcun antenato.
+        // Verità finale = solo il ri-gate device (4 tocchi, da capo).
         let hitExpansion: CGFloat = variant == .full ? (54 - minHeight) / 2 : 0
 
         return Button(action: { if !isOn { onSwitch() } }) {
@@ -180,11 +202,14 @@ struct RoomSwitchBar: View {
                         }
                     }
                 )
+                // GATE-FIX S3 (2026-07-14): l'espansione hit vive DENTRO la label del Button —
+                // così il GESTO del Button copre tutti i 54pt (.full; 0 su .segMini). Il chrome
+                // visivo (background/bordo qui sopra) resta 34: il padding aggiunto è
+                // trasparente. Larghezza MAI toccata (vedi storia inset(-N) qui sopra).
+                .padding(.vertical, hitExpansion)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, hitExpansion)      // layout cresce a 54 (solo .full; 0 su .segMini)
-        .contentShape(Rectangle())             // hit 54 in ALTEZZA, larghezza invariata
-        .padding(.vertical, -hitExpansion)     // annulla → layout torna 34, container 42
     }
 }
 
