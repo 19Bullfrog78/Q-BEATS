@@ -1,6 +1,8 @@
 import Foundation
 
 enum LinkMode: String, Codable {
+    case standalone      // Solo — NUOVO DEFAULT: Q-BEATS suona il proprio click, NON comanda NON segue i peer.
+                         // Isolamento = Link OFF (linkEnabled default false). RUOLO scelto, ≠ stato-connessione "nessun peer".
     case direttore       // Q-BEATS sorgente unica autoritativa: detta start/stop, BPM, phase.
                          // Ignora SEMPRE input dai peer — in play e in stop. Timeline e tempo
                          // imposti dal Director, i peer si adeguano.
@@ -17,7 +19,7 @@ struct AppSettings: Codable {
     var ch3Volume:    Float  = 0.0
     var ch4Volume:    Float  = 0.0
     var showDNDReminder: Bool = true
-    var linkMode:     LinkMode = .collaborativa
+    var linkMode:     LinkMode = .standalone
 }
 
 extension AppSettings {

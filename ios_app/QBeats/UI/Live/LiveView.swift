@@ -64,6 +64,7 @@ struct LiveView: View {
         switch audioEngine.currentLinkMode {
         case .direttore:     return "DIRECTOR"
         case .collaborativa: return "FOLLOWER"
+        case .standalone:    return "SOLO"   // naming Decisione 2 CD; badge visibile solo se linkEnabled (guard :63)
         }
     }
 
