@@ -4,8 +4,8 @@ import os
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @EnvironmentObject var runner: SetlistRunner
-    /// Nodo A N0 — seam d'uscita fornito dal presenter (LiveRootView ←
-    /// HomeRootView.presentLive). Inoltrato ai 2 leaf d'uscita reali:
+    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView →
+    /// QLiveRootView → LiveRootView). Inoltrato ai 2 leaf d'uscita reali:
     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
     let onExit: () -> Void
     @StateObject private var session = LiveSession()
@@ -157,8 +157,8 @@ struct LiveView: View {
                 //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
                 //      → runner.startSetlist standalone;
                 //  (c) tap CANCEL → `onExit()` in WaitingForDirectorView
-                //      (seam N0, fornito dal presenter) → il presenter
-                //      dismissa lo UIHostingController → ritorno a Home
+                //      (seam Nodo A, fornito dal presenter) → AppRootView
+                //      commuta `screen = .home` → ritorno a Home
                 //      (deviazione esplicita da CD-Q2=B "→ Select Setlist"
                 //      — Select Setlist non esiste ancora, F2.3 aperto;
                 //      ratificata 28/05/2026).
@@ -190,7 +190,6 @@ struct LiveView: View {
 
             }
         }
-        .onDisappear { audioEngine.stop() }
         .onAppear {
             // Sincronizzazione iniziale mirror UI con stato corrente AudioEngine.
             // Necessario quando l'utente entra in Vista LIVE dopo aver modificato

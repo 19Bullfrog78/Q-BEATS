@@ -4,10 +4,9 @@ struct LiveHeaderView: View {
     @ObservedObject var session: LiveSession
     @EnvironmentObject var audioEngine: AudioEngine
 
-    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
-    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende più dal
-    /// contesto di presentazione (oggi modale UIKit dismissata dal presenter
-    /// in HomeRootView.presentLive; da N1b commutazione screen in AppRootView).
+    /// Nodo A — seam d'uscita fornito dal presenter (via LiveView).
+    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende dal
+    /// contesto di presentazione — AppRootView commuta `screen = .home`.
     let onExit: () -> Void
 
     /// TD #23 (17/05/2026) — fattore di scala per font responsive iPad v1.

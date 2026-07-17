@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct LiveRootView: View {
-    /// Nodo A N0 — seam d'uscita fornito dal presenter (oggi
-    /// HomeRootView.presentLive → dismiss della modale; da N1b AppRootView
-    /// → { screen = .home }). Firma STABILE per N1a/N1b: cambia il
+    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView via
+    /// QLiveRootView: `{ screen = .home }`). Firma STABILE: cambia il
     /// chiamante, non LiveRootView.
     let onExit: () -> Void
 

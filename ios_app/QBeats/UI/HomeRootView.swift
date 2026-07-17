@@ -5,12 +5,11 @@ import os
 /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
 /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
 /// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
-/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit fino a N1b (Nodo A: seam N0 applicato).
+/// Q-Studio = porta COMING SOON (non interattiva). Q-Live = in-tree via screen-swap (Nodo A completo, N1b).
 struct HomeRootView: View {
     let onOpenQStage: () -> Void
-    /// Nodo A N1a — plumbing DEAD CODE: `onOpenQLive` è fornito da AppRootView
-    /// (`{ screen = .qLive }`, specchio di `onOpenQStage`) ma la porta Q-Live
-    /// resta su `presentLive()` fino a N1b → per ora non usato dalla UI.
+    /// Nodo A N1b — porta Q-Live: fornito da AppRootView (`{ screen = .qLive }`),
+    /// specchio di `onOpenQStage`. Entry-point canonico unico verso `.qLive`.
     let onOpenQLive: () -> Void
     @EnvironmentObject var audioEngine: AudioEngine
     #if DEBUG
@@ -73,31 +72,8 @@ struct HomeRootView: View {
                          subtitle: "Choose a Show and take the stage",
                          accent: QStageTheme.orange, accentTint: QStageTheme.orangeTint,
                          state: .active, sf: sf,
-                         action: { presentLive() })
+                         action: { os_log("Home: Q-LIVE selezionato"); onOpenQLive() })
         }
-    }
-
-    // Q-Live = modale UIKit .overFullScreen sul rootViewController — resta fino a N1b.
-    // N0: l'uscita dei leaf non è più @Environment(\.dismiss) ma il seam onExit
-    // fornito QUI dal presenter, che dismissa lo UIHostingController.
-    // Rigore-1: la closure NON deve catturare `vc` forte (vc → rootView →
-    // closure → vc = retain cycle → leak del hosting controller). Holder
-    // debole `weakVC` dichiarato PRIMA della closure, assegnato DOPO.
-    private func presentLive() {
-        os_log("Home: Q-LIVE selezionato")
-        audioEngine.triggerDNDReminderIfNeeded()
-        weak var weakVC: UIViewController?
-        let vc = UIHostingController(rootView:
-            LiveRootView(onExit: { weakVC?.dismiss(animated: false) })
-                .environmentObject(audioEngine))
-        weakVC = vc
-        vc.modalPresentationStyle = .overFullScreen
-        vc.view.backgroundColor = .clear
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows.first?
-            .rootViewController?
-            .present(vc, animated: false)
     }
 
     #if DEBUG

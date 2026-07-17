@@ -12,9 +12,9 @@ struct AppRootView: View {
     @State private var previousScreen: Screen = .home
 
     /// Routing top-level della Home: commutazione di schermata (NON push).
-    /// Nodo A N1a: `.qLive` aggiunto all'enum come DEAD CODE — la porta Q-Live
-    /// resta su `presentLive()` (modale UIKit) fino a N1b, quindi il path
-    /// `.qLive` è irraggiungibile finché nessuno setta `screen = .qLive`.
+    /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
+    /// della Home fa `screen = .qLive` (entry-point canonico unico); la
+    /// modale UIKit è stata ritirata.
     private enum Screen { case home, qStage, qLive }
 
     var body: some View {
@@ -37,9 +37,9 @@ struct AppRootView: View {
                     QStageRootView(onExit: { screen = .home })
                         .environmentObject(audioEngine)
                 case .qLive:
-                    // Nodo A N1a — arm DEAD CODE (specchio di `.qStage`). QLiveRootView
-                    // possiede il seam onExit e lo inoltra a LiveRootView; la closure
-                    // `{ screen = .home }` vive SOLO qui (E2, `Screen` private enum).
+                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+                    // onExit e lo inoltra a LiveRootView; la closure `{ screen = .home }`
+                    // vive SOLO qui (E2, `Screen` private enum).
                     QLiveRootView(onExit: { screen = .home })
                         .environmentObject(audioEngine)
                 }
@@ -51,15 +51,13 @@ struct AppRootView: View {
         .onChange(of: scenePhase) { newPhase in
             UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
         }
-        // Nodo A N1a — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
         // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
-        // (non-deterministico su view riusata/cachata). iOS 16: `onChange` dà solo
-        // il valore NUOVO → `previousScreen` fornisce il precedente.
-        // INERTE in N1a (`.qLive` irraggiungibile, nessuna transizione lo tocca);
-        // si attiva da N1b; copre lo step-3 RoomSwitchBar automaticamente.
-        // La `triggerDNDReminderIfNeeded()` qui è la copia PRE-PIAZZATA: coesiste
-        // con quella viva in `HomeRootView.presentLive()` finché N1b non rimuove
-        // `presentLive()` (una viva, una inerte — voluto).
+        // (non-deterministico su view riusata/cachata; il vecchio
+        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
         .onChange(of: screen) { newScreen in
             if newScreen == .qLive {
                 audioEngine.triggerDNDReminderIfNeeded()

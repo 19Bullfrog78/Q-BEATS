@@ -12,9 +12,9 @@ import SwiftUI
 ///    seamless a `.playing` (questa vista scompare automaticamente).
 ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
 ///    standalone, ignora l'attesa Director.
-///  - `CANCEL` → `onExit()` (seam N0, callback fornito dal presenter via
-///    LiveView) → il presenter dismissa lo UIHostingController → ritorno
-///    a Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
+///  - `CANCEL` → `onExit()` (seam Nodo A, callback fornito dal presenter
+///    via LiveView) → AppRootView commuta `screen = .home` → ritorno a
+///    Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
 ///    ratificata da Mauro 28/05/2026 con nota "→ Select Setlist quando
 ///    F2.3 pronto" (libro mastro v15).
 ///
