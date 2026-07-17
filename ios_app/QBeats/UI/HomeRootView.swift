@@ -8,6 +8,10 @@ import os
 /// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit fino a N1b (Nodo A: seam N0 applicato).
 struct HomeRootView: View {
     let onOpenQStage: () -> Void
+    /// Nodo A N1a — plumbing DEAD CODE: `onOpenQLive` è fornito da AppRootView
+    /// (`{ screen = .qLive }`, specchio di `onOpenQStage`) ma la porta Q-Live
+    /// resta su `presentLive()` fino a N1b → per ora non usato dalla UI.
+    let onOpenQLive: () -> Void
     @EnvironmentObject var audioEngine: AudioEngine
     #if DEBUG
     @State private var showDebug = false
