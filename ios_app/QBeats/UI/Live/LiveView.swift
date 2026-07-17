@@ -4,6 +4,10 @@ import os
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @EnvironmentObject var runner: SetlistRunner
+    /// Nodo A N0 — seam d'uscita fornito dal presenter (LiveRootView ←
+    /// HomeRootView.presentLive). Inoltrato ai 2 leaf d'uscita reali:
+    /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+    let onExit: () -> Void
     @StateObject private var session = LiveSession()
     // L1.b — Tick di riferimento per il bar counter relativo alla sezione corrente.
     // beatTickCounter di AudioEngine cresce monotono dalla partenza; per resettare
@@ -90,7 +94,7 @@ struct LiveView: View {
                 }()
 
                 VStack(spacing: 0) {
-                    LiveHeaderView(session: session, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
+                    LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
                         .frame(height: geo.size.height * 0.08)
                     MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                         .frame(height: geo.size.height * 0.10)
@@ -152,13 +156,14 @@ struct LiveView: View {
                 //      observer riga ~165) → questa view scompare;
                 //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
                 //      → runner.startSetlist standalone;
-                //  (c) tap CANCEL → `dismiss()` Environment in
-                //      WaitingForDirectorView → UIHostingController
-                //      dismissato → ritorno a Bivio (deviazione esplicita
-                //      da CD-Q2=B "→ Select Setlist" — Select Setlist non
-                //      esiste ancora, F2.3 aperto; ratificata 28/05/2026).
+                //  (c) tap CANCEL → `onExit()` in WaitingForDirectorView
+                //      (seam N0, fornito dal presenter) → il presenter
+                //      dismissa lo UIHostingController → ritorno a Home
+                //      (deviazione esplicita da CD-Q2=B "→ Select Setlist"
+                //      — Select Setlist non esiste ancora, F2.3 aperto;
+                //      ratificata 28/05/2026).
                 if case .waitingForDirector = session.playbackState {
-                    WaitingForDirectorView(scaleFactor: scaleFactor) {
+                    WaitingForDirectorView(scaleFactor: scaleFactor, onExit: onExit) {
                         // START LOCAL — utente decide di partire standalone
                         // ignorando l'attesa Director. Nessun guard idempotenza
                         // esplicito: WaitingForDirectorView è renderizzata

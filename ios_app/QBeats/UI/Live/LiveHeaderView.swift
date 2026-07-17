@@ -3,7 +3,12 @@ import SwiftUI
 struct LiveHeaderView: View {
     @ObservedObject var session: LiveSession
     @EnvironmentObject var audioEngine: AudioEngine
-    @Environment(\.dismiss) private var dismiss
+
+    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
+    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende più dal
+    /// contesto di presentazione (oggi modale UIKit dismissata dal presenter
+    /// in HomeRootView.presentLive; da N1b commutazione screen in AppRootView).
+    let onExit: () -> Void
 
     /// TD #23 (17/05/2026) — fattore di scala per font responsive iPad v1.
     /// Calcolato in `LiveView` come `geo.size.width / 390` (baseline iPhone 13
@@ -23,7 +28,7 @@ struct LiveHeaderView: View {
         HStack(spacing: 8) {
 
             // ── Back button ──
-            Button { dismiss() } label: {
+            Button { onExit() } label: {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.white.opacity(0.05))
                     .overlay(

@@ -5,7 +5,7 @@ import os
 /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
 /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
 /// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
-/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit (Nodo A invariato).
+/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit fino a N1b (Nodo A: seam N0 applicato).
 struct HomeRootView: View {
     let onOpenQStage: () -> Void
     @EnvironmentObject var audioEngine: AudioEngine
@@ -73,11 +73,20 @@ struct HomeRootView: View {
         }
     }
 
-    // Q-Live = modale UIKit .overFullScreen sul rootViewController (INVARIATO dal Bivio — Nodo A).
+    // Q-Live = modale UIKit .overFullScreen sul rootViewController — resta fino a N1b.
+    // N0: l'uscita dei leaf non è più @Environment(\.dismiss) ma il seam onExit
+    // fornito QUI dal presenter, che dismissa lo UIHostingController.
+    // Rigore-1: la closure NON deve catturare `vc` forte (vc → rootView →
+    // closure → vc = retain cycle → leak del hosting controller). Holder
+    // debole `weakVC` dichiarato PRIMA della closure, assegnato DOPO.
     private func presentLive() {
         os_log("Home: Q-LIVE selezionato")
         audioEngine.triggerDNDReminderIfNeeded()
-        let vc = UIHostingController(rootView: LiveRootView().environmentObject(audioEngine))
+        weak var weakVC: UIViewController?
+        let vc = UIHostingController(rootView:
+            LiveRootView(onExit: { weakVC?.dismiss(animated: false) })
+                .environmentObject(audioEngine))
+        weakVC = vc
         vc.modalPresentationStyle = .overFullScreen
         vc.view.backgroundColor = .clear
         UIApplication.shared.connectedScenes

@@ -12,10 +12,11 @@ import SwiftUI
 ///    seamless a `.playing` (questa vista scompare automaticamente).
 ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
 ///    standalone, ignora l'attesa Director.
-///  - `CANCEL` → `dismiss()` (Environment) → UIHostingController dismissato
-///    → ritorno a Bivio. Deviazione esplicita da CD-Q2=B "CANCEL → Select
-///    Setlist" ratificata da Mauro 28/05/2026 con nota "→ Select Setlist
-///    quando F2.3 pronto" (libro mastro v15).
+///  - `CANCEL` → `onExit()` (seam N0, callback fornito dal presenter via
+///    LiveView) → il presenter dismissa lo UIHostingController → ritorno
+///    a Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
+///    ratificata da Mauro 28/05/2026 con nota "→ Select Setlist quando
+///    F2.3 pronto" (libro mastro v15).
 ///
 /// File presentational puro: nessun `@EnvironmentObject`, le azioni sono
 /// iniettate dal parent (LiveView) come callback. Più testabile e isolato.
@@ -23,8 +24,12 @@ import SwiftUI
 /// Specifica CD-Q2=B ratificata libro mastro v14.
 struct WaitingForDirectorView: View {
     let scaleFactor: CGFloat
+    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
+    /// Sostituisce `@Environment(\.dismiss)` del CANCEL. Dichiarato PRIMA di
+    /// `onStartLocal` così il call-site conserva il trailing closure per
+    /// `onStartLocal` (ultimo parametro).
+    let onExit: () -> Void
     let onStartLocal: () -> Void
-    @Environment(\.dismiss) private var dismiss
 
     /// Pulse opacity 1.0 ↔ 0.40, periodo 2.2s (1.1s easeInOut autoreverses).
     /// Avviato al primo `onAppear` e mai fermato — la vista scompare
@@ -64,7 +69,7 @@ struct WaitingForDirectorView: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        dismiss()
+                        onExit()
                     } label: {
                         Text("CANCEL")
                             .font(.jbMono(.regular, size: 14 * scaleFactor))
