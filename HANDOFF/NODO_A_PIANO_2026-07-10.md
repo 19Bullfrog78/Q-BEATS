@@ -81,3 +81,12 @@
 **Copertura (nessun path scoperto):** le uniche 2 uscite reali da Q-Live — `LiveHeaderView` back + `WaitingForDirectorView` CANCEL — passano **ENTRAMBE** da `onExit()` → `screen = .home` → `AppRootView.onChange(of: screen)` → `stop()`. Rimuovere `:187` non lascia scoperta nessuna uscita.
 
 **Fonti (verify-at-source 11/07):** `LiveView.swift:187` · `AudioEngine.swift:1638` · `AudioEngine.swift:1705`.
+
+### E2 (17/07/2026) — struttura onExit/QLiveRootView per N1a (disambigua riga 32)
+**Ratificato:** referee 17/07/2026. Specchio esatto di QStageRootView:
+- AppRootView, arm switch: `case .qLive: QLiveRootView(onExit: { screen = .home }).environmentObject(audioEngine)`. La closure è costruita QUI — obbligatorio, `Screen` è `private enum` in AppRootView.swift.
+- QLiveRootView.swift (separato): possiede il seam `onExit` (hookpoint unico riusato da S4 = Cond A) e lo INOLTRA a LiveRootView; non costruisce mai `{ screen = .home }`.
+- **Fonti (verify-at-source 17/07):** AppRootView.swift arm .qStage; QStageRootView.swift.
+
+### ESITO (17/07/2026) — NODO A CHIUSO
+N0 `a2fb816` · N1a `beb9e08` · N1b `152445e`, CI verdi. Gate device B+C+A-cheap PASSATO (Mauro, 17/07). Caveat gate C registrato in BOX3 V96: `HomeRootView.swift:43 .onAppear{stop()}` pre-esistente copre le uscite verso Home → il gate C non isola il nuovo handler; il discriminante vero è la prima uscita che non passa dalla Home (RoomSwitchBar, S4).
