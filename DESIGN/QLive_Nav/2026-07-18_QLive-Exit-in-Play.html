@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Uscita Q-Live in play — Freeze overlay (iii) + fascia IN PLAY</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{
+  /* ───────────────────────────────────────────────────────────────
+     TOKEN — SORGENTE NORMATIVA: DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html
+     I valori qui sotto sono COPIE DI LAVORO (servono solo a rendere
+     questo file leggibile e apribile da solo). NUOVI rispetto a
+     Q7-Q16: NESSUNO. Se un valore diverge da Q7-Q16 → vince Q7-Q16.
+     ( --green rimosso perché inutilizzato · --tag-pending non serve qui )
+     ─────────────────────────────────────────────────────────────── */
+  --bg:#0c1024; --surface:#141832; --surface2:#1c2248;
+  --line:rgba(255,255,255,0.08); --line2:rgba(255,255,255,0.14);
+  --text:#ffffff; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.30);
+  --studio:#2a6bd6; --amber:#f5b820; --amber-l:#ffd35a; --ink:#11131a;
+  --qlive-bg:#0e0e10; --qlive-surf:#16161a; --qlive-bd:rgba(255,255,255,0.06); --qlive-pick:#1a1614;
+  --live:#d43f00; --live-l:#ff8a5c; --stop:#ff3b30;
+  --disabled:0.4;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Inter',sans-serif; background:#e8e4db; width:2300px; height:4180px; position:relative; -webkit-font-smoothing:antialiased;}
+a{color:#9a6800; text-decoration:none;} a:hover{color:#c48a10;}
+
+@keyframes qb-pulse{0%,100%{opacity:1; transform:scale(1);}50%{opacity:0.35; transform:scale(0.66);}}
+
+/* ---------- document chrome ---------- */
+.btitle{position:absolute; left:56px; top:30px; width:1330px; color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800; letter-spacing:3px; text-transform:uppercase; color:#b1281f;}
+.btitle h1{font-size:27px; font-weight:900; letter-spacing:-0.6px; margin-top:8px;}
+.btitle p{font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.62; color:rgba(0,0,0,0.62); margin-top:9px; letter-spacing:0.2px; max-width:1240px;}
+.btitle p b{color:#16140f;}
+
+.recap{position:absolute; left:1440px; top:30px; width:804px; background:linear-gradient(160deg,#1c130f,#160f0c); color:#f0e6df; border:1px solid rgba(255,59,48,0.32); border-radius:16px; padding:18px 22px; box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.recap .fh{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+.recap .seal{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:#fff; background:linear-gradient(150deg,#ff5245,#d21f14); padding:5px 11px; border-radius:7px;}
+.recap .anc{font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.4px; color:#ff9a80;}
+.recap p{font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.6; color:rgba(255,255,255,0.82); margin-top:2px;}
+.recap p b{color:#fff;} .recap p .rd{color:#ff8a7a; font-weight:700;} .recap p .am{color:var(--amber-l); font-weight:700;}
+.recap .note{margin-top:12px; padding-top:11px; border-top:1px solid rgba(255,255,255,0.12); font-family:'JetBrains Mono',monospace; font-size:10px; line-height:1.55; color:rgba(255,255,255,0.6);}
+.recap .note b{color:#fff;}
+
+.flbl{position:absolute; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.4px; width:390px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.flbl .b{display:inline-flex; padding:3px 9px; border-radius:7px;}
+.flbl.live .b{color:#c0431a; background:rgba(212,63,0,0.12); border:1px solid rgba(212,63,0,0.4);}
+.flbl.stop .b{color:#c22; background:rgba(255,59,48,0.12); border:1px solid rgba(255,59,48,0.4);}
+.stt{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; border-radius:6px;}
+.stt.in{color:#0d6b2b; background:rgba(40,205,65,0.14); border:1px solid rgba(40,205,65,0.45);}
+.stt.out{color:#b1281f; background:rgba(255,59,48,0.12); border:1px solid rgba(255,59,48,0.4);}
+.stt.ctx{color:#5a5343; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.14);}
+.stt.am{color:#8a6000; background:rgba(245,184,32,0.16); border:1px solid rgba(245,184,32,0.5);}
+
+/* device frames */
+.frame{position:absolute; width:390px; height:812px; border-radius:42px; border:1px solid rgba(255,255,255,0.10); overflow:hidden; box-shadow:0 26px 64px rgba(0,0,0,0.42); display:flex; flex-direction:column;}
+.frame.qlive{background:var(--qlive-bg);}
+.frame.gate{box-shadow:0 26px 64px rgba(0,0,0,0.42), 0 0 0 2px rgba(255,59,48,0.5);}
+.frame.gateam{box-shadow:0 26px 64px rgba(0,0,0,0.42), 0 0 0 2px rgba(245,184,32,0.6);}
+.frame.inplay{box-shadow:0 26px 64px rgba(0,0,0,0.42), 0 0 0 2px rgba(212,63,0,0.5);}
+.sb{height:44px; flex:0 0 44px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 24px 7px; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600; color:#fff;}
+.sb .r{display:flex; gap:7px; align-items:center;}
+
+/* RoomSwitchBar (frozen — vedi 2026-07-11_Q7-Q16.html) */
+.roombar{height:54px; flex:0 0 54px; display:flex; align-items:center; padding:0 14px; gap:8px;}
+.roombar.center{justify-content:center; position:relative;}
+.homebtn{width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--text2);}
+.roombar.center .homebtn{position:absolute; left:14px; top:50%; transform:translateY(-50%);}
+.roomseg{display:flex; align-items:center; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:12px; padding:4px; gap:3px; margin:0 auto;}
+.roomseg.nm0{margin:0;}
+.roomseg .opt{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:7px 12px; border-radius:9px; color:var(--text3); white-space:nowrap; min-height:34px; display:inline-flex; align-items:center;}
+.roomseg .opt.live-on{color:#fff; background:rgba(212,63,0,0.24); border:1px solid rgba(212,63,0,0.5); box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+.gated{position:relative;}
+.gated::after{content:""; position:absolute; top:-3px; right:-3px; width:11px; height:11px; border-radius:50%; background:var(--stop); border:2px solid var(--qlive-bg); box-shadow:0 0 0 2px rgba(255,59,48,0.25);}
+
+.scrhead{display:flex; align-items:baseline; justify-content:space-between; padding:8px 18px 12px;}
+.scrhead h1{font-size:29px; font-weight:800; letter-spacing:-0.6px; color:#fff; line-height:1;}
+.ro{display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--live-l); background:rgba(212,63,0,0.12); border:1px solid rgba(212,63,0,0.32); padding:4px 8px; border-radius:7px;}
+.searchrow{display:flex; gap:8px; padding:2px 16px 12px;}
+.search{flex:1; height:40px; border-radius:12px; background:var(--qlive-surf); border:1px solid var(--qlive-bd); display:flex; align-items:center; gap:9px; padding:0 12px; color:var(--text3);}
+.search span{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.3px;}
+.list{padding:0 16px; display:flex; flex-direction:column; gap:11px;}
+.showrow{border-radius:15px; padding:15px 16px; display:flex; align-items:center; justify-content:space-between; box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); background:var(--qlive-surf); border:1px solid var(--qlive-bd);}
+.showrow.pick{border-color:rgba(212,63,0,0.45); background:var(--qlive-pick);}
+.showrow .nm{font-size:16px; font-weight:600; color:#fff; letter-spacing:-0.2px;}
+.showrow .mt{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text2); margin-top:5px; letter-spacing:0.3px;}
+
+/* detail */
+.navbar{height:50px; flex:0 0 50px; display:flex; align-items:center; justify-content:space-between; padding:0 14px;}
+.navbar .back{display:flex; align-items:center; gap:5px; color:var(--live-l); font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; letter-spacing:0.4px;}
+.navbar .seg-mini{display:flex; align-items:center; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:10px; padding:3px; gap:3px;}
+.navbar .seg-mini .o{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; padding:5px 9px; border-radius:8px; color:var(--text3); min-height:30px; display:inline-flex; align-items:center;}
+.navbar .seg-mini .o.live-on{color:#fff; background:rgba(212,63,0,0.24); border:1px solid rgba(212,63,0,0.5);}
+.dhead{padding:6px 18px 10px;}
+.dhead .dhrow{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.dhead .nm{font-size:23px; font-weight:800; letter-spacing:-0.5px; color:#fff; line-height:1.05;}
+.dhead .mt{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text2); letter-spacing:0.3px; margin-top:7px;}
+.songlist{padding:2px 16px 0; display:flex; flex-direction:column; gap:2px; flex:1; overflow:hidden;}
+.songrow{display:flex; align-items:center; gap:12px; padding:12px 6px; border-bottom:1px solid rgba(255,255,255,0.05);}
+.songrow .idx{font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--live-l); width:18px; text-align:right; flex:0 0 auto;}
+.songrow .nm{font-size:16px; font-weight:600; color:rgba(255,255,255,0.9); letter-spacing:-0.2px; flex:1; min-width:0;}
+.songrow.now .nm{color:#fff;}
+.songrow.now{background:rgba(212,63,0,0.10); border-radius:10px; border-bottom-color:transparent; padding-left:10px; margin:0 -4px;}
+.songrow .met{font-family:'JetBrains Mono',monospace; font-size:12px; color:rgba(255,255,255,0.7); letter-spacing:0.3px; flex:0 0 auto;}
+.songrow .nowtag{font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:0.5px; padding:2px 6px; border-radius:5px; background:rgba(212,63,0,0.18); color:var(--live-l); border:1px solid rgba(212,63,0,0.4); flex:0 0 auto;}
+
+/* fascia = via IN */
+.fascia{margin-top:auto; flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:14px 16px 20px; background:linear-gradient(0deg, rgba(212,63,0,0.20), rgba(212,63,0,0.05)); border-top:1px solid rgba(212,63,0,0.42); box-shadow:0 -12px 26px rgba(0,0,0,0.4);}
+.fascia .livedot{width:10px; height:10px; border-radius:50%; background:var(--live-l); box-shadow:0 0 0 4px rgba(212,63,0,0.2); flex:0 0 auto; animation:qb-pulse 1.5s ease-in-out infinite;}
+.fascia .fx{flex:1; min-width:0;}
+.fascia .fk{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--live-l);}
+.fascia .fn{font-size:16px; font-weight:700; color:#fff; letter-spacing:-0.2px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.fascia .fn .sec{color:var(--text2); font-weight:600;}
+.fascia .ret{display:flex; align-items:center; gap:6px; flex:0 0 auto; color:var(--live-l); font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; border:1px solid rgba(212,63,0,0.45); background:rgba(212,63,0,0.16); padding:9px 12px; border-radius:11px; min-height:44px;}
+
+/* ===== EXIT GATE OVERLAY ===== */
+.exgate{position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:22px; background:rgba(9,9,11,0.76);}
+.exgate .card{width:100%; background:var(--qlive-surf); border:1px solid rgba(255,255,255,0.12); border-radius:22px; padding:24px 22px 22px; box-shadow:0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);}
+.exgate .krow{display:flex; align-items:center; gap:9px; margin-bottom:16px;}
+.exgate .krow .livedot{width:9px; height:9px; border-radius:50%; background:var(--live-l); box-shadow:0 0 0 4px rgba(212,63,0,0.2); animation:qb-pulse 1.5s ease-in-out infinite;}
+.exgate .krow .k{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:800; letter-spacing:2.4px; text-transform:uppercase; color:var(--live-l);}
+/* ── blocco CONTESTO — troncamento SEMPRE attivo (no-op se il testo è corto).
+      NON è una classe opzionale: è il comportamento di default del .ctx del modale.
+      show = ellissi 1 riga · song = clamp 2 righe poi ellissi · sec = section ellissi + BPM/TS pinnati ── */
+.ctx{border-left:2px solid rgba(212,63,0,0.5); padding-left:13px; margin-bottom:16px;}
+.ctx .show{font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.ctx .song{font-family:'Inter',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.4px; color:#fff; margin-top:5px; line-height:1.1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.ctx .sec{display:flex; align-items:baseline; gap:6px; margin-top:7px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text2); letter-spacing:0.3px;}
+.ctx .sec .part{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+.ctx .sec .fix{flex:0 0 auto; color:rgba(255,255,255,0.72);}
+.exgate .conseq{font-family:'Inter',sans-serif; font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.82); line-height:1.4; margin-bottom:14px;}
+.exgate .conseq b{color:#fff; font-weight:700;}
+.exgate .linkln{display:flex; gap:9px; align-items:flex-start; background:rgba(245,184,32,0.10); border:1px solid rgba(245,184,32,0.34); border-radius:11px; padding:10px 12px; margin-bottom:16px;}
+.exgate .linkln svg{flex:0 0 auto; margin-top:1px;}
+.exgate .linkln .t{font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.45; letter-spacing:0.1px; color:var(--amber);}
+.exgate .linkln .t b{color:var(--amber-l);}
+.exgate .linkln.loud{background:linear-gradient(150deg,#ffd35a,#f5b820); border:0; box-shadow:0 6px 22px rgba(245,184,32,0.4); padding:14px 15px; align-items:center; gap:11px;}
+.exgate .linkln.loud .t{color:#11131a; font-size:12.5px; font-weight:700; letter-spacing:0.1px; line-height:1.4;}
+.exgate .linkln.loud .t b{color:#3a2a00; text-transform:uppercase; letter-spacing:0.5px;}
+.exgate .card.mix{border:1px solid rgba(245,184,32,0.6); box-shadow:0 24px 60px rgba(0,0,0,0.6), 0 0 46px rgba(245,184,32,0.2), inset 0 3px 0 #f5b820;}
+.exgate .krow .alertbadge{margin-left:auto; display:flex; align-items:center; gap:8px; flex:0 0 auto; color:var(--amber);}
+.escchip{font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#11131a; background:var(--amber); padding:3px 8px; border-radius:6px; flex:0 0 auto;}
+.exgate .btns{display:flex; flex-direction:column; gap:10px;}
+.gbtn{height:54px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:9px; font-family:'JetBrains Mono',monospace; font-size:13.5px; font-weight:700; letter-spacing:2px; text-transform:uppercase; width:100%;}
+.gbtn.stop{background:linear-gradient(150deg,#ff5245,#e21f14); color:#fff; box-shadow:0 6px 18px rgba(255,59,48,0.34), inset 0 1px 0 rgba(255,180,140,0.28);}
+.gbtn.stay{background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.85);}
+
+/* ctx truncation demo (usa lo stesso .ctx del modale — nessuna classe a parte) */
+.democard{width:346px; background:var(--qlive-surf); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:22px; box-shadow:0 12px 30px rgba(0,0,0,0.4);}
+.democard .cap{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); margin-bottom:14px;}
+.democard .ctx{margin-bottom:0;}
+
+/* flow annotation */
+.flow{position:absolute; z-index:6; display:flex; flex-direction:column; align-items:center; gap:6px; width:150px; text-align:center;}
+.flow .ic{width:46px; height:46px; border-radius:50%; background:linear-gradient(150deg,#ffd35a,#f5b820); border:1px solid rgba(0,0,0,0.08); box-shadow:0 6px 18px rgba(245,184,32,0.3); display:flex; align-items:center; justify-content:center; color:#11131a;}
+.flow .t{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.5px; color:#16140f; text-transform:uppercase; line-height:1.5;}
+.flow .t b{color:#9a6800;}
+
+/* panels */
+.panel{position:absolute; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:16px; padding:22px 24px; box-shadow:0 8px 26px rgba(0,0,0,0.10);}
+.panel h3{font-size:16px; font-weight:800; color:#161616; letter-spacing:-0.2px; display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+.panel h3 .tag{font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:1px; color:#fff; padding:3px 8px; border-radius:6px; background:#b1281f;}
+.panel h3 .tag.in{background:#0d6b2b;}
+.panel .lead{font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.62; color:rgba(0,0,0,0.72); margin:10px 0 4px;}
+.panel .lead b{color:#000;}
+.qa{margin-top:15px;}
+.qa .q{font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; letter-spacing:0.2px; color:#16140f; display:flex; gap:9px; align-items:baseline;}
+.qa .q .num{flex:0 0 auto; font-weight:900; color:#b1281f;}
+.qa .a{font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.58; color:rgba(0,0,0,0.7); margin-top:5px; padding-left:22px;}
+.qa .a b{color:#000;} .qa .a .l{color:#c0431a; font-weight:700;} .qa .a .rd{color:#b1281f; font-weight:700;} .qa .a .am{color:#9a6800; font-weight:700;} .qa .a .g{color:#0d6b2b; font-weight:700;}
+.qa .a code{font-family:'JetBrains Mono',monospace; font-size:0.94em; background:rgba(0,0,0,0.05); padding:1px 5px; border-radius:5px; color:#333;}
+.pdiv{height:1px; background:rgba(0,0,0,0.08); margin:16px 0;}
+.rulebox{background:#fff7e2; border:1px solid rgba(245,184,32,0.5); border-left:3px solid var(--amber); border-radius:0 10px 10px 0; padding:13px 15px; margin-top:15px;}
+.rulebox .h{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#8a6000; margin-bottom:7px; display:flex; align-items:center; gap:7px;}
+.rulebox p{font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.6; color:rgba(0,0,0,0.72);}
+.rulebox p b{color:#000;} .rulebox p .g{color:#0d6b2b; font-weight:700;} .rulebox p .rd{color:#b1281f; font-weight:700;}
+
+/* link truth table */
+.ltab{width:100%; border-collapse:collapse; margin-top:6px;}
+.ltab th{font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; color:rgba(0,0,0,0.5); text-align:left; padding:6px 8px; border-bottom:1.5px solid rgba(0,0,0,0.14);}
+.ltab td{font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.4; color:rgba(0,0,0,0.72); padding:9px 8px; border-bottom:1px solid rgba(0,0,0,0.07); vertical-align:top;}
+.ltab td b{color:#000;}
+.ltab .show-am{color:#9a6800; font-weight:700;} .ltab .hide{color:#0d6b2b; font-weight:700;}
+.ltab .cond{color:#333;}
+
+.tokbox{font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.75; color:rgba(0,0,0,0.68);}
+.tokbox b{color:#000;} .tokbox code{background:rgba(0,0,0,0.05); padding:1px 5px; border-radius:5px; color:#333;}
+.copytag{font-family:'JetBrains Mono',monospace; font-size:11px; color:#16140f; background:rgba(0,0,0,0.045); border:1px solid rgba(0,0,0,0.09); border-radius:7px; padding:7px 10px; display:inline-block; margin:3px 6px 3px 0;}
+.copytag b{color:#b1281f;}
+.casenote{font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.6; color:#8a6000; background:#fff7e2; border:1px solid rgba(245,184,32,0.45); border-radius:9px; padding:10px 12px; margin-top:10px;}
+.casenote b{color:#6b4a00;}
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#0e0e10">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" rx="20" fill="#0e0e10"/>
+    <circle cx="50" cy="42" r="15" fill="none" stroke="#ff8a5c" stroke-width="4"/>
+    <rect x="43" y="35" width="14" height="14" rx="2" fill="#ff3b30"/>
+    <rect x="26" y="66" width="48" height="8" rx="4" fill="#f5b820"/>
+  </svg>
+</template>
+
+<!-- ===================== TITLE ===================== -->
+<div class="btitle">
+  <div class="kick">CD → referee · Cancello S6 · uscita Q-Live in play · rev.2</div>
+  <h1>Q-BEATS · Uscire da Q-Live col click attivo</h1>
+  <p>Freeze della scelta <b>(iii)</b>: <b>Home / segmento col click attivo NON sono un'uscita, sono una richiesta di STOP</b>. Il gate copre <b>entrambe le uscite dalla stanza</b> (Home · segmento → Q-Stage) sui <b>DUE sfondi con barra stanze</b>: <b>lista</b> e <b>dettaglio</b>. Il <b>player (metronomo) non ha barra stanze</b> → nessuna uscita-stanza, nessun terzo sfondo. Modale autosufficiente (porta con sé <b>cosa sta suonando</b>). Con la <b>fascia «Q-LIVE PLAYING»</b> = via IN. Token <b>ereditati da 2026-07-11_Q7-Q16.html</b> (sorgente normativa), zero nuovi. UI EN · annotazioni IT.</p>
+</div>
+
+<!-- ===================== DECISION RECAP ===================== -->
+<div class="recap">
+  <div class="fh"><span class="seal">■ Gate · (iii)</span><span class="anc">esce solo attraverso uno STOP esplicito</span></div>
+  <p><b>Regola unica:</b> l'unica cosa che ferma il click è uno <span class="rd">STOP deliberato</span>. Home / segmento <b>lo chiamano</b>, non lo aggirano.</p>
+  <p style="margin-top:7px;"><b>Gate solo IN PLAY</b> (<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#ffb;">playing</code> · <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#ffb;">countIn</code>): da <span class="am">stopped / standby</span> il clock è già fermo → uscita libera, un tocco.</p>
+  <div class="note"><b>Ruling ambra asimmetrico (TD#17):</b> l'apparato ambra <span class="am">COMPARE</span> in diretta se diventa vero, ma <b>NON sparisce</b> finché il modale è aperto — mai. Aggiungere un avviso è sicuro; toglierlo è la mossa che ti fa premere il rosso convinto che non faccia male.</div>
+</div>
+
+<!-- ===================== ROW 1 · IN-PLAY SURFACES (via IN = fascia) ===================== -->
+<div class="flbl live" style="left:56px; top:250px;"><span class="b">① LISTA SHOWS · IN PLAY</span><span class="stt in">FASCIA = VIA IN</span><span class="stt out">2 uscite gated</span></div>
+<div class="flbl live" style="left:514px; top:250px;"><span class="b">② DETTAGLIO SHOW · IN PLAY</span><span class="stt in">FASCIA = VIA IN</span><span class="stt out">switch gated</span></div>
+
+<!-- FRAME 1 · Shows list, in play -->
+<div class="frame qlive inplay" style="left:56px; top:300px;" data-screen-label="Shows list / Q-Live · in play [fascia + exit gated]">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="roombar center">
+    <div class="homebtn gated"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="roomseg nm0 gated"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="scrhead"><h1>Shows</h1><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>Read-only</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Search shows</span></div></div>
+  <div class="list">
+    <div class="showrow pick"><div class="tx"><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="rgba(255,138,92,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="showrow"><div class="tx"><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,0.3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="fascia">
+    <div class="livedot"></div>
+    <div class="fx"><div class="fk">Q-Live · Playing</div><div class="fn">Circuz <span class="sec">· Strofa</span></div></div>
+    <div class="ret"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Return</div>
+  </div>
+</div>
+
+<div class="flow" style="left:448px; top:650px;"><div class="ic" style="background:#fff;color:#16140f;box-shadow:0 6px 18px rgba(0,0,0,0.14);border:1px solid rgba(0,0,0,0.12);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="t">fascia →<br>torna al player</div></div>
+
+<!-- FRAME 2 · Show detail, in play -->
+<div class="frame qlive inplay" style="left:514px; top:300px;" data-screen-label="Show detail / Q-Live · in play [fascia + switch gated]">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Shows</div>
+    <div class="seg-mini gated"><div class="o">Q-Stage</div><div class="o live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>Read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="idx">4</span><span class="nm">Kerosene</span><span class="met">128 · 4/4</span></div>
+  </div>
+  <div class="fascia">
+    <div class="livedot"></div>
+    <div class="fx"><div class="fk">Q-Live · Playing</div><div class="fn">Circuz <span class="sec">· Strofa</span></div></div>
+    <div class="ret"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Return</div>
+  </div>
+</div>
+
+<!-- ROW 1 · RIGHT PANEL — fascia + simmetria -->
+<div class="panel" style="left:972px; top:250px; width:1272px;">
+  <h3>Stato «in play» = due affordanze simmetriche <span class="tag in">VIA IN + VIA OUT</span></h3>
+  <p class="lead">Un solo stato — «il click gira mentre sei sulle superfici Shows» — con <b>due porte</b>. La <b>fascia</b> ti riporta <b>dentro</b> (reversibile, dentro la stanza). L'<b>overlay</b> (Row 2) è la <b>via fuori</b> (gated, lascia la stanza). Congelarle insieme evita due contratti che poi devono restare coerenti a mano.</p>
+  <div style="display:flex; gap:26px; margin-top:6px; flex-wrap:wrap;">
+    <div style="flex:1 1 560px;">
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">IN</span>Fascia «Q-LIVE · PLAYING» — mini-player</div><div class="a">Compare <b>solo in play</b>, in fondo alle superfici Shows, <b>al posto</b> del metrofab (lista) / dello startfoot (dettaglio): mentre suona, la porta al metronomo <b>è ciò che sta suonando</b>. Punto pulsante <span class="l">arancio</span> + <code>song · section</code> + chip <b>Return</b> (≥44pt) → rientro al player. <b>Collocazione S6:</b> il pulsante metronomo in coda alla lista (già committato) diventa <b>condizionale</b> — cede il posto alla fascia quando qualcosa suona.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">↩</span>Navigazione ≠ transport</div><div class="a">Dentro la stanza tutto è reversibile: <b>back</b> dal player → lista (click continua, (c)); girare tra lista e dettaglio → click continua. <b>Nessuna tocca il clock.</b></div></div>
+    </div>
+    <div style="flex:1 1 560px;">
+      <div class="qa"><div class="q"><span class="num" style="color:#b1281f;">OUT</span>Le due uscite dalla stanza (gated)</div><div class="a"><b>Lista:</b> <span class="rd">Home</span> (34×34, tutto a sinistra) <b>e</b> <span class="rd">segmento → Q-Stage</span> (centrale) — due porte distinte, nessun rischio di confonderle, il rischio è il <b>tocco involontario</b> su ciascuna. <b>Dettaglio:</b> solo <span class="rd">segmento compatto</span> <code>.seg-mini</code> (niente Home) → da qui l'unica primaria possibile è <b>STOP &amp; SWITCH</b>. Il back del dettaglio → lista = navigazione, non gated. Il <b>puntino rosso</b> segna le affordance che alzano il gate.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">◎</span>Player (metronomo) = nessun terzo sfondo</div><div class="a">Verificato con Mauro: sul player <b>la barra stanze non c'è</b> → nessuna uscita-stanza, <b>niente gate lì</b>. Il freeze copre <b>due sfondi: lista + dettaglio</b>. <b>Futuro:</b> il player di S6 non è ancora disegnato; se un domani avesse una barra stanze, l'uscita dal metronomo rinascerebbe e servirebbe il 3° sfondo — <b>non dato per scontato</b>.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ROW 2a · GATE su LISTA (Home) — neutra vs allarme ===================== -->
+<div class="flbl stop" style="left:56px; top:1200px;"><span class="b">③ GATE su LISTA — Home</span><span class="stt out">STOP &amp; EXIT</span><span class="stt ctx">neutra · SSS off / 0 peer</span></div>
+<div class="flbl stop" style="left:514px; top:1200px;"><span class="b">④ GATE su LISTA — Home</span><span class="stt out">STOP &amp; EXIT</span><span class="stt am">allarme · SSS on + peer</span></div>
+
+<!-- FRAME 3 · list · Home · NEUTRA -->
+<div class="frame qlive gate" style="left:56px; top:1250px;" data-screen-label="Exit gate over Shows list · Home · neutral (no band)">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="roombar center">
+    <div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="roomseg nm0"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="scrhead"><h1>Shows</h1><span class="ro">Read-only</span></div>
+  <div class="searchrow"><div class="search"><span>Search shows</span></div></div>
+  <div class="list">
+    <div class="showrow pick"><div class="tx"><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div></div>
+    <div class="showrow"><div class="tx"><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div></div>
+  </div>
+  <div class="exgate">
+    <div class="card">
+      <div class="krow"><span class="livedot"></span><span class="k">Click is playing</span></div>
+      <div class="ctx"><div class="show">Milano Assago 20 Jul</div><div class="song">Circuz</div><div class="sec"><span class="part">Strofa</span><span class="fix">· 121 BPM · 6/8</span></div></div>
+      <div class="conseq"><b>Leaving stops the click.</b></div>
+      <div class="btns">
+        <div class="gbtn stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>Stop &amp; Exit</div>
+        <div class="gbtn stay">Stay</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow" style="left:448px; top:1600px;"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 7l5 5-5 5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="t">SSS on + peer<br>→ <b>ambra COMPARE</b><br>poi <b>non sparisce</b></div></div>
+
+<!-- FRAME 4 · list · Home · ALLARME (mix) -->
+<div class="frame qlive gateam" style="left:514px; top:1250px;" data-screen-label="Exit gate over Shows list · Home · alarm (band)">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="roombar center">
+    <div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="roomseg nm0"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="scrhead"><h1>Shows</h1><span class="ro">Read-only</span></div>
+  <div class="searchrow"><div class="search"><span>Search shows</span></div></div>
+  <div class="list">
+    <div class="showrow pick"><div class="tx"><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div></div>
+    <div class="showrow"><div class="tx"><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div></div>
+  </div>
+  <div class="exgate">
+    <div class="card mix">
+      <div class="krow"><span class="livedot"></span><span class="k">Click is playing</span><span class="alertbadge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5z" stroke="#f5b820" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 9.5v4.4M12 16.8v.1" stroke="#f5b820" stroke-width="2" stroke-linecap="round"/></svg><span class="escchip">3 on Link</span></span></div>
+      <div class="ctx"><div class="show">Milano Assago 20 Jul</div><div class="song">Circuz</div><div class="sec"><span class="part">Strofa</span><span class="fix">· 121 BPM · 6/8</span></div></div>
+      <div class="conseq"><b>Leaving stops the click.</b></div>
+      <div class="linkln loud"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5z" fill="#11131a"/><path d="M12 9.5v4.4M12 16.8v.1" stroke="#f5b820" stroke-width="2.1" stroke-linecap="round"/></svg><div class="t"><b>Link Start/Stop is on</b> — this stops the band too.</div></div>
+      <div class="btns">
+        <div class="gbtn stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>Stop &amp; Exit</div>
+        <div class="gbtn stay">Stay</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 2a · RIGHT PANEL — Q1/Q2/Q3 + ruling transizione -->
+<div class="panel" style="left:972px; top:1200px; width:1272px;">
+  <h3>Le tre domande + ruling transizione <span class="tag">RISPOSTE</span></h3>
+  <div style="display:flex; gap:30px; flex-wrap:wrap;">
+    <div style="flex:1 1 560px;">
+      <div class="qa"><div class="q"><span class="num">Q1</span>Switch = stessa conferma di Home?</div><div class="a"><b>Stesso overlay, stessa regola, etichetta primaria adattiva.</b> STOP è il nucleo costante (<span class="rd">--stop</span>); la seconda parola nomina la meta: <span class="rd">STOP &amp; EXIT</span> (Home, solo lista) · <span class="rd">STOP &amp; SWITCH</span> (segmento → Q-Stage). <b>Sul dettaglio</b> c'è solo il segmento → l'unica primaria è <b>STOP &amp; SWITCH</b>; «EXIT» non compare su sfondo-dettaglio.</div></div>
+      <div class="qa"><div class="q"><span class="num">Q2</span>Sfondo qualsiasi?</div><div class="a"><b>Lo scrim scurisce la pagina corrente com'è.</b> Modale <b>autosufficiente</b>: non dipende da cosa c'è dietro (per questo porta il contesto, Q3). Sfondi = <b>lista</b> e <b>dettaglio</b> (il player non ha uscita-stanza). Frame ③–⑥ = stesso modale, due sfondi × due varianti.</div></div>
+      <div class="qa"><div class="q"><span class="num">Q3</span>Dire COSA sta suonando?</div><div class="a"><b>Sì.</b> Fuori dal player puoi aver perso di vista che suona: «Leaving stops the click» dice la conseguenza ma non <b>cosa</b> uccideresti. Il blocco <b>show · song · section + BPM/TS</b> trasforma l'avviso in riconoscimento.</div></div>
+    </div>
+    <div style="flex:1 1 560px;">
+      <div class="rulebox">
+        <div class="h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5z" stroke="#8a6000" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9.5v4.4M12 16.8v.1" stroke="#8a6000" stroke-width="2" stroke-linecap="round"/></svg>Ruling ambra — ASIMMETRICO (TD#17)</div>
+        <p>A modale <b>aperto</b>, l'apparato ambra:<br>· <span class="g">COMPARE</span> in diretta se le condizioni diventano vere (SSS on + peer);<br>· <span class="rd">NON sparisce</span> finché il modale è aperto — <b>mai</b>;<br>· il chip <b>N on Link</b> può restare live.</p>
+        <p style="margin-top:8px;"><b>Perché:</b> TD#17 (perdita spuria di peer nelle sessioni lunghe) rende il conteggio inaffidabile. Aggiungere un avviso è sicuro; <b>toglierlo</b> è la mossa che ti fa premere il rosso convinto che non faccia male — l'avviso mente proprio nel modo che vogliamo evitare.</p>
+      </div>
+      <p class="lead" style="margin-top:14px;"><b>Resa della transizione (Frame ③→④):</b> stessa card, stesso primario. Al diventare-vero: entrano <b>bordo/glow ambra + banner + triangolo «!» + chip</b>. Nessun re-layout dei tasti (il primario non cambia posto). L'ingresso è additivo; l'uscita non esiste finché il modale resta aperto.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ROW 2b · GATE su DETTAGLIO (Switch) — neutra vs allarme ===================== -->
+<div class="flbl stop" style="left:56px; top:2160px;"><span class="b">⑤ GATE su DETTAGLIO — Switch</span><span class="stt out">STOP &amp; SWITCH</span><span class="stt ctx">neutra · SSS off / 0 peer</span></div>
+<div class="flbl stop" style="left:514px; top:2160px;"><span class="b">⑥ GATE su DETTAGLIO — Switch</span><span class="stt out">STOP &amp; SWITCH</span><span class="stt am">allarme · SSS on + peer</span></div>
+
+<!-- FRAME 5 · detail · Switch · NEUTRA -->
+<div class="frame qlive gate" style="left:56px; top:2210px;" data-screen-label="Exit gate over show detail · Switch → Q-Stage · neutral (no band)">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Shows</div>
+    <div class="seg-mini"><div class="o">Q-Stage</div><div class="o live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro">Read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+  </div>
+  <div class="exgate">
+    <div class="card">
+      <div class="krow"><span class="livedot"></span><span class="k">Click is playing</span></div>
+      <div class="ctx"><div class="show">Milano Assago 20 Jul</div><div class="song">Circuz</div><div class="sec"><span class="part">Strofa</span><span class="fix">· 121 BPM · 6/8</span></div></div>
+      <div class="conseq"><b>Leaving stops the click.</b></div>
+      <div class="btns">
+        <div class="gbtn stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>Stop &amp; Switch</div>
+        <div class="gbtn stay">Stay</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow" style="left:448px; top:2560px;"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 7l5 5-5 5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="t">stesso ruling<br>ambra <b>compare</b><br>non <b>sparisce</b></div></div>
+
+<!-- FRAME 6 · detail · Switch · ALLARME (mix) -->
+<div class="frame qlive gateam" style="left:514px; top:2210px;" data-screen-label="Exit gate over show detail · Switch → Q-Stage · alarm (band)">
+  <div class="sb"><span>21:14</span><div class="r">
+    <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg>
+  </div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Shows</div>
+    <div class="seg-mini"><div class="o">Q-Stage</div><div class="o live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro">Read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+  </div>
+  <div class="exgate">
+    <div class="card mix">
+      <div class="krow"><span class="livedot"></span><span class="k">Click is playing</span><span class="alertbadge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5z" stroke="#f5b820" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 9.5v4.4M12 16.8v.1" stroke="#f5b820" stroke-width="2" stroke-linecap="round"/></svg><span class="escchip">3 on Link</span></span></div>
+      <div class="ctx"><div class="show">Milano Assago 20 Jul</div><div class="song">Circuz</div><div class="sec"><span class="part">Strofa</span><span class="fix">· 121 BPM · 6/8</span></div></div>
+      <div class="conseq"><b>Leaving stops the click.</b></div>
+      <div class="linkln loud"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9.5 17H2.5z" fill="#11131a"/><path d="M12 9.5v4.4M12 16.8v.1" stroke="#f5b820" stroke-width="2.1" stroke-linecap="round"/></svg><div class="t"><b>Link Start/Stop is on</b> — this stops the band too.</div></div>
+      <div class="btns">
+        <div class="gbtn stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>Stop &amp; Switch</div>
+        <div class="gbtn stay">Stay</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 2b · RIGHT PANEL — Link truth table -->
+<div class="panel" style="left:972px; top:2160px; width:1272px;">
+  <h3>Riga Link «band» — verità + resa (mix V1+V2) <span class="tag">3 STATI</span></h3>
+  <p class="lead">«…this stops the band too» è forte <b>solo se vera</b> → compare solo quando è vera. Trigger unico: <b>Start/Stop Sync ON _e_ ≥1 peer connesso</b> (le due cose insieme). SSS lo attiva l'utente nel dialog Link (per-peer): l'app permette, non impone.</p>
+  <table class="ltab">
+    <thead><tr><th style="width:40%;">Contesto Link</th><th style="width:13%;">Apparato</th><th>Resa</th></tr></thead>
+    <tbody>
+      <tr><td class="cond"><b>SSS ON + ≥1 peer</b> (il mio stop propaga)</td><td class="show-am">ALLARME</td><td><b style="color:#9a6800;">bordo/glow ambra + banner pieno + triangolo «!» in alto a dx + chip «N on Link»</b>. Testo: «Link Start/Stop is on — this stops the band too.»</td></tr>
+      <tr><td class="cond">SSS ON + <b>0 peer</b></td><td class="hide">NEUTRA</td><td>Card neutra. Nessun apparato ambra: nessuna band da fermare.</td></tr>
+      <tr><td class="cond"><b>SSS OFF</b> (anche con peer)</td><td class="hide">NEUTRA</td><td>Card neutra. Lo stop resta locale → mentire sarebbe falso.</td></tr>
+    </tbody>
+  </table>
+  <div class="rulebox" style="margin-top:14px;">
+    <div class="h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 018-8 8 8 0 017 4M20 12a8 8 0 01-8 8 8 8 0 01-7-4" stroke="#8a6000" stroke-width="1.8" stroke-linecap="round"/><path d="M18 3v5h-5M6 21v-5h5" stroke="#8a6000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>A modale aperto (ruling TD#17)</div>
+    <p>Neutra → allarme <span class="g">sì</span> (compare live). Allarme → neutra <span class="rd">no</span> (non sparisce mai finché il modale è aperto). Il numero del chip resta live, ma la <b>presenza</b> dell'apparato è a senso unico.</p>
+  </div>
+  <p class="lead" style="margin-top:12px;">La <b>card neutra</b> (③/⑤) resta il default: punto arancio + «Click is playing» + contesto + «Leaving stops the click.» + STAY / primario. Ruoli invariati: <span class="rd">rosso = azione (STOP)</span>, <span class="am">ambra = warning (band)</span>.</p>
+</div>
+
+<!-- ===================== ROW 2c · RIGA CONTESTO — TRONCAMENTO ===================== -->
+<div class="flbl stop" style="left:56px; top:3120px;"><span class="b">RIGA CONTESTO · TRONCAMENTO</span><span class="stt ctx">iPhone portrait · nomi lunghi</span></div>
+
+<div class="democard" style="position:absolute; left:56px; top:3170px;">
+  <div class="cap">Nomi normali — nessun troncamento</div>
+  <div class="ctx">
+    <div class="show">Milano Assago 20 Jul</div>
+    <div class="song">Circuz</div>
+    <div class="sec"><span class="part">Strofa</span><span class="fix">· 121 BPM · 6/8</span></div>
+  </div>
+</div>
+
+<div class="democard" style="position:absolute; left:430px; top:3170px;">
+  <div class="cap">Nomi lunghi — troncamento a regola</div>
+  <div class="ctx">
+    <div class="show">Festa Aziendale BCC Romagna — Sala Grande</div>
+    <div class="song">Meravigliosa Creatura Dal Vivo Reprise</div>
+    <div class="sec"><span class="part">Ritornello finale lungo</span><span class="fix">· 138 BPM · 7/8</span></div>
+  </div>
+</div>
+
+<div class="panel" style="left:972px; top:3120px; width:1272px;">
+  <h3>Riga contesto — troncamento (iPhone portrait) <span class="tag">SPEC</span></h3>
+  <p class="lead">Il blocco contesto è già su 3 righe (show kicker · song · section+BPM/TS). Su larghezza iPhone-portrait con nomi lunghi la priorità di troncamento è <b>definita qui</b> — non la decide chi implementa. Principio: si tronca il <b>meno critico per il riconoscimento</b>, si <b>pinna il più critico</b>. Sempre <b>ellissi</b>, mai ticker o shrink (a 80cm il movimento è rumore). Vale identico in card neutra e allarme.</p>
+  <p class="lead" style="margin-top:6px;"><b>Non è una classe opzionale:</b> il troncamento è il <b>comportamento di default del componente <code>.ctx</code></b> del modale — sempre attivo, ed è <b>no-op quando il testo è corto</b> (per questo i frame ③–⑥ non mostrano troncamento: usano nomi corti). CC non deve scegliere se applicarlo.</p>
+  <div style="display:flex; gap:30px; flex-wrap:wrap; margin-top:4px;">
+    <div style="flex:1 1 540px;">
+      <div class="qa"><div class="q"><span class="num">1</span>show (kicker)</div><div class="a">Riga singola, <b>ellissi in coda</b>. È contesto di localizzazione (quale gig): perdere la coda di un nome lungo è accettabile. <b>Non va a capo.</b></div></div>
+      <div class="qa"><div class="q"><span class="num">2</span>song (ancora)</div><div class="a">Il dato #1 — «cosa uccideresti». <b>Fino a 2 righe</b>, poi ellissi. Meglio andare a capo che troncare corto: il nome del brano non si sacrifica a una riga tagliata.</div></div>
+    </div>
+    <div style="flex:1 1 540px;">
+      <div class="qa"><div class="q"><span class="num">3</span>section · BPM · TS</div><div class="a"><b>BPM · TS pinnati</b> (corti, larghezza fissa — non si troncano mai). <b>section</b> prende lo spazio residuo con <b>ellissi</b>. Se la larghezza è così stretta da non farli coesistere, <b>BPM · TS scende su una seconda riga</b> e section tiene la prima a piena larghezza.</div></div>
+      <div class="qa"><div class="q"><span class="num">◦</span>Perché questa gerarchia</div><div class="a"><b>song + section</b> identificano «cosa sto per fermare»; <b>show</b> è kicker secondario; <b>BPM/TS</b> sono i meno informativi per il riconoscimento ma i più economici da tenere (minuscoli) → pinnati, ma primi a cedere la riga.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ROW 3 · CONTRACT + TOKENS ===================== -->
+<div class="panel" style="left:56px; top:3560px; width:2188px;">
+  <h3>Contratto comportamentale + token <span class="tag">FREEZE (iii) · rev.2</span></h3>
+  <div style="display:flex; gap:32px; margin-top:10px; flex-wrap:wrap;">
+    <div style="flex:1 1 640px;">
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">1</span>Quando scatta il gate</div><div class="a"><b>Solo in play</b> (<code>playing</code> + <code>countIn</code>). Da <code>stopped</code> / <code>standby</code> / <code>fineSetlist</code> il clock è già fermo → uscita <b>libera, un tocco</b>, nessun overlay.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">2</span>Cosa lo alza (due sfondi)</div><div class="a"><b>Lista:</b> Home → <code>STOP &amp; EXIT</code> · segmento → <code>STOP &amp; SWITCH</code>. <b>Dettaglio:</b> <code>.seg-mini</code> → <code>STOP &amp; SWITCH</code> (niente Home, niente EXIT). <b>Player:</b> nessuna barra stanze → <b>nessun gate</b>. <b>NON</b> lo alzano: back (navigazione), fascia/Return, tap sulle righe show.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">3</span>Esiti</div><div class="a"><b>STOP &amp; EXIT / STOP &amp; SWITCH</b> (rosso <code>--stop</code>, h54 ≥44pt) = <b>è</b> lo stop, poi va a destinazione. <b>STAY</b> (outline) = torna dov'eri. <b>Dismiss / tap sullo scrim = STAY</b>.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">4</span>Ambra «band» — asimmetrica (TD#17)</div><div class="a">Compare <b>solo</b> se SSS on + ≥1 peer. A modale aperto: <span class="g">compare</span> live, <span class="rd">non sparisce</span> mai. Chip N live. Motivo: il peer-count è inaffidabile (TD#17) → togliere un avviso è la mossa pericolosa.</div></div>
+      <div class="qa"><div class="q"><span class="num" style="color:#0d6b2b;">5</span>Stop-da-ovunque già esiste</div><div class="a">È il <b>comando MIDI Stop</b> dalla pedaliera — esplicito per natura. Niente stop piccolo «ovunque» sulla fascia (reintrodurrebbe il fat-finger).</div></div>
+    </div>
+    <div style="flex:1 1 640px;">
+      <p class="tokbox"><b>Copy congelata (verbatim, EN):</b></p>
+      <div style="margin:4px 0 12px;">
+        <span class="copytag">kicker · <b>Click is playing</b></span>
+        <span class="copytag">conseguenza · <b>Leaving stops the click.</b></span>
+        <span class="copytag">Link (solo se vero) · <b>Link Start/Stop is on — this stops the band too.</b></span>
+        <span class="copytag">primaria lista/Home · <b>Stop &amp; Exit</b></span>
+        <span class="copytag">primaria switch/dettaglio · <b>Stop &amp; Switch</b></span>
+        <span class="copytag">secondaria · <b>Stay</b></span>
+        <span class="copytag">chip peer · <b>N on Link</b></span>
+      </div>
+      <div class="casenote"><b>Trappola maiuscolo (per la checklist CC):</b> la copy congelata è <b>mixed-case</b> come qui sopra. A schermo è resa in MAIUSCOLO da <code>text-transform:uppercase</code> (su <code>.gbtn</code>, <code>.fk</code>, <code>.ret</code>, <code>.show</code>, kicker). <b>Non riscriverla minuscola/maiuscola leggendo il solo markup:</b> la stringa è mixed-case, il CASE è presentazione CSS.</div>
+      <p class="tokbox" style="margin-top:12px;"><b>Token — sorgente normativa = <code>DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html</code>.</b> Qui il <code>:root</code> è una <b>copia di lavoro</b> (rende il file apribile da solo). <b>NUOVI rispetto a Q7-Q16: nessuno.</b> Se un valore diverge → vince Q7-Q16. (<code>--green</code> rimosso perché inutilizzato · <code>--tag-pending</code> non serve a questo freeze.)</p>
+      <p class="tokbox" style="margin-top:8px;">Scrim <code>rgba(9,9,11,0.76)</code> · card <code>--qlive-surf</code> + bordo <code>rgba(255,255,255,0.12)</code>, radius 22. Neutra: <code>--live-l</code> (kicker/dot) + border-left <code>rgba(212,63,0,0.5)</code>. Allarme: card bordo/glow <code>rgba(245,184,32,0.6)</code> + inset top <code>#f5b820</code>; banner <code>#ffd35a→#f5b820</code> ink <code>#11131a</code>; chip <code>--amber</code>. Primaria <code>--stop</code> (grad <code>#ff5245→#e21f14</code>), h54. Secondaria outline <code>rgba(255,255,255,0.2)</code>.</p>
+      <p class="tokbox" style="margin-top:10px; color:rgba(0,0,0,0.6);"><b style="color:#b1281f;">Del referee (cablaggio):</b> peer-count + stato SSS (con TD#17), teardown grafo/Link allo STOP, lista Shows col pulsante metronomo condizionale. <b>Collocazione:</b> atterra a <b>S6</b> — nessuna urgenza. Modale, copy, condizioni e ruling asimmetrico congelati.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
