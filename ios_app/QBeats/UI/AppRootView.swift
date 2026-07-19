@@ -38,9 +38,11 @@ struct AppRootView: View {
                         .environmentObject(audioEngine)
                 case .qLive:
                     // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
-                    // onExit e lo inoltra a LiveRootView; la closure `{ screen = .home }`
-                    // vive SOLO qui (E2, `Screen` private enum).
-                    QLiveRootView(onExit: { screen = .home })
+                    // onExit e lo inoltra alla gerarchia Q-Live; le closure
+                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+                    // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+                    QLiveRootView(onExit: { screen = .home },
+                                  onSwitchToStage: { screen = .qStage })
                         .environmentObject(audioEngine)
                 }
             }

@@ -7,9 +7,9 @@ import SwiftUI
 // Riferimenti per SELETTORE (R7, LIBRO v31): il freeze cresce, le righe slittano.
 // ⚠️ RESO MAI VISTO A SCHERMO (nessun Xcode in ambiente CC). «CI-verde ≠ chiuso».
 //
-// S4a = DEAD CODE (ratifica referee 18/07, specchio N1a): file NUOVO, NON referenziato.
-// Il flip della root (QLiveRootView → questa vista) è S4b, atomo separato. Fino ad
-// allora nulla di questo file è a schermo. 🔴 Chiusura visiva = gate device S4b.
+// S4a = nato DEAD CODE (ratifica referee 18/07, specchio N1a): file NUOVO, allora non
+// referenziato. Da S4b il flip della root è ESEGUITO: questa vista è la root di
+// QLiveRootView, referenziata e a schermo. 🔴 Chiusura visiva = gate device S4b.
 //
 // DECISIONI (ratificate, con fonte):
 //  · READ-ONLY: nessuna scrittura su QBeatsStore. Il badge .ro «Read-only» sostituisce
@@ -165,7 +165,7 @@ struct QLiveShowsView: View {
         if store.setlists.isEmpty {
             // Frame Ⓔ (FROZEN): include già CTA «Go to Q-Stage» + MetroFAB in coda (S2).
             // EmptyStateLayout si espande da sé (maxHeight .infinity) → MetroFAB resta in fondo.
-            NoShowsToPlayEmptyState()
+            NoShowsToPlayEmptyState(onGoToQStage: onSwitchToStage)
         } else {
             if visibleShows.isEmpty {
                 noMatchHint
