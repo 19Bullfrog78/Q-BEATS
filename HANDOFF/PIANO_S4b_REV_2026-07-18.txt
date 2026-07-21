@@ -1,0 +1,354 @@
+PIANO S4b — REVISIONE (esito ratifica referee 18/07) — PER RATIFICA REFEREE
+Data: 2026-07-18 · Autore: CC · Baseline: HEAD ed5425c (invariato, riverificato in questo turno:
+nessun commit eseguito). Revisiona PIANO_S4_2026-07-18.txt (sha256 b8269769…ed592df0) nei SOLI
+punti richiesti (3, 5a-5g); tutto il resto del piano ratificato resta com'è.
+Decisioni recepite come VINCOLANTI: CD 18/07 (opzione (c): navigazione ≠ transport, lo stop è
+SOLO esplicito) · ruling D1-split · decisione Mauro 18/07 (proprietà del runner SALE).
+Ogni troncamento di citazione è marcato […].
+
+
+════════════════════════════════════════════════════════════════════════
+PUNTO 3 — RISERVA §7 SUL §0: RISOLTA CON FONTE TERZA (header Ableton vendored)
+════════════════════════════════════════════════════════════════════════
+La semantica di `link_engine_stop` è ora SORGENTATA dall'header ufficiale Ableton vendored nel
+repo: `Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h` (stesso file nelle
+altre due slice del xcframework). Catena completa:
+
+(3.1) Il nostro wrapper — ios_app/QBeats/LinkEngine.mm:485-496, verbatim:
+    485	void link_engine_stop(LinkEngineHandle handle, uint64_t hostTime) {
+    486	    if (!handle) return;
+    487	    LinkEngine* engine = (LinkEngine*)handle;
+    488	    if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+    489
+    490	    ABLLinkSessionStateRef state =
+    491	        ABLLinkCaptureAppSessionState(engine->link_);
+    492
+    493	    ABLLinkSetIsPlaying(state, false, hostTime);
+    494
+    495	    ABLLinkCommitAppSessionState(engine->link_, state);
+    496	}
+
+(3.2) Cosa fa Ableton di quelle chiamate — ABLLink.h, verbatim:
+  · :376 (doc di ABLLinkSetIsPlaying):
+      /*! @brief: Set if transport should be playing or stopped at the given time. */
+  · :230-236 (doc di ABLLinkCommitAppSessionState):
+      /*! @brief Commit the session state to the Link session from the main
+       *  application thread.
+       *
+       *  @discussion This function should ONLY be called in the main
+       *  thread. The given session state will replace the current Link
+       *  session state. Modifications to the session based on the new session
+       *  state will be communicated to other peers in the session.
+       */
+  · :18-20 (intro del file, condizione di condivisione):
+      *  Synchronizing to the transport start/stop state of Link is optional
+      *  for every peer. The transport start/stop state is only shared with
+      *  other peers when start/stop synchronization is enabled.
+  · :75-82 (doc di ABLLinkIsStartStopSyncEnabled — chi controlla l'abilitazione):
+      /*! @brief Is Start Stop Sync currently enabled by the user?
+       *
+       *  @discussion The Start Stop Sync Enabled status is only controllable
+       *  by the user via the Link settings dialog and is not controllable
+       *  programmatically.
+       *  To allow the user to enable Start Stop Sync a Boolean entry YES under
+       *  the key ABLLinkStartStopSyncSupported must be added to Info.plist.
+       */
+
+(3.3) CORREZIONE AL §0 (la riserva era FONDATA, e la fonte raffina il claim):
+  Il mio §0 (0.1) diceva «Con StartStopSync ON, uno stop del leader È notificabile ai Follower»
+  presentando il flag Info.plist come l'interruttore. L'header dice una cosa PIÙ PRECISA:
+  `ABLLinkStartStopSyncSupported: true` (ios_app/project.yml:19) NON attiva la propagazione —
+  PERMETTE ALL'UTENTE di attivarla nel dialog Link («only controllable by the user via the Link
+  settings dialog», «not controllable programmatically»). E la condivisione avviene «only …
+  when start/stop synchronization is enabled», per-peer (ciascun peer sceglie se seguirla).
+  → RIGA RIVISTA DEL §0: FATTO OPERATIVO **SÌ** (semantica sorgentata), con claim CORRETTO:
+  «uno stop() con isRunning==true committa isPlaying=false alla sessione Link, e la modifica è
+  comunicata ai peer; l'EFFETTO banda (i Follower si fermano) esiste SE l'utente ha Start Stop
+  Sync attivo nelle impostazioni Link dei device coinvolti — che è lo scenario d'uso Q-BEATS
+  sul palco». Coerente col precedente storico in memoria di progetto (Soundbrenner: Sync
+  Start/Stop OFF di default = config utente, non bug).
+  La CONCLUSIONE OPERATIVA del §0 non cambia: lo stop non deve mai essere il sottoprodotto
+  spurio di altro — oggi rafforzata dalla decisione CD (nessuno stop da navigazione, punto 5b).
+
+
+════════════════════════════════════════════════════════════════════════
+5a — §2a AGGIORNATO: l'enum resta, SENZA ALCUN AGGANCIO AUDIO
+════════════════════════════════════════════════════════════════════════
+Resta (ratificato): @State `page` + @State `previousPage` + `private enum QLivePage` CASE-ONLY
+{ shows, detail, metronomo } + `switch page` nel body di QLiveRootView. Restano i due vincoli
+della verifica avversariale: QLivePage case-only (Equatable auto-sintetizzato, come `Screen`);
+il payload (show selezionato) vive in @State SEPARATO, mai nell'enum.
+ELIMINATO: qualunque riferimento ad audio in questo strato. La navigazione interna di Q-Live
+non conosce AudioEngine. Nessun `.onChange(of: page)` con stop, in nessuna forma (ruling D1).
+
+── PROPOSTA D1 (il referee ha invitato a motivare un eventuale `.onChange` NON-audio) ──
+NON propongo un `.onChange(of: page)`. Propongo il FUNNEL:
+     private func navigate(to newPage: QLivePage) {
+         previousPage = page
+         page = newPage
+     }
+e la regola: `page` NON viene MAI assegnato direttamente — ogni closure iniettata ai figli
+passa da `navigate(to:)`.
+MOTIVI:
+ · Il «punto di mutazione unico» che la direzione originale chiedeva è realizzato al livello
+   della FUNZIONE, non di un hook osservatore: più forte (chi assegna direttamente si vede al
+   grep; un onChange invece osserva anche mutazioni fatte da chiunque).
+ · Un `.onChange` vuoto-di-stop sarebbe esattamente l'invito che il ruling teme: un hook
+   installato e semanticamente vuoto, che «fra settimane si legge come il posto dove mettere
+   qualcosa». Il funnel non ha questo profilo: è bookkeeping dichiarato.
+ · `previousPage` resta VERO dal primo giorno (lo mantiene il funnel), senza osservatori.
+COERENZA: `previousPage` e il suo mantenimento vivono INSIEME. Se il referee preferisce NON
+installare il funnel a S4b (zero mutatori vivi fino a S5), allora va rinviato ANCHE
+`previousPage` (un previousPage senza scrittore diventerebbe stato bugiardo appena `page`
+inizierà a muoversi). Prima scelta: funnel a S4b (3 righe, morto ma auto-documentante, i
+mutatori S5/S6 lo trovano già come unica porta). Seconda scelta: page+switch soli a S4b,
+previousPage+funnel al primo mutatore (S5). Sconsigliato: previousPage senza funnel.
+Nel codice atterra anche un commento di GUARDIA (non un hook): «decisione CD 18/07 —
+navigazione ≠ transport: NESSUNO stop audio va agganciato alle transizioni di `page`», con
+puntatore al canonico. Non è uno stop commentato (vietato dal ruling): è la ratifica incisa
+dove un futuro lettore andrebbe a cablarla per errore.
+
+
+════════════════════════════════════════════════════════════════════════
+5b — §2b SOSTITUITO: CHI MUOVE `page`, E LA DICHIARAZIONE NESSUNO-STOP
+════════════════════════════════════════════════════════════════════════
+PROPRIETÀ: `page` è @State PRIVATO di QLiveRootView. I figli non vedono l'enum (specchio E2:
+come `Screen` è private di AppRootView) — ricevono CLOSURES.
+
+MAPPA DEI MUTATORI (tutti via `navigate(to:)`; nessuno è vivo a S4b):
+  tap riga show           → navigate(.detail)      [S5 — oggi righe INERTI]
+  back dal detail         → navigate(.shows)       [S5]
+  Start (detail)          → nasce il runner in sessione (5f) + navigate(.metronomo)  [S5+S4L]
+  back dal metronomo      → navigate(.shows)       [S6 — richiesta Mauro 17/07: «a Q-Live›Shows,
+                                                    non a Home»; ri-instrada l'attuale
+                                                    LiveHeaderView back, oggi su onExit]
+  MetroFAB                → free-metronome, dest STUB [S6 — SCALETTA ⟦S6⟧, differita]
+A S4b: ZERO mutatori vivi → `page` resta costantemente `.shows`; i rami `.detail`/`.metronomo`
+del `switch` renderizzano EmptyView (scaffold alla N1a). `previousPage` = `.shows` = vero.
+
+DICHIARAZIONE ESPLICITA (decisione CD 18/07, vincolante):
+  NESSUNO stop audio è agganciato ad ALCUNA transizione di `page`. Navigazione e transport
+  sono separati. Uscire dal metronomo NON ferma il click, in nessuna direzione interna.
+CENSIMENTO dei trigger di stop che RESTANO (tutti pre-esistenti, nessuno nuovo):
+  (1) STOP esplicito del transport (bottone nel metronomo — percorso TransportView).
+  (2) MIDI Stop da pedaliera (futuro, stessa semantica esplicita).
+  (3) Canonico AppRootView.swift:61-68 all'USCITA da `.qLive` (screen muta) — Nodo A,
+      device-validato 17/07. FUORI dal perimetro della decisione CD, che governa la
+      navigazione INTERNA.
+  (4) HomeRootView.swift:43 `.onAppear { audioEngine.stop() }` — pre-esistente, ridondante
+      col canonico sul percorso via Home.
+
+SEGNALAZIONE DI COERENZA (stop-and-flag; NON riapro il ratificato, lo consegno a chi decide):
+  Presa alla lettera («lo ferma SOLO uno STOP esplicito»), la decisione CD metterebbe in
+  tensione anche il canonico (3): anche quello è uno stop innescato da navigazione (uscita
+  dalla stanza). La decisione di Mauro sul runner (5f: «muore SOLO all'uscita da Q-Live») offre
+  la lettura che ricompone: la SESSIONE live (runner + click) è confinata alla stanza Q-Live;
+  la navigazione INTERNA non la termina; l'uscita dalla STANZA la termina — non è "navigazione"
+  nel senso CD, è fine-sessione. Con questa lettura, canonico e decisione CD convivono e il
+  modello è pulito: sessione ≡ residenza in Q-Live.
+  MA al gate S6 questo diventa osservabile: uscire da Q-Live col click attivo fermerà la band
+  (canonico → link_engine_stop, §3). Se CD intende invece ESTENDERE «mai stop da navigazione»
+  anche al bordo-stanza, va deciso PRIMA di S6 — non è un default che possa scegliere io.
+  Interazione con R7 (CANCEL di WaitingForDirector): destinazione e semantica audio del CANCEL
+  restano una domanda CD aperta, ora sotto la stessa lente.
+
+
+════════════════════════════════════════════════════════════════════════
+5c — §2c ELIMINATO
+════════════════════════════════════════════════════════════════════════
+Non c'è politica da parametrizzare: l'unico parametro sarebbe stato «QUALI uscite fermano il
+click», e CD ha risposto «nessuna» — resta solo lo STOP esplicito, che non è navigazione.
+(Il default `.always` che avevo raccomandato in D2 era l'esatto opposto della decisione:
+eliminato con questa revisione; la parametrizzazione muore con la domanda.)
+
+
+════════════════════════════════════════════════════════════════════════
+5d — §2f GATE RIVISTO: S4 È UN GATE DI PURA NAVIGAZIONE
+════════════════════════════════════════════════════════════════════════
+CI (invariato): build verde senza nuovi warning (i 2 noti Node20/aws-tap restano); il nuovo
+file compila; nessun crash a montaggio.
+
+DEVICE S4b — CONFERMO i 5 tocchi del piano, con DUE emendamenti:
+  [1] SDOPPIATO:
+      [1a] store con show: lista popolata reale (nomi; meta «N songs · M min» con «· min»
+           che SPARISCE a minuti 0; NESSUNA riga evidenziata .pick — modello last-opened
+           inesistente, riga onesta — flag S4a);
+      [1b] store vuoto (se raggiungibile sul device di test): frame Ⓔ — scrhead con badge
+           Read-only, NIENTE search row, empty-state con CTA + MetroFAB in coda.
+  [2] Home (RoomSwitchBar home → onExit) → Home, nessun crash.                    [invariato]
+  [3] Switch → Q-Stage (secco, NON toggle), nessun crash. Resta il percorso strutturalmente
+      DISCRIMINANTE: non passa dalla Home (claim-B confermato a fonte).           [invariato]
+  [4] Tap su riga / MetroFAB / CTA «Go to Q-Stage» (se [1b]) = INERTI, nessun crash.
+      ⚠️ vedi FLAG sulla CTA in coda al 5f-bis: proposta di cablarla a S4b.       [emendato]
+  [5] RoomSwitchBar hit-area: RI-gate dei 4 tocchi nel contesto header Q-Live.    [invariato]
+COSA S4 NON PROVA (dichiarato, invariato dal piano): nessuna uscita intra-.qLive con audio
+attivo esiste a S4 (metronomo irraggiungibile) → S4 non osserva NULLA di audio. Coerente:
+dopo la decisione CD non c'è più nemmeno un handler interno da discriminare.
+
+GATE S6 — INVERTITO rispetto al piano originale (era: «il click TACE uscendo dal metronomo»):
+  [6a] metronomo in play → back → Q-Live›Shows: il click CONTINUA (decisione CD).
+  [6b] STOP esplicito nel transport → il click TACE (e, con StartStopSync utente attivo,
+       la banda si ferma: §3 — comportamento VOLUTO di un evento-banda esplicito).
+  [6c] bordo-stanza (uscita da Q-Live col click attivo): comportamento DA DECIDERE CD/referee
+       PRIMA di S6 (segnalazione 5b). Oggi il canonico ferma. Il gate S6 testa ciò che sarà
+       deciso, non lo decide.
+  [6d] audit ciclo-vita: LiveView smontata col click attivo (nuovo profilo R3, 5e) — nessun
+       glitch/crash/timer orfano navigando shows↔metronomo in play.
+
+
+════════════════════════════════════════════════════════════════════════
+5e — §2g RISCHI RIVISTI
+════════════════════════════════════════════════════════════════════════
+R1 — INVARIATO (metronomo irraggiungibile S4b→S5/S6). Accettazione referee recepita con le sue
+     condizioni: S4L→S5→S6 senza interruzioni; mitigazione = build pre-flip ed5425c installata.
+     Verifica artefatto: 5g. NOTA CATENA: il flip che rende il metronomo irraggiungibile è S4b
+     (bloccato); S4a da solo non cambia nulla di raggiungibile.
+R2 — RIDIMENSIONATO: il «doppio stop da navigazione interna» non esiste più (nessun handler
+     interno). L'idempotenza verificata (guardia AudioEngine.swift:1638 prima di :1645, unico
+     callsite di link_engine_stop, serializzazione audioQueue.sync — claim-A CONFERMATO) resta
+     il paracadute della sequenza reale rimasta: STOP esplicito → poi uscita stanza (canonico):
+     il secondo stop() è no-op, UN solo evento-banda.
+R3 — RIPROFILATO (nuovo, dalla decisione CD): LiveView ora può SMONTARE col click ATTIVO
+     (metronomo→shows: view distrutta, audio continua). Prima era impossibile per costruzione
+     (ogni uscita fermava). Ogni assunzione «view morta ⇒ audio fermo» in LiveView/figli
+     (timer UI, observer, callback legati al ciclo-vita) va AUDITATA. Fuori scope S4
+     (irraggiungibile); audit + gate = S6 ([6d]). Da tenere nel radar di S5 (Start monta
+     LiveView dal ramo .metronomo: stesso sottoalbero).
+R4 — INVARIATO: QLivePage case-only ⇒ Equatable auto-sintetizzato; payload fuori dall'enum.
+R5 — INVARIATO (iniezione onSwitchToStage lungo AppRootView→QLiveRootView→QLiveShowsView;
+     specchio del pattern QStageRootView già vivo). NOTA S4a: la vista dichiara e cabla già
+     ENTRAMBE le closure internamente → S4b si riduce a 2 file (vedi 5f-bis).
+R6 — INVARIATO (ri-gate 4 tocchi RoomSwitchBar in contesto Q-Live).
+R7 — AGGIORNATO: back dal metronomo → navigate(.shows) col click che CONTINUA (CD). CANCEL di
+     WaitingForDirector: destinazione (interna vs Home) e semantica audio DA DECIDERE CD —
+     sotto la nuova lente «navigazione non ferma», un CANCEL che oggi esce e (via canonico)
+     ferma va riesaminato a S5/S6. Aperta, tracciata, non-S4.
+R8 — NUOVO: PROPRIETÀ DEL RUNNER (decisione Mauro 18/07) — dettaglio e forme tecniche in 5f.
+     La piega: all'ingresso in Q-Live NESSUNA scaletta è scelta → il runner NON può nascere
+     all'ingresso; serve un POSTO riservato e vuoto che il runner occupa allo Start e libera
+     all'uscita dalla stanza. Rischio se mal risolto: runner fantasma (l'attuale
+     `first ?? makeDefault()`), o crash da slot vuoto al montaggio del metronomo, o runner
+     che sopravvive alla stanza (viola la ratifica). Le tre forme candidate, coi costi, in 5f.
+
+
+════════════════════════════════════════════════════════════════════════
+5f — IMPATTO SU S4L: SCHEDA RISCRITTA (PROPOSTA — la ratifica della SCALETTA è del referee)
+════════════════════════════════════════════════════════════════════════
+La decisione di Mauro allarga S4L da «uccidi la scaletta fantasma» a «sessione Q-Live +
+proprietà del runner + kill fantasma». Sono lo stesso lavoro alla radice: il fantasma
+(`LiveRootView.swift:12-13 — SetlistRunner(setlist: QBeatsStore.shared.setlists.first ??
+Setlist.makeDefault() […]`) esiste PERCHÉ il runner è costretto a nascere al montaggio.
+
+── Le tre forme tecniche per «slot riservato e vuoto» (il vincolo: @StateObject non ammette
+   un valore opzionale all'init) ──
+FORMA A — `@State private var runner: SetlistRunner?` in QLiveRootView.
+  Come: @State con reference type — l'ISTANZA sopravvive ai re-render (identità della view),
+  nasce allo Start (`runner = SetlistRunner(setlist: chosen, …)`), muore con la view (uscita
+  stanza). I figli che devono OSSERVARLA la ricevono e la tengono come @ObservedObject.
+  Costi/rischi: QLiveRootView NON osserva il runner (per il solo routing basta l'esistenza —
+  accettabile ma da tenere a mente); pattern @State-con-classe inusuale nel codebase;
+  l'invariante «page==.metronomo ⇒ runner≠nil» va garantita a mano (render con `if let`,
+  altrimenti EmptyView difensiva).
+FORMA B — CONTENITORE-SESSIONE (RACCOMANDATA):
+     final class QLiveSession: ObservableObject { @Published var runner: SetlistRunner? }
+  tenuto come `@StateObject private var session = QLiveSession()` in QLiveRootView.
+  Come: il contenitore è NON-opzionale (risolve il vincolo @StateObject alla radice); lo slot
+  interno è opzionale; nasce/muore con QLiveRootView = confine-stanza ESATTO della ratifica
+  Mauro; il montaggio del metronomo è `if let runner = session.runner` — zero force-unwrap,
+  l'invariante è il TIPO, non una promessa; QLiveRootView osserva la sessione (re-render
+  quando il runner appare/scompare = esattamente quando serve); casa naturale per eventuale
+  stato-di-sessione futuro. Costi: una classe piccola in più; un livello di indirezione.
+FORMA C — hoist a livello app (environmentObject da QBeatsApp, stile audioEngine). SCARTATA:
+  il runner sopravvivrebbe alla stanza (VIOLA «muore solo all'uscita da Q-Live»), imponendo un
+  reset manuale error-prone — la classe di bug che la ratifica vuole eliminare.
+POSIZIONE CC: FORMA B.
+
+── SCHEDA ⟦S4L⟧ PROPOSTA (sostituisce l'attuale nella SCALETTA; ratifica = referee) ──
+⟦S4L⟧ Sessione Q-Live: proprietà del runner + kill scaletta-fantasma · POST · CI (gate device
+      ACCORPATO a S5 — dichiarato sotto)
+ - Scopo: `QLiveSession` (contenitore @StateObject in QLiveRootView, slot `runner` opzionale).
+   Il runner NASCE solo allo Start con la setlist SCELTA; SOPRAVVIVE alla navigazione interna
+   (decisione Mauro 18/07); MUORE con la stanza. Kill del fantasma `first ?? makeDefault()`.
+   Launcher unico per S5-Start e S6.
+ - File: `QLiveRootView.swift` EDIT (session + iniezione al ramo `.metronomo` via `if let`) ·
+   `LiveRootView.swift` EDIT→probabile DELEZIONE: il suo unico compito reale è la nascita
+   eager del runner (LiveRootView.swift:12-15) + inoltro environment; con la sessione,
+   l'iniezione parte dal ramo `.metronomo` di QLiveRootView e LiveRootView si riduce a un
+   passthrough vuoto. ⚠️ EMENDAMENTO D'INVARIANTE RICHIESTO: l'invariante Nodo A «renderizza
+   `LiveRootView`, MAI `LiveView` diretto» (QLiveRootView.swift:14-16) ha per SCOPO «mai
+   montare LiveView senza runner iniettato» — scopo PRESERVATO dal gate `if let runner`; la
+   LETTERA cambia (LiveView montata direttamente dal ramo, col runner della sessione). Va
+   emendata con ratifica ESPLICITA referee alla riscrittura SCALETTA, non silenziosamente.
+ - Reversibilità: RISCHIO (tocca la nascita del runner; revert = reinstallare la forma eager
+   e l'inoltro LiveRootView).
+ - Gate: CI pieno. DEVICE: a S4L il metronomo è ANCORA irraggiungibile (lo Start arriva a S5)
+   → il gate device di S4L è VUOTO per costruzione. DICHIARO: gate device di S4L ACCORPATO al
+   gate S5 (che monta il metronomo via Start e osserva: runner nato con la setlist scelta,
+   persistenza della sessione su nav interna, morte della sessione all'uscita stanza).
+   Alternativa scartata: invertire S4L↔S5 — impossibile, lo Start di S5 CONSUMA il launcher.
+
+── ORDINE ──
+S4a → S4b → S4L → S5 → S6 REGGE. Nulla da anticipare in S4 oltre a ciò che S4b già installa:
+il caso `.metronomo` nell'enum + il ramo scaffold nel `switch` (il posto dove S4L innesterà
+`if let runner`). QLiveShowsView (S4a) è store-driven e runner-agnostica: zero rework.
+S4 resta AUDIO-NEUTRO e RUNNER-NEUTRO. Il gancio minimo è tutto qui: un case e un ramo morto.
+
+── 5f-bis · NOTE DI SCOPE S4a (dichiarazioni per la ratifica del diff) ──
+ (a) SEMPLIFICAZIONE S4b: QLiveShowsView dichiara GIÀ le due closure (`onExit`,
+     `onSwitchToStage`) e cabla internamente RoomSwitchBar → S4b si riduce a 2 file
+     (QLiveRootView + AppRootView) e NON tocca più QLiveShowsView. (Il piano ratificato
+     prevedeva un EDIT di QLiveShowsView in S4b: ora non serve — meno superficie per atomo.)
+ (b) RAMO EMPTY INCLUSO oltre la checklist §2e stretta: `store.setlists.isEmpty` →
+     `NoShowsToPlayEmptyState()` (frame Ⓔ [FROZEN], freeze §markup «No shows to play /
+     Q-Live»; componente S2 GIÀ ratificato — zero token nuovi; search row omessa nell'empty,
+     specchio della decisione S3 «punto 5»). Lo stato vuoto è il PRIMO stato reale che un
+     device pulito mostra: una lista senza ramo empty sarebbe uno schermo rotto al primo
+     avvio. Revert banale (un `if`). DA RATIFICARE.
+ (c) CTA «Go to Q-Stage» dentro Ⓔ: resta NO-OP (cablaggio = S6 per decisione registrata in
+     QLiveEmptyStates). ⚠️ FLAG: nella finestra S4b→S6, con store vuoto, sarebbe A SCHERMO un
+     bottone che si preme e non fa nulla (il REGISTRO RESI di S2 lo prevedeva esattamente).
+     PROPOSTA: cablarlo a `onSwitchToStage` già a S4b — 1 riga, la closure esiste già, e
+     «andare a Q-Stage» è esattamente ciò che lo switch fa. Anticipo puntuale di S6 su un
+     punto: DA RATIFICARE (se no, resta no-op dichiarato).
+ (d) pick MAI attivo (`isPick = false` su ogni riga): nessun modello last-opened esiste
+     (verificato a fonte, grep su store/modelli senza risultati). Il ramo di stile .pick è
+     implementato (token §2e onorati) ma spento: niente evidenza finta. Il modello, quando
+     CD/referee lo vorranno, è lavoro futuro (S5+). DICHIARATO.
+ (e) Caret search = orange stanza (il freeze non specifica il colore del cursore; specchio
+     della scelta S3 col blu Q-Stage). Cosmetico, DA RATIFICARE con (b)-(e) in blocco.
+ (f) No-match hint = specchio del 9° punto S3 («No shows match your search.») — stesso
+     default CC già passato dal gate device S3. DICHIARATO.
+
+
+════════════════════════════════════════════════════════════════════════
+5g — VERIFICA ARTEFATTO (condizione dell'accettazione di R1): ✅ SCARICABILE, PROVATO
+════════════════════════════════════════════════════════════════════════
+(1) Metadata via `gh api repos/19Bullfrog78/Q-BEATS/actions/runs/29640310220/artifacts`,
+    output verbatim:
+    {"created_at":"2026-07-18T10:09:18Z","expired":false,"expires_at":"2026-10-16T10:06:58Z","id":8428415314,"name":"QBeats-IPA","size_in_bytes":4648261}
+(2) DOWNLOAD REALE ESEGUITO (non solo metadata): `gh run download 29640310220 -n QBeats-IPA`
+    → `QBeats.ipa`, 4.686.340 byte su disco (scratchpad CC, fuori dal repo). La via funziona.
+(3) CAVEAT SCADENZA: l'artefatto scade il 2026-10-16 (retention GitHub). La finestra S4→S6 è
+    attesa in giorni, non mesi — ma la mitigazione «resta installato il build pre-flip» regge
+    da sola SOLO finché non serve REinstallare. RACCOMANDAZIONE: Mauro scarichi ORA l'IPA da
+    quella run (UI GitHub → run 29640310220 → Artifacts → QBeats-IPA) e lo conservi in
+    archivio E:, così la mitigazione non dipende dalla retention. Promemoria correlato (già
+    tracciato in memoria progetto): CFBundleVersion è bloccato a 1 su tutti i build CI →
+    iMazing reinstalla senza drama solo tenendo traccia di QUALE .ipa è quale — l'archivio
+    per-run con nome esplicito è la cura.
+
+
+════════════════════════════════════════════════════════════════════════
+RIEPILOGO DECISIONI CHIESTE AL REFEREE IN QUESTA REVISIONE
+════════════════════════════════════════════════════════════════════════
+ D-a · D1: funnel `navigate(to:)` a S4b (previousPage mantenuto lì, nessun onChange) — oppure
+       rinvio in blocco previousPage+funnel a S5. Prima scelta: funnel a S4b.
+ D-b · Lettura «sessione ≡ stanza» (5b): ratificare che il canonico al bordo-stanza resta
+       (fine-sessione, non navigazione) — o portare a CD la domanda [6c] prima di S6.
+ D-c · Scheda ⟦S4L⟧ proposta (5f): forma B, delezione LiveRootView + emendamento invariante,
+       gate device accorpato a S5, ordine invariato.
+ D-d · Note di scope S4a (5f-bis b-e): ramo empty · CTA cablata a S4b (o no-op dichiarato) ·
+       pick spento · caret orange.
+
+FINE REVISIONE. Nessun commit. Il codice S4a (unico autorizzato) è consegnato come diff
+verbatim in HANDOFF/DIFF_S4a_2026-07-18.txt — due cancelli prima di ogni commit.
