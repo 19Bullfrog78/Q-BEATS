@@ -1,13 +1,23 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V26 — 17/07/2026
+**Versione:** V27 — 21/07/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+
+**Delta V27 vs V26:**
+
+- **BOX3 e BOX5 escono dai «canonici NON tracciati» ed entrano nei TRACCIATI** — commit `edaa80f`, 21/07/2026. Da lì vivono in root come `BOX3_QBEATS.md` e `BOX5_QBEATS.md`, tracciati in git, con `-text` in `.gitattributes`. Si modificano **in place**: il diff si legge riga per riga e le versioni precedenti stanno nella storia git, non in un file separato. Il bullet «Canonici NON tracciati» del Delta V26 è riscritto di conseguenza e resta valido per la sola SCALETTA. Per BOX3/BOX5 vale ora la **prescrizione** del bullet «Canonici TRACCIATI» — estrarre dal blob con `git show <commit>:<path>`, mai copiare dal file di lavoro — ma **non la motivazione scritta lì**: vedi la rettifica qui sotto.
+
+- **RETTIFICA 21/07/2026 — il messaggio di commit di `edaa80f` motiva male il proprio vincolo.** Quel messaggio afferma che seguire il vecchio bullet «Canonici NON tracciati» produrrebbe, per BOX3/BOX5, la corruzione silenziosa descritta nel bullet dei tracciati. **È falso, e la rettifica vive qui perché un messaggio di commit è pushato e non si corregge.** Quella corruzione nasce dal divario CRLF-su-disco / LF-nel-blob, che è reale per `LIBRO_MASTRO_QBEATS.md` e `BUGS_QBEATS.md` ma **non esiste per BOX3 e BOX5**: lo stesso commit `edaa80f` ha messo `-text` su entrambi, e disco e blob coincidono al byte (verificato). Una copia dal disco non li corromperebbe. Il difetto reale del vecchio bullet era un altro, e regge: dichiarava «non esiste blob» — falso da `edaa80f` — e prescriveva una verifica d'impronta sorgente↔destinazione **non ancorata a un commit**, cioè una copia di cui non si sa a quale stato del documento corrisponda. Il vincolo di `edaa80f` era giusto; la ragione scritta accanto no.
+
+- **Formato dei canonici propagati a E:/project — nome PER VERSIONE, con data e commit di estrazione in coda** (ratificato Mauro 21/07/2026). Forma: `BOX3_V98_2026-07-22_edaa80f.md`. Due motivi, entrambi vincolanti. **(1)** Su E: il file è una **stampa**, non l'originale: il nome per-versione lo distingue a colpo d'occhio dal file a nome fisso che vive nel repo, ed evita di ricostruire su E: la trappola-per-nome che ha già prodotto le due `SCALETTA` omonime e divergenti. **(2)** Il commit in coda rende la stampa **verificabile**: la sua impronta deve coincidere con quella del blob a quel commit, e il controllo resta eseguibile con un comando anche fra anni. ⚠️ **L'archivio esistente non si tocca:** i file da V8 a V97 restano col nome che hanno.
+
+Tutto il resto invariato da V26.
 
 **Delta V26 vs V25:**
 
 - **Formato dei canonici propagati a E:/project — due regimi, secondo il tracciamento git.**
   · **Canonici TRACCIATI** (`BUGS_QBEATS.md`, `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/**`): lo snapshot si produce ESTRAENDO DAL BLOB GIT (`git show <commit>:<path>`), MAI con Copy-Item dal file di lavoro. Il file di lavoro in root è CRLF, il blob è LF: i 32 snapshot storici su E: sono tutti LF, e una copia dal disco produrrebbe l'unico CRLF in mezzo a 32 LF — corruzione invisibile, scoperta mesi dopo. La verifica confronta l'impronta con quella del BLOB, non con quella del file su disco.
-  · **Canonici NON tracciati** (BOX3, BOX5, SCALETTA — vivono in `ARCHIVIO.MD/` gitignored e su E:): l'estrazione da git è IMPOSSIBILE, non esiste blob. La copia dal disco è l'unica via → la verifica è un confronto d'impronta sorgente↔destinazione (stesso sha256 alle due estremità), e il formato del file sorgente È il formato canonico per definizione.
+  · **Canonici NON tracciati** (dal 21/07/2026 la sola SCALETTA — vive fuori da git): l'estrazione da git è IMPOSSIBILE, non esiste blob. La copia dal disco è l'unica via → la verifica è un confronto d'impronta sorgente↔destinazione (stesso sha256 alle due estremità), e il formato del file sorgente È il formato canonico per definizione. ⚠️ **Limite noto del regime, ed è la ragione per cui se ne esce appena possibile:** un'impronta sorgente↔destinazione non è ancorata a un commit, quindi certifica che la copia è fedele ma NON a quale stato del documento corrisponda. **BOX3 e BOX5 sono usciti da questa categoria con `edaa80f` (21/07/2026)** e seguono ora il bullet «Canonici TRACCIATI» qui sopra — con la qualificazione della RETTIFICA nel Delta V27: ne vale la **prescrizione** (estrarre dal blob), non la **motivazione** CRLF/LF, che per loro non si applica.
   · **Regola generale:** non si dichiara mai una propagazione «verde» senza aver confrontato un'impronta con la sorgente giusta per il regime del file. Nato 17/07/2026, dopo che un prompt di propagazione diceva «Copy-Item dal disco» per un file tracciato e sarebbe passato verde producendo corruzione silenziosa.
 
 Tutto il resto invariato da V25.
