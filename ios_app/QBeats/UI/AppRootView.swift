@@ -34,7 +34,14 @@ struct AppRootView: View {
                     HomeRootView(onOpenQStage: { screen = .qStage },
                                  onOpenQLive: { screen = .qLive })
                 case .qStage:
-                    QStageRootView(onExit: { screen = .home })
+                    // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
+                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+                    // lo stop vive al bordo-stanza, non sulla navigazione.
+                    QStageRootView(onExit: { screen = .home },
+                                   onSwitchToLive: { screen = .qLive })
                         .environmentObject(audioEngine)
                 case .qLive:
                     // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam

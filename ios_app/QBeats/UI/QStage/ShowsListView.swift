@@ -49,6 +49,9 @@ private let showsLogger = Logger(subsystem: "com.bullfrog.qbeats", category: "Sh
 
 struct ShowsListView: View {
     let onExit: () -> Void
+    /// Switch di stanza verso Q-Live: closure DISTINTA da onExit (RoomSwitchBar.onSwitch).
+    /// Iniettata da AppRootView attraverso QStageRootView (`screen` resta private, E2).
+    let onSwitchToLive: () -> Void
     @ObservedObject private var store = QBeatsStore.shared
 
     // ⚠️ LOCALE (Q15: solo l'ordine è condiviso; la search NO). Vive qui, non nello store.
@@ -81,9 +84,8 @@ struct ShowsListView: View {
                     onHome: onExit,
                     variant: .full,
                     onSwitch: {
-                        // TEMPORANEO — GATE S3. A S4 diventa lo switch reale verso Q-Live (SCALETTA:130).
-                        // Sonda del gate device (4 tocchi sopra): tap sulla pill Q-Live (inattiva) DEVE loggare.
-                        showsLogger.notice("[GATE-S3] RoomSwitchBar → Q-Live tapped (temporaneo; switch reale a S4)")
+                        showsLogger.notice("[NAV] Q-Stage → Q-Live (RoomSwitchBar)")
+                        onSwitchToLive()
                     }
                 )
 

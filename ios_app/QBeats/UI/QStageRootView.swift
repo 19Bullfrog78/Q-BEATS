@@ -7,8 +7,13 @@ import SwiftUI
 /// PRIMA FETTA: completa solo la tab Songs; Shows e Media sono placeholder.
 /// Nav-bar nativa nascosta ovunque: si usano header custom (stile app, cfr. HomeRootView).
 /// `onExit()` torna alla Home (commutazione di schermata in AppRootView).
+/// Possiede DUE seam: `onExit()` → Home, `onSwitchToLive()` → Q-Live (specchio di QLiveRootView).
 struct QStageRootView: View {
     let onExit: () -> Void
+    /// Switch di stanza → Q-Live. Iniettata da AppRootView
+    /// (`{ screen = .qLive }` ESPLICITO, non un toggle).
+    /// Specchio di `QLiveRootView.onSwitchToStage`.
+    let onSwitchToLive: () -> Void
     @State private var tab: Tab = .songs
 
     private enum Tab: Hashable { case songs, shows, media }
@@ -19,7 +24,7 @@ struct QStageRootView: View {
                 .tabItem { Label("Songs", systemImage: "music.note.list") }
                 .tag(Tab.songs)
 
-            ShowsListView(onExit: onExit)
+            ShowsListView(onExit: onExit, onSwitchToLive: onSwitchToLive)
                 .tabItem { Label("Shows", systemImage: "rectangle.stack") }
                 .tag(Tab.shows)
 
