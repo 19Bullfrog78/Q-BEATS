@@ -1,7 +1,17 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V27 — 21/07/2026
+**Versione:** V28 — 28/07/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+
+**Delta V28 vs V27:**
+
+- **Capitolo NUOVO «Q-Live › Shows».** Prima di V28 BOX5 non conteneva nulla sulla stanza Q-Live: misurato a fonte sul blob `9a0243447dd04e41930c70c48ff26acf400278d6` (BOX5 V27 a `4b55686c04e3bd14ccf06c31b5e89e74a38341ab`), le stringhe `QL-SHOWS`, `Q-Live`, `Remove`, `Q20` e `alert` rendono **0** tutte e cinque **in quattro notazioni** (righe / occorrenze × sensibile / insensibile al caso); controlli positivi sullo stesso file: `Q-Stage` 5 · `Token` 4 · `metronomo` 5 (righe, insensibile al caso) · `BOX5` 11 (occorrenze). Il capitolo raccoglie il contratto delle dieci righe QL-SHOWS, la forma della riga, il congedo tastiera, il menu «···» e «Remove from Q-Live».
+
+- **⚠️ IL CATALOGO DEI TOKEN COLORE NON ENTRA IN V28 — va in V29.** La sezione «Token visivi — UNICA FONTE DI VERITÀ» resta invariata da V22, byte per byte. Ratifica Mauro 28/07; il motivo è già inciso in `BUGS_QBEATS.md` v44: «Il catalogo completo dei token va misurato contro il codice a HEAD prima di essere inciso — atomo a sé, non in coda a un'altra consegna.» **Conseguenza sulla citazione:** il deliverable CD `2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md` porta nel proprio nome una versione che NON lo contiene. Il payload resta valido e **non si riemette**; il suo bersaglio è **V29**. Chi lo cita scriva V29, non V28.
+
+- **Nessun nome d'atomo nel capitolo.** Il capitolo descrive il **comportamento dello schermo**, non il calendario di costruzione: nessuna etichetta d'atomo compare, nemmeno dove le fonti la portano — quella che le fonti usano più spesso è sotto disambiguazione (tre lavori distinti la portano), e chi-costruisce-cosa vive nella SCALETTA. Dove una fonte formula una clausola come sequenza («prima si costruisce X, poi Y»), qui se ne incide il **contenuto** — che cosa fa lo schermo, e che cosa a HEAD non esiste — mai la sequenza. La sostituzione è dichiarata riga per riga dove avviene, così che nessun «verbatim» copra un testo trasformato in silenzio.
+
+Tutto il resto invariato da V27.
 
 **Delta V27 vs V26:**
 
@@ -281,6 +291,118 @@ Aspetto:
 ## Modalità Vista — UX-9, UX-10, UX-11
 
 (invariati da V19; UX-11 ratificata 09/05: long press confermato come gesture BPM Vista LIVE.)
+
+---
+
+## Q-Live › Shows — Spec complete
+
+Capitolo NUOVO in V28. Descrive il comportamento dello schermo **Q-Live › Shows**: che cosa fa, che cosa promette all'utente, e che cosa a HEAD non esiste ancora. Non contiene calendario — vedi il terzo bullet del Delta V28.
+
+**Gerarchia delle fonti:** in caso di divergenza fra un deliverable CD e una riga di `LIBRO_MASTRO_QBEATS.md`, **vince LIBRO**. Le righe LIBRO citate qui sono lette dal blob a `8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` (v42), non dal file di lavoro.
+
+**Fonti del capitolo** — verificate il 28/07 a impronta **e a contenuto** (l'impronta di un file non prova che dentro ci sia ciò che si crede):
+
+| Fonte | Impronta e misura | Copre |
+|---|---|---|
+| `DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html` | sha256 `83c5c51d…8fabdf6c` · 27803 byte(disco) · 250 righe(terminatori) | le dieci righe del contratto, versione corrente |
+| `DA_CD_PER_CC\26_07_2026\2026-07-26_QLive-Shows-Keyboard-Dismiss__Q20-RIEMISSIONE.html` | sha256 `5dcfbbfb…5ab9d408` · 37430 byte(disco) · 308 righe(terminatori) | congedo tastiera |
+| `DA_CD_PER_CC\24_07_2026\2026-07-24_QLive-Shows-Card-Azione-Overflow-FREEZE.html` | sha256 `a97a4f54…0ee62764` · 45161 byte(disco) · 337 righe(terminatori) | forma della riga, menu, conferma |
+| `LIBRO_MASTRO_QBEATS.md` righe 299 · 301 · 302 · 303 · 304 · 306 · 307 · 308 · 311 · 312 · 313 · 314 @ `8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` | — | le ratifiche |
+
+⚠️ **Trappola di nome sulla prima fonte:** esistono **tre** file omonimi `2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html`. Quello in `…\27_07_2026\UPDATE2\` è byte-identico a quello buono; quello in `…\27_07_2026\UPDATE\` **no** (sha256 `bd23b010…55416bc0`, 26268 byte(disco), 244 righe(terminatori)). Vale **solo** la copia in `27_07_2026_g3\`.
+
+### Contratto QL-SHOWS — le dieci righe
+
+**QL-SHOWS-01 · Persistenza.** «Remove from Q-Live» è PERMANENTE: sopravvive al riavvio dell'app. Persistenza LOCALE sul device (forma tecnica del campo = scelta CC). Default di ogni show, nuovo o esistente: VISIBILE in Q-Live. Campo assente nel JSON ⇒ visibile (retrocompat modello dati).
+⚠️ Nessuna promessa cross-device: a HEAD non esiste sync (entitlement iCloud rimossi, zero CloudKit). Il cross-device è **gated sul ticket Opzione B**, non è una riga da incidere oggi.
+
+**QL-SHOWS-02 · Reversibilità.** Reversibile SOLO da Q-Stage: toggle «Show in Q-Live» nell'editor dello show, chip «Not in Q-Live» sulla riga Q-Stage. Nessun ripristino dentro Q-Live. Lo stato è proprietà dello SHOW (non della lista Q-Live): vive nel dato dello show, non in una preferenza di vista.
+
+**QL-SHOWS-03 · Ricerca.** Uno show tolto esce anche dai risultati di RICERCA in Q-Live. Q-Stage li mostra tutti. Nessuna resurrezione automatica: modifica/rinomina non lo rimettono in lista.
+
+**QL-SHOWS-04 · Inerzia di palco.** «Remove from Q-Live» è INERTE con sessione armata o in play (voce disabilitata): è un gesto di preparazione, non di palco. Resta VISIBILE e disabilitato, **non nascosto** — una voce che scompare non insegna nulla, una voce spenta dice «non ora». [postilla 3, LIBRO r.303]
+⚠️ Contratto, non descrizione dello stato corrente: a HEAD **non esiste uno stato di sessione armata** — l'unica occorrenza di `armed` è `backtrackArmed` (`ios_app/QBeats/Audio/AudioEngine.swift:370` come citato in LIBRO r.303), flag interno al buffer del backtrack, senza rapporto con l'armamento di uno show. Lo stato nasce insieme all'arma + standby.
+
+**QL-SHOWS-05 · Terzo stato vuoto.** Lista Q-Live vuota ma Q-Stage pieno ⇒ «No shows in Q-Live · N shows are in Q-Stage». Vietato «No shows yet» in questo caso.
+
+**QL-SHOWS-06 · Blocco unico.** Pillola ▶ · «···» a UNA sola voce («Remove from Q-Live») · swipe trailing rosso sulla riga · popup di conferma · campo di persistenza: **cinque pezzi, un blocco solo**. Non si separano, e Remove non si stacca dalla pillola. Motivo aritmetico (LIBRO r.302): tolto Remove, nel «···» resterebbe la sola voce «View songs», che duplica il tap sulla riga — un menu che duplica il gesto sottostante è decorazione, vietata da §6. Lo sheet a 3 voci (View songs · Start options… · Remove) **non appartiene a questo blocco**; il tetto «max 3 voci» del freeze 24/07 (nota ④) resta — una voce sta **sotto** il tetto, non lo viola. [postilla 2 — OK Mauro]
+⚠️ **Trasformazione dichiarata:** la fonte formula questa riga come clausola d'ordine (che cosa si costruisce prima, che cosa dopo). Qui se ne incide la sola **composizione del blocco**; la sequenza è calendario e vive nella SCALETTA.
+
+**QL-SHOWS-07 · Confine dello show.** L'ingresso in uno show è SEMPRE arma + standby, qualunque sia il flag standby della prima canzone. Il flag per-canzone (LIBRO 26/06) governa solo le transizioni canzone→canzone. «Standby off» = «non fermarti fra le canzoni», mai «parti senza di me». Il count-in configurato si suona comunque, al tap. Corollario: il flag della canzone in prima posizione è inerte finché è prima.
+
+**QL-SHOWS-08 · Dettaglio e pillola.** Il DETTAGLIO show SARÀ la sede della scelta modalità (Q-Live / LIST / per song) e conserverà il proprio Start: **a HEAD non esiste**. Pillola ▶ della lista = stessa azione, modalità di default, nessuna domanda. Stato prodotto IDENTICO. Un solo componente per la scelta modalità, con due ingressi: dettaglio + «Start options…».
+⚠️ Il futuro è normativo: al presente indicativo la riga si leggerebbe come stato del prodotto, e chi implementa cercherebbe una schermata che non c'è.
+
+**QL-SHOWS-09 · Copy del popup Remove.** Ratificata 26/07, bottone confermato 27/07. Verbatim da `LIBRO_MASTRO_QBEATS.md:301 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`:
+
+> Titolo `Remove "{show}" from Q-Live?` · messaggio `It leaves this list only — you'll find it again in Q-Stage.` (em-dash) · bottoni `Cancel` / `Remove` (destructive).
+
+«Remove» compare **2 volte** in tutto il flusso: voce d'ingresso + bottone di conferma. **MAI nel messaggio** (là si dice «leaves»). Ripristino = toggle «Show in Q-Live» nell'editor show (Q-Stage), **non** nel popup. Questa copy SUPERSEDE la postilla 1 (coda «turn it back on from there»), **non la attua**: la via di ritorno si scopre dal chip «Not in Q-Live» (QL-SHOWS-02).
+🔴 **VINCOLO DURO DI SPEDIZIONE (LIBRO r.301): Remove non si spedisce senza il chip «Not in Q-Live».** Tolto dal popup il nome del luogo di ripristino, la scopribilità poggia interamente sul chip: se il chip slitta o cade, il popup deve tornare a nominare il ripristino. È sicurezza d'uso, non layout.
+⚠️ **Due chip diversi, da non confondere** (LIBRO r.313): «Read-only», testata della lista Q-Live — **RIMOSSO**; «Not in Q-Live», chip sulla riga in Q-Stage — **RESTA**, ed è il vincolo qui sopra. Toglierne uno non tocca l'altro.
+
+**QL-SHOWS-10 · Congedo tastiera — contratto Q20** (serie Q17–Q22 · taratura 20/07/2026). **RATIFICATO**: 26/07 («ok va bene», LIBRO r.304) e riconfermato sul contenuto riletto per intero il 27/07 («SI VA BENE», LIBRO r.312). Dettaglio nel § «Congedo tastiera» qui sotto.
+⚠️ I due deliverable CD che marcano Q20 «APERTA» — la riga QL-SHOWS-10 della riemissione 27/07 e la riemissione 26/07 — sono **superati su questo solo punto** (LIBRO r.312); **non si fa riemettere niente**. Cade con essi la clausola «NON incidere come chiusa finché Mauro non ratifica»: la ratifica c'è.
+⚠️ Resta in piedi la distinzione: ratificare il contratto **sblocca** la costruzione, **non la sostituisce**. Finché il congedo non è nell'app e provato su device, in Q-Live › Shows la tastiera non ha via d'uscita che non sia lasciare la stanza — e lasciare la stanza, quando l'avvio setlist sarà cablato, spegnerà la sessione del metronomo.
+
+### Forma della riga
+
+Contratto vigente: freeze CD 24/07, ratificato Mauro — quattro decisioni chiuse, riprese in `LIBRO_MASTRO_QBEATS.md:299 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`.
+
+- **§1 — forma ③ riga compatta, UNA SOLA.** Nessuna soglia card/riga: una soglia («≤4 card / ≥5 riga») rimodellerebbe lo schermo alla quinta data, e sul palco la prevedibilità batte l'ottimizzazione. La forma ① card resta agli atti come **scartata**, non come stato da costruire. Densità misurata dalla fonte: card ~140pt contro riga ~76pt, cioè 5 show a schermo invece di 2 — e la lista cresce, che è il motivo per cui Remove esiste.
+- **§2 — nessuna label a schermo** sulla pillola ▶: la riga è già il nome dello show. VoiceOver = «Start show · {nome}». Se un domani si tornasse alla card ①, la label è «Start».
+- **§3 — Start = arma + standby** sulla prima canzone. Il click parte al **secondo** tap (schermo ovunque) o via MIDI: Start non fa danni, è il tap successivo che suona. È lo stesso standby già ratificato fra le canzoni — non un secondo modello di avvio. Un tap dalla lista che facesse partire subito il click manderebbe il click in PA col telefono ancora in mano.
+- **§4 — «Remove from Q-Live», semantica (a):** toglie solo da questa lista, la setlist **resta in Q-Stage**, nessuna canzone toccata. La variante (b), cancellazione vera, è **scartata**: aprirebbe la politica UUID orfani, non fissata. **Un solo nome in tutto il contratto: mai «Remove setlist»** — se non cancella, non può chiamarsi così.
+
+Altre proprietà della riga, dalla stessa fonte:
+
+- **Tap sul corpo della riga: invariato** — apre il dettaglio (le canzoni). Si aggiunge una scorciatoia, non se ne sostituisce una: nessuna riabitudine da fare sotto pressione.
+- **«···» con tap-area 44×44**, allineato al bordo: separa «vado» da «gestisco».
+- **Pillole distanti ~32pt in verticale**, per non sfiorare quella sbagliata.
+- **Pillola ▶ in stato «gated» finché l'avvio setlist non è cablato**: tratteggiata, icona spenta, **inerte**. Un'affordance primaria accesa si accende solo quando l'azione esiste; una pillola arancio che non fa nulla è vietata dal contratto vigente.
+- ⚠️ **Due frammenti del freeze 24/07 sono superati, le quattro decisioni no** (LIBRO r.299): (i) la coda della decisione §4, «Popup: "leaves this list · stays in Q-Stage"», è superata dalla copy ratificata la sera del 26/07 — vale QL-SHOWS-09; (ii) la fascia-cancello «Riga, meta e "···" sono già vivi — il menu contiene solo letture e il Remove, che esistono», è superata dalla postilla 2 — vale QL-SHOWS-06.
+- ⚠️ **Chip «Read-only» in testa alla lista: RIMOSSO** (LIBRO r.313). Dal giorno in cui Remove esiste, «sola lettura» non è più vero. I mockup CD che lo mostrano ancora sono superati **su questo solo punto** e non vanno riemessi ora: si correggono al primo tocco utile di ciascuno.
+
+### Congedo tastiera
+
+Contratto Q20, ratificato (vedi QL-SHOWS-10). Il campo ricerca è un filtro sulla lista show; oggi la tastiera non ha via d'uscita che non sia lasciare la stanza. Il congedo deve vivere **dentro** Shows.
+
+1. **Gesto canonico — «Done» su toolbar accessoria pinnata** sopra la tastiera, **sempre visibile**, tap-area **≥44pt**, **arancio = accento Q-Live** (**non** ambra: in Q-Live l'ambra è ALERT). Azione **unica** della toolbar, a destra. Label EN «Done» (§6). Affordance esplicita: sul palco, sotto pressione, il congedo non si affida alla scoperta di un gesto.
+2. **Gesti perdonanti — in aggiunta, non al posto:** tap fuori (lista o area vuota) e swipe giù interattivo sulla lista (`scrollDismissesKeyboard(.interactively)`). Costano ~0 e sono muscle-memory iOS, ma **non sono garantiti come scoperta**: il contratto è il «Done».
+3. **Return = «Search» → conferma il filtro E congeda**, conservando la query. Via di comodo, non il canonico.
+4. **Il congedo CONSERVA query, filtro, scroll e selezione.** Congedo ≠ cancella (se svuotasse, la lista tornerebbe piena proprio mentre stai per toccare lo show filtrato: ostile) e congedo ≠ tocca la lista (lo show «picked» resta picked). L'unico effetto è la tastiera che scende.
+5. **A svuotare è solo la «×»** nel campo, visibile finché c'è query: azione esplicita e separata, riporta la lista completa.
+6. **MetroFAB: occluso, non rimosso.** Sta a fondo schermo e la tastiera lo copre, come ogni contenuto in fondo. Non si sposta, non si nasconde con logica propria, non lascia buchi; al congedo ricompare nella sua posizione, **senza animazione dedicata**.
+7. **iPad coperto in tutti gli stati.** Software (docked o floating): la toolbar «Done» cavalca la tastiera. Hardware attaccata: non c'è trappola, e la resign resta garantita da tap-fuori + Return + «×». In nessuno stato l'uscita richiede di lasciare la stanza.
+
+⛔ **Vietato affidare il congedo all'uscita dalla stanza.**
+⚠️ **Vincolo di deployment — due fatti distinti, di rango diverso.** **[V] Il minimo del progetto è iOS 16.0**, misurato a fonte: `ios_app/project.yml:14 @ 4b55686c04e3bd14ccf06c31b5e89e74a38341ab` rende `deploymentTarget: "16.0"` per il target `QBeats` (dichiarato a `:11`); il target `QBeatsTests` (`:129`) porta lo stesso valore a `:132`. ⚠️ **[R] La disponibilità di `scrollDismissesKeyboard(.interactively)` a partire da iOS 16.0 è DICHIARATA, non misurata:** la fonte non è acquisita e non è acquisibile da qui — vedi PENDENZE DEL CAPITOLO, punto 9. Finché quella misura manca, il «senza margine» è un allarme, non un fatto: **se** le due versioni coincidono, un abbassamento del minimo farebbe cadere questa specifica per prima. «Done» e «×» **non** dipendono da quella API — il congedo resta garantito comunque.
+
+### Menu «···» e «Remove from Q-Live»
+
+**Entrambe le vie sulla riga — opzione A-bis** (`LIBRO_MASTRO_QBEATS.md:308 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`, con la rettifica di r.314 sulla clausola di deposito della fonte): la riga Q-Live porta il menu «···» con **una sola voce**, «Remove from Q-Live», **più** uno **swipe trailing rosso** sulla riga. «View songs» e «Start options…» non appartengono a questo schermo finché il dettaglio e il selettore di modalità non esistono.
+
+- ⚠️ **Lo swipe è un'affordance NUOVA:** non è nel freeze 24/07. L'unico swipe ratificato in LIBRO è quello della Vista LIVE, **serie CD-5, ratificate `2026-05-21`**, citate per riga: `Q8=A` → `LIBRO_MASTRO_QBEATS.md:219 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` · `Q9=A` → `:220` · `Q10=A` → `:221` · `R-CD5-06` → `:235` (stesso blob). Altra schermata, altro gesto. **Citare serie E riga è obbligatorio**: nel freeze Q7-Q16 dell'11/07 esistono di nuovo un `Q9` e un `Q10`, con contenuto tutt'altro — e la data da sola non discrimina, perché tutte e quattro le righe qui sopra portano la stessa.
+- **Percorso al danno: due gesti intenzionali.** «···» → «Remove from Q-Live» → «Remove». Nessun tap accidentale al buio. Il Remove sta **isolato in fondo**, rosso, mai adiacente a Start.
+- **Voce disabilitata con sessione armata o in play**, visibile e non nascosta: vedi QL-SHOWS-04.
+- **Confine distruttivo Q-Live / Q-Stage — regola normativa** (LIBRO r.307): **Q-Live non contiene, e non conterrà, alcuna azione distruttiva sui dati dell'utente.** Quando la cancellazione definitiva di una setlist verrà costruita, potrà vivere **solo in Q-Stage**. «Remove from Q-Live» agisce esclusivamente sull'appartenenza dello show alla lista di palco e lascia la setlist **intatta e viva** in Q-Stage.
+- **Prima scrittura sui dati utente** (LIBRO r.306): con Remove, Q-Live cessa di essere di sola lettura. La scrittura è **limitata allo stato di appartenenza dello show a Q-Live**; ogni altra scrittura resta vietata in §6.
+- **Forma del popup: ② riquadro centrale, due bottoni impilati** (LIBRO r.311, scelta Mauro). Proprietà attribuite al file, non a Mauro: ordine **Remove in alto / Cancel in basso** · default **Cancel**, in basso e in grassetto · distruttivo in cima, isolato · **tap fuori NON chiude**. Nessuna collisione col congedo tastiera. ⚠️ La **fattibilità nativa** di questa forma è APERTA — vedi PENDENZE DEL CAPITOLO, punto 1.
+- ⚠️ **Non è incisa** la clausola «pattern per ogni conferma futura» (LIBRO r.311): impegnerebbe ogni conferma distruttiva successiva a un contenitore custom prima di sapere se serve.
+
+### PENDENZE DEL CAPITOLO
+
+Voci aperte. Nessuna di queste è stata riempita con un'ipotesi plausibile: dove una fonte tace, qui c'è una riga, non un'invenzione.
+
+1. **Forma ② del popup Remove — fattibilità nativa APERTA.** (LIBRO r.311) iOS impila i due bottoni da sé **solo con etichette lunghe**; con «Cancel»/«Remove» corte l'esito nativo atteso è **affiancato**. Servirebbe il foglio dal basso (forma ③, non scelta) oppure un contenitore custom, con focus, VoiceOver, tap-fuori e ritorno da rifare a mano. **Si chiude SOLO con documentazione ufficiale Apple (URL) o prova su device.** Finché è aperta, la forma ② è ratificata ma non dimostrata costruibile come nativa.
+2. **Debito `#f3e2c0` → `#f3e2b0` in `.q20b`.** (LIBRO r.311) Un carattere di scarto da `.gatebox`, misurato a fonte: stesso fondo `#1c1608`, stesso bordo, diverge solo il testo. Va corretto **alla riemissione del deliverable imposta dalla verifica del punto 1**. **Dipende dal punto 1:** se quella verifica non si fa, la riemissione non parte e il debito resta appeso.
+3. **Catalogo dei token colore — NON in questo capitolo, va in V29**, misurato contro il codice a HEAD. Restano quindi fuori anche i valori che le fonti citano di passaggio: il rosso del bottone distruttivo (`#ff453a`, fonte delle dieci righe, QL-SHOWS-09) e il fondo della toolbar di congedo (`#1c1c20`, fonte del congedo tastiera, §1). Nominati qui **come debito**, non incisi.
+4. **Placeholder del titolo del popup — due forme in circolazione.** `LIBRO_MASTRO_QBEATS.md:301` (la ratifica) porta `Remove "{show}" from Q-Live?`, con virgolette **dritte**; la riemissione CD del 27/07 porta `Remove “{showName}” from Q-Live?`, con virgolette **curve**. Il capitolo incide la forma di LIBRO, per la gerarchia delle fonti. La divergenza è di un identificatore e di due caratteri, non tocca il messaggio né i bottoni: si risolve alla prima riemissione utile, **non si riemette nulla ora**.
+5. **Forma tecnica del campo di persistenza — non decisa da alcuna fonte.** È scelta CC, dichiarata tale da QL-SHOWS-01. Non si incide qui.
+6. **Cross-device — nessuna promessa.** A HEAD non esiste sync. Gated sul ticket Opzione B. Quando quel ticket si chiuderà, QL-SHOWS-01 e -02 **non si riscrivono**: la propagazione è una conseguenza del fatto che lo stato è proprietà dello show, già inciso in QL-SHOWS-02.
+7. **Swipe trailing — conflitto coi gesti di navigazione non determinabile a fonte.** (LIBRO r.308) È provata solo la metà di codice (zero `swipeActions` in `QLiveShowsView`); il resto **si verifica su device**, con due affordance da provare invece di una.
+8. **Stato «sessione armata» — non esiste a HEAD.** (LIBRO r.303) Nasce insieme all'arma + standby. La dipendenza è soddisfatta per costruzione finché i pezzi restano nel blocco unico di QL-SHOWS-06; va scritta perché non si perda **se quel blocco venisse spezzato**.
+9. **Disponibilità di `scrollDismissesKeyboard(.interactively)` — fonte NON acquisita.** Il valore «iOS 16.0» circola nei deliverable CD e in `LIBRO_MASTRO_QBEATS.md:304 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`, ma nessuno lo ha misurato contro l'SDK: è un numero senza fonte. **Non è misurabile da questa macchina**, e la ricerca è stata fatta prima di dirlo — `*.swiftinterface` su **sette dischi** (C D E F G H I) = **0 file**, con controllo positivo nella stessa forma (`Get-ChildItem -Filter -Recurse -File -Force`) su `*.swift` sotto il repo = **66 file**; `xcodebuild`, `xcrun`, `swift`, `swiftc` tutti assenti dal PATH; nessun `SwiftUI.framework`, `SwiftUI.swiftmodule`, `iPhoneOS.sdk` né `Xcode.app` su `C:`. La compilazione avviene su runner CI, non qui. **Si chiude SOLO con l'annotazione `@available` letta nell'interfaccia del modulo SwiftUI dell'SDK usato dalla CI, oppure con documentazione ufficiale Apple (URL).** ⚠️ La distinzione da non riperdere: il minimo del progetto è **[V]** e misurato (`ios_app/project.yml:14 @ 4b55686c04e3bd14ccf06c31b5e89e74a38341ab`); la disponibilità dell'API è **[R]** e non lo è. La formula «esattamente il minimo del progetto» li faceva sembrare un fatto solo.
 
 ---
 
