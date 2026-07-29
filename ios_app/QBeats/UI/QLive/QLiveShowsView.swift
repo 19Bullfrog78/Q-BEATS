@@ -47,6 +47,8 @@ struct QLiveShowsView: View {
 
     // LOCALE (Q15: solo l'ordine è condiviso; la search NO). Specchio ShowsListView.
     @State private var searchText = ""
+    // Q20 (congedo tastiera): stato di focus del campo — pilota «Done», tap-fuori, Return.
+    @FocusState private var searchFieldFocused: Bool
 
     // Lista visibile = filtrata (search locale) POI ordinata (ordine condiviso, sola lettura).
     private var visibleShows: [Setlist] {
@@ -59,7 +61,10 @@ struct QLiveShowsView: View {
     var body: some View {
         ZStack {
             // --qlive-bg #0e0e10: resta inline nelle viste Q-Live (QLiveKit, nota di testa).
-            Color(hex: "#0e0e10").ignoresSafeArea()
+            Color(hex: "#0e0e10")
+                .ignoresSafeArea()
+                // Q20 §2, gesto perdonante: tap fuori dal campo congeda (non il canonico).
+                .onTapGesture { searchFieldFocused = false }
 
             VStack(spacing: 0) {
                 RoomSwitchBar(
@@ -76,7 +81,47 @@ struct QLiveShowsView: View {
                 }
 
                 content
+                    // Q20 §4/§6: spostato qui, non più su tutto il `body` — `.keyboard`
+                    // è una SafeAreaRegions distinta da `.container` (Apple, doc
+                    // SafeAreaRegions: case separati). Occlude MetroFAB/lista sotto la
+                    // tastiera; NON cancella l'inset della barra sotto (§7 qui sotto),
+                    // che contribuisce alla regione `.container`, non a `.keyboard`.
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
             }
+        }
+        // Q20 §1: barra propria — non più `ToolbarItemGroup(.keyboard)`, scartato dal
+        // referee (bug riprodotti su forum sviluppatori Apple, thread 709227 e 736040;
+        // e comunque uno slot dentro una barra dipinta dal SISTEMA, non da noi).
+        // `safeAreaInset` compone con la safe-area automatica da tastiera: mostrata
+        // solo a fuoco, si posiziona sopra di essa senza calcoli manuali.
+        .safeAreaInset(edge: .bottom) {
+            if searchFieldFocused {
+                keyboardDoneBar
+            }
+        }
+    }
+
+    // Q20 §1: gesto canonico — «Done» su barra propria pinnata sopra la tastiera,
+    // sempre visibile, ≥44pt, arancio = accento Q-Live, unica azione della barra.
+    private var keyboardDoneBar: some View {
+        HStack {
+            Spacer()
+            Button {
+                searchFieldFocused = false
+            } label: {
+                Text("Done")
+                    .font(.jbMono(.bold, size: 15))
+                    .tracking(0.4)
+                    .foregroundColor(QLiveTheme.accent)
+            }
+            .frame(minWidth: 56, minHeight: 44, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 46)
+        // .kbtoolbar (§CSS Q20): bg #1c1c20 + hairline superiore .13.
+        .background(QLiveTheme.kbbar)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.white.opacity(0.13)).frame(height: 1)
         }
     }
 
@@ -142,6 +187,17 @@ struct QLiveShowsView: View {
                     .tint(QStageTheme.orange)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .focused($searchFieldFocused)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        // Q20 §6: Return = «Search» conferma il filtro E congeda, query conservata.
+                        searchFieldFocused = false
+                    }
+            }
+            // Q20 §5: a svuotare è SOLO la «×» — azione esplicita e separata, riporta la lista
+            // completa. Non tocca il focus: il congedo resta un evento distinto.
+            if !searchText.isEmpty {
+                xclearButton
             }
         }
         .padding(.horizontal, 12)
@@ -156,6 +212,21 @@ struct QLiveShowsView: View {
         .padding(.horizontal, 16)
         .padding(.top, 2)
         .padding(.bottom, 12)
+    }
+
+    // .xclear (§CSS Q20): cerchio 20×20, bg white .22, icona 9×9 colore --qlive-bg (#0e0e10).
+    // Posizionato a fine HStack: il TextField davanti si espande da sé (margin-left:auto).
+    private var xclearButton: some View {
+        Button {
+            searchText = ""
+        } label: {
+            XClearIconShape()
+                .stroke(Color(hex: "#0e0e10"),
+                        style: StrokeStyle(lineWidth: 2 * 9 / 12, lineCap: .round))
+                .frame(width: 9, height: 9)
+        }
+        .frame(width: 20, height: 20)
+        .background(Color.white.opacity(0.22), in: Circle())
     }
 
     // MARK: - Corpo (lista / empty Ⓔ / no-match) + MetroFAB in coda (.metrofab margin-top:auto)
@@ -189,6 +260,10 @@ struct QLiveShowsView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)   // inset di scroll (come ShowsListView)
         }
+        // Q20 §2, gesto perdonante: swipe giù interattivo. iOS 16.0+ confermato a fonte
+        // (Apple Developer Documentation, scrolldismisseskeyboard(_:).json → introduced 16.0),
+        // combacia col minimo del progetto: nessun margine, ma nessuna specifica cade.
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // .showrow (§CSS): radius 15, padding 15/16, bg --qlive-surf, bordo --qlive-bd,
@@ -304,6 +379,18 @@ private struct RowChevronShape: Shape {
         p.move(to: pt(1, 1))
         p.addLine(to: pt(7, 7))
         p.addLine(to: pt(1, 13))
+        return p
+    }
+}
+
+// .xclear icona (§markup Q20): viewBox 0 0 12 12, due segmenti a X, path M2 2l8 8M10 2l-8 8.
+private struct XClearIconShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let s = rect.width / 12
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+        var p = Path()
+        p.move(to: pt(2, 2)); p.addLine(to: pt(10, 10))
+        p.move(to: pt(10, 2)); p.addLine(to: pt(2, 10))
         return p
     }
 }
