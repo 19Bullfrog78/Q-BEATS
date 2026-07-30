@@ -1,0 +1,614 @@
+================================================================================
+MISURE CC — 2026-07-30 — R1 + ACCERTAMENTI [A]..[E]  (emissione 2)
+SOLA MISURA. Zero scritture nel repo, zero commit, zero push.
+================================================================================
+
+CIECO DICHIARATO: non ho visto le misure del referee. Non le ho chieste, non ho
+tentato di ricostruirle, e nulla qui è scritto in funzione di esse.
+
+REPO: C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS
+SCRITTURE ESEGUITE: solo nello scratchpad di sessione (estrazione dei blob +
+questo file). Nel repo: NIENTE. `git status --porcelain -uno` era e resta vuoto.
+
+⚠️ EMISSIONE 2 — questo file SOSTITUISCE `MISURE_CC_2026-07-31_R1-ACCERTAMENTI.txt`
+   (sha256 `c9ec653d…2773`), che DECADE. Tre difetti dell'emissione 1, corretti qui:
+   (a) NOME E DATA sbagliati di un giorno — 31/07 preso dal contesto di sessione invece
+       che dall'orologio. Tre orologi indipendenti (macchina, header Date di GitHub,
+       %cI dei commit) danno 30/07/2026. Corretto PRIMA del commit, finche' costava zero:
+       dopo sarebbe stata una chiave d'indirizzo congelata, da marcare e non piu' da correggere.
+   (b) «~4600 caratteri» per LIBRO:317 era una STIMA non misurata, e sbagliata. Sostituita
+       dalla misura in C3. Stessa cosa per «~3400» a r.122 in D1.
+   (c) DUE VERBATIM resi parziali (LIBRO:317 e BUGS:118-123) benche' richiesti integrali.
+       Qui sono integrali, estratti dal blob per programma e non trascritti a mano.
+   ⚠️ La riga «SCRITTURE ESEGUITE: solo nello scratchpad» qui sopra era vera all'emissione 1
+       e NON lo e' piu': questo file vive ora in `HANDOFF/` del repo e nel mirror E:.
+       Si marca, non si riscrive.
+
+MARCATURA: [V] = misurato da me ora. [R] = riferito, non rimisurato.
+NOTAZIONE dei conteggi: righe-che-contengono, salvo dove dichiarato diverso.
+
+REGOLA DI QUESTO GIRO, applicata: ogni claim con «sempre/mai/solo/tutte le N»
+porta il censimento completo, e le parti sommano al totale. Dove non chiude, è
+detto e non si conclude.
+
+
+================================================================================
+[A] R1
+================================================================================
+
+--------------------------------------------------------------------------------
+A1 — HEAD                                                                    [V]
+--------------------------------------------------------------------------------
+sha40      : 897d458e0777c2edbce349e4b0001c7c2c50c9b9
+autore     : Mauro Martintoni <di_tutto@icloud.com>
+committer  : Mauro Martintoni <di_tutto@icloud.com>
+%aI        : 2026-07-30T17:53:28+02:00
+%cI        : 2026-07-30T17:53:28+02:00   (identico a %aI)
+subject    : BUGS v45: blocco 1.5 Prerequisiti di distribuzione (5 ticket)
+             + 4 ticket nuovi 1.3 + 2 allargati + rimando incrociato TD#32
+
+BYTE DEL CORPO:
+  byte(%b) = 1        <- il solo newline che git appende ⇒ CORPO VUOTO
+  byte(%B) = 125
+  byte(%s) = 124      125 = 124 + 1. Il conto chiude: %B è il solo subject.
+
+TRAILER Co-Authored-By:
+  git interpret-trailers --parse su %B  -> 0 righe (nessun trailer di alcun tipo)
+  grep -ci "co-authored" su %B          -> 0
+  CONTROLLO POSITIVO stessa forma       -> grep -ci "BUGS" su %B = 1
+  ⇒ lo zero è un'assenza vera, non un comando che non morde.
+
+--------------------------------------------------------------------------------
+A2 — ULTIMI DUE COMMIT — "1 file per commit" MISURATO, NON ASSUNTO           [V]
+--------------------------------------------------------------------------------
+Metodo: `git diff-tree --no-commit-id --name-only -r <sha40>` (elenco reale),
+non `--stat` su directory (falso-negativo noto, LIBRO:316 forma (3)).
+
+[1] 316456465a6adaebc5116bf5bbe20809c51b53e7
+    %cI      : 2026-07-30T17:49:27+02:00     %aI : 2026-07-30T17:49:27+02:00
+    autore   : Mauro Martintoni <di_tutto@icloud.com>
+    committer: Mauro Martintoni <di_tutto@icloud.com>
+    byte(%b) : 1        co-authored: 0
+    FILE     : LIBRO_MASTRO_QBEATS.md
+    conteggio: 1
+    numstat  : 4 insertions / 2 deletions
+
+[2] 897d458e0777c2edbce349e4b0001c7c2c50c9b9
+    %cI      : 2026-07-30T17:53:28+02:00     %aI : 2026-07-30T17:53:28+02:00
+    autore   : Mauro Martintoni <di_tutto@icloud.com>
+    committer: Mauro Martintoni <di_tutto@icloud.com>
+    byte(%b) : 1        co-authored: 0
+    FILE     : BUGS_QBEATS.md
+    conteggio: 1
+    numstat  : 101 insertions / 4 deletions
+
+IL CONTO CHIUDE: 2 commit, 1 file ciascuno, 2 file distinti, nessuna
+sovrapposizione. Nessuno dei due tocca `ios_app/`.
+
+--------------------------------------------------------------------------------
+A3 — CINQUE CANONICI, FACCIA BLOB                                            [V]
+--------------------------------------------------------------------------------
+COMANDO, VERBATIM:  git show HEAD:<path> | sha256sum
+NON è il file su disco. La controprova è in fondo alla sezione.
+
+dd3f440510937e2e97c5a71ce7fc9582bfdfbbcd28cf854691ca164b667e465d  LIBRO_MASTRO_QBEATS.md
+1f310f4a4bbb2cd7968217af576dcc817a3e801f8b4329faece80b14cfa9c43d  BUGS_QBEATS.md
+c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c  BOX3_QBEATS.md
+cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b  BOX5_QBEATS.md
+700d7caa7c20756e22c44665851203fd0e1fa279ccddcc37fa61cab5549c0e14  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+
+Dettaglio, stessa faccia:
+
+  file                     byte     righe(LF)  CR   OID blob
+  LIBRO_MASTRO_QBEATS.md   185189   473        0    786c231eb73f4f073fdbd6699e63705079ec4b60
+  BUGS_QBEATS.md           250081   1008       0    fc571fbd7b9fc82eafb1866d0d06bed29bf0d0cb
+  BOX3_QBEATS.md            89457   803        0    490d6d9b38c355dc53ddc9b31431f9a858f2b342
+  BOX5_QBEATS.md            57158   596        0    21b23d621ac224c759b53d813196058483e3b056
+  SCALETTA (HANDOFF/)       35661   333        0    533ea5622d7db860f598147b41653ac6de501ce0
+
+Tutti e cinque terminano con LF (verificato `tail -c 1 | od -An -c` -> \n),
+quindi wc -l non sottoconta l'ultima riga.
+
+⚠️ NOTA DI METODO CHE VALE PER IL CONFRONTO A DUE:
+   Sulla faccia BLOB il conteggio CR è 0 su TUTTI E CINQUE. Su questa faccia i
+   due file «a due facce» (LIBRO, BUGS) sono INDISTINGUIBILI dai tre a faccia
+   unica. La distinzione vive solo sul disco. Chi confronta impronte deve
+   dichiarare la faccia, o il confronto non significa nulla.
+
+CONTROPROVA CHE NON HO STAMPATO IL DISCO — sha256 del disco per i due a due facce:
+  7ce1c1dd0982455bad6535995524328af040c3a63f64cdcb91ca107bdc46eb92  LIBRO (DISCO)
+  3032ed6a35b83c04a9e5057841b9b30f81588fdfc6b858b62d364921e936c9af  BUGS  (DISCO)
+  Differiscono dai blob sopra, come devono. Disco = blob + una riga di CR:
+  185662 = 185189 + 473 · 251089 = 250081 + 1008.
+
+--------------------------------------------------------------------------------
+A4 — gh run view VERBATIM                                                    [V]
+--------------------------------------------------------------------------------
+Run id ricavati con sha40 (mai il corto — falso-zero noto, BOX3 V99 (d)).
+
+{"conclusion":"success","createdAt":"2026-07-30T15:49:50Z","displayTitle":"LIBRO v45: colonna data di Sez.2 e registro = INDIRIZZO non data - 2 …","event":"push","headSha":"316456465a6adaebc5116bf5bbe20809c51b53e7","status":"completed","workflowName":"iOS Signed Build"}
+
+{"conclusion":"success","createdAt":"2026-07-30T15:53:34Z","displayTitle":"BUGS v45: blocco 1.5 Prerequisiti di distribuzione (5 ticket) + 4 tic…","event":"push","headSha":"897d458e0777c2edbce349e4b0001c7c2c50c9b9","status":"completed","workflowName":"iOS Signed Build"}
+
+run 30558601729 -> commit 3164564 (LIBRO) · run 30558905744 -> commit 897d458e (BUGS)
+`headSha` coincide col rispettivo commit su entrambe.
+
+⚠️ L'OROLOGIO INDIPENDENTE DICE CHE LA DATA È VERA:
+   createdAt è UTC (Z). Convertito a +02:00 e confrontato col %cI di macchina:
+     LIBRO : commit 17:49:27+02:00  ->  CI creata 17:49:50+02:00  (+23 s)
+     BUGS  : commit 17:53:28+02:00  ->  CI creata 17:53:34+02:00  (+6 s)
+   Entrambe le run nascono DOPO il rispettivo commit, di pochi secondi, e
+   cadono il 30/07. ⇒ GitHub conferma, da una fonte che non è questa macchina,
+   che i due commit sono del 30/07 VERO. È la prima applicazione verificata
+   della regola incisa in v45 sulla scrittura della data.
+
+
+================================================================================
+[B] CAVEAT-SCALETTA — SONO DUE. CONFERMATO.
+================================================================================
+
+--------------------------------------------------------------------------------
+B1 — SCALETTA righe 212-232 a HEAD, VERBATIM (faccia blob)                   [V]
+--------------------------------------------------------------------------------
+212 - **🔴 PROPRIETÀ DEL RUNNER — decisione Mauro 18/07, ratificata, trasportata qui dallo sdoppiamento.**
+213   Verbatim da `BOX3_QBEATS.md:30 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`: «la proprietà del runner
+214   SALE — il runner sopravvive alla navigazione interna e muore SOLO all'uscita da Q-Live. Atterra in
+215   **S4L**, NON in S4.» Motivo, stessa fonte: oggi `SetlistRunner` è `@StateObject` in
+216   `ios_app/QBeats/UI/LiveRootView.swift:12-13 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`
+217   — puntatore di BOX3, riverificato a quell'albero — → muore al pop, mentre `audioEngine` sopravvive; al rientro nascerebbe un
+218   runner FRESCO (canzone 1) col click già avanti = **UI e clock divergenti sul palco**.
+219   ⚠️ **Il «S4L» di quella riga è PRE-sdoppiamento e ha per oggetto il runner: ricade quindi su ⟦S4R⟧**
+220   per la regola di rilettura qui sopra. Il re-instradamento è lettura di CC, non una nuova ratifica:
+221   **da confermare** quando lo sdoppiamento verrà inciso in LIBRO.
+222 - **COMMENTI-STALE da bonificare** (`BOX3_QBEATS.md:45 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`): la lista
+223   «da bonificare in S4L» tocca `SetlistRunner.swift`, `AudioEngine.swift`, `LiveView.swift`,
+224   `HomeRootView`, `LivePlaybackState.swift`, `TransportView.swift` — zona launcher/live, quindi anche
+225   questa ricade su ⟦S4R⟧ per oggetto. Solo commenti, zero impatto funzionale; «bonifica in UN giro
+226   quando si tocca quella zona». Stesso caveat: re-instradamento da confermare.
+227 - **Reversibilità:** RISCHIO (`init` non-opzionale `ios_app/QBeats/SetlistRunner.swift:59 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`
+228   → `?? makeDefault()` non è delezione pulita: `first` = `Setlist?` → compile error; revert =
+229   reinstallare forma eager).
+230 - **Gate:** no write, ma percorso audio-live + comportamento d'ingresso device-osservabile → non CI-solo.
+231 - **Cond:** D/E (empty-state onesto; free-metronome = Opzione 1).
+232 - **Modello raccomandato alla costruzione:** Opus 4.8 · effort `xhigh` (tocca launcher/AppRootView e
+
+--------------------------------------------------------------------------------
+B2 — CONTEGGI, con controlli positivi stessa forma stesso file               [V]
+--------------------------------------------------------------------------------
+  "da confermare"     -> 2     r.221 · r.226
+  "Stesso caveat"     -> 1     r.226
+  "re-instradamento"  -> 2     r.220 · r.226
+
+CONTROLLI POSITIVI (stessa forma, stesso file, 333 righe):
+  "S4R" -> 17 · "confermare" -> 2 · "instradamento" -> 2 · "VINCOLO" -> 1
+  "caveat" -> 1
+
+IL CONTO CHIUDE: 2 caveat = 1 (r.219-221, proprietà del runner)
+                          + 1 (r.222-226, commenti-stale da bonificare).
+
+⚠️ TRAPPOLA DI LEMMA, e va detta: "caveat" rende 1, non 2. Il PRIMO caveat non
+   usa mai la parola — dice solo «da confermare». Chi censisse per il lemma
+   "caveat" ne troverebbe UNO e concluderebbe che è uno solo. È esattamente la
+   forma di errore contro cui questo giro mette in guardia: si colpisce per
+   INDIRIZZO, non per lemma.
+
+⚠️⚠️ QUI CADE UNA MIA AFFERMAZIONE DI IERI SERA, e la dichiaro.
+   HANDOFF_CC_2026-07-30_sera_chiusura-v45.md, sezione (F), nomina UN SOLO
+   caveat: `SCALETTA:219-221`. Il secondo, r.226, NON è mai nominato — né in
+   (F), né nell'elenco degli aperti. L'indicazione di Mauro «sono DUE» regge;
+   il mio handoff ne contava uno. Conseguenza operativa: la chiusura di
+   CAVEAT-SCALETTA ha DUE righe da toccare, non una.
+
+--------------------------------------------------------------------------------
+B3 — LIBRO riga 317: contiene entrambe le cose? SÌ. Verbatim.                [V]
+--------------------------------------------------------------------------------
+(i) INCISIONE DELLO SDOPPIAMENTO — verbatim:
+    «SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI — ratificato.»
+
+(ii) ASSEGNAZIONE DELLA PROPRIETÀ DEL RUNNER A ⟦S4R⟧ — verbatim:
+    «⟦S4R⟧ launcher: iniezione setlist + kill phantom `makeDefault` + vincolo
+    `ObservableObject` annidato + emendamento invariante Nodo A + proprietà del
+    runner (decisione Mauro 18/07, `BOX3_QBEATS.md:30 @
+    8289944dd98b3372a422e5c3481831b3fc727ca5`, qui trasportata: prima viveva
+    solo in un commento BOX3, ora ha casa in un atomo) → ⟦S4L⟧ (nome resta,
+    oggetto cambia): prima scrittura sui dati utente, «R[emove…]»
+
+(iii) ORDINE — verbatim:
+    «ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧.»
+
+(iv) REGOLA DI RILETTURA — verbatim:
+    «REGOLA DI RILETTURA per ogni citazione di «S4L» anteriore al 28/07: se
+    l'oggetto è il launcher, il runner, il suo ciclo di vita o la sua proprietà,
+    l'ingresso live, `LiveRootView`, `SetlistRunner`, il phantom `makeDefault`,
+    oppure un'enumerazione d'ordine degli atomi §6, si legge ⟦S4R⟧; se l'oggetto
+    è Remove, il menu «···» o la scrittura sui dati utente, resta ⟦S4L⟧.»
+
+⇒ RISPOSTA SECCA: sì, LIBRO:317 contiene ENTRAMBE. La condizione scritta a
+  SCALETTA:221 («da confermare QUANDO lo sdoppiamento verrà inciso in LIBRO»)
+  è SCATTATA il 28/07. Vale identica per il secondo caveat, r.226, che vi
+  rimanda con «Stesso caveat».
+
+⚠️ REPERTO COLLATERALE — due ancore diverse per lo stesso indirizzo:
+   SCALETTA:213 cita `BOX3:30 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`
+   LIBRO:317    cita `BOX3:30 @ 8289944dd98b3372a422e5c3481831b3fc727ca5`
+   Verificato: la riga 30 di BOX3 è BYTE-IDENTICA ai due alberi e a HEAD —
+   sha256 della sola riga = 6990e9836d57dec7… su tutti e tre.
+   ⇒ ENTRAMBE le ancore sono VALIDE per la regola INDIRIZZO DI CONTENUTO
+   (LIBRO:316). Non è una discordanza: è la regola che funziona.
+
+
+================================================================================
+[C] E3-BUGS — censimento per INDIRIZZO, mai per lemma
+================================================================================
+
+--------------------------------------------------------------------------------
+C1 — CENSIMENTO COMPLETO DI "E3" IN BUGS A HEAD (faccia blob)                [V]
+--------------------------------------------------------------------------------
+"E3" case-SENSITIVE     -> 3 righe : r.355 · r.569 · r.1004
+occorrenze (non righe)  -> 3        ⇒ una per riga, nessuna riga doppia
+"e3" case-INSENSITIVE   -> 21 righe
+
+CONTROLLI POSITIVI stessa forma stesso file (1008 righe):
+  "E1" -> 4 · "TD#" -> 22
+  ⚠️ "E2" rende 0: NON l'ho usato come controllo positivo. Un controllo che
+     rende zero non è un controllo, è un secondo zero (errore G.1 di ieri).
+
+LE 18 RIGHE DEL DELTA (case-insensitive ma NON "E3") — tutte esadecimali,
+nessun riferimento reale. Frammento di ciascuna:
+  r.81   …ounter` (`0693e39`, **merge-ga…
+  r.189  …e (master `af2e3bd`, file:line…
+  r.195  …lla-fonte (af2e3bd, sopra) + f…
+  r.291  …oring né `b81e3a8`.…
+  r.295  …la fonte (`b81e3a8`): è una `…
+  r.351  …77c84d3f31a586e34b7709f3` sull…
+  r.539  …77c84d3f31a586e34b7709f3` — …
+  r.566  …IDENTICO da `ee31281` (ultimo …
+  r.573  …- **⑥ `#7fe39a` dichiarato…      <- colore esadecimale, non uno sha
+  r.585  …77c84d3f31a586e34b7709f3` — …
+  r.601  …77c84d3f31a586e34b7709f3`** …
+  r.694  …ica anche a `ee31281` e a `8fa…
+  r.702  …ommit unico `ee31281b03a4898bf…
+  r.707  …994513488` (`ee31281`), workfl…
+  r.746  … il seme `0693e39`).…
+  r.963  … il seme `0693e39`). **Bug 2.b…
+  r.975  …y. Commit `af2e3bd`. |…
+  r.1002 …te): commit `ee31281`, CI `299…
+
+IL CONTO CHIUDE: 21 = 3 (E3 reali) + 18 (esadecimali). Zero residue.
+
+--------------------------------------------------------------------------------
+C2 — CLASSIFICAZIONE DELLE TRE                                               [V]
+--------------------------------------------------------------------------------
+[1] r.569 — USO CORRETTO. NON SI TOCCA.
+    Verbatim: «② La regola che quelle occorrenze violano non è in nessun
+    documento. «Zero-hex-fuori-DS» esiste solo come commento in
+    `ios_app/QBeats/UI/QLive/QLiveKit.swift:5`. Una regola che vive in un
+    commento non è opponibile: stessa forma di E3.»
+    ⇒ E3 usato come PRECEDENTE di «ratifica che vive fuori dai canonici».
+    ⇒ L'attesa dichiarata da Mauro REGGE. Confermata, non ereditata.
+
+[2] r.355 — ERRORE.
+    Verbatim del punto: «⛔ E QUI SI APRE UNA PENDENZA, dichiarata invece che
+    aggirata — è E3.» … «Uscendo questo ticket dal 🔴, l'enunciato resta senza
+    casa.»
+    ⇒ E3 attribuito all'enunciato del runner. Falso: l'enunciato è atterrato in
+      canonici (vedi C4). Nota: lo stesso bullet, POCHE RIGHE PRIMA, dichiara
+      «è ratificato a monte in `LIBRO_MASTRO_QBEATS.md:285`». La contraddizione
+      è INTERNA AL BULLET.
+
+[3] r.1004 — ERRORE. ⚠️ SECONDO SITO, MAI NOMINATO PRIMA.
+    È la riga di REGISTRO di v45. Verbatim del punto:
+    «⚠️ PENDENZA APERTA, non risolta qui: uscendo `TD-qlive-search-keyboard-trap`
+    dal 🔴, l'enunciato «da ⟦S4L⟧ in poi uscire dalla stanza uccide la sessione»
+    — ratificato in `LIBRO:285` — resta senza un ticket che lo ospiti in BUGS
+    (misurato: le 4 formulazioni rendono 1 riga ciascuna, ed è sempre la r.349
+    di quello stesso ticket; controlli positivi «SetlistRunner»→8, «Q-Live»→38).
+    È E3, e l'apertura del ticket ospite è decisione di Mauro.»
+    ⇒ Porta la stessa qualifica falsa.
+
+IL CONTO CHIUDE: 3 = 1 corretta + 2 errori.
+
+⚠️⚠️ CONSEGUENZA OPERATIVA: la chiusura di E3-BUGS ha DUE siti da correggere,
+   r.355 e r.1004. Il mio handoff di ieri sera ne nominava UNO SOLO (r.355).
+   Seconda affermazione mia che cade in questo giro.
+
+--------------------------------------------------------------------------------
+C3 — VERBATIM RICHIESTI                                                      [V]
+--------------------------------------------------------------------------------
+LIBRO:285 (Sez.2, riga 2026-07-18) — INTERO:
+| 2026-07-18 | **Proprietà del `SetlistRunner` sale alla stanza Q-Live (Mauro)** — se l'audio sopravvive alla navigazione, deve sopravvivere anche lo stato che lo governa. Slot RISERVATO e VUOTO all'ingresso (nessuna scaletta ancora scelta); il runner nasce allo **Start** con la setlist SCELTA; sopravvive alla navigazione INTERNA; muore SOLO all'uscita dalla STANZA Q-Live. Motivazione: prodotto musicale professionale, nessuna scorciatoia. Atterra in **S4L** (contenitore-sessione `QLiveSession`, forma B). | Mauro (ratifica) | BOX3 V97 (a) + (e) | attiva | — |
+
+LIBRO:317 — INTERA, estratta dal blob a HEAD.
+⚠️ CONVENZIONE DICHIARATA, perche' su questa riga le cifre DIFFERISCONO e il lettore
+   futuro non deve indovinare: «caratteri» = codepoint Unicode · «byte» = ottetti UTF-8.
+     caratteri (codepoint)   : 3060
+     byte UTF-8 SENZA newline: 3200
+     byte UTF-8 CON newline  : 3201
+   92 codepoint multibyte aggiungono 140 byte. Il conto chiude: 3060 + 140 = 3200.
+   ⚠️ L'emissione 1 diceva «~4600 caratteri»: stima non misurata, falsa. E ⚠️ «3200
+      caratteri» sarebbe ANCH'ESSA falsa — 3200 sono i BYTE senza newline, non i caratteri.
+
+| 2026-07-28 | **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI — ratificato.** La scheda ⟦S4L⟧ della SCALETTA v2 (`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`) conteneva **due contratti opposti sotto un solo nome**: «no write» (scopo originario) e «prima scrittura sui dati utente» (questa Sez.2, riga `2026-07-26` **EMENDAMENTO ALL'INVARIANTE**). In più `BOX3_QBEATS.md:34 @ 8289944dd98b3372a422e5c3481831b3fc727ca5` chiedeva di incidere un vincolo tecnico «nella scheda ⟦S4L⟧» che riguarda il **solo launcher**. Decisione Mauro 28/07, ratifica referee 28/07 (verifica indipendente in tre parti sul diff B4 — impronte, contabilità 162+/12− coincidente col diffstat, 162 righe aggiunte verificate presenti — più riverifica a fonte di BOX3 r.30, r.34 e LIBRO r.311). Sdoppiata in tre: **⟦S4K⟧** congedo tastiera (nessuna scrittura, nessun tocco al runner) → **⟦S4R⟧** launcher: iniezione setlist + kill phantom `makeDefault` + vincolo `ObservableObject` annidato + emendamento invariante Nodo A + **proprietà del runner** (decisione Mauro 18/07, `BOX3_QBEATS.md:30 @ 8289944dd98b3372a422e5c3481831b3fc727ca5`, qui trasportata: prima viveva solo in un commento BOX3, ora ha casa in un atomo) → **⟦S4L⟧** (nome resta, oggetto cambia): prima scrittura sui dati utente, «Remove from Q-Live» + menu «···». **ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧.** Dettaglio completo, citazioni e pendenze proprie di ciascun atomo in `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` sez. B, versione 3: **questa riga non duplica quel contenuto, lo ratifica.** ⚠️ **REGOLA DI RILETTURA per ogni citazione di «S4L» anteriore al 28/07:** se l'oggetto è il **launcher, il runner, il suo ciclo di vita o la sua proprietà, l'ingresso live, `LiveRootView`, `SetlistRunner`, il phantom `makeDefault`**, oppure un'**enumerazione d'ordine** degli atomi §6, si legge **⟦S4R⟧**; se l'oggetto è **Remove, il menu «···» o la scrittura sui dati utente**, resta **⟦S4L⟧**. Ancorare la rilettura a due soli lemmi («launcher»/«makeDefault») NON basta: i casi dirimenti non li contengono — `BOX3:30` (proprietà del runner) e `BOX3:45` (commenti-stale) rendono **0 occorrenze** di entrambi. ✅ **CHIUDE IL RIFERIMENTO INCROCIATO** delle sei enumerazioni d'ordine di `BOX3_QBEATS.md` (`:60`, `:151`, `:212`, `:647`, `:662`, `:676` @ 8289944dd98b3372a422e5c3481831b3fc727ca5), che nominano «S4L» in contesto d'ordine con forme NON uniformi (misurato: «S4→S4L» · «Ordine: NODO A ✅ → **S4** → S4L → S5 → S6» · «⟦S4⟧/⟦S4L⟧/⟦S5⟧»): da questa riga in poi **si leggono con la regola di rilettura, non si aggiornano a mano riga per riga**. Nessuna delle sei è stata toccata. | Mauro (decisione) + referee (ratifica) | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` versione 3, commit `8289944dd98b3372a422e5c3481831b3fc727ca5` — impronta blob del file a quel commit sha256 `700d7caa7c20756e22c44665851203fd0e1fa279ccddcc37fa61cab5549c0e14` (verificata con `git show`), CI `30385438701` conclusion `success`, `headSha` coincidente. Testo della ratifica referee incollato verbatim nel prompt di questo giro, non parafrasato | attiva | — |
+
+SCALETTA:212-221 — verbatim in B1 sopra.
+
+--------------------------------------------------------------------------------
+C4 — IN QUANTI DOCUMENTI CANONICI DISTINTI VIVE L'ENUNCIATO                  [V]
+--------------------------------------------------------------------------------
+DEFINIZIONE USATA, dichiarata prima del conteggio: «l'enunciato» = la regola di
+ciclo di vita — il runner sopravvive alla navigazione INTERNA e muore SOLO
+all'uscita dalla stanza Q-Live. Tenuto SEPARATO dalla sua CONSEGUENZA derivata
+(«vietato affidare il congedo tastiera all'uscita dalla stanza»), che è un'altra
+proposizione e va contata a parte o il conto gonfia.
+
+RISPOSTA: QUATTRO documenti canonici distinti, otto siti.
+
+  1. LIBRO_MASTRO_QBEATS.md          — 3 siti
+       r.285  ratifica (Sez.2, riga 2026-07-18)
+       r.317  assegnazione all'atomo ⟦S4R⟧
+       r.467  registro v43 (richiama la decisione e la regola di rilettura)
+
+  2. BOX3_QBEATS.md                   — 2 siti
+       r.30   ORIGINE: «DECISIONE MAURO 18/07 (ratificata): la proprietà del
+              runner SALE — il runner sopravvive alla navigazione interna e
+              muore SOLO all'uscita da Q-Live. Atterra in S4L, NON in S4.»
+       r.33   modello «sessione ≡ stanza»: «La navigazione INTERNA di Q-Live
+              NON chiude la sessione live (runner + click); l'uscita dalla
+              STANZA la chiude.»
+
+  3. HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md — 1 sito
+       r.212-221  vincolo operativo dentro la scheda ⟦S4R⟧ (cita BOX3:30
+                  verbatim, con meccanismo e conseguenza di palco)
+
+  4. BUGS_QBEATS.md                   — 2 siti
+       r.349  lo CITA verbatim con attribuzione: «LIBRO v37 Sez.2 (riga
+              2026-07-18) ratifica che la proprietà del `SetlistRunner` sale
+              alla stanza Q-Live e che il runner «muore SOLO all'uscita dalla
+              STANZA Q-Live»»
+       r.355  lo cita e POI dichiara che «resta senza casa» / «è E3»
+
+  BOX5_QBEATS.md                      — 0 siti dell'enunciato.
+
+CONSEGUENZA DERIVATA (contata a parte, NON è l'enunciato) — 3 siti:
+       LIBRO:304 · BOX5:378 · SCALETTA:167
+       tutte e tre: «Vietato affidare il congedo all'uscita dalla stanza»
+       (contratto Q20). LIBRO:304 aggiunge «da ⟦S4L⟧ ucciderebbe la sessione
+       metronomo» — è la conseguenza, non la regola.
+
+CENSIMENTO GREZZO CHE PRODUCE QUESTI NUMERI (righe-che-contengono, blob HEAD):
+  "muore SOLO"                 LIBRO 1 (285) · BUGS 2 (349,355) · BOX3 1 (30) · BOX5 0 · SCAL 1 (214)
+  "uscita dalla STANZA"        LIBRO 1 (285) · BUGS 2 (349,355) · BOX3 1 (33)  · BOX5 0 · SCAL 0
+  "sopravvive alla navigazione" LIBRO 1 (285) · BUGS 0 · BOX3 1 (30) · BOX5 0 · SCAL 1 (214)
+  "proprietà del runner"       LIBRO 2 (317,467) · BUGS 0 · BOX3 4 (30,50,154,648) · BOX5 0 · SCAL 1 (213)
+  "uscita dalla stanza" (min.) LIBRO 1 (304) · BUGS 1 (355) · BOX3 0 · BOX5 1 (378) · SCAL 1 (167)
+  ⚠️ "muore solo" tutto minuscolo -> 0 ovunque. Il case conta.
+
+⚠️⚠️ QUI CADE LA TERZA AFFERMAZIONE MIA, ed è la più pesante.
+   HANDOFF_CC_2026-07-30_sera_chiusura-v45.md, sezione (F), premessa in
+   grassetto: «L'enunciato NON è senza casa. Vive in TRE posti canonici» ed
+   elenca LIBRO:285, LIBRO:317, SCALETTA:212-221.
+   Misura vera: OTTO siti in QUATTRO documenti.
+   MANCAVANO:
+     - BOX3:30 — che è la FONTE da cui LIBRO:317 e SCALETTA:213 citano
+       entrambi, per nome e con ancora. L'ho letta ieri dentro la citazione di
+       LIBRO:317 e non l'ho contata come sito propria.
+     - BOX3:33 — il modello «sessione ≡ stanza», mai nominato.
+     - BUGS:349 — l'enunciato è già DENTRO BUGS, citato verbatim.
+     - LIBRO:467 — registro v43.
+   MECCANISMO: ho censito i posti dove l'enunciato è RATIFICATO, e ho
+   presentato il risultato come i posti dove VIVE. Due perimetri diversi con
+   una sola etichetta. È la stessa forma dell'errore che stavo descrivendo.
+
+⚠️ NOTA CHE RESTRINGE (e va detta, o la correzione sbaglia bersaglio):
+   il fatto che BUGS:349 porti l'enunciato NON rende vera la frase di r.355.
+   r.355 dice «in BUGS non ha alcun ticket che lo OSPITI», e distingue
+   esplicitamente r.349 (trigger dentro un altro ticket) da un ticket ospite
+   dedicato. In quel senso stretto la frase regge. Ciò che NON regge, e va
+   corretto, è: «resta senza casa» (falso: quattro documenti) e «è E3» (falso:
+   E3 = vive solo fuori dai canonici; qui è atterrato otto volte).
+
+
+================================================================================
+[D] BUGS:120 — SOLO TEMPO VERBALE? NO: ANCHE IL CONTENUTO.
+================================================================================
+NB RISPETTATO: qui NON si rivaluta la severità del ticket. Si misura e basta.
+
+--------------------------------------------------------------------------------
+D1 — BUGS righe 118-123 a HEAD, VERBATIM (faccia blob)                       [V]
+--------------------------------------------------------------------------------
+⚠️ EMISSIONE 2 — INTEGRALE. L'emissione 1 rendeva intere solo r.120 e r.121 e delle
+   altre quattro la sola apertura, con due lunghezze STIMATE. Qui sono intere tutte e
+   sei, estratte dal blob per programma. Convenzione: caratteri = codepoint Unicode ·
+   byte = ottetti UTF-8.
+
+     riga    caratteri    byte
+     r.118        385      392
+     r.119         88       92
+     r.120        811      836
+     r.121        502      508
+     r.122       2794     2858
+     r.123        591      596
+     --------------------------
+     TOT        5171     5282   (byte +5 = i newline interni -> 5287)
+
+r.118 — INTERA:
+- **Sintomo:** col click ATTIVO, uscire da `.qLive` verso la Home fa scattare il canonico `AppRootView.swift:61-68` → `audioEngine.stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/Stop Sync attivo sui peer coinvolti, **la band si ferma**. Nessuna conferma richiesta all'utente. È l'uscita ORDINARIA (non un tasto sfiorato per sbaglio) ad avere questo costo nascosto.
+
+r.119 — INTERA:
+- **Natura — DUE METÀ che si chiudono in modo DIVERSO (non dichiararlo chiuso a metà):**
+
+r.120 — INTERA:
+  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+
+r.121 — INTERA:
+  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+
+r.122 — INTERA:
+  - **CANCEL di `WaitingForDirectorView` — nel percorso ORDINARIO non è una porta di band-stop, ma con una CLAUSOLA-LIMITE precisa (verificato a fonte 18/07, rafforzato 19/07 — `VERIFICA_V-ISP_2026-07-19`, sha `9918c379…0350aa`; ESITO A):** `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector` (`LiveView.swift:165-166`); quello stato è assegnato SOLO a `TransportView.swift:58`, raggiungibile SOLO nel ramo `else if` di `if audioEngine.isPlaying` (`TransportView.swift:36`) → cioè SOLO con `isPlaying == false`; l'ingresso in waiting (`:58`) NON avvia l'audio. **Il ponte della prova NON è `isPlaying ⟹ isRunning`** — sono campi DISTINTI (`AudioEngine.swift:56` `@Published`/main vs `:273` `private`/audioQueue) e la loro sincronia è FALSIFICATA: `handleAppWakeUp` (`:3053` `guard self.isPlaying, !self.isRunning`) esiste APPOSTA per lo stato discorde `isPlaying==true && isRunning==false`. **Il ponte reale è «nessuno `start()` ha girato mentre la view è montata»**: `isRunning` diventa true SOLO in `start()` (`:886`, audioQueue), e le uscite che avviano l'audio (Director→`runner.startSetlist`; START LOCAL `LiveView.swift:172`) transitano a `.playing` smontando la view. Per il percorso ORDINARIO il ponte regge → il CANCEL→`onExit()`→`stop()` colpisce `guard self.isRunning` (`:1638`, `isRunning==false`) e ritorna PRIMA di `:1645` = nessuno stop propagato. **CLAUSOLA-LIMITE (ex-parentetico «boundary sub-frame», PROMOSSA da nota a confine del claim):** il ponte ha UN buco REALE, non teorico — `LiveView.swift:406-407` (observer `linkStartedSubject`) NON ha guard su `.waitingForDirector` (guarda solo `!= .playing`) → quando il Direttore preme Play, il Follower fa `start()` → `isRunning=true` (`:886`) MENTRE `session.playbackState` è ANCORA `.waitingForDirector` (lo smontaggio arriva dopo gli hop su main) → WaitingForDirectorView ancora montata, CANCEL ancora vivo, guard `:1638` PASSA → `:1645` propaga (con Start/Stop Sync attivo). Percorso a bassa probabilità, NON nullo, e di durata NON MISURATA: la finestra non è la sola latenza di dispatch, va da `:886` fino all'esecuzione della closure main `:1024-1025` — quindi include tutto il resto di `start()` su audioQueue (midi_engine_*, link_engine_*, metronome_*, scheduleNextBuffer, os_log, UserDefaults) — e lo smontaggio della view arriva ancora dopo (observer `:254` → session=.playing). Nessuna misura a runtime esiste (nessun Xcode lato CC) — quindi NON «impossibile per costruzione». La sola altra questione aperta sul CANCEL è la sua DESTINAZIONE di navigazione (R7, domanda CD). **Collegamento:** se `TD-follower-stop-propaga` (§1.2) viene risolto — lo stop del Follower reso locale — questo buco si chiude ALLA RADICE, senza toccare il CANCEL né la transizione waiting→playing.
+
+r.123 — INTERA:
+- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata e lo stop propaga ai Follower. Propagazione = per-peer, condizionata a Start/Stop Sync ATTIVO nelle impostazioni Link dell'utente sui device coinvolti (`ABLLink.h:75-82`, «only controllable by the user via the Link settings dialog»); `project.yml:19 ABLLinkStartStopSyncSupported: true` PERMETTE l'attivazione, non la impone (BOX3 V97 (b)).
+
+
+--------------------------------------------------------------------------------
+D2 — LIBRO riga 290, VERBATIM (frammento dirimente)                          [V]
+--------------------------------------------------------------------------------
+«| 2026-07-20 | **S4b CHIUSO, device-validato** — Q-Live apre la lista Shows
+read-only invece di LiveView diretto; commit `6ded4ab`, CI `29686746553` verde.
+Gate device eseguito da Mauro il 20/07 sullo script ratificato … [5]
+RoomSwitchBar hit-area → TUTTI PASS. … | attiva | — |»
+
+--------------------------------------------------------------------------------
+D3 — COSA RENDE QLiveRootView A HEAD, E DOV'È RoomSwitchBar                  [V]
+--------------------------------------------------------------------------------
+Misurato sul blob a HEAD (`git grep <pat> HEAD -- 'ios_app/*.swift'`).
+
+(a) QLiveRootView NON rende `LiveRootView`→`LiveView`. Rende la lista Shows.
+    `ios_app/QBeats/UI/QLive/QLiveRootView.swift:58-67 @ HEAD`, verbatim:
+        var body: some View {
+            switch page {
+            case .shows:
+                QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+            case .detail:
+                EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+            case .metronome:
+                EmptyView()   // scaffold — S4L innesta qui la sessione (`if let runner`)
+            }
+        }
+    ⇒ `.shows` -> QLiveShowsView a :61 · `.detail` -> EmptyView a :63
+      `.metronome` -> EmptyView a :65. Tre rami su tre censiti, il conto chiude.
+
+(b) RoomSwitchBar È MONTATA DENTRO Q-LIVE.
+    Costruttori `RoomSwitchBar(` a HEAD -> 2, uno per stanza:
+      ios_app/QBeats/UI/QLive/QLiveShowsView.swift:70    <- Q-LIVE
+      ios_app/QBeats/UI/QStage/ShowsListView.swift:82    <- Q-Stage (contr. pos.)
+    ⇒ QLiveRootView:61 monta QLiveShowsView, che a :70 monta RoomSwitchBar.
+      La catena è viva.
+    ⚠️ Il grep per il solo nome `RoomSwitchBar` rende 20 righe su 6 file, ma la
+      maggioranza sono COMMENTI. Contando i costruttori: 2. Censimento per
+      indirizzo, non per lemma.
+
+⇒ VERDETTO D3: le DUE affermazioni fattuali di BUGS:120 — «NESSUN RoomSwitchBar
+  è oggi montato dentro Q-Live» e «`QLiveRootView` renderizza ancora
+  `LiveRootView`→`LiveView` diretto» — sono ENTRAMBE FALSE a HEAD.
+  Erano vere a `f8276f6`, che è l'ancora dichiarata nella riga stessa.
+
+⇒ E QUI AGGIUNGO UNA COSA CHE IL MANDATO NON CHIEDEVA MA CHE LA MISURA RENDE:
+  il difetto non è SOLO il tempo verbale di r.120. Anche r.121 lo porta:
+  «Metà NUOVA (introdotta da S4b/S5, **non ancora spedita**)». S4b È SPEDITO —
+  commit `6ded4ab`, gate device 20/07, inciso in LIBRO:290. Quindi «non ancora
+  spedita» è falso a HEAD tanto quanto «oggi la porta viva è UNA sola».
+  ⇒ Le due metà portano lo stesso difetto, in direzioni opposte: la
+    PRE-ESISTENTE si dichiara attiva quando non lo è più; la NUOVA si dichiara
+    non spedita quando lo è.
+
+--------------------------------------------------------------------------------
+D4 — IL RUNNER NON NASCE MAI A HEAD. CONFERMATO, prova in quattro parti.     [V]
+--------------------------------------------------------------------------------
+1) SITO DI NASCITA — uno solo.
+   `= SetlistRunner(` -> 1 hit:
+       ios_app/QBeats/UI/LiveRootView.swift:12   @StateObject private var runner = SetlistRunner(
+   Forma più larga `SetlistRunner(` -> lo STESSO identico 1 hit (nessun altro
+   costruttore altrove). ⇒ la vita del runner È la vita di `LiveRootView`.
+
+2) CALL-SITE DI LiveRootView -> ZERO.
+   grezzo `LiveRootView(`   -> 1 hit, ma è `QLiveRootView(` a AppRootView.swift:51
+                               (`LiveRootView(` ne è SOTTOSTRINGA)
+   filtrato (escluso QLiveRootView) -> 0
+   CONTROLLO POSITIVO stessa forma: `QLiveShowsView(` -> 1 (QLiveRootView.swift:61)
+   ⇒ `LiveRootView` ha ZERO chiamanti. Non è mai montata.
+
+3) LiveView SEGUE.
+   `LiveView(` -> 1 hit: LiveRootView.swift:18  `LiveView(onExit: onExit)`
+   ⇒ montata solo da una view che non ha chiamanti ⇒ irraggiungibile a sua volta.
+
+4) FUNNEL DI NAVIGAZIONE INTERNA -> ZERO CHIAMANTI.
+   `navigate(to` -> 2 righe, censite entrambe:
+       QLiveRootView.swift:14   COMMENTO («la navigazione INTERNA … funnel `navigate(to:)`»)
+       QLiveRootView.swift:54   DEFINIZIONE (`private func navigate(to newPage:`)
+   chiamanti reali -> 0.  Il conto chiude: 2 = 1 commento + 1 definizione + 0 chiamanti.
+   `page = ` -> 1 riga sola, :55, DENTRO il funnel stesso.
+   Il file lo dichiara da sé a :53: «A S4b ha zero chiamanti (la porta è
+   installata per S5/S6)».
+
+VERDETTO D4: CONFERMATO — a HEAD il runner non nasce mai, perché l'unica view
+che lo costruisce non è mai montata, e i due rami che potrebbero portarci sono
+`EmptyView()`.
+
+⚠️ LIMITE, dichiarato da me: ho misurato la STRUTTURA DI MONTAGGIO sul blob a
+   HEAD, non ogni percorso a runtime. In particolare NON ho misurato il ramo
+   `#if DEBUG` di `HomeRootView` (fuori dal mandato di oggi). La conclusione
+   vale su ciò che ho misurato e non oltre.
+
+
+================================================================================
+[E] CONVENZIONE DEI NOMI-SNAPSHOT — DECLASSATO
+================================================================================
+E1 — Commit che ha INTRODOTTO BOX5 V28.                                      [V]
+
+METODO: pickaxe sul contenuto, non deduzione dai nomi:
+    git log -S 'V28' --format='%H | %cI | %s' -- BOX5_QBEATS.md
+
+RISULTATO — uno solo:
+    0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+    %cI 2026-07-28T18:27:28+02:00
+    subject: «BOX5 V28 — capitolo Q-Live > Shows»
+
+CONFERMA che quel commit tocca davvero il file:
+    git diff-tree --no-commit-id --name-only -r 0a6ebafa… -> BOX5_QBEATS.md (1 file)
+
+STORIA RECENTE del file, per contesto:
+    0a6ebafa…  2026-07-28T18:27:28+02:00  BOX5 V28 — capitolo Q-Live > Shows
+    fc06ed53…  2026-07-21T20:08:03+02:00  BOX5 V27 — canonici tracciati estesi…
+    edaa80f6…  2026-07-21T14:28:11+02:00  regime canonici: BOX3/BOX5 tracciati
+
+HEADER A HEAD: «**Versione:** V28 — 28/07/2026» (r.2)
+
+⇒ RISPOSTA SECCA: È `0a6ebaf`. NON diverge.
+  Nessuna anomalia da segnalare su questo punto. Chiuso qui, come da mandato:
+  non alimenta nessun documento.
+
+
+================================================================================
+(F) DOVE MI FERMO — punti in cui una misura mia tocca un'indicazione
+================================================================================
+
+NESSUNA INDICAZIONE DI MAURO È CADUTA IN QUESTO GIRO. Le tre attese dichiarate
+reggono tutte, e sono confermate da misura mia, non ereditate:
+  · CAVEAT-SCALETTA «sono DUE»            -> CONFERMATO (r.221 e r.226)
+  · «r.569 = CORRETTA e non si tocca»     -> CONFERMATO
+  · BOX5 V28 = `0a6ebaf`                  -> CONFERMATO
+
+SONO CADUTE TRE AFFERMAZIONI DEL MIO HANDOFF DI IERI SERA. Le elenco perché
+sono io la fonte, e perché cambiano il lavoro da fare:
+
+  [1] «L'enunciato vive in TRE posti canonici» (sezione F).
+      VERO: otto siti in quattro documenti. Mancavano BOX3:30 — che è la FONTE
+      citata sia da LIBRO:317 sia da SCALETTA:213 — più BOX3:33, BUGS:349 e
+      LIBRO:467. Meccanismo: ho censito dove l'enunciato è RATIFICATO e ho
+      etichettato il risultato «dove VIVE».
+
+  [2] CAVEAT-SCALETTA nominato come UNO (sezione F).
+      VERO: sono DUE, r.221 e r.226. Il secondo non compare da nessuna parte
+      nel mio handoff. Il lemma «caveat» rende 1 e non 2, ed è la trappola.
+
+  [3] E3-BUGS nominato su UN sito (r.355).
+      VERO: sono DUE, r.355 e r.1004. Il secondo è la riga di registro di v45 e
+      porta la stessa qualifica falsa.
+
+CONSEGUENZA SUL LAVORO, senza deciderlo io:
+  · la chiusura di E3-BUGS tocca DUE righe, non una;
+  · la chiusura di CAVEAT-SCALETTA tocca DUE righe, non una;
+  · la formulazione della correzione di E3-BUGS non è «perimetro troppo
+    stretto» ma «contraddizione interna al bullet» — r.355 dichiara LIBRO:285
+    e poi lo nega tre righe dopo.
+
+COSA NON HO MISURATO, ed è [R] o niente:
+  · il ramo `#if DEBUG` di HomeRootView e ogni percorso a runtime;
+  · la severità dei ticket (fuori mandato, NB rispettato);
+  · le copie su E: e nel Progetto Claude (non richieste oggi);
+  · le misure del referee, che non ho visto.
+
+================================================================================
+FINE MISURE.
+================================================================================
