@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 3 (28/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3)
+**Versione:** 4 (30/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -10,6 +10,9 @@
 - **⚠️ STATO 12/07 — ⟦S3⟧ RISCRITTO su questa versione** (vedi sotto; la 10/07 prescriveva un «+» morto vietato da CD-Q7). Atomi GIÀ COMMITTATI (CI-verdi, NON device-chiusi): S0 `995a3bf` · S1 `87a8280` · S2F `f91533f` · S2 `ed11f65` · poi il ciclo CD-decisioni NON previsto nella scaletta 10/07: S2b `8d7c7d1` · S2c `9bb4ef6` · S2e `7550476` (allineamento commenti R7 + gate reali) · S2d `ab6b553` (estrazione `EmptyStateKit`). RESTANO: **S3** (prossimo) · NODO A · S4 · S4L · S5 · S6.
 - **Stato:** impianto §6 + scaletta RATIFICATI dal referee (impianto 10/07). ⟦S3⟧ è stato RISCRITTO il 12/07 dal contratto ratificato e **RE-RATIFICATO dal referee il 13/07** → S3 può essere guidato da questa scaletta. Ogni atomo passa comunque il cancello (source→diff verbatim→referee→OK Mauro→device dove segnato→commit Mauro/0-CoAuth).
 - **Depositato in:** `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\` (untracked, NON repo).
+  ⚠️ **MARCATURA v4** — «untracked» era vero alla stesura e NON lo è più: il file è **tracciato** nel
+  repo (blob OID presente, `git ls-files --eol` lo rende `i/lf w/lf`). La riga resta come scritta, si
+  marca e non si riscrive.
 
 ---
 
@@ -217,13 +220,14 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
   — puntatore di BOX3, riverificato a quell'albero — → muore al pop, mentre `audioEngine` sopravvive; al rientro nascerebbe un
   runner FRESCO (canzone 1) col click già avanti = **UI e clock divergenti sul palco**.
   ⚠️ **Il «S4L» di quella riga è PRE-sdoppiamento e ha per oggetto il runner: ricade quindi su ⟦S4R⟧**
-  per la regola di rilettura qui sopra. Il re-instradamento è lettura di CC, non una nuova ratifica:
-  **da confermare** quando lo sdoppiamento verrà inciso in LIBRO.
+  per la regola di rilettura qui sopra. Il re-instradamento è **CONFERMATO**: lo sdoppiamento è inciso
+  in `LIBRO_MASTRO_QBEATS.md:317` (Sez.2, riga `2026-07-28`), che assegna la proprietà del runner a
+  ⟦S4R⟧ e ratifica la regola di rilettura.
 - **COMMENTI-STALE da bonificare** (`BOX3_QBEATS.md:45 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`): la lista
   «da bonificare in S4L» tocca `SetlistRunner.swift`, `AudioEngine.swift`, `LiveView.swift`,
   `HomeRootView`, `LivePlaybackState.swift`, `TransportView.swift` — zona launcher/live, quindi anche
   questa ricade su ⟦S4R⟧ per oggetto. Solo commenti, zero impatto funzionale; «bonifica in UN giro
-  quando si tocca quella zona». Stesso caveat: re-instradamento da confermare.
+  quando si tocca quella zona». Stesso re-instradamento, **CONFERMATO** dalla stessa fonte (`LIBRO:317`).
 - **Reversibilità:** RISCHIO (`init` non-opzionale `ios_app/QBeats/SetlistRunner.swift:59 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`
   → `?? makeDefault()` non è delezione pulita: `first` = `Setlist?` → compile error; revert =
   reinstallare forma eager).
