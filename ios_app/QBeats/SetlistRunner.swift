@@ -4,7 +4,9 @@ import os
 
 /// Layer 3 orchestrator per navigazione multi-section setlist (L1.b).
 ///
-/// Vive in `LiveRootView` come `@StateObject` — vita = durata performance.
+/// Lo SLOT che lo ospita vive in `QLiveSession`, posseduta da `QLiveRootView`
+/// come `@StateObject` (⟦S4R⟧): il runner nasce allo Start (⟦S5⟧) con la
+/// setlist scelta e vive quanto la stanza Q-Live — vita = durata performance.
 /// AudioEngine ignora il setlist: SetlistRunner è il callsite di
 /// `loadSection(onEnd:)` e decide tra i 3 rami end-of-section:
 ///   - `avanza`      — sezione successiva nella stessa canzone

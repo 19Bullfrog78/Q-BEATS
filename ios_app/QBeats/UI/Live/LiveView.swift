@@ -4,8 +4,8 @@ import os
 struct LiveView: View {
     @EnvironmentObject var audioEngine: AudioEngine
     @EnvironmentObject var runner: SetlistRunner
-    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView →
-    /// QLiveRootView → LiveRootView). Inoltrato ai 2 leaf d'uscita reali:
+    /// Nodo A — seam di RITORNO fornito dal presenter (AppRootView →
+    /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
     let onExit: () -> Void
     @StateObject private var session = LiveSession()
