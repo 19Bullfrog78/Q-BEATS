@@ -301,6 +301,7 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
 - **Gate:** no write; DEVICE per Start audio-live.
 - **Cond:** E (tag solo layout; iPad/editor differiti); Start su risolto-non-vuoto (F=`songIDs.isEmpty`; G=`!songIDs.isEmpty && resolve().songs.isEmpty`); A (`.segMini` INERTE).
 - **OPEN:** badge `⚠ FILE MISSING` (≠ orfani; = esistenza `Song.backtrackFilename:22`, nessun helper oggi) **DIFFERITO**. Referee: quando si farà, esistenza calcolata FUORI dal render path (cache al load), MAI `FileManager.fileExists` per-riga a scroll-time (jank).
+- **OPEN — tipo del runner:** `SetlistRunner.startSetlist(audioEngine:session:)` (`ios_app/QBeats/SetlistRunner.swift`) si aspetta un `LiveSession` (`ios_app/QBeats/Models/LiveSession.swift`), tipo DIVERSO da `QLiveSession` (`ios_app/QBeats/UI/QLive/QLiveSession.swift`) — il contenitore-stanza che ⟦S4R⟧ ha introdotto per possedere lo slot del runner. **⟦S5⟧ deve riconciliare i due tipi: non è cablaggio, è architettura.** Reperto CC (`HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt` punto 2), nessuna soluzione decisa qui — il reperto rende visibile la materia, non la scioglie.
 
 ### ⟦S6⟧ METROFAB — cablaggio porta (dest differita stub) · POST · CI
 - **Scopo:** legare `onTap` MetroFAB (coda lista + empty E) a stub differito.
