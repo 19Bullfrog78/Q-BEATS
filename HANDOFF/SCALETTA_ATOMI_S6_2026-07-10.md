@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 4 (30/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4)
+**Versione:** 5 (02/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -13,6 +13,7 @@
   ⚠️ **MARCATURA v4** — «untracked» era vero alla stesura e NON lo è più: il file è **tracciato** nel
   repo (blob OID presente, `git ls-files --eol` lo rende `i/lf w/lf`). La riga resta come scritta, si
   marca e non si riscrive.
+- **⚠️ BUMP v5 TARDIVO — R7 rispettata in ritardo, NON contenuto nuovo.** Il contenuto è cambiato con `07e09260bffa446a3fba1893267c2567aed88616` (voce «OPEN — tipo del runner» aggiunta alla scheda ⟦S5⟧); la versione è bumpata QUI, in un commit successivo e separato. **R7** — registro Sez.6 del LIBRO, voce 31 — prescrive il bump di versione quando il contenuto cambia, e in quel commit non fu fatto: difetto rilevato da CC dopo il push, durante la propagazione R-δ. ⛔ Il commit `07e09260bffa446a3fba1893267c2567aed88616` **NON si riscrive e non si emenda**: è pushato, è storia, il repo è pubblico — R7 si ripara **AGGIUNGENDO**. ⚠️ **v5 non introduce contenuto nuovo:** registra la versione di contenuto già committato. ✅ Difetto **isolato, non di famiglia**: misurato a fonte che ogni commit su `BOX3_QBEATS.md` e `BOX5_QBEATS.md` ha bumpato la propria riga di versione nello stesso commit che ne cambiava il contenuto.
 
 ---
 
