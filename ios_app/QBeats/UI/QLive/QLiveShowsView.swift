@@ -42,6 +42,14 @@ struct QLiveShowsView: View {
     /// Switch di stanza verso Q-Stage: closure DISTINTA da onExit (RoomSwitchBar.onSwitch).
     /// A S4b sarà iniettata da AppRootView (`screen` resta private, E2).
     let onSwitchToStage: () -> Void
+    /// Tap-riga → dettaglio show (⟦S5a⟧). Default no-op: solo questo atomo aggiunge la
+    /// chiamata al tap; nessun altro comportamento di questo file cambia.
+    /// ⚠️ `{ _ in }`, NON `{}`: il tipo prende un argomento, e una closure-letterale senza
+    /// parametri su un tipo che ne dichiara uno non compila («Contextual closure type
+    /// '(Setlist) -> Void' expects 1 argument»). Gli altri default no-op del progetto
+    /// (`MetroFAB.swift:20`, `QLiveEmptyStates.swift:108`) sono `() -> Void`, zero argomenti:
+    /// `{}` lì è corretto, qui no — non è lo stesso caso.
+    var onSelectShow: (Setlist) -> Void = { _ in }
 
     @ObservedObject private var store = QBeatsStore.shared
 
@@ -268,7 +276,7 @@ struct QLiveShowsView: View {
 
     // .showrow (§CSS): radius 15, padding 15/16, bg --qlive-surf, bordo --qlive-bd,
     // inset-top 1px .04; variante .pick: bg --qlive-pick, bordo live .45. Chevron A DESTRA
-    // (§markup frame ②) — riga INERTE fino a S5 (nessun Button/tap qui).
+    // (§markup frame ②) — riga tap-abile da ⟦S5a⟧: naviga al dettaglio via `onSelectShow`.
     private func showCard(_ show: Setlist) -> some View {
         // ⚠️ default CC (flag in testa): nessun modello last-opened → pick MAI attivo per ora.
         let isPick = false
@@ -308,12 +316,25 @@ struct QLiveShowsView: View {
                 .strokeBorder(Color.white.opacity(0.04), lineWidth: 1)
                 .mask(VStack(spacing: 0) { Rectangle().frame(height: 2); Spacer(minLength: 0) })
         )
+        .onTapGesture { onSelectShow(show) }
     }
 
     // .mt (§CSS): «N songs» + « · M min» SOLO se la durata stimata dà minuti > 0
     // (§markup frame ②: la terza riga «Prove giovedì» è «5 songs» SENZA « · »).
+    // ⚠️ D3 (referee, A53) — N = canzoni RISOLTE, non `songIDs` grezzi: la semantica di casa è
+    // già il risolto (lo Start è gattato sul «risolto-non-vuoto», non sul numero di righe) e
+    // sul palco la verità utile è «quante ne suono». Allinea questa riga al dettaglio
+    // (`QLiveShowDetailView.metaText`), che contava i risolti mentre questa contava i grezzi:
+    // stesso show, due numeri a un tap di distanza.
+    // ⚠️ Sana anche un'incoerenza PRE-ESISTENTE di questa stessa riga: il conteggio veniva da
+    // `songIDs` (orfani inclusi) mentre i minuti venivano già da `estimatedDuration(for:)`, che
+    // è `resolve(...).songs.reduce(...)` (`QBeatsStore.swift:166-168`, risolti soltanto) — «5
+    // songs · 12 min» dove i 12 minuti erano di 3 canzoni.
+    // ⛔ Toccato il SOLO conteggio. Il colore resta `QStageTheme.text2` (`:293`): è uno dei
+    // quattro elementi del ticket aperto `TD-qlive-token-text2r-non-onorato`, da fare in quel
+    // giro insieme agli altri tre, non qui.
     private func showMeta(_ show: Setlist) -> String {
-        let s = show.songIDs.count
+        let s = store.resolve(show).songs.count
         let songs = "\(s) \(s == 1 ? "song" : "songs")"
         let minutes = Int((store.estimatedDuration(for: show) / 60).rounded())
         guard minutes > 0 else { return songs }

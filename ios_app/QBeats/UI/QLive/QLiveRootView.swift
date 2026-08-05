@@ -12,7 +12,7 @@ import SwiftUI
 ///
 /// S4b (flip della root): la root interna è `QLiveShowsView` (frame ② Shows);
 /// la navigazione INTERNA della stanza è `page` + funnel `navigate(to:)`.
-/// Il ramo `.detail` resta scaffold (EmptyView): i mutatori arrivano con S5/S6.
+/// Il ramo `.detail` da ⟦S5a⟧ rende `QLiveShowDetailView` (era scaffold EmptyView fino a S4b).
 /// Il ramo `.metronome` porta da ⟦S4R⟧ il gate `if let runner` sulla sessione.
 ///
 /// INVARIANTI (gate Nodo A — non derogabili):
@@ -44,6 +44,8 @@ struct QLiveRootView: View {
     private enum QLivePage { case shows, detail, metronome }
 
     @State private var page: QLivePage = .shows
+    /// Show selezionata per il dettaglio — il payload separato di cui sopra (:42-43). ⟦S5a⟧.
+    @State private var selectedSetlist: Setlist? = nil
 
     /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
     /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
@@ -90,9 +92,19 @@ struct QLiveRootView: View {
     var body: some View {
         switch page {
         case .shows:
-            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage, onSelectShow: { show in
+                selectedSetlist = show
+                navigate(to: .detail)
+            })
         case .detail:
-            EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+            // ⟦S5a⟧: raggiunge QLiveShowDetailView col payload separato (:47). Ramo `else`
+            // difensivo — non dovrebbe accadere (unico chiamante di navigate(.detail) è
+            // onSelectShow sopra, che valorizza selectedSetlist nello stesso gesto).
+            if let show = selectedSetlist {
+                QLiveShowDetailView(setlist: show, onBack: { navigate(to: .shows) })
+            } else {
+                EmptyView()
+            }
         case .metronome:
             // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
             if let runner = roomSession.runner {
