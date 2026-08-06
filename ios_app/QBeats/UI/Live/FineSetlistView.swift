@@ -5,6 +5,16 @@ struct FineSetlistView: View {
     /// Propagato a `OverlayStopButtonStyle` con lo stesso valore ricevuto
     /// da `LiveView` (denominatore 390pt unico in tutta la Vista LIVE).
     let scaleFactor: CGFloat
+    /// ⟦S5x⟧ (A64) — tap su BACK TO SHOWS. Comportamento ratificato
+    /// `LIBRO_MASTRO_QBEATS.md:154` (R-CD5-10, 21/05): «torna alla libreria SHOWS».
+    /// Closure OPACA e OBBLIGATORIA (niente default no-op: un default rifarebbe il
+    /// bottone morto): questa vista non sa nulla di sessione né di navigazione —
+    /// la composizione delle azioni vive nel presentatore (`LiveView`, unico callsite),
+    /// che possiede la sessione.
+    /// ⛔ RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
+    /// (CD-3)» (`LIBRO:153`), mai ratificato — cablarlo, disabilitarlo o
+    /// nasconderlo è decisione CD, non di questo atomo.
+    let onBackToShows: () -> Void
 
     var body: some View {
         ZStack {
@@ -16,7 +26,7 @@ struct FineSetlistView: View {
                     .tracking(2)
 
                 VStack(spacing: 12) {
-                    Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }
+                    Button("BACK TO SHOWS") { onBackToShows() }
                         .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
                     Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
                         .buttonStyle(OverlayStopButtonStyle(primary: false, scaleFactor: scaleFactor))

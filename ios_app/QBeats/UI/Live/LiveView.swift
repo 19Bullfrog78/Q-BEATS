@@ -142,7 +142,25 @@ struct LiveView: View {
                 }
 
                 if case .fineSetlist = session.playbackState {
-                    FineSetlistView(scaleFactor: scaleFactor)
+                    // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
+                    // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
+                    //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
+                    //      di `page` è NON SORGENTATO (QLiveRootView.swift:64-67): se
+                    //      LiveView NON si smontasse, senza questo reset il prossimo
+                    //      ingresso al player si aprirebbe direttamente su END SHOW.
+                    //      Scrittura INERTE a motore già fermo (SetlistRunner:378):
+                    //      `LiveSession.playbackState` è @Published nudo, zero didSet
+                    //      (LiveSession.swift:35); la guardia `case .standby, .fineSetlist:
+                    //      return` più sotto NON è su questo percorso — ascolta il MOTORE
+                    //      (audioEngine.$playbackState), non la sessione.
+                    //  (b) onExit — il seam del presentatore (QLiveRootView.swift:157,
+                    //      `navigate(to: .shows)`): stesso identico canale già usato
+                    //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+                    //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
+                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
+                        session.playbackState = .stopped
+                        onExit()
+                    })
                 }
 
                 // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR
