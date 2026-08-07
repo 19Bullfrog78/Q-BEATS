@@ -1,0 +1,513 @@
+<!doctype html>
+<!--
+================================================================================
+ CD · FREEZE CONSOLIDATO — Q-LIVE › SHOWS (livello 1) + dettaglio (livello 2)
+ NOME FILE  2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844.html
+ REVISIONE  rev2 — SOSTITUISCE l'upload precedente di oggi (difetti di layout
+            nelle annotazioni: riquadri sfasati e collisione col pannello di
+            testata). Questa è la buona. Cestinare l'altra.
+ STATO      ❄ FREEZE. Sostituisce i TRE file del 02/08 come riferimento unico:
+              · 2026-08-02_QLive-Shows-Card-Hevy_390x844.html        (forma card + A-bis + «···»)
+              · 2026-08-02_QLive-Shows-Start-ViewChoice__3-vie.html  (confronto Ⓐ/Ⓑ, Ⓐ scelta)
+              · 2026-08-02_QLive-ShowDetail-S5_390x844.html          (frame ③ / ⟦S5⟧)
+            I tre restano agli atti come storia. Da qui in avanti si cita QUESTO.
+ FOGLIO     390×844 · schermata di livello 1 = lista scrollabile + fascia metronomo fissa
+ UI EN · annotazioni IT · CD non scrive Swift: le note di implementazione sono
+ prescrizioni di comportamento, non codice.
+
+ DECISO DA MAURO 02/08 — riportato, NON ridiscusso:
+   · vince Ⓐ START DIVISO sulla card · Ⓑ scartata · Ⓒ eliminata
+   · default SEMPRE «Auto view» (non «ultima usata»)
+   · «List view» si sceglie a mano e vale PER QUEL SOLO AVVIO — nessuna memoria
+   · nomi ufficiali: «Auto view» · «List view»
+   · perimetro: lo Start diviso vale SOLO sulla card. Il piede del dettaglio NON è diviso.
+
+ DUE COSE CHE IL REFEREE HA CHIESTO DI NON PERDERE — entrambe dentro:
+   (a) tap sul corpo della card = APRE IL DETTAGLIO (invariato dal freeze 24/07:
+       «aggiungiamo una scorciatoia, non ne sostituiamo una»). Pannello ①.
+   (b) mappa dei QUATTRO bersagli tattili + priorità di hit-test. Pannello ①.
+
+ TRE COSE MISURATE, non ricordate:
+   · il `.viewtoggle` del dettaglio NON esiste a HEAD (tolto per equivoco) →
+     qui è prescritto in modo da essere RICOSTRUIBILE DA ZERO. Pannello ②.
+   · il salto 23 vs 29 NON era intenzionale → nuovi valori. Pannello ③.
+   · «corpo Start ≈332pt» scritto il 02/08 era SBAGLIATO: misura vera 265pt. Pannello ①.
+
+ ANNOTAZIONI SUI FRAME — metodo, dopo il difetto di rev1:
+   i riquadri tratteggiati sono posati sulle coordinate REALI degli elementi,
+   lette a fonte sul rendering (non stimate). Le etichette non stanno più sopra
+   il contenuto: sul frame c'è solo un pallino numerato all'angolo, e la legenda
+   sta FUORI dal telefono, nella colonna di note sotto.
+================================================================================
+-->
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Q-Live › Shows — FREEZE CONSOLIDATO · 390×844 · 06/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);--qlive-pick:#1a1614;--text:#fff;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--line:rgba(255,255,255,0.08);--disabled:0.4;--tag-pending:rgba(255,255,255,0.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:3700px;position:relative;-webkit-font-smoothing:antialiased;}
+a{color:#9a6800;text-decoration:none;}a:hover{color:#c48a10;}
+.btitle{position:absolute;left:56px;top:30px;width:1300px;color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#b1281f;}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty;}
+.btitle p b{color:#16140f;}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.testata{position:absolute;left:1400px;top:30px;width:1304px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px;}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0;}
+.testata .anc b{color:#fff;}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09);}
+.trow:first-of-type{border-top:0;}
+.trow .k{flex:0 0 150px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093;}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty;}
+.trow .v b{color:#fff;}.trow .v .no{color:#ff9a8a;font-weight:700;}
+.trow.stop .k{color:#ff9a8a;}
+.testata .note{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.12);font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.55;color:rgba(255,255,255,0.60);}
+.testata .note b{color:#fff;}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:400px;flex-wrap:wrap;}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4);}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;}
+.stt.fz{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.stt.re{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);}
+.stt.done{color:#5a5a5a;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.14);}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5);display:flex;flex-direction:column;background:var(--qlive-bg);}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff;}
+.sb .r{display:flex;gap:7px;align-items:center;}
+.roombar{height:54px;flex:0 0 54px;display:flex;align-items:center;justify-content:center;padding:0 14px;position:relative;}
+.homebtn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;color:var(--text2r);position:absolute;left:14px;top:50%;transform:translateY(-50%);}
+.roomseg{display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:4px;gap:3px;}
+.roomseg .opt{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:9px;color:var(--text3);min-height:34px;display:inline-flex;align-items:center;}
+.roomseg .opt.live-on{color:#fff;background:rgba(212,63,0,0.24);border:1px solid rgba(212,63,0,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+.scrhead{display:flex;align-items:baseline;justify-content:space-between;padding:6px 18px 11px;}
+.scrhead h1{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1;}
+.scrhead .cnt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.4px;}
+.searchrow{display:flex;gap:8px;padding:0 16px 12px;}
+.search{flex:1;height:44px;border-radius:12px;background:var(--qlive-surf);border:1px solid var(--qlive-bd);display:flex;align-items:center;gap:9px;padding:0 12px;color:var(--text2r);}
+.search .ph{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.3px;}
+.cardlist{flex:1;overflow-y:auto;padding:0 16px 4px;display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--qlive-surf);border:1px solid var(--qlive-bd);border-radius:16px;padding:15px 15px 14px;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);position:relative;}
+.card.pick{border-color:rgba(212,63,0,0.42);background:var(--qlive-pick);}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;}
+.card .nm{font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.15;}
+.card .mt{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text2r);letter-spacing:0.3px;margin-top:5px;}
+.dots{width:44px;height:44px;margin:-9px -9px 0 0;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text2r);flex:0 0 auto;}
+.prev{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:var(--text2r);margin-top:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.gosplit{margin-top:13px;height:52px;border-radius:14px;display:flex;overflow:hidden;box-shadow:0 5px 16px rgba(212,63,0,0.30);}
+.gosplit .main{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .sep{width:1.5px;background:rgba(0,0,0,0.30);}
+.gosplit .alt{width:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .alt .t{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;opacity:0.9;}
+.pop{margin-top:11px;background:#1d1d22;border:1px solid rgba(255,255,255,0.14);border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.5);}
+.pop .r{display:flex;align-items:center;gap:12px;padding:0 15px;min-height:56px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.pop .r:last-child{border-bottom:0;}
+.pop .r .ic{width:22px;flex:0 0 auto;color:var(--text2r);display:flex;align-items:center;justify-content:center;}
+.pop .r.on .ic{color:var(--live-l);}
+.pop .r .tx{flex:1;min-width:0;}
+.pop .r .n{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.1px;}
+.pop .r .d{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text2r);margin-top:2px;letter-spacing:0.2px;}
+.pop .r .ck{width:18px;flex:0 0 auto;color:var(--live-l);}
+.swwrap{position:relative;border-radius:16px;overflow:hidden;flex:0 0 auto;}
+.swwrap .swipeact{position:absolute;right:0;top:0;bottom:0;width:104px;background:var(--stop);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#fff;}
+.swwrap .swipeact .t{font-size:13px;font-weight:700;letter-spacing:-0.1px;}
+.swwrap .card{transform:translateX(-104px);}
+.swhint{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2r);display:flex;align-items:center;gap:6px;padding:1px 2px 0;}
+.metrofab{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 0 26px;background:linear-gradient(to top,var(--qlive-bg) 62%,rgba(14,14,16,0));}
+.metrofab .c{width:60px;height:60px;border-radius:50%;background:rgba(212,63,0,0.14);border:1.5px solid rgba(212,63,0,0.5);display:flex;align-items:center;justify-content:center;color:var(--live-l);box-shadow:0 6px 18px rgba(0,0,0,0.55);}
+.metrofab .l{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text2r);text-transform:uppercase;}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.58);}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#17171b;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;padding:10px 10px 24px;box-shadow:0 -14px 40px rgba(0,0,0,0.5);}
+.handle{width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22);margin:2px auto 13px;}
+.sheettitle{text-align:center;font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.1px;padding:0 6px 3px;}
+.sheetsub{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text2r);padding:0 6px 14px;letter-spacing:0.3px;}
+.act{display:flex;align-items:center;gap:13px;min-height:56px;padding:0 12px;border-radius:12px;color:#fff;font-size:16px;font-weight:500;letter-spacing:-0.1px;}
+.act .ic{width:24px;flex:0 0 auto;color:var(--text2r);display:flex;align-items:center;justify-content:center;}
+.act.del{color:var(--stop);}.act.del .ic{color:var(--stop);}
+.sheetgap{height:9px;}
+.navbar{height:50px;flex:0 0 50px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.navbar .back{display:flex;align-items:center;gap:5px;color:var(--live-l);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.4px;}
+.dhead{padding:6px 18px 10px;}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.dhrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px;}
+.ro{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;margin-top:4px;}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;}
+.songrow{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--live-l);width:18px;text-align:right;flex:0 0 auto;}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0;}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto;}
+.songrow .stag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:6px;flex:0 0 auto;}
+.crail.pending{background:var(--tag-pending);}
+.stag.pending{background:rgba(255,255,255,0.06);color:var(--text2);border:1px dashed rgba(255,255,255,0.28);}
+.startfoot{flex:0 0 auto;padding:14px 18px 20px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0));}
+.viewtoggle{display:flex;gap:9px;margin-bottom:12px;}
+.viewtoggle .pill{flex:1;text-align:center;padding:12px 0;border-radius:24px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.viewtoggle .pill.on{border:2px solid var(--live);background:rgba(212,63,0,0.12);color:var(--live-l);}
+.viewtoggle .pill.off{border:1.5px solid rgba(255,255,255,0.15);color:var(--text3);}
+.startbtn{height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;background:linear-gradient(150deg,#e8571c,#c8360a);box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3);color:#fff;}
+.hz{position:absolute;border:2px dashed;border-radius:10px;pointer-events:none;}
+.hzb{position:absolute;width:18px;height:18px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#16140f;box-shadow:0 1px 4px rgba(0,0,0,0.6);}
+.leg{display:flex;flex-direction:column;gap:4px;}
+.leg .li{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.4;color:#16140f;}
+.leg .li .k{width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.leg .li b{color:#000;}
+.delta{position:absolute;width:390px;display:flex;flex-direction:column;gap:6px;}
+.delta .d{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.45;color:#16140f;background:#fff;border:1px solid rgba(0,0,0,0.10);border-left:3px solid #28cd41;border-radius:8px;padding:8px 11px;box-shadow:0 4px 14px rgba(0,0,0,0.07);text-wrap:pretty;}
+.delta .d b{color:#0d6b2b;}
+.delta .d.warn{border-left-color:#f5b820;}.delta .d.warn b{color:#8a6d1a;}
+.delta .d.bad{border-left-color:#b1281f;}.delta .d.bad b{color:#8a2a1a;}
+.delta .d.key{border-left-color:#16140f;background:#16140f;color:#f0ece2;}
+.delta .d.key b{color:#ffd35a;}
+.delta .d code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+.panel{position:absolute;background:#fff;border:1px solid rgba(0,0,0,0.10);border-radius:16px;padding:22px 24px;box-shadow:0 8px 26px rgba(0,0,0,0.10);}
+.panel h3{font-size:16px;font-weight:800;color:#161616;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.panel h3 .tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;padding:3px 8px;border-radius:6px;background:#0d6b2b;}
+.panel h3 .tag.w{background:#8a5a00;}.panel h3 .tag.r{background:#b1281f;}
+.panel .lead{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.62;color:rgba(0,0,0,0.72);margin:10px 0 0;text-wrap:pretty;}
+.panel .lead b{color:#000;}
+.panel .lead code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.qa{margin-top:14px;}
+.qa .q{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;color:#161616;margin-bottom:4px;}
+.qa .q .num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;background:#0d6b2b;min-width:22px;height:22px;padding:0 5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.qa .q .num.w{background:#8a5a00;}.qa .q .num.r{background:#b1281f;}
+.qa .a{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.72);padding-left:31px;text-wrap:pretty;}
+.qa .a b{color:#000;}
+.qa .a code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.qa .a .no{color:#b1281f;font-weight:700;}.qa .a .am{color:#8a5a00;font-weight:700;}
+.pdiv{height:1px;background:rgba(0,0,0,0.1);margin:16px 0;}
+.tt{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-top:12px;}
+.tt th{text-align:left;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,0,0,0.45);padding:0 10px 7px 0;border-bottom:1px solid rgba(0,0,0,0.10);}
+.tt td{padding:8px 10px 8px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:rgba(0,0,0,0.72);vertical-align:top;line-height:1.5;}
+.tt td b{color:#000;}
+.tt code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:5px;color:#333;}
+.tt .pr{font-weight:800;color:#fff;background:#16140f;border-radius:5px;padding:2px 7px;display:inline-block;}
+.tt .old{color:#b1281f;text-decoration:line-through;}
+.tt .new{color:#0d6b2b;font-weight:800;}
+.gatebox{background:#1c1608;border:1px solid rgba(245,184,32,0.5);border-radius:12px;padding:15px 17px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#f3e2b0;text-wrap:pretty;}
+.gatebox .k{color:#ffd35a;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:9px;display:block;margin-bottom:9px;}
+.gatebox b{color:#fff;}
+.gatebox code{background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.callout{margin-top:14px;border-left:3px solid #b1281f;background:rgba(177,40,31,0.05);border-radius:0 10px 10px 0;padding:12px 15px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.75);text-wrap:pretty;}
+.callout b{color:#000;}
+.callout code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:4px;}
+.callout.ok{border-left-color:#0d6b2b;background:rgba(40,205,65,0.06);}
+.callout.dep{border-left-color:#8a5a00;background:rgba(245,184,32,0.07);}
+.stack{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+.lay{display:flex;align-items:flex-start;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:rgba(0,0,0,0.74);background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);border-radius:9px;padding:9px 12px;text-wrap:pretty;}
+.lay .z{flex:0 0 74px;font-size:8.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#fff;background:#16140f;border-radius:5px;padding:3px 6px;text-align:center;}
+.lay .z.hi{background:#b1281f;}.lay .z.mid{background:#8a5a00;}.lay .z.lo{background:#5a5a5a;}
+.lay b{color:#000;}
+.lay code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#0e0e10">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0e0e10"/><rect x="18" y="30" width="64" height="18" rx="5" fill="#16161a" stroke="rgba(255,255,255,0.18)"/><rect x="18" y="54" width="42" height="18" rx="5" fill="#d43f00"/><rect x="64" y="54" width="18" height="18" rx="5" fill="#e8571c" stroke="rgba(0,0,0,0.4)"/></svg>
+</template>
+
+<div class="btitle">
+  <div class="kick">CD · Freeze consolidato · 06/08/2026 · sostituisce i tre file del 02/08</div>
+  <h1>Q-Live › Shows — forma card, Start diviso, scelta della vista</h1>
+  <p>Un file solo per <b>tutto il percorso di avvio</b>: livello 1 (card + Start diviso + swipe + «···») e livello 2 (dettaglio brani + toggle vista sopra Start). Le cinque schermate qui sotto sono <b>il contratto</b>; i pannelli dicono <b>cosa deve fare il dito</b> e <b>cosa cambia rispetto a quello che è cablato oggi a HEAD</b>. Tre reperti misurati, non ricordati: il <code>.viewtoggle</code> del dettaglio <b>non esiste più a HEAD</b> → qui è ricostruibile da zero · il salto <b>23 vs 29</b> del titolo di dettaglio <b>non era intenzionale</b> → valori nuovi · «corpo Start ≈332pt» scritto il 02/08 <b>era sbagliato</b> → misura vera <b>265pt</b>.</p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">❄ Freeze consolidato</span><span class="anc">CD <b>06/08/2026</b> · foglio <b>390×844</b> · sostituisce i tre file del <b>02/08</b> (che restano agli atti come storia)</span></div>
+  <div class="trow"><div class="k">Schermo</div><div class="v"><b>Livello 1 = lista SCROLLABILE</b> (<code>.cardlist</code>) con <b>chrome fisso in alto</b> (status · room switch · titolo · ricerca) e <b>fascia metronomo FISSA al fondo</b>. <b>Livello 2 = lista brani scrollabile</b> (<code>.songlist</code>) con <b>piede Start fisso</b> (<code>.startfoot</code>). La scelta della vista <b>non tocca la geometria</b>: nessuna delle due schermate cambia forma per via di Auto/List.</div></div>
+  <div class="trow"><div class="k">Decisioni portate</div><div class="v">Mauro <b>02/08</b>: vince <b>Ⓐ Start diviso</b> (Ⓑ scartata, Ⓒ eliminata) · default <b>SEMPRE Auto view</b> · <b>List view</b> a mano, valida <b>per quel solo avvio</b> · nomi <b>«Auto view» / «List view»</b> · lo Start diviso vale <b>SOLO sulla card</b>. Riportate, <span class="no">non ridiscusse</span>.</div></div>
+  <div class="trow"><div class="k">Invariante che regge tutto</div><div class="v">Lo <b>switch Auto ↔ List a play iniziato è già ratificato</b>. Nessuna scelta fatta qui è irreversibile: <b>non stiamo progettando un bivio senza ritorno</b>, stiamo scegliendo quanto costa la partenza.</div></div>
+  <div class="trow"><div class="k">Perimetro NON toccato</div><div class="v">Il <code>.startfoot</code> del dettaglio resta <b>un pulsante singolo</b>: <span class="no">non</span> si divide. La <b>copy e la forma del popup Remove</b> (ratificate 26–27/07) sono riprodotte 1:1, <b>non riaperte</b>. Le voci «···» restano <b>le tre dell'Opzione C 27/07</b>.</div></div>
+  <div class="trow stop"><div class="k">⛔ Vincolo duro</div><div class="v"><b>Nessun bersaglio sotto 44pt</b>, in nessuno dei quattro della card. Se il gate device dice che due bersagli adiacenti danno fastidio, il rimedio è <b>SEPARARLI</b> — <span class="no">mai</span> rimpicciolire «view».</div></div>
+  <div class="note"><b>Ancoraggio.</b> CD non ha accesso a git: cita per <b>selettore</b>, non per riga. I riferimenti a HEAD in questo file (<code>.viewtoggle</code> assente · gesto unico sulla card · 8 font su 8 conformi al contratto 11/07) sono <b>misure del referee</b>, riportate come tali e non verificate da CD in prima persona. Le misure <b>in pt dei bersagli</b> sono invece prese da CD <b>a fonte sul rendering</b> di questo stesso file.</div>
+</div>
+
+<!-- ══ FRAME Ⓐ · CARD + START DIVISO ══ -->
+<div class="flbl" style="left:56px; top:456px;"><span class="b">Ⓐ Livello 1 · card + Start diviso</span><span class="stt fz">CONTRATTO</span></div>
+<div class="frame" style="left:56px; top:518px;" data-screen-label="Q-Live Shows — card + Start diviso [contratto]">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="roombar"><div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card pick">
+      <div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div>
+      <div class="gosplit">
+        <div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div>
+        <div class="sep"></div>
+        <div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chead"><div><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Aria Ferma, Circuz, Nebbia Bassa, Vertigine, Kerosene, Siderale, Fondale, Ultimo Treno</div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div></div>
+    </div>
+  </div>
+  <div class="metrofab"><div class="c"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M9 3h6l3.2 18H5.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 20l3.2-11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.7" cy="9.5" r="1.5" fill="currentColor"/></svg></div><div class="l">Metronome</div></div>
+  <div class="hz" style="left:16px; top:200px; width:356px; height:162px; border-color:rgba(120,190,255,0.85);"></div>
+  <div class="hzb" style="left:7px; top:191px; background:rgba(120,190,255,0.95);">1</div>
+  <div class="hz" style="left:32px; top:295px; width:265px; height:52px; border-color:rgba(255,255,255,0.92);"></div>
+  <div class="hzb" style="left:23px; top:344px; background:#fff;">2</div>
+  <div class="hz" style="left:298px; top:295px; width:58px; height:52px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:347px; top:344px; background:#ffd35a;">3</div>
+  <div class="hz" style="left:321px; top:207px; width:44px; height:44px; border-color:rgba(255,140,120,0.95);"></div>
+  <div class="hzb" style="left:312px; top:198px; background:#ff8c78;">4</div>
+</div>
+<div class="delta" style="left:56px; top:1382px;">
+  <div class="d" style="border-left-color:#3d7fc4;"><b style="color:#1f5a94">Legenda dei riquadri sul frame</b> — misure prese a fonte sul rendering, non a occhio.<div class="leg" style="margin-top:7px;"><div class="li"><span class="k" style="background:rgba(120,190,255,0.95)">1</span><span><b>corpo card</b> 356×162 → apre il dettaglio · <b>priorità minima</b></span></div><div class="li"><span class="k" style="background:#e8e4db;border:1px solid rgba(0,0,0,0.2)">2</span><span><b>Start show</b> 265×52 → avvia in Auto view</span></div><div class="li"><span class="k" style="background:#ffd35a">3</span><span><b>segmento view</b> 58×52 → apre il chooser</span></div><div class="li"><span class="k" style="background:#ff8c78">4</span><span><b>«···»</b> 44×44 → menu · <b>priorità massima</b></span></div></div></div>
+  <div class="d"><b>Chi non sceglie non paga.</b> Tap sul corpo grande = parte <b>sempre in Auto view</b>. Nessuna memoria, nessuna sorpresa: stesso gesto, stessa cosa, sempre.</div>
+  <div class="d"><b>(a) Il tap sul corpo della card apre il DETTAGLIO</b> — invariato dal freeze 24/07, già cablato così a HEAD. Lo Start diviso <b>aggiunge una scorciatoia, non ne sostituisce una</b>. Confermato esplicitamente qui perché è la cosa più facile da perdere in un consolidamento.</div>
+  <div class="d warn"><b>Misura corretta:</b> il 02/08 avevo scritto «corpo Start ≈332pt». <b>È sbagliato.</b> Card 356 − padding 30 = <b>326pt</b> di riga; meno segmento 58 e separatore 1,5 → <b>Start = 265pt</b> (misurato a fonte sul rendering, non stimato). Il gate device va provato su <b>265 + 58</b>, non su 332 + 58.</div>
+  <div class="d key">Auto view = <b>1 tocco</b> · List view = <b>2 tocchi</b> · dettaglio = <b>1 tocco</b></div>
+</div>
+
+<!-- ══ FRAME Ⓑ · CHOOSER APERTO ══ -->
+<div class="flbl" style="left:500px; top:456px;"><span class="b">Ⓑ Chooser vista · ancorato alla card</span><span class="stt fz">CONTRATTO</span></div>
+<div class="frame" style="left:500px; top:518px;" data-screen-label="Q-Live Shows — chooser vista aperto">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="roombar"><div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card pick">
+      <div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div>
+      <div class="pop">
+        <div class="r on"><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 11.5h9M7.5 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div class="tx"><div class="n">Auto view</div><div class="d">sezione gigante · conta lui</div></div><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+        <div class="r"><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div class="tx"><div class="n">List view</div><div class="d">tutte le sezioni, come sul foglio</div></div></div>
+      </div>
+      <div class="gosplit">
+        <div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div>
+        <div class="sep"></div>
+        <div class="alt" style="background:linear-gradient(150deg,#f0703a,#d1450f);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chead"><div><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Aria Ferma, Circuz, Nebbia Bassa, Vertigine, Kerosene, Siderale, Fondale, Ultimo Treno</div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div></div>
+    </div>
+  </div>
+  <div class="metrofab"><div class="c"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M9 3h6l3.2 18H5.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 20l3.2-11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.7" cy="9.5" r="1.5" fill="currentColor"/></svg></div><div class="l">Metronome</div></div>
+</div>
+<div class="delta" style="left:500px; top:1382px;">
+  <div class="d"><b>Ancorato alla card, non modale a schermo pieno:</b> resti nel contesto, vedi ancora di che show si tratta.</div>
+  <div class="d"><b>Scelta = avvio.</b> Tocchi «List view» e <b>parte</b> in List view: non c'è un secondo Start da premere.</div>
+  <div class="d"><b>Vale per QUESTO avvio soltanto.</b> Il pulsante grande torna sempre ad Auto view. È il punto che uccide lo stato invisibile.</div>
+  <div class="d warn"><b>Righe da 56pt</b> (≥44) · il chooser si chiude con un tap fuori o con la scelta. Nessun «Cancel» dedicato: chiudere senza scegliere <b>non avvia niente</b>.</div>
+</div>
+
+<!-- ══ FRAME Ⓒ · SWIPE A-BIS ══ -->
+<div class="flbl" style="left:944px; top:456px;"><span class="b">Ⓒ Swipe A-bis · trailing</span><span class="stt fz">CONSERVATA</span></div>
+<div class="frame" style="left:944px; top:518px;" data-screen-label="Q-Live Shows — swipe trailing su card [A-bis]">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="roombar"><div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="swwrap">
+      <div class="swipeact"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9.5 7V4.8h5V7M6.4 7l.9 12.2h9.4L17.6 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Remove</span></div>
+      <div class="card pick">
+        <div class="chead"><div><div class="nm">Prove giovedì</div><div class="mt">5 songs</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+        <div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div>
+        <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div></div>
+      </div>
+    </div>
+    <div class="swhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>swipe · trailing</div>
+    <div class="card">
+      <div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div></div>
+    </div>
+  </div>
+  <div class="metrofab"><div class="c"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M9 3h6l3.2 18H5.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 20l3.2-11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.7" cy="9.5" r="1.5" fill="currentColor"/></svg></div><div class="l">Metronome</div></div>
+</div>
+<div class="delta" style="left:944px; top:1382px;">
+  <div class="d"><b>Additiva, non alternativa:</b> i «···» restano su ogni card. Chi non scopre il gesto trova comunque la via visibile — è la ragione per cui lo swipe da solo era stato scartato.</div>
+  <div class="d"><b>Endpoint unico:</b> swipe e menu portano <b>alla stessa conferma</b> (copy ratificata 26/07, forma ② ratificata 27/07). Una conferma sola da costruire.</div>
+  <div class="d warn"><b>Il conflitto vero non è col tap, è con lo scroll.</b> Il drag orizzontale deve <b>perdere</b> finché l'asse non è deciso: soglia <b>20pt</b> e blocco d'asse, altrimenti lo scroll verticale della lista si strappa. Regola nel pannello ①.</div>
+  <div class="d key">Remove: swipe <b>1+2</b> · menu <b>3 tocchi</b></div>
+</div>
+
+<!-- ══ FRAME Ⓓ · MENU ··· ══ -->
+<div class="flbl" style="left:1388px; top:456px;"><span class="b">Ⓓ Menu «···» · tre voci</span><span class="stt done">EREDITATO 27/07 · non riaperto</span></div>
+<div class="frame" style="left:1388px; top:518px;" data-screen-label="Q-Live Shows — menu contestuale card">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="roombar"><div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card pick">
+      <div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div></div>
+      <div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="t">view</span></div></div>
+    </div>
+  </div>
+  <div class="metrofab"><div class="c"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M9 3h6l3.2 18H5.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 20l3.2-11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.7" cy="9.5" r="1.5" fill="currentColor"/></svg></div><div class="l">Metronome</div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheettitle">Milano Assago 20 Jul</div>
+    <div class="sheetsub">5 songs · 21 min</div>
+    <div class="act"><span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>View songs</div>
+    <div class="act"><span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8"/><path d="M12 8.4v4l2.6 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>Start options…</div>
+    <div class="sheetgap"></div>
+    <div class="act del"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9.5 7V4.8h5V7M6.4 7l.9 12.2h9.4L17.6 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Remove from Q-Live</div>
+  </div>
+</div>
+<div class="delta" style="left:1388px; top:1382px;">
+  <div class="d"><b>Le tre voci dell'Opzione C 27/07</b>, portate sulla card e <b>non riaperte</b>: View songs · Start options… · Remove from Q-Live.</div>
+  <div class="d warn"><b>Ridondanza dichiarata, non nascosta.</b> Col Start diviso, «Start options…» fa <b>la stessa cosa</b> del segmento «view». La tengo perché è la <b>via visibile</b> per chi non riconosce il pulsante diviso — stessa logica per cui i «···» sopravvivono allo swipe. <b>Se Mauro la vuole togliere, si toglie in una riga</b> e il freeze non si muove d'altro.</div>
+  <div class="d"><b>Voci ≥56pt</b> · Remove staccato in basso, isolato dal <code>.sheetgap</code>, rosso <code>#ff3b30</code>. Forma già ratificata.</div>
+</div>
+
+<!-- ══ FRAME Ⓔ · DETTAGLIO + VIEWTOGGLE ══ -->
+<div class="flbl" style="left:1832px; top:456px;"><span class="b">Ⓔ Livello 2 · dettaglio + toggle vista</span><span class="stt re">DA RICOSTRUIRE · assente a HEAD</span></div>
+<div class="frame" style="left:1832px; top:518px;" data-screen-label="Q-Live Show detail — toggle vista sopra Start [ricostruire]">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"/></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start show</div>
+  </div>
+  <div class="hz" style="left:216px; top:47px; width:158px; height:44px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:207px; top:38px; background:#ffd35a;">a</div>
+  <div class="hz" style="left:18px; top:100px; width:260px; height:61px; border-color:rgba(120,190,255,0.85);"></div>
+  <div class="hzb" style="left:269px; top:95px; background:rgba(120,190,255,0.95);">b</div>
+  <div class="hz" style="left:18px; top:710px; width:352px; height:44px; border-color:rgba(255,140,120,0.95);"></div>
+  <div class="hzb" style="left:9px; top:701px; background:#ff8c78;">c</div>
+</div>
+<div class="delta" style="left:1832px; top:1382px;">
+  <div class="d" style="border-left-color:#3d7fc4;"><b style="color:#1f5a94">Legenda dei riquadri sul frame</b><div class="leg" style="margin-top:7px;"><div class="li"><span class="k" style="background:#ffd35a">a</span><span>room switch <b>34pt</b> (era 30) — <code>.seg-mini</code> abolita</span></div><div class="li"><span class="k" style="background:rgba(120,190,255,0.95)">b</span><span>titolo <b>29px</b> (era 23) — qui a <b>due righe</b>, il caso limite</span></div><div class="li"><span class="k" style="background:#ff8c78">c</span><span><code>.viewtoggle</code> — <b>assente a HEAD</b>, da ricostruire</span></div></div></div>
+  <div class="d warn"><b>Il titolo lungo va a due righe — ed è voluto.</b> «Milano Assago 20 Jul» a 29px occupa <b>61pt su due righe</b>: è esattamente il caso limite che il contratto prescrive (<b>max 2 righe, poi troncamento</b>). Il frame lo mostra nello stato peggiore, non in quello comodo: se regge qui, regge sempre.</div>
+  <div class="d bad"><b>Questo pezzo NON è cablato.</b> Il <code>.viewtoggle</code> è stato tolto dall'implementazione per un equivoco (scambiato per lo Start diviso). Qui è prescritto <b>in modo da ricostruirlo da zero</b>: geometria, stati e comportamento nel pannello ②.</div>
+  <div class="d"><b>Il piede resta un pulsante SINGOLO</b> — perimetro Mauro 02/08. La scelta della vista qui è <b>sempre visibile sopra</b>, non nascosta in un segmento: è una schermata dove ti stai già fermando a leggere.</div>
+  <div class="d warn"><b>Due valori cambiano</b> rispetto al contratto 11/07: titolo <b>23→29</b> e segmento stanza <b>9px/30pt → 10,5px/34pt</b>. Motivo e misura nel pannello ③. Gli altri sei font restano <b>identici</b>.</div>
+</div>
+
+<!-- ══ PANNELLO ① · BERSAGLI TATTILI ══ -->
+<div class="panel" style="left:56px; top:1890px; width:866px;">
+  <h3>① I quattro bersagli della card <span class="tag r">NOTA TECNICA BLOCCANTE</span></h3>
+  <p class="lead">Il referee ha chiesto di dirlo chiaramente, ed è la cosa più importante di questo freeze: <b>oggi il codice ha UN gesto su TUTTA la card</b>. Con quattro bersagli, un gesto generico sul contenitore <b>se li mangia tutti</b>. Qui sotto: aree, misure e <b>ordine di priorità</b>.</p>
+  <table class="tt">
+    <tr><th>#</th><th>Bersaglio</th><th>Area tattile</th><th>Azione</th></tr>
+    <tr><td><span class="pr">④</span></td><td><b>«···»</b> · angolo alto-destra</td><td><b>44×44</b> (glifo 18px, margine negativo −9/−9: la <b>vista</b> sta nell'angolo, l'<b>area</b> resta piena)</td><td>apre il menu contestuale · Ⓓ</td></tr>
+    <tr><td><span class="pr">③</span></td><td><b>segmento «view»</b> · destra del pulsante</td><td><b>58×52</b></td><td>apre il chooser vista · Ⓑ</td></tr>
+    <tr><td><span class="pr">②</span></td><td><b>«Start show»</b> · corpo del pulsante</td><td><b>265×52</b> <span class="old">(non 332)</span></td><td>avvia <b>in Auto view</b>, sempre</td></tr>
+    <tr><td><span class="pr">①</span></td><td><b>corpo card</b> · tutto il resto</td><td>356×162 <b>meno</b> le tre aree sopra</td><td><b>apre il dettaglio</b> (livello 2)</td></tr>
+    <tr><td><span class="pr" style="background:#8a5a00">↔</span></td><td><b>swipe trailing</b> · sulla card intera</td><td>drag orizzontale, soglia <b>20pt</b>, asse bloccato</td><td>rivela «Remove» · Ⓒ</td></tr>
+  </table>
+  <div class="qa"><div class="q"><span class="num r">⚠</span>L'anti-pattern da non ripetere</div><div class="a">Un tap sul <b>contenitore</b> della card che copre anche i figli. In quel caso i tre bersagli sopra <b>o non ricevono niente</b>, o ricevono il tocco <b>dopo</b> che il contenitore l'ha già consumato — e il sintomo tipico è «premo Start e mi si apre il dettaglio», cioè <b>esattamente l'azione critica dell'app che fallisce al buio</b>.</div></div>
+  <div class="qa"><div class="q"><span class="num">✓</span>La forma prescritta, a parole</div><div class="a">Il tocco «apri dettaglio» <b>non sta sul contenitore</b>: sta su un <b>livello trasparente proprio, disteso sotto il contenuto</b>. I tre bersagli veri stanno <b>sopra</b> quel livello e lo coprono per costruzione. Non serve nessuna eccezione, nessun «ignora se il tocco cade dentro X»: <b>è la geometria dell'impilamento a decidere</b>, e la geometria non si dimentica di un caso.</div></div>
+  <div class="stack">
+    <div class="lay"><span class="z hi">sopra</span><div><b>④ «···»</b> — livello suo, non annidato nella riga del titolo: deve restare colpibile anche quando il nome dello show è lungo e va a due righe.</div></div>
+    <div class="lay"><span class="z mid">medio</span><div><b>② Start</b> + <b>③ view</b> — <b>due bersagli distinti dentro un pulsante che sembra uno</b>. Il separatore da 1,5px è l'unico segno visivo: deve restare visibile anche a luminosità 30% (Night Mode).</div></div>
+    <div class="lay"><span class="z lo">sotto</span><div><b>① corpo card</b> — livello trasparente a tutta card, <b>il più esteso e il meno prioritario</b>. Regola mnemonica: <b>il bersaglio più grande è quello che perde</b>.</div></div>
+    <div class="lay"><span class="z" style="background:#8a5a00">gesto</span><div><b>↔ swipe</b> — vive sul contenitore, ma <b>cede allo scroll verticale</b> finché l'asse non è deciso. Sotto i 20pt di spostamento <b>nessuno dei due vince</b>; oltre, vince quello con l'angolo dominante. Senza blocco d'asse, in una lista di card alte lo scroll si strappa.</div></div>
+  </div>
+  <div class="callout"><b>Il tap fuori dal chooser.</b> Con Ⓑ aperto, un tocco <b>ovunque fuori</b> lo chiude <b>senza avviare niente</b>. Va detto perché è l'unico caso in cui il corpo della card <b>non</b> apre il dettaglio: il primo tocco lo spende per chiudere. È lo stesso comportamento di un menu iOS — <b>si dichiara, non si scopre in prova</b>.</div>
+</div>
+
+<!-- ══ PANNELLO ② · COMPORTAMENTO VISTA ══ -->
+<div class="panel" style="left:962px; top:1890px; width:866px;">
+  <h3>② Il comportamento della vista — <b>uno solo, per due schermate</b> <span class="tag">ALLINEATO 06/08</span></h3>
+  <p class="lead">La riga di Mauro c'è, quindi l'allineamento si chiude qui. La regola è <b>una</b> e vale identica sulla card e nel dettaglio — se avesse due facce, la stessa decisione tornerebbe a mordere fra sei mesi.</p>
+  <div class="qa"><div class="q"><span class="num">1</span>La regola, in una riga</div><div class="a">La vista in cui si parte è una <b>scelta momentanea</b>, che nasce <b>sempre su «Auto view»</b>, <b>vive quanto dura la schermata</b> e <b>muore all'avvio</b>. <b>Non si salva. Non si eredita. Non si ricorda.</b></div></div>
+  <div class="qa"><div class="q"><span class="num">2</span>Cosa vuol dire sulla card (livello 1)</div><div class="a">Il corpo del pulsante parte in <b>Auto view</b>, sempre. Il segmento «view» apre il chooser; la scelta lì fatta <b>avvia subito</b> e vale <b>solo per quell'avvio</b>. Alla card successiva, e alla stessa card un minuto dopo, il pulsante grande è di nuovo Auto.</div></div>
+  <div class="qa"><div class="q"><span class="num">3</span>Cosa vuol dire nel dettaglio (livello 2)</div><div class="a">Entrando, il toggle mostra <b>sempre «Auto view» selezionato</b> — <span class="no">mai</span> l'ultima usata, <span class="no">mai</span> quella scelta al livello 1 da cui sei arrivato (se sei entrato dal corpo card, <b>non hai scelto niente</b>: sei entrato a leggere). Toccare «List view» <b>non avvia</b>: arma. Poi «Start show» parte in List view. <b>Uscire dalla schermata azzera la scelta.</b></div></div>
+  <div class="qa"><div class="q"><span class="num w">4</span>Perché due forme diverse per la stessa cosa</div><div class="a">Non è incoerenza, è <b>densità</b>. Al livello 1 sei in <b>modalità azione</b>, la scelta va nascosta perché nel 90% dei casi non serve: <b>1 tocco</b>. Al livello 2 ti sei <b>già fermato a leggere</b> la scaletta: lì la scelta si può permettere di essere <b>sempre visibile</b>, e costa 0 tocchi in più perché lo Start è comunque da premere. <b>Stessa semantica, costo adattato al contesto.</b></div></div>
+  <div class="pdiv"></div>
+  <h3>Ricostruire il <code>.viewtoggle</code> da zero <span class="tag r">ASSENTE A HEAD</span></h3>
+  <p class="lead">Sta <b>dentro <code>.startfoot</code>, sopra il pulsante</b>. Il piede resta <b>fisso</b>, non scorre con la lista brani.</p>
+  <table class="tt">
+    <tr><th>Elemento</th><th>Valore</th></tr>
+    <tr><td>Contenitore</td><td><code>.viewtoggle</code> · due pillole affiancate, <b>gap 9px</b>, <b>margin-bottom 12px</b> dal pulsante Start</td></tr>
+    <tr><td>Pillola</td><td>larghezza <b>a metà ciascuna</b> (flex 1) · <b>min-height 44pt</b> · radius <b>24px</b> · JetBrains Mono <b>11px</b> 700, letterSpacing 1,2 · <b>UPPERCASE</b></td></tr>
+    <tr><td>Stato <b>ON</b></td><td>bordo <b>2px</b> <code>#d43f00</code> · fondo <code>rgba(212,63,0,0.12)</code> · testo <code>#ff8a5c</code></td></tr>
+    <tr><td>Stato <b>OFF</b></td><td>bordo <b>1,5px</b> <code>rgba(255,255,255,0.15)</code> · <b>nessun fondo</b> · testo <code>rgba(255,255,255,0.30)</code></td></tr>
+    <tr><td>Etichette</td><td><b>«Auto view»</b> · <b>«List view»</b> — <span class="old">«Q-Live view»</span> non esiste più, in nessun punto dell'app</td></tr>
+    <tr><td>Stato iniziale</td><td><b>Auto view = ON</b>, a ogni ingresso nella schermata. <span class="new">Nessuna eccezione.</span></td></tr>
+    <tr><td>Pulsante Start</td><td><b>invariato</b>: <code>.startbtn</code> 56pt, singolo, etichetta <b>«Start show»</b> che <b>non cambia</b> col toggle. Il toggle dice cosa otterrai; il pulsante dice che parti.</td></tr>
+  </table>
+  <div class="callout ok"><b>Perché l'etichetta dello Start non cambia.</b> Tentazione naturale: «Start in List view». <b>No</b> — allunga il testo, lo fa saltare fra due lunghezze diverse, e mette <b>due volte</b> la stessa informazione a 12pt di distanza. Il toggle è <b>sopra e acceso</b>: quello è il posto dove si legge la modalità. Il pulsante ha un lavoro solo, e lo fa a lettere grandi.</div>
+</div>
+
+<!-- ══ PANNELLO ③ · FONT ══ -->
+<div class="panel" style="left:1868px; top:1890px; width:836px;">
+  <h3>③ Il rilievo font — <b>non era intenzionale</b> <span class="tag w">RISPOSTA + VALORI NUOVI</span></h3>
+  <p class="lead">Risposta netta alla domanda: <b>no, il salto 23 vs 29 non è una gerarchia voluta</b>. E la variante <code>.seg-mini</code> nemmeno. <b>Mauro ha ragione e il codice è giusto</b>: l'errore è nel mio contratto dell'11/07, e si corregge qui.</p>
+  <div class="qa"><div class="q"><span class="num r">✗</span>Cos'era davvero</div><div class="a">Una <b>taratura difensiva</b>, non una decisione. Il titolo del dettaglio è <b>contenuto utente</b> (il nome dello show, lunghezza libera) mentre «Shows»/«Songs» sono parole fisse e corte: a 29px temevo l'a-capo, e ho abbassato. La <code>.seg-mini</code> è nata dalla stessa paura in orizzontale — back + segmento sulla stessa riga da 50pt. <b>Ho pagato in leggibilità una paura di layout</b>, e sul palco a 60 cm quella paura non vale il prezzo.</div></div>
+  <div class="qa"><div class="q"><span class="num r">✗</span>Perché la gerarchia «subordinata» sarebbe stata comunque sbagliata</div><div class="a">Il titolo del dettaglio <b>non è subordinato a niente</b>: è il titolo <b>della schermata in cui sei</b>, ed è <b>l'unico posto</b> dove leggi <b>quale show stai per far partire</b>. È il dato più costoso da sbagliare di tutta la schermata. Rimpicciolirlo perché «è di secondo livello» inverte l'importanza: <b>la gerarchia si misura sul rischio, non sulla profondità di navigazione</b>.</div></div>
+  <table class="tt">
+    <tr><th>Selettore</th><th>Era (11/07)</th><th>Diventa</th><th>Perché</th></tr>
+    <tr><td><code>.dhead .nm</code></td><td class="old">23px</td><td class="new">29px</td><td>pari a <code>.scrhead h1</code>: è un titolo di schermata come gli altri. <b>Max 2 righe</b>, poi troncamento in coda. Due righe da 29 costano ~61pt su una lista scrollabile: <b>ci stanno</b> — il frame Ⓔ lo mostra proprio in quello stato.</td></tr>
+    <tr><td><code>.navbar .seg-mini .o</code></td><td class="old">9px · 30pt</td><td class="new">10,5px · 34pt</td><td><b>la variante «mini» sparisce</b>: si usa <code>.roomseg .opt</code> verbatim, come su ogni altra schermata. 34+3+3 = <b>40pt dentro una navbar da 50</b>: ci sta senza toccare l'altezza.</td></tr>
+  </table>
+  <div class="callout"><b>Un controllo che il refuso non ritorni.</b> Con la <code>.seg-mini</code> abolita, <b>il room switch è un componente solo</b> in tutta l'app, con una misura sola. Finché esistevano due varianti, «quale delle due» era una domanda aperta a ogni nuova schermata — e a ogni domanda aperta corrisponde, prima o poi, una risposta diversa. <b>Un controllo, una misura, nessuna domanda.</b></div>
+  <div class="qa"><div class="q"><span class="num">·</span>Cosa <b>non</b> cambia — dichiarato</div><div class="a">Gli altri <b>sei font su otto</b> del dettaglio restano <b>identici</b>: <code>.dhead .mt</code> 11 · <code>.songrow .nm</code> 16 · <code>.songrow .met</code> 12 · <code>.songrow .idx</code> 12 · <code>.startbtn</code> 15 · <code>.navbar .back</code> 12. <b>Non li tocco</b>: il rilievo di Mauro è su <b>titolo e pulsanti di stanza</b>, e allargare l'intervento a tutto perché «già che ci sono» è il modo in cui i contratti si sfilacciano. <b>Due valori misurati, due valori cambiati.</b></div></div>
+  <div class="callout dep"><b>⚠️ L'area tattile non era il problema, e non lo diventa.</b> Il referee ha misurato 50pt di hit-test verticale, <b>già ≥44</b>: <b>non era un difetto di usabilità</b>, era percezione visiva. Alzando il chrome visibile 30→34pt <b>l'area resta 50</b> e Q8 <b>non si riapre</b>: cambia solo quanto del bersaglio si <b>vede</b>. Chi implementa non deve toccare l'altezza della navbar.</div>
+</div>
+
+<!-- ══ PANNELLO ④ · Q7–Q16 ══ -->
+<div class="panel" style="left:56px; top:3000px; width:1300px;">
+  <h3>④ Del freeze Q7–Q16 (11/07): cosa resta vivo <span class="tag">DICHIARAZIONE RICHIESTA</span></h3>
+  <p class="lead">Il referee segnala che Q7–Q16 è superato su almeno tre punti. Confermo i tre e <b>dichiaro riga per riga</b> il resto, perché un freeze «superato in parte» senza elenco è peggio di un freeze morto: <b>si continua a citarlo per intero</b>.</p>
+  <table class="tt">
+    <tr><th>Voce</th><th>Stato</th><th>Nota</th></tr>
+    <tr><td><b>Q7</b> header · <code>.roombar.center</code>, <code>.roomseg.nm0</code>, «+» rimosso</td><td class="new">VIVA</td><td>è il chrome di Q-Live › Shows anche nella forma card. Invariata.</td></tr>
+    <tr><td><b>Q8</b> hit-test 50pt sul segmento stanza</td><td class="new">VIVA · <b>emendata</b></td><td>il <b>principio</b> (area ≥44, qui 50) resta intatto. Cambia solo il <b>chrome visibile</b>: 30→34pt, <code>.seg-mini</code> abolita. Pannello ③.</td></tr>
+    <tr><td><b>Q9</b> <code>.cta.quiet</code> · «dead» = solo disabilitato</td><td class="new">VIVA</td><td>invariata. Regola di stile ancora valida su tutti gli empty.</td></tr>
+    <tr><td><b>Q10</b> copy N-agnostica dell'empty all-orphan</td><td class="new">VIVA</td><td>invariata, e <b>riusata</b>: è la disciplina con cui è scritta la copy dell'empty metronomo.</td></tr>
+    <tr><td><b>Q11</b> sort sheet · Name A–Z + Concert date</td><td class="new">VIVA</td><td>Q-Stage › Shows. Fuori dal perimetro di questo freeze, non toccata.</td></tr>
+    <tr><td><b>Q12</b> copy impossibile nel binding dinamico</td><td class="new">VIVA</td><td>invariata.</td></tr>
+    <tr><td><b>Q13</b> empty · badge <code>dim</code> quando non c'è CTA</td><td class="new">VIVA</td><td>invariata, e <b>applicata</b> all'empty metronomo del 02/08.</td></tr>
+    <tr><td><b>Q14</b> «Chronological»</td><td class="new">VIVA</td><td>invariata.</td></tr>
+    <tr><td><b>Q15</b> Q-Stage → Q-Live eredita · chip rimosso</td><td class="new">VIVA</td><td>invariata.</td></tr>
+    <tr><td><b>Q16</b> ordinamento si azzera al riavvio</td><td class="new">VIVA</td><td>invariata — <b>e ora ha una sorella</b>: la scelta della vista segue la stessa filosofia (nessuna memoria). Non è un caso: <b>è la stessa regola applicata due volte</b>.</td></tr>
+    <tr><td><b>·</b> nomi delle viste</td><td class="old">SUPERATA</td><td>«Q-Live view» → <b>«Auto view»</b>. Decisione Mauro 02/08. <b>Nessuna occorrenza del vecchio nome sopravvive.</b></td></tr>
+    <tr><td><b>·</b> lo Start di livello 1</td><td class="old">SUPERATA</td><td>pulsante singolo → <b>Start diviso sulla card</b>. Il piede del dettaglio resta singolo: <b>la sostituzione è parziale e il perimetro è quello</b>.</td></tr>
+    <tr><td><b>·</b> <code>overflow</code></td><td class="old">SUPERATA</td><td><b>su misura del referee, che CD non ha verificato in prima persona.</b> La riscrivo qui invece di rimandare al vecchio testo: livello 1 = <code>.cardlist</code> scrollabile fra chrome fisso e fascia metronomo fissa · livello 2 = <code>.songlist</code> scrollabile fra <code>.dhead</code> e <code>.startfoot</code> fissi. <b>Questa riga è la fonte, da oggi.</b></td></tr>
+  </table>
+</div>
+
+<!-- ══ PANNELLO ⑤ · GATE + EMPTY-STATE ══ -->
+<div class="panel" style="left:1386px; top:3000px; width:1318px;">
+  <h3>⑤ Gate device, atomo, e la schermata che <b>non</b> manca <span class="tag w">DUE RISPOSTE</span></h3>
+  <div class="qa"><div class="q"><span class="num w">A</span>Il gate device: <b>sì, il freeze lo prescrive → aprite l'atomo</b></div><div class="a">Risposta esplicita alla nota del referee: <b>questo freeze prescrive lo Start diviso</b>, quindi il gate device <b>va aperto come atomo</b>. Cosa deve provare, per essere una prova e non un'opinione: <b>al buio · una mano sola · bacchetta nell'altra · Night Mode al 30% · in piedi</b>. Bersagli reali <b>265 + 58</b> (non 332+58: misura corretta oggi, presa a fonte sul rendering). Criterio di fallimento: <b>anche un solo «view» premuto al posto di Start</b> su una decina di partenze. Rimedio già deciso e non negoziabile: <b>SEPARARE i bersagli</b> — più spaziatura, o segmento fuori dal corpo del pulsante — <span class="no">mai</span> rimpicciolire «view» sotto 44pt.</div></div>
+  <div class="callout ok"><b>B · La schermata che il referee dà per mancante <u>esiste già</u>.</b> L'empty-state onesto della pagina metronomo — il ramo <code>else</code> di <code>if let runner</code>, quello che ⟦S5⟧ dichiara come prerequisito — <b>è stato disegnato e consegnato il 02/08</b>: <code>DA_CD_PER_CC/02_08_2026/DESIGN/QLive_Nav/2026-08-02_QLive-Metronome-EmptyState_390x844.html</code>. Copy EN già cablabile 1:1 (<b>«No show running»</b> · <i>«The metronome runs with a show. Nothing is playing right now.»</i>), token dichiarati, zero pulsanti nel corpo. <b>Il buco non è nel disegno: è nelle liste.</b> Non è in SCALETTA, e per questo il referee non l'ha trovato — <b>è quello che va sanato</b>, non il disegno.</div>
+  <div class="qa"><div class="q"><span class="num r">B1</span>Ma su quella consegna resta <b>una ratifica aperta</b>, e blocca davvero</div><div class="a">La domanda <b>R3</b> di quel file non ha ancora risposta: <b>la <code>.navbar</code> è un pulsante, e il vincolo dice «zero pulsanti»</b>. Ho disegnato tenendola (come i due empty già congelati Ⓕ/Ⓖ, che la tengono) perché toglierla lascia <b>una schermata senza via d'uscita</b> — e questo progetto <b>una trappola l'ha già pagata</b>. <b>Impatto alto → non me la do per approvata.</b> Se la ratifica dice «nessun elemento toccabile, punto», tolgo la navbar e <b>come si esce diventa una domanda aperta</b>, non un dettaglio.</div></div>
+  <div class="qa"><div class="q"><span class="num w">B2</span>E una <b>seconda</b> schermata, quella sì, manca davvero</div><div class="a">Il caso <b>FALLIMENTO</b>: sintesi della sezione «free» fallita, o motore audio non disponibile ⇒ pagina metronomo senza runner. È un empty <b>legittimo e permanente</b>, ma la sua copy <b>non è</b> «No show running» — lì <b>qualcosa è andato storto</b>, e dirlo con la frase del caso tranquillo sarebbe mentire all'utente sul palco. <b>Non lo assorbe l'A3</b>: è un disegno suo. <b>Questo</b> è il buco di disegno ancora aperto sulla pagina metronomo.</div></div>
+  <div class="gatebox">
+    <span class="k">Cosa serve da Mauro · tre righe, non di più</span>
+    <b>1.</b> I due valori del pannello ③ (titolo <b>29</b>, segmento stanza <b>34pt</b>): <b>ok?</b> Chiudono il rilievo che hai sollevato tu.<br />
+    <b>2.</b> «Start options…» nel menu «···» <b>resta o si toglie?</b> Col Start diviso fa la stessa cosa del segmento «view». Io la terrei come via visibile — <b>ma è una tua riga</b>.<br />
+    <b>3.</b> La ratifica <b>R3</b> sull'empty metronomo (navbar sì/no) è ancora <b>aperta dal 02/08</b> e <b>blocca ⟦S5⟧</b>.
+    <div style="margin-top:11px;padding-top:10px;border-top:1px solid rgba(245,184,32,0.3);">Al referee, invece: <b>aprite l'atomo del gate device</b> (punto A) e <b>mettete in SCALETTA l'empty metronomo del 02/08</b> — esiste, non è listato, e finché non è listato risulterà «mancante» a ogni giro.</div>
+  </div>
+</div>
+
+</body>
+</html>
