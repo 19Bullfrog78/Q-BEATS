@@ -60,11 +60,11 @@ import SwiftUI
 //
 // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
 // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
-// file l'unico valore ≥20 è il titolo `.dhead .nm` (23pt). Tutto il resto è < 20pt e resta
-// assoluto per `BOX5:458`, che esenta anche i 56pt dello Start (hit-target).
+// file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è
+// < 20pt e resta assoluto per `BOX5:458`, che esenta anche i 56pt dello Start (hit-target).
 // ⛔ COSA NON PUÒ SEGUIRE, e non per mia scelta: i due componenti che questo atomo ha l'ordine
 // di USARE-e-NON-MODIFICARE non ricevono `scaleFactor` perché non lo espongono —
-// `RoomSwitchBar` (font 9pt, tutti < 20: nessun effetto pratico) e soprattutto
+// `RoomSwitchBar` (font 10,5pt — A129, era 9pt — tutti < 20: nessun effetto pratico) e soprattutto
 // `EmptyStateLayout`, il cui titolo è `Inter-ExtraBold 20pt` (`EmptyStateKit.swift:47`), cioè
 // ESATTAMENTE sulla soglia: nelle due empty-state Ⓕ/Ⓖ quel titolo NON scala. Darglielo
 // significherebbe modificarli, che è vietato qui.
@@ -159,15 +159,30 @@ struct QLiveShowDetailView: View {
     private func dhead(_ resolved: (songs: [Song], missingIDs: [UUID]), scaleFactor: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 10) {
-                // `.dhead .nm`: Inter 800 23pt, tracking −0.5 (§CSS :248 + body Inter :129).
-                // 23 ≥ 20 ⇒ scala (`BOX5_QBEATS.md:68`). È l'UNICO valore di questo file che la
-                // regola raggiunge: tutti gli altri font/spacing sono < 20pt e restano assoluti
-                // (`BOX5:458`), e i 56pt dello Start sono hit-target, esenti per la stessa riga.
+                // A129 — 23→29pt, ratificato nel freeze 06/08 (rev3-NORMATIVA, pannello ③,
+                // tabella `.dhead .nm`): «pari a `.scrhead h1`: è un titolo di schermata come gli
+                // altri». Non era una gerarchia voluta: era una taratura difensiva contro l'a-capo,
+                // pagata in leggibilità sul dato più costoso da sbagliare della schermata — quale
+                // show sto per far partire.
+                // `.dhead .nm`: Inter 800 29pt, tracking −0.6 — CSS rev3 riga 153, verbatim:
+                // `font-size:29px;font-weight:800;letter-spacing:-0.6px`. Il vecchio valore (23pt,
+                // tracking −0.5, §CSS :248) veniva dal freeze SUPERATO 07/11: quella citazione è
+                // oggi la colonna «Era» della stessa tabella, non più la fonte corrente.
+                // 29 ≥ 20 ⇒ scala (`BOX5_QBEATS.md:68`), come già il 23. Resta l'UNICO valore di
+                // questo file che la regola raggiunge: tutti gli altri font/spacing sono < 20pt e
+                // restano assoluti (`BOX5:458`), e i 56pt dello Start sono hit-target, esenti per
+                // la stessa riga.
+                // ⛔ MAX 2 RIGHE, POI TRONCAMENTO IN CODA (freeze rev3 :153, `-webkit-line-clamp:2`):
+                // `.lineLimit(1)` da solo avrebbe reso PEGGIORE il taglio dei nomi lunghi a 29pt —
+                // servivano ENTRAMBE le cose. `.truncationMode(.tail)` esplicito per coerenza con
+                // l'idioma già in uso nel corpus (`LiveHeaderView.swift:53-54`): `.tail` è comunque
+                // il default SwiftUI, l'esplicito qui dichiara l'intento invece di ereditarlo.
                 Text(setlist.name.isEmpty ? "Untitled show" : setlist.name)
-                    .font(.custom("Inter-ExtraBold", size: 23 * scaleFactor))
-                    .tracking(-0.5)
+                    .font(.custom("Inter-ExtraBold", size: 29 * scaleFactor))
+                    .tracking(-0.6)
                     .foregroundColor(.white)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 readOnlyBadge
             }

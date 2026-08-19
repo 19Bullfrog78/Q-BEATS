@@ -1,0 +1,169 @@
+diff --git a/ios_app/QBeats/UI/Components/RoomSwitchBar.swift b/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
+index c62e7af..68720c1 100644
+--- a/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
++++ b/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
+@@ -100,11 +100,24 @@ struct RoomSwitchBar: View {
+     // per entrambe le varianti (.full riportava 42 al ZStack che la centrava in 54; ora
+     // riporta 54 in 54 — chrome negli stessi pixel).
+     private var segment: some View {
+-        let containerPadding: CGFloat = variant == .full ? 4 : 3
+-        let containerRadius: CGFloat = variant == .full ? 12 : 10
+-        // Altezza VISIVA del chrome: pill (34/30) + anello padding sopra/sotto (4/3)
+-        // → 42 (.full) / 36 (.segMini). NON è l'altezza dell'hit-area (54 su .full).
+-        let chromeHeight: CGFloat = (variant == .full ? 34 : 30) + containerPadding * 2
++        // A129 — «.seg-mini abolita»: il freeze rev3 (pannello ③, callout «un controllo che il
++        // refuso non ritorni») non porta più ALCUNA regola CSS `.seg-mini`: «il room switch è
++        // un componente solo in tutta l'app, con una misura sola». Container e pill diventano
++        // gli stessi valori su entrambe le varianti — resta diverso solo COSA rendono (`.full`
++        // aggiunge l'home button, `.segMini` no: vedi lo `switch` sul `body`), non le misure.
++        let containerPadding: CGFloat = variant == .full ? 4 : 4    // era 3 su .segMini
++        let containerRadius: CGFloat = variant == .full ? 12 : 12   // era 10 su .segMini
++        // Altezza VISIVA del chrome: pill (34, uniforme A129) + anello padding sopra/sotto (4/4)
++        // → 42 su ENTRAMBE le varianti (era 42 / 36). NON è l'altezza dell'hit-area (54 su
++        // .full, MAI su .segMini — vedi `hitExpansion` più sotto, riga NON toccata da A129).
++        // ⚠️ SEGNALATO AL REFEREE, NON RISOLTO: il testo del freeze calcola questo chrome in
++        // «34+3+3 = 40pt», usando il VECCHIO containerPadding di .segMini (3) anche per la
++        // pill NUOVA (34). Il foglio di stile dello stesso freeze dà invece a `.roomseg` un
++        // padding UNIFORME di 4px (riga 102: `.roomseg{padding:4px}`), che con la pill unica
++        // fa 34+4+4 = 42 su ENTRAMBE le varianti — il valore che questo codice ora produce.
++        // 40 e 42 stanno entrambi dentro una navbar da 50: non blocca, ma è una contraddizione
++        // interna al normativo e va incisa, non nascosta dietro un valore intermedio.
++        let chromeHeight: CGFloat = (variant == .full ? 34 : 34) + containerPadding * 2   // era 30 su .segMini
+         return HStack(spacing: 3) {
+             pill(.qStage, label: "Q-Stage")
+             pill(.qLive, label: "Q-Live")
+@@ -126,14 +139,28 @@ struct RoomSwitchBar: View {
+     private func pill(_ room: Room, label: String) -> some View {
+         let isOn = room == active
+         let tint: Color = room == .qStage ? QStageTheme.blue : QStageTheme.orange
+-        let fontSize: CGFloat = variant == .full ? 10.5 : 9
+-        let hPad: CGFloat = variant == .full ? 12 : 9
+-        let vPad: CGFloat = variant == .full ? 7 : 5
+-        let radius: CGFloat = variant == .full ? 9 : 8
+-        let minHeight: CGFloat = variant == .full ? 34 : 30
++        // A129 — `.roomseg .opt` verbatim su entrambe le varianti (freeze rev3 riga 103):
++        // `font-size:10.5px;...padding:7px 12px;border-radius:9px;...min-height:34px`.
++        // Il vecchio valore .segMini (9 · 9/5 · 8 · 30) veniva da `.navbar .seg-mini .o` del
++        // freeze SUPERATO 07/11 — quel selettore non esiste più in rev3, per costruzione: la
++        // citazione CD-Q8 poco più sotto resta come STORIA della ratifica, non come valore.
++        let fontSize: CGFloat = variant == .full ? 10.5 : 10.5   // era 9 su .segMini
++        let hPad: CGFloat = variant == .full ? 12 : 12            // era 9 su .segMini
++        let vPad: CGFloat = variant == .full ? 7 : 7              // era 5 su .segMini
++        let radius: CGFloat = variant == .full ? 9 : 9            // era 8 su .segMini
++        let minHeight: CGFloat = variant == .full ? 34 : 34       // era 30 su .segMini
+         // FIX 4-bis (referee): hit-area 54pt su tutta l'altezza barra (§CSS .roomseg, commento CD
+-        // verbatim), chrome visibile resta 34/30. Scoping: solo `.full` ha la claim sourced
+-        // (la nota hit-area sta sul `.roomseg`, la variante piena).
++        // verbatim). Scoping: solo `.full` ha la claim sourced (la nota hit-area sta sul
++        // `.roomseg`, la variante piena).
++        // ⚠️ REFUSO CORRETTO IN A129: qui c'era scritto «chrome visibile resta 34/30»,
++        // già stale nello stesso commit che lo introduceva — il 30 non esiste più da due
++        // blocchi sopra. Tolto invece di lasciarlo a mentire al prossimo lettore.
++        // ⚠️ MARCATURA A129 — I NUMERI QUI SOTTO SONO STORIA, NON PIÙ IL VALORE CORRENTE.
++        // Chrome visibile: 30pt → 34pt (freeze rev3). Il PRINCIPIO resta intatto e NON si tocca:
++        // hit-area ≥44pt gattata dal RI-GATE S3, `.segMini` a hitExpansion ZERO finché non
++        // sblocca. Anche il calcolo proiettato «(50−30)/2 = 10pt» in fondo al blocco è STORIA:
++        // con minHeight ora 34 non è più valido, e ricalcolarlo qui sarebbe fare il lavoro di
++        // S5 in anticipo — NON è in questo perimetro.
+         // ── `.navbar .seg-mini` — CD-Q8 RISOLTA e RATIFICATA (LIBRO v31, sez.4): hit-area
+         // ≥44pt, chrome visibile 30pt. NON è un'omissione del freeze — i 44pt sono regola
+         // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
+@@ -167,7 +194,7 @@ struct RoomSwitchBar: View {
+         return Button(action: { if !isOn { onSwitch() } }) {
+             Text(label)
+                 .font(.jbMono(.bold, size: fontSize))
+-                .tracking(variant == .full ? 1 : 0.8)
++                .tracking(variant == .full ? 1 : 1)   // A129 — era 0.8 su .segMini; `.roomseg .opt` verbatim (freeze rev3 :103, letter-spacing:1px)
+                 .textCase(.uppercase)
+                 .foregroundColor(isOn ? .white : QStageTheme.text3)
+                 .padding(.horizontal, hPad)
+diff --git a/ios_app/QBeats/UI/Live/StandbyOverlayView.swift b/ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+index c86041b..705513d 100644
+--- a/ios_app/QBeats/UI/Live/StandbyOverlayView.swift
++++ b/ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+@@ -22,6 +22,28 @@ struct StandbyOverlayView: View {
+                     .multilineTextAlignment(.center)
+                     .opacity(pulseOpacity)
+                     .padding(.horizontal, 20)
++                    // A128 — CENTRATURA ORIZZONTALE. `BOX5_QBEATS.md:253`: «mostra il nome
++                    // canzone successiva AL CENTRO SCHERMO». Prima di questa riga il nome
++                    // usciva TUTTO A SINISTRA sul device.
++                    // ⛔ IL DIFETTO NON ERA `.multilineTextAlignment(.center)` QUI SOPRA, e
++                    //    va capito o si ripete: quella allinea le righe FRA LORO dentro il
++                    //    frame del testo, non allarga il frame e non lo centra nel genitore.
++                    //    Le due modifiche fanno lavori diversi e servono ENTRAMBE.
++                    // ⚠️ LA CAUSA VERA È UN'ASIMMETRIA DEL VStack QUI SOPRA: in verticale
++                    //    si allarga perché lo `Spacer()` finale spinge lungo l'asse della
++                    //    pila; in ORIZZONTALE non spinge nulla, quindi il VStack si stringe
++                    //    sul contenuto — e il `GeometryReader` posa il proprio figlio in
++                    //    ALTO A SINISTRA. Mancava un vincolo di larghezza, ed è questo.
++                    // ✅ Il `GeometryReader` resta dov'è, come prescrive `BOX5:256`: questa
++                    //    riparazione ci convive, non lo sostituisce.
++                    // Forma: `.frame(maxWidth: .infinity)` — allineamento predefinito
++                    // `.center`. È l'idioma già in uso nella stessa cartella su sei siti
++                    // (`OverlayStopView.swift:45`, `WaitingForDirectorView.swift:60` e `:77`,
++                    // `MixerOverlayView.swift:23` e `:72`, `RubberBtnView.swift:36`).
++                    // ⚠️ VA DOPO `.padding`, non prima: così la larghezza piena avvolge il
++                    //    testo GIÀ spaziato e i 20pt restano un margine interno anche a nome
++                    //    lungo. Invertendo, il padding si sommerebbe FUORI dal frame pieno.
++                    .frame(maxWidth: .infinity)
+                 Spacer()
+             }
+         }
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index 1d58215..57b390a 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -60,11 +60,11 @@ import SwiftUI
+ //
+ // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
+ // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
+-// file l'unico valore ≥20 è il titolo `.dhead .nm` (23pt). Tutto il resto è < 20pt e resta
+-// assoluto per `BOX5:458`, che esenta anche i 56pt dello Start (hit-target).
++// file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è
++// < 20pt e resta assoluto per `BOX5:458`, che esenta anche i 56pt dello Start (hit-target).
+ // ⛔ COSA NON PUÒ SEGUIRE, e non per mia scelta: i due componenti che questo atomo ha l'ordine
+ // di USARE-e-NON-MODIFICARE non ricevono `scaleFactor` perché non lo espongono —
+-// `RoomSwitchBar` (font 9pt, tutti < 20: nessun effetto pratico) e soprattutto
++// `RoomSwitchBar` (font 10,5pt — A129, era 9pt — tutti < 20: nessun effetto pratico) e soprattutto
+ // `EmptyStateLayout`, il cui titolo è `Inter-ExtraBold 20pt` (`EmptyStateKit.swift:47`), cioè
+ // ESATTAMENTE sulla soglia: nelle due empty-state Ⓕ/Ⓖ quel titolo NON scala. Darglielo
+ // significherebbe modificarli, che è vietato qui.
+@@ -159,15 +159,30 @@ struct QLiveShowDetailView: View {
+     private func dhead(_ resolved: (songs: [Song], missingIDs: [UUID]), scaleFactor: CGFloat) -> some View {
+         VStack(alignment: .leading, spacing: 7) {
+             HStack(spacing: 10) {
+-                // `.dhead .nm`: Inter 800 23pt, tracking −0.5 (§CSS :248 + body Inter :129).
+-                // 23 ≥ 20 ⇒ scala (`BOX5_QBEATS.md:68`). È l'UNICO valore di questo file che la
+-                // regola raggiunge: tutti gli altri font/spacing sono < 20pt e restano assoluti
+-                // (`BOX5:458`), e i 56pt dello Start sono hit-target, esenti per la stessa riga.
++                // A129 — 23→29pt, ratificato nel freeze 06/08 (rev3-NORMATIVA, pannello ③,
++                // tabella `.dhead .nm`): «pari a `.scrhead h1`: è un titolo di schermata come gli
++                // altri». Non era una gerarchia voluta: era una taratura difensiva contro l'a-capo,
++                // pagata in leggibilità sul dato più costoso da sbagliare della schermata — quale
++                // show sto per far partire.
++                // `.dhead .nm`: Inter 800 29pt, tracking −0.6 — CSS rev3 riga 153, verbatim:
++                // `font-size:29px;font-weight:800;letter-spacing:-0.6px`. Il vecchio valore (23pt,
++                // tracking −0.5, §CSS :248) veniva dal freeze SUPERATO 07/11: quella citazione è
++                // oggi la colonna «Era» della stessa tabella, non più la fonte corrente.
++                // 29 ≥ 20 ⇒ scala (`BOX5_QBEATS.md:68`), come già il 23. Resta l'UNICO valore di
++                // questo file che la regola raggiunge: tutti gli altri font/spacing sono < 20pt e
++                // restano assoluti (`BOX5:458`), e i 56pt dello Start sono hit-target, esenti per
++                // la stessa riga.
++                // ⛔ MAX 2 RIGHE, POI TRONCAMENTO IN CODA (freeze rev3 :153, `-webkit-line-clamp:2`):
++                // `.lineLimit(1)` da solo avrebbe reso PEGGIORE il taglio dei nomi lunghi a 29pt —
++                // servivano ENTRAMBE le cose. `.truncationMode(.tail)` esplicito per coerenza con
++                // l'idioma già in uso nel corpus (`LiveHeaderView.swift:53-54`): `.tail` è comunque
++                // il default SwiftUI, l'esplicito qui dichiara l'intento invece di ereditarlo.
+                 Text(setlist.name.isEmpty ? "Untitled show" : setlist.name)
+-                    .font(.custom("Inter-ExtraBold", size: 23 * scaleFactor))
+-                    .tracking(-0.5)
++                    .font(.custom("Inter-ExtraBold", size: 29 * scaleFactor))
++                    .tracking(-0.6)
+                     .foregroundColor(.white)
+-                    .lineLimit(1)
++                    .lineLimit(2)
++                    .truncationMode(.tail)
+                     .frame(maxWidth: .infinity, alignment: .leading)
+                 readOnlyBadge
+             }

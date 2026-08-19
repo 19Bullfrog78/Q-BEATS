@@ -1,0 +1,60 @@
+ARTEFATTO DI REVISIONE, NON UNA PATCH RIGIOCABILE — intestazioni "post-A129"/"post-A130" sono etichette leggibili da chi rivede, non percorsi; `git apply`/`patch` la rifiutano per costruzione.
+--- RoomSwitchBar.swift (post-A129, ratificato)
++++ RoomSwitchBar.swift (post-A130)
+@@ -102,11 +102,15 @@
+     private var segment: some View {
+         // A129 — «.seg-mini abolita»: il freeze rev3 (pannello ③, callout «un controllo che il
+         // refuso non ritorni») non porta più ALCUNA regola CSS `.seg-mini`: «il room switch è
+-        // un componente solo in tutta l'app, con una misura sola». Container e pill diventano
+-        // gli stessi valori su entrambe le varianti — resta diverso solo COSA rendono (`.full`
++        // un componente solo in tutta l'app, con una misura sola». Container e pill hanno gli
++        // stessi valori su entrambe le varianti — resta diverso solo COSA rendono (`.full`
+         // aggiunge l'home button, `.segMini` no: vedi lo `switch` sul `body`), non le misure.
+-        let containerPadding: CGFloat = variant == .full ? 4 : 4    // era 3 su .segMini
+-        let containerRadius: CGFloat = variant == .full ? 12 : 12   // era 10 su .segMini
++        // A130 — le due righe sotto erano forcelle `variant == .full ? X : X`: stesso valore
++        // su entrambi i rami. Il freeze vieta esplicitamente quella FORMA, non solo il valore
++        // sbagliato: «un controllo, una misura, nessuna domanda» — una forcella che risponde
++        // sempre uguale È la domanda che il freeze dice di non lasciare aperta. Costanti.
++        let containerPadding: CGFloat = 4    // era 3 su .segMini
++        let containerRadius: CGFloat = 12    // era 10 su .segMini
+         // Altezza VISIVA del chrome: pill (34, uniforme A129) + anello padding sopra/sotto (4/4)
+         // → 42 su ENTRAMBE le varianti (era 42 / 36). NON è l'altezza dell'hit-area (54 su
+         // .full, MAI su .segMini — vedi `hitExpansion` più sotto, riga NON toccata da A129).
+@@ -117,7 +121,7 @@
+         // fa 34+4+4 = 42 su ENTRAMBE le varianti — il valore che questo codice ora produce.
+         // 40 e 42 stanno entrambi dentro una navbar da 50: non blocca, ma è una contraddizione
+         // interna al normativo e va incisa, non nascosta dietro un valore intermedio.
+-        let chromeHeight: CGFloat = (variant == .full ? 34 : 34) + containerPadding * 2   // era 30 su .segMini
++        let chromeHeight: CGFloat = 34 + containerPadding * 2   // era 30 su .segMini; = 42 (34 + 4×2)
+         return HStack(spacing: 3) {
+             pill(.qStage, label: "Q-Stage")
+             pill(.qLive, label: "Q-Live")
+@@ -144,11 +148,13 @@
+         // Il vecchio valore .segMini (9 · 9/5 · 8 · 30) veniva da `.navbar .seg-mini .o` del
+         // freeze SUPERATO 07/11 — quel selettore non esiste più in rev3, per costruzione: la
+         // citazione CD-Q8 poco più sotto resta come STORIA della ratifica, non come valore.
+-        let fontSize: CGFloat = variant == .full ? 10.5 : 10.5   // era 9 su .segMini
+-        let hPad: CGFloat = variant == .full ? 12 : 12            // era 9 su .segMini
+-        let vPad: CGFloat = variant == .full ? 7 : 7              // era 5 su .segMini
+-        let radius: CGFloat = variant == .full ? 9 : 9            // era 8 su .segMini
+-        let minHeight: CGFloat = variant == .full ? 34 : 34       // era 30 su .segMini
++        // A130 — le cinque righe sotto erano forcelle `variant == .full ? X : X`: stesso
++        // valore su entrambi i rami, forma vietata dal freeze (vedi nota su `segment`).
++        let fontSize: CGFloat = 10.5   // era 9 su .segMini
++        let hPad: CGFloat = 12         // era 9 su .segMini
++        let vPad: CGFloat = 7          // era 5 su .segMini
++        let radius: CGFloat = 9        // era 8 su .segMini
++        let minHeight: CGFloat = 34    // era 30 su .segMini
+         // FIX 4-bis (referee): hit-area 54pt su tutta l'altezza barra (§CSS .roomseg, commento CD
+         // verbatim). Scoping: solo `.full` ha la claim sourced (la nota hit-area sta sul
+         // `.roomseg`, la variante piena).
+@@ -194,7 +200,7 @@
+         return Button(action: { if !isOn { onSwitch() } }) {
+             Text(label)
+                 .font(.jbMono(.bold, size: fontSize))
+-                .tracking(variant == .full ? 1 : 1)   // A129 — era 0.8 su .segMini; `.roomseg .opt` verbatim (freeze rev3 :103, letter-spacing:1px)
++                .tracking(1)   // A130, era forcella .full?1:1 — A129 aveva gia' 0.8 su .segMini; `.roomseg .opt` verbatim (freeze rev3 :103, letter-spacing:1px)
+                 .textCase(.uppercase)
+                 .foregroundColor(isOn ? .white : QStageTheme.text3)
+                 .padding(.horizontal, hPad)

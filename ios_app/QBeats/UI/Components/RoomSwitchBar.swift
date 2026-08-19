@@ -100,11 +100,28 @@ struct RoomSwitchBar: View {
     // per entrambe le varianti (.full riportava 42 al ZStack che la centrava in 54; ora
     // riporta 54 in 54 — chrome negli stessi pixel).
     private var segment: some View {
-        let containerPadding: CGFloat = variant == .full ? 4 : 3
-        let containerRadius: CGFloat = variant == .full ? 12 : 10
-        // Altezza VISIVA del chrome: pill (34/30) + anello padding sopra/sotto (4/3)
-        // → 42 (.full) / 36 (.segMini). NON è l'altezza dell'hit-area (54 su .full).
-        let chromeHeight: CGFloat = (variant == .full ? 34 : 30) + containerPadding * 2
+        // A129 — «.seg-mini abolita»: il freeze rev3 (pannello ③, callout «un controllo che il
+        // refuso non ritorni») non porta più ALCUNA regola CSS `.seg-mini`: «il room switch è
+        // un componente solo in tutta l'app, con una misura sola». Container e pill hanno gli
+        // stessi valori su entrambe le varianti — resta diverso solo COSA rendono (`.full`
+        // aggiunge l'home button, `.segMini` no: vedi lo `switch` sul `body`), non le misure.
+        // A130 — le due righe sotto erano forcelle `variant == .full ? X : X`: stesso valore
+        // su entrambi i rami. Il freeze vieta esplicitamente quella FORMA, non solo il valore
+        // sbagliato: «un controllo, una misura, nessuna domanda» — una forcella che risponde
+        // sempre uguale È la domanda che il freeze dice di non lasciare aperta. Costanti.
+        let containerPadding: CGFloat = 4    // era 3 su .segMini
+        let containerRadius: CGFloat = 12    // era 10 su .segMini
+        // Altezza VISIVA del chrome: pill (34, uniforme A129) + anello padding sopra/sotto (4/4)
+        // → 42 su ENTRAMBE le varianti (era 42 / 36). NON è l'altezza dell'hit-area (54 su
+        // .full, MAI su .segMini — vedi `hitExpansion` più sotto, riga NON toccata da A129).
+        // ⚠️ SEGNALATO AL REFEREE, NON RISOLTO: il testo del freeze calcola questo chrome in
+        // «34+3+3 = 40pt», usando il VECCHIO containerPadding di .segMini (3) anche per la
+        // pill NUOVA (34). Il foglio di stile dello stesso freeze dà invece a `.roomseg` un
+        // padding UNIFORME di 4px (riga 102: `.roomseg{padding:4px}`), che con la pill unica
+        // fa 34+4+4 = 42 su ENTRAMBE le varianti — il valore che questo codice ora produce.
+        // 40 e 42 stanno entrambi dentro una navbar da 50: non blocca, ma è una contraddizione
+        // interna al normativo e va incisa, non nascosta dietro un valore intermedio.
+        let chromeHeight: CGFloat = 34 + containerPadding * 2   // era 30 su .segMini; = 42 (34 + 4×2)
         return HStack(spacing: 3) {
             pill(.qStage, label: "Q-Stage")
             pill(.qLive, label: "Q-Live")
@@ -126,14 +143,30 @@ struct RoomSwitchBar: View {
     private func pill(_ room: Room, label: String) -> some View {
         let isOn = room == active
         let tint: Color = room == .qStage ? QStageTheme.blue : QStageTheme.orange
-        let fontSize: CGFloat = variant == .full ? 10.5 : 9
-        let hPad: CGFloat = variant == .full ? 12 : 9
-        let vPad: CGFloat = variant == .full ? 7 : 5
-        let radius: CGFloat = variant == .full ? 9 : 8
-        let minHeight: CGFloat = variant == .full ? 34 : 30
+        // A129 — `.roomseg .opt` verbatim su entrambe le varianti (freeze rev3 riga 103):
+        // `font-size:10.5px;...padding:7px 12px;border-radius:9px;...min-height:34px`.
+        // Il vecchio valore .segMini (9 · 9/5 · 8 · 30) veniva da `.navbar .seg-mini .o` del
+        // freeze SUPERATO 07/11 — quel selettore non esiste più in rev3, per costruzione: la
+        // citazione CD-Q8 poco più sotto resta come STORIA della ratifica, non come valore.
+        // A130 — le cinque righe sotto erano forcelle `variant == .full ? X : X`: stesso
+        // valore su entrambi i rami, forma vietata dal freeze (vedi nota su `segment`).
+        let fontSize: CGFloat = 10.5   // era 9 su .segMini
+        let hPad: CGFloat = 12         // era 9 su .segMini
+        let vPad: CGFloat = 7          // era 5 su .segMini
+        let radius: CGFloat = 9        // era 8 su .segMini
+        let minHeight: CGFloat = 34    // era 30 su .segMini
         // FIX 4-bis (referee): hit-area 54pt su tutta l'altezza barra (§CSS .roomseg, commento CD
-        // verbatim), chrome visibile resta 34/30. Scoping: solo `.full` ha la claim sourced
-        // (la nota hit-area sta sul `.roomseg`, la variante piena).
+        // verbatim). Scoping: solo `.full` ha la claim sourced (la nota hit-area sta sul
+        // `.roomseg`, la variante piena).
+        // ⚠️ REFUSO CORRETTO IN A129: qui c'era scritto «chrome visibile resta 34/30»,
+        // già stale nello stesso commit che lo introduceva — il 30 non esiste più da due
+        // blocchi sopra. Tolto invece di lasciarlo a mentire al prossimo lettore.
+        // ⚠️ MARCATURA A129 — I NUMERI QUI SOTTO SONO STORIA, NON PIÙ IL VALORE CORRENTE.
+        // Chrome visibile: 30pt → 34pt (freeze rev3). Il PRINCIPIO resta intatto e NON si tocca:
+        // hit-area ≥44pt gattata dal RI-GATE S3, `.segMini` a hitExpansion ZERO finché non
+        // sblocca. Anche il calcolo proiettato «(50−30)/2 = 10pt» in fondo al blocco è STORIA:
+        // con minHeight ora 34 non è più valido, e ricalcolarlo qui sarebbe fare il lavoro di
+        // S5 in anticipo — NON è in questo perimetro.
         // ── `.navbar .seg-mini` — CD-Q8 RISOLTA e RATIFICATA (LIBRO v31, sez.4): hit-area
         // ≥44pt, chrome visibile 30pt. NON è un'omissione del freeze — i 44pt sono regola
         // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
@@ -167,7 +200,7 @@ struct RoomSwitchBar: View {
         return Button(action: { if !isOn { onSwitch() } }) {
             Text(label)
                 .font(.jbMono(.bold, size: fontSize))
-                .tracking(variant == .full ? 1 : 0.8)
+                .tracking(1)   // A130, era forcella .full?1:1 — A129 aveva GIÀ TOLTO lo 0.8 su .segMini; `.roomseg .opt` verbatim (freeze rev3 :103, letter-spacing:1px)
                 .textCase(.uppercase)
                 .foregroundColor(isOn ? .white : QStageTheme.text3)
                 .padding(.horizontal, hPad)
