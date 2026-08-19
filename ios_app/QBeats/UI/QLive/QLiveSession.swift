@@ -31,6 +31,33 @@ import Combine
 final class QLiveSession: ObservableObject {
 
     /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
-    /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+    /// `private(set)`: da ⟦S5b⟧ si riempie SOLO da `install(_:)` qui sotto.
     @Published private(set) var runner: SetlistRunner? = nil
+
+    /// ⟦S5b⟧ — MUTATORE DELLO SLOT: la porta che ⟦S4R⟧ aveva lasciato mancante
+    /// APPOSTA (:12-15). È il solo punto in cui il runner entra nella stanza.
+    ///
+    /// ⛔ SOSTITUISCE SEMPRE, ANCHE A SLOT PIENO — ed è una scelta, non una
+    /// distrazione. Un `if runner == nil` qui riuserebbe il runner del PRIMO show
+    /// quando la band ne apre un SECONDO nella stessa serata: partirebbe la
+    /// scaletta sbagliata. L'assegnazione secca è l'unica forma che non sa
+    /// sbagliare. Il vecchio runner perde qui il suo ultimo riferimento forte.
+    ///
+    /// ⛔ INSTALLA E BASTA: non avvia l'audio, non arma nulla, non tocca
+    /// AudioEngine. Contratto `BOX5_QBEATS.md:331` (QL-SHOWS-07) e
+    /// `BOX5_QBEATS.md:354` (§3): l'ingresso in uno show è SEMPRE arma + standby,
+    /// il click parte al SECONDO tap. L'armamento vive in
+    /// `SetlistRunner.primeDisplay(session:)`, che gira nell'`onAppear` del player.
+    ///
+    /// ⚠️ L'INVARIANTE DEL CHIAMANTE È LA SINCRONIA, non l'ordine (⟦S5b⟧ `Cond (a)`,
+    /// come corretta dal referee): questa chiamata e la `navigate(to: .metronome)`
+    /// che la segue devono stare nella STESSA closure e SENZA alcuna attesa in
+    /// mezzo — niente `Task`, niente `async`, niente `asyncAfter`. SwiftUI non
+    /// ridisegna fra due assegnazioni sincrone, quindi il ramo `else` del gate
+    /// `if let runner` non può apparire. Basta un'attesa a spezzare la garanzia:
+    /// lì il ramo `else` diventa visibile. L'ordine si rispetta comunque — costa
+    /// nulla — ma non è lui a proteggere.
+    func install(_ newRunner: SetlistRunner) {
+        runner = newRunner
+    }
 }

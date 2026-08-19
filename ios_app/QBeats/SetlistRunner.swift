@@ -256,6 +256,14 @@ final class SetlistRunner: ObservableObject {
     /// per evitare che la videata appaia "vuota" (nome canzone/sezione/next
     /// blank) al primo ingresso prima del tap Play.
     ///
+    /// ⚠️ MARCATURA ⟦S5b⟧ — LE TRE RIGHE QUI SOTTO SONO SCADUTE: si marcano, non si
+    /// riscrivono. Da ⟦S5b⟧ l'ingresso in uno show NON è più `.stopped`, è ARMA +
+    /// STANDBY sulla prima canzone — `BOX5_QBEATS.md:331` (QL-SHOWS-07).
+    /// L'obiezione storica non si applica: TD #28 tolse lo standby d'ingresso
+    /// (`Models/LiveSession.swift:30-34`) perché mostrava un EM-DASH, cioè uno
+    /// standby SENZA NOME VERO, con nessuna setlist caricata. Con un runner
+    /// armato il nome c'è, ed è quello della canzone che partirà al tocco.
+    ///
     /// Coerente con TD #28 (17/05/2026): stato iniziale Vista LIVE è `.stopped`,
     /// nessun overlay standby — la videata deve mostrare i dati della setlist
     /// caricata già in stato `.stopped`.
@@ -273,6 +281,32 @@ final class SetlistRunner: ObservableObject {
         updateSessionDisplay(session: session)
         session.currentBPM         = section.bpm
         session.totalBarsInSection = Int(section.repetitions)
+        // ⟦S5b⟧ `Cond (b)` — ARMAMENTO D'INGRESSO. Il player si monta FERMO e ARMATO:
+        // titolo della prima canzone che pulsa sopra il player oscurato
+        // (`LiveView.swift:129` opacità 0,10 · `:132-138` overlay + tap-ovunque ·
+        // `StandbyOverlayView.swift:18-24` e `:31-35`). Il click NON parte qui: parte al
+        // tocco successivo, che va a `startCurrentSong` e suona QUESTA canzone, perché
+        // `currentSongIdx` è ancora 0.
+        //
+        // IL NOME GIUSTO È `currentSong`, NON `nextSong`. `.standby(nextSongName:)`
+        // significa «la canzone che partirà al prossimo tap»: nel ramo standby fra due
+        // canzoni quel nome è letto DOPO `currentSongIdx += 1` (:343-345), quindi è
+        // sempre la corrente-dopo-l'avanzamento. All'ingresso, con indice 0, è la PRIMA.
+        // Usare `nextSong` qui darebbe la SECONDA canzone.
+        //
+        // ⛔ `Cond (c)` — LISTA DI PERMESSI, NON DI DIVIETI (correzione del referee).
+        //    Si arma SOLO da `.stopped`. `primeDisplay` gira a OGNI `onAppear`, non solo
+        //    al primo (unico chiamante: `LiveView.swift:231`), e `LivePlaybackState` ha
+        //    OTTO casi (`Models/LivePlaybackState.swift:3-19`): .standby .countIn
+        //    .playing .stopped .loopActive .overlayStop .fineSetlist .waitingForDirector.
+        //    Un divieto scritto al contrario («arma a meno che stia suonando») ne
+        //    coprirebbe uno e calpesterebbe gli altri: rimetterebbe l'overlay sopra
+        //    END SHOW, sopra la pausa a metà sezione e sopra l'attesa del Direttore.
+        //    L'elenco dei permessi ha un solo membro, e così resta corretto anche se
+        //    domani se ne aggiunge un nono.
+        if case .stopped = session.playbackState, let song = currentSong {
+            session.playbackState = .standby(nextSongName: song.name)
+        }
     }
 
     // MARK: - Closure end-of-section (autopropagante)

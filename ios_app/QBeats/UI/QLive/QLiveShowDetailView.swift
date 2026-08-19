@@ -77,6 +77,21 @@ import SwiftUI
 struct QLiveShowDetailView: View {
     let setlist: Setlist
     let onBack: () -> Void
+    /// ⟦S5b⟧ — Start. Il runner si costruisce QUI: questa vista possiede già i due
+    /// soli ingredienti che servono, `setlist` (:78) e `store` (:81), e
+    /// `SetlistRunner.init(setlist:store:)` non chiede altro
+    /// (`SetlistRunner.swift:61`). Il presentatore lo installa nello slot di
+    /// stanza e naviga, nella stessa closure sincrona — ⟦S5b⟧ `Cond (a)`.
+    ///
+    /// ⚠️ DIVERGENZA DALLA LETTERA DELLA SCHEDA, DICHIARATA E NON RISOLTA DA ME.
+    /// La scheda scrive «closure `() -> Void` … nella forma di `onBack`», e nello
+    /// stesso elenco prescrive che il runner nasca IN QUESTO FILE, citandone le
+    /// righe :78 e :81. Le due prescrizioni stanno insieme solo se la closure
+    /// TRASPORTA il runner: una `() -> Void` obbligherebbe a costruirlo nella
+    /// root, contro la riga che lo assegna qui. Forma adottata:
+    /// `(SetlistRunner) -> Void`. Rilievo #1 del referto A125 — se il referee
+    /// vuole la lettera, il cambio è meccanico e sta in un solo giro.
+    let onStart: (SetlistRunner) -> Void
 
     @ObservedObject private var store = QBeatsStore.shared
 
@@ -287,9 +302,15 @@ struct QLiveShowDetailView: View {
     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
         let isEnabled = !resolved.songs.isEmpty
         return Button {
-            // ⟦S5b⟧ cablerà qui l'avvio reale (SetlistRunner.startSetlist). Vuota apposta:
-            // eccezione dichiarata al divieto CD-Q7 sui bottoni morti (LIBRO v31), stessa
-            // forma dello slot senza mutatore di QLiveSession (⟦S4R⟧).
+            // ⟦S5b⟧ — ARMA, NON SUONA. Qui non si tocca l'audio: si costruisce il runner
+            // con la setlist SCELTA e lo si consegna al presentatore.
+            // ⛔ NON si chiama `startSetlist`: farebbe partire il click al PRIMO tocco,
+            //    contro `BOX5_QBEATS.md:331` (QL-SHOWS-07 — «l'ingresso in uno show è
+            //    SEMPRE arma + standby, qualunque sia il flag standby della prima
+            //    canzone») e `BOX5_QBEATS.md:354` (§3 — «il click parte al secondo tap,
+            //    schermo ovunque, o via MIDI»). Il secondo tap è già cablato e non si
+            //    tocca: `LiveView.swift:134-137`.
+            onStart(SetlistRunner(setlist: setlist, store: store))
         } label: {
             HStack(spacing: 10) {
                 PlayGlyphShape()
@@ -333,6 +354,19 @@ struct QLiveShowDetailView: View {
             .opacity(isEnabled ? 1.0 : 0.4)   // token DS --disabled: 0.4
         }
         .buttonStyle(.plain)
+        // ⟦S5b⟧ `Cond (d)` — IL TOCCO SI CHIUDE su show vuoto o tutto-orfano. Fino a
+        // qui `isEnabled` pilotava SOLO l'aspetto — ombra (:323), bordo (:326-331),
+        // opacità (:333) — e il bottone SEMBRAVA spento restando tappabile: `.disabled(`
+        // rendeva 0 occorrenze in questo file, mentre il corpus lo usa in 6 file. Senza
+        // questa riga un tocco su una scaletta orfana costruisce un runner a catalogo
+        // VUOTO, `primeDisplay` esce al primo `guard` (`SetlistRunner.swift:272`) e il
+        // player si monta BIANCO.
+        // ⚠️ DA GUARDARE AL GATE DEVICE, e non ho modo di vederlo io: `.disabled` agisce
+        //    anche sull'ambiente. Se lo stile `.plain` applicasse un proprio smorzamento
+        //    allo stato disabilitato, lo Start spento risulterebbe più scuro dello 0,4
+        //    prescritto (:333). Confronto: Frame F/G del freeze,
+        //    `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html`.
+        .disabled(!isEnabled)
         .padding(.horizontal, 18)
         .padding(.top, 14)
         .padding(.bottom, 20)

@@ -226,6 +226,14 @@ struct LiveView: View {
             //
             // NB nomenclatura: questo NON è il "Bug 1" del RECAP 24/05 (Follower
             // no update cross-device — Problema B). Questo è Problema A locale.
+            // ⚠️ CORRETTO DA ⟦S5b⟧ — le due righe qui sotto NON valgono più come
+            // scritte. Da ⟦S5b⟧ `primeDisplay` non lascia più la videata in
+            // `.stopped`: se e SOLO se lo stato è `.stopped`, la porta in
+            // `.standby(nextSongName:)` sulla PRIMA canzone — arma + standby
+            // d'ingresso, `BOX5_QBEATS.md:331` (QL-SHOWS-07). Il click non parte:
+            // parte al tocco sull'overlay, :134-137. Resta vero il resto: la
+            // videata mostra i dati della setlist caricata già prima del Play.
+            // (Storia, da leggere come tale:)
             // Coerente con TD #28 (17/05/2026): stato iniziale `.stopped`, no
             // overlay standby, videata deve mostrare dati setlist caricata.
             runner.primeDisplay(session: session)
@@ -242,10 +250,33 @@ struct LiveView: View {
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
             case .stopped:
-                // L1.b: il runner gestisce .standby e .fineSetlist impostando
-                // session.playbackState PRIMA di chiamare audioEngine.stop().
-                // Lo stop() dispatcha .stopped su main qualche ms dopo —
-                // NON sovrascrivere stati già impostati dal runner.
+                // ⛔ QUESTA GUARDIA HA DUE MOTIVI, NON UNO. Chi ne togliesse uno solo
+                //    romperebbe l'altro in silenzio: non è codice difensivo ridondante.
+                //
+                //  (1) L1.b, motivo storico: il runner gestisce .standby e .fineSetlist
+                //      impostando session.playbackState PRIMA di chiamare
+                //      audioEngine.stop(). Lo stop() dispatcha .stopped su main qualche
+                //      ms dopo — NON sovrascrivere stati già impostati dal runner.
+                //
+                //  (2) ⟦S5b⟧ — È CIÒ CHE TIENE IN PIEDI L'ARMAMENTO D'INGRESSO. Da ⟦S5b⟧
+                //      `primeDisplay` (:231) lascia la sessione in `.standby` quando si
+                //      entra in uno show. Questa guardia impedisce a QUALSIASI `.stopped`
+                //      proveniente dal motore — in qualunque momento arrivi, e qualunque
+                //      ne sia la causa — di scrivere sopra quello standby. Senza il
+                //      `case .standby` qui sotto l'overlay verrebbe cancellato e lo Start
+                //      sembrerebbe non fare nulla.
+                //      ⛔ La protezione NON dipende da QUANDO il motore parli: vale per
+                //      ogni `.stopped`, il primo compreso. Non c'è alcun assunto sul
+                //      momento della prima consegna — se anche non ne arrivasse nessuna
+                //      al montaggio, la guardia resterebbe necessaria per tutte le altre.
+                //      ⓘ Fatto SORGENTATO, che spiega perché il rischio si presenta già
+                //      al montaggio e non solo a show avviato: la documentazione Apple di
+                //      `Published` mostra un sottoscrittore che riceve il valore corrente
+                //      all'atto della sottoscrizione — nel suo esempio la `sink` stampa
+                //      «Temperature now: 20.0» prima di qualunque cambio della proprietà.
+                //      https://developer.apple.com/documentation/combine/published
+                //      ⚠️ Una pulizia futura che togliesse `.standby` da questa lista
+                //      romperebbe ⟦S5b⟧ senza toccarne una riga.
                 switch session.playbackState {
                 case .standby, .fineSetlist:
                     return

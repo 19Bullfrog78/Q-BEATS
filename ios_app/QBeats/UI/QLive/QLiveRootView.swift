@@ -101,7 +101,28 @@ struct QLiveRootView: View {
             // difensivo — non dovrebbe accadere (unico chiamante di navigate(.detail) è
             // onSelectShow sopra, che valorizza selectedSetlist nello stesso gesto).
             if let show = selectedSetlist {
-                QLiveShowDetailView(setlist: show, onBack: { navigate(to: .shows) })
+                QLiveShowDetailView(
+                    setlist: show,
+                    onBack: { navigate(to: .shows) },
+                    // ⟦S5b⟧ `Cond (a)` — L'INVARIANTE È LA SINCRONIA, NON L'ORDINE
+                    // (correzione del referee). Le due righe qui sotto stanno nella
+                    // STESSA closure e senza alcuna attesa in mezzo: niente `Task`,
+                    // niente `async`, niente `asyncAfter`. SwiftUI non ridisegna fra
+                    // due assegnazioni sincrone, quindi il ramo `.metronome` non può
+                    // mai montarsi con `runner == nil` e il ramo `else` non si vede.
+                    // ⚠️ Basta infilare un'attesa fra le due per perdere la garanzia:
+                    //    lì il ramo `else` diventa visibile per un frame. L'ordine
+                    //    prescritto dalla scheda è rispettato — costa nulla — ma non
+                    //    è lui a proteggere.
+                    // ⛔ NESSUNO stop audio qui e nessun avvio: `navigate` resta muto
+                    //    sul transport (decisione CD 18/07, :78-85). Questo è un
+                    //    INGRESSO — arma e basta. Il click parte al secondo tap
+                    //    (`LiveView.swift:134-137`).
+                    onStart: { runner in
+                        roomSession.install(runner)
+                        navigate(to: .metronome)
+                    }
+                )
             } else {
                 EmptyView()
             }
@@ -170,6 +191,19 @@ struct QLiveRootView: View {
                 // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
                 // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
                 // il back del player qui sopra, e porta a `.shows`.
+                //
+                // ⚠️ MARCATURA ⟦S5b⟧ — LE DUE FRASI QUI SOPRA SONO SCADUTE. Si marcano,
+                //    non si riscrivono: sono la storia di come ci si è arrivati.
+                //    (1) «⟦S5⟧ NON parte senza questo empty-state» — superata dalla
+                //        CANCELLAZIONE dell'atomo A3 empty-state
+                //        (`LIBRO_MASTRO_QBEATS.md:355`). Nessun disegno CD serve: qui il
+                //        ramo `else` resta una GUARDIA DIFENSIVA, come il gemello a
+                //        :105-107 nello stesso `switch`. ⟦S5b⟧ è partita senza.
+                //    (2) «nessuno chiama `navigate(to: .metronome)`» — falsa da ⟦S5b⟧:
+                //        lo chiama `onStart` qui sopra. ⇒ il ramo resta irraggiungibile,
+                //        ma per una RAGIONE DIVERSA: non più «nessuno naviga qui», bensì
+                //        «chi naviga qui ha già installato il runner, nella stessa
+                //        closure sincrona».
                 EmptyView()
             }
         }

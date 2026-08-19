@@ -1,0 +1,257 @@
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index 1e60d7d..cce8654 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+@@ -256,6 +256,14 @@ final class SetlistRunner: ObservableObject {
+     /// per evitare che la videata appaia "vuota" (nome canzone/sezione/next
+     /// blank) al primo ingresso prima del tap Play.
+     ///
++    /// ⚠️ MARCATURA ⟦S5b⟧ — LE TRE RIGHE QUI SOTTO SONO SCADUTE: si marcano, non si
++    /// riscrivono. Da ⟦S5b⟧ l'ingresso in uno show NON è più `.stopped`, è ARMA +
++    /// STANDBY sulla prima canzone — `BOX5_QBEATS.md:331` (QL-SHOWS-07).
++    /// L'obiezione storica non si applica: TD #28 tolse lo standby d'ingresso
++    /// (`Models/LiveSession.swift:30-34`) perché mostrava un EM-DASH, cioè uno
++    /// standby SENZA NOME VERO, con nessuna setlist caricata. Con un runner
++    /// armato il nome c'è, ed è quello della canzone che partirà al tocco.
++    ///
+     /// Coerente con TD #28 (17/05/2026): stato iniziale Vista LIVE è `.stopped`,
+     /// nessun overlay standby — la videata deve mostrare i dati della setlist
+     /// caricata già in stato `.stopped`.
+@@ -273,6 +281,32 @@ final class SetlistRunner: ObservableObject {
+         updateSessionDisplay(session: session)
+         session.currentBPM         = section.bpm
+         session.totalBarsInSection = Int(section.repetitions)
++        // ⟦S5b⟧ `Cond (b)` — ARMAMENTO D'INGRESSO. Il player si monta FERMO e ARMATO:
++        // titolo della prima canzone che pulsa sopra il player oscurato
++        // (`LiveView.swift:129` opacità 0,10 · `:132-138` overlay + tap-ovunque ·
++        // `StandbyOverlayView.swift:18-24` e `:31-35`). Il click NON parte qui: parte al
++        // tocco successivo, che va a `startCurrentSong` e suona QUESTA canzone, perché
++        // `currentSongIdx` è ancora 0.
++        //
++        // IL NOME GIUSTO È `currentSong`, NON `nextSong`. `.standby(nextSongName:)`
++        // significa «la canzone che partirà al prossimo tap»: nel ramo standby fra due
++        // canzoni quel nome è letto DOPO `currentSongIdx += 1` (:343-345), quindi è
++        // sempre la corrente-dopo-l'avanzamento. All'ingresso, con indice 0, è la PRIMA.
++        // Usare `nextSong` qui darebbe la SECONDA canzone.
++        //
++        // ⛔ `Cond (c)` — LISTA DI PERMESSI, NON DI DIVIETI (correzione del referee).
++        //    Si arma SOLO da `.stopped`. `primeDisplay` gira a OGNI `onAppear`, non solo
++        //    al primo (unico chiamante: `LiveView.swift:231`), e `LivePlaybackState` ha
++        //    OTTO casi (`Models/LivePlaybackState.swift:3-19`): .standby .countIn
++        //    .playing .stopped .loopActive .overlayStop .fineSetlist .waitingForDirector.
++        //    Un divieto scritto al contrario («arma a meno che stia suonando») ne
++        //    coprirebbe uno e calpesterebbe gli altri: rimetterebbe l'overlay sopra
++        //    END SHOW, sopra la pausa a metà sezione e sopra l'attesa del Direttore.
++        //    L'elenco dei permessi ha un solo membro, e così resta corretto anche se
++        //    domani se ne aggiunge un nono.
++        if case .stopped = session.playbackState, let song = currentSong {
++            session.playbackState = .standby(nextSongName: song.name)
++        }
+     }
+ 
+     // MARK: - Closure end-of-section (autopropagante)
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 8e907ed..750d6ce 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -226,6 +226,14 @@ struct LiveView: View {
+             //
+             // NB nomenclatura: questo NON è il "Bug 1" del RECAP 24/05 (Follower
+             // no update cross-device — Problema B). Questo è Problema A locale.
++            // ⚠️ CORRETTO DA ⟦S5b⟧ — le due righe qui sotto NON valgono più come
++            // scritte. Da ⟦S5b⟧ `primeDisplay` non lascia più la videata in
++            // `.stopped`: se e SOLO se lo stato è `.stopped`, la porta in
++            // `.standby(nextSongName:)` sulla PRIMA canzone — arma + standby
++            // d'ingresso, `BOX5_QBEATS.md:331` (QL-SHOWS-07). Il click non parte:
++            // parte al tocco sull'overlay, :134-137. Resta vero il resto: la
++            // videata mostra i dati della setlist caricata già prima del Play.
++            // (Storia, da leggere come tale:)
+             // Coerente con TD #28 (17/05/2026): stato iniziale `.stopped`, no
+             // overlay standby, videata deve mostrare dati setlist caricata.
+             runner.primeDisplay(session: session)
+@@ -242,10 +250,23 @@ struct LiveView: View {
+         .onReceive(audioEngine.$playbackState) { state in
+             switch state {
+             case .stopped:
+-                // L1.b: il runner gestisce .standby e .fineSetlist impostando
+-                // session.playbackState PRIMA di chiamare audioEngine.stop().
+-                // Lo stop() dispatcha .stopped su main qualche ms dopo —
+-                // NON sovrascrivere stati già impostati dal runner.
++                // ⛔ QUESTA GUARDIA HA DUE MOTIVI, NON UNO. Chi ne togliesse uno solo
++                //    romperebbe l'altro in silenzio: non è codice difensivo ridondante.
++                //
++                //  (1) L1.b, motivo storico: il runner gestisce .standby e .fineSetlist
++                //      impostando session.playbackState PRIMA di chiamare
++                //      audioEngine.stop(). Lo stop() dispatcha .stopped su main qualche
++                //      ms dopo — NON sovrascrivere stati già impostati dal runner.
++                //
++                //  (2) ⟦S5b⟧ — È CIÒ CHE TIENE IN PIEDI L'ARMAMENTO D'INGRESSO. All'apparire
++                //      del player il motore è fermo, e `@Published` consegna il valore
++                //      CORRENTE a chi si sottoscrive: questo `.onReceive` riceve `.stopped`
++                //      anche senza alcun cambio di stato. Senza il `case .standby` qui
++                //      sotto, quel `.stopped` scriverebbe sopra lo standby appena armato
++                //      da `primeDisplay` (:231) e l'overlay non comparirebbe mai — lo
++                //      Start sembrerebbe non fare nulla.
++                //      ⚠️ Una pulizia futura che togliesse `.standby` da questa lista
++                //      romperebbe ⟦S5b⟧ senza toccarne una riga.
+                 switch session.playbackState {
+                 case .standby, .fineSetlist:
+                     return
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index 6f5561f..ef9effa 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -101,7 +101,28 @@ struct QLiveRootView: View {
+             // difensivo — non dovrebbe accadere (unico chiamante di navigate(.detail) è
+             // onSelectShow sopra, che valorizza selectedSetlist nello stesso gesto).
+             if let show = selectedSetlist {
+-                QLiveShowDetailView(setlist: show, onBack: { navigate(to: .shows) })
++                QLiveShowDetailView(
++                    setlist: show,
++                    onBack: { navigate(to: .shows) },
++                    // ⟦S5b⟧ `Cond (a)` — L'INVARIANTE È LA SINCRONIA, NON L'ORDINE
++                    // (correzione del referee). Le due righe qui sotto stanno nella
++                    // STESSA closure e senza alcuna attesa in mezzo: niente `Task`,
++                    // niente `async`, niente `asyncAfter`. SwiftUI non ridisegna fra
++                    // due assegnazioni sincrone, quindi il ramo `.metronome` non può
++                    // mai montarsi con `runner == nil` e il ramo `else` non si vede.
++                    // ⚠️ Basta infilare un'attesa fra le due per perdere la garanzia:
++                    //    lì il ramo `else` diventa visibile per un frame. L'ordine
++                    //    prescritto dalla scheda è rispettato — costa nulla — ma non
++                    //    è lui a proteggere.
++                    // ⛔ NESSUNO stop audio qui e nessun avvio: `navigate` resta muto
++                    //    sul transport (decisione CD 18/07, :78-85). Questo è un
++                    //    INGRESSO — arma e basta. Il click parte al secondo tap
++                    //    (`LiveView.swift:134-137`).
++                    onStart: { runner in
++                        roomSession.install(runner)
++                        navigate(to: .metronome)
++                    }
++                )
+             } else {
+                 EmptyView()
+             }
+@@ -170,6 +191,19 @@ struct QLiveRootView: View {
+                 // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
+                 // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+                 // il back del player qui sopra, e porta a `.shows`.
++                //
++                // ⚠️ MARCATURA ⟦S5b⟧ — LE DUE FRASI QUI SOPRA SONO SCADUTE. Si marcano,
++                //    non si riscrivono: sono la storia di come ci si è arrivati.
++                //    (1) «⟦S5⟧ NON parte senza questo empty-state» — superata dalla
++                //        CANCELLAZIONE dell'atomo A3 empty-state
++                //        (`LIBRO_MASTRO_QBEATS.md:355`). Nessun disegno CD serve: qui il
++                //        ramo `else` resta una GUARDIA DIFENSIVA, come il gemello a
++                //        :105-107 nello stesso `switch`. ⟦S5b⟧ è partita senza.
++                //    (2) «nessuno chiama `navigate(to: .metronome)`» — falsa da ⟦S5b⟧:
++                //        lo chiama `onStart` qui sopra. ⇒ il ramo resta irraggiungibile,
++                //        ma per una RAGIONE DIVERSA: non più «nessuno naviga qui», bensì
++                //        «chi naviga qui ha già installato il runner, nella stessa
++                //        closure sincrona».
+                 EmptyView()
+             }
+         }
+diff --git a/ios_app/QBeats/UI/QLive/QLiveSession.swift b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+index dfc4d29..f61a9d7 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveSession.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+@@ -31,6 +31,33 @@ import Combine
+ final class QLiveSession: ObservableObject {
+ 
+     /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+-    /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
++    /// `private(set)`: da ⟦S5b⟧ si riempie SOLO da `install(_:)` qui sotto.
+     @Published private(set) var runner: SetlistRunner? = nil
++
++    /// ⟦S5b⟧ — MUTATORE DELLO SLOT: la porta che ⟦S4R⟧ aveva lasciato mancante
++    /// APPOSTA (:12-15). È il solo punto in cui il runner entra nella stanza.
++    ///
++    /// ⛔ SOSTITUISCE SEMPRE, ANCHE A SLOT PIENO — ed è una scelta, non una
++    /// distrazione. Un `if runner == nil` qui riuserebbe il runner del PRIMO show
++    /// quando la band ne apre un SECONDO nella stessa serata: partirebbe la
++    /// scaletta sbagliata. L'assegnazione secca è l'unica forma che non sa
++    /// sbagliare. Il vecchio runner perde qui il suo ultimo riferimento forte.
++    ///
++    /// ⛔ INSTALLA E BASTA: non avvia l'audio, non arma nulla, non tocca
++    /// AudioEngine. Contratto `BOX5_QBEATS.md:331` (QL-SHOWS-07) e
++    /// `BOX5_QBEATS.md:354` (§3): l'ingresso in uno show è SEMPRE arma + standby,
++    /// il click parte al SECONDO tap. L'armamento vive in
++    /// `SetlistRunner.primeDisplay(session:)`, che gira nell'`onAppear` del player.
++    ///
++    /// ⚠️ L'INVARIANTE DEL CHIAMANTE È LA SINCRONIA, non l'ordine (⟦S5b⟧ `Cond (a)`,
++    /// come corretta dal referee): questa chiamata e la `navigate(to: .metronome)`
++    /// che la segue devono stare nella STESSA closure e SENZA alcuna attesa in
++    /// mezzo — niente `Task`, niente `async`, niente `asyncAfter`. SwiftUI non
++    /// ridisegna fra due assegnazioni sincrone, quindi il ramo `else` del gate
++    /// `if let runner` non può apparire. Basta un'attesa a spezzare la garanzia:
++    /// lì il ramo `else` diventa visibile. L'ordine si rispetta comunque — costa
++    /// nulla — ma non è lui a proteggere.
++    func install(_ newRunner: SetlistRunner) {
++        runner = newRunner
++    }
+ }
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index 505fbcc..1d58215 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -77,6 +77,21 @@ import SwiftUI
+ struct QLiveShowDetailView: View {
+     let setlist: Setlist
+     let onBack: () -> Void
++    /// ⟦S5b⟧ — Start. Il runner si costruisce QUI: questa vista possiede già i due
++    /// soli ingredienti che servono, `setlist` (:78) e `store` (:81), e
++    /// `SetlistRunner.init(setlist:store:)` non chiede altro
++    /// (`SetlistRunner.swift:61`). Il presentatore lo installa nello slot di
++    /// stanza e naviga, nella stessa closure sincrona — ⟦S5b⟧ `Cond (a)`.
++    ///
++    /// ⚠️ DIVERGENZA DALLA LETTERA DELLA SCHEDA, DICHIARATA E NON RISOLTA DA ME.
++    /// La scheda scrive «closure `() -> Void` … nella forma di `onBack`», e nello
++    /// stesso elenco prescrive che il runner nasca IN QUESTO FILE, citandone le
++    /// righe :78 e :81. Le due prescrizioni stanno insieme solo se la closure
++    /// TRASPORTA il runner: una `() -> Void` obbligherebbe a costruirlo nella
++    /// root, contro la riga che lo assegna qui. Forma adottata:
++    /// `(SetlistRunner) -> Void`. Rilievo #1 del referto A125 — se il referee
++    /// vuole la lettera, il cambio è meccanico e sta in un solo giro.
++    let onStart: (SetlistRunner) -> Void
+ 
+     @ObservedObject private var store = QBeatsStore.shared
+ 
+@@ -287,9 +302,15 @@ struct QLiveShowDetailView: View {
+     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
+         let isEnabled = !resolved.songs.isEmpty
+         return Button {
+-            // ⟦S5b⟧ cablerà qui l'avvio reale (SetlistRunner.startSetlist). Vuota apposta:
+-            // eccezione dichiarata al divieto CD-Q7 sui bottoni morti (LIBRO v31), stessa
+-            // forma dello slot senza mutatore di QLiveSession (⟦S4R⟧).
++            // ⟦S5b⟧ — ARMA, NON SUONA. Qui non si tocca l'audio: si costruisce il runner
++            // con la setlist SCELTA e lo si consegna al presentatore.
++            // ⛔ NON si chiama `startSetlist`: farebbe partire il click al PRIMO tocco,
++            //    contro `BOX5_QBEATS.md:331` (QL-SHOWS-07 — «l'ingresso in uno show è
++            //    SEMPRE arma + standby, qualunque sia il flag standby della prima
++            //    canzone») e `BOX5_QBEATS.md:354` (§3 — «il click parte al secondo tap,
++            //    schermo ovunque, o via MIDI»). Il secondo tap è già cablato e non si
++            //    tocca: `LiveView.swift:134-137`.
++            onStart(SetlistRunner(setlist: setlist, store: store))
+         } label: {
+             HStack(spacing: 10) {
+                 PlayGlyphShape()
+@@ -333,6 +354,19 @@ struct QLiveShowDetailView: View {
+             .opacity(isEnabled ? 1.0 : 0.4)   // token DS --disabled: 0.4
+         }
+         .buttonStyle(.plain)
++        // ⟦S5b⟧ `Cond (d)` — IL TOCCO SI CHIUDE su show vuoto o tutto-orfano. Fino a
++        // qui `isEnabled` pilotava SOLO l'aspetto — ombra (:323), bordo (:326-331),
++        // opacità (:333) — e il bottone SEMBRAVA spento restando tappabile: `.disabled(`
++        // rendeva 0 occorrenze in questo file, mentre il corpus lo usa in 6 file. Senza
++        // questa riga un tocco su una scaletta orfana costruisce un runner a catalogo
++        // VUOTO, `primeDisplay` esce al primo `guard` (`SetlistRunner.swift:272`) e il
++        // player si monta BIANCO.
++        // ⚠️ DA GUARDARE AL GATE DEVICE, e non ho modo di vederlo io: `.disabled` agisce
++        //    anche sull'ambiente. Se lo stile `.plain` applicasse un proprio smorzamento
++        //    allo stato disabilitato, lo Start spento risulterebbe più scuro dello 0,4
++        //    prescritto (:333). Confronto: Frame F/G del freeze,
++        //    `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html`.
++        .disabled(!isEnabled)
+         .padding(.horizontal, 18)
+         .padding(.top, 14)
+         .padding(.bottom, 20)
