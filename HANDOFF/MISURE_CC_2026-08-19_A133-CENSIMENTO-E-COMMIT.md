@@ -214,7 +214,26 @@ stessa indentazione dei bullet fratelli.
 
 ## COMMIT, PUSH, CI
 
-*(Sezione compilata dopo l'esecuzione — vedi stato di consegna in fondo.)*
+| | |
+|---|---|
+| sha | `ce07fbd6f47870dfa17e174974b8099396fd78a8` |
+| autore / committer | `Mauro Martintoni <di_tutto@icloud.com>` / stesso |
+| `Co-Authored-By` | **0 occorrenze** |
+| file | **7**, esattamente quelli nominati |
+| push | `547017f..ce07fbd master -> master`, verificato allineato prima e dopo |
+| CI | `iOS Signed Build` run **`32365967033`** = **success**, 2026-08-20T11:54:42Z |
+
+⚠️ **`F1 — Build Check` non è un cancello** — non gira dal 31/07, non deciso. ⓘ Questo commit
+non tocca codice: la CI era una formalità, guardata comunque, com'è giusto.
+
+⚠️ **LA DATA NON TORNA, e lo dichiaro invece di correggerla da solo — stessa regola di A123.**
+`git log` data il commit **`2026-08-20T13:52:21+02:00`**: l'orologio ha attraversato la
+mezzanotte durante la sessione. **Ogni mandato di oggi (A128 rinominato→A133) si è dichiarato
+"19/08"**, e tutte le voci di registro che ho scritto — comprese quelle appena entrate in questo
+commit — dicono `2026-08-19`. Non ho rinominato né corretto nulla: la convenzione già discussa
+in A123 è che la data delle voci resta quella dell'evento, non quella dell'orologio del commit,
+e la scelta finale non è mia. **È una riga per file, e resta da decidere**, esattamente come
+allora.
 
 ---
 
