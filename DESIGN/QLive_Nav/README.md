@@ -4,6 +4,26 @@ Contratto di design per la navigazione Q-Live/Q-Stage. File CD, versionati per d
 storica. Zero sha256 incisi qui sotto come puntatori — sono dichiarati nel messaggio di
 commit e nella cronologia git, non in questo documento (REGOLA ANTI-CASCATA).
 
+## Quale file governa cosa — indice normativo (20/08/2026)
+
+Questa cartella contiene file che si somigliano nel nome e NON hanno lo stesso
+peso. Il nome del file non dice il suo stato: lo dice questa tabella.
+
+| file | stato |
+|---|---|
+| `2026-07-11_Q7-Q16.html` | **VIVO — sorgente dei token.** Colori e misure si prendono da qui. Se un altro file di questa cartella porta un token diverso, vince Q7-Q16. |
+| `2026-08-20_..._rev5__SUPERSEDE-rev4-TESTO__ritiri-e-correzioni_390x844.html` | **NORMATIVO — il testo in vigore per Q-Live › Shows.** Supersede la rev4 **nel solo testo**: due ritiri e quattro correzioni. **Zero cambi di disegno.** Opzione A ratificata (Mauro, 20/08). ⚠️ Due difetti noti: cita due righe di canonici senza ancoraggio a commit (puntatori destinati a slittare), e chiama la rev3 con un nome che non ha (manca `__rev3-NORMATIVA`). Correzione richiesta a CD. |
+| `2026-08-20_..._rev4__SUPERSEDE-rev3__navbar-centrata-ritmo-testata_390x844.html` | ⛔ **SUPERATA NEL TESTO dalla rev5.** Conservata di proposito: è l'artefatto che la rev5 rettifica, e senza di essa i due ritiri non hanno referente. **Il suo DISEGNO resta valido** — i quattro selettori sono identici nelle due. ⚠️ Contiene un'affermazione errata su «List view», ritirata dalla rev5. |
+| `2026-08-06_..._rev3-NORMATIVA.html` | **NORMATIVA per tutto ciò che rev4/rev5 non toccano** — parola per parola. I quattro selettori del dettaglio sono superati; il resto no. |
+| `2026-08-06_..._rev2-BUONA.html` | ⛔ **NON NORMATIVO.** Conservato come impronta dell'evento di ratifica: è il file che il referee lesse e approvò, e contiene ancora la voce che quella ratifica ELIMINA. ⚠️ **Il nome «BUONA» dice il contrario del suo stato.** **NON RINOMINARE:** un canonico lo cita con questo nome. |
+| `2026-07-18_QLive-Exit-in-Play.html` | **CONTRATTO rev.2 per ⟦S-EXIT⟧ e ⟦S6F⟧.** ⚠️ Il suo `:root` è una copia di lavoro: se un token diverge, vince Q7-Q16. |
+| gli altri | storico di derivazione — vedi «Derivazione» più sotto. |
+
+⚠️ **Regola di trasporto, pagata cara il 20/08.** Un HTML **ri-salvato da un
+browser non è quel file**: nome troncato, estensione `.htm`, e byte diversi senza
+alcun avviso (misurato: 793 byte in meno su un normativo). Da Drive si usa
+**solo** il tasto Scarica.
+
 ## Contratto VIVO
 
 `2026-07-11_Q7-Q16.html` — è la versione da cui CC cabla oggi. Contiene tutte le decisioni

@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · REVISIONE NORMATIVA rev4 — Q-LIVE › SHOWS · navbar del dettaglio + ritmo testata
+ NOME FILE  2026-08-20_QLive-Shows_rev4__SUPERSEDE-rev3__navbar-centrata-ritmo-testata_390x844.html
+ DATA       20/08/2026 · risponde a FINE-CD-2026-08-19 e alla riemissione FINE-CD-2026-08-20
+ STATO      SUPERSEDE la rev3 (2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844.html)
+            LIMITATAMENTE a QUATTRO selettori. Tutto il resto della rev3 resta
+            NORMATIVO e INVARIATO: questa non e' una riemissione del freeze.
+
+ COSA CAMBIA (4 selettori, elencati per intero — nient'altro e' toccato):
+   1. .navbar            50px  ->  54px  + justify-content:center + position:relative
+   2. .navbar .back      static -> absolute left:14 · + min-height:44px · + padding:0 4px
+   3. .dhead             6px 18px 10px  ->  8px 18px 14px
+   4. .dhead .nm         line-height 1.05  ->  1.12
+   + .scrhead            SPEC 6/18/11 -> 8/18/12 (allineamento della SPEC al CODICE:
+                         zero modifiche di codice al livello 1)
+
+ COSA RESTA INVARIATO — dichiarato: .roomseg e .roomseg .opt (10,5px · 34pt, misura
+   ratificata 06/08, NON si tocca) · .viewtoggle Auto/List (fuori perimetro, ratificato
+   e da costruire) · forma card del livello 1 · menu «···» · .startfoot pulsante
+   singolo · gli altri sei font su otto del dettaglio · tutte le decisioni 02/08 e 06/08.
+
+ FUORI PERIMETRO, non risolto qui: il ticket «segmento inerte nel dettaglio» (tecnico,
+   CC) · cosa faccia «List view» (decisione Mauro, non presa) · la spec della Vista
+   LISTA in BOX5, che il brief 20/08 dichiara essere un rimando «(invariati da V19)»
+   e che va riletta a fonte prima di qualunque domanda a CD.
+
+ ⚠️ UNA COSA SEGNALATA E NON DECISA: il punto 1 (navbar 50->54) e' una CONSEGUENZA
+   della decisione di Mauro, non una scelta autonoma. Se il referee considera l'altezza
+   del chrome fuori da questo perimetro, si fermi: pannello ④ porta l'alternativa
+   con i suoi numeri, perche' la scelta la faccia Mauro.
+
+ NOTA DI IMPAGINAZIONE (20/08, dopo collaudo del foglio): le coordinate dei blocchi
+   sono state ricalcolate MISURANDO i rect renderizzati, non a stima. Verificato:
+   18 blocchi, ZERO collisioni. La stesura precedente nascondeva dietro i pannelli
+   due note normative (aria a destra 102,04pt · .mt 8,86 vs 8,94).
+
+ ⚠️ ERRATA ARITMETICA (20/08, stessa giornata, PRIMA di qualunque incisione):
+   la prima stesura dava il mezzo-leading di .nm a lh 1.12 come 4,19 -> cap a 110,19
+   -> «parita' entro 0,23pt» col livello 1. ERRATO. Il valore giusto e' 5,70
+   ((32,48-35,12)/2 = -1,32 ; -1,32+7,02 = 5,70) -> cap a 111,70 -> scarto +1,74pt.
+   Controprova indipendente: le due caselle titolo partono dalla STESSA y, stesso
+   font e stesso corpo, quindi la differenza ottica E' la differenza di mezzo-leading
+   = (32,48-29)/2 = 1,74. La CONCLUSIONE non cambia (rev4 da' piu' aria del livello 1,
+   il lato su cui volevo sbagliare), ma «parita'» era la parola sbagliata: e' un
+   SURPLUS VOLUTO di 1,74pt. Corretto in 6 punti. NON incidere 110,19 ne' 0,23.
+
+ ⛔ ERRATA DI PORTATA (20/08, dopo riemissione del brief): la prima stesura scriveva
+   «ratifico come regola: una misura · una posizione · un COMPORTAMENTO». La terza
+   dimensione e' una PROPOSTA CD, non una ratifica: il brief del 20/08 estende il
+   principio alla SOLA posizione. Declassata e dichiarata tale nel pannello ①.
+   NON incidere «comportamento» tra i ratificati.
+ ══════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Q-Live › Shows — rev4 · navbar centrata + ritmo testata · 390×844 · 20/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);--qlive-pick:#1a1614;--text:#fff;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--line:rgba(255,255,255,0.08);--tag-pending:rgba(255,255,255,0.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:3040px;position:relative;-webkit-font-smoothing:antialiased;}
+a{color:#9a6800;text-decoration:none;}a:hover{color:#c48a10;}
+.btitle{position:absolute;left:56px;top:30px;width:1300px;color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#b1281f;}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty;}
+.btitle p b{color:#16140f;}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.testata{position:absolute;left:1400px;top:30px;width:1304px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px;}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0;}
+.testata .anc b{color:#fff;}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09);}
+.trow:first-of-type{border-top:0;}
+.trow .k{flex:0 0 150px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093;}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty;}
+.trow .v b{color:#fff;}.trow .v .no{color:#ff9a8a;font-weight:700;}
+.trow.stop .k{color:#ff9a8a;}
+.testata .note{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.12);font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.55;color:rgba(255,255,255,0.60);}
+.testata .note b{color:#fff;}
+.testata .note .no{color:#ff9a8a;font-weight:700;}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:400px;flex-wrap:wrap;}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4);}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;}
+.stt.fz{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.stt.re{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);}
+.stt.done{color:#5a5a5a;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.14);}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg);}
+.frame.norm{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5);}
+.frame.old{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(177,40,31,0.45);}
+.frame.ref{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(0,0,0,0.16);}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff;}
+.sb .r{display:flex;gap:7px;align-items:center;}
+.roombar{height:54px;flex:0 0 54px;display:flex;align-items:center;justify-content:center;padding:0 14px;position:relative;}
+.homebtn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;color:var(--text2r);position:absolute;left:14px;top:50%;transform:translateY(-50%);}
+.roomseg{display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:4px;gap:3px;}
+.roomseg .opt{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:9px;color:var(--text3);min-height:34px;display:inline-flex;align-items:center;}
+.roomseg .opt.live-on{color:#fff;background:rgba(212,63,0,0.24);border:1px solid rgba(212,63,0,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+.scrhead{display:flex;align-items:baseline;justify-content:space-between;padding:8px 18px 12px;}
+.scrhead h1{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1;}
+.scrhead .cnt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.4px;}
+.searchrow{display:flex;gap:8px;padding:0 16px 12px;}
+.search{flex:1;height:44px;border-radius:12px;background:var(--qlive-surf);border:1px solid var(--qlive-bd);display:flex;align-items:center;gap:9px;padding:0 12px;color:var(--text2r);}
+.search .ph{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.3px;}
+.cardlist{flex:1;overflow:hidden;padding:0 16px 4px;display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--qlive-surf);border:1px solid var(--qlive-bd);border-radius:16px;padding:15px 15px 14px;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;}
+.card .nm{font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.15;}
+.card .mt{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text2r);letter-spacing:0.3px;margin-top:5px;}
+.dots{width:44px;height:44px;margin:-9px -9px 0 0;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text2r);flex:0 0 auto;}
+.gosplit{margin-top:13px;height:52px;border-radius:14px;display:flex;overflow:hidden;box-shadow:0 5px 16px rgba(212,63,0,0.30);}
+.gosplit .main{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .sep{width:1.5px;background:rgba(0,0,0,0.30);}
+.gosplit .alt{width:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .alt .t{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;opacity:0.9;}
+.navbar{flex:0 0 auto;display:flex;align-items:center;padding:0 14px;}
+.navbar .back{display:flex;align-items:center;gap:5px;color:var(--live-l);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.4px;}
+.frame.v3 .navbar{height:50px;flex:0 0 50px;justify-content:space-between;}
+.frame.v4 .navbar{height:54px;flex:0 0 54px;justify-content:center;position:relative;}
+.frame.v4 .navbar .back{position:absolute;left:14px;top:50%;transform:translateY(-50%);min-height:44px;padding:0 4px;}
+.dhead{padding:8px 18px 14px;}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.12;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.frame.v3 .dhead{padding:6px 18px 10px;}
+.frame.v3 .dhead .nm{line-height:1.05;}
+.dhrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px;}
+.ro{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;margin-top:4px;}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;}
+.songrow{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--live-l);width:18px;text-align:right;flex:0 0 auto;}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0;}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto;}
+.songrow .stag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:6px;flex:0 0 auto;}
+.crail.pending{background:var(--tag-pending);}
+.stag.pending{background:rgba(255,255,255,0.06);color:var(--text2);border:1px dashed rgba(255,255,255,0.28);}
+.startfoot{flex:0 0 auto;padding:14px 18px 20px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0));}
+.viewtoggle{display:flex;gap:9px;margin-bottom:12px;}
+.viewtoggle .pill{flex:1;text-align:center;padding:12px 0;border-radius:24px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.viewtoggle .pill.on{border:2px solid var(--live);background:rgba(212,63,0,0.12);color:var(--live-l);}
+.viewtoggle .pill.off{border:1.5px solid rgba(255,255,255,0.15);color:var(--text3);}
+.startbtn{height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;background:linear-gradient(150deg,#e8571c,#c8360a);box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3);color:#fff;}
+.hz{position:absolute;border:2px dashed;border-radius:10px;pointer-events:none;}
+.hzb{position:absolute;width:18px;height:18px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#16140f;box-shadow:0 1px 4px rgba(0,0,0,0.6);}
+.mline{position:absolute;pointer-events:none;}
+.mline .bar{position:absolute;height:0;border-top:1.5px dashed rgba(255,211,90,0.95);}
+.mline .cap{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.4px;color:#16140f;background:#ffd35a;border-radius:4px;padding:1px 5px;white-space:nowrap;}
+.leg{display:flex;flex-direction:column;gap:4px;}
+.leg .li{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.4;color:#16140f;}
+.leg .li .k{width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.leg .li b{color:#000;}
+.delta{position:absolute;width:390px;display:flex;flex-direction:column;gap:6px;}
+.delta .d{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.45;color:#16140f;background:#fff;border:1px solid rgba(0,0,0,0.10);border-left:3px solid #28cd41;border-radius:8px;padding:8px 11px;box-shadow:0 4px 14px rgba(0,0,0,0.07);text-wrap:pretty;}
+.delta .d b{color:#0d6b2b;}
+.delta .d.warn{border-left-color:#f5b820;}.delta .d.warn b{color:#8a6d1a;}
+.delta .d.bad{border-left-color:#b1281f;}.delta .d.bad b{color:#8a2a1a;}
+.delta .d.key{border-left-color:#16140f;background:#16140f;color:#f0ece2;}
+.delta .d.key b{color:#ffd35a;}
+.delta .d code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+.delta .d.key code{background:rgba(255,255,255,0.10);color:#ffd35a;}
+.panel{position:absolute;background:#fff;border:1px solid rgba(0,0,0,0.10);border-radius:16px;padding:22px 24px;box-shadow:0 8px 26px rgba(0,0,0,0.10);}
+.panel h3{font-size:16px;font-weight:800;color:#161616;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.panel h3 .tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;padding:3px 8px;border-radius:6px;background:#0d6b2b;}
+.panel h3 .tag.w{background:#8a5a00;}.panel h3 .tag.r{background:#b1281f;}
+.panel .lead{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.62;color:rgba(0,0,0,0.72);margin:10px 0 0;text-wrap:pretty;}
+.panel .lead b{color:#000;}
+.panel .lead code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.qa{margin-top:14px;}
+.qa .q{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;color:#161616;margin-bottom:4px;}
+.qa .q .num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;background:#0d6b2b;min-width:22px;height:22px;padding:0 5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.qa .q .num.w{background:#8a5a00;}.qa .q .num.r{background:#b1281f;}
+.qa .a{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.72);padding-left:31px;text-wrap:pretty;}
+.qa .a b{color:#000;}
+.qa .a code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.qa .a .no{color:#b1281f;font-weight:700;}.qa .a .am{color:#8a5a00;font-weight:700;}
+.pdiv{height:1px;background:rgba(0,0,0,0.1);margin:16px 0;}
+.tt{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-top:12px;}
+.tt th{text-align:left;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,0,0,0.45);padding:0 10px 7px 0;border-bottom:1px solid rgba(0,0,0,0.10);}
+.tt td{padding:8px 10px 8px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:rgba(0,0,0,0.72);vertical-align:top;line-height:1.5;}
+.tt td b{color:#000;}
+.tt code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:5px;color:#333;}
+.tt .old{color:#b1281f;text-decoration:line-through;}
+.tt .new{color:#0d6b2b;font-weight:800;}
+.tt .num{text-align:right;white-space:nowrap;font-weight:700;color:#000;}
+.gatebox{background:#1c1608;border:1px solid rgba(245,184,32,0.5);border-radius:12px;padding:15px 17px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#f3e2b0;text-wrap:pretty;}
+.gatebox .k{color:#ffd35a;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:9px;display:block;margin-bottom:9px;}
+.gatebox b{color:#fff;}
+.gatebox .no{color:#ff9a8a;font-weight:700;}
+.gatebox code{background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.callout{margin-top:14px;border-left:3px solid #b1281f;background:rgba(177,40,31,0.05);border-radius:0 10px 10px 0;padding:12px 15px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.75);text-wrap:pretty;}
+.callout b{color:#000;}
+.callout code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:4px;}
+.callout.ok{border-left-color:#0d6b2b;background:rgba(40,205,65,0.06);}
+.callout.dep{border-left-color:#8a5a00;background:rgba(245,184,32,0.07);}
+.stack{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+.lay{display:flex;align-items:flex-start;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:rgba(0,0,0,0.74);background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);border-radius:9px;padding:9px 12px;text-wrap:pretty;}
+.lay .z{flex:0 0 96px;font-size:8.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#fff;background:#16140f;border-radius:5px;padding:3px 6px;text-align:center;}
+.lay .z.hi{background:#b1281f;}.lay .z.mid{background:#8a5a00;}.lay .z.lo{background:#5a5a5a;}.lay .z.ok{background:#0d6b2b;}
+.lay b{color:#000;}.lay .no{color:#b1281f;font-weight:700;}
+.lay code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#0e0e10">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#0e0e10"></rect><rect x="14" y="26" width="16" height="8" rx="3" fill="#ff8a5c"></rect><rect x="33" y="22" width="34" height="16" rx="5" fill="#16161a" stroke="rgba(255,255,255,0.22)"></rect><rect x="51" y="25" width="14" height="10" rx="3" fill="#d43f00"></rect><rect x="14" y="50" width="52" height="10" rx="3" fill="#fff"></rect><rect x="14" y="65" width="30" height="5" rx="2" fill="rgba(255,255,255,0.4)"></rect><rect x="14" y="78" width="72" height="6" rx="3" fill="rgba(255,255,255,0.14)"></rect></svg>
+</template>
+
+<div class="btitle">
+  <div class="kick">CD · Revisione normativa rev4 · 20/08/2026 · supersede la rev3 su 4 selettori</div>
+  <h1>Q-Live › Shows — la navbar del dettaglio si centra, e la testata ritrova il respiro</h1>
+  <p>Due questioni dal collaudo su device del <b>19/08</b>, riemesse il <b>20/08</b>. La prima è una <b>decisione di Mauro</b> — il selettore di stanza va <b>centrale</b> — e a me spettava dire <b>come si compone</b>: risposta nel pannello <b>①</b>, con le misure prese a fonte sul foglio, non ricordate. La seconda è una <b>domanda vera</b> sul ritmo verticale, e la risposta è che <b>l'occhio di Mauro ha ragione tre volte</b>, di cui <b>solo una</b> è il padding: pannello <b>②</b>. Le tre risposte secche (a)(b)(c) nel pannello <b>③</b>.</p>
+  <p><b>Questa non è una riemissione del freeze.</b> La rev3 del 06/08 resta normativa su tutto, tranne i <b>quattro selettori</b> elencati in testata. I frame qui sotto ridisegnano la schermata intera <span style="color:#b1281f;font-weight:700">solo per dare contesto</span>: tutto ciò che non è nei quattro selettori è <b>citato dalla rev3 e invariato</b> — in particolare <code>.roomseg</code> (10,5px · 34pt, misura ratificata 06/08) e il <code>.viewtoggle</code>, che resta <b>fuori perimetro</b>.</p>
+  <p style="color:#8a2a1a"><b>⚠️ Una cosa la segnalo invece di risolverla</b>, come chiesto al punto 4: la <b>navbar 50→54px</b> è una <i>conseguenza</i> della decisione di Mauro, non una scelta mia. Se il chrome è fuori perimetro, fermatevi: il pannello <b>④</b> porta l'alternativa con i suoi numeri, perché la scelta la faccia Mauro.</p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">❄ rev4 · normativa</span><span class="anc">CD <b>20/08/2026</b> · foglio <b>390×844</b> · <b>SUPERSEDE la rev3</b> del 06/08 limitatamente a <b>4 selettori</b></span></div>
+  <div class="trow"><div class="k">Cosa supersede</div><div class="v"><code>2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844.html</code> (rev3), <b>solo</b> per: <code>.navbar</code> · <code>.navbar .back</code> · <code>.dhead</code> · <code>.dhead .nm</code>. Più un <b>allineamento di spec</b> su <code>.scrhead</code> che <b>non chiede codice</b>. La rev3 <b>non va spostata né rinominata</b>: resta il freeze del percorso di avvio, e questa vi si aggancia.</div></div>
+  <div class="trow"><div class="k">Cosa cambia · 1</div><div class="v"><code>.navbar</code> <span class="no">50px · space-between</span> → <b>54px · justify-content:center · position:relative</b>. Il segmento si centra <b>sull'intera barra</b>, il back diventa <b>absolute left:14px</b>.</div></div>
+  <div class="trow"><div class="k">Cosa cambia · 2</div><div class="v"><code>.navbar .back</code> + <b>min-height:44px</b> + <b>padding:0 4px</b>. <span class="no">Non è cosmetica:</span> oggi quel bersaglio è alto <b>16pt</b>. Vedi pannello ① punto 4 — <b>serve una riga BUGS</b>.</div></div>
+  <div class="trow"><div class="k">Cosa cambia · 3</div><div class="v"><code>.dhead</code> <span class="no">padding 6px 18px 10px</span> → <b>8px 18px 14px</b>.</div></div>
+  <div class="trow"><div class="k">Cosa cambia · 4</div><div class="v"><code>.dhead .nm</code> <span class="no">line-height 1.05</span> → <b>1.12</b>. Riguarda <b>solo</b> il caso a due righe, dove oggi l'interlinea ottica è <b>2,34pt</b>.</div></div>
+  <div class="trow"><div class="k">Spec ↔ codice</div><div class="v"><code>.scrhead</code>: <b>la spec si allinea al codice</b>, non il contrario. <span class="no">6/18/11</span> → <b>8/18/12</b>. Motivo dichiarato nel pannello ③(c) — <b>non</b> «per default». <b>Zero modifiche al livello 1.</b></div></div>
+  <div class="trow"><div class="k">Cosa resta invariato</div><div class="v"><code>.roomseg</code> e <code>.roomseg .opt</code> (10,5px · 34pt · <b>44pt di pillola</b>) — misura ratificata 06/08, <span class="no">non si tocca</span> · <code>.viewtoggle</code> Auto/List · forma <b>card</b> del livello 1 · menu <b>«···»</b> · <code>.startfoot</code> a pulsante <b>singolo</b> · gli altri <b>sei font su otto</b> del dettaglio · tutte le decisioni <b>02/08</b> e <b>06/08</b>.</div></div>
+  <div class="trow stop"><div class="k">⛔ Fuori perimetro</div><div class="v">Il <code>.viewtoggle</code> Auto/List e cosa faccia «List view» (<b>decisione Mauro, non presa</b>) · la <b>spec Vista LISTA in BOX5</b>, che il brief 20/08 dà come rimando «(invariati da V19)»: <b>va riletta a fonte</b>, non ridecisa da me · la forma a <b>card</b> · il menu <b>«···»</b> · il <b>ticket</b> «segmento inerte». <b>Nessuna di queste è toccata qui.</b></div></div>
+  <div class="note"><b>⚠️ Errata aritmetica — 20/08, prima di qualunque incisione.</b> La prima stesura di questo foglio dava il cap del titolo rev4 a <b>110,19</b> e parlava di «<b>parità entro 0,23pt</b>» col livello 1. <span class="no">Sbagliato:</span> il mezzo-leading a <code>lh 1.12</code> è <b>5,70</b> e non 4,19 ⇒ cap a <b>111,70</b> ⇒ scarto <b>+1,74pt</b>. La conclusione regge — rev4 dà <b>più</b> aria del livello 1, il lato su cui volevo sbagliare — ma è un <b>surplus voluto</b>, non una parità. <b>Non incidere 110,19 né 0,23.</b></div>
+  <div class="note"><b>⛔ Errata di portata — 20/08, dopo la riemissione del brief.</b> La prima stesura scriveva «<b>ratifico come regola</b>: una misura · una posizione · un <b>comportamento</b>». <span class="no">La terza dimensione è una PROPOSTA CD, non una ratifica:</span> il brief del 20/08 estende il principio alla <b>sola posizione</b>. Declassata e dichiarata tale nel pannello ①. <b>Non incidere «comportamento» tra i ratificati.</b></div>
+  <div class="note"><b>Ancoraggio.</b> CD non ha accesso a git: cito per <b>selettore</b>, mai per riga. I numeri di questo foglio sono <b>misurati sul foglio stesso</b> (390pt, box-sizing:border-box, Inter/JetBrains Mono come da §6) — non stimati e non ricordati: <code>.roomseg</code> 157,92×44 · <code>.back</code> «← Shows» 59×16 · <code>.nm</code> una riga 30,44 (lh 1.05) e 32,47 (lh 1.12). Se il gate su device misura diverso di più di <b>1pt</b>, è il foglio che ha torto: ditelo e lo correggo.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓐ — rev3, superata ══════════════ -->
+<div class="flbl" style="left:56px; top:560px;"><span class="b">Ⓐ dettaglio · rev3</span><span class="stt done">superata</span><span style="color:rgba(0,0,0,0.55)">segmento a destra · 50 / 6·10 / lh 1.05</span></div>
+<div class="frame v3 old" style="left:56px; top:616px;" data-screen-label="A — Q-Live Show detail rev3 (superata)">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="hz" style="left:214px; top:47px; width:160px; height:44px; border-color:rgba(255,140,120,0.95);"></div>
+  <div class="hzb" style="left:205px; top:38px; background:#ff8c78;">a</div>
+  <div class="hz" style="left:12px; top:41px; width:63px; height:16px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:66px; top:32px; background:#ffd35a;">b</div>
+</div>
+<div class="delta" style="left:56px; top:1482px;">
+  <div class="d bad"><b>ⓐ Il segmento è a destra</b> — conseguenza di <code>.navbar{justify-content:space-between}</code> con <b>due soli figli</b>. Il codice è fedele al disegno: il difetto è nel disegno, non nell'implementazione. <b>Centrale in due schermate su tre</b> è un'incoerenza che si vede.</div>
+  <div class="d bad"><b>ⓑ Il back è alto 16pt.</b> Misurato: <code>.back</code> = <b>59×16</b>. È l'<b>unica uscita</b> della schermata e il suo bersaglio verticale sta <b>sotto i 44pt</b> del vincolo §6. Nessuno l'aveva misurato — nemmeno io, quando ho scritto la rev3.</div>
+  <div class="d warn"><b>Il titolo qui è a UNA riga</b> («Assago 20 Jul») perché il confronto Ⓐ↔Ⓑ dev'essere a parità di contenuto. Il caso a due righe è il frame <b>Ⓒ</b>.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓑ — rev4, normativa ══════════════ -->
+<div class="flbl" style="left:500px; top:560px;"><span class="b">Ⓑ dettaglio · rev4</span><span class="stt fz">normativa</span><span style="color:rgba(0,0,0,0.55)">segmento centrale · 54 / 8·14 / lh 1.12</span></div>
+<div class="frame v4 norm" style="left:500px; top:616px;" data-screen-label="B — Q-Live Show detail rev4 (normativa)">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="hz" style="left:116px; top:49px; width:158px; height:44px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:107px; top:40px; background:#ffd35a;">a</div>
+  <div class="hz" style="left:10px; top:49px; width:67px; height:44px; border-color:rgba(40,205,65,0.9);"></div>
+  <div class="hzb" style="left:1px; top:40px; background:#5fe07a;">b</div>
+  <div class="mline" style="left:77px; top:71px; width:39px;">
+    <div class="bar" style="left:0; top:0; width:39px;"></div>
+    <div class="cap" style="left:-1px; top:4px;">35</div>
+  </div>
+  <div class="hz" style="left:12px; top:98px; width:366px; height:66px; border-color:rgba(120,190,255,0.85);"></div>
+  <div class="hzb" style="left:369px; top:93px; background:rgba(120,190,255,0.95);">c</div>
+</div>
+<div class="delta" style="left:500px; top:1482px;">
+  <div class="d key"><b>ⓐ Il segmento è centrato sull'INTERA barra</b>, con lo stesso meccanismo di <code>.roombar</code>: barra <code>position:relative</code> + <code>justify-content:center</code>, back in <code>position:absolute; left:14px</code>. <b>Non</b> <code>space-between</code>. Bordo sinistro del segmento a <b>116,04pt</b> — misurato, non stimato.</div>
+  <div class="d"><b>ⓑ Il back resta testuale e diventa un bersaglio vero:</b> <code>min-height:44px</code> + <code>padding:0 4px</code> ⇒ box <b>67×44pt</b>. Prima era 59×16. Il <b>franco box-a-box</b> col segmento è <b>35pt</b>; da inchiostro a inchiostro è <b>43,04pt</b>. <b>Nessuna collisione</b>, con margine.</div>
+  <div class="d"><b>ⓒ La testata respira:</b> <code>8px 18px 14px</code>. Il cap del titolo cade a <b>111,70pt</b> dal bordo alto — il livello 1 lo ha a <b>109,96</b>: <b>+1,74pt di aria in più</b>. Non è parità: è un <b>surplus voluto</b>, perché questo titolo può andare a <b>due righe</b> e il livello 1 mai.</div>
+  <div class="d warn"><b>Aria a destra: 102,04pt vuoti.</b> È voluto e <span style="color:#8a2a1a">non</span> è «centratura solo apparente»: il segmento è centrato <b>sul telaio</b>, esattamente come nelle altre due schermate. L'occhio legge la pillola contro i <b>bordi dello schermo</b>, non contro i vicini.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓒ — rev4, titolo 2 righe ══════════════ -->
+<div class="flbl" style="left:944px; top:560px;"><span class="b">Ⓒ rev4 · titolo 2 righe</span><span class="stt fz">normativa</span><span style="color:rgba(0,0,0,0.55)">il caso limite della domanda (b)</span></div>
+<div class="frame v4 norm" style="left:944px; top:616px;" data-screen-label="C — Q-Live Show detail rev4 titolo due righe">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="hz" style="left:12px; top:98px; width:366px; height:98px; border-color:rgba(120,190,255,0.85);"></div>
+  <div class="hzb" style="left:369px; top:93px; background:rgba(120,190,255,0.95);">c</div>
+</div>
+<div class="delta" style="left:944px; top:1482px;">
+  <div class="d key"><b>Due righe da 29px, con lh 1.12.</b> Blocco titolo <b>64,94pt</b> (era 60,88 a lh 1.05). L'<b>interlinea ottica</b> — discendente della prima riga → cap della seconda — passa da <b>2,34pt</b> a <b>4,37pt</b>: quasi il doppio. A 1.05 due righe di Inter 800 <b>si sfiorano</b>.</div>
+  <div class="d"><b>Il padding NON si ritara per le due righe.</b> Un valore giusto a due righe è gonfio a una, e <b>una riga è il caso comune</b>. Il caso a due righe lo assorbe la <b>lista</b>, che scorre: è la risposta onesta. Vedi ③(b).</div>
+  <div class="d"><b>Costo verificato.</b> Prima riga della lista a <b>203,4pt</b> (a una riga: 170,97). Viewport lista <b>≈490pt</b> ⇒ <b>10 righe</b> visibili contro 11. <span style="color:#0d6b2b">Nessuna riga persa in pratica</span>, il piede resta fisso e intero.</div>
+  <div class="d"><b><code>.mt{margin-top:7px}</code> invariato.</b> Misurato: dal discendente del titolo al cap di <code>.mt</code> restano <b>8,86pt</b> — e al livello 1 dal titolo al campo di ricerca ce ne sono <b>8,94</b>. Coincidenza che vale la pena tenere: <b>non la tocco</b>.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓓ — livello 1, riferimento invariato ══════════════ -->
+<div class="flbl" style="left:1388px; top:560px;"><span class="b">Ⓓ livello 1 · Shows</span><span class="stt done">invariato</span><span style="color:rgba(0,0,0,0.55)">il riferimento — cambia solo la SPEC, non il codice</span></div>
+<div class="frame ref" style="left:1388px; top:616px;" data-screen-label="D — Q-Live Shows livello 1 (riferimento invariato)">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="roombar">
+    <div class="homebtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"></circle><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card">
+      <div class="chead"><div><div class="nm">Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg></div></div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start</div><div class="sep"></div><div class="alt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg><span class="t">list</span></div></div>
+    </div>
+    <div class="card">
+      <div class="chead"><div><div class="nm">Collegno 12 Sep</div><div class="mt">7 songs · 34 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg></div></div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start</div><div class="sep"></div><div class="alt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg><span class="t">list</span></div></div>
+    </div>
+    <div class="card">
+      <div class="chead"><div><div class="nm">Rho Fiera 03 Oct</div><div class="mt">6 songs · 28 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg></div></div>
+      <div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start</div><div class="sep"></div><div class="alt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg><span class="t">list</span></div></div>
+    </div>
+  </div>
+  <div class="hz" style="left:116px; top:49px; width:158px; height:44px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:107px; top:40px; background:#ffd35a;">a</div>
+  <div class="hz" style="left:12px; top:100px; width:366px; height:49px; border-color:rgba(120,190,255,0.85);"></div>
+  <div class="hzb" style="left:369px; top:95px; background:rgba(120,190,255,0.95);">c</div>
+</div>
+<div class="delta" style="left:1388px; top:1482px;">
+  <div class="d"><b>ⓐ Qui il segmento era già centrale</b> — e con esattamente <b>lo stesso bordo sinistro a 116,04pt</b> del frame Ⓑ. È questo che rende la rev4 una <b>coerenza ritrovata</b>, non una terza variante: <b>una misura, una posizione, tre schermate</b>.</div>
+  <div class="d warn"><b>ⓒ Titolo e conteggio sulla STESSA riga</b> (<code>align-items:baseline</code> + <code>space-between</code>). Nel dettaglio invece il titolo ha <code>.mt</code> <b>impilato sotto</b>. <b>Due oggetti di testo contro uno</b>, nella stessa busta di padding: è la causa che non si vede, e la più forte delle tre. Pannello ②.</div>
+  <div class="d key"><b>Su questo frame non cambia una riga di codice.</b> <code>.scrhead</code> resta <b>8/18/12</b> come è già a HEAD: è la <b>spec</b> che si allinea a lui. Tutto il lavoro di CC è confinato a <code>.navbar</code>, <code>.navbar .back</code>, <code>.dhead</code>, <code>.dhead .nm</code> — <b>quattro selettori, una schermata.</b></div>
+</div>
+
+<!-- ══════════════ PANNELLO ① ══════════════ -->
+<div class="panel" style="left:1832px; top:616px; width:828px;">
+  <h3>① La navbar del dettaglio col selettore centrale <span class="tag">risposta con i numeri</span></h3>
+  <p class="lead">Il «<b>se</b>» non è in discussione: <b>decisione di Mauro, 19/08</b>. Qui c'è il «<b>come</b>», e la risposta breve è: <b>il back resta testuale e il segmento si centra sull'intera barra</b> — perché <b>lo spazio c'è, e l'ho misurato</b>. Non era ovvio a priori: lo diventa quando i numeri sono sul tavolo.</p>
+  <table class="tt">
+    <tr><th>Oggetto</th><th>Misura presa sul foglio</th><th>Nota</th></tr>
+    <tr><td><code>.roomseg</code> intero</td><td class="num">157,92 × <b>44</b> pt</td><td>la pillola è alta <b>44pt</b>, non 34: <code>.opt</code> 34 + padding 4+4 + bordo 1+1. <b>Q8 è intatta</b>, e senza saperlo.</td></tr>
+    <tr><td><code>.opt</code> Q-STAGE / Q-LIVE</td><td class="num">75,11 / 69,81</td><td>invariati. <b>Non li tocco</b> — misura ratificata 06/08.</td></tr>
+    <tr><td><code>.back</code> «← Shows» oggi</td><td class="num">59 × <b>16</b> pt</td><td>freccia 16 + gap 5 + «Shows» 38. <span style="color:#b1281f;font-weight:700">L'altezza è il problema del punto 4.</span></td></tr>
+    <tr><td>Segmento centrato su 390</td><td class="num">bordo sx a 116,04</td><td><b>identico</b> al bordo sinistro nel <code>.roombar</code> del livello 1.</td></tr>
+    <tr><td><b>Franco</b> inchiostro↔inchiostro</td><td class="num new">43,04 pt</td><td>dalla fine di «Shows» all'inizio del segmento.</td></tr>
+    <tr><td><b>Franco</b> box↔box (con il fix 44pt)</td><td class="num new">35,04 pt</td><td>è <b>questo</b> che governa la collisione. <b>Quasi 2× la gronda</b> di 18pt, <b>12× il gap interno</b> di 3pt. <span style="color:#8a5a00;font-weight:700">⚠️ Su questo foglio il righello legge 34,03:</span> il mockup ha un bordo decorativo da <b>1px</b> che spinge il back a 15 dal bordo esterno invece di 14. Sul <b>device</b>, che non ha cornice, il valore è <b>35,04</b> — e quello è il numero da tenere.</td></tr>
+    <tr><td>Aria residua a destra</td><td class="num">102,04 pt</td><td>vuota, e va bene così: vedi punto 3.</td></tr>
+  </table>
+  <div class="qa"><div class="q"><span class="num">1</span>La prescrizione, per intero</div><div class="a"><code>.navbar</code> → <b><code>height:54px; flex:0 0 54px; display:flex; align-items:center; justify-content:center; padding:0 14px; position:relative</code></b>.<br /><code>.navbar .back</code> → <b><code>position:absolute; left:14px; top:50%; transform:translateY(-50%); min-height:44px; padding:0 4px</code></b>.<br />Il <code>.roomseg</code> resta <b>figlio normale in flusso</b> e si centra da sé. <span class="no">Via <code>justify-content:space-between</code>.</span> È <b>lo stesso meccanismo, riga per riga, del <code>.roombar</code></b>: non un secondo modo di fare la stessa cosa.</div></div>
+  <div class="qa"><div class="q"><span class="num w">2</span>L'alternativa che <b>scarto</b>, col suo numero</div><div class="a"><b>Back a sola freccia.</b> Darebbe <b>86,04pt</b> di franco invece di 35 — quindi funziona, tecnicamente. <b>La scarto comunque:</b> «← Shows» dice <b>dove</b> torni, la freccia nuda dice solo <b>che</b> torni. In penombra a 60cm, con una bacchetta in mano, la <b>destinazione</b> vale più di 51pt di aria che nessuno guarda. E i 35pt bastano: <b>non stiamo comprando spazio che ci serve</b>.</div></div>
+  <div class="qa"><div class="q"><span class="num">3</span>«Centratura solo apparente»? <b>No — e la distinzione conta</b></div><div class="a">Il timore era legittimo, ma nasce da un'ambiguità: <b>centrato rispetto a cosa</b>. Qui il segmento è centrato <b>sul telaio da 390pt</b> — asse a <b>195,00</b> esatti, come nelle altre due schermate. Che il vicino di sinistra sia 67pt e quello di destra 0 è <b>invisibile</b>: l'occhio misura la pillola contro i <b>bordi dello schermo</b>, non contro i suoi vicini. La centratura «solo apparente» sarebbe l'opposto: centrare sullo <b>spazio residuo</b> (asse a 228,5) — la pillola cadrebbe <b>33,5pt fuori asse</b> rispetto al livello 1, e <b>quello</b> si vedrebbe, passando da una schermata all'altra. <span class="no">Scartato.</span></div></div>
+  <div class="qa"><div class="q"><span class="num r">4</span>Una cosa che non mi avete chiesto e che vi devo: <b>il back è alto 16pt</b></div><div class="a">Misurandolo per rispondervi ho trovato che <code>.back</code> è <b>59×16pt</b>. In SwiftUI il bersaglio di un <code>Button</code> è il <b>frame della label</b>: <b>16pt verticali</b>, contro i <b>44 minimi</b> del §6 — vincolo <b>non negoziabile</b> (LIBRO r.348 CD-Q8 · BOX3 V97:603). È l'<b>unica uscita</b> di questa schermata. Il fix è nella prescrizione del punto 1 (<code>min-height:44px</code> ⇒ box <b>67×44</b>), <b>ma la diagnosi va incisa a parte</b>: non è un ritocco di questa revisione, è un <b>difetto preesistente</b> che questa revisione incontra. <b>Serve una riga BUGS</b>, e il difetto è <b>mio</b>: la rev3 l'ha scritto così.</div></div>
+  <div class="gatebox"><span class="k">⚠️ Risposta alla vostra nota — «un componente solo»: valeva la misura, e l'estensione alla POSIZIONE è giusta</span>Il callout della rev3 parlava di <b>misura</b>: nasceva dall'abolizione della <code>.seg-mini</code>. Mauro la estende alla <b>posizione</b>. <b>Confermo:</b> un segmento che <b>sta in un posto diverso</b> per schermata è, <b>per l'occhio</b>, un componente diverso. Non l'avevo scritto perché non avevo visto le tre schermate accanto: <b>Mauro sì</b>. ⇒ <b>Ratificato (Mauro, 19-20/08): una misura · una posizione.</b><br /><br /><b>⛔ E qui mi correggo io.</b> La prima stesura di questo foglio aggiungeva una <b>terza dimensione</b> — il <b>comportamento</b> — scritta come «ratifico come regola». <span class="no">Non è ratificata:</span> è una <b>proposta CD</b>, e il brief del <b>20/08</b> estende il principio alla <b>sola posizione</b>. La lascio in piedi <b>come proposta, dichiarata tale</b>: <i>un segmento inerte in una schermata su tre è, per la mano, un componente diverso — quindi il disegno lo pretende vivo</i>. <b>Va portata a Mauro come proposta, non incisa come ratifica.</b> Il ticket resta vostro; il disegno non progetta nulla che dipenda dalla sua inerzia.</div>
+</div>
+
+<!-- ══════════════ PANNELLO ② ══════════════ -->
+<div class="panel" style="left:56px; top:1934px; width:850px;">
+  <h3>② Il ritmo verticale — l'occhio di Mauro ha ragione <b>tre volte</b>, e solo una è il padding <span class="tag w">la causa vera è strutturale</span></h3>
+  <p class="lead">La vostra osservazione controintuitiva è <b>esatta e va spiegata, non aggirata</b>: la schermata conforme alla spec è quella che sembra compressa. Il motivo è che <b>il padding non era l'unica variabile</b>, e le altre due non le avevo messe in conto quando ho scritto 6/18/10. Ecco le tre, misurate.</p>
+  <div class="stack">
+    <div class="lay"><span class="z mid">causa 1 · −4pt</span><div><b>La barra è più bassa.</b> <code>.navbar</code> <b>50px</b> contro <code>.roombar</code> <b>54px</b>. Ma la pillola dentro è <b>44pt in entrambe</b>: quindi ha <b>5pt</b> di margine al livello 1 e <b>3pt</b> nel dettaglio. <b>Il componente stesso è più stretto nella sua barra</b> — ed è il pezzo che si vede per primo, perché è l'unica cosa colorata in cima.</div></div>
+    <div class="lay"><span class="z mid">causa 2 · −2pt</span><div><b>Il padding sopra.</b> <code>.dhead</code> <b>6</b> contro <code>.scrhead</code> <b>8</b> a HEAD. Questo è l'unico pezzo che riguarda la spec — e da solo <b>non spiegava</b> quello che Mauro vedeva.</div></div>
+    <div class="lay"><span class="z hi">causa 3 · la più forte</span><div><b>La struttura. Il dettaglio porta DUE oggetti di testo impilati dove la lista ne porta UNO.</b> <code>.scrhead</code> mette titolo e conteggio <b>sulla stessa riga</b> (<code>align-items:baseline</code> + <code>space-between</code>). <code>.dhead</code> mette <code>.mt</code> <b>sotto</b> il titolo. ⇒ <b>padding uguale NON dà aria uguale:</b> la stessa busta contiene più contenuto. Il dettaglio ha bisogno di <b>più</b> padding del livello 1, non dello stesso.</div></div>
+    <div class="lay"><span class="z ok">e il +26% del titolo</span><div><b>La vostra ipotesi regge, ed è la quarta gamba.</b> <code>.dhead .nm</code> 23→29px lasciando <code>6/10</code> fermo: il titolo è cresciuto del <b>26%</b> e la busta no. Da solo non bastava a spiegare tutto — <b>insieme alle tre sopra, sì</b>.</div></div>
+  </div>
+  <div class="pdiv"></div>
+  <h3>Lo stack ottico, dal bordo alto al <i>cap</i> del titolo</h3>
+  <p class="lead">Misura che conta davvero: non il padding, ma <b>dove cade la cima delle lettere</b>. Inter ha cap-height 0,727em e discendente 0,242em: con <code>line-height</code> vicino a 1 il <i>leading</i> è <b>negativo</b>, e il padding dichiarato non è l'aria che si vede.</p>
+  <table class="tt">
+    <tr><th>&nbsp;</th><th>Livello 1 · Shows</th><th>Dettaglio · rev3</th><th>Dettaglio · rev4</th></tr>
+    <tr><td>status bar</td><td class="num">44,00</td><td class="num">44,00</td><td class="num">44,00</td></tr>
+    <tr><td>barra stanza</td><td class="num">54,00</td><td class="num old">50,00</td><td class="num new">54,00</td></tr>
+    <tr><td>padding sopra</td><td class="num">8,00</td><td class="num old">6,00</td><td class="num new">8,00</td></tr>
+    <tr><td>mezzo-leading al cap</td><td class="num">3,96</td><td class="num">4,68</td><td class="num">5,70</td></tr>
+    <tr><td><b>cap del titolo a</b></td><td class="num"><b>109,96</b></td><td class="num old"><b>104,68</b></td><td class="num new"><b>111,70</b></td></tr>
+    <tr><td>margine della pillola nella barra</td><td class="num">5,00</td><td class="num old">3,00</td><td class="num new">5,00</td></tr>
+  </table>
+  <div class="callout ok"><b>Ecco il numero che Mauro ha visto senza conoscerlo:</b> il titolo del dettaglio sedeva <b>5,28pt più in alto</b> di quello della lista, con la pillola <b>2pt più stretta</b> nella sua barra. «Tutto troppo compresso verso l'alto» era una <b>misura</b>, non un'impressione. Con la rev4 il titolo <b>scende di 7,02pt</b> e si assesta <b>1,74pt più in basso</b> del livello 1: <span class="am">non è parità</span> — è un <b>surplus minimo e deliberato</b>. La testata del dettaglio porta <b>una riga in più</b> e un titolo che <b>può andare a capo</b>: merita di stare un filo più larga, non identica.</div>
+  <div class="callout dep"><b>E una cosa da incidere, perché è imbarazzante e utile.</b> Il livello 1 <b>non è mai stato conforme</b> alla mia spec, e per due settimane <b>nessuno l'ha notato — perché la deviazione era un miglioramento</b>. Un +2/+1 che nessuno rivendica e che il product owner poi <b>preferisce a occhio</b>. È il tipo di dato che una spec non produce da sola: vale <b>una riga di LIBRO</b>, non come colpa di CC ma come <b>metodo</b> — quando l'occhio e la spec litigano su 2pt, si misura chi ha ragione invece di allineare per default.</div>
+</div>
+
+<!-- ══════════════ PANNELLO ③ ══════════════ -->
+<div class="panel" style="left:950px; top:1934px; width:850px;">
+  <h3>③ Le tre risposte, secche <span class="tag">con i numeri</span></h3>
+  <div class="qa"><div class="q"><span class="num">a</span>Il ritmo di <code>.dhead</code> va rivisto ora che il titolo è 29px? <b>Sì.</b></div><div class="a"><code>.dhead{padding:6px 18px 10px}</code> → <b><code>8px 18px 14px</code></b>.<br />· <b>sopra 8</b> — lo stesso valore di <code>.scrhead</code>. Così smette di essere <b>un numero</b> e diventa <b>una regola</b>: «testata di schermata: 8 sopra». Due valori quasi uguali per la stessa classe di oggetto erano un invito al refuso.<br />· <b>sotto 14</b> — <b>+2 rispetto ai 12</b> del livello 1, e il +2 è il <b>prezzo della riga <code>.mt</code> impilata</b> (causa 3 del pannello ②). Non è simmetria decorativa: è la compensazione di una differenza <b>strutturale</b>.<br />· <b>ai fianchi 18</b> — <b>invariato</b>, i due erano già d'accordo.<br />Con la barra a 54 il cap cade a <b>111,70</b> contro <b>109,96</b> del livello 1: <b>+1,74pt</b>, un <b>surplus voluto</b> — non parità, ma dalla parte giusta rispetto a quello che Mauro ha lamentato.</div></div>
+  <div class="pdiv"></div>
+  <div class="qa"><div class="q"><span class="num">b</span>Spaziatura pensata per una riga o per due? <b>Per UNA</b> — e un valore cambia per le due</div><div class="a"><b>La spaziatura resta tarata su una riga.</b> Un padding giusto a due righe è <b>gonfio</b> a una, e una riga è il <b>caso comune</b>; il caso a due righe lo assorbe la <b>lista</b>, che scorre. Progettare la busta sul caso raro è il modo classico di peggiorare quello frequente.<br /><b>Ma una misura fallisce davvero a due righe, e quella la cambio:</b> <code>line-height:1.05</code> su Inter 800 a 29px lascia, tra il <b>discendente</b> della prima riga e il <b>cap</b> della seconda, <b>2,34pt</b>. Le due righe <b>si sfiorano</b>. Al livello 1 non si vede perché «Shows» è <b>sempre</b> una riga.<br />⇒ <b><code>.dhead .nm{line-height:1.12}</code></b>. Riga da <b>30,44 → 32,47</b>; interlinea ottica <b>2,34 → 4,37pt</b>. Costo: <b>+2,03pt</b> a una riga, <b>+4,06</b> a due. <b>Il rapporto costo/beneficio migliore dei quattro cambi.</b><br /><code>.mt{margin-top:7px}</code> e <code>-webkit-line-clamp:2</code> <b>invariati</b>.</div></div>
+  <div class="pdiv"></div>
+  <div class="qa"><div class="q"><span class="num w">c</span>Lo scarto di <code>.scrhead</code>: <b>la SPEC si allinea al CODICE</b> — e vi dico perché, non «per default»</div><div class="a">Avete ragione a mettere il paletto, quindi il motivo è <b>esplicito</b>. Tengo <b>8/18/12</b> per <b>tre</b> ragioni, in quest'ordine:<br />· <b>1.</b> è il valore che l'occhio del product owner ha <b>preferito su hardware reale</b>. Un dato del genere <b>batte</b> un numero che ho scritto io a tavolino guardando un foglio da 2760px;<br />· <b>2.</b> non è peggiore <b>per nessuna misura</b> — è 2pt più generoso sopra e 1 sotto, e <b>non toglie righe</b> alla lista;<br />· <b>3.</b> allineando la spec al codice, <b>il livello 1 non si tocca</b>: tutto il lavoro di CC si concentra su <b>una schermata</b> e i <b>quattro selettori</b>. Allineare il codice alla spec avrebbe <b>peggiorato la schermata che a Mauro piace</b> per far tornare un numero mio. <span class="no">Sarebbe stato il modo sbagliato di avere ragione.</span><br /><b>SPEC:</b> <code>.scrhead{padding:6px 18px 11px}</code> → <b><code>8px 18px 12px</code></b>. <b>CODICE: nessuna modifica.</b></div></div>
+  <div class="gatebox"><span class="k">⛔ Quello che serve a valle — e che io non faccio</span><b>Due incisioni</b>, e nessuna delle due è mia: <b>(1) LIBRO</b> — la rev4 supersede la rev3 su 4 selettori + la ratifica «un componente = <b>una misura, una posizione</b>» (Mauro 19-20/08) + la nota di metodo del pannello ② (spec vs occhio). <span class="no">Il «comportamento» NON va inciso tra i ratificati</span> — è proposta CD, vedi pannello ①; <b>(2) BUGS</b> — il back del dettaglio a <b>16pt</b> di bersaglio verticale, difetto <b>preesistente</b> di origine rev3, violazione del vincolo <b>≥44pt</b> su un controllo di <b>uscita</b>. Segnalo anche che <b>il gate su device va rifatto</b> su questa schermata: i miei numeri vengono da un foglio, e sul foglio il <b>+1,74pt</b> è vero per costruzione. <b>Sul telefono va verificata da Mauro, non da me.</b></div>
+</div>
+
+<!-- ══════════════ PANNELLO ④ ══════════════ -->
+<div class="panel" style="left:1844px; top:1934px; width:816px;">
+  <h3>④ Perimetro: cosa non ho toccato, e la cosa che <b>segnalo invece di risolverla</b> <span class="tag r">punto 4 del vostro brief</span></h3>
+  <p class="lead">Avete chiesto di fermarmi se qualcosa sfiorava il fuori-perimetro. <b>Una cosa lo sfiora</b>, e non la decido io.</p>
+  <div class="callout"><b>⚠️ LA NAVBAR 50→54px È UNA CONSEGUENZA, NON UNA MIA SCELTA — e resta aperta.</b><br />Deriva dall'estensione che <b>Mauro stesso</b> ha dato al principio «un componente solo»: se la pillola da <b>44pt</b> è la stessa, la barra che la ospita <b>non può</b> essere 50 in una schermata e 54 nelle altre — con <b>3pt</b> di margine invece di <b>5</b>. <b>Ma è un cambio di altezza del chrome</b>, e il chrome non era nella lista delle due questioni. ⇒ <b>Se il referee lo considera fuori perimetro, si fermi qui e me lo dica:</b> preferisco un giro in più, come avete scritto voi.</div>
+  <table class="tt">
+    <tr><th>Le due strade, coi numeri</th><th>Cap del titolo</th><th>Margine pillola</th><th>Giudizio CD</th></tr>
+    <tr><td><b>A · navbar 54</b> + <code>.dhead</code> 8/14 <span style="color:#0d6b2b;font-weight:700">← prescritta</span></td><td class="num new">111,70</td><td class="num new">5,00 pt</td><td><b>coerente su tre schermate.</b> Cura la <b>causa</b>.</td></tr>
+    <tr><td><b>B · navbar 50</b> ferma + <code>.dhead</code> <b>12</b>/14</td><td class="num">111,70</td><td class="num old">3,00 pt</td><td>stesso cap, <b>ma la pillola resta stretta</b> e si accumula aria <b>sotto</b> la barra invece che <b>attorno</b> al componente. Cura il <b>sintomo</b>.</td></tr>
+  </table>
+  <p class="lead">Se passa <b>B</b>, l'unico numero che cambia è <code>.dhead</code> <b>12px 18px 14px</b> e la <code>.navbar</code> non si tocca: il resto della rev4 <b>regge identico</b>. <b>Lo dico adesso</b> così la decisione non costa un altro foglio.</p>
+  <div class="pdiv"></div>
+  <h3>Fuori perimetro — <b>non riaperto, non risolto di lato</b></h3>
+  <div class="stack">
+    <div class="lay"><span class="z lo">viewtoggle</span><div><b>Auto / List</b>: citato nei frame <b>come lo prescrive la rev3</b>, invariato. Resta <b>ratificato e da costruire</b>. <b>Non lo riapro</b>, e non ho toccato <code>.startfoot</code>.</div></div>
+    <div class="lay"><span class="z lo">«List view»</span><div><b>Cosa faccia</b> è decisione di <b>Mauro</b>, non presa. Concordo col blocco a monte: un interruttore che promette una vista inesistente è <b>un bottone morto sul palco</b>.</div></div>
+    <div class="lay"><span class="z lo">card · «···»</span><div>Forma a <b>card</b> della lista e menu <b>«···»</b>: <b>invariati</b>, non citati come oggetto di revisione. Il frame Ⓓ li mostra <b>solo come riferimento</b>.</div></div>
+    <div class="lay"><span class="z lo">segmento inerte</span><div><b>Ticket tecnico vostro.</b> Grazie per avvertirmi: <b>non ho progettato attorno a un decorativo</b>. Il disegno lo tratta come <b>controllo vivo</b> — vedi la <b>proposta</b> nel pannello ①, che <span class="no">non è ratificata</span> e va portata a Mauro.</div></div>
+    <div class="lay"><span class="z lo">viewtoggle · BOX5</span><div><b>Non vi rispondo, e avete ragione a non chiedere.</b> Se la sezione canonica «Vista LISTA — Spec complete» contiene solo «(invariati da V19)», quella <b>non è una spec: è un rimando</b> — e a nove giri di distanza. Rileggetela prima. <b>Niente in questa rev4 dipende da quel toggle:</b> lo cito dalla rev3 e basta.</div></div>
+    <div class="lay"><span class="z ok">roomseg</span><div><b>10,5px · 34pt · pillola 44pt.</b> Ratificato 06/08, <b>invariato</b>. Questa revisione ne cambia <b>la posizione</b>, mai <b>la misura</b>.</div></div>
+  </div>
+  <div class="callout ok"><b>Riepilogo per CC, in una riga.</b> Quattro selettori, una schermata: <code>.navbar</code> <b>54 · center · relative</b> · <code>.navbar .back</code> <b>absolute left:14 · min-height:44 · padding:0 4</b> · <code>.dhead</code> <b>8px 18px 14px</b> · <code>.dhead .nm</code> <b>line-height:1.12</b>. Più una spec che si allinea al codice (<code>.scrhead</code> <b>8/18/12</b>) e <b>non chiede nulla</b>. Tutto il resto della rev3 <b>resta in vigore parola per parola</b>.</div>
+</div>
+
+</body>
+</html>
