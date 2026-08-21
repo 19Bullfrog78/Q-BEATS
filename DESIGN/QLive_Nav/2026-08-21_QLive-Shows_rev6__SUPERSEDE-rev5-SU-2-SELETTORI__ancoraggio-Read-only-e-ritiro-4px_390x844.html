@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · REVISIONE NORMATIVA rev6 — Q-LIVE › SHOWS · ancoraggio verticale del badge Read-only
+ NOME FILE  2026-08-21_QLive-Shows_rev6__SUPERSEDE-rev5-SU-2-SELETTORI__ancoraggio-Read-only-e-ritiro-4px_390x844.html
+ DATA       21/08/2026 · risponde al GIRO CD «ANCORAGGIO DEL BADGE READ-ONLY»
+ STATO      SUPERSEDE la rev5 su DUE SOLI SELETTORI: .dhrow (ancoraggio) e
+            .navbar .back (ritiro dei 4px). Di tutto il resto della rev5 e della
+            rev3 non si tocca una parola. NON e' un ridisegno.
+
+ DECISIONE 1 — .dhrow{align-items:baseline}. La stessa parola del livello 1.
+   Superata su questo selettore l'INTERA discendenza `center` (freeze 09/07 -> Q7-Q16
+   11/07 -> 18/07 -> 02/08) E l'INTERA discendenza `flex-start` (freeze 06/08 ->
+   rev4 -> rev5). Nessuna delle due sopravvive. Cade con essa .ro{margin-top:4px},
+   che sotto baseline ha effetto geometrico ZERO ed e' un fossile di flex-start.
+
+ DECISIONE 2 — .navbar .back: `padding:0 4px` RITIRATO, mai da implementare.
+   Restano `min-height:44px` (GIA' nel codice) + absolute left:14px + navbar 54.
+   Cosi' la dichiarazione della rev5 «la SPEC si allinea al CODICE, zero modifiche
+   di codice» torna VERA come e' scritta. E box e inchiostro tornano UN numero.
+
+ ⛔ RITIRO (mio, citandolo). rev4/rev5, blocco ⓑ del frame Ⓑ: «min-height:44px +
+   padding:0 4px => box 67x44pt ... il franco box-a-box col segmento e' 35pt; da
+   inchiostro a inchiostro 43,04pt». RITIRATO. I due franchi appartengono a DUE
+   geometrie diverse (8pt di scarto = i due padding da 4px): 43,04 e' il valore
+   SENZA i 4px, 35,04 quello CON. Presentarli come due letture dello STESSO stato
+   era l'errore. E la giustificazione «box 67x44 => bersaglio vero» era falsa nella
+   dimensione che invocava: il back disegnato e' largo 59pt, la larghezza non e' MAI
+   stata sotto i 44. Mancava solo l'altezza, e la cura e' min-height da sola.
+
+ ⚠️ CONTRADDICO IL BRIEF, su invito e col numero. Il brief attribuisce a
+   `center` contro `baseline` cio' che Mauro ha visto al gate. Misurato: l'ancoraggio
+   da solo vale ~1pt e nel segno OPPOSTO. Il gradino di ~9,3pt che si vede sul
+   telefono e' prodotto dalle tre differenze che l'OPZIONE A ha GIA' ratificato e che
+   il codice non ha ancora (navbar 50->54, .dhead 6->8, .nm 23px/1.05 -> 29px/1.12).
+   ⇒ E il TITOLO che Mauro «percepisce spostato»: la misura gli da' RAGIONE. Nel
+   codice di oggi il cap del titolo del dettaglio sta 6,25pt piu' in alto di quello
+   del livello 1. La misura del referee («stessa altezza») e' vera sul FOGLIO post-A,
+   dove lo scarto e' 1,74. Due oggetti diversi, due misure entrambe corrette. Al gate
+   device ha ragione il telefono. L'ipotesi «trascinamento percettivo» si RITIRA: non
+   serve, c'era un 6,25 vero.
+
+ ℹ️ AMPIEZZA DEL CONTROLLO, dichiarata. Il valore `flex-start` l'ho misurato nel
+   freeze 06/08 `__rev2-ratificata.html`, il file che sta nella MIA cartella di
+   scambio. Il brief cita `__rev3-NORMATIVA.html`: quel file NON c'e' nella mia
+   cartella e CD non ha git. Stesso selettore, stesso valore: la decisione non
+   dipende da quale dei due lo porta — la discendenza flex-start cade intera.
+   L'inchiostro del back (59pt) e' EREDITATO dalla misura rev3: in questo giro NON
+   l'ho ri-misurato, e lo dico.
+
+ ⛔⛔ ERRATA NUMERI — 21/08, stessa giornata, PRIMA di qualunque incisione. Quattro
+   affermazioni MIE che la resa del foglio smentisce. Si ritirano CITANDOLE.
+   ERRATA 1 — «il bordo inferiore del badge sta SUL baseline della prima riga».
+     FALSA come resa. Misurato: il fondo del badge sta 4,50pt SOTTO il baseline —
+     in Ⓐ e in Ⓑ, identico. L'avevo derivata assumendo che un `inline-flex` con
+     `align-items:center` prenda il baseline sintetizzato dal BORDO INFERIORE: il
+     motore non fa cosi'. Cade con essa «1,85pt sotto il cap»: misurato 4,80.
+     ⇒ NON incidere «sul baseline» ne' «1,85». LA DECISIONE NON CAMBIA: cambia il
+     modo di dirla, e il modo giusto e' «LO STESSO ANCORAGGIO DEL LIVELLO 1», non
+     un numero. Un bersaglio numerico che il mio stesso frame di riferimento non
+     mostra e' peggio di nessun bersaglio: CC lo avrebbe colpito a mano, e sbagliato.
+   ERRATA 2 — origine sbagliata. Ho scritto «dal bordo alto del TELAIO» e ho
+     calcolato dal bordo alto del CONTENUTO: il telaio di questo foglio ha
+     `border:1px` che il telefono NON ha. ⇒ ogni y si legge +1 sul foglio.
+     I numeri DELL'APP restano quelli (cap Ⓑ 111,70 · back 14→73 · franco 43,04);
+     sul FOGLIO si leggono 112,70 · 15→74 · 42,03. Non era sbagliato il numero:
+     era sbagliata la frase «misurato sul foglio». ECCEZIONE, e va detta: il
+     segmento e' CENTRATO, il bordo si annulla nella meta' ⇒ 116,04 in entrambi.
+   ERRATA 3 — scarto di modello che NON SO SPIEGARE, e non lo limo. Il baseline di
+     Ⓑ: il mio conto da' 132,77 (app), il foglio ne rende 132,00. 0,77pt di
+     differenza — probabile arrotondamento della casella di riga, o metriche reali
+     di Inter diverse dall'1,211 che ho usato. GOVERNA LA MISURA, non il conto.
+     Di conseguenza ritiro «il badge eredita ESATTAMENTE l'1,74 del titolo»: il
+     residuo badge fra le due schermate misura 1,00pt SUL FOGLIO. ⛔ E anche questo
+     cade: vedi ERRATA · lh nulla — l'1,74 e l'1,00 sono artefatti di line-height che
+     esistono SOLO qui, e NELL'APP il residuo dopo il fix e' ZERO. Nessuno citi
+     l'1,74 da questa riga: non regge nessuna sostanza, e' ritirato in blocco.
+   ERRATA 4 — Ⓓ e il movimento. Stampavo «130,87→150,09» e «16,24pt di movimento».
+     Misurato: 131,47→151,47 sul foglio, movimento 13,97. NON incidere 16,24. Il
+     difetto resta reale e di un ordine di grandezza sopra lo zero.
+
+ ✅ COSA NON E' TOCCATO DALLE ERRATE, e perche'. L'argomento di questo foglio poggia
+   su DIFFERENZE, non su posizioni assolute — e le differenze sono immuni sia al
+   bordo da 1pt sia allo scarto di modello: 4,50 (fondo badge ↔ baseline, identico
+   nelle due schermate) · 0,00 (movimento con baseline, una riga contro due) ·
+   13,97 (movimento con center) · 59 (inchiostro del back). ⛔ NON e' in questa
+   lista l'1,00 «residuo fra le schermate» che vi avevo messo: e' un artefatto di
+   line-height del solo foglio, quindi non e' immune a niente. Le due DECISIONI si
+   reggono sulle quattro sopra.
+
+ ⛔⛔⛔ ERRATA DI PREMESSA — 21/08, SECONDO GIRO. Il fatto che mi mancava: il
+   commit `baaa172` (iOS Signed Build verde, collaudo device 7/7 il 21/08) HA GIA'
+   navbar 54 · .dhead 8/18/14 · .nm 29pt. Mauro ha osservato il badge piu' in alto
+   SU QUESTO CODICE. ⇒ Ritiro citandola l'affermazione centrale del pannello ②:
+   «quello che ha visto Mauro e' gia' deciso e aspetta implementazione». FALSA.
+   Era vera ieri sullo stato che credevo, non oggi sullo stato reale.
+   ⇒ E ritiro la CONTRADDIZIONE STESSA: il brief attribuiva il gradino
+   all'ancoraggio, io l'ho contraddetto, E IL BRIEF AVEVA RAGIONE. Rifatto il conto
+   sul codice reale, l'ancoraggio da solo vale 5-8pt — non ~1pt.
+
+ ⛔ PERCHE' avevo sbagliato, e non e' un dettaglio: il mio ~0,9pt usava DUE input
+   falsi, e stamattina ne avevo corretto UNO SOLO. (i) il modello «fondo del badge
+   SUL baseline», che la mia ERRATA 1 aveva gia' ritirato — misurato, sta 4,50 SOTTO;
+   (ii) la coppia line-height 1.05 -> 1.12, che NELL'APP NON ESISTE. Ho corretto la
+   REGOLA e non ho propagato la correzione nell'ARITMETICA. Il difetto vero e' questo:
+   un ritiro che non arriva a tutti i luoghi dove quel numero lavorava non e' un ritiro.
+
+ ⛔ QUARTA ERRATA, dal referee e da CC indipendentemente: `.nm` line-height
+   1.05 -> 1.12 NELL'APP NON ESISTE E NON E' MAI ESISTITA. Inter-ExtraBold: upem
+   2048, hhea 1984/-494, USE_TYPO_METRICS acceso ⇒ riga naturale 1,209961 = 35,09pt
+   a 29pt. Il CSS puo' COMPRIMERE sotto il naturale, SwiftUI sa solo AGGIUNGERE.
+   L'interlinea del titolo nell'app e' sempre stata ~1,21, piu' larga sia di 1,05
+   che dell'1,12 che prescrivevo. ⇒ Il termine lh dei miei conti vale ZERO nell'app,
+   e con esso cadono il «surplus voluto di 1,74» e il «residuo 1,00»: nell'app il
+   residuo dopo il fix e' ZERO. ⚠️ Ne segue che la prescrizione `lh 1.12` ratificata
+   in A e' INATTUABILE nell'app: NON la riapro (non e' mio), la DICHIARO APERTA.
+
+ ✅ E il conto corretto ha una proprieta' che quello sbagliato non aveva: l'esito
+   del fix NON dipende da nessuno dei numeri in contestazione. Con `baseline` su
+   entrambe le schermate e titolo identico (29pt, interlinea naturale in entrambe),
+   il badge cade nello STESSO punto qualunque sia la sua altezza e qualunque sia il
+   4,50: si cancella. Scarto = 0, dimostrato senza usare un solo numero contestato.
+
+ ⚠️ RIAPERTO, e va scritto come aperto: il TITOLO. Avevo ritirato l'ipotesi
+   «trascinamento percettivo» perche' il titolo sarebbe stato 6,25pt piu' in alto
+   «nel codice di oggi» — ma quel 6,25 nasceva da navbar 50 e .dhead 6, che non
+   esistono piu'. Sul codice reale il titolo sta alla STESSA altezza nelle due
+   schermate, e Mauro lo ha visto comunque piu' in alto. NESSUNO DEI DUE LO SA.
+   Resta INSPIEGATO. Il «trascinamento percettivo» torna PLAUSIBILE — e plausibile
+   non e' dimostrato: non lo chiudo in nessuna delle due direzioni.
+
+ ℹ️ RIFRAMING DELLA MIA ERRATA 3 (lo 0,77pt «che non so spiegare»). Due misure
+   indipendenti del TTF danno 1,209961, cioe' l'1,211 che avevo usato: IL MIO
+   MODELLO TIPOGRAFICO NON ERA IL SOSPETTO. Ipotesi piu' probabile, dichiarata come
+   ipotesi: sostituzione di font nell'ambiente di resa del foglio. ⇒ Si INVERTE una
+   cosa che ho scritto stamattina: per predire l'APP, i numeri RESI da questo foglio
+   sono i MENO affidabili dei due. Resta aperta.
+
+ ✅ NON CAMBIA NULLA: `baseline` · il ritiro dei 4px · le errata autocitanti · la
+   marca MISURATO/MODELLO · e l'argomento del caso a DUE RIGHE, che resta il piu'
+   forte del foglio ed e' quello che DECIDE — non il gradino.
+
+ ℹ️ NUMERI DERIVATI (baseline, cap, franchi, scarti): non ratificati, da NON incidere
+   in nessun canonico. E ora con una distinzione che il 21/08 ha reso obbligatoria:
+   quelli marcati MISURATO vengono dalla resa di questo foglio; quelli marcati
+   MODELLO sono conti su stati che questo foglio NON rende — e un conto non e' una
+   misura, nemmeno quando e' mio. Normativa e' la REGOLA, non il numero. Se il gate
+   su device misura diverso, ha ragione il telefono.
+
+ ⛔ FUORI PERIMETRO, non toccato: il badge in se' (colori, corpo, padding interno,
+   raggio, contenuto) · .roomseg e .roomseg .opt · .viewtoggle Auto/List · forma card
+   del livello 1 · menu «···» · .startfoot · il ticket «segmento inerte» (tecnico, CC)
+   · il disegno della vista a lista · le cinque condotte in attesa del gate device.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Q-Live › Shows — rev6 · ancoraggio del badge Read-only + ritiro dei 4px · 390×844 · 21/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);--text:#fff;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--line:rgba(255,255,255,0.08);--tag-pending:rgba(255,255,255,0.22);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:5440px;position:relative;-webkit-font-smoothing:antialiased;}
+a{color:#9a6800;text-decoration:none;}a:hover{color:#c48a10;}
+.btitle{position:absolute;left:56px;top:30px;width:1300px;color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#0d6b2b;}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty;}
+.btitle p b{color:#16140f;}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.btitle .no{color:#b1281f;font-weight:700;}
+.testata{position:absolute;left:1400px;top:30px;width:1304px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px;}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0;}
+.testata .anc b{color:#fff;}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09);}
+.trow:first-of-type{border-top:0;}
+.trow .k{flex:0 0 158px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093;}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty;}
+.trow .v b{color:#fff;}.trow .v .no{color:#ff9a8a;font-weight:700;}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.trow.stop .k{color:#ff9a8a;}
+.testata .note{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.12);font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.55;color:rgba(255,255,255,0.60);text-wrap:pretty;}
+.testata .note b{color:#fff;}
+.testata .note code{background:rgba(255,255,255,0.09);padding:1px 4px;border-radius:4px;color:#ffd35a;}
+.testata .note .no{color:#ff9a8a;font-weight:700;}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:410px;flex-wrap:wrap;}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4);}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;}
+.stt.fz{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.stt.re{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);}
+.stt.done{color:#5a5a5a;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.14);}
+.stt.bad{color:#b1281f;background:rgba(177,40,31,0.10);border:1px solid rgba(177,40,31,0.45);}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg);}
+.frame.norm{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5);}
+.frame.old{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(177,40,31,0.45);}
+.frame.ref{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(0,0,0,0.16);}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff;}
+.sb .r{display:flex;gap:7px;align-items:center;}
+.roombar{height:54px;flex:0 0 54px;display:flex;align-items:center;justify-content:center;padding:0 14px;position:relative;}
+.homebtn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;color:var(--text2r);position:absolute;left:14px;top:50%;transform:translateY(-50%);}
+.roomseg{display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:4px;gap:3px;}
+.roomseg .opt{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:9px;color:var(--text3);min-height:34px;display:inline-flex;align-items:center;}
+.roomseg .opt.live-on{color:#fff;background:rgba(212,63,0,0.24);border:1px solid rgba(212,63,0,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+.scrhead{display:flex;align-items:baseline;justify-content:space-between;padding:8px 18px 12px;}
+.scrhead h1{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1;}
+.searchrow{display:flex;gap:8px;padding:0 16px 12px;}
+.search{flex:1;height:44px;border-radius:12px;background:var(--qlive-surf);border:1px solid var(--qlive-bd);display:flex;align-items:center;gap:9px;padding:0 12px;color:var(--text2r);}
+.search .ph{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.3px;}
+.cardlist{flex:1;overflow:hidden;padding:0 16px 4px;display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--qlive-surf);border:1px solid var(--qlive-bd);border-radius:16px;padding:15px 15px 14px;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;}
+.card .nm{font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.15;}
+.card .mt{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text2r);letter-spacing:0.3px;margin-top:5px;}
+.dots{width:44px;height:44px;margin:-9px -9px 0 0;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text2r);flex:0 0 auto;}
+.gosplit{margin-top:13px;height:52px;border-radius:14px;display:flex;overflow:hidden;box-shadow:0 5px 16px rgba(212,63,0,0.30);}
+.gosplit .main{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .sep{width:1.5px;background:rgba(0,0,0,0.30);}
+.gosplit .alt{width:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:inset 0 1px 0 rgba(255,180,140,0.28);}
+.gosplit .alt .t{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;opacity:0.9;}
+.navbar{flex:0 0 54px;height:54px;display:flex;align-items:center;justify-content:center;position:relative;padding:0 14px;}
+.navbar .back{display:flex;align-items:center;gap:5px;color:var(--live-l);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.4px;position:absolute;left:14px;top:50%;transform:translateY(-50%);min-height:44px;}
+.dhead{padding:8px 18px 14px;}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.12;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.dhrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.frame.ctr .dhrow{align-items:center;}
+.frame.ctr .ro{margin-top:4px;}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px;}
+.ro{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;}
+.songrow{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--live-l);width:18px;text-align:right;flex:0 0 auto;}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0;}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto;}
+.songrow .stag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:6px;flex:0 0 auto;}
+.crail.pending{background:var(--tag-pending);}
+.stag.pending{background:rgba(255,255,255,0.06);color:var(--text2);border:1px dashed rgba(255,255,255,0.28);}
+.startfoot{flex:0 0 auto;padding:14px 18px 20px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0));}
+.viewtoggle{display:flex;gap:9px;margin-bottom:12px;}
+.viewtoggle .pill{flex:1;text-align:center;padding:12px 0;border-radius:24px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.viewtoggle .pill.on{border:2px solid var(--live);background:rgba(212,63,0,0.12);color:var(--live-l);}
+.viewtoggle .pill.off{border:1.5px solid rgba(255,255,255,0.15);color:var(--text3);}
+.startbtn{height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;background:linear-gradient(150deg,#e8571c,#c8360a);box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3);color:#fff;}
+.hz{position:absolute;border:2px dashed;border-radius:8px;pointer-events:none;}
+.hzb{position:absolute;width:18px;height:18px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#16140f;box-shadow:0 1px 4px rgba(0,0,0,0.6);}
+.mline{position:absolute;pointer-events:none;}
+.mline .bar{position:absolute;height:0;border-top:1.5px dashed rgba(255,211,90,0.95);}
+.mline .cap{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.4px;color:#16140f;background:#ffd35a;border-radius:4px;padding:1px 5px;white-space:nowrap;}
+.mline.bad .bar{border-top-color:rgba(255,140,120,0.95);}
+.mline.bad .cap{background:#ff8c78;}
+.delta{position:absolute;width:390px;display:flex;flex-direction:column;gap:6px;}
+.delta .d{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.45;color:#16140f;background:#fff;border:1px solid rgba(0,0,0,0.10);border-left:3px solid #28cd41;border-radius:8px;padding:8px 11px;box-shadow:0 4px 14px rgba(0,0,0,0.07);text-wrap:pretty;}
+.delta .d b{color:#0d6b2b;}
+.delta .d.warn{border-left-color:#f5b820;}.delta .d.warn b{color:#8a6d1a;}
+.delta .d.bad{border-left-color:#b1281f;}.delta .d.bad b{color:#8a2a1a;}
+.delta .d.key{border-left-color:#16140f;background:#16140f;color:#f0ece2;}
+.delta .d.key b{color:#ffd35a;}
+.delta .d code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+.delta .d.key code{background:rgba(255,255,255,0.10);color:#ffd35a;}
+.delta .d .no{color:#b1281f;font-weight:700;}
+.panel{position:absolute;background:#fff;border:1px solid rgba(0,0,0,0.10);border-radius:16px;padding:22px 24px;box-shadow:0 8px 26px rgba(0,0,0,0.10);}
+.panel h3{font-size:16px;font-weight:800;color:#161616;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.panel h3 .tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;padding:3px 8px;border-radius:6px;background:#0d6b2b;}
+.panel h3 .tag.w{background:#8a5a00;}.panel h3 .tag.r{background:#b1281f;}
+.panel .lead{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.62;color:rgba(0,0,0,0.72);margin:10px 0 0;text-wrap:pretty;}
+.panel .lead b{color:#000;}
+.panel .lead code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.panel .lead .no{color:#b1281f;font-weight:700;}
+.qa{margin-top:14px;}
+.qa .q{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;color:#161616;margin-bottom:4px;}
+.qa .q .num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;background:#0d6b2b;min-width:22px;height:22px;padding:0 5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.qa .q .num.w{background:#8a5a00;}.qa .q .num.r{background:#b1281f;}
+.qa .a{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.72);padding-left:31px;text-wrap:pretty;}
+.qa .a b{color:#000;}
+.qa .a code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.qa .a .no{color:#b1281f;font-weight:700;}.qa .a .am{color:#8a5a00;font-weight:700;}
+.pdiv{height:1px;background:rgba(0,0,0,0.1);margin:16px 0;}
+.tt{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-top:12px;}
+.tt th{text-align:left;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,0,0,0.45);padding:0 10px 7px 0;border-bottom:1px solid rgba(0,0,0,0.10);}
+.tt td{padding:8px 10px 8px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:rgba(0,0,0,0.72);vertical-align:top;line-height:1.5;}
+.tt td b{color:#000;}
+.tt code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:5px;color:#333;}
+.tt .old{color:#b1281f;text-decoration:line-through;}
+.tt .new{color:#0d6b2b;font-weight:800;}
+.tt .num{text-align:right;white-space:nowrap;font-weight:700;color:#000;}
+.tt tr.hi td{background:rgba(40,205,65,0.07);}
+.gatebox{background:#1c1608;border:1px solid rgba(245,184,32,0.5);border-radius:12px;padding:15px 17px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#f3e2b0;text-wrap:pretty;}
+.gatebox .k{color:#ffd35a;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:9px;display:block;margin-bottom:9px;}
+.gatebox b{color:#fff;}
+.gatebox code{background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.callout{margin-top:14px;border-left:3px solid #b1281f;background:rgba(177,40,31,0.05);border-radius:0 10px 10px 0;padding:12px 15px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.75);text-wrap:pretty;}
+.callout b{color:#000;}
+.callout code{background:rgba(0,0,0,0.05);padding:1px 5px;border-radius:4px;}
+.callout .no{color:#b1281f;font-weight:700;}
+.callout.ok{border-left-color:#0d6b2b;background:rgba(40,205,65,0.06);}
+.callout.dep{border-left-color:#8a5a00;background:rgba(245,184,32,0.07);}
+.stack{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+.lay{display:flex;align-items:flex-start;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:rgba(0,0,0,0.74);background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);border-radius:9px;padding:9px 12px;text-wrap:pretty;}
+.lay .z{flex:0 0 118px;font-size:8.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#fff;background:#16140f;border-radius:5px;padding:3px 6px;text-align:center;}
+.lay .z.hi{background:#b1281f;}.lay .z.mid{background:#8a5a00;}.lay .z.lo{background:#5a5a5a;}.lay .z.ok{background:#0d6b2b;}
+.lay b{color:#000;}
+.lay code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#0e0e10"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" fill="#0e0e10"/><rect x="36" y="52" width="48" height="10" rx="3" fill="#f5b820"/><rect x="36" y="70" width="30" height="6" rx="2" fill="rgba(255,255,255,0.35)"/><rect x="70" y="68" width="14" height="10" rx="3" fill="none" stroke="#ff8a5c" stroke-width="2"/><path d="M36 62h48" stroke="#28cd41" stroke-width="1.5" stroke-dasharray="4 3"/></svg></template>
+
+<div class="btitle">
+  <div class="kick">CD · Revisione normativa rev6 · 21/08/2026</div>
+  <h1>L'ancoraggio del badge «Read-only» — una decisione, due selettori</h1>
+  <p>Il giro chiedeva di sciogliere <b>tre valori per lo stesso oggetto</b>. Sciolti: vale <code>align-items:baseline</code>, la stessa parola che il livello 1 usa già e che il codice già implementa lì. Cadono <b>entrambe</b> le altre discendenze — <code>center</code> (dal freeze 09/07 al 02/08) e <code>flex-start</code> (dal freeze 06/08 alla rev5) — e cade con loro <code>.ro{margin-top:4px}</code>, che sotto baseline <b>non fa niente</b> ed è solo un fossile di <code>flex-start</code>.</p>
+  <p><b>Sulla seconda domanda, già aperta: i 4px si ritirano.</b> Non erano un fix di bersaglio — il back disegnato è larga 59pt, la <b>larghezza non è mai stata sotto i 44</b>: mancava l'altezza, e <code>min-height:44px</code> da sola la cura. Ritirandoli, la frase della rev5 «<i>la spec si allinea al codice, zero modifiche di codice</i>» torna <b>vera come è scritta</b>, e i due franchi che non stavano insieme tornano <b>un numero solo</b>.</p>
+  <p>⛔ <b>Stamattina avevo contraddetto il brief sul nesso causale. Il brief aveva ragione, e lo ritiro citandolo.</b> Mi mancava un fatto: il commit di stamattina <b>ha già</b> navbar 54, <code>.dhead</code> 8/18/14 e <code>.nm</code> 29pt — Mauro ha collaudato <b>quello</b>. Rifatto il conto sul codice reale, <b>l'ancoraggio da solo vale 5–8pt</b>, non ~1pt: è <b>lui</b> il gradino. Sbagliavo per una ragione che non è un dettaglio: il mio conto usava <b>due input falsi</b> e stamattina ne avevo corretto <b>uno solo</b> — <b>un ritiro che non arriva in tutti i luoghi dove quel numero lavorava non è un ritiro</b>. Pannello ②, riscritto.</p>
+  <p>✅ <b>E il conto corretto ha una proprietà che quello sbagliato non aveva:</b> l'esito del fix <b>non dipende da nessuno dei numeri in contestazione</b>. Con <code>baseline</code> su entrambe le schermate e il titolo identico nelle due, il badge cade nello <b>stesso punto</b> — qualunque sia la sua altezza, qualunque sia il 4,50: si <b>cancellano</b>. <b>Scarto zero, dimostrato senza usare una sola cifra contestata.</b> È il tipo di argomento che avrei dovuto cercare da subito.</p>
+  <p>⛔ <b>E quattro numeri di questo foglio sono sbagliati: li ritiro qui, citandoli.</b> La frase «il fondo del badge sta <b>sul</b> baseline» è <span class="no">falsa come resa</span> — misurato, sta <b>4,50pt sotto</b>; l'origine delle y era il contenuto e non il telaio (che qui ha un bordo da 1pt che il telefono non ha); un <b>0,77pt</b> del mio modello non so spiegarlo e <b>governa la misura</b>; il movimento di Ⓓ è <b>13,97</b> e non 16,24. <b>Le due decisioni non si muovono</b>, perché poggiano su <b>differenze</b> — e le differenze sono immuni a entrambi gli errori. Dettaglio in testata, riga per riga.</p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">rev6 · normativa</span><span class="anc">supersede la <b>rev5</b> su <b>due selettori</b> — <code>.dhrow</code> · <code>.navbar .back</code>. Tutto il resto: <b>invariato, parola per parola</b>.</span></div>
+  <div class="trow"><div class="k">Decisione · 1</div><div class="v"><code>.dhrow</code> <span class="no">align-items: center · flex-start</span> → <b>baseline</b>. Identica a <code>.scrhead</code>. <b>Motivo:</b> è l'unico dei tre ancoraggi la cui posizione è funzione del <b>tipo</b> e non del <b>dato</b>.</div></div>
+  <div class="trow"><div class="k">Decisione · 1b</div><div class="v"><code>.ro</code> → <b><code>margin-top: 0</code></b> (la riga si toglie). <b>Non</b> perché sbagliata: sotto baseline ha effetto geometrico <b>zero</b>. Si toglie perché è un <b>fossile di flex-start</b> e chi legge crede che serva. Del badge <b>nient'altro</b> è toccato: colori, corpo, padding interno, raggio, contenuto — fuori discussione, come chiesto.</div></div>
+  <div class="trow"><div class="k">Decisione · 2</div><div class="v"><code>.navbar .back</code> → <b><code>padding:0 4px</code> RITIRATO</b>, mai da implementare. Restano <b><code>min-height:44px</code></b> (già nel codice), <code>position:absolute; left:14px</code>, navbar <b>54</b>. ⇒ box = inchiostro, <b>14→73</b>.</div></div>
+  <div class="trow stop"><div class="k">⛔ Ritiro (mio)</div><div class="v"><b>rev4/rev5, blocco ⓑ:</b> «<code>min-height:44px</code> + <code>padding:0 4px</code> ⇒ box <b>67×44</b> … franco box-a-box <b>35pt</b>, inchiostro-a-inchiostro <b>43,04pt</b>». <b>Ritirato citandolo.</b> I due franchi stanno in <b>due geometrie diverse</b>: 8pt di scarto = <b>i due padding da 4px</b>. <b>43,04 è SENZA</b> i 4px, <b>35,04 è CON</b>. Erano presentati come due letture dello <b>stesso</b> stato: <span class="no">quello</span> era l'errore, non l'aritmetica.</div></div>
+  <div class="trow stop"><div class="k">⛔ Ritiro (mio) · 2</div><div class="v">«<b>box 67×44 ⇒ bersaglio vero</b>»: falso <b>nella dimensione che invocava</b>. Il back disegnato è <b>59pt largo</b> — 15pt di surplus sui 44. I 4px aggiungevano 8pt a una dimensione che <b>non era carente</b>. La carenza era l'<b>altezza</b>, e la cura è <code>min-height</code> da sola.</div></div>
+  <div class="trow stop"><div class="k">⛔ Ritiro · premessa</div><div class="v"><b>Avevo contraddetto il brief sul nesso causale. Il brief aveva ragione.</b> Mi mancava un fatto: il commit <b><code>baaa172</code></b> (build firmata verde, collaudo device <b>7/7</b> il 21/08) <b>ha già</b> navbar <b>54</b> · <code>.dhead</code> <b>8/18/14</b> · <code>.nm</code> <b>29pt</b> — e Mauro ha osservato il badge più in alto <b>su questo codice</b>. ⇒ <span class="no">Falsa</span> l'affermazione «<b>quello che ha visto Mauro è già deciso e aspetta implementazione</b>»: vera ieri sullo stato che credevo, <b>falsa oggi</b> sullo stato reale. ⇒ <b>È l'ancoraggio</b>, e vale <b>5–8pt</b>. Pannello ②, riscritto.</div></div>
+  <div class="trow stop"><div class="k">⛔ Perché sbagliavo</div><div class="v"><b>E non è un dettaglio.</b> Il mio ~0,9pt usava <b>due input falsi</b> e stamattina ne avevo corretto <b>uno solo</b>: <b>(i)</b> il modello «fondo del badge <b>sul</b> baseline», che la mia <b>Errata 1</b> aveva già ritirato — misurato sta <b>4,50 sotto</b>; <b>(ii)</b> la coppia <code>lh 1.05→1.12</code>, che <b>nell'app non esiste</b>. Ho corretto la <b>regola</b> e non ho propagato la correzione nell'<b>aritmetica</b>. ⇒ <b>Un ritiro che non arriva in tutti i luoghi dove quel numero lavorava non è un ritiro.</b> Me lo tengo come regola di casa.</div></div>
+  <div class="trow stop"><div class="k">⛔ Errata · lh nulla</div><div class="v"><b><code>.nm</code> da <code>lh 1.05</code> a <code>1.12</code>: nell'app non esiste e non è mai esistita.</b> Inter-ExtraBold — upem <b>2048</b>, hhea <b>1984/−494</b>, <code>USE_TYPO_METRICS</code> acceso ⇒ riga naturale <b>1,209961</b> = <b>35,09pt</b> a 29pt. Il CSS può <b>comprimere</b> sotto il naturale del font; SwiftUI sa solo <b>aggiungere</b>. L'interlinea del titolo nell'app è <b>sempre stata ~1,21</b> — più larga <b>sia</b> di 1,05 <b>sia</b> dell'1,12 che prescrivevo. ⇒ <b>Il termine lh dei miei conti vale zero nell'app</b>, e cadono con esso il «surplus voluto di 1,74» e il «residuo 1,00»: <b>nell'app il residuo dopo il fix è ZERO</b>. ⚠️ Ne segue che <code>lh 1.12</code>, ratificata in A, è <b>inattuabile nell'app</b>: <b>non la riapro</b> — non è mio — <b>la dichiaro aperta</b>.</div></div>
+  <div class="trow"><div class="k">⚠️ Riaperto · titolo</div><div class="v"><b>E ci rimetto quello che avevo ritirato.</b> Avevo scartato il «trascinamento percettivo» perché il titolo sarebbe stato <b>6,25pt</b> più in alto «nel codice di oggi»: quel 6,25 nasceva da <b>navbar 50</b> e <b>.dhead 6</b>, <b>che non esistono più</b>. Sul codice reale il titolo sta alla <b>stessa altezza</b> nelle due schermate — <b>e Mauro lo ha visto comunque più in alto</b>. <b>Nessuno dei due lo sa. Resta inspiegato</b>, e lo scrivo come aperto e non come risolto. Il «trascinamento percettivo» torna <b>plausibile</b> — e plausibile non è dimostrato: <b>non lo chiudo in nessuna delle due direzioni</b>.</div></div>
+  <div class="trow"><div class="k">Invariato · dichiarato</div><div class="v"><code>.roomseg</code> e <code>.roomseg .opt</code> (34pt, misura 06/08) · <code>.viewtoggle</code> · forma <b>card</b> del livello 1 · menu <b>«···»</b> · <code>.startfoot</code> · <code>.navbar</code> 54 e <code>.dhead</code> 8/18/14 e <code>.nm</code> lh 1.12 <b>come ratificati (opzione A, 20/08)</b> · <code>.scrhead</code> del livello 1. <b>Nessun altro selettore è toccato.</b></div></div>
+  <div class="trow stop"><div class="k">⛔ Fuori perimetro</div><div class="v">Il <b>badge in sé</b> · il <b>ticket «segmento inerte»</b> (tecnico, CC) · il <b>disegno</b> della vista a lista · le <b>cinque condotte</b> in attesa del gate device · il ticket <b>pillola 34pt</b> (resta aperto: l'espansione è legata alla <i>variante</i>, non all'altezza — vedi Ritiro 1 della rev5, che <b>non</b> è ritirato qui).</div></div>
+  <div class="note"><b>Ampiezza del controllo, dichiarata.</b> <code>flex-start</code> l'ho misurato nel freeze 06/08 <code>__rev2-ratificata.html</code>, il file che sta nella <b>mia</b> cartella di scambio. Il brief cita <code>__rev3-NORMATIVA.html</code>: <span class="no">quel file non c'è nella mia cartella</span>, e CD non ha git. Stesso selettore, stesso valore ⇒ la decisione <b>non dipende</b> da quale dei due lo porta: la discendenza <code>flex-start</code> <b>cade intera</b>. L'inchiostro del back (<b>59pt</b>) è <b>ereditato</b> dalla misura rev3 e in questo giro <b>non</b> l'ho ri-misurato.</div>
+  <div class="trow stop"><div class="k">⛔ Errata 21/08 · 1</div><div class="v"><b>«Il bordo inferiore del badge sta SUL baseline della prima riga»</b> — <span class="no">falsa come resa</span>, e la ritiro citandola. <b>Misurato: 4,50pt SOTTO</b> il baseline, in Ⓐ e in Ⓑ, <b>identico</b>. Derivata assumendo che un <code>inline-flex</code> con <code>align-items:center</code> prenda il baseline sintetizzato dal <b>bordo inferiore</b>: <b>il motore non fa così</b>. Cade con essa «<b>1,85pt sotto il cap</b>»: misurato <b>4,80</b>. <b>Non incidere né l'una né l'altra.</b> ⇒ <b>La decisione non cambia</b>: cambia il <b>modo di dirla</b> — «lo stesso ancoraggio del livello 1», <b>non un numero</b>. Un bersaglio numerico che il mio frame di riferimento <b>non mostra</b> è peggio di nessun bersaglio.</div></div>
+  <div class="trow stop"><div class="k">⛔ Errata 21/08 · 2</div><div class="v"><b>Origine sbagliata.</b> Ho scritto «dal bordo alto del <b>telaio</b>» e ho calcolato dal bordo alto del <b>contenuto</b>: il telaio di questo foglio ha <code>border:1px</code> che <b>il telefono non ha</b>. ⇒ ogni y si legge <b>+1</b> sul foglio. <b>I numeri dell'app restano</b> (cap Ⓑ <b>111,70</b> · back <b>14→73</b> · franco <b>43,04</b>); sul <b>foglio</b> si leggono 112,70 · 15→74 · <b>42,03</b>. Non era sbagliato il numero: era sbagliata la frase «misurato sul foglio». <b>Eccezione:</b> il segmento è <b>centrato</b>, il bordo si annulla nella metà ⇒ <b>116,04 in entrambi</b>.</div></div>
+  <div class="trow stop"><div class="k">⛔ Errata 21/08 · 3</div><div class="v"><b>Uno scarto che non so spiegare, e non lo limo.</b> Baseline di Ⓑ: il mio conto dà <b>132,77</b> (app), il foglio rende <b>132,00</b>. <b>0,77pt</b> — probabile arrotondamento della casella di riga, o metriche reali di Inter diverse dall'1,211 che ho usato. <b>Governa la misura, non il conto.</b> ⇒ ritiro «<b>il badge eredita esattamente l'1,74 del titolo</b>»: il residuo fra le due schermate misura <b>1,00pt sul FOGLIO</b>. ⛔ <b>E anche questo cade:</b> vedi «<b>Errata · lh nulla</b>» due righe sotto — <b>l'1,74 e l'1,00 sono artefatti di line-height che esistono solo qui</b>, e <b>nell'app il residuo dopo il fix è ZERO</b>. <b>Nessuno citi l'1,74 da questa riga:</b> non regge nessuna sostanza, è ritirato in blocco.</div></div>
+  <div class="trow stop"><div class="k">⛔ Errata 21/08 · 4</div><div class="v">Ⓓ: stampavo <b>130,87→150,09</b> e <b>16,24pt</b> di movimento. Misurato: <b>131,47→151,47</b> sul foglio, movimento <b>13,97</b>. <b>Non incidere 16,24.</b> Il difetto resta reale e di <b>un ordine di grandezza</b> sopra lo zero — è quello che l'argomento chiede, e regge.</div></div>
+  <div class="note"><b>✅ Cosa NON tocca l'errata, e perché.</b> L'argomento poggia su <b>differenze</b>, non su posizioni assolute — e le differenze sono <b>immuni</b> sia al bordo da 1pt sia allo scarto di modello: <b>4,50</b> (fondo badge ↔ baseline, <b>identico</b> nelle due schermate) · <b>0,00</b> (movimento con baseline, una riga contro due) · <b>13,97</b> (movimento con <code>center</code>) · <b>59</b> (inchiostro del back). ⛔ <b>Non è in questa lista l'1,00</b> «residuo fra le schermate» che vi avevo messo: è un <b>artefatto di line-height del solo foglio</b>, quindi <b>non è immune a niente</b>. <b>Le due decisioni si reggono sulle quattro sopra</b>, non sui numeri corretti in testata.</div>
+  <div class="note"><b>Numeri derivati — e da oggi con una marca obbligatoria.</b> <b>MISURATO</b> = viene dalla resa di questo foglio. <b>MODELLO</b> = è un conto su uno stato che questo foglio <b>non rende</b> — e <b>un conto non è una misura, nemmeno quando è mio</b>. Nessuno dei due è ratificato e <b>nessuno dei due va inciso</b>. Normativa è la <b>regola</b>: <i>il badge tiene, su ogni schermata, la stessa posizione rispetto al proprio titolo — quella che il livello 1 ha già</i>. Se il gate su device misura diverso, <b>ha ragione il telefono</b>.</div>
+  <div class="note"><b>ℹ️ La mia Errata 3 (lo 0,77 «che non so spiegare») va riletta.</b> <b>Due misure indipendenti</b> del TTF danno <b>1,209961</b>, cioè l'<b>1,211</b> che avevo usato: <b>il mio modello tipografico non era il sospetto</b>. Ipotesi più probabile — <b>e la dico come ipotesi</b>: <b>sostituzione di font</b> nell'ambiente di resa di questo foglio. ⇒ Si <b>inverte</b> una cosa scritta stamattina: <b>per predire l'app, i numeri RESI da questo foglio sono i meno affidabili dei due</b>. Resta aperta.</div>
+  <div class="note"><b>⚠️ Trasporto — regola pagata cara il 20/08, e vale per questo file.</b> Da Drive si usa <b>solo il tasto Scarica</b>. Un HTML <b>ri-salvato dal browser non è quel file</b>: misurato, <b>793 byte in meno</b>, nome troncato, <b>nessun avviso</b>. ⇒ <b>I byte sono l'unico giudice, mai il nome.</b> Chi deposita nel repo confronta la <b>dimensione</b>, non l'etichetta.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓐ — livello 1, il riferimento ══════════════ -->
+<div class="flbl" style="left:56px; top:1580px;"><span class="b">Ⓐ livello 1 · Shows</span><span class="stt done">invariato</span><span style="color:rgba(0,0,0,0.55)"><code>.scrhead{align-items:baseline}</code> — già così, già nel codice</span></div>
+<div class="frame ref" style="left:56px; top:1636px;" data-screen-label="A — Q-Live Shows livello 1 (riferimento)">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="roombar">
+    <div class="homebtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V21H3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="scrhead"><h1>Shows</h1><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+  <div class="searchrow"><div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"></circle><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg><span class="ph">Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card"><div class="chead"><div><div class="nm">Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg></div></div><div class="gosplit"><div class="main"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div><div class="sep"></div><div class="alt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg><span class="t">list</span></div></div></div>
+    <div class="card"><div class="chead"><div><div class="nm">Prove giovedì</div><div class="mt">8 songs · 34 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg></div></div></div>
+    <div class="card"><div class="chead"><div><div class="nm">Torino · Hiroshima</div><div class="mt">4 songs · 17 min</div></div><div class="dots"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg></div></div></div>
+  </div>
+  <div class="mline" style="left:12px; top:132px; width:366px;"><div class="bar" style="left:0; top:0; width:366px;"></div><div class="cap" style="left:134px; top:-15px;">baseline 132,00</div></div>
+  <div class="hz" style="left:288px; top:116px; width:86px; height:21px; border-color:rgba(40,205,65,0.9);"></div>
+  <div class="hzb" style="left:279px; top:102px; background:#5fe07a;">a</div>
+</div>
+<div class="delta" style="left:56px; top:2526px;">
+  <div class="d key"><b>ⓐ Questo è il riferimento e non si tocca.</b> <code>.scrhead{align-items:baseline}</code>: <b>identico nei due contratti</b>, e il codice lo implementa. <b>Misurato</b> sul foglio: baseline del titolo <b>132,00</b>, fondo del badge <b>136,50</b> ⇒ il badge sta <b>4,50pt sotto il baseline</b>.</div>
+  <div class="d"><b>Qui il badge non ha una posizione propria: ha quella del titolo.</b> È esattamente ciò che va replicato di sotto — e non c'era niente da inventare. <b>Il numero che conta è il 4,50</b>, perché è una <b>differenza</b>: sopravvive al bordo del telaio, allo scarto di modello e al cambio di corpo del titolo.</div>
+  <div class="d bad"><b>⛔ Qui avevo scritto «il fondo del badge cade SUL baseline», e è falso: sta 4,50 sotto.</b> Lo ritiro citandolo. La derivazione assumeva che un <code>inline-flex</code> con <code>align-items:center</code> prenda il baseline sintetizzato dal <b>bordo inferiore</b> — <b>il motore non fa così</b>. Cade anche «<b>1,85pt sotto il cap</b>»: misurato <b>4,80</b>. Quello che resta vero, ed è il punto: <b>il 4,50 è lo stesso in Ⓐ e in Ⓑ</b>.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓑ — dettaglio, prescrizione, 1 riga ══════════════ -->
+<div class="flbl" style="left:500px; top:1580px;"><span class="b">Ⓑ dettaglio · rev6</span><span class="stt fz">prescrizione</span><span style="color:rgba(0,0,0,0.55)">baseline · titolo 1 riga · back senza i 4px</span></div>
+<div class="frame norm" style="left:500px; top:1636px;" data-screen-label="B — Q-Live Show detail rev6 baseline (titolo 1 riga)">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="mline" style="left:12px; top:133px; width:366px;"><div class="bar" style="left:0; top:0; width:366px;"></div><div class="cap" style="left:2px; top:30px;">baseline 133,00 · fondo badge 137,50 ⇒ 4,50 sotto, come Ⓐ</div></div>
+  <div class="hz" style="left:288px; top:117px; width:86px; height:21px; border-color:rgba(40,205,65,0.9);"></div>
+  <div class="hzb" style="left:279px; top:108px; background:#5fe07a;">a</div>
+  <div class="hz" style="left:13px; top:50px; width:63px; height:44px; border-color:rgba(255,211,90,0.95);"></div>
+  <div class="hzb" style="left:4px; top:41px; background:#ffd35a;">b</div>
+  <div class="mline" style="left:74px; top:72px; width:42px;"><div class="bar" style="left:0; top:0; width:42px;"></div><div class="cap" style="left:206px; top:4px;">franco 43,04</div></div>
+</div>
+<div class="delta" style="left:500px; top:2526px;">
+  <div class="d key"><b>ⓐ La prescrizione, in una parola:</b> <code>.dhrow{align-items:baseline}</code> — <b>la stessa del livello 1</b>. <b>Misurato:</b> baseline <b>133,00</b>, fondo badge <b>137,50</b>, cap <b>112,70</b>, top badge <b>117,50</b>. ⇒ <b>4,50 sotto il baseline e 4,80 sotto il cap: identici a Ⓐ</b>, che è tutto ciò che la regola chiede.</div>
+  <div class="d"><b>Il residuo fra le due schermate, sul FOGLIO, è 1,00pt</b> (137,50 contro 136,50) — e viene dalla differenza di <code>line-height</code> che <b>solo questo foglio ha</b>. ⛔ <b>Nell'app quella differenza non esiste</b> (SwiftUI non può comprimere la riga sotto il naturale del font: sempre ~1,21) ⇒ <b>nell'app il residuo dopo il fix è ZERO</b>. Ritiro citandole <b>due</b> mie frasi: «eredita <i>esattamente</i> l'1,74» e «il residuo è 1,00». <b>Il risultato vero è più forte di quello che rivendicavo:</b> zero, e <b>senza dipendere da nessun numero in contestazione</b>. Pannello ②·2.</div>
+  <div class="d warn"><b><code>.ro{margin-top:4px}</code> si ritira.</b> Sotto baseline il suo effetto geometrico è <b>zero</b> — l'offset di baseline si misura dal bordo <b>superiore di margine</b>, quindi il fondo del badge non si muove comunque. Si toglie perché è un <b>fossile di flex-start</b>: lasciarlo fa credere al prossimo lettore che serva a qualcosa.</div>
+  <div class="d"><b>ⓑ Il back senza i 4px:</b> <b>misurato</b> <code>padding: 0px</code> ✔, box = inchiostro, <b>largo 59</b>. <b>Nell'app 14→73, franco 43,04</b>; <b>sul foglio 15→74, franco 42,03</b> — la differenza è il bordo da 1pt del telaio, che il telefono non ha. In <b>entrambi</b> è <b>un numero solo</b>: box-a-box e inchiostro-a-inchiostro <b>coincidono</b>. Vedi ③.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓒ — dettaglio, prescrizione, 2 righe ══════════════ -->
+<div class="flbl" style="left:944px; top:1580px;"><span class="b">Ⓒ dettaglio · rev6 · 2 righe</span><span class="stt fz">la regola tiene</span><span style="color:rgba(0,0,0,0.55)">il caso che al livello 1 non esiste mai</span></div>
+<div class="frame norm" style="left:944px; top:1636px;" data-screen-label="C — Q-Live Show detail rev6 baseline (titolo 2 righe)">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="mline" style="left:12px; top:133px; width:366px;"><div class="bar" style="left:0; top:0; width:366px;"></div></div>
+  <div class="mline" style="left:12px; top:137px; width:366px;"><div class="bar" style="left:0; top:0; width:366px;"></div><div class="cap" style="left:200px; top:8px;">fondo badge 137,50</div><div class="cap" style="left:200px; top:22px;">= identico a Ⓑ ⇒ 0,00</div></div>
+  <div class="hz" style="left:288px; top:117px; width:86px; height:21px; border-color:rgba(40,205,65,0.9);"></div>
+  <div class="hzb" style="left:279px; top:104px; background:#5fe07a;">a</div>
+</div>
+<div class="delta" style="left:944px; top:2526px;">
+  <div class="d key"><b>La risposta alla domanda del brief.</b> Il caso a due righe <span style="color:#ffd35a">non</span> giustifica una regola diversa: è <b>l'argomento più forte a favore di baseline</b>. <b>Misurato:</b> baseline della prima riga <b>133,00</b>, fondo del badge <b>137,50</b> — <b>lo stesso di Ⓑ</b>. Passando da una riga a due, si sposta di <b>0,00pt</b>.</div>
+  <div class="d"><b>La seconda riga scorre sotto il badge senza toccarlo.</b> <code>.dhrow</code> è flex: la casella del titolo si stringe della larghezza del badge più il <code>gap</code>, quindi le due caselle <b>non si sovrappongono mai</b>. Il bordo destro della seconda riga resta un po' sfrangiato sotto il badge: è normale, ed è il prezzo giusto.</div>
+  <div class="d"><b>Il vantaggio, detto in una riga:</b> il badge è ancorato a un <b>oggetto tipografico</b> (il baseline della prima riga) e non a una <b>casella</b> la cui altezza dipende da quanto è lungo il nome dello show. Il tipo lo decide il disegno; il nome lo decide Mauro.</div>
+</div>
+
+<!-- ══════════════ FRAME Ⓓ — il difetto, isolato ══════════════ -->
+<div class="flbl" style="left:1388px; top:1580px;"><span class="b">Ⓓ il difetto, isolato</span><span class="stt bad">non è un'alternativa</span><span style="color:rgba(0,0,0,0.55)">geometria A · ancoraggio <code>center</code> · 2 righe</span></div>
+<div class="frame old ctr" style="left:1388px; top:1636px;" data-screen-label="D — difetto: ancoraggio center con titolo due righe">
+  <div class="sb"><span>21:10</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"></rect><rect x="23.5" y="4" width="2" height="5" rx="1" fill="rgba(255,255,255,0.4)"></rect></svg></div></div>
+  <div class="navbar">
+    <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Shows</div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Milano Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="stag pending">tag</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">2</span><span class="nm">Vertigine</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag pending">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail" style="background:transparent"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="startfoot">
+    <div class="viewtoggle"><div class="pill on">Auto view</div><div class="pill off">List view</div></div>
+    <div class="startbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start show</div>
+  </div>
+  <div class="mline" style="left:12px; top:133px; width:270px;"><div class="bar" style="left:0; top:0; width:270px;"></div></div>
+  <div class="mline bad" style="left:12px; top:151px; width:270px;"><div class="bar" style="left:0; top:0; width:270px;"></div><div class="cap" style="left:200px; top:4px;">badge 131,47 → 151,47</div><div class="cap" style="left:200px; top:18px;">⇒ nell'interlinea</div></div>
+  <div class="hz" style="left:288px; top:131px; width:86px; height:21px; border-color:rgba(255,140,120,0.95);"></div>
+  <div class="hzb" style="left:279px; top:122px; background:#ff8c78;">a</div>
+</div>
+<div class="delta" style="left:1388px; top:2526px;">
+  <div class="d bad"><b>ⓐ Questo è il difetto, non un'alternativa</b> — sta agli atti per essere <b>riconosciuto</b>, non scelto. <code>align-items:center</code> con due righe: <b>misurato</b>, il badge cade a <b>131,47 → 151,47</b> — baseline della prima riga a <b>133,00</b>, cap della seconda a <b>145,18</b> ⇒ il badge sta <b>nell'interlinea</b>: sotto il baseline della prima, oltre il cap della seconda. <b>Non appartiene a nessuna delle due.</b></div>
+  <div class="d bad"><b>E il numero che decide.</b> Passando da una riga a due, lo <b>stesso</b> badge si sposta di <b>13,97pt</b> (da 137,50 a 151,47). Non lo decide il disegno: lo decide <b>la lunghezza del nome dello show</b>. È esattamente ciò che «<b>una misura · una posizione</b>» vieta: un componente che sta in un posto diverso a seconda del dato è, per l'occhio, un componente diverso.<br>⛔ <b>Stampavo 16,24</b>: ritirato, era un conto sul modello. <b>Misurato 13,97</b> — e la conclusione non si muove di un millimetro.</div>
+  <div class="d warn"><b><code>flex-start</code> non è meglio, ed è il valore che avevo io.</b> Salda il badge al <b>top della casella</b>, quindi la sua distanza dal baseline è funzione della <b>line-height</b> — e la line-height fra le due schermate è <b>diversa per scelta</b> (1 contro 1.12, ratificato il 20/08). <code>flex-start</code> converte una differenza <b>tipografica voluta</b> in una differenza di <b>posizione non voluta</b>. È così che ci siamo arrivati.</div>
+</div>
+
+<!-- ══════════════ PANNELLO ① ══════════════ -->
+<div class="panel" style="left:56px; top:3100px; width:1300px;">
+  <h3><span class="tag">① la decisione</span> <code>.dhrow{align-items:baseline}</code> — e perché non è una scelta fra tre, ma l'unica che regge</h3>
+  <p class="lead">I tre ancoraggi non sono tre gusti: sono tre <b>dipendenze</b> diverse. Uno dipende dal <b>tipo</b>, due dal <b>dato</b>. E la prova sta in <b>una colonna sola</b> — di quanto si muove lo <b>stesso</b> badge quando il titolo passa da una riga a due. <b>È una differenza</b>, quindi immune al bordo del telaio e allo scarto di modello che ho dichiarato in testata:</p>
+  <table class="tt">
+    <tr><th>ancoraggio</th><th>movimento 1→2 righe</th><th>stato della cifra</th><th>da cosa dipende la posizione</th></tr>
+    <tr><td><code>center</code> <span style="color:rgba(0,0,0,0.45)">(il codice di oggi)</span></td><td class="num" style="color:#b1281f">13,97</td><td><b>MISURATO</b> — Ⓓ contro Ⓑ, resi entrambi su questo foglio</td><td><b>dal dato</b> — dal numero di righe, cioè da quanto è lungo il nome che Mauro ha digitato. Con due righe il badge finisce <b>nell'interlinea</b>.</td></tr>
+    <tr><td><code>flex-start</code> <span style="color:rgba(0,0,0,0.45)">(rev4 · rev5, mio)</span></td><td class="num" style="color:#8a5a00">0,00</td><td><b>MODELLO</b> — <b>non reso su questo foglio</b>, e non lo chiamo misura</td><td><b>dalla line-height</b> — che fra le due schermate è <b>diversa per scelta</b>. Non si muove col dato, ma <b>sbaglia il confronto fra schermate</b>: rende non allineabile ciò che la 20/08 ha voluto tipograficamente diverso.</td></tr>
+    <tr class="hi"><td><code>baseline</code> <b class="new">← in vigore</b></td><td class="num new">0,00</td><td><b>MISURATO</b> — Ⓒ contro Ⓑ: <b>137,50</b> in entrambi</td><td><b>dal tipo</b> — dal baseline della <b>prima riga</b>. Invariante rispetto al dato <b>e</b> rispetto alla line-height. È l'<b>unico</b> con entrambe le proprietà, ed è già la parola del livello 1.</td></tr>
+  </table>
+  <div class="qa"><div class="q"><span class="num">1</span>La domanda del brief: il caso a due righe giustifica una regola diversa?</div><div class="a"><b>No — e va detto al contrario di come è posta la domanda: è l'argomento più forte a favore dell'allineamento.</b> Il brief supponeva che la differenza strutturale (due righe al livello 2, mai al livello 1) potesse <b>reggere</b> una regola propria. Misurata, quella differenza è precisamente <b>ciò che rompe gli altri due ancoraggi</b>: <code>center</code> perché il badge scende di <b>13,97pt</b> quando la seconda riga compare, <code>flex-start</code> perché àncora a una casella la cui altezza <b>è</b> il numero di righe. Il baseline della <b>prima</b> riga esiste identico nei due casi ⇒ è l'unico appiglio che le due righe <b>non muovono</b>. La regola diversa non serve: serve la <b>stessa</b> regola, ed è quella che il livello 1 già usa.</div></div>
+  <div class="qa"><div class="q"><span class="num">2</span>Cosa cade, e non torna</div><div class="a"><b>Entrambe le discendenze.</b> <code>center</code>: freeze 09/07 → <code>Q7-Q16</code> 11/07 → 18/07 → 02/08. <code>flex-start</code>: freeze 06/08 → rev4 → rev5. <b>Nessuna delle due sopravvive su questo selettore</b>, e nessuna delle due resta agli atti come opzione: sono <b>superate</b>, non «scartate ma disponibili». Cade anche <code>.ro{margin-top:4px}</code> — non perché sbagliato (sotto baseline vale <b>zero</b>) ma perché è un <b>fossile</b> che finge di servire.</div></div>
+  <div class="qa"><div class="q"><span class="num">3</span>Cosa <b>non</b> è in discussione, come chiesto</div><div class="a">Del badge: <b>colori, corpo, padding interno, raggio, contenuto</b> — <b>invariati</b>, non li ho toccati e non li commento. Del resto della schermata: <b>nulla</b>. Della geometria: <code>.navbar</code> 54, <code>.dhead</code> 8/18/14, <code>.nm</code> lh 1.12 restano <b>come ratificati il 20/08</b>. ⚠️ Una cosa <b>sì</b> è in discussione e la dichiaro: <code>.ro{margin-top}</code> <b>è ancoraggio</b>, non stile interno del badge — per questo entra nel perimetro.</div></div>
+  <div class="callout ok"><b>La regola, nella forma da incidere</b> — e non è un numero, perché il numero l'ho già sbagliato una volta oggi: <b>il badge tiene, su OGNI schermata, la stessa posizione rispetto al PROPRIO titolo — e quella posizione è quella che il livello 1 ha già</b> (<code>.scrhead{align-items:baseline}</code>). <b>Si verifica confrontando le due schermate</b>, non colpendo una quota. <i>Lettura misurata su questo foglio, per orientarsi e non da incidere:</i> fondo del badge <b>4,50pt sotto</b> il baseline della prima riga, top <b>4,80pt sotto</b> il cap — <b>identici in Ⓐ e Ⓑ</b>. ⛔ <b>Ritirata</b> la formulazione precedente («sul baseline», «1,85 sotto il cap»): era una <b>derivazione</b>, e il foglio la smentisce.</div>
+</div>
+
+<!-- ══════════════ PANNELLO ② ══════════════ -->
+<div class="panel" style="left:1400px; top:3100px; width:1304px;">
+  <h3><span class="tag r">② ritiro il mio nesso causale</span> il brief aveva ragione: <b>è l'ancoraggio</b> — e sbagliavo per un ritiro <b>non propagato</b></h3>
+  <p class="lead">Stamattina ho contraddetto il brief e ho scritto che il gradino veniva dalla geometria A, <b>non</b> dall'ancoraggio. <b>Falso, e lo ritiro citandolo.</b> Mi mancava un fatto: il commit <code>baaa172</code> <b>ha già</b> navbar 54, <code>.dhead</code> 8/18/14 e <code>.nm</code> 29pt — Mauro ha collaudato <b>quello</b>. Rifatto il conto sul codice reale e con le metriche vere del font, <b>resta solo l'ancoraggio</b>, e basta a spiegare tutto:</p>
+  <table class="tt">
+    <tr><th>quantità</th><th>valore</th><th>come lo so</th></tr>
+    <tr><td>riga naturale del titolo — Inter-ExtraBold 29pt</td><td class="num">35,09</td><td><b>MISURATO</b> sul TTF, <b>due volte in modo indipendente</b>: upem 2048, hhea 1984/−494, <code>USE_TYPO_METRICS</code> ⇒ 1,209961. <b>SwiftUI non può andare sotto</b> questo valore: sa solo aggiungere.</td></tr>
+    <tr><td>baseline dal top della riga (ascendente)</td><td class="num">28,09</td><td>1984/2048 × 29, <b>dalle stesse tabelle</b>.</td></tr>
+    <tr><td>fondo del badge al <b>livello 1</b> (<code>baseline</code>)</td><td class="num">32,59</td><td><b>MODELLO</b> — baseline <b>+ 4,50</b>, il comportamento che la mia <b>Errata 1</b> ha misurato stamattina e che <b>non avevo propagato qui</b>.</td></tr>
+    <tr><td>top del badge al <b>dettaglio</b> (<code>center</code>)</td><td class="num">17,55 − H/2</td><td><b>MODELLO</b> — <code>(35,09 − H)/2</code>, con <b>H = altezza del badge nell'app</b>: <b>numero che non ho</b>.</td></tr>
+    <tr class="hi"><td><b>scarto</b> — di quanto il badge del dettaglio sta <b>più in alto</b></td><td class="num new">15,05 − H/2</td><td><b>MODELLO.</b> H=14 ⇒ <b>8,05</b> · H=16 ⇒ <b>7,05</b> · H=18 ⇒ <b>6,05</b> · H=20 ⇒ <b>5,05</b>. <b>Il ~7pt del referee cade dentro</b> (H≈16). Il <span class="no">mio ~0,9</span> cade <b>fuori</b>: ritirato.</td></tr>
+  </table>
+  <div class="qa"><div class="q"><span class="num r">1</span>Perché il mio ~0,9pt era sbagliato — e la regola che me ne porto</div><div class="a">Il conto usava <b>due input falsi</b>, e stamattina ne avevo corretto <b>uno solo</b>.<br><b>(i)</b> Il modello «fondo del badge <b>sul</b> baseline»: la mia <b>Errata 1</b> lo ha <b>già ritirato</b> — misurato, sta <b>4,50 sotto</b>. Ma ho corretto la <b>regola</b> e <b>non</b> l'aritmetica che quella regola alimentava. Quei 4,50, entrati nel conto, spostano lo scarto di <b>4,50</b>: da ~0,5 a ~5. <b>Da soli spiegano quasi tutto il disaccordo col referee.</b><br><b>(ii)</b> La coppia <code>lh 1.05→1.12</code>: <b>nell'app non esiste</b>. Il CSS può comprimere la riga sotto il naturale del font, <b>SwiftUI no</b> — sa solo aggiungere. L'interlinea del titolo è <b>sempre stata ~1,21</b>, più larga di entrambe. Quel termine <b>vale zero</b> nell'app.<br>⇒ <b>La regola di casa che ne ricavo, e che vale oltre questo giro: un ritiro che non arriva in tutti i luoghi dove quel numero lavorava non è un ritiro.</b> Stamattina avevo ritirato una frase e lasciato in piedi il numero che ne discendeva, in un altro pannello. È il modo più silenzioso di sbagliare due volte.</div></div>
+  <div class="qa"><div class="q"><span class="num">2</span>L'esito del fix è <b>zero</b> — e non dipende da nessuno dei numeri in contestazione</div><div class="a">Questa è la parte che avrei dovuto cercare da subito, perché <b>non ha bisogno di H, né del 4,50, né dello 0,77</b>. Con <code>baseline</code> su <b>entrambe</b> le schermate e il titolo <b>identico</b> nelle due (29pt, interlinea naturale in entrambe — nell'app <b>non c'è</b> la differenza di line-height che il foglio ha), il fondo del badge cade a <b>28,09 + 4,50</b> dal top della riga <b>in tutte e due</b>. ⇒ <b>Scarto = 0</b>, e i termini incerti <b>si cancellano nella sottrazione</b>: H non compare, il 4,50 compare due volte con segni opposti.<br>⇒ Cade con questo anche il «<b>residuo +1,00</b>» che avevo scritto: era il <b>surplus di line-height del FOGLIO</b>, non dell'app. <b>Nell'app il residuo dopo il fix è zero.</b> È un risultato più forte di quello che rivendicavo, e l'ho ottenuto <b>smettendo di difendere un numero</b>.</div></div>
+  <div class="qa"><div class="q"><span class="num w">3</span>Il titolo: <b>riaperto</b>, e resta inspiegato — nessuno dei due lo sa</div><div class="a">Stamattina avevo <b>ritirato</b> l'ipotesi «trascinamento percettivo» del referee, perché misuravo il titolo del dettaglio <b>6,25pt più in alto</b> «nel codice di oggi». <b>Quel 6,25 nasceva da navbar 50 e .dhead 6, che nel codice non esistono più.</b> ⇒ <b>Rimetto in piedi ciò che avevo ritirato</b>, e stavolta senza chiuderlo: sul codice reale il titolo sta alla <b>stessa altezza</b> nelle due schermate, <b>e Mauro lo ha visto comunque più in alto</b>. Il «trascinamento percettivo» torna <b>plausibile</b> — e con un badge <b>5–8pt</b> più alto accanto, è anche <b>fisiologico</b> — ma <b>plausibile non è dimostrato</b>. <b>Resta aperto, e lo scrivo come aperto.</b><br>⚠️ La lezione che tengo, riscritta per la seconda volta oggi: <b>prima di contraddire un'osservazione, verificare quale versione del prodotto ha in mano chi l'ha fatta</b> — e poi <b>quale oggetto sta misurando ciascuno</b>: il mio conto, la mia resa, o l'app. Stamattina ne avevo sbagliato uno; oggi tutti e due.</div></div>
+  <div class="gatebox"><span class="k">Cosa va al gate device, e cosa resta aperto</span><b>Il fix va, e va da solo:</b> non ha bisogno di altro lavoro di design, e il suo esito atteso è <b>scarto zero</b> — dimostrato senza usare una cifra contestata. <b>Aperti tre punti, e nessuno è mio da chiudere:</b><br><b>1.</b> <b>H, l'altezza del badge nell'app</b>: non ce l'ho. Governa solo la <b>taglia</b> del difetto di oggi (5–8pt), <b>non</b> l'esito del fix. Se serve, la dà CC in una riga.<br><b>2.</b> <b>Il titolo</b>: inspiegato. Si riguarda <b>dopo</b> il fix del badge — se scompare, era trascinamento; se resta, era altro. <b>Il telefono decide</b>, e stavolta non anticipo.<br><b>3.</b> <b><code>lh 1.12</code> ratificata in A ma inattuabile nell'app</b>: da ripulire in ratifica, non da me.<br>⚠️ E <b>non si chiude niente sulla base di questo foglio</b>: in un giorno ne ho ritirati <b>quattro numeri e un nesso causale</b>.</div></div>
+</div>
+
+<!-- ══════════════ PANNELLO ③ ══════════════ -->
+<div class="panel" style="left:56px; top:4520px; width:1300px;">
+  <h3><span class="tag r">③ seconda domanda</span> i 4px su <code>.navbar .back</code>: <b>ritirati</b> — e i due franchi tornano un numero solo</h3>
+  <p class="lead">Il referee ha <b>rifiutato</b> di applicare i 4px e ha chiesto: servono, e con quale geometria? Oppure la riga si ritira? <b>Si ritira.</b> Prima l'aritmetica che scioglie il nodo, perché è quella che decide.</p>
+  <table class="tt">
+    <tr><th>geometria</th><th>box del back</th><th>inchiostro</th><th>franco box↔box</th><th>franco inchiostro↔inchiostro</th><th>stato</th></tr>
+    <tr class="hi"><td><code>left:14px</code>, <b>senza</b> padding <b class="new">← in vigore</b></td><td class="num">14 → 73</td><td class="num">14 → 73</td><td class="num new">43,04</td><td class="num new">43,04</td><td><b>MISURATO</b> — sul foglio <code>padding: 0px</code> ✔, largo <b>59</b>, box <b>15→74</b> e franco <b>42,03</b>: <b>+1 di bordo del telaio</b>, che il telefono non ha</td></tr>
+    <tr><td><code>left:14px</code> + <code>padding:0 4px</code> <span class="old">rev4/rev5</span></td><td class="num">14 → 81</td><td class="num">18 → 77</td><td class="num">35,04</td><td class="num">39,04</td><td><b>MODELLO</b> — geometria <b>ritirata</b>, non resa da nessuna parte</td></tr>
+  </table>
+  <div class="callout"><b>Il nodo, sciolto.</b> <b>43,04 e 35,04 non sono due letture dello stesso stato:</b> stanno in <b>due righe diverse</b> di questa tabella. Gli <b>8pt</b> che li separano sono <b>i due padding da 4px</b> — e questo è un numero che <b>non può sbagliarsi</b>, perché è una <b>differenza</b>: 4+4, indipendente da metriche, da bordi e da modelli. Nella geometria con i 4px la lettura inchiostro-a-inchiostro è <b>39,04</b>, non 43,04. Il referee ha ragione: <b>non possono essere veri entrambi</b> — e l'errore non era in un numero, era nell'averli messi <b>nello stesso pannello come se descrivessero la stessa cosa</b>.</div>
+  <div class="qa"><div class="q"><span class="num r">1</span>Perché si ritirano (quattro ragioni, in ordine di peso)</div><div class="a"><b>(a) La giustificazione era falsa nella dimensione che invocava.</b> «box 67×44 ⇒ bersaglio vero»: il back disegnato è largo <b>59pt</b>, cioè <b>15pt di surplus</b> sui 44 — la larghezza <b>non è mai stata carente</b>. Mancava l'<b>altezza</b> (16pt), e la cura è <code>min-height:44px</code> <b>da sola</b>. I 4px aggiungevano 8pt dove c'erano già 15 di troppo.<br><b>(b) Ritirandoli, la dichiarazione della rev5 torna vera come è scritta.</b> «La spec si allinea al codice, <b>zero modifiche di codice</b>»: con i 4px dentro, <b>metà</b> della prescrizione era un cambio di codice — il referee l'ha misurato e ha rifiutato di applicarla. Senza, la frase è esatta e <b>nessun ticket</b> nasce.<br><b>(c) Un numero invece di due.</b> Senza padding orizzontale <b>box = inchiostro</b>, quindi le due letture <b>coincidono</b> — a <b>43,04</b> nell'app, a <b>42,03</b> sul foglio (il bordo da 1pt del telaio). La contraddizione non viene «spiegata»: <b>smette di poter esistere</b>, e smette in entrambi gli oggetti.<br><b>(d) La stessa regola di questo giro decide anche qui.</b> L'unico argomento che poteva salvare i 4px era ottico: portare l'inchiostro del back da 14 a <b>18</b>, a filo con la gronda del titolo. <b>Perde</b> — la navbar del dettaglio è stata ratificata (opzione A) come <b>la stessa barra</b> di <code>.roombar</code> un livello sotto, e lo slot sinistro di <code>.roombar</code> parte da <b>14</b>. Spostare l'inchiostro a 18 farebbe differire di 4pt i bordi sinistri di due barre dichiarate identiche: <b>lo stesso difetto</b> che oggi stiamo chiudendo sul badge. <b>Una regola applicata due volte non può dare due risposte.</b></div></div>
+  <div class="qa"><div class="q"><span class="num w">2</span>Ampiezza del controllo — dichiarata, non implicita</div><div class="a">L'inchiostro del back (<b>59pt</b> = freccia 16 + gap 5 + «Shows» 38) è <b>ereditato dalla misura rev3</b>: in questo giro <b>non l'ho ri-derivato</b>. La resa di questo foglio dà il box <b>largo 59</b> — coerente — e <code>padding: 0px</code>: <b>il ritiro dei 4px è implementato correttamente sul foglio</b>. Se quel 59 si rivelasse diverso sul device, <b>il franco si muove con lui</b> — ma la <b>regola</b> no. Normativo qui è: <b><code>.back</code> non ha padding orizzontale; il suo bordo sinistro e il suo inchiostro cominciano <b>entrambi</b> dove comincia lo slot sinistro di <code>.roombar</code></b> — <b>14</b> nell'app. Il 43,04 e il 42,03 sono <b>numeri di foglio e di modello</b>: si guardano, non si incidono.</div></div>
+  <div class="callout dep"><b>Cosa resta della prescrizione rev5 sul back:</b> <code>position:absolute</code> · <code>left:14px</code> · <code>top:50%</code> + <code>translateY(-50%)</code> · <code>min-height:44px</code> · navbar <b>54</b> con <code>justify-content:center</code>. <b>Tutto questo era e resta «spec che si allinea al codice»: zero ticket.</b> Si toglie <b>una riga sola</b>, ed è quella che il codice non aveva.</div>
+</div>
+
+<!-- ══════════════ PANNELLO ④ ══════════════ -->
+<div class="panel" style="left:1400px; top:4520px; width:1304px;">
+  <h3><span class="tag">④ supersessioni</span> cosa cambia davvero nel codice, e cosa <b>non</b> va scritto</h3>
+  <p class="lead">Il conto è corto: <b>una riga cambia, una riga si toglie, una riga non si aggiunge.</b> Nessun'altra parola del corpus si muove.</p>
+  <div class="stack">
+    <div class="lay"><span class="z ok">cambia · 1 riga</span><div><code>.dhrow</code> → <b><code>align-items: baseline</code></b>. Superata su questo selettore la discendenza <code>center</code> (freeze 09/07 → <code>Q7-Q16</code> 11/07 → 18/07 → 02/08) <b>e</b> la discendenza <code>flex-start</code> (freeze 06/08 → rev4 → rev5). <b>Il risultato da ottenere</b>, non la parola: <i>il badge tiene rispetto al proprio titolo la stessa posizione che ha al livello 1</i>. Si verifica <b>confrontando le due schermate</b>.</div></div>
+    <div class="lay"><span class="z mid">si toglie</span><div><code>.ro</code> → la riga <b><code>margin-top: 4px</code></b> sparisce. <b>Se nel codice non c'è mai arrivata, non c'è niente da fare</b> — e lo dico così perché non l'ho verificato: CD non ha git. Del resto di <code>.ro</code>: <b>nulla</b>.</div></div>
+    <div class="lay"><span class="z hi">NON si aggiunge</span><div><code>.navbar .back</code> → <b><code>padding:0 4px</code> non va scritto</b>, né nella spec né nel codice. Chi lo trovasse in rev4 o rev5, lo <b>ignori</b>: è ritirato qui, citato per intero nella testata.</div></div>
+    <div class="lay"><span class="z lo">non è un ticket</span><div>Niente di questo giro apre una riga BUGS <b>tranne</b> il cambio su <code>.dhrow</code>, che è una riga di codice. <b>Il ticket «pillola 34pt» resta aperto e non è toccato</b>: l'espansione del bersaglio è legata alla <i>variante</i>, non all'altezza disponibile — Ritiro 1 della rev5, <b>che resta in piedi</b>.</div></div>
+  </div>
+  <div class="callout ok"><b>Per CC, il punto delicato — e la trappola in cui sono caduto io stamattina.</b> «baseline» <b>non</b> è una quota e <b>non</b> significa «allinea i baseline dei due testi». Sul foglio, il fondo del badge finisce <b>4,50pt sotto</b> il baseline del titolo — <b>non sopra di esso</b>, come avevo derivato e scritto: la <b>linea di riferimento sintetizzata</b> di quel contenitore non è dove pensavo. ⇒ <b>Non tradurre una parola e non colpire un numero.</b> Il <b>RISULTATO</b> da ottenere è: <b>il badge del dettaglio sta rispetto al suo titolo esattamente come il badge del livello 1 sta al suo</b>. Si verifica <b>mettendo le due schermate una accanto all'altra</b>, non col righello su una sola. Il <b>COME</b> è dominio CC, come per Q8 — e se in SwiftUI l'allineamento di libreria non dà questo risultato, <b>vale il risultato</b>: quello è il contratto. <i>Non ho misurato SwiftUI e non posso: non lo affermo.</i></div>
+  <div class="callout dep"><b>Riga per l'INDICE NORMATIVO</b> (README della cartella, da aggiungere in coda):<br><code>rev6 · 21/08 · SUPERSEDE rev5 su 2 selettori — <b>.dhrow: baseline</b> (cadono center e flex-start; cade .ro margin-top) · <b>.navbar .back: padding 0 4px RITIRATO</b>. Non tocca geometria A, badge, .roomseg, .viewtoggle. ⛔ <b>Porta 5 errata AUTOCITANTI di giornata</b>: regola riformulata («stesso ancoraggio del livello 1», non «sul baseline») · origine y · movimento Ⓓ 13,97 · <b>lh 1.05→1.12 inesistente nell'app</b> · <b>nesso causale ritirato: il gradino È l'ancoraggio (5–8pt su `baaa172`), non la geometria A</b>. <b>Aperti:</b> H (altezza badge nell'app) · il titolo più in alto, inspiegato · lh 1.12 ratificata ma inattuabile. <b>Le due decisioni non si muovono</b>; i numeri assoluti del foglio <b>non si incidono</b>. ⚠️ <b>Trasporto: da Drive solo il tasto Scarica — i byte sono l'unico giudice, mai il nome.</b></code></div>
+  <div class="gatebox"><span class="k">Resta aperto — e non è questo giro</span><b>1.</b> Le <b>cinque condotte ratificate</b> in attesa della decisione di Mauro al gate device: <b>invariate, non toccate qui</b>.<br><b>2.</b> <b>H — l'altezza del badge nell'app</b>: non ce l'ho. Governa la <b>taglia</b> del difetto di oggi (5–8pt), <b>non</b> l'esito del fix, che è <b>zero</b> qualunque sia H.<br><b>3.</b> <b>Il titolo più in alto: inspiegato.</b> Sul codice reale sta alla stessa altezza nelle due schermate e Mauro lo ha visto comunque più in alto. Si riguarda <b>dopo</b> il fix del badge — <b>il telefono decide</b>.<br><b>4.</b> <b><code>lh 1.12</code> ratificata in A ma inattuabile nell'app</b>: da ripulire in ratifica, <b>non da me</b>.<br><b>5.</b> Il <b>ticket pillola 34pt</b> e il <b>ticket segmento inerte</b>: aperti, tecnici, fuori dal mio perimetro.<br>⚠️ <b>Chiuso invece</b> lo 0,77pt che tenevo come mio: due misure indipendenti del TTF danno l'<b>1,21</b> che avevo usato ⇒ il modello non era il sospetto, e <b>per predire l'app la resa di questo foglio è la meno affidabile delle due</b>.</div>
+</div>
+
+</body>
+</html>

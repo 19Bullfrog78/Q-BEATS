@@ -188,7 +188,29 @@ struct QLiveShowDetailView: View {
 
     private func dhead(_ resolved: (songs: [Song], missingIDs: [UUID]), scaleFactor: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 10) {
+            // A144 — ANCORAGGIO DEL `.dhrow` AL BASELINE (freeze rev6, citata per
+            // SELETTORE `.dhrow` e mai per riga: il foglio cresce a ogni taglio).
+            // ⛔ NON È UN VALORE NUOVO: è la STESSA espressione del livello 1, citata per
+            //    simbolo — `QLiveShowsView.swift`, `scrhead`, che porta già
+            //    `HStack(alignment: .firstTextBaseline)`. Riletta a fonte prima di scrivere
+            //    questa riga: si copia il meccanismo di casa, non se ne inventa un secondo.
+            // ⚠️ LA RAGIONE PORTANTE DI CD, ed è l'unica cosa da ricordare: con lo stesso
+            //    ancoraggio sulle due schermate il badge «Read-only» **NON SI MUOVE** quando
+            //    il titolo va a due righe. Prima si spostava, e a spostarlo era il CONTENUTO
+            //    — l'allineamento predefinito `.center` ricentra il badge sull'altezza del
+            //    titolo, che a due righe raddoppia. Col baseline il badge si aggancia alla
+            //    PRIMA riga di testo e resta fermo.
+            // ✅ L'esito è ZERO movimento, e **non dipende da nessuna delle cifre che CD ha
+            //    ritirato** nella stessa rev6 (origine y · movimento Ⓓ 13,97 · lh 1.05→1.12):
+            //    si cancellano fra loro. Il risultato regge anche senza di esse.
+            // ⛔ `spacing: 10` INVARIATO (= `.dhrow` gap 10). Non toccati: il titolo, il
+            //    `readOnlyBadge`, la riga `.mt` sotto. Il `padding:0 4px` sul `.back` che la
+            //    rev4 prescriveva è **RITIRATO** dalla rev6: non si costruisce.
+            // ⚠️ DEBITO, dichiarato e NON riparato qui: `readOnlyBadge` è una SECONDA COPIA
+            //    della specifica (l'originale in `QLiveShowsView` è `private` — vedi la nota
+            //    sopra la sua dichiarazione). Da oggi anche la REGOLA DI ANCORAGGIO vive in
+            //    due punti e può divergere: chi ne cambia uno cambi l'altro.
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 // A129 — 23→29pt, ratificato nel freeze 06/08 (rev3-NORMATIVA, pannello ③,
                 // tabella `.dhead .nm`): «pari a `.scrhead h1`: è un titolo di schermata come gli
                 // altri». Non era una gerarchia voluta: era una taratura difensiva contro l'a-capo,

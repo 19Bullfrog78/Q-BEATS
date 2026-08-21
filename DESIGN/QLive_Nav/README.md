@@ -12,18 +12,28 @@ peso. Il nome del file non dice il suo stato: lo dice questa tabella.
 | file | stato |
 |---|---|
 | `2026-07-11_Q7-Q16.html` | **VIVO — sorgente dei token.** Colori e misure si prendono da qui. Se un altro file di questa cartella porta un token diverso, vince Q7-Q16. |
-| `2026-08-20_..._rev5__SUPERSEDE-rev4-TESTO__ritiri-e-correzioni_390x844.html` | **NORMATIVO — il testo in vigore per Q-Live › Shows.** Supersede la rev4 **nel solo testo**: due ritiri e quattro correzioni. **Zero cambi di disegno.** Opzione A ratificata (Mauro, 20/08). ⚠️ Due difetti noti: cita due righe di canonici senza ancoraggio a commit (puntatori destinati a slittare), e chiama la rev3 con un nome che non ha (manca `__rev3-NORMATIVA`). **Corretti dalla nota del 21/08, riga sotto.** |
+| `2026-08-20_..._rev5__SUPERSEDE-rev4-TESTO__ritiri-e-correzioni_390x844.html` | **NORMATIVO — il testo in vigore per Q-Live › Shows.** Supersede la rev4 **nel solo testo**: due ritiri e quattro correzioni. **Zero cambi di disegno.** Opzione A ratificata (Mauro, 20/08). ⚠️ Due difetti noti: cita due righe di canonici senza ancoraggio a commit (puntatori destinati a slittare), e chiama la rev3 con un nome che non ha (manca `__rev3-NORMATIVA`). **Corretti dalla nota del 21/08, riga sotto.** ⛔ **MARCATURA 21/08 (A144) — SUPERATA IN PARTE DALLA rev6, NON ABOLITA.** Zero parole riscritte sopra: si marca. La rev6 la supera sui **due soli selettori** che nomina — **ancoraggio del badge `.dhrow`** e **ritiro del `padding:0 4px` su `.navbar .back`**. **Su tutto il resto la rev5 resta IN VIGORE**, parola per parola. |
 | `2026-08-21_..._NOTA-DI-CORREZIONE-rev5__citazioni-e-scostamento.html` | **SI LEGGE ACCANTO ALLA rev5** — non la sostituisce, non e' una rev6. Supera i **due difetti di citazione** della rev5 (riferimento per riga ritirato, nome della rev3 corretto) e riformula il segmento inerte del dettaglio **da «proposta» a «scostamento»**: il contratto del 18/07 lo prescrive gia' vivo, oggi il codice lo tiene muto. **Chi legge la rev5 deve leggere anche questa.** |
 | `2026-08-20_..._rev4__SUPERSEDE-rev3__navbar-centrata-ritmo-testata_390x844.html` | ⛔ **SUPERATA NEL TESTO dalla rev5.** Conservata di proposito: è l'artefatto che la rev5 rettifica, e senza di essa i due ritiri non hanno referente. **Il suo DISEGNO resta valido** — i quattro selettori sono identici nelle due. ⚠️ Contiene un'affermazione errata su «List view», ritirata dalla rev5. |
 | `2026-08-06_..._rev3-NORMATIVA.html` | **NORMATIVA per tutto ciò che rev4/rev5 non toccano** — parola per parola. I quattro selettori del dettaglio sono superati; il resto no. |
 | `2026-08-06_..._rev2-BUONA.html` | ⛔ **NON NORMATIVO.** Conservato come impronta dell'evento di ratifica: è il file che il referee lesse e approvò, e contiene ancora la voce che quella ratifica ELIMINA. ⚠️ **Il nome «BUONA» dice il contrario del suo stato.** **NON RINOMINARE:** un canonico lo cita con questo nome. |
 | `2026-07-18_QLive-Exit-in-Play.html` | **CONTRATTO rev.2 per ⟦S-EXIT⟧ e ⟦S6F⟧.** ⚠️ Il suo `:root` è una copia di lavoro: se un token diverge, vince Q7-Q16. |
+| `2026-08-21_..._rev6__SUPERSEDE-rev5-SU-2-SELETTORI__ancoraggio-Read-only-e-ritiro-4px_390x844.html` | **NORMATIVO sui DUE selettori che tocca.** Riga d'indice **scritta da CD** (pannello ④ del foglio), riportata qui verbatim: rev6 · 21/08 · SUPERSEDE rev5 su 2 selettori — **.dhrow: baseline** (cadono center e flex-start; cade .ro margin-top) · **.navbar .back: padding 0 4px RITIRATO**. Non tocca geometria A, badge, .roomseg, .viewtoggle. ⛔ **Porta 5 errata AUTOCITANTI di giornata**: regola riformulata («stesso ancoraggio del livello 1», non «sul baseline») · origine y · movimento Ⓓ 13,97 · **lh 1.05→1.12 inesistente nell'app** · **nesso causale ritirato: il gradino È l'ancoraggio (5–8pt su `baaa172`), non la geometria A**. **Aperti:** H (altezza badge nell'app) · il titolo più in alto, inspiegato · lh 1.12 ratificata ma inattuabile. **Le due decisioni non si muovono**; i numeri assoluti del foglio **non si incidono**. ⚠️ **Trasporto: da Drive solo il tasto Scarica — i byte sono l'unico giudice, mai il nome.** |
 | gli altri | storico di derivazione — vedi «Derivazione» più sotto. |
 
 ⚠️ **Regola di trasporto, pagata cara il 20/08.** Un HTML **ri-salvato da un
 browser non è quel file**: nome troncato, estensione `.htm`, e byte diversi senza
 alcun avviso (misurato: 793 byte in meno su un normativo). Da Drive si usa
 **solo** il tasto Scarica.
+
+⚠️ **Seconda faccia della stessa regola, verificata il 21/08 sulla rev6.** Il download
+ha troncato il **NOME** (tagliato dentro la parola `ancoraggio`) ma **non i BYTE**: il
+file era integro. ⛔ Una sonda per nome su `*rev6*` rendeva **DUE** file, uno dei quali
+**RITIRATO da CD**; il nome non discriminava. La verifica è passata **solo perché CD
+aveva dichiarato il PESO** (87 570 byte), che ha reso **una sola** corrispondenza,
+confermata poi da sha256, righe, CR e NUL. ✅ **I byte sono l'unico giudice, mai il
+nome.** Rinominare al deposito **non è emendare**: i byte non cambiano, e va
+rimisurato dopo la copia.
 
 ## Contratto VIVO
 
