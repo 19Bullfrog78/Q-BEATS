@@ -164,9 +164,9 @@ struct RoomSwitchBar: View {
         // ⚠️ MARCATURA A129 — I NUMERI QUI SOTTO SONO STORIA, NON PIÙ IL VALORE CORRENTE.
         // Chrome visibile: 30pt → 34pt (freeze rev3). Il PRINCIPIO resta intatto e NON si tocca:
         // hit-area ≥44pt gattata dal RI-GATE S3, `.segMini` a hitExpansion ZERO finché non
-        // sblocca. Anche il calcolo proiettato «(50−30)/2 = 10pt» in fondo al blocco è STORIA:
-        // con minHeight ora 34 non è più valido, e ricalcolarlo qui sarebbe fare il lavoro di
-        // S5 in anticipo — NON è in questo perimetro.
+        // sblocca. ⚠️ A139 — il calcolo proiettato in fondo al blocco, che A129 aveva marcato
+        // «STORIA» perché poggiava su minHeight 30, è stato RICALCOLATO su ENTRAMBE le premesse
+        // aggiornate: vedi lì. Resta lavoro per S5 e il COMPORTAMENTO non è toccato.
         // ── `.navbar .seg-mini` — CD-Q8 RISOLTA e RATIFICATA (LIBRO v31, sez.4): hit-area
         // ≥44pt, chrome visibile 30pt. NON è un'omissione del freeze — i 44pt sono regola
         // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
@@ -175,8 +175,20 @@ struct RoomSwitchBar: View {
         // background/bordo → pill 44pt VISIBILI, contraddicendo il «chrome resta 30pt» di CD
         // stesso. CD owna il RISULTATO; la tecnica è dominio CC/referee. 🔒 GATTATA DAL
         // RI-GATE S3: NON dare l'hit-area a `.segMini` finché il ri-gate non prova la tecnica
-        // ristrutturata su `.full`. Quando sblocca: `hitExpansion` .segMini = (50 − 30) / 2 =
-        // 10pt (navbar 50pt, coerente con `.roomseg` che riempie i 54). Lavoro per S5, NON qui.
+        // ristrutturata su `.full`. Quando sblocca: `hitExpansion` .segMini = (54 − 34) / 2 =
+        // 10pt. ⚠️ A139 HA CORRETTO DUE PREMESSE, NON UNA:
+        //   · la barra: 50 → 54 — la navbar del dettaglio show è passata a 54
+        //     (`QLiveShowDetailView.swift`, freeze rev4 :124); la citazione «navbar 50pt» che
+        //     stava qui veniva dal freeze SUPERATO.
+        //   · il chrome: 30 → 34 — già dall'A130, dichiarato scaduto due blocchi sopra
+        //     (riga `let minHeight: CGFloat = 34`), ma il calcolo continuava a citare 30.
+        // 🚨 IL RISULTATO RESTA 10pt, MA È UNA COINCIDENZA, NON UNA CONFERMA. Entrambi gli
+        //    addendi sono cresciuti di 4 e la differenza si conserva: (50−30)/2 = (54−34)/2.
+        //    Chi in futuro verificasse SOLO il risultato leggerebbe «torna» e non si
+        //    accorgerebbe che le due premesse da cui scendeva erano ENTRAMBE sbagliate. È il
+        //    caso in cui il numero giusto esce per la ragione sbagliata: qui il risultato NON
+        //    è la prova: la prova sono le due premesse, e vanno rilette una per una.
+        // Lavoro per S5, NON qui: `hitExpansion` sotto è riga di COMPORTAMENTO e resta invariata.
         // Il primo tentativo (`.contentShape(Rectangle().inset(by: -N))`) insettava
         // TUTTI E 4 I LATI: le due pill (3pt di gap) finivano con hit-area sovrapposte di 17pt,
         // e nella sovrapposizione vince il sibling successivo → toccando il bordo destro di
