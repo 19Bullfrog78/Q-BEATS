@@ -1,0 +1,176 @@
+diff --git a/ios_app/QBeats/UI/Components/RoomSwitchBar.swift b/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
+index 10d45ec..84511da 100644
+--- a/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
++++ b/ios_app/QBeats/UI/Components/RoomSwitchBar.swift
+@@ -164,9 +164,9 @@ struct RoomSwitchBar: View {
+         // ⚠️ MARCATURA A129 — I NUMERI QUI SOTTO SONO STORIA, NON PIÙ IL VALORE CORRENTE.
+         // Chrome visibile: 30pt → 34pt (freeze rev3). Il PRINCIPIO resta intatto e NON si tocca:
+         // hit-area ≥44pt gattata dal RI-GATE S3, `.segMini` a hitExpansion ZERO finché non
+-        // sblocca. Anche il calcolo proiettato «(50−30)/2 = 10pt» in fondo al blocco è STORIA:
+-        // con minHeight ora 34 non è più valido, e ricalcolarlo qui sarebbe fare il lavoro di
+-        // S5 in anticipo — NON è in questo perimetro.
++        // sblocca. ⚠️ A139 — il calcolo proiettato in fondo al blocco, che A129 aveva marcato
++        // «STORIA» perché poggiava su minHeight 30, è stato RICALCOLATO su ENTRAMBE le premesse
++        // aggiornate: vedi lì. Resta lavoro per S5 e il COMPORTAMENTO non è toccato.
+         // ── `.navbar .seg-mini` — CD-Q8 RISOLTA e RATIFICATA (LIBRO v31, sez.4): hit-area
+         // ≥44pt, chrome visibile 30pt. NON è un'omissione del freeze — i 44pt sono regola
+         // globale HIG e CD ha CONFERMATO il risultato (verificato a fonte: `.navbar{height:50px}`
+@@ -175,8 +175,20 @@ struct RoomSwitchBar: View {
+         // background/bordo → pill 44pt VISIBILI, contraddicendo il «chrome resta 30pt» di CD
+         // stesso. CD owna il RISULTATO; la tecnica è dominio CC/referee. 🔒 GATTATA DAL
+         // RI-GATE S3: NON dare l'hit-area a `.segMini` finché il ri-gate non prova la tecnica
+-        // ristrutturata su `.full`. Quando sblocca: `hitExpansion` .segMini = (50 − 30) / 2 =
+-        // 10pt (navbar 50pt, coerente con `.roomseg` che riempie i 54). Lavoro per S5, NON qui.
++        // ristrutturata su `.full`. Quando sblocca: `hitExpansion` .segMini = (54 − 34) / 2 =
++        // 10pt. ⚠️ A139 HA CORRETTO DUE PREMESSE, NON UNA:
++        //   · la barra: 50 → 54 — la navbar del dettaglio show è passata a 54
++        //     (`QLiveShowDetailView.swift`, freeze rev4 :124); la citazione «navbar 50pt» che
++        //     stava qui veniva dal freeze SUPERATO.
++        //   · il chrome: 30 → 34 — già dall'A130, dichiarato scaduto due blocchi sopra
++        //     (riga `let minHeight: CGFloat = 34`), ma il calcolo continuava a citare 30.
++        // 🚨 IL RISULTATO RESTA 10pt, MA È UNA COINCIDENZA, NON UNA CONFERMA. Entrambi gli
++        //    addendi sono cresciuti di 4 e la differenza si conserva: (50−30)/2 = (54−34)/2.
++        //    Chi in futuro verificasse SOLO il risultato leggerebbe «torna» e non si
++        //    accorgerebbe che le due premesse da cui scendeva erano ENTRAMBE sbagliate. È il
++        //    caso in cui il numero giusto esce per la ragione sbagliata: qui il risultato NON
++        //    è la prova: la prova sono le due premesse, e vanno rilette una per una.
++        // Lavoro per S5, NON qui: `hitExpansion` sotto è riga di COMPORTAMENTO e resta invariata.
+         // Il primo tentativo (`.contentShape(Rectangle().inset(by: -N))`) insettava
+         // TUTTI E 4 I LATI: le due pill (3pt di gap) finivano con hit-area sovrapposte di 17pt,
+         // e nella sovrapposizione vince il sibling successivo → toccando il bordo destro di
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index 57b390a..ea9aa12 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -114,28 +114,58 @@ struct QLiveShowDetailView: View {
+         .background(Color(hex: "#0e0e10").ignoresSafeArea())
+     }
+ 
+-    // MARK: - Navbar (§CSS `.navbar`: height 50, padding 0 14)
++    // MARK: - Navbar (§CSS `.frame.v4 .navbar`: height 54, padding 0 14, seg centrato)
+ 
++    // A139 — NAVBAR CENTRATA A 54 (freeze rev4 :124-125, che SUPERSEDE rev3 :150).
++    // Il difetto riparato è del DISEGNO, non del codice: rev3 prescriveva
++    // `justify-content:space-between` con DUE soli figli ⇒ il segmento finiva a destra, mentre
++    // è centrale nelle altre due schermate. CD lo dichiara ⓐ nel pannello di rev4.
++    // ⛔ MECCANISMO RIUSATO, NON REINVENTATO: è il ramo `.full` di RoomSwitchBar
++    //    (`RoomSwitchBar.swift:40-64`) esteso alla sua TERZA schermata, e così l'ha dichiarato
++    //    CD. Ne è copiato anche l'ORDINE dei modificatori, la cui ragione vive per intero in
++    //    `RoomSwitchBar.swift:50-61` e NON si duplica qui: `.frame(maxWidth:.infinity)` fa
++    //    reclamare al contenuto i (W−28) proposti dal `.padding`, che DEVE restare l'ULTIMO
++    //    (esterno). Invertendo, il contenuto galleggerebbe centrato con 14 di minimo ma senza
++    //    ANCORAGGIO a 14, e il back non starebbe al bordo. `.frame(height:54)` è asse indipendente.
++    //    Precondizione VERIFICATA (è l'avvertenza di `RoomSwitchBar.swift:50-53`): il genitore
++    //    — `body` :106-112, VStack con `.frame(maxWidth:.infinity)` — propone la larghezza
++    //    piena, quindi lo ZStack non collassa sulla larghezza intrinseca.
++    // ⚠️ L'ORDINE DEI FIGLI DELLO ZStack NON È ARBITRARIO, ed è lo stesso di `.full`: prima
++    //    il segmento, POI il back. In uno ZStack vince il sibling SUCCESSIVO, quindi in
++    //    qualunque sovrapposizione il tocco va al back — l'unica uscita della schermata — e
++    //    mai al segmento INERTE. Invertendo i due figli si regalerebbe l'uscita della
++    //    schermata a un componente che non fa nulla.
+     private var navbar: some View {
+-        HStack {
+-            backButton
+-            Spacer()
++        ZStack {
+             // Componente prescritto dalla scheda dell'atomo: `.segMini[active:.qLive]` INERTE.
+             // `onHome` non è usato dalla variante `.segMini` (il suo `body` rende il solo
+             // `segment`, RoomSwitchBar.swift:65-66) ma è un parametro non-opzionale: passata
+             // una closure vuota. `onSwitch` resta al suo default no-op ⇒ INERTE come richiesto.
+             RoomSwitchBar(active: .qLive, onHome: {}, variant: .segMini)
++            HStack {
++                backButton
++                Spacer()
++            }
+         }
++        .frame(maxWidth: .infinity)
++        .frame(height: 54)
+         .padding(.horizontal, 14)
+-        .frame(height: 50)
+     }
+ 
+     // Back «Shows» — unica uscita dalla schermata. Hit-area ≥44pt (vincolo globale): il
+     // padding verticale sta DENTRO la label del Button, così il GESTO lo copre — lezione del
+     // gate device S3 fallito su `RoomSwitchBar` (`RoomSwitchBar.swift:152-164`: un
+     // `.contentShape` fuori dal Button appartiene a una vista senza gesto e resta inerte).
+-    // Il chrome visivo non cambia: il padding aggiunto è trasparente. Navbar 50pt ⇒ i 44
+-    // ci stanno senza sfondare.
++    // Il chrome visivo non cambia: il padding aggiunto è trasparente. Navbar 54pt (A139) ⇒ i
++    // 44 ci stanno senza sfondare, ora con 5pt di margine per lato invece di 3.
++    // ⛔ QUESTO BLOCCO NON SI CONFORMA AL DISEGNO VECCHIO, E NON È UNA SVISTA. CD ha RITIRATO
++    //    PER ISCRITTO (rev5, «Ritiro 2») la diagnosi «il back è alto 16pt, serve una riga
++    //    BUGS», verbatim: «Il codice era giusto: era il DISEGNO della rev3 a essere sbagliato.
++    //    Il punto 2 è un allineamento di spec al codice, non un cambio di codice. Nessun
++    //    ticket.» La rev4 :125 ora prescrive essa stessa `min-height:44px` sul `.back`.
++    // ⚠️ IL RISCHIO È INVERSO, e CD chiede che sia inciso: chi avesse «conformato» il
++    //    codice alla rev3 avrebbe ROTTO l'unica uscita della schermata. `minHeight: 44` e
++    //    `.contentShape` NON si toccano.
+     private var backButton: some View {
+         Button(action: onBack) {
+             HStack(spacing: 5) {
+@@ -154,7 +184,7 @@ struct QLiveShowDetailView: View {
+         .buttonStyle(.plain)
+     }
+ 
+-    // MARK: - Dhead (§CSS `.dhead` padding 6/18/10 · `.dhrow` gap 10 · `.mt` / `.mt.a`)
++    // MARK: - Dhead (§CSS `.dhead` padding 8/18/14 · `.dhrow` gap 10 · `.mt` / `.mt.a`)
+ 
+     private func dhead(_ resolved: (songs: [Song], missingIDs: [UUID]), scaleFactor: CGFloat) -> some View {
+         VStack(alignment: .leading, spacing: 7) {
+@@ -177,6 +207,36 @@ struct QLiveShowDetailView: View {
+                 // servivano ENTRAMBE le cose. `.truncationMode(.tail)` esplicito per coerenza con
+                 // l'idioma già in uso nel corpus (`LiveHeaderView.swift:53-54`): `.tail` è comunque
+                 // il default SwiftUI, l'esplicito qui dichiara l'intento invece di ereditarlo.
++                // ⛔ INTERLINEA — NESSUN `.lineSpacing` APPLICATO, E NON È UNA DIMENTICANZA.
++                // La rev4 :127 alza `.dhead .nm` da `line-height:1.05` a `1.12`.
++                //   bersaglio CSS di CD = 29 × 1,12 = 32,48pt
++                // Riga NATURALE del carattere, MISURATA a fonte in A139 leggendo le tabelle di
++                // `Fonts/Inter-ExtraBold.ttf` (sha256 1b9fab96…):
++                //   unitsPerEm 2048 · hhea ascender 1984, descender −494, lineGap 0
++                //   ⇒ somma 2478 ⇒ fattore 2478/2048 = 1,209961
++                //   ⇒ riga naturale = 29 × 1,209961 = 35,09pt
++                // ⇒ 32,48 − 35,09 = −2,61pt: IL NATURALE SUPERA GIÀ IL BERSAGLIO. SwiftUI sa
++                //   solo AGGIUNGERE spazio con `.lineSpacing`, mai SOTTRARRE sotto il naturale
++                //   ⇒ il valore corretto da applicare è NESSUNO.
++                // ⚠️ E NON È UN LIMITE SUBÌTO: il difetto che CD ripara — a 1,05 le due righe si
++                //   sfiorano, 2,34pt di interlinea ottica — SU iOS NON È MAI ESISTITO. Il CSS può
++                //   COMPRIMERE la riga sotto il naturale del font; iOS no. Qui la riga è sempre
++                //   stata a 35,09pt, cioè PIÙ larga dei 32,48 che CD chiede adesso: il freeze si
++                //   sta muovendo verso ciò che iOS già faceva.
++                // ⚠️ Il fattore 1,209961 > 1,12 NON dipende dal corpo: il size si semplifica, e lo
++                //   scarto resta negativo A QUALUNQUE dimensione, `scaleFactor` compreso.
++                // PRECEDENTE: `EmptyStateKit.swift:37-43` stabilisce esattamente questo pattern
++                // («NESSUN .lineSpacing applicato, DICHIARATO non dimenticato») sulla STESSA
++                // Inter-ExtraBold. Nessun terzo meccanismo introdotto: niente NSParagraphStyle,
++                // niente AttributedString, niente UIViewRepresentable.
++                // ✅ SCIOLTO il dubbio lasciato aperto da `EmptyStateKit.swift:41-43` («se CoreText
++                //   usa hhea o OS/2 typo»): misurate ENTRAMBE le tabelle, sono IDENTICHE
++                //   (sTypo 1984 / −494 / 0) e `fsSelection` = 0x00C0 ha il bit 7 USE_TYPO_METRICS
++                //   ACCESO. Qualunque tabella scelga CoreText, il numero non cambia. Vale anche
++                //   per JetBrainsMono-Regular (1020 / −300 / 0 su upem 1000, pure identiche)
++                //   ⇒ il `.lineSpacing(3.08)` di `EmptyStateKit.swift:63` è ESATTO su entrambe
++                //   le ipotesi, non più l'«APPROSSIMAZIONE» dichiarata a :56. Quel file NON è
++                //   toccato qui: la rettifica del suo commento è fuori dal perimetro di A139.
+                 Text(setlist.name.isEmpty ? "Untitled show" : setlist.name)
+                     .font(.custom("Inter-ExtraBold", size: 29 * scaleFactor))
+                     .tracking(-0.6)
+@@ -193,9 +253,17 @@ struct QLiveShowDetailView: View {
+                     .foregroundColor(resolved.songs.isEmpty ? QStageTheme.amber : QStageTheme.text2)
+             }
+         }
++        // A139 — RITMO DELLA TESTATA (freeze rev4 :126, che SUPERSEDE rev3 :152).
++        // · sopra 6→8 — è lo STESSO valore di `.scrhead`: così smette di essere un numero e
++        //   diventa una regola («testata di schermata: 8 sopra»). Due valori quasi uguali per
++        //   la stessa classe di oggetto erano un invito al refuso.
++        // · sotto 10→14 — +2 rispetto ai 12 del livello 1, e il +2 è il prezzo della riga
++        //   `.mt` impilata: compensazione di una differenza STRUTTURALE, non simmetria
++        //   decorativa.
++        // · ai fianchi 18 — INVARIATO: i due erano già d'accordo.
+         .padding(.horizontal, 18)
+-        .padding(.top, 6)
+-        .padding(.bottom, 10)
++        .padding(.top, 8)
++        .padding(.bottom, 14)
+     }
+ 
+     // `.ro` (§CSS :192, verbatim): gap 5 · JetBrains Mono 700 9.5 · tracking 1 · UPPERCASE ·
