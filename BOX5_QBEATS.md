@@ -1,7 +1,15 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V28 — 28/07/2026
+**Versione:** V29 — 21/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+
+**Delta V29 vs V28:**
+
+- **Capitolo NUOVO «R-δ — dove vanno i file».** Prima di V29 il regime di consegna non aveva una sede operativa: viveva sparso nei mandati, e fra il 20 e il 21/08/2026 l'indirizzo Drive e' cambiato **tre volte in tre mandati, in direzioni opposte**. Il capitolo dichiara **quattro destinazioni e due sole scritture**: `C:` e `E:` si scrivono, git arriva col push, **Drive arriva da solo** come riflesso di `E:` sotto «Il mio computer». Le righe `LIBRO_MASTRO_QBEATS.md:336` e `:346` non si riscrivono: si circoscrivono. Il capitolo contiene anche il **cartello di rettifica su A159**.
+
+- **⚠️ MARCATURA sul Delta V26 — il bullet «Canonici NON tracciati» e' SCADUTO.** Non e' riscritto: e' marcato in loco. La SCALETTA, unico soggetto rimasto a quel regime, e' tracciata dal **18/07/2026**; oggi **nessun canonico e' non tracciato**, quindi il secondo regime non ha piu' soggetto.
+
+Tutto il resto invariato da V28.
 
 **Delta V28 vs V27:**
 
@@ -28,6 +36,7 @@ Tutto il resto invariato da V26.
 - **Formato dei canonici propagati a E:/project — due regimi, secondo il tracciamento git.**
   · **Canonici TRACCIATI** (`BUGS_QBEATS.md`, `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/**`): lo snapshot si produce ESTRAENDO DAL BLOB GIT (`git show <commit>:<path>`), MAI con Copy-Item dal file di lavoro. Il file di lavoro in root è CRLF, il blob è LF: i 32 snapshot storici su E: sono tutti LF, e una copia dal disco produrrebbe l'unico CRLF in mezzo a 32 LF — corruzione invisibile, scoperta mesi dopo. La verifica confronta l'impronta con quella del BLOB, non con quella del file su disco.
   · **Canonici NON tracciati** (dal 21/07/2026 la sola SCALETTA — vive fuori da git): l'estrazione da git è IMPOSSIBILE, non esiste blob. La copia dal disco è l'unica via → la verifica è un confronto d'impronta sorgente↔destinazione (stesso sha256 alle due estremità), e il formato del file sorgente È il formato canonico per definizione. ⚠️ **Limite noto del regime, ed è la ragione per cui se ne esce appena possibile:** un'impronta sorgente↔destinazione non è ancorata a un commit, quindi certifica che la copia è fedele ma NON a quale stato del documento corrisponda. **BOX3 e BOX5 sono usciti da questa categoria con `edaa80f` (21/07/2026)** e seguono ora il bullet «Canonici TRACCIATI» qui sopra — con la qualificazione della RETTIFICA nel Delta V27: ne vale la **prescrizione** (estrarre dal blob), non la **motivazione** CRLF/LF, che per loro non si applica.
+  ⚠️ **MARCATURA 21/08/2026 — QUESTO BULLET E' SCADUTO, E LO ERA GIA' QUANDO FU SCRITTO.** ⛔ **Non si riscrive: si marca qui.** La SCALETTA — unico soggetto rimasto a questo regime — **e' TRACCIATA dal commit `fe6d34b` del 18/07/2026** («SCALETTA_ATOMI_S6 tracciata in git, cambio di regime, contenuto invariato»), cioe' **tre giorni PRIMA** di `edaa80f` (21/07/2026), in occasione del quale questa frase fu scritta. ⇒ La clausola «dal 21/07/2026 la sola SCALETTA — vive fuori da git» **era gia' falsa nel momento in cui e' stata incisa**. **[M] Verificato a fonte il 21/08/2026:** `git ls-files` rende tracciati **tutti e cinque** i canonici — LIBRO, BUGS, BOX3, BOX5, SCALETTA. ⇒ **Il regime «canonici NON tracciati» non ha piu' alcun soggetto**, e la sua prescrizione — copia dal disco con confronto d'impronta — **non si applica oggi a nulla**. ⚠️ **[A] Il difetto non fu la scadenza, fu la fretta:** la frase enunciava una regola su un file di cui non era stato misurato il tracciamento, tre giorni dopo che era cambiato.
   · **Regola generale:** non si dichiara mai una propagazione «verde» senza aver confrontato un'impronta con la sorgente giusta per il regime del file. Nato 17/07/2026, dopo che un prompt di propagazione diceva «Copy-Item dal disco» per un file tracciato e sarebbe passato verde producendo corruzione silenziosa.
 
 Tutto il resto invariato da V25.
@@ -533,6 +542,124 @@ ios_app/QBeats/
       OverlayStopView.swift       ← V23: parametro scaleFactor, propagato a OverlayStopButtonStyle (1 callsite font in ButtonStyle)
       FineSetlistView.swift       ← V23: parametro scaleFactor + TD #43 aperto (opacity 0.95 → 1.0 in Step 6)
 ```
+
+---
+
+## R-δ — DOVE VANNO I FILE
+
+**Sede operativa unica.** La regola e' ratificata in `LIBRO_MASTRO_QBEATS.md:336`
+(01/08/2026, le destinazioni) e `:346` (04/08/2026, la quarta destinazione).
+Quelle righe non si riscrivono: qui si dice **come si esegue**.
+
+### 1 · QUATTRO DESTINAZIONI, DUE SCRITTURE
+
+| destinazione | come ci arriva |
+|---|---|
+| `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS` | CC scrive |
+| git online — `github.com/19Bullfrog78/Q-BEATS` | push |
+| `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD` | CC copia |
+| drive online | **da solo** — riflesso di `E:` |
+
+⛔ **SU DRIVE NON SI SCRIVE.** Drive non e' una cartella da riempire: e' il
+riflesso di `E:`, sotto la sezione **«Il mio computer»**. Un file scritto su `E:`
+compare su Drive da solo, per tutto l'albero. **Un mandato che prescrive un
+indirizzo Drive e' difettoso: CC non lo esegue, si ferma e lo dichiara.**
+
+⚠️ **Perche' questa riga esiste:** fra il 20 e il 21/08/2026 l'indirizzo Drive e'
+cambiato **tre volte in tre mandati, in direzioni opposte**, lasciando i referti
+del 21/08 divisi in due cartelle. Non fu distrazione: fu una gamba morta che
+nessuno aveva dichiarato morta.
+
+⚠️ **La consegna e' completa con le DUE copie scritte verificate identiche**
+(`cmp` exit 0 o sha256). Drive non entra nella verifica di consegna: chi puo'
+ispezionarlo e' il referee, non CC.
+
+### 1-bis · QUANDO SI DEPOSITA: ALLA PRODUZIONE, NON A FINE MANDATO
+
+⛔ **Ogni artefatto destinato a Mauro o al referee — referto, diff, stampa,
+congedo, contratto — si deposita sulle DUE gambe NELL'ISTANTE IN CUI ESISTE**,
+non alla chiusura del mandato.
+
+⚠️ **Il motivo e' misurato, non prudenziale.** Il diff nasce **al cancello**,
+cioe' a meta' mandato, ed e' esattamente il momento in cui Mauro e il referee
+devono leggerlo. Se R-δ vive nell'ultima sezione del mandato, ogni volta che CC
+si ferma al cancello — comportamento **corretto** e imposto dal mandato stesso —
+il diff resta **solo su `C:`**, e Mauro deve andarselo a prendere sul disco di
+lavoro. **Successo il 21/08/2026** con i due diff di A162, verificato dal referee
+sul riflesso: assenti.
+
+⇒ **Un mandato che colloca R-δ soltanto in coda e' DIFETTOSO.** CC deposita
+comunque alla produzione, e lo dichiara nel referto.
+
+### 2 · DOVE VA COSA, PER NATURA
+
+| natura | su C: (repo) | su E: (archivio) |
+|---|---|---|
+| canonici LIBRO · BUGS · BOX3 · BOX5 | **radice**, in place | `LIBRO_MASTRO/` `BUGS_QBEATS/` `BOX3_Codice/` `BOX5_Test/` |
+| SCALETTA | `HANDOFF/` | `HANDOFF/` |
+| referti · congedi · diff | `HANDOFF/` — tutti, zero altrove | `HANDOFF/` |
+| contratti e freeze CD | `DESIGN/QLive_Nav/` | `DA_CD_PER_CC/<data>/` |
+
+⛔ **Le due strutture sono DIVERSE, ed e' voluto:** `C:` segue il **repo**, `E:`
+segue l'**archivio**. Nessuna delle due copia l'altra, e **nessuna delle due
+descrive Drive**. Chi scrive «su Drive si copia la struttura del repo» sta
+descrivendo una cosa che non esiste.
+
+### 3 · COME SI PRODUCE LA STAMPA SU E:
+
+Invariato e gia' in questo documento (Delta V26 e Delta V27): **nome per versione
+con data e commit** — forma `BOX3_V98_2026-07-22_edaa80f.md` — e per i file
+**TRACCIATI** estrazione **dal blob** con `git show <commit>:<path>`, **mai copia
+dal disco**.
+
+### 4 · CIO' CHE NON E' UNA DESTINAZIONE
+
+- **`I:\Il mio Drive\Qbeats\`** — albero manuale creato il 01/08/2026 alle 13:09,
+  due ore e mezza **prima** che nascesse il riflesso di `E:` (15:47). Ha svolto un
+  ruolo che il riflesso ha poi assorbito. **Non e' piu' una destinazione: non si
+  scrive.** ⛔ **Non si cancella e non si sposta:** resta agli atti.
+- **`F:`** — secondo disco interno, contiene un clone del repo.
+  **NON e' una destinazione R-δ.** Regola sua, da scrivere separatamente.
+
+### 5 · QUARTA COPIA — NAS
+
+Manuale, **nessuna sincronizzazione**, cadenza settimanale, **entrambi gli
+alberi** (`C:` e `E:`). E' l'unica copia che non e' un riflesso, quindi l'unica
+difesa contro una cancellazione propagata — argomento invariato da
+`LIBRO_MASTRO_QBEATS.md:336`. **Invecchia**: fino alla fotografia successiva, il
+rischio residuo non e' «assente», e' «vecchia di al massimo sette giorni».
+
+### 6 · CARTELLO DI RETTIFICA — A159
+
+Il referto `HANDOFF/MISURE_CC_2026-08-21_A159-CENSIMENTO-TRE-GAMBE.md` conclude in
+prima riga che **la sincronizzazione E: → Drive e' ferma da meta' agosto**.
+⛔ **La conclusione e' FALSA. La misura era GIUSTA.**
+
+`I:` e' Drive montato come disco e **non rimonta la sezione «Il mio computer»
+della macchina locale**: da li' il riflesso e' **invisibile per costruzione**, e
+lo zero misurato su `I:` e' uno zero vero che non dice nulla su Drive. Il
+confronto 370 contro 186 metteva a confronto `E:\…\HANDOFF` con
+`I:\Il mio Drive\Qbeats\HANDOFF`, cioe' **due cose diverse**, non due copie della
+stessa cosa.
+
+**Verificato dal referee dal lato cloud il 21/08/2026:** i tre campioni citati da
+A159 — `CONGEDO_CC_2026-08-18.md`, `CONGEDO_CC_2026-08-19.md`,
+`MISURE_CC_2026-08-19_A128-STANDBY-CENTRATURA.md` — sono **tutti e tre presenti**
+nel riflesso; e **il referto A159 stesso vi e' comparso quattordici secondi dopo
+essere stato scritto**.
+
+⛔ **Il difetto era del MANDATO, non dell'esecutore:** A159 chiese una misura con
+uno strumento che non la poteva vedere. CC dichiaro' il proprio limite nello
+stesso referto — ⚠️ ma **un limite dichiarato a pagina tre non annulla una
+conclusione data per certa a pagina uno**, ed e' la lezione che questo cartello
+incide.
+
+⛔ **Il file del referto A159 NON si corregge** — stessa forma di A64,
+`LIBRO_MASTRO_QBEATS.md:352`: e' depositato e citato, la rettifica vive qui.
+
+⚠️ **LIMITE DICHIARATO, e scade:** il referee ha verificato che il riflesso
+riceve, non che sia **completo** file per file contro i 370 di `E:`. Nessuno puo'
+citare questo capitolo per affermare che Drive sia una copia integrale.
 
 ---
 
