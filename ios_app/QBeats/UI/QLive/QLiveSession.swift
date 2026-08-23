@@ -14,6 +14,15 @@ import Combine
 /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
 /// il solo posto in cui il runner può nascere.
 ///
+/// ⚠️ MARCATURA 23/08 — LA CONDIZIONE QUI SOPRA SI È AVVERATA IL 19/08/2026.
+/// Il mutatore c'è: `install(_:)`, più sotto in questo stesso file,
+/// introdotto dal commit `7c04bea` («S5b: Start del dettaglio show»).
+/// ⛔ NON leggere al presente «il mutatore MANCA APPOSTA»: descrive perché lo
+/// slot NACQUE senza mutatore, ed è ancora la ragione per cui `install(_:)` è
+/// il solo posto in cui il runner può nascere.
+/// ⚠️ Chi arriva qui per ⟦S-EXIT⟧ — «lo stato dello show appartiene allo show,
+/// non alla schermata» — legga: la stanza PUÒ tenere lo stato. Lo tiene già.
+///
 /// VINCOLO DI PROPAGAZIONE — verbatim da
 /// `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:
 /// «Un `ObservableObject` ANNIDATO dentro un altro NON propaga:

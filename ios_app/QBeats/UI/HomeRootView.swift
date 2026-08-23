@@ -4,7 +4,7 @@ import os
 /// Home (ex Bivio) — trivio top-level Q-STUDIO · Q-STAGE · Q-LIVE.
 /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
 /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
-/// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
+/// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift, blocco `scaleFactor` TD #23 — per SIMBOLO).
 /// Q-Studio = porta COMING SOON (non interattiva). Q-Live = in-tree via screen-swap (Nodo A completo, N1b).
 struct HomeRootView: View {
     let onOpenQStage: () -> Void

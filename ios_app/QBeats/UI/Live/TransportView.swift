@@ -44,6 +44,9 @@ struct TransportView: View {
                             // LiveView observer chiama runner.startSetlist;
                             // (b) tap START LOCAL nella WaitingForDirectorView;
                             // (c) tap CANCEL → dismiss a Bivio.
+                            // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ
+                            //    dopo N1b: si torna alla lista Shows.
+                            //    Testo sopra invariato.
                             //
                             // Correzione AI esterna #1 (Fase C): condizione SENZA
                             // `&& !audioEngine.linkIsConnected` — anche con Link

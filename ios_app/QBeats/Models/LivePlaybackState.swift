@@ -15,5 +15,7 @@ enum LivePlaybackState: Equatable {
     // via runner.startSetlist; (b) tap START LOCAL nella WaitingForDirectorView
     // → runner.startSetlist locale; (c) tap CANCEL → dismiss UIHostingController
     // a Bivio. CD-Q2=B ratificato libro mastro v14.
+    // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ dopo N1b: l'uscita del
+    //    player torna alla lista Shows della stanza. Testo sopra invariato.
     case waitingForDirector
 }

@@ -166,7 +166,7 @@ class AudioEngine: ObservableObject {
     let sectionEndedSubject = PassthroughSubject<Void, Never>()
 
     // CD-6 / Bug 4 fix (28/05/2026) — Opzione C orchestrazione cross-device.
-    // Emesso dal callback Link `set_start_stop_callback` (righe ~436-442)
+    // Emesso dal callback Link `set_start_stop_callback` (chiamata a `link_engine_set_start_stop_callback`)
     // quando `engine.isPlaying` flippa false→true a causa di un Director
     // peer che ha premuto Play. LiveView observer chiama
     // `runner.startSetlist(...)` per orchestrare la sezione corrente sul
@@ -616,6 +616,10 @@ class AudioEngine: ObservableObject {
         // === Task D refactor #18c — Correzione 1 referee adattata a installTap ===
         // 1. stopSync() — sopra
         // 2. engine.stop() — ferma render thread (blocking, sincrono per Apple docs)
+        //    ⚠️ MARCATURA 23/08 — «per Apple docs» NON È SORGENTATO: la
+        //    documentazione Apple non dichiara `stop()` bloccante/sincrono. Il
+        //    comportamento resta quello osservato, l'attribuzione no. Non
+        //    cambiare l'ordine dei passi su questa base.
         // 3. mainMixerNode.removeTap(onBus: 0) — release del tap block ref
         // 4. destroy degli handle C (incluso qbeats_link_pending_destroy)
         // Senza questo ordine, free(linkPending) potrebbe race col render

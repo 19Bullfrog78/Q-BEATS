@@ -429,7 +429,7 @@ struct LiveView: View {
         }
         // CD-6 / Bug 4 fix (28/05/2026) — Observer Opzione C orchestrazione
         // cross-device. AudioEngine emette `linkStartedSubject` dal callback
-        // Link `set_start_stop_callback` (righe ~436-442 di AudioEngine.swift)
+        // Link `set_start_stop_callback` (chiamata a `link_engine_set_start_stop_callback` in AudioEngine.swift)
         // DOPO `engine.start()` quando un Director peer ha premuto Play e
         // il nostro engine flippa da non-playing a starting. Qui orchestriamo
         // la sezione corrente: in `.standby` `runner.startCurrentSong(...)`

@@ -395,7 +395,7 @@ final class SetlistRunner: ObservableObject {
                 // NESSUN loadSection/setBPM — il prossimo setup arriva al tap
                 // StandbyOverlay tramite runner.startCurrentSong(...).
                 // Stop pulisce stato audio (isRunning=false) — necessario perché
-                // audioEngine.start() ha guard `!isRunning` (AudioEngine.swift:503).
+                // audioEngine.start() ha guard `!isRunning` (AudioEngine.swift, in `start(resumeAtBeat:)` — per SIMBOLO).
                 // Senza questo, startCurrentSong sarebbe no-op silenzioso e la
                 // canzone successiva non partirebbe mai.
                 // NB: audioEngine.stop() dispatcha playbackState=.stopped su main,

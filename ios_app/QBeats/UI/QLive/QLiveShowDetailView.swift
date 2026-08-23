@@ -58,6 +58,15 @@ import SwiftUI
 // (`QLiveSession.swift:12-15`). Lo stato VISIVO abilitato/disabilitato (token DS opacity 0.4)
 // è invece cablato oggi, gattato sul RISOLTO-non-vuoto, non sul numero di righe.
 //
+// ⚠️ MARCATURA 23/08 — «START INERTE» NON È PIÙ VERO DAL 19/08/2026.
+// Lo Start costruisce e consegna il runner: cerca `onStart(SetlistRunner(` più
+// sotto in questo file. Commit `7c04bea`. Collaudo su device di Mauro il 23/08:
+// da questo pulsante si entra nel player in standby.
+// Il testo sopra resta come fu scritto — dichiarava la propria scadenza
+// («a vita brevissima») e la scadenza è arrivata.
+// ⚠️ Vale anche per il rimando a `QLiveSession.swift:12-15`: quel commento è
+// scaduto per lo stesso motivo, ed è marcato in loco.
+//
 // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
 // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
 // file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è

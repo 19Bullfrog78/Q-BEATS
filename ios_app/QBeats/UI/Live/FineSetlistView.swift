@@ -14,6 +14,14 @@ struct FineSetlistView: View {
     /// ⛔ RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
     /// (CD-3)» (`LIBRO:153`), mai ratificato — cablarlo, disabilitarlo o
     /// nasconderlo è decisione CD, non di questo atomo.
+    /// ⚠️ MARCATURA 23/08 — LA DECISIONE C'È: NON È PIÙ MATERIA DA DECIDERE.
+    /// `LIBRO_MASTRO_QBEATS.md:353` (07/08/2026) dispone che RESTART SETLIST
+    /// **si toglie** da END SHOW — opzione Ⓐ di CD, con due cancelli distinti
+    /// passati entrambi: ratifica tecnica del referee e OK di Mauro.
+    /// ⛔ Chi apre questo file per eseguire la rimozione NON deve tornare da CD
+    /// per la decisione: è presa. Resta aperto il solo DISEGNO del piede con un
+    /// pulsante unico, che la stessa riga dichiara non ratificato.
+    /// ⚠️ Il testo sopra resta come fu scritto: era vero fino al 07/08.
     let onBackToShows: () -> Void
 
     var body: some View {
