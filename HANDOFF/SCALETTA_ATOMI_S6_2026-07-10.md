@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 12 (22/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12)
+**Versione:** 12 (22/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -312,6 +312,8 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
 - **CANCELLO — ⟦S5⟧ non chiude device finché i due bottoni di `FineSetlistView` non fanno qualcosa.** BACK TO SHOWS: quanto `LIBRO_MASTRO_QBEATS.md:154 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` dichiara attivo («torna alla libreria SHOWS»). RESTART SETLIST: quanto `LIBRO_MASTRO_QBEATS.md:153 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` propone (CD-3, «ricomincia la setlist appena suonata») — oggi **proposto**, non ratificato: per questo bottone resta aperta anche la domanda «cosa deve fare», non solo il cablaggio. ⚠️ **Deviazione dal testo dettato in prompt, dichiarata:** una prima forma equiparava i due bottoni come se entrambi avessero ratifica attiva — verificato a fonte che `LIBRO_MASTRO_QBEATS.md:155 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` **non copre l'azione di RESTART SETLIST**; corretto qui prima di scrivere. ⛔ **Che cosa quella riga dichiari, qui NON si qualifica:** vive per INDIRIZZO nel bullet «Contrasto con la ratifica» del ticket `TD-fineshow-bottoni-morti` in `BUGS_QBEATS.md`, dove è riportata in verbatim intero e misurata contro il codice. ⚠️ **SECONDA DEVIAZIONE, dichiarata (giro A25):** il prompt indicava `@ eeb725dd46363d6cdc428a5aa43ede5881389d31` per l'ancora di `:155`; Fase 1-bis dello stesso giro ha verificato che quell'ancora è falsificata anche per `:153` e `:154` (a quei commit il file si chiamava ancora `STATO_QBEATS.md`, per rename confermato con `git log --follow`, e la tabella era ancora `_(da popolare CD)_`) — sostituite tutte e tre le ancore con HEAD, non solo quella nuova. ⚠️ **RETTIFICA A26 (C6), dichiarata:** in A25 la qualifica «`:155` ratifica il titolo/momento «END SHOW»» era stata lasciata scritta com'era, per mandato ristretto di C4. È stata **rimossa qui**: con l'ancora ora corretta a HEAD quella glossa sarebbe stata un'affermazione falsa accanto a un indirizzo verificabile — chi lo apre legge il contrario. Resta il solo punto vero, che `:155` non copre l'azione di RESTART SETLIST; ciò che quella riga dice davvero vive per indirizzo in `BUGS_QBEATS.md`. **Motivo del cancello:** ⟦S5⟧ è ciò che rende raggiungibile END SHOW (`BUGS_QBEATS.md:132 @ 0ee9543d45d638df061c5a48872aaefeb8a88f26` — «⟦S5⟧ apre entrambe le serrature nello stesso atomo»). ⛔ **QUESTO BULLET SPOSTA DI UNA RIGA tutto ciò che lo segue** (340→341 righe totali). Verificato a fonte, stessa forma della verifica sopra: nessuna citazione nuda a questo file con riga ≥307 trovata su cinque canonici più commenti `.swift`; l'unica citazione ≥307 resta la stessa di sopra (`LIBRO:329`→`:314`, ancorata, immune).
 - ⚠️ **MARCATURA 07/08 — LA CONDIZIONE DEL CANCELLO VA LETTA AL SINGOLARE, E NON È DICHIARATA SODDISFATTA. Il bullet sopra resta come scritto.** RESTART SETLIST **si toglie** da END SHOW: opzione Ⓐ di CD, ratificata in `LIBRO_MASTRO_QBEATS.md:353 @ 81740e48f24e089703b0199d0ffd20b9b3bfae7c` (proposta e disegno di CD; ratifica tecnica del referee e OK di Mauro, due cancelli distinti passati entrambi). ⇒ La condizione «i **DUE** pulsanti di `FineSetlistView` devono fare qualcosa» si legge da qui in avanti **AL SINGOLARE**: resta **un** pulsante, BACK TO SHOWS, ed è **cablato** — `ios_app/QBeats/UI/Live/FineSetlistView.swift:29 @ 779172e6353d6e51dcee542953725000f48dd05a`, `Button("BACK TO SHOWS") { onBackToShows() }`, atomo ⟦S5x⟧, commit `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`. ⛔ **QUESTO NON RENDE IL CANCELLO SODDISFATTO, e la distinzione è il punto:** il pulsante è **chiuso a codice** ma la sua validazione su device è **DIFFERITA**, perché END SHOW oggi è irraggiungibile — nessuno l'ha mai visto funzionare. Il cancello si chiude quando quel tocco è stato fatto su un device, non quando la closure smette di essere vuota. ⚠️ Rilievo di **CD**, accolto: era CD a chiedere che la condizione fosse riscritta al singolare e **non** dichiarata soddisfatta. ⛔ **QUESTA RIGA SPOSTA DI UNA RIGA tutto ciò che la segue** (344→345 righe totali). Verifica a fonte identica a quella delle due righe sopra: zero citazioni **nude** a questo file con riga ≥309; le uniche in quella regione sono ancorate a commit, quindi immuni.
 
+- ✅ **MARCATURA 23/08 — IL COLLAUDO SU DEVICE È COMPLETO: I TRE CANCELLI DI ⟦S5b⟧ SI CHIUDONO. Le righe sopra restano come scritte: si marca.** **(1)** `:313` motiva il differimento così: «END SHOW **oggi è irraggiungibile** — nessuno l'ha mai visto funzionare». **Falso dal 19/08** (`7c04bea`, mutatore dello slot) e **falsificato sul campo il 23/08**. **(2)** **Collaudo Mauro 23/08/2026, quattro passi su quattro.** Passo (1): da `START SHOW` il player si monta ARMATO e FERMO — titolo della prima canzone in alto, pulsazione («si respira»), player oscurato («come se ci fosse un velo sopra»), nulla suona. Passo (2): il click parte al tocco — ⚠️ **conseguenza necessaria dell'aver percorso la setlist, non osservazione riportata**. Passo (3): fine setlist → END SHOW → **BACK TO SHOWS** riporta alla lista. Passo (4): uscita di stanza → **l'audio si ferma**, verificato su **entrambe** le porte (Home e Q-Stage). **(3)** **CI al commit dell'atomo `7c04bea`:** `iOS Signed Build` **success** (run `32259878138`, 19/08). `F1 — Build Check` resta escluso dal conteggio per la clausola di `:349-350` («non conta come cancello finché Mauro non decide»), e ⚠️ **quella decisione non è ancora stata presa**. **(4)** ⇒ **SI CHIUDONO: il cancello proprio di ⟦S5b⟧ · il cancello DIFFERITO di ⟦S5x⟧ (`:346`) · e si conferma l'armamento di `TD-mixer-copre-endshow` (`BUGS:158`), che non è un cancello di collaudo ma uno stato scattato con la consegna del 19/08.** **(5)** ⚠️ **APPROVAZIONE DEL SUPERVISORE, NON MISURA — e lo scarto si dichiara:** la scheda prescrive il titolo al **27 % dell'altezza dall'alto** (`StandbyOverlayView.swift:18`, `geo.size.height * 0.27` = **73 % dal basso**); Mauro riferisce «a circa **2/3** dal basso» (66,7 %) e lo approva («va benissimo così»). Scarto fra 3 e 6 punti percentuali secondo che si misuri al bordo superiore o al centro ottico del titolo. ⛔ **Non si risolve qui: l'ha approvato il decisore.** **(6)** ⛔ **COSA IL COLLAUDO NON PROVA, invariato:** non è il percorso di un utente finale — l'ingresso è da DEBUG, che `:368-370` prevede e a cui allega la procedura sicura di `TD-injecttestdata-sovrascrive-dati-reali` · una sola setlist di test (`TESTSONG L1.b`) · **zero peer e zero Link**: Direttore/Follower non toccati · **nessuna misura di timing né di audio**: è un collaudo di percorso · RESTART SETLIST è stato **osservato** morto, non provato.
+
 ### ⟦S5b⟧ Start del dettaglio → player col primo brano ARMATO · POST · CI+DEVICE
 
 - **Scopo:** costruire **una porta sola** — dallo `.startfoot` del dettaglio al player, col primo
@@ -471,7 +473,51 @@ LAVORI NON-ATOMI che corrono a fianco, nell'ordine ratificato da Mauro:
    da leggere a fonte + decisioni di Mauro ancora aperte sul disegno:
    elenco NON fissato da nessun canonico, da verificare a fonte in
    DESIGN/QLive_Nav/README.md prima di aprire il punto.
+4) 🚨 CONFERMA PRIMA DI USCIRE DALLA STANZA — il disegno è pronto,
+   nessun atomo lo costruisce. RATIFICATO MAURO 23/08/2026 come QUARTO
+   lavoro non-atomo. ⛔ LA RIGA D'ORDINE DEGLI ATOMI NON SI TOCCA: resta
+   ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧, sede unica e invariata.
+   STORIA, misurata: direzione ratificata il 18/07 (`LIBRO:286`, «STOP con
+   conferma», opzione iii di CD) · freeze CONSEGNATO E ANCORATO il 20/07
+   (`LIBRO:291`): `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html`
+   @ `57c8b2a`, blob sha256 `8d7a3150…c398860` — verificato a fonte il
+   23/08: il file esiste, è TRACCIATO, sha256 e commit COINCIDONO · ultima
+   pendenza chiusa il 28/07 (`LIBRO:315`, variante `-standalone` dichiarata
+   NON-NORMATIVA) · atomo istituito il 31/07 (`LIBRO:327`) proprio perché
+   «nessun atomo lo costruiva» ⇒ ORFANO N.1, SANATO · riformulazione del
+   22/08 (`SCALETTA:441`, ratificata Mauro): «⟦S-EXIT⟧ NON È PIÙ cablare
+   l'uscita. È: lo stato dello show deve appartenere allo show, non alla
+   schermata» ⇒ ORFANO N.2, APERTO DAL 22/08.
+   ✅ È PRONTO A PARTIRE, e l'istruzione è già ratificata. `LIBRO:291`,
+   verbatim: «Chi implementerà le due combinazioni scoperte NON improvvisi:
+   applichi il componente così com'è, e se emerge un caso in cui lo sfondo
+   cambia il comportamento, si torna da CD.» Copertura dichiarata: 6 frame,
+   DIAGONALE e non matrice piena — Home×dettaglio e Switch×lista non hanno
+   frame proprio ed ereditano per il principio del modale AUTO-SUFFICIENTE.
+   🔴 CANCELLO — IMPEGNO DEL REFEREE, INCISO: la scheda di questo lavoro
+   è il PRIMO documento dopo questo commit, PRIMA della scheda ⟦S-EXIT⟧.
+   Finché non è scritta, ⟦S-EXIT⟧ non apre.
+   ⚠️ Il disegno aspetta dal 20/07: 34 giorni. È già stato dimenticato una
+   volta ed è stato ritrovato per misura, non per memoria.
 ⛔ Non sono atomi della scaletta e non entrano nella riga d'ordine.
+
+⚠️ MARCATURA 23/08 — LE RIGHE «IRRAGGIUNGIBILE» DI QUESTA SEZIONE CADONO
+IN BLOCCO. Zero parole riscritte: si marca.
+Misurato a HEAD `91809bb1cf9b914c070f4a0f315982021b3cbb59`, e provato sul
+campo dal collaudo device di Mauro del 23/08/2026.
+· `:347` «END SHOW è irraggiungibile FINCHÉ lo slot non ha mutatori» — lo slot
+  ha il mutatore dal 19/08: `ios_app/QBeats/UI/QLive/QLiveSession.swift:60`
+  `func install(_ newRunner: SetlistRunner)`, commit `7c04bea`.
+  ✅ Il suo rimando interno a `SCALETTA:324` REGGE (verificato a fonte).
+· `:433` «END SHOW resta irraggiungibile» — falso: END SHOW è stato raggiunto
+  il 23/08 e la sua unica uscita è stata percorsa.
+· `:313` — vedi la marcatura in coda alla scheda ⟦S5⟧.
+✅ `:430` NON è toccata: è ancorata al blob `779172e6…` ed è immune.
+✅ `:308` REGGE: `SetlistRunner.swift:109` è tuttora
+   `func startSetlist(audioEngine: AudioEngine, session: LiveSession)` — ⟦S5b⟧
+   NON ha riconciliato i due tipi. L'OPEN resta aperto.
+✅ `:374-375` REGGE: l'irraggiungibilità del ramo `else` è conseguenza della
+   Cond (a) di ⟦S5b⟧, non un fatto indipendente. Non è materia di questa marcatura.
 
 ## D · Risposte referee alle 8 domande
 1. "+" create → ⚠️ **SUPERATO da CD-Q7 (LIBRO v31):** «+» OMESSO finché §8 non arriva, NIENTE bottone morto. La 10/07 diceva «bottone presente, azione off»: ora è VIETATO. 2. Badge FILE MISSING → DIFFERIRE (esistenza cache al load, no fileExists a scroll). 3. QLiveTheme = enum separato (file: scelta CC). 4. Switch-closure AppRootView → in S4, non Nodo A. 5. onHome non-defaulted → SÌ (Cond A enforced-by-compiler). 6. S6 separato. 7. S4/S4L coppia stretta; device gate S4 = no-crash tap-riga pre-S5. ⚠️ **PARZIALMENTE SUPERATA dallo sdoppiamento 28/07:** il device gate S4 resta invariato; «S4L» qui indicava il **launcher**, oggi ⟦S4R⟧, e fra i due si è inserito ⟦S4K⟧ — la contiguità non è più garantita (pendenza nella scheda ⟦S4R⟧). 8. Cross-ref AudioEngine → confluisce in Prereq 1.
