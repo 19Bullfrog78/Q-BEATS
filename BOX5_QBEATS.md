@@ -1,7 +1,13 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V29 — 21/08/2026
+**Versione:** V30 — 22/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+
+**Delta V30 vs V29:**
+
+- **Capitolo NUOVO «VOCABOLARIO DEI DUE OROLOGI».** Lessico che separa il conteggio del motore audio da quello della grafica, e nomina i due punti dove lo scarto si vede (ACCENTO AUDIO / ACCENTO GRAFICO dentro la battuta; CAMBIO SEZIONE AUDIO / CAMBIO SEZIONE GRAFICO fra le sezioni). **Tutti e sei i nomi sono ratificati da Mauro il 22/08/2026** (mandati A176 + A178). Cinque su sei erano stati proposti diversamente dal referee e corretti da Mauro prima della ratifica: OROLOGIO MOTORE AUDIO (era «orologio motore»), ACCENTO AUDIO (era «accento sonoro»), ACCENTO GRAFICO (era «primo verde»), CAMBIO SEZIONE AUDIO (era «cambio suonato»), CAMBIO SEZIONE GRAFICO (era «cambio scritto»). Solo OROLOGIO GRAFICA è rimasto come proposto.
+
+Tutto il resto invariato da V29.
 
 **Delta V29 vs V28:**
 
@@ -139,6 +145,98 @@ LAYER 1 — Core Audio C-API + C++ DSP Engine      ✅ CHIUSO
 ## Token visivi — UNICA FONTE DI VERITÀ
 
 (invariato da V22)
+
+---
+
+## VOCABOLARIO DEI DUE OROLOGI — ratificato Mauro 22/08/2026
+
+REGOLA UNICA: ogni cosa esiste in versione AUDIO e in versione GRAFICO.
+Il difetto è SEMPRE la distanza fra le due, mai una delle due "sbagliata".
+
+I due conteggi:
+· OROLOGIO MOTORE AUDIO — il conteggio dei battiti tenuto dal motore audio.
+  Riparte da zero SOLO quando il motore viene fermato e riavviato.
+· OROLOGIO GRAFICA — il conteggio su cui il display costruisce battute e
+  sezioni. Riparte da zero a OGNI rientro nel player.
+
+Dentro la battuta:
+· ACCENTO AUDIO — il click a frequenza diversa, prodotto dal motore audio.
+· ACCENTO GRAFICO — l'accento reso dalla grafica. Oggi è il primo pallino
+  verde della battuta; «primo pallino verde» è COME È RESO OGGI, non il nome
+  della cosa. Se il disegno cambia, il nome resta.
+
+Fra le sezioni:
+· CAMBIO SEZIONE AUDIO — il motore comincia a suonare la sezione successiva.
+· CAMBIO SEZIONE GRAFICO — il display aggiorna nome e numero della sezione.
+
+⛔ VIETATA OGNI FORMA CON UN COLPEVOLE. Sono false due volte: nessuno dei
+due orologi sbaglia — ciascuno è corretto rispetto a sé stesso — e una
+frase con un soggetto attribuisce comunque la colpa a uno dei due.
+⛔ Vietate quindi anche «l'ACCENTO AUDIO non cade sull'ACCENTO GRAFICO» e
+«il CAMBIO SEZIONE GRAFICO non coincide col CAMBIO SEZIONE AUDIO»: hanno
+un soggetto. Vietate a maggior ragione «l'accento è sfasato», «l'accento è
+sbagliato», «la sezione è sbagliata».
+
+LE FORME CORRETTE SONO SIMMETRICHE, senza soggetto:
+· «ACCENTO AUDIO e ACCENTO GRAFICO NON COINCIDONO»
+· «CAMBIO SEZIONE AUDIO e CAMBIO SEZIONE GRAFICO NON COINCIDONO»
+Causa, da nominare sempre insieme: i due orologi sono partiti da punti
+diversi. L'oggetto del difetto è LA DISTANZA FRA DUE OROLOGI.
+
+⚠️ REGOLA DI RIPARAZIONE — asimmetrica, e non contraddice quanto sopra:
+descrivere è simmetrico, riparare no. L'OROLOGIO MOTORE AUDIO è IL
+RIFERIMENTO: è ciò che la band sente, gira in tempo reale, e NON SI TOCCA
+per rimediare a uno sfasamento. È l'OROLOGIO GRAFICA che deve riallinearsi
+su di lui. ⛔ Chiunque proponga di modificare il motore audio per far
+coincidere i due deve prima superare questa riga.
+Ratificato Mauro 22/08/2026.
+
+Tutti e sei i nomi sono ratificati da Mauro il 22/08/2026. CINQUE SU SEI
+erano stati proposti diversamente dal referee e corretti da Mauro:
+OROLOGIO MOTORE AUDIO (era «orologio motore»), ACCENTO AUDIO (era «accento
+sonoro»), ACCENTO GRAFICO (era «primo verde»), CAMBIO SEZIONE AUDIO (era
+«cambio suonato»), CAMBIO SEZIONE GRAFICO (era «cambio scritto»; quei due
+non erano italiano). Solo OROLOGIO GRAFICA è rimasto come proposto.
+
+COMPORTAMENTO ATTESO AL RIENTRO NEL PLAYER — ratificato Mauro 22/08/2026.
+
+Ragionamento di Mauro, nelle sue parole:
+(1) premendo STOP prima di uscire, al rientro grafica e audio ripartono
+    correttamente;
+(2) NON premere STOP è una SCELTA DELL'UTENTE: significa che non vuole
+    fermare l'audio, per i più disparati motivi. Il motore infatti continua
+    a suonare anche nelle videate Shows e Dettaglio;
+(3) ⇒ al rientro nel player, poiché l'utente ha scelto di non fermare la
+    canzone, la grafica NON deve ripartire da zero: deve RECUPERARE LA
+    POSIZIONE DELL'AUDIO E ALLINEARSI AD ESSO. Ripartire da zero è il
+    difetto.
+
+⇒ QUESTO È IL REQUISITO. Non è una preferenza estetica: la grafica che
+riparte da zero sta ignorando una scelta esplicita dell'utente.
+
+⚠️ PRECISAZIONE TECNICA DEL REFEREE — RETTIFICATA 22/08/2026, misurata a
+`4629ee9`. Una versione precedente di questa riga diceva che il motore
+«scarta la posizione senza consegnarla a nessuno» e che la grafica «non ha
+modo di chiedere». ERA FALSA, e la falsificazione è di CC (referto A181),
+rimisurata dal referee. In realtà:
+· il DSP C++ espone un accessore PUBBLICO della posizione dentro la battuta;
+· il ponte lo legge in produzione (zero compilazione condizionale nel file);
+· il flag di accento per-battito ATTRAVERSA GIÀ il confine C→Swift e viene
+  letto dentro AudioEngine;
+
+⇒ CIÒ CHE MANCA È UN SOLO PASSAGGIO, L'ULTIMO: AudioEngine non ripubblica
+quell'informazione alla vista — il messaggio che raggiunge la grafica a
+ogni battito porta SOLTANTO il numero progressivo del battito.
+
+⛔ CHI RIPARERÀ NON DEVE COSTRUIRE UN CANALE NUOVO: il canale esiste e
+arriva già fino a Swift. Va esteso l'ultimo tratto. ⛔ E non deve toccare
+il motore audio: vedi la REGOLA DI RIPARAZIONE sopra.
+
+⛔ Questo comportamento atteso NON contraddice la simmetria della
+descrizione: descrivere il sintomo resta senza colpevole (i due orologi
+partono da punti diversi); il comportamento atteso e la riparazione sono
+asimmetrici, e puntano entrambi nella stessa direzione — è la grafica che
+si riallinea, il motore audio non si tocca.
 
 ---
 

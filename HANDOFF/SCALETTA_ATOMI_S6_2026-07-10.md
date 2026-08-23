@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 11 (18/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11)
+**Versione:** 12 (22/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -431,6 +431,47 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
 ⚠️ **MARCATURA 18/08 — LA CLAUSOLA «ZERO CITAZIONI NUDE CON RIGA ≥320» DELLA RIGA QUI SOPRA È SCADUTA. La riga resta come scritta: si marca, non si riscrive.** Era **VERA al suo commit** — misurato: al blob `779172e6353d6e51dcee542953725000f48dd05a` le citazioni **nude** a questo file con riga ≥320 erano **0**. È **FALSA a HEAD** `44fea3e378414c300ffd50fcac527c683740735b`: ne esiste **1**, in `LIBRO_MASTRO_QBEATS.md:356`, introdotta **dopo** quella misura dalla riga datata `2026-08-18` sui pulsanti visibili e inerti. ⛔ **Chi si fidasse della clausola per concludere «inserire in sezione B è sicuro» sbaglierebbe.** ✅ Quella citazione è stata **ancorata a commit** nello stesso giro (A122), e da allora è immune allo spostamento. ⚠️ **La clausola non è una proprietà permanente del corpus: è una misura, e le misure scadono.** Chi inserisce righe in questo file la **rimisura**, non la rilegge.
 ⚠️ **MARCATURA 07/08 — ⟦S-EXIT⟧ È NELL'ORDINE RATIFICATO MA NON HA SCHEDA. Buco registrato, NON colmato in questo giro.** Misurato sul blob a HEAD `779172e6353d6e51dcee542953725000f48dd05a`: `S-EXIT` rende **2** occorrenze in tutto il file, ed **entrambe stanno sulla riga d'ordine qui sopra** — cioè in Sezione C. La **Sezione B**, che si intitola «Scaletta 12 atomi», contiene esattamente **12** intestazioni `###`, contate una per una: ⟦S0⟧ · ⟦S1⟧ · ⟦S2F⟧ · ⟦S2⟧ · ⟦S3⟧ · ⟦NODO A⟧ · ⟦S4⟧ · ⟦S4K⟧ · ⟦S4R⟧ · ⟦S4L⟧ · ⟦S5⟧ · ⟦S6⟧. **Nessuna è ⟦S-EXIT⟧.** ⇒ L'atomo su cui poggia il vincolo duro «niente data con la band» esiste in casa come **sola freccia in una riga d'ordine**: nessuno scopo, nessun file, nessuna reversibilità, nessun gate scritti da nessuna parte. ⛔ **La scheda NON si scrive qui:** scriverla sarebbe progettare un atomo dentro un giro di igiene documentale, ed è materia di un mandato suo. Si registra che manca, e da questo momento chi legge l'ordine sa che una delle sue tappe non ha contenuto.
 - ✅ **MARCATURA 18/08 — ⟦S5a⟧ CHIUSO DEVICE, supera il punto (1) della marcatura 07/08 sopra. La marcatura 07/08 resta come scritta: si marca, non si riscrive.** Collaudo Mauro 18/08 su `Test Setlist L1.b`: apertura dettaglio, dati, ritorno a SHOWS, nessun dato stantio — tutti verdi, ancora dietro porta DEBUG (§8 assente). Dettaglio in `LIBRO_MASTRO_QBEATS.md`, riga `2026-08-18` (⟦S5a⟧ chiuso device). ⛔ **⟦S5x⟧ resta invariato: «CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧»** — il collaudo del 18/08 non lo tocca, END SHOW resta irraggiungibile. **ORDINE RECIPROCO INVARIATO:** ⟦S5a⟧ (ora chiuso) → ⟦S5x⟧ → ⟦S5b⟧, poi ⟦S-EXIT⟧.
+⚠️ MARCATURA 22/08 — ⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO, ratificato Mauro
+22/08/2026. Le righe sopra restano come scritte: si marca, non si riscrive.
+⛔ L'ORDINE RATIFICATO 31/07 È INVARIATO: ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧.
+Questa marcatura scompone SOLO ⟦S-EXIT⟧ e non tocca ciò che viene dopo.
+⚠️ Resta aperto il buco registrato il 07/08: ⟦S-EXIT⟧ NON HA SCHEDA in
+Sezione B (come ⟦S6F⟧). Il punto (c) qui sotto è ciò che lo colma.
+
+⟦S-EXIT⟧ non è più «cablare l'uscita». È: LO STATO DELLO SHOW DEVE
+APPARTENERE ALLO SHOW, NON ALLA SCHERMATA. Motivo misurato 22/08 (A172,
+A173): uscendo dal player senza STOP l'OROLOGIO MOTORE AUDIO prosegue e
+l'OROLOGIO GRAFICA riparte, con scarto crescente a ogni rientro.
+
+Scomposizione ratificata:
+(a) MISURA PRIMA DI TUTTO — che cosa può smontare la schermata del player
+    oltre al «<»: telefonata, blocco schermo, recupero memoria di iOS.
+    È la domanda che DECIDE se (b) serve: se solo il «<» la smonta, fermare
+    l'audio all'uscita è soluzione completa e il resto è sovraingegneria.
+(b) quanto pesa spostare lo stato dello show dalla schermata alla stanza.
+(c) SCHEDA ⟦S-EXIT⟧, scritta dal referee sul peso misurato — colma il buco
+    del 07/08.
+(d) decisioni di Mauro sul rientro in uno show che sta suonando.
+(e) contratto CD: la schermata di rientro nel player NON è coperta da nessun
+    disegno — il contratto del 18/07 esclude il player (misurato).
+(f) CODICE + ATOMO DI STRUMENTAZIONE NELLO STESSO COMMIT, chat propria
+    (tocca lo stop audio), gate su device.
+⚠️ La strumentazione non è un atomo suo: stesso file della riparazione,
+passiva, ed è il modo con cui la riparazione si verifica sul device.
+
+TAGLI DI CHAT ratificati: dopo il commit documenti 22/08 · dopo (e) · dopo (f).
+
+LAVORI NON-ATOMI che corrono a fianco, nell'ordine ratificato da Mauro:
+1) TD-direttore-parte-da-bar2 — dopo (f) si legge ciò che la strumentazione
+   ha catturato. Causa NON ATTRIBUITA, nessuna pista alternativa.
+2) resto dell'igiene documenti: registro mandati, congedi fuori da git,
+   arretrati, riscrittura piena di BOX3.
+3) freeze grafico — corpus normativo STRATIFICATO su più revisioni; la
+   sede che dichiara cosa è normativo su cosa è DESIGN/QLive_Nav/README.md,
+   da leggere a fonte + decisioni di Mauro ancora aperte sul disegno:
+   elenco NON fissato da nessun canonico, da verificare a fonte in
+   DESIGN/QLive_Nav/README.md prima di aprire il punto.
+⛔ Non sono atomi della scaletta e non entrano nella riga d'ordine.
 
 ## D · Risposte referee alle 8 domande
 1. "+" create → ⚠️ **SUPERATO da CD-Q7 (LIBRO v31):** «+» OMESSO finché §8 non arriva, NIENTE bottone morto. La 10/07 diceva «bottone presente, azione off»: ora è VIETATO. 2. Badge FILE MISSING → DIFFERIRE (esistenza cache al load, no fileExists a scroll). 3. QLiveTheme = enum separato (file: scelta CC). 4. Switch-closure AppRootView → in S4, non Nodo A. 5. onHome non-defaulted → SÌ (Cond A enforced-by-compiler). 6. S6 separato. 7. S4/S4L coppia stretta; device gate S4 = no-crash tap-riga pre-S5. ⚠️ **PARZIALMENTE SUPERATA dallo sdoppiamento 28/07:** il device gate S4 resta invariato; «S4L» qui indicava il **launcher**, oggi ⟦S4R⟧, e fra i due si è inserito ⟦S4K⟧ — la contiguità non è più garantita (pendenza nella scheda ⟦S4R⟧). 8. Cross-ref AudioEngine → confluisce in Prereq 1.

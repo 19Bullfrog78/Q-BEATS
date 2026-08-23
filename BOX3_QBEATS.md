@@ -1,4 +1,20 @@
-BOX3 V99 — 2026-07-22 (AUTOPORTANTE) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
+BOX3 V100 — 2026-08-22 (AUTOPORTANTE — V100 aggiunge in testa SOLO UN BLOCCO DI PUNTATORI, senza censimenti; il CORPO resta quello di V99, datato 2026-07-22) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
+Supersede V99 (blocco di SOLI PUNTATORI in testa, 22/08/2026 — mandato A185; ZERO riscritture: il corpo di V99 è riportato sotto INVARIATO, e la sua data resta 2026-07-22. ⛔ Il blocco NON contiene censimenti: una versione precedente ne portava due — «due ticket bloccanti palco» e un elenco dei pulsanti morti del transport — ed erano entrambi falsi. Sostituiti da indirizzi alle sedi vive):
+
+⚠️ QUESTO DOCUMENTO È FERMO AL 22/07/2026 (V99). Blocco di puntatori
+aggiunto il 22/08/2026 (mandato A185). NON contiene censimenti: un
+documento vecchio deve indicare, non raccontare.
+
+Dove sta lo stato aggiornato:
+· vocabolario obbligatorio dei due orologi → BOX5, capitolo «VOCABOLARIO
+  DEI DUE OROLOGI»
+· ordine dei lavori e scomposizione di ⟦S-EXIT⟧ → SCALETTA, Sezione C
+· stato dei bug e delle gravità → BUGS, sede unica
+· misure di agosto agli atti → HANDOFF/, referti A166, A172, A173
+
+⛔ Non ricavare da questo documento nessun elenco completo: la riscrittura
+piena è il punto 5 della roadmap in SCALETTA Sezione C.
+
 Supersede V98 (chiusura del giro doc 22/07: il punto (k) di V98 sciolto a fonte, due righe storiche falsificate, tre commit + tre CI verdi, e DUE nuove modalità di guasto silenzioso; ZERO codice toccato):
  · **(a) SCALETTA — il punto (k) di V98 È SCIOLTO: è TRACCIATA.** `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` è tracciata dal commit `fe6d34b` del **2026-07-18** («SCALETTA_ATOMI_S6 tracciata in git — cambio di regime, contenuto invariato»). `attr/-text`, disco = blob `0714a975…`. Le **tre** copie note — repo, E:, Progetto Claude — sono **byte-identiche** (sha256 `D2CDF120…`) e portano **Versione 2 (17/07)**, cioè quella buona: **un solo contenuto in tre posti**. ⚠️ Di conseguenza il punto **(g) di V97**, riportato invariato nel corpo sotto, è **FALSO SU ENTRAMBE LE METÀ**: non «ZERO copie in git» (è tracciata da quattro giorni prima che quella riga fosse scritta) e non «DUE copie divergenti su E:» (ce n'è una; la v1 stale in `REFEREE_SYNC_2026-07-13/` non esiste più). La storia non si riscrive: si marca qui. **RESTA APERTO — regime della SCALETTA:** è tracciata ma vive in `HANDOFF/` con nome per-data, fuori dal regime root + in-place dei canonici, mentre R-γ la enumera fra i canonici. Atomo doc a sé. Ratificato in **LIBRO v40**, riga `2026-07-22`.
  · **(b) TD#17 — CONDIZIONE DI CHIUSURA AGLI ATTI, nell'ordine R-γ.** Prima **LIBRO v40** (`131a511`, Sez.2 riga `2026-07-22`), poi **BUGS v42** (`bfa07eb`, §1.1 nuovo bullet + clausola «NON CHIUSO» allineata). Chiusura con **(A)** run di palco 2-3 h su VR2800 in banda singola senza perdita peer **OPPURE (B)** Soluzione C in produzione — **alternative, non cumulative**; il cross-banda sotto roaming è **caratterizzazione**, non condizione. Stato invariato: 🟠 **OPEN MEDIA, NON bloccante**. Chiusa anche la contraddizione interna di BUGS v41, che teneva la formula in AND accanto a uno SCOPING (23/06) che già dava il roam «in coda». ⚠️ **Debito minore aperto:** dal ticket TD#17 è sparita l'ancora «Soluzione C = backlog Fase 6-7», che viveva solo nella riga Stato sostituita; sopravvive in LIBRO alla riga `2026-07-02`. Da rimettere in un giro futuro di BUGS, non urgente.
