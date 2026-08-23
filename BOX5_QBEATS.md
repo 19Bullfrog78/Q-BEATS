@@ -1,7 +1,13 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V30 — 22/08/2026
+**Versione:** V31 — 23/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+
+**Delta V31 vs V30:**
+
+- **Due regole NUOVE nel capitolo R-δ, nessuna delle quali esisteva prima.** **(a)** quando la data che un documento dichiara di se' e quella del suo commit divergono, nel nome della stampa d'archivio va la **prima**: lo sha7 identifica gia' il commit. Prima occorrenza reale `9edc120` (documenti datati 22/08, commit del 23/08). **(b)** le **stringhe di controllo d'integrita'** si scelgono copiandole da **una riga sola**, oppure la sonda gira sul testo **appiattito**: una stringa a cavallo di un a capo rende ZERO su un file integro. Regola nata da **quattro** falsi allarmi in due giorni (A182, A185, A187, A190).
+
+Tutto il resto invariato da V30.
 
 **Delta V30 vs V29:**
 
@@ -710,6 +716,13 @@ con data e commit** — forma `BOX3_V98_2026-07-22_edaa80f.md` — e per i file
 **TRACCIATI** estrazione **dal blob** con `git show <commit>:<path>`, **mai copia
 dal disco**.
 
+⚠️ QUANDO LA DATA DELLA VERSIONE E QUELLA DEL COMMIT DIVERGONO —
+ratificato dal referee 23/08/2026, prima occorrenza `9edc120`.
+Nel nome della stampa d'archivio va LA DATA CHE IL DOCUMENTO DICHIARA DI
+SE', non la data di estrazione ne' quella del commit: lo sha7 nel nome
+identifica gia' il commit. ⇒ un nome non deve mai contraddire l'intestazione
+del file che nomina.
+
 ### 4 · CIO' CHE NON E' UNA DESTINAZIONE
 
 - **`I:\Il mio Drive\Qbeats\`** — albero manuale creato il 01/08/2026 alle 13:09,
@@ -718,6 +731,22 @@ dal disco**.
   scrive.** ⛔ **Non si cancella e non si sposta:** resta agli atti.
 - **`F:`** — secondo disco interno, contiene un clone del repo.
   **NON e' una destinazione R-δ.** Regola sua, da scrivere separatamente.
+
+### 4-bis · STRINGHE DI CONTROLLO D'INTEGRITA'
+
+⚠️ STRINGHE DI CONTROLLO D'INTEGRITA' — regola di CC, ratificata 23/08/2026
+dopo tre morsi in un giorno solo (A182, A185, A187).
+Una stringa di controllo va scelta COPIANDOLA da UNA RIGA SOLA del file,
+corta, senza ritorni a capo — oppure la sonda va eseguita sul testo
+APPIATTITO (ritorni a capo sostituiti da spazi) prima di contare.
+⛔ Una stringa che cade a cavallo di un a capo rende ZERO su un file
+perfettamente integro: e' un falso allarme, non una mutilazione.
+
+⚠️ **Quarto morso, misurato il 23/08 mentre si incideva questa regola:** la sonda
+ID per contenuto su `A190` non rendeva l'unico hit reale (`HANDOFF/MISURE_CC_2026-08-21_A158-COMMIT-LIBRO-v58.md`),
+perche' la riga di tabella che lo contiene va a capo. La stessa ricerca sul testo
+appiattito lo trovava. ⇒ **la regola vale anche per le sonde ID, non solo per i
+controlli d'integrita' dei referti.**
 
 ### 5 · QUARTA COPIA — NAS
 
