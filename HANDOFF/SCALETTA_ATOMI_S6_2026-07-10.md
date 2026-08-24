@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 14 (24/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
+**Versione:** 15 (24/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -549,3 +549,202 @@ Prima di usare QUALSIASI riferimento qui, RI-VERIFICARE a `@ 6fca624` per SIMBOL
 `SongListView.onMove→moveSongs` (write) · `SetlistRunner` init non-opz/guard→fineSetlist ·
 `Setlist` · `LiveRootView` runner eager+first??makeDefault · `project.yml` sources folder-glob.
 ⚠️ **MARCATURA 07/08 — IL MARCATORE DI OBSOLESCENZA DI QUESTA SEZIONE È A SUA VOLTA OBSOLETO. Le righe sopra restano come scritte: si marca, non si riscrive.** L'intestazione a `:329` ancora i numeri di riga a HEAD storico `fa64832`, e la riga `:330` li dichiara «non più affidabili a HEAD `6fca624`». ⇒ **Il termine di paragone è a sua volta scaduto:** `6fca624` non è HEAD da molto prima di oggi — a questo giro HEAD è `779172e6353d6e51dcee542953725000f48dd05a` (e nella sola giornata del 07/08 sono passati `f0a4462bd90742367f438f3dec60b1ca2366b2c4`, `2960f089225b3c80cf56cb839fde871cf9738b3d`, `81740e48f24e089703b0199d0ffd20b9b3bfae7c` e quello corrente). La prescrizione di `:333` — «RI-VERIFICARE a `@ 6fca624` per SIMBOLO poi riga» — va quindi letta come **«ri-verificare a HEAD CORRENTE, per SIMBOLO poi riga»**: il metodo regge, il commit di riferimento no. ⛔ **I riferimenti di questa sezione NON sono stati ricostruiti in questo giro**, e nessuno di essi è stato usato per alcuna misura di A85: ricostruirli è un lavoro a sé, non un sottoprodotto di una marcatura. Chi ne avesse bisogno li rifaccia per SIMBOLO, come `:333` già impone, ancorandoli a un commit a 40 e non al numero nudo. ⚠️ Questa riga è **in coda al file**: non sposta alcuna riga esistente (347→348 righe totali, e il 348 è questa stessa riga).
+
+---
+
+## G · LAVORO NON-ATOMO N.4 — SCHEDA DELLA CONFERMA D'USCITA DALLA STANZA
+**Incisa dal referee, 24/08/2026. ASSOLVE IL CANCELLO di sez. C punto 4.**
+⛔ NON è un atomo e NON entra nella riga d'ordine, che resta ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧.
+Perimetro deciso da Mauro il 24/08: **una scheda sola**, che comprende il risveglio del
+selettore del dettaglio.
+⚠️ **Terza stesura (A211). Le due precedenti sono state FERMATE da CC al cancello delle
+premesse: sei ancore smentite dalla misura, tutte di forma, nessuna di sostanza.** Una delle
+sei era un'auto-conferma circolare fra referee e CC. ⇒ **Questo blocco cita per NOME e non
+contiene numeri di riga**: un nome non slitta quando un documento cresce in testa.
+Le ancore sono elencate in coda al blocco, ciascuna col modo in cui è stata riletta.
+
+**v15 — delta rispetto a v14, in coda per R-δ.7.** Aggiunta questa sezione G. Zero righe
+esistenti riscritte, zero spostate. La riga 3 NON è stata allungata: prima applicazione di
+R-δ.7 alla SCALETTA.
+
+- **Scopo:** in play, l'uscita dalla stanza Q-Live non deve poter avvenire per tocco
+  involontario. Le due uscite chiedono conferma; la conferma NOMINA cosa si sta per fermare;
+  se lo stop propaga alla band, lo dichiara.
+
+- **Fonte normativa:** `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html` — 58 463 byte,
+  536 righe, sha256 `8d7a3150050f2d9ee88d552f6a59649081518a1189182174c5dfed655c398860`.
+  Token: sorgente unica `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html`; il `:root` del contratto
+  è copia di lavoro e in caso di divergenza NON vince. Token nuovi: ZERO.
+
+- **Collocazione:** lavoro NON-atomo n.4, ratificato Mauro 23/08. La riga del contratto
+  «Collocazione: atterra a S6» è SUPERATA da quella ratifica: si marca, non si riscrive.
+
+- **PERIMETRO POSITIVO — quattro cose:**
+  1. **Lista Shows, due porte gattate.** `onHome` → «Stop & Exit»; `onSwitch` → «Stop & Switch».
+     Entrambe VIVE: in `QLiveShowsView.swift` il montaggio di `RoomSwitchBar` passa
+     `onHome: onExit` e `onSwitch: onSwitchToStage`.
+  2. **Dettaglio Show, selettore gattato — e PRIMA reso vivo.** In `QLiveShowDetailView.swift`
+     il montaggio di `RoomSwitchBar` passa `variant: .segMini` e NON passa `onSwitch` ⇒ inerte.
+     Ticket `TD-segmini-onswitch-morto` in `BUGS_QBEATS.md`.
+  3. **Il modale di conferma** — componente NUOVO, UNICO per i due sfondi.
+  4. **La lettura dello stato Start/Stop Sync di Link** — nessuna riga di codice la fa oggi.
+
+- **PERIMETRO NEGATIVO, esplicito:**
+  · fascia «Q-LIVE · PLAYING» di rientro ⇒ ⟦S6F⟧, atomo istituito dalla riga `2026-07-31`
+    «⟦S6F⟧ — ATOMO NUOVO PER LA FASCIA» di Sez.2 del LIBRO. NON qui.
+  · pulsante metronomo condizionale in coda alla lista ⇒ controparte della fascia ⇒ ⟦S6F⟧.
+  · player ⇒ nessuna barra stanze, nessuna uscita-stanza, NESSUN gate (contratto, Q2 e ◎).
+  · sostituzione `.segMini` → room switch unico 34pt, abolizione CD del 06/08, verbatim dal
+    freeze rev3: «room switch <b>34pt</b> (era 30) — <code>.seg-mini</code> abolita»
+    ⇒ lavoro suo, ticket suo. Qui il gate si aggancia al selettore ESISTENTE, qualunque
+    variante monti.
+  · riconciliazione `LiveSession`/`QLiveSession` ⇒ OPEN di ⟦S5⟧, NON necessaria qui.
+
+- **Quando scatta:** SOLO `playing` e `countIn`. Da `stopped` / `standby` / `fineSetlist` il
+  clock è già fermo ⇒ uscita libera, un tocco, nessun overlay.
+
+- **Cosa NON lo alza:** back del dettaglio (navigazione), tap sulle righe show, fascia/Return.
+
+- **Esiti:** la primaria rossa (`--stop`, h54 ≥44pt) È lo stop, poi va a destinazione.
+  `Stay` (outline) torna dov'eri. Dismiss e tap sullo scrim = `Stay`.
+
+- **Ambra asimmetrica (TD#17) — storta e voluta:** compare solo se Start/Stop Sync ON **E**
+  almeno un collegato. A modale aperto: se diventa vero COMPARE in diretta; se smette di
+  essere vero NON sparisce, MAI. Nessun re-layout: l'ingresso è additivo, la primaria non
+  cambia posto.
+
+- **Copy congelata (verbatim EN, mixed-case — il MAIUSCOLO è `text-transform`, non la stringa):**
+  kicker `Click is playing` · conseguenza `Leaving stops the click.` · Link, solo se vero
+  `Link Start/Stop is on — this stops the band too.` · primaria lista/Home `Stop & Exit` ·
+  primaria switch/dettaglio `Stop & Switch` · secondaria `Stay`.
+  ⛔ chip peer `N on Link` — **SOSPESO, vedi il punto sul chip.**
+
+- **Troncamento della riga contesto:** comportamento DI SERIE del componente, non una classe
+  opzionale, no-op quando il testo è corto. Priorità dal contratto: show = una riga con
+  ellissi; song = fino a 2 righe poi ellissi; section prende il residuo con ellissi, BPM·TS
+  pinnati e primi a scendere su seconda riga se non coesistono. Sempre ellissi, mai ticker
+  né shrink. ⛔ Chi implementa NON sceglie.
+
+- 🔴 **AGGIUNTA DI LAYER 2: nessuna riga di CODICE legge lo stato Start/Stop Sync.**
+  Comando esatto, perimetro dichiarato = perimetro eseguito:
+  `grep -rnoE "(StartStopSync|IsStartStopSync|SetStartStopSync|startStopSync)" ios_app/`
+  ⇒ **DUE occorrenze, entrambe di CONFIGURAZIONE, ZERO in codice:** la chiave
+  `ABLLinkStartStopSyncSupported` in `ios_app/QBeats/Info.plist` e in `ios_app/project.yml`.
+  ⇒ Le due chiavi RAFFORZANO il punto: il supporto è dichiarato, la LETTURA non è mai esistita.
+  Controllo positivo, stesso corpus e stessa forma: `ABLLink` rende 4 righe in
+  `LinkSettingsPresenter.mm` e 8 in `MIDIEngineBridge.h`.
+  §7, fonte: nell'header vendorizzato `Vendors/AbletonLink/LinkKit.xcframework/
+  ios-arm64_x86_64-simulator/Headers/ABLLink.h` esistono `ABLLinkIsStartStopSyncEnabled`
+  (lettura) e `ABLLinkSetIsStartStopSyncEnabledCallback` (notifica di cambio).
+  ⇒ Serve un'aggiunta al bridge: **LETTURA, non comando**. Non gira in render callback, non
+  alloca, non prende lock. **Ratificata sicura dal referee**, dichiarata qui perché è Layer 2
+  e va ratificata a parte come ogni tocco di Layer 2.
+
+- 🔴 **IL CHIP «N on Link» NON SI PUÒ COSTRUIRE VERO — DIFETTO DEL CONTRATTO, MATERIA DI CD.**
+  Sollevato da CC (referto A209), approfondito e promosso dal referee.
+  Inventario COMPLETO delle funzioni pubbliche dell'header vendorizzato: **quarantuno**
+  dichiarazioni fuori dai commenti — il grep grezzo ne rende 45, ma quattro sono citazioni di
+  funzioni DENTRO commenti doc. Positivo: `ABLLink` rende 91 righe nello stesso header.
+  **NESSUNA delle 41 rende un numero di peer.** Le uniche sulla connessione sono
+  `ABLLinkIsConnected` e `ABLLinkSetIsConnectedCallback`, entrambe BINARIE.
+  Conseguenza già scritta nel codice — `LinkEngine.mm`, verbatim: «ABLLinkIsConnectedCallback
+  è boolean: 0=nessun peer, 1=almeno un peer. / LinkKit 3.x non espone un contatore nativo via
+  callback», seguito da `uint32_t peers = isConnected ? 1 : 0;`. Quindi
+  `@Published var linkPeers` in `AudioEngine.swift` vale SEMPRE 0 o 1, qualunque sia il
+  numero reale.
+  Ed è un bug GIÀ CHIUSO: la scheda `### TD linkPeers — Display Settings "Peers" da contatore
+  numerico a stato binario` in `BUGS_QBEATS.md` incide sintomo («display "Peers: N" mostrava
+  sempre 0 o 1 anche con N peer connessi → fuorviante per l'utente»), causa root («LinkKit 4.0
+  non espone API pubblica peer count»), fix (commit `0de5aa0`, 26/05/2026, display portato a
+  stato binario Connected/Standalone) e collaudo device superato. Nella stessa scheda è
+  registrato anche un tentativo precedente NULL-OP (`72001a5`), preservato come archeologia
+  per evitare ri-tentativi.
+  ⇒ 🔴 **RATIFICA TECNICA DEL REFEREE: IL NUMERO NON SI MOSTRA.** Mostrarlo rimetterebbe,
+  nella sola finestra che esiste per dire la verità sulla band, il numero bugiardo che il
+  26/05 fu tolto per chiudere questo stesso bug.
+  ⇒ La CONDIZIONE dell'ambra resta valida e si scrive sul BINARIO vero, NON su un conteggio.
+  ⚠️ **La PAROLA è di CD**: serve un giro CD sulla copy congelata del chip. Fino ad allora il
+  chip si costruisce in forma di PRESENZA, non di conteggio.
+  ⛔ **NON riaprire il ticket del conteggio**: non è un difetto di implementazione — la
+  funzione nella libreria non esiste.
+
+- 🔴 **TRAPPOLA DI PROPAGAZIONE — se ignorata, il collaudo device fallisce e sembra un guasto DSP.**
+  Le superfici Shows devono conoscere lo stato di riproduzione. `QLiveSession` pubblica SOLO
+  apparizione/scomparsa del runner: leggere lo stato ATTRAVERSO il contenitore compila, sembra
+  giusto, e non si aggiorna mai. Il vincolo è inciso in `BOX3_QBEATS.md` al punto
+  **«(e) VINCOLO TECNICO S4L da incidere»**, ed è ripetuto verbatim in `QLiveSession.swift`
+  sotto l'intestazione **«VINCOLO DI PROPAGAZIONE»**, con la sua conseguenza operativa
+  («Nessun figlio legga MAI il runner ATTRAVERSO il contenitore-sessione: compila, SEMBRA
+  GIUSTA») nel paragrafo immediatamente successivo.
+  ⚠️ Il commento in `QLiveSession.swift` cita quel punto di BOX3 per numero di riga MA
+  ANCORATO A UNO SHA: a quello sha il numero è giusto e resta valido. ⛔ Ciò che NON è valido
+  è riusare quel numero senza la sua ancora: a HEAD il punto si è spostato. **Andare per
+  intestazione, non per numero.**
+  ⇒ Le superfici osservano il RUNNER (o lo stato audio) DIRETTAMENTE, MAI il contenitore.
+
+- **File:** `UI/QLive/QLiveShowsView.swift` · `UI/QLive/QLiveShowDetailView.swift` ·
+  `UI/Components/RoomSwitchBar.swift` (solo per il difetto di forma sotto) · componente NUOVO
+  per il modale · bridge Link per la lettura Start/Stop Sync.
+  ⛔ **NON si riusa `UI/Live/OverlayStopView.swift`**: è il modale del player, con copy IT
+  («Riprendi da …» / «Dall'inizio · …») e due primarie. Il pattern ZStack+scrim si riusa,
+  il componente no.
+
+- **Difetto di forma che si chiude qui:** in `RoomSwitchBar.swift` la proprietà `onSwitch` è
+  dichiarata con default silenzioso `= {}` — ed è l'ORIGINE del bottone morto del dettaglio.
+  Va TOLTO il default: una porta non collegata deve diventare errore di compilazione. Stessa
+  forma già ratificata su `onHome` (sez. D di questo file, punto «onHome non-defaulted →
+  SÌ (Cond A enforced-by-compiler)») e su `onBackToShows` di ⟦S5x⟧.
+
+- **Reversibilità:** ALTA. Zero righe nel render callback. Lo STOP invocato è quello esistente.
+
+- **Gate:** ratifica tecnica referee (questa scheda) · **OK di Mauro sul diff, cancello
+  DISTINTO** · CI · **DEVICE, cinque prove:**
+  1. da `stopped`, Home dalla lista ⇒ esce subito, nessun overlay;
+  2. in play, Home ⇒ overlay, `Stay` ⇒ resti in lista e il click NON ha saltato un colpo;
+  3. in play, Home ⇒ `Stop & Exit` ⇒ click fermo, sei in Home;
+  4. sul dettaglio in play, selettore ⇒ `Stop & Switch` ⇒ click fermo, sei in Q-Stage;
+  5. Link ON + almeno un collegato ⇒ overlay con apparato ambra; spegnendo il collegato
+     l'apparato NON sparisce. ⛔ In nessuna prova il chip deve mostrare un NUMERO.
+
+- **OPEN dichiarati:**
+  · teardown grafo/Link allo STOP — il contratto lo assegna al referee, NON è misurato qui:
+    il referee lo misura PRIMA del diff, non dopo.
+  · **giro CD sulla copy del chip**, prima che il modale entri in costruzione.
+
+⚠️ **Snapshot: nessuno depositato per questa v15.** Il regime di esportazione della SCALETTA
+è dichiarato APERTO in BOX3 da luglio e NON si inventa qui. La catena snapshot SCALETTA nel
+repo è ZERO; controllo positivo stessa forma: `ARCHIVIO.MD/` contiene 12 snapshot BOX3 e 5
+BOX5, e si ferma alla cartella `27_05_2026`.
+
+### G.1 · SCHEDA DELLE ANCORE — cosa è stato riletto alla fonte nell'atto di scrivere
+
+Tutte le voci qui sotto sono state **rilette alla fonte dal referee a HEAD
+`8727f8e422e2720b4d5086958684e6cff1ca261a` mentre questo blocco veniva scritto**, per NOME.
+Nessuna proviene da memoria, da un referto altrui o da un giro precedente.
+
+| ancora | dove | forma della rilettura |
+|---|---|---|
+| montaggio `RoomSwitchBar` con `onHome`/`onSwitch` vivi | `QLiveShowsView.swift` | lettura del blocco di montaggio |
+| montaggio `RoomSwitchBar` con `.segMini` e senza `onSwitch` | `QLiveShowDetailView.swift` | lettura della riga di montaggio |
+| default silenzioso `onSwitch = {}` | `RoomSwitchBar.swift` | ricerca per nome della proprietà |
+| `@Published var linkPeers` | `AudioEngine.swift` | ricerca per nome |
+| «(e) VINCOLO TECNICO S4L da incidere» | `BOX3_QBEATS.md` | ricerca per intestazione |
+| «VINCOLO DI PROPAGAZIONE» + conseguenza operativa | `QLiveSession.swift` | lettura del blocco di commento intero |
+| ticket `TD-segmini-onswitch-morto` | `BUGS_QBEATS.md` | ricerca per titolo del ticket |
+| scheda `TD linkPeers` (sintomo, causa, tentativo null-op, fix, collaudo) | `BUGS_QBEATS.md` | lettura della scheda intera |
+| riga `2026-07-31` «⟦S6F⟧ — ATOMO NUOVO PER LA FASCIA» | `LIBRO_MASTRO_QBEATS.md` Sez.2 | ricerca per incipit |
+| stringa dell'abolizione `.seg-mini` | freeze `…rev3-NORMATIVA.html` | `grep -oF` a stringa fissa |
+| due occorrenze Start/Stop Sync, zero in codice | `ios_app/` | comando citato per esteso nel blocco |
+| positivo `ABLLink` 4 + 8 | `LinkSettingsPresenter.mm`, `MIDIEngineBridge.h` | stessa forma della sonda |
+| `ABLLinkIsStartStopSyncEnabled`, `ABLLinkSetIsStartStopSyncEnabledCallback` | `ABLLink.h` | ricerca per nome di funzione |
+| `ABLLinkIsConnected`, `ABLLinkSetIsConnectedCallback`, binarie | `ABLLink.h` | ricerca per nome di funzione |
+| 41 dichiarazioni fuori commento; 45 grezze; 4 in commenti doc | `ABLLink.h` | conteggio con esclusione delle righe di commento |
+| commento «boolean: 0=nessun peer…» + `peers = isConnected ? 1 : 0` | `LinkEngine.mm` | lettura verbatim |
+| copy IT del modale del player | `OverlayStopView.swift` | ricerca per stringa |
+| «onHome non-defaulted → SÌ (Cond A enforced-by-compiler)» | sez. D di questo file | ricerca per stringa |
+| 12 snapshot BOX3, 5 BOX5, ultima cartella `27_05_2026`, SCALETTA 0 | `ARCHIVIO.MD/` | conteggio per nome file |
+| contratto CD 18/07: 58 463 byte, 536 righe, sha256 | `DESIGN/QLive_Nav/` | `wc` + `sha256sum` sul file |
+
+⚠️ **NON misurato dal referee, marcato [R] da CC:** il messaggio e la data del commit
+`0de5aa0` e l'esistenza del tentativo `72001a5` come oggetti git. Il referee legge l'albero
+a uno sha, NON la storia dei commit: quei due fatti li ha misurati CC, e come tali entrano.
