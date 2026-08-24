@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 13 (23/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
+**Versione:** 14 (24/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -500,6 +500,13 @@ LAVORI NON-ATOMI che corrono a fianco, nell'ordine ratificato da Mauro:
    ⚠️ Il disegno aspetta dal 20/07: 34 giorni. È già stato dimenticato una
    volta ed è stato ritrovato per misura, non per memoria.
 ⛔ Non sono atomi della scaletta e non entrano nella riga d'ordine.
+
+⚠️ MARCATURA 24/08 — D16 È SUPERATA E GIÀ INCISA. Non si riscrive nulla: si marca.
+Il 23/08 Mauro aveva ordinato «prima la barra delle stanze, poi ⟦S-EXIT⟧». Nello stesso
+giorno ha deciso che la conferma d'uscita è un LAVORO NON-ATOMO, ed è il punto 4)
+qui sopra, entrato col commit `203d331`. ⇒ L'ordine degli atomi non è mai stato
+toccato e non lo è adesso: resta ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧, sede unica e invariata.
+
 
 ⚠️ MARCATURA 23/08 — LE RIGHE «IRRAGGIUNGIBILE» DI QUESTA SEZIONE CADONO
 IN BLOCCO. Zero parole riscritte: si marca.

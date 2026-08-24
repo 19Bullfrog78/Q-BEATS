@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V31 — 23/08/2026
+**Versione:** V32 — 24/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -790,6 +790,20 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 
 ---
 
+### R-δ.7 — LA TESTA DI UN DOCUMENTO CITATO NON CRESCE MAI (ratificata Mauro 24/08/2026)
+
+⛔ **REGOLA:** ciò che si accumula a ogni versione — riassunti, blocchi Delta, cappelli — va **IN CODA**, mai in testa. La testa di un documento che altri citano **non cresce mai**. Vale per tutti i canonici, **BOX3 compreso**.
+
+**Perché, misurato:** un blocco aggiunto in testa sposta di N righe **tutto** il file, e con esso ogni citazione `FILE:riga` che altri documenti e il **codice di produzione** gli puntano contro. Misura del 24/08 su BOX5: **29 citazioni nude + 7 ancorate = 36**, distribuite su otto sedi — BUGS, LIBRO, SCALETTA e **cinque file `.swift`** (`SetlistRunner`, `LiveView`, `StandbyOverlayView`, `QLiveSession`, `QLiveShowDetailView`). Un solo blocco in testa le avrebbe rotte **tutte e ventinove** in un colpo.
+
+⚠️ **Non è un'ipotesi: è già successo.** Il ticket `TD-box3-citazioni-nude-slittate` in `BUGS_QBEATS.md` nasce esattamente così — BOX3 V100 ha aggiunto 16 righe in testa e ha slittato 27 citazioni. **Stesso difetto, stesso tipo di file, seconda volta.** La regola esiste per non farne una terza.
+
+⚠️ **La convenzione precedente NON era scritta:** cercata il 24/08 nei cinque canonici e nella Costituzione, rende **zero regole** sulla posizione — solo sedici intestazioni `Delta VN vs VN-1:`, che sono **istanze di un'abitudine**, non una prescrizione. Non si sta ribaltando una ratifica: se ne sta scrivendo una dove non ce n'era nessuna.
+
+✅ **Il numero di versione in testa resta in testa**, e si aggiorna **dentro la riga**: sostituire una cifra non sposta nulla.
+
+⛔ **I riassunti già in testa NON si spostano.** Muoverli costerebbe quanto aggiungerne uno. Si marca, non si riscrive — vedi la dichiarazione di transizione in coda a questo documento.
+
 ## Backlog — feature da implementare
 
 | # | Feature | Fase | Priorità | Specs CD |
@@ -848,3 +862,62 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 ## Cambio open per ratifica (da V19, invariato)
 
 **Proporzioni layout Vista LIVE** — proposta in attesa di test su device con sessione live attiva e contenuti reali. Vedi V19 per dettagli.
+
+---
+
+## MODELLO DI SINCRONIZZAZIONE — «GLI SCAFFALI» (ratificato Mauro 23/08/2026, riconfermato 24/08)
+
+⛔ **Sede unica del modello.** Le parole sono di Mauro; qui sono messe nella forma di casa, non riformulate.
+
+**D1 · LA TABELLA.** Quando una canzone parte si costruisce la sua tabella: **uno scaffale per ogni battito**. Ogni scaffale dichiara **sezione, battuta, quale battito, se accentato**.
+
+**D2 · UN NUMERO SOLO.** Il motore consegna **UN numero**. La grafica va a quello scaffale e disegna. **Non converte, non divide, non conta: legge.**
+
+**D3 · DOVE STA IL TRADUTTORE.** Il traduttore sta **nello SHOW**, mai nel motore audio. Il motore **non sa cosa sia una canzone e non deve saperlo**.
+
+**D4 · L'ENTITÀ.** Ogni canzone è un'entità a sé, con o senza pausa prima di lei. «Una canzone vive e muore dentro se stessa» — parole di Mauro.
+
+**D5 · COSA SIGNIFICA IL NUMERO.** È sempre «a che battito di **QUESTA** canzone siamo», mai «da quanto suona il motore».
+
+**D6 · CHI CONTA E CHI SOTTRAE.** Il motore **conta e basta**; lo Show **sottrae**. Il motore **non azzera mai niente mentre suona**.
+
+**D7 · DA DOVE COMINCIA.** La numerazione comincia al **PRIMO battito prodotto, conto alla rovescia COMPRESO**. Gli scaffali del conto alla rovescia **dicono «conto alla rovescia»**.
+
+**D8 · L'ATTACCA FRA CANZONI.** 1→250, poi 1→180, **niente in mezzo**. All'orecchio un blocco unico, **sullo schermo due canzoni**. Pausa o non pausa **si decide in Q-Stage, mai dal vivo**. ⚠️ **Oggi l'attacca NON esiste, e la casella nemmeno.**
+
+**D9 · IL CONTO ALLA ROVESCIA — FORMA.** Tre valori: **Off · 1 battuta · 2 battute**. Velocità e metrica **dalla PRIMA SEZIONE della canzone**: 100 BPM in 3/4 → **3-2-1**; 115 BPM in 4/4 → **4-3-2-1**. **Deve chiudersi esattamente sul battito 1 della musica.**
+
+**D10 · IL CONTO ALLA ROVESCIA — NATURA.** È **parte della canzone, non un prefisso**. Ce l'hanno **tutti i dispositivi** e lo producono **uguale**.
+
+⚠️ **Stato a HEAD `8ee5485`, misurato 24/08: il conto alla rovescia è ROVESCIATO rispetto a D9/D10.** Due difetti distinti, agli atti in `BUGS_QBEATS.md`: `TD-countin-rovesciato` e `TD-countin-impostazione-non-letta`.
+
+### D17 — LE SCALETTE IDENTICHE (ratificata Mauro 24/08/2026)
+
+**Le scalette devono essere identiche su tutti i dispositivi, e oggi niente lo verifica.**
+
+⚠️ **Il difetto è ATTIVO ADESSO, non lo introduce l'attacca.** Il passaggio sezione→sezione è **senza interruzione** e **ogni dispositivo decide quando farlo contando la PROPRIA copia**; se due copie divergono **gli schermi si sfasano mentre il click resta insieme**, senza errore né avviso. **L'attacca non crea il problema: toglie la rete di sicurezza**, cioè lo stop di fine canzone che oggi rimette tutti d'accordo.
+
+⛔ **Senza un canale fra i dispositivi la garanzia non esiste** — misurato sull'header LinkKit: Link trasporta **il tempo**; il nome del dispositivo si scrive in `Info.plist`, **non è impostabile a comando e non è leggibile dagli altri peer**.
+
+**QUATTRO MISURE, TUTTE DICHIARATE PROVVISORIE:**
+- **(a)** impronta della scaletta calcolata **in locale**, mostrata **IN FORMA DI PAROLE**, non di codice esadecimale;
+- **(b)** mostrata **dove il musicista sta già guardando prima di partire**, mai in un menù impostazioni;
+- **(c)** condividere una scaletta dev'essere **UN GESTO UNICO** fra dispositivi, non un caricamento manuale su ognuno;
+- **(d)** impronta **stabile nel tempo**, così un cambiamento si nota da solo senza confronto.
+
+⚠️ **Si sostituiscono quando arriva il protocollo Q-BEATS.**
+
+⛔ **Misurato a HEAD `8ee5485`, 24/08: nessun meccanismo di verifica identità esiste.** L'unico riscontro su «hash» nel codice è `ios_app/QBeats/Models/TimeSignature.swift:11`, che è `Hashable` di Swift — **falso amico**, altra materia.
+
+---
+
+## ⚠️ DA V32 I RIASSUNTI VANNO IN CODA — dichiarazione di transizione, 24/08/2026
+
+⛔ **Questo documento ha i riassunti VECCHI in testa (`Delta V31` … `Delta V23`, righe 6-64) e i NUOVI qui in coda.** Non è disordine: è una **transizione datata**, ratificata da Mauro il 24/08/2026 insieme alla regola **R-δ.7**. I vecchi **restano dove sono**: spostarli costerebbe quanto aggiungerne uno in testa, cioè rompere ventinove citazioni. **Si marca, non si riscrive.**
+
+**Delta V32 vs V31:**
+
+- **Capitolo NUOVO «MODELLO DI SINCRONIZZAZIONE — GLI SCAFFALI»**, sede unica delle decisioni **D1-D10** e **D17** di Mauro (23/08, riconfermate 24/08). Nessuna di esse esisteva in alcun canonico prima di oggi: vivevano solo in chat.
+- **Regola NUOVA `R-δ.7`** nel capitolo R-δ: la testa di un documento citato **non cresce mai**; ciò che si accumula va in coda. Vale per tutti i canonici, BOX3 compreso.
+- ⚠️ **La convenzione precedente non era scritta**: misurato il 24/08, zero regole sulla posizione nei cinque canonici e nella Costituzione.
+
