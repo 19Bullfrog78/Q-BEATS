@@ -477,6 +477,17 @@ avanzato senza che i blob arrivassero, la seconda se ne accorgerebbe.
    canonico, non l'ho scritta.
 6. **[M] Questo referto NON è committato**, come i referti di ieri: si somma ai
    **281** non tracciati di `HANDOFF/`.
+   ⚠️ **MARCATURA A224 — LA RIGA SOPRA È SUPERATA DAL COMMIT CHE L'HA
+   PUBBLICATA. Resta come scritta: era vera quando fu scritta, si marca e non si
+   riscrive.** Il referto è stato committato in `c57a00f` ed è entrato in git
+   **insieme alla propria smentita**. ⚠️ **La cifra sopravvive alla frase:** «si
+   somma ai **281**» implicava **282**; poiché il referto è entrato in git, i non
+   tracciati di `HANDOFF/` **sono rimasti 281** — misurato a `c57a00f`: 330 file,
+   **49** tracciati, **281** no. ⇒ **[A] È `R-δ.9` applicata a se stessa:** un
+   documento che descrive il proprio stato **lo altera**. Le altre due voci di
+   questo referto furono superate **da altri** e vennero marcate; **questa è
+   stata superata dal proprio deposito**, ed è l'unica che il referto non poteva
+   vedere mentre si scriveva.
 
 ---
 

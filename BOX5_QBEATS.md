@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V33 — 26/08/2026
+**Versione:** V34 — 26/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -941,6 +941,97 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 
 ---
 
+## TASSONOMIA DEI DIFETTI DI MISURA — sede unica (raccolta A224, 26/08/2026)
+
+⛔ **QUESTA TASSONOMIA NON NUMERA, E L'ASSENZA DI NUMERI È LA REGOLA, NON UNA
+DIMENTICANZA.** Gli ordinali sono esattamente ciò che ha prodotto il disordine
+che questa sede raccoglie: al 26/08/2026 esistevano **tre «sesta» diverse**, in
+tre documenti, riferite a **tre difetti differenti**, e **due erano tracciate in
+git**. Nessuna delle tre sapeva delle altre. ⇒ **Ogni difetto ha un NOME e un
+INDIRIZZO. Chi ne aggiunge uno gli dà un nome, mai un numero.**
+
+⛔ **Le voci già incise altrove NON sono riscritte né rinumerate.** Restano dove
+sono, con i loro ordinali storici, e qui si citano **per indirizzo**. Questa sede
+**raccoglie**: non sostituisce, non corregge, non rinumera.
+
+### Le tre polarità — si classifica per ciò che l'esito fa CREDERE, non per lo strumento
+
+| polarità | la sonda dice… | mentre in realtà… |
+|---|---|---|
+| **P1 — IL VUOTO CHE SEMBRA UN FATTO** | «zero» | la sonda **non ha risposto affatto**: la domanda non è arrivata, o l'output non è mai stato stampato |
+| **P2 — IL FATTO CHE SEMBRA UN VUOTO** | «zero» | l'oggetto **c'è**, in una forma che quella sonda non conta |
+| **P3 — IL TUTTO CHE SEMBRA UNA PARTE** | un numero **plausibile** | quel numero è **il totale**: il filtro non ha filtrato niente |
+
+⚠️ **P1 e P2 rendono entrambe zero, e si distinguono SOLO col controllo
+positivo.** ⛔ **P3 è la più pericolosa delle tre, e per una ragione strutturale:
+non rende zero — rende un numero che sembra una misura.** Nessun controllo
+positivo sull'esistenza dell'oggetto la smaschera, perché l'oggetto c'è e la
+sonda risponde. **La smaschera solo la quadratura: la somma delle classi deve
+tornare col totale.**
+
+### Le voci
+
+| nome | polarità | causa meccanica | come si smaschera | dove è già inciso |
+|---|---|---|---|---|
+| **TRONCAMENTO DA `&&`** | P1 | `grep X && echo "positivo" && grep -c Y` — `grep` esce **1** su nessuna corrispondenza e la catena si spezza: **il controllo positivo non viene stampato proprio quando servirebbe** | separare le sonde con `;`, **mai** con `&&` | `LIBRO_MASTRO_QBEATS.md:323` (30/07/2026, «SESTA FORMA DI FALSO-NEGATIVO») |
+| **STDERR SOFFOCATO** | P1 | `2>/dev/null` su un comando che l'ambiente **rifiuta**: `--jq` su un errore rende stringa vuota, e la variabile vuota diventa «ASSENTE» | ⛔ **mai `2>/dev/null` su una sonda il cui esito finisce in un referto**; un risultato **vuoto** e un comando **rifiutato** devono restare distinguibili | `HANDOFF/CONGEDO_CC_2026-08-26_A220.md` §1.2 (righe 105-126) e §8 (riga 350) |
+| **RIGHE INVECE DI OCCORRENZE** | P2 | `grep` conta **RIGHE**, non occorrenze: una stringa spezzata da un a-capo **non esiste** per `grep`, e su un documento mandato a capo a 76 colonne ogni frase lunga può nascondersi in mezzo | contare sul **testo appiattito** (`tr '\n' ' '`), oppure scegliere stringhe **copiate da una riga sola** | `HANDOFF/CONGEDO_CC_2026-08-26_A220.md:439` («sesta faccia») |
+| **PATTERN DEGENERE** | P3 | `grep -c $'\r'` su un file **senza CR** rende **il numero totale delle righe**, non zero: il pattern matcha ogni riga. ⚠️ Anche la forma ancorata `$'\r$'` mente allo stesso modo | confrontare l'esito col **totale** delle righe: se coincide, il filtro non ha filtrato | `LIBRO_MASTRO_QBEATS.md:352` (06/08/2026, «FALSO-*POSITIVO* DA FILTRO — PRIMA DELLA SUA SERIE») |
+| **PARAMETRO IGNORATO IN SILENZIO** | P3 | l'API di GitHub Actions accetta parametri **sconosciuti senza errore** e li **scarta**: `?conclusion=success` non filtra nulla e la risposta rende l'insieme intero | **quadratura**: enumerare le classi e verificare che la somma torni col totale non filtrato | **misurato qui il 26/08/2026 — prima incisione** |
+
+### La voce nuova, misurata alla fonte prima di inciderla
+
+**[M]** Sul workflow `iOS Signed Build` (id `257042728`), a parità di istante:
+
+    ?status=success              -> 582      corretto
+    ?status=failure              ->  63      corretto
+    ?status=cancelled            ->   1      corretto
+    ?conclusion=success          -> 646      = IL TOTALE
+    ?conclusion=failure          -> 646      = IL TOTALE
+    ?zzzparametroinventato=xyz   -> 646      = IL TOTALE
+    (nessun filtro)              -> 646
+    enumerazione: 582 success + 63 failure + 1 cancelled = 646  ✅ quadra
+
+⇒ **[M] La causa è dimostrata, non supposta:** un parametro **inventato di sana
+pianta** rende lo stesso numero di `conclusion` ⇒ `conclusion` **non esiste** in
+questo endpoint, e ciò che non esiste **viene scartato senza dirlo**. Il
+parametro valido è `status`, che accetta anche i valori di conclusione.
+⛔ **Un filtro sbagliato non fallisce: rende TUTTO.**
+
+⚠️ **[A] Perché questa voce ha un predecessore e non apre una serie:** la
+meccanica è diversa da `LIBRO:352` — là un pattern degenere che matcha tutto, qui
+un parametro scartato — ma **l'esito è identico**: il filtro non filtra e il
+totale si presenta come sottoinsieme. ⇒ **La riga `LIBRO:352` si dichiarava
+«PRIMA DELLA SUA SERIE»: da oggi quella serie ha un secondo membro**, ed è la
+polarità **P3**.
+
+### ⛔ Ciò che è stato OSSERVATO e NON è stato inciso
+
+**[M]** Alle 12:0x del 26/08 la stessa query `?status=success` rese **173**, poi
+**494**, poi l'enumerazione rese **580**. Alle 12:2x, **sei chiamate identiche
+rendono 582 stabilmente**, e 582 coincide con l'enumerazione.
+⇒ **[M] «Numero non riproducibile» NON si riproduce, quindi non è una voce.**
+L'ipotesi residua — un indice filtrato che si allinea in ritardo — **è
+un'ipotesi**, e in questa sede non entra. ⚠️ **Resta il fatto operativo, che
+vale comunque:** un `total_count` filtrato, letto una volta sola e mai
+quadrato, ha reso un numero **sbagliato di quattrocento** senza alcun segnale.
+
+### La regola che tiene insieme tutte le voci
+
+⛔ **Il controllo positivo non è un ornamento: è la sonda.** Un oggetto che
+**sai** esistere, cercato **con lo stesso identico comando**. Senza, non stai
+misurando: stai sperando.
+⛔ **E per la polarità P3 il controllo positivo NON BASTA** — lì la sonda
+risponde e l'oggetto c'è. **Serve la quadratura della somma col totale.**
+
+⚠️ **Rimando, senza deciderne la collocazione:** `R-δ.10` incide un **falso-UNO**
+— un ID che risulta occupato perché è sottostringa del base64 di un font — e
+dichiara di **non** decidere lì la tassonomia. È un riscontro **vero su
+un'occorrenza reale ma di un altro oggetto**: non è nessuna delle tre polarità
+sopra. **Si nomina qui per indirizzo e si lascia aperto.**
+
+---
+
 ## ⚠️ DA V32 I RIASSUNTI VANNO IN CODA — dichiarazione di transizione, 24/08/2026
 
 ⛔ **Questo documento ha i riassunti VECCHI in testa (`Delta V31` … `Delta V23`, righe 6-64) e i NUOVI qui in coda.** Non è disordine: è una **transizione datata**, ratificata da Mauro il 24/08/2026 insieme alla regola **R-δ.7**. I vecchi **restano dove sono**: spostarli costerebbe quanto aggiungerne uno in testa, cioè rompere ventinove citazioni. **Si marca, non si riscrive.**
@@ -957,3 +1048,10 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 - **Tre regole NUOVE nel capitolo R-δ, tutte sul cancello degli identificativi di mandato.** **`R-δ.8`** — un ID è occupato quando è **assegnato a un lavoro**, non quando è **nominato come campione** dentro un documento che ne verifica la disponibilità (ratificata referee, approvata Mauro). **`R-δ.9`** — **il documento che nomina un campione lo consuma**: i numeri candidati non si scrivono per esteso, si nomina solo quello assegnato (rilievo CC, ratificata referee). **`R-δ.10`** — la gamba **contenuto** della sonda esclude `DESIGN/`: la stringa `A219` compare una sola volta nel repo, dentro il **base64 di un font woff2**, ed è un **falso-UNO** — polarità nuova rispetto ai falsi-zero già censiti (misurata referee).
 - ⚠️ **Nessuna riga esistente è stata riscritta**: le tre regole sono in coda al capitolo R-δ, il numero di versione è cambiato **dentro la riga** in testa, e questo blocco Delta sta in coda come prescrive `R-δ.7`.
 - ✅ **Misurato prima di scrivere: l'inserimento NON sposta alcuna citazione nuda.** Tutte le citazioni `BOX5_QBEATS.md:NN` del corpus puntano a righe **≤ 390**; il punto d'innesto è la **806**.
+
+**Delta V34 vs V33:**
+
+- **Capitolo NUOVO «TASSONOMIA DEI DIFETTI DI MISURA»**, sede unica dei cinque difetti di misura che vivevano sparsi in tre documenti con nomi che si somigliavano. ⛔ **Non numera**: ogni difetto ha un **nome** e un **indirizzo**, perché gli ordinali sono precisamente ciò che ha prodotto il disordine — al 26/08 esistevano **TRE «sesta» diverse**, riferite a tre difetti differenti, **due tracciate in git**. ⛔ **Le due voci già incise (`LIBRO:323` e `LIBRO:352`) NON sono state riscritte né rinumerate:** si citano per indirizzo.
+- **Voce NUOVA, prima incisione — «PARAMETRO IGNORATO IN SILENZIO»:** l'API di GitHub Actions scarta i parametri sconosciuti **senza errore** e rende l'insieme intero. Dimostrata per controprova, non supposta: un parametro **inventato** rende lo stesso numero di `?conclusion=`. ⇒ **La riga `LIBRO:352`, che si dichiarava «PRIMA DELLA SUA SERIE», da oggi ha un secondo membro**, ed è la polarità **P3**.
+- ⛔ **Una voce candidata NON è stata incisa perché non si riproduce:** «numero non riproducibile» (173 → 494 → 580) rende **582 stabile su sei chiamate identiche**. **Osservata, dichiarata, non incisa.**
+- ✅ **Misurato prima di scrivere: l'innesto alla riga 943 NON sposta alcuna citazione nuda.** Le citazioni `BOX5_QBEATS.md:NN` più alte del corpus sono `:564` e `:566`, che **precedono** l'innesto. ⚠️ **Vivono solo sulla gamba `E:`** (`HANDOFF/A58-USCITA-FINESHOW-RICOGNIZIONE.txt`): su `C:` il massimo è **390**, e una sonda che guardi solo `C:` **sottostima**.
