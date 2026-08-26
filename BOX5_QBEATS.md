@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V32 — 24/08/2026
+**Versione:** V33 — 26/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -804,6 +804,36 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 
 ⛔ **I riassunti già in testa NON si spostano.** Muoverli costerebbe quanto aggiungerne uno. Si marca, non si riscrive — vedi la dichiarazione di transizione in coda a questo documento.
 
+### R-δ.8 — UN ID È OCCUPATO QUANDO È ASSEGNATO A UN LAVORO (ratificata referee, approvata Mauro 26/08/2026)
+
+⛔ **REGOLA:** un identificativo di mandato è **occupato** quando è **assegnato a un lavoro** — un referto, un congedo, un commit, una riga di canonico che lo attribuisce. **NON è occupato** quando compare **nominato come campione** dentro un documento che ne sta verificando la disponibilità.
+
+**Perché:** il cancello ID esiste per impedire che **due lavori diversi portino lo stesso numero**. Una citazione dentro una tabella di sonda non è un secondo lavoro: non ha artefatti, non ha commit, non ha attribuzione. Trattarla come occupazione brucia numeri senza proteggere nulla.
+
+✅ **Precedente misurato, e distinzione operativa:** A213 e A214 erano occupati da **referti veri** — bruciati, correttamente. A218 compariva **una volta sola**, dentro la tabella di controllo del congedo del 25/08, senza alcun lavoro attaccato: **libero**, e infatti è stato usato.
+
+⚠️ **La sonda non distingue da sola.** Rende un numero; è **chi legge** a stabilire se quell'occorrenza è un'assegnazione o una citazione. ⛔ **Un `1` non chiude il cancello: obbliga ad aprire il file e guardare cosa c'è su quella riga.**
+
+### R-δ.9 — IL DOCUMENTO CHE NOMINA UN CAMPIONE LO CONSUMA (rilievo CC, ratificata referee 26/08/2026)
+
+⛔ **REGOLA:** i numeri **candidati** non si scrivono per esteso nei documenti. **Si nomina solo quello assegnato.**
+
+**Perché, misurato:** il congedo del 25/08 dichiarò in tabella un ID «secondo campione» a `0 / 0 / 0`, e **con quella riga lo rese `1`**. La misura era vera nell'istante in cui fu presa e **falsa nell'istante in cui fu pubblicata**: il documento ha invalidato la propria misura nell'atto di scriverla.
+
+⇒ **Come si scrive un cancello ID senza consumarlo:** si riporta la tabella del solo ID **preso**, più i **controlli positivi** — che sono ID **già occupati**, quindi nominarli non costa nulla. I candidati scartati si descrivono **per relazione** («quello immediatamente precedente»), mai per cifra.
+
+⚠️ **Faccia generale della regola:** un documento che descrive il proprio stato **lo altera**. Vale per il conteggio dei non tracciati (un congedo si conta di meno finché non si deposita) e per le stringhe di un controllo d'integrità (la nota che spiega un conteggio entra nel conteggio). ⇒ **Le misure di un documento si dichiarano come scattate PRIMA del suo deposito, e l'auto-test si misura sull'ULTIMA stesura, mai sulla penultima.**
+
+### R-δ.10 — LA GAMBA CONTENUTO DELLA SONDA ID ESCLUDE `DESIGN/` (misurata referee 26/08/2026)
+
+⛔ **REGOLA:** la gamba **CONTENUTO** del cancello ID gira con `-- ':!DESIGN'`. La gamba **NOME** non ha bisogno dell'esclusione.
+
+**Perché, misurato:** la stringa `A219` compare **una sola volta** in tutto il repo, e non è un identificativo: è una **sottostringa dentro il base64 di un font woff2** in `DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html`. Una sonda ingenua dichiara quell'ID **occupato** e lo brucia.
+
+⚠️ **È una polarità NUOVA rispetto a quanto già agli atti: un falso-UNO, non un falso-zero.** Le forme censite in casa producono un **vuoto** che sembra un fatto; questa produce un **riscontro** che sembra un fatto. ⛔ **Non rinumerare le serie esistenti su questa riga:** la classificazione tassonomica non è decisa qui.
+
+✅ **Corollario operativo:** un ID che risulta pulito **solo grazie all'esclusione** è un ID che qualcun altro dichiarerà occupato. **Quando è possibile, si prende quello pulito in ENTRAMBE le letture.**
+
 ## Backlog — feature da implementare
 
 | # | Feature | Fase | Priorità | Specs CD |
@@ -921,3 +951,9 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
 - **Regola NUOVA `R-δ.7`** nel capitolo R-δ: la testa di un documento citato **non cresce mai**; ciò che si accumula va in coda. Vale per tutti i canonici, BOX3 compreso.
 - ⚠️ **La convenzione precedente non era scritta**: misurato il 24/08, zero regole sulla posizione nei cinque canonici e nella Costituzione.
 
+
+**Delta V33 vs V32:**
+
+- **Tre regole NUOVE nel capitolo R-δ, tutte sul cancello degli identificativi di mandato.** **`R-δ.8`** — un ID è occupato quando è **assegnato a un lavoro**, non quando è **nominato come campione** dentro un documento che ne verifica la disponibilità (ratificata referee, approvata Mauro). **`R-δ.9`** — **il documento che nomina un campione lo consuma**: i numeri candidati non si scrivono per esteso, si nomina solo quello assegnato (rilievo CC, ratificata referee). **`R-δ.10`** — la gamba **contenuto** della sonda esclude `DESIGN/`: la stringa `A219` compare una sola volta nel repo, dentro il **base64 di un font woff2**, ed è un **falso-UNO** — polarità nuova rispetto ai falsi-zero già censiti (misurata referee).
+- ⚠️ **Nessuna riga esistente è stata riscritta**: le tre regole sono in coda al capitolo R-δ, il numero di versione è cambiato **dentro la riga** in testa, e questo blocco Delta sta in coda come prescrive `R-δ.7`.
+- ✅ **Misurato prima di scrivere: l'inserimento NON sposta alcuna citazione nuda.** Tutte le citazioni `BOX5_QBEATS.md:NN` del corpus puntano a righe **≤ 390**; il punto d'innesto è la **806**.
