@@ -121,6 +121,16 @@ final class SetlistRunner: ObservableObject {
     /// Avvio canzone corrente dopo standby — presuppone `currentSongIdx`
     /// già avanzato dal ramo standby della closure end-of-section.
     /// Chiamato dal tap su `StandbyOverlayView`.
+    // ⚠️ CARTELLO A228 (misura, non ratifica) — questa funzione CONSERVA
+    // `currentSongIdx` e azzera solo `currentSectionIdx` (riga sotto). È così anche
+    // quando `startCurrentSong` è il primo tocco dopo un rientro nel player (uscita
+    // con la freccia e rientro, Link spento): riparte dalla canzone dove si era,
+    // ma dalla PRIMA sezione, non da quella in cui si era usciti. Nessuno ha mai
+    // ratificato esplicitamente questa asimmetria canzone-conservata/sezione-azzerata
+    // per il caso rientro — è così perché la funzione è condivisa col ramo standby
+    // fra due canzoni (dove azzerare la sezione è corretto per costruzione), non
+    // per una decisione presa sul rientro. Misura completa: `HANDOFF/
+    // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
     func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
         // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
         pendingDisplayUpdate = false

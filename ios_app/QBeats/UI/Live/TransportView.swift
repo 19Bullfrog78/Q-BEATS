@@ -27,6 +27,16 @@ struct TransportView: View {
                     disabled: isCountIn || isStandby,
                     scaleFactor: scaleFactor) { audioEngine.prevSection() }
 
+                // ⚠️ CARTELLO A228 (misura, non ratifica) — `disabled: isStandby` qui sotto è
+                // il SECONDO lucchetto sul Play in standby, indipendente dal velo
+                // (`LiveView.swift` `StandbyOverlayView` + `.contentShape` tap-ovunque).
+                // Il giorno in cui questo blocco viene tolto, il Play chiama
+                // `runner.startSetlist(...)` più sotto in questo stesso blocco, che AZZERA
+                // `currentSongIdx` — mentre il tocco sul velo (`startCurrentSong`) lo
+                // CONSERVA. Due gesti sullo stesso stato .standby, due esiti diversi.
+                // Chi toglie `isStandby` da qui deve decidere quale dei due esiti vuole,
+                // non ereditarlo per caso. Misura completa: `HANDOFF/
+                // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
                 RubberBtnView(
                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
