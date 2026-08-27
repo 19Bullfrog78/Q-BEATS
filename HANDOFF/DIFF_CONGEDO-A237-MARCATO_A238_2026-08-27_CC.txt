@@ -1,0 +1,205 @@
+NOTA DI CONSEGNA - A238, 27/08/2026 - LEGGERE PRIMA DI APPLICARE
+
+Questo diff SOSTITUISCE DIFF_CONGEDO-A237_2026-08-27_CC.txt, che da qui in
+avanti e' STORICO. Il vecchio file resta su disco: non e' stato cancellato.
+
+IL REFEREE HA RATIFICATO UN OGGETTO CHE NON E' PIU' QUELLO SUL DISCO.
+  impronta ratificata (STORICA) : aef324c5...bb7f   11054 byte   153 righe
+  impronta attuale              : 387e599a...7619   13684 byte   178 righe
+
+La differenza e' UNA SOLA: la MARCATURA ADDITIVA in coda al paragrafo 1.
+25 righe aggiunte, 0 rimosse, nessun'altra riga del congedo toccata.
+
+Il diff qui sotto e' un diff di FILE NUOVO: aggiunge il congedo INTERO
+(178 righe), non le sole 25 della marcatura, perche' il congedo non e'
+dentro HEAD e non esiste niente contro cui fare un incrementale.
+
+Generato con "git diff --no-index", cioe' SENZA piantare marcatori
+nell'indice - che e' esattamente la trappola descritta dalla marcatura.
+Prova di applicabilita': git apply --cached --check
+
+--------------------------------------------------------------------------
+diff --git a/HANDOFF/CONGEDO_CC_2026-08-27_A237.md b/HANDOFF/CONGEDO_CC_2026-08-27_A237.md
+new file mode 100644
+index 0000000..cc73aaa
+--- /dev/null
++++ b/HANDOFF/CONGEDO_CC_2026-08-27_A237.md
+@@ -0,0 +1,178 @@
++# CONGEDO CC — sessione del 27/08/2026
++
++Da: CC · A: **la chat CC che apre dopo di me**, + Mauro + CD + referee
++
++⛔ **Scritto senza leggere il congedo del referee**, che lo scrive in parallelo. Se convergiamo, la convergenza vale perché è indipendente. Se divergiamo, misurate la divergenza invece di appianarla.
++
++Marcatura: **[M]** misurato da me alla fonte · **[R]** riportato da altri, non rimisurato · **[A]** giudizio mio. ⛔ Mai mescolati in una frase.
++
++⚠️ **La prima cosa che ti dico è di non credermi: marca questo file [R] e rimisura.** Io non l'ho scritto per te, l'ho scritto per non farti perdere tempo — sono due cose diverse.
++
++⚠️ **TUTTE LE MISURE DI QUESTO FILE SONO STATE SCATTATE PRIMA DI DEPOSITARLO.**
++
++---
++
++## 0 · ID A237 — misurato, non scelto
++
++**[M]** Sonda su due supporti (NOME e CONTENUTO), su entrambe le gambe, con `-- ':!DESIGN'` sulla gamba CONTENUTO-git.
++
++| ID | NOME git / hoffC / hoffE | CONT git / hoffC / hoffE |
++|---|---|---|
++| **A237** (preso) | 0 / 0 / 0 | 0 / 0 / 0 |
++| A236 (positivo) | 1 / 1 / 1 | 0 / 0 / 0 |
++| A235 (positivo) | 1 / 1 / 1 | 2 / 1 / 1 |
++| A231 (positivo) | 1 / 1 / 1 | 5 / 4 / 4 |
++
++✅ **[M] Tre positivi non-zero sulla gamba NOME: la sonda vede.**
++⚠️ A236 rende **zero sul contenuto** ed è corretto, non un guasto: quell'identificativo vive solo nel **nome** del file di diff, e non compare dentro nessun testo. **Uno zero spiegato non è uno zero sospetto.**
++
++---
++
++## 1 · LO STATO — tutto [M], misurato PRIMA di depositare questo file
++
++    HEAD locale = HEAD remoto = ee9d20c6ff97064e6d12aa38b6f7528be08589e1
++    0 tracciati modificati · 0 in stage · 1076 non tracciati
++    HANDOFF: 339 file · 57 tracciati · 282 no
++
++**[M] I cinque canonici, uno per uno:**
++BOX3 **V100** · BOX5 **V35** · BUGS **67** · LIBRO **64** · SCALETTA **15**.
++
++⚠️ **La SCALETTA non è in radice**: sta in `HANDOFF/`, e la data nel suo nome è più vecchia del contenuto. **Si cerca per contenuto, non per nome.**
++
++⚠️ **[A] Il LIBRO non si è mosso oggi.** È fermo al 26/08 mentre BUGS ha fatto quattro versioni e BOX5 una. **Tutto ciò che è successo oggi è tracciato, ma niente è passato dal libro mastro cross-team.** Non dico che sia sbagliato — dico che chi cerca la giornata nel LIBRO non la trova.
++
++**[M] La CI, per ENUMERAZIONE:**
++
++| workflow | totale | enumerazione | su HEAD |
++|---|---|---|---|
++| iOS Signed Build | 654 | **590** success · 63 failure · 1 cancelled | ✅ **success** |
++| F1 — Build Check | 4 | **1** success · 3 failure | non partito |
++
++✅ **[M] 590 + 63 + 1 = 654: la somma quadra col totale.** È la sola verifica che smaschera il difetto in cui una parte sembra il tutto.
++
++⚠️ **F1 va misurato per ID di workflow, non per nome:** il trattino lungo nel nome non aggancia, e la sonda rende un falso zero. **[R] È scritto anche nel congedo di ieri, e ci sono ricascato meno perché l'avevo letto.**
++
++### ⚠️ MARCATURA ADDITIVA — scritta in A238, dopo il deposito
++
++⛔ **Niente del §1 è stato riscritto.** Questo blocco è aggiunto in coda, e dice due cose che al §1 mancavano.
++
++**(a) [M] LO SCARTO DEI NON TRACCIATI.** Il §1 dà il numero di partenza e si ferma lì. Il congedo di ieri invece lo scarto lo prevedeva, e questa era la debolezza vera del mio. I quattro conti, ottenuti **enumerando la lista vera e filtrandola per percorso esatto** — misurati, non calcolati:
++
++    prima del deposito                 1076
++    congedo depositato, da solo        1077
++    congedo + il suo diff accanto      1078
++    congedo e diff committati          1076
++
++✅ **[M] Il 1076 di partenza si riproduce per una strada indipendente:** non è riportato dal §1, è rimisurato stasera togliendo i due percorsi dalla lista vera, e torna.
++
++⚠️ **[M] E attenzione a cosa si conta davvero:** il diff superato resta su disco accanto a quello nuovo, quindi **una conta presa dopo questa marcatura rende uno in più**. Non è il numero a essere sbagliato: è la condizione a essere cambiata.
++
++**(b) 🚨 [M] LA TRAPPOLA DEL MARCATORE — trovata su questo stesso file.** Per generare il diff era stato piantato un **marcatore d'intenzione**. Effetto misurato: il congedo **è uscito dall'elenco dei non tracciati** — reso 0 per percorso esatto — **senza essere stato committato**, e senza che un commit liscio se lo portasse via. Nell'indice sedeva il **file vuoto**; sul disco, gli 11 054 byte veri.
++
++⇒ **[A] La sonda dei non tracciati, da sola, non lo vede:** rende 0 per un file committato, e rende 0 per un file marcato e mai committato. **Dà la stessa risposta a due domande diverse.**
++
++⛔ **[A] LA REGOLA CHE NE ESCE, e vale oltre stanotte: sullo stato di un file servono DUE sonde di natura diversa — l'indice E l'albero committato.** Una sola è un testimone che conferma sé stesso.
++
++🚨 **[A] E il morso peggiore sta dentro questo congedo, non fuori:** la sonda accecata dal marcatore **è la stessa** con cui è stato trovato il titolo del §3, cioè che il congedo di ieri non è mai stato committato. **Quel ritrovamento regge** — rimisurato in A238, `A226` è ancora fuori, `0 · 1 · 0` — **ma regge per fortuna, non per costruzione.** Un marcatore su quel file lo avrebbe tolto dai non tracciati lasciandolo non committato, e la voce numero 1 sarebbe morta una seconda volta, in silenzio.
++
++⚠️ **[M] Il marcatore è stato tolto in A238:** i tre numeri sono passati da `indice 1 · non tracciati 0 · dentro HEAD 0` a `0 · 1 · 0`, con il contenuto **invariato al byte** (`aef324c5...bb7f`, 11 054).
++
++---
++
++## 2 · COSA È STATO COSTRUITO — [M], sette commit, zero righe di logica
++
++| | sha | cosa |
++|---|---|---|
++| A228 | `8ab651a` | referto sul velo dello standby + **due cartelli nel codice** + la marcatura del proprio scorrimento |
++| A229 | `6feb022` | referto: la freccia nascosta, la collisione END SHOW, i sedici campi |
++| A231 | `3778d69` | BUGS v64 — `TD-follower-parte-cieco-a-player-chiuso` 🚨 |
++| A232 | `51baaf0` | BUGS v65 — marcatura: il rimedio pubblicato a v64 era incompleto |
++| A234 | `4264b96` | BUGS v66 — il cantiere del rifacimento player, separato dai guasti |
++| A235 | `99061a2` | BUGS v67 — `TD-stop-perde-il-punto` 🚨 |
++| A236 | `ee9d20c` | BOX5 V35 — capitolo **MODELLO DI SESSIONE Q-LIVE** |
++
++⚠️ **[M] `4264b96` non ha un run di CI suo**, ed è la classe di zero che inganna: **non è fallito, non è mai partito.** L'ho spinto insieme al successivo e la CI gira sulla punta. Chi cercasse «il verde di A234» non lo troverebbe.
++
++**[A] Il commit che conta è l'ultimo**, e non per la sua dimensione: il modello di sessione ha smesso di vivere soltanto in due chat.
++
++---
++
++## 3 · 🚨 LA COSA CHE DEVI GUARDARE PER PRIMA
++
++**[M] Il congedo di ieri — `CONGEDO_CC_2026-08-26_NOTTE_A226.md` — non è mai stato committato.** È ancora non tracciato, su disco, dopo un giorno intero.
++
++⛔ **Era la voce numero 1 della lista di stamattina.** Sette commit sono passati, e quella non è passata.
++
++⇒ **[A] E qui c'è la cosa da capire, che vale più del fatto:** non è stata dimenticata perché nessuno ci teneva. È stata scavalcata **ogni volta da qualcosa di più urgente**, per dodici ore di fila. ⚠️ **Le voci che muoiono non sono quelle che nessuno vuole: sono quelle che chiunque rimanderebbe una volta sola.**
++
++🚨 **E questo file ha esattamente lo stesso destino davanti**, se domani parte un mandato prima che venga committato.
++
++---
++
++## 4 · COSA È APERTO — [A], e chi ce l'ha in mano
++
++**Un mandato con la parola già data e mai emesso:** separare in un ticket suo il **canale audio che resta azzerato** — un canale messo a zero per sbaglio resta a zero allo show successivo, senza segnale. **È l'unica parte del ticket sul mixer che sopravvive al rifacimento del player**, e oggi vive sepolta dentro il bullet che giustifica la severità di un'altra cosa.
++
++**Il giro documenti, chiuso, con dieci voci dentro.** ⚠️ **[A] La più insidiosa non è la più grossa:** le **citazioni nude di BOX5 che portano altrove**. Il sorgente Swift cita `BOX5:458` aspettandosi la regola dei valori sotto 20pt; a quella riga oggi c'è un altro argomento, e la regola vera sta oltre cento righe più giù. ⛔ **Il gemello su BOX3 ha un ticket. Questo no.**
++
++**La catena che finisce su un bloccante-palco**, ed è l'unica catena vera del progetto:
++
++    politica di azzeramento dei sedici campi  (disegno, CD, senza padrone)
++        └→ le DUE mosse                       (non assegnate)
++              └→ TD-follower-parte-cieco      🚨 BLOCCANTE PALCO
++
++⚠️ **Sono DUE mosse, non una**, e la differenza è la cosa più facile da sbagliare di tutta la giornata: la memoria dello show deve sopravvivere alla schermata **e** l'ascoltatore deve uscire dalla vista. **La prima da sola lascia il guasto dov'è.**
++
++**[M] Sei ticket portano oggi 🚨 BLOCCANTE PALCO.** Di questi, **uno solo ha la gravità ratificata da Mauro**; due sono proposte in attesa. ⇒ **[A] Un'etichetta «non possiamo suonare» che aspetta da settimane di essere confermata dice meno di quanto sembri.**
++
++---
++
++## 5 · LE TRAPPOLE — [A], quelle che ho toccato con mano oggi
++
++⛔ **Il pezzo esiste e non funziona.** È la malattia della giornata, e ha colpito sei volte fra me e il referee. L'ascoltatore che c'è ma muore con la schermata · il pannello che c'è ma il pulsante non lo raggiunge · il rimedio che salvava la cosa sbagliata · la citazione che si apre e dice un'altra cosa. **Misurare il componente non è misurare il prodotto: la sonda va portata al sito di chiamata, sempre.**
++
++⛔ **Un puntatore rotto si nota. Uno slittato no.** È il caso peggiore della famiglia, perché non rende zero e non rompe niente: il riferimento esiste, si apre, si legge — dice solo un'altra cosa.
++
++⛔ **Un filtro messo per togliere rumore può togliere il segnale.** Mi è successo **tre volte oggi**, in tre forme diverse: un filtro anti-`==` che si è mangiato una scrittura vera, un filtro anti-commento che non filtrava niente, una ricerca che non teneva conto del grassetto in mezzo. **Ogni zero da una sonda che filtra vale meno di uno zero da una sonda che non filtra.**
++
++⛔ **La propagazione su `E:` è un passo per ogni SCRITTURA, non uno per file.** Stasera l'ho applicata al diff e non al canonico, e per dieci minuti la gamba `E:` ha portato la versione senza la correzione appena decisa.
++
++⛔ **E `E:` non ha un regime solo.** BUGS ha una copia omonima da tenere allineata; **BOX5 ha stampe per-versione** col nome che porta lo sha del commit, estratte da git e mai copiate dal disco. ⇒ **La stampa BOX5 si fa DOPO il commit, per costruzione.** Non è una propagazione saltata.
++
++⛔ **Le facce non coincidono, e vanno dichiarate insieme all'impronta.** BUGS è CRLF su disco e LF nel blob; BOX5 è LF su entrambi. Un confronto che ignora la faccia rende «diverso» su file identici — mi è successo due volte, e due volte era solo quello.
++
++---
++
++## 6 · I MIEI ERRORI DI OGGI — [M], e il secondo è quello che conta
++
++**6.1 — Ho pubblicato un rimedio sbagliato dentro un ticket bloccante.** Ho scritto che far salire la memoria dello show avrebbe impedito all'ascoltatore di morire. **Falso**: l'ascoltatore è un modificatore di vista e muore con la vista, ovunque viva la memoria. ⇒ Corretto la sera stessa con una marcatura additiva.
++
++⚠️ **Il rilievo l'ho trovato rileggendo un ticket già ratificato, già committato e già pubblico, senza che nessuno me lo chiedesse.** ⇒ **[A] È l'unica cosa di oggi che rifarei uguale: tornare a guardare una cosa chiusa.**
++
++**6.2 — 🚨 Ho inciso una riga falsa in un messaggio di commit, e non si può marcare dove sta.** Nel commit `6feb022` ho scritto che la ratifica del referee non era stata acquisita. **Non era vero: c'era, ed era stata scritta in prosa in un messaggio che non mi è mai arrivato.**
++
++⛔ **La cosa che devi sapere è la seconda:** un messaggio di commit **non si marca**. È l'unico posto del sistema dove il cartello non può andare dove morde. ⇒ La correzione deve vivere **nel referto che quel commit ha introdotto**, ed è ancora da fare.
++
++**6.3 — Ho scritto una sintassi di shell sbagliata e il messaggio di commit è uscito troncato da un apostrofo.** Preso prima del push, riportato al testo autorizzato. ⇒ **[A] Stessa famiglia dell'apostrofo che rompe le stringhe altrove: il testo lungo si rompe in ogni punto in cui passa a mano.**
++
++---
++
++## 7 · [A] DA DOVE RIPARTIREI, E PERCHÉ
++
++**La politica di azzeramento dei sedici campi.** Non perché sia la più urgente in assoluto, ma perché è **l'unica cosa ferma che non dipende da nient'altro**, ed è il primo anello della sola catena che finisce su un bloccante-palco. È disegno, è di CD, e oggi non ha padrone.
++
++⚠️ **[A] Con un avvertimento che vale più della voce:** quella politica è il prerequisito della **prima** delle due mosse. **Cosa serva alla seconda — far uscire l'ascoltatore dalla vista — non l'ha ancora guardato nessuno.** Io non l'ho misurato, e non lo so.
++
++---
++
++## 8 · [A] CIÒ CHE NON HO MESSO QUI, E PERCHÉ
++
++Non ho messo l'elenco completo delle dieci voci del giro documenti: **vivono nella coda del referee** e ricopiarle qui creerebbe due liste che non sono la stessa lista. **Una svista sopravvive esattamente lì.**
++
++Non ho messo i dettagli tecnici delle misure: stanno nei referti committati di oggi, che sono in git e non si perdono. **Un congedo che ripete i referti li fa invecchiare due volte.**
++
++⛔ **Non credere a questo file. Marcalo [R] e rimisura**, cominciando dal §1: sono numeri di stasera, e oggi ho visto misure di ieri scadere in due ore.
++
++---
++
++*A237-CONGEDO-CC-2026-08-27-FINE*
