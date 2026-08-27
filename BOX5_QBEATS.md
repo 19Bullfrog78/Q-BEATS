@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V34 — 26/08/2026
+**Versione:** V35 — 27/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1055,3 +1055,171 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - **Voce NUOVA, prima incisione — «PARAMETRO IGNORATO IN SILENZIO»:** l'API di GitHub Actions scarta i parametri sconosciuti **senza errore** e rende l'insieme intero. Dimostrata per controprova, non supposta: un parametro **inventato** rende lo stesso numero di `?conclusion=`. ⇒ **La riga `LIBRO:352`, che si dichiarava «PRIMA DELLA SUA SERIE», da oggi ha un secondo membro**, ed è la polarità **P3**.
 - ⛔ **Una voce candidata NON è stata incisa perché non si riproduce:** «numero non riproducibile» (173 → 494 → 580) rende **582 stabile su sei chiamate identiche**. **Osservata, dichiarata, non incisa.**
 - ✅ **Misurato prima di scrivere: l'innesto alla riga 943 NON sposta alcuna citazione nuda.** Le citazioni `BOX5_QBEATS.md:NN` più alte del corpus sono `:564` e `:566`, che **precedono** l'innesto. ⚠️ **Vivono solo sulla gamba `E:`** (`HANDOFF/A58-USCITA-FINESHOW-RICOGNIZIONE.txt`): su `C:` il massimo è **390**, e una sonda che guardi solo `C:` **sottostima**.
+
+**Delta V35 vs V34:**
+
+- **Capitolo NUOVO «MODELLO DI SESSIONE Q-LIVE»**, sede unica delle decisioni di sessione che fino a oggi vivevano SOLO in due chat e in un documento su Drive. Contiene: le **decisioni 6-18 del 26/08** di CD (ratificate in chat da Mauro, **nessun device le ha viste**), la **copy della conferma** con la riga ambra, le **decisioni di Mauro del 27/08 sera** che le superano in parte (bivio a tre vie sulla freccia dopo lo stop · le tre facce del dettaglio · «STOP significa una cosa sola» · il pulsante del dettaglio si chiama END SHOW · la decisione 8 regge · l'ambiguità di «gira» sciolta), e le **tre sorti della decisione 7**.
+- ⛔ **La decisione 7 è SPACCATA IN TRE, e non è un vezzo:** la reversibilità dello stop REGGE, l'overlay di ripresa è **RATIFICATA E MAI COSTRUITA**, il comando del dettaglio REGGE ma CAMBIA NOME. Una riga sola avrebbe detto una cosa falsa qualunque parola si scegliesse. ⚠️ **«Ratificata e mai costruita» si legge in modo diverso da «superata»**, e fra sei mesi la differenza conta.
+- **VINCOLO APERTO inciso, non risolto:** la riga ambra «This will stop the other devices too» ha perso il suo innesco quando l'alert a due bottoni è diventato un bivio a tre vie. **Non è stata ritirata**: deve vivere dentro il bivio, e ora ha DUE inneschi. In mano a CD.
+- 🚨 **COLLISIONE rilevata da CC e NON risolta:** «END SHOW» è insieme l'**etichetta di stato** della striscia viva a fine scaletta (decisione 10) e il **pulsante distruttivo** del dettaglio (decisione (d) del 27/08) — stessa schermata, stesse due parole, due significati. Contando il titolo della schermata di fine scaletta dentro il player, i sensi sono **tre**. Stessa forma di collisione che il 26/08 ha portato a rinominare «Mode» in «Role».
+- ⛔ **Il puntatore all'indietro da «Vista LISTA» NON è stato messo, ed è una MISURA non una dimenticanza:** inserire una riga in quel capitolo sposterebbe di +1 dodici citazioni nude a BOX5, **due delle quali stanno nel sorgente Swift** (`QLiveShowDetailView.swift` cita `BOX5:458` in due punti, e il mandato era di sola lettura sotto `ios_app/`). Va fatto nello stesso passaggio che ripara quelle citazioni.
+- ✅ **Misurato prima e dopo aver scritto: l'innesto in coda NON sposta alcuna citazione nuda.** Le undici righe-bersaglio citate dal corpus (`:253 :324 :328 :331 :354 :390 :401 :404 :458 :532 :562`) sono state confrontate una a una col blob committato: **tutte invariate**. Zero righe esistenti riscritte o cancellate.
+
+---
+
+## MODELLO DI SESSIONE Q-LIVE — ratificato in chat da Mauro 26/08 e 27/08/2026, MAI VISTO SU DEVICE
+
+### Perché questo capitolo esiste, e cosa è costato non averlo
+
+⛔ **Questo modello è vissuto per un giorno intero soltanto dentro due chat e un documento su Drive.** Nessun canonico lo conteneva.
+
+⚠️ **Il conto è arrivato il 27/08:** il referee, non avendo mai letto il documento di CD, ha fatto **ridecidere a Mauro tre cose che erano già chiuse col 26/08** — il salto di canzone, la striscia viva, il testo della conferma. Mezza serata bruciata a rifare decisioni che esistevano già.
+
+⇒ **La regola di casa dice che una ratifica che non atterra in un canonico non esiste.** Questo capitolo la fa atterrare. Chi lo legge fra un mese deve sapere che è nato da un debito, non da una pianificazione.
+
+**⚠️ STATO — vale per TUTTO ciò che segue:** ratificato **in chat** da Mauro. **Nessun device ha visto niente di tutto questo.** Non è collaudato, non è costruito, e in almeno un caso è ratificato da mesi e mai costruito (vedi le sorti della decisione 7).
+
+⚠️ **Sede:** questo capitolo attraversa il player, il dettaglio, il bivio, la semantica di STOP e la copy di una conferma. **Non appartiene alla «Vista LISTA»**, che è una delle superfici che tocca. ⛔ **Il puntatore all'indietro dal capitolo «Vista LISTA» NON è stato messo, ed è una misura, non una dimenticanza:** inserire una riga lì sposterebbe di +1 dodici citazioni nude a BOX5, **due delle quali stanno nel sorgente Swift** (`QLiveShowDetailView.swift` cita `BOX5:458` in due punti). Va fatto nello stesso passaggio che ripara quelle citazioni, non prima.
+
+---
+
+### 1 · BLOCCO 1 — le decisioni del 26/08/2026 (CD, ratificate in chat da Mauro)
+
+Fonte: documento di chiusura del 26/08 di CD, **revisione 2** (la prima è marcata superata e corregge la 11-bis). Numerazione in continuità col registro di CD.
+
+| # | Decisione | Sorte al 27/08 |
+|---|---|---|
+| **6** | **La freccia non ferma mai niente.** Player che gira → dettaglio · Player fermo → SHOW / card | ⚠️ **prima metà chiarita, seconda metà SUPERATA** — vedi §2 |
+| **7** | **Solo STOP ferma.** Nel player ferma la musica (reversibile, overlay di ripresa) · nel dettaglio ferma tutto **e** esce | ⛔ **SPACCATA IN TRE SORTI DIVERSE** — vedi §3 |
+| **8** | **Nel dettaglio entrato dal player la freccia non c'è.** Unica porta: il comando di uscita | ✅ **REGGE** — confermata 27/08 |
+| **9** | **Salto di canzone:** tocco su riga = selezione **inerte** · secondo gesto + conferma per agire · dopo la quarta si prosegue con quinta, sesta, settima · sempre in standby | ✅ regge |
+| **10** | **Striscia viva** nel dettaglio: sezione in corso · `Standby · ⟨canzone⟩` · `END SHOW` a fine scaletta | ⚠️ regge, **ma vedi la collisione in §5** |
+| **11** | **`CHART MODE`** per la modalità statica · **`Q-LIVE MODE`** per la dinamica, così la coppia si legge come coppia | ✅ scelta di Mauro, contro la raccomandazione di CD |
+| **11-bis** | **`Mode` in Impostazioni → `Role`.** È il selettore del **ruolo Link** (Director / Follower), dentro la sezione «Ableton Link» — **non del metronomo**. Rinominarlo libera la parola «Mode» per Chart Mode | ✅ approvato **sull'intento**; l'indirizzo è stato **corretto il 26/08 sera** dopo una misura falsa. ⚠️ È un cambio di sola stringa **ma nella sezione Link**: CI da guardare |
+| **12** | **Riga attiva in Chart Mode: SPENTA di default** | ✅ regge |
+| **13** | **Il velo dell'attesa si accorcia:** si ferma sotto la fascia dell'intestazione, **la freccia resta scoperta**. Il tap-per-partire cede circa l'8% sul bordo alto — il più scomodo da raggiungere, e qui è un pregio | ✅ regge. *«dev'essere scomodo da raggiungere per scongiurare chiusure accidentali»* |
+| **14** | **La base si ferma col salto.** Abbandonando una canzone si ferma tutto ciò che è suo | ✅ regge — **richiede lavoro che oggi non esiste** |
+| **15** | **Overlay SCALETTA assorbito dalla stanza dettaglio.** Riordino durante la sessione **tolto**, non rimandato | ✅ regge |
+| **16** | **La conferma sta sul confine, non su un bottone.** Ovunque la sessione stia per morire, chiede. **Due INNESCHI:** il comando di chiusura nel dettaglio · la freccia dal player fermo verso le card | ⚠️ **i due inneschi hanno sorti DIVERSE** — vedi §2 |
+| **17** | **`List view` = `Chart Mode`.** Nome vecchio della stessa cosa, non un elenco di canzoni | ✅ regge |
+| **18** | **Barra delle stanze: centrata** (decisione Mauro 19/08, riemessa) | ✅ regge |
+
+#### 1.1 · La copy della conferma — 26/08, supera quella congelata il 18/07
+
+«Stop & Exit» e «Stop & Switch» non tornano più: non esiste più uno «switch», e le due porte che nominavano sono chiuse.
+
+```
+End the show?
+You'll lose your place in the setlist.
+[ Cancel ] [ End show ]   ← distruttivo
+```
+
+Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra asimmetrica:
+
+```
+⚠ This will stop the other devices too.
+```
+
+**Forma:** coppia `Cancel` / azione distruttiva colorata — modello inciso nel libro mastro il 26/07, dichiarato *«modello per ogni conferma distruttiva successiva»*.
+
+---
+
+### 2 · BLOCCO 2 — le decisioni di Mauro del 27/08/2026 sera, che SUPERANO in parte il blocco 1
+
+⛔ **Superano, non sostituiscono: il blocco 1 resta leggibile sopra, e qui si vede cosa ha superato cosa e quando.**
+
+**(a) 27/08 — Il bivio a tre vie.** La freccia premuta **con lo show fermo** non porta più direttamente alle card: alza un bivio a **tre** vie.
+
+- **X** sul perimetro → annulla, si resta nel player fermo
+- **END SHOW** → chiude, si torna alle card
+- **SHOW DETAILS** → si entra nel dettaglio con lo show fermo
+
+⚠️ **Il nome di quella terza via è `SHOW DETAILS`, NON «SETLIST» — scelto da Mauro il 27/08.** La parola «setlist» nomina già la struttura dati, e la sezione dell'app si chiama Shows: usarla sul bivio avrebbe creato la terza collisione di nome della giornata.
+
+⇒ **La terza via nasce da un buco:** dopo lo stop, con due sole vie, per guardare la scaletta bisognava chiudere lo show.
+
+⇒ **SUPERA la seconda metà della decisione 6** («Player fermo → SHOW / card»): la destinazione «card» sopravvive, ma come **una delle tre**, non più diretta.
+
+⇒ **SUPERA la copy del §1.1**, che ha due bottoni. ⚠️ **NON supera il conteggio degli inneschi della 16**, che sono un'altra cosa: quelli sono i punti d'ingresso della conferma, non le sue uscite.
+
+⇒ **Delle due porte della 16:** il comando di chiusura nel dettaglio **regge e cambia nome** (vedi (d)); la freccia-dal-player-fermo **è sostituita da questo bivio**.
+
+**(b) 27/08 — Il dettaglio ha TRE facce, non due.**
+
+| da dove si entra | stato dello show | cosa offre |
+|---|---|---|
+| **dalle card** | nessuno show in corso | lista + **avvio da una canzone a scelta** |
+| **dal player** | show attivo | lista + salto + **RESTART** + **RESUME** + **END SHOW** |
+| **dal bivio** | show fermo | lista + salto + **RESUME** + **END SHOW** |
+
+⛔ **Nella terza faccia NON c'è RESTART**, ed è voluto: **butterebbe via il punto che l'utente sta cercando di non perdere**.
+
+⚠️ **Rettifica di percorso, incisa perché non sembri una svista.** Una formulazione intermedia del 27/08 diceva che dalla terza faccia **non si potesse chiudere lo show**, con la motivazione che *«chiuderlo era possibile un istante prima»*, al bivio. ⇒ **Quella motivazione cade**, e cade **per la decisione (d)**, non per distrazione: da quando END SHOW vive nel dettaglio in **tutte** le facce, la terza non fa eccezione.
+
+**(c) 27/08 — «STOP» significa UNA COSA SOLA, ovunque: ferma tutto.** Mauro non ha scelto fra i due significati: **ha detto che il significato è uno.** L'app poi concede di annullare e di riprendere, **ma è una concessione, non un secondo senso.**
+
+- Parole di Mauro, agli atti: ***«lo show è compromesso, ma è una scelta dell'utente»***.
+- ⇒ **CHIUDE l'aperto lasciato dal 26/08** sul doppio significato di STOP.
+
+**(d) 27/08 — Nel dettaglio il pulsante NON si chiama «STOP»: si chiama «END SHOW».** Non si sdoppia il significato di STOP: **si cambia il nome del pulsante.**
+
+- **STOP** vive nel player e ferma il click. **Reversibile.**
+- **END SHOW** vive nel dettaglio e chiude la sessione. **Distruttivo.**
+- ⚠️ **Vale in TUTTE le facce del dettaglio, anche con lo show che gira.**
+- ⇒ **CONSEGUENZA DICHIARATA E RATIFICATA:** dal dettaglio **non si può più fermare il click restando dentro**. Per fermare senza chiudere si torna al player. **È voluto — nel dettaglio non si suona, si decide.**
+
+**(e) 27/08 — La decisione 8 regge, e non era in conflitto col resto.** Nel dettaglio entrato dal player la freccia non c'è, e **la via di ritorno non è la freccia: è il comando di ripresa.** Navigazione e transport restano separati.
+
+**(f) 27/08 — L'ambiguità della parola «gira» è sciolta.** Nella decisione 6, **l'attesa fra due canzoni conta come «player che gira»**, e la freccia da lì porta al **dettaglio**. ⛔ Quella parola non deve restare leggibile in due modi.
+
+**(g) 27/08 — LA REGOLA CHE RENDE LA (d) UNA STRUTTURA E NON UNA CONSEGUENZA SUBITA.** Dal foglio di CD ratificato la sera del 27/08, verbatim:
+
+> **«Nel dettaglio non manca STOP: nel dettaglio non c'è il transport del click.»**
+
+⇒ **Due famiglie di comandi, e non si mescolano:**
+
+| famiglia | comandi | dove vivono |
+|---|---|---|
+| **spostano lo SHOW** | `RESTART SONG` · `RESUME` · `END SHOW` | nel dettaglio |
+| **regolano il CLICK** | `STOP` · `PLAY` | **dove il click si vede**, cioè nel player |
+
+⚠️ **Perché conta:** senza questa riga, l'assenza di STOP nel dettaglio si legge come una **mancanza** — qualcosa che prima o poi qualcuno «aggiusterà» rimettendocelo. Con questa riga si legge come una **divisione**: nel dettaglio non si suona, si decide, e il transport non ci abita per costruzione. ⇒ **Chi in futuro proponesse di aggiungere STOP al dettaglio sta proponendo di rompere questa regola, non di colmare un buco.**
+
+---
+
+### 3 · BLOCCO 3 — LE TRE SORTI DELLA DECISIONE 7
+
+⛔ **La 7 non è «superata» né «riformulata»: le sue tre metà hanno sorti diverse, e una riga sola direbbe una cosa falsa qualunque parola si scegliesse.**
+
+| metà della 7 | sorte | perché |
+|---|---|---|
+| **«STOP nel player è REVERSIBILE»** | ✅ **REGGE** | confermata da Mauro il 27/08: dopo lo stop si riparte da dov'eri. **Non superata.** |
+| **«con un OVERLAY DI RIPRESA»** | ⛔ **RATIFICATA E MAI COSTRUITA** | l'overlay **esiste nel codice** e il pulsante STOP **non lo raggiunge**: si accende da un solo stato, acceso da una sola funzione che ha due soli chiamanti — una schermata di debug e l'esecutore di azioni MIDI. ⚠️ **E il 27/08 Mauro ha deciso una forma DIVERSA:** dopo lo stop **resta la schermata del player**, ferma e pronta a ripartire. **Nessun pannello sopra.** |
+| **«nel dettaglio ferma tutto ED ESCE»** | ✅ **REGGE nella sostanza, CAMBIA NOME** | il comportamento non cambia; il pulsante si chiama **END SHOW** — vedi §2(d) |
+
+⚠️ **«Ratificata e mai costruita» si legge in modo diverso da «superata», e fra sei mesi la differenza conta.** La prima dice che qualcuno aveva deciso e nessuno ha eseguito; la seconda dice che la decisione non vale più. **Qui vale la prima.**
+
+⇒ **Il difetto che ne discende è tracciato:** il ticket sul punto perso dopo lo stop, aperto il 27/08 su osservazione device di Mauro.
+
+---
+
+### 4 · VINCOLO APERTO — la riga ambra ha perso il suo innesco
+
+🚨 **Non è una decisione, ed è la ragione per cui sta qui.** La riga *«This will stop the other devices too»* viveva **dentro l'alert della decisione 16**. Quell'alert, dopo il bivio a tre vie, **non ha più un innesco**.
+
+⛔ **La riga NON è stata ritirata.** Deve vivere **dentro il bivio**, e ora ha **DUE inneschi**: END SHOW dal bivio **e** END SHOW dal dettaglio.
+
+⇒ **È in mano a CD, e qui è inciso come VINCOLO APERTO, non come cosa fatta.** Chi costruisce il bivio senza quella riga toglie all'utente l'unico avviso che sta per fermare anche gli strumenti degli altri.
+
+---
+
+### 5 · ⚠️ COLLISIONE RILEVATA DA CC, NON RISOLTA — «END SHOW» in due sensi sulla stessa schermata
+
+**Nessuno l'aveva nominata, e non è una decisione: è un conflitto fra due decisioni entrambe vigenti.**
+
+- La **decisione 10** prescrive che la **striscia viva del dettaglio** mostri `END SHOW` **a fine scaletta**. Lì è un'**etichetta di stato**: dice *dove sei arrivato*.
+- La **decisione (d) del 27/08** chiama `END SHOW` il **pulsante distruttivo del dettaglio**. Lì è un'**azione**: dice *cosa succede se tocchi*.
+
+⇒ **Stessa schermata, stesse due parole, due significati.** ⚠️ **È la stessa forma di collisione che il 26/08 ha portato a rinominare «Mode» in «Role» e «List view» in «Chart Mode».**
+
+⛔ **Inciso come aperto, non risolto: decidono CD e Mauro.** ⚠️ E fuori dal dettaglio le stesse due parole sono **già** il titolo della schermata di fine scaletta dentro il player: **contando quella, i sensi sono tre.**
