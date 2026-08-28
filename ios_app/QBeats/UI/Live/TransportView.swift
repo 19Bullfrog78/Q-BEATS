@@ -37,6 +37,12 @@ struct TransportView: View {
                 // Chi toglie `isStandby` da qui deve decidere quale dei due esiti vuole,
                 // non ereditarlo per caso. Misura completa: `HANDOFF/
                 // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
+                // ⚠️ MARCATURA A240 (28/08) — il Play qui sotto NON chiama più
+                //    `startSetlist`: chiama `startCurrentSection`, che CONSERVA
+                //    canzone e sezione (TD-stop-perde-il-punto; cartello A240 in
+                //    SetlistRunner). L'asimmetria dei due gesti descritta sopra
+                //    resta ma cambia faccia: velo → sezione azzerata · Play →
+                //    tutto conservato. Testo sopra invariato.
                 RubberBtnView(
                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
@@ -57,6 +63,10 @@ struct TransportView: View {
                             // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ
                             //    dopo N1b: si torna alla lista Shows.
                             //    Testo sopra invariato.
+                            // ⚠️ MARCATURA A240 (28/08) — le uscite (a) e (b) NON
+                            //    passano più da `startSetlist`: l'observer sceglie
+                            //    `startCurrentSong` (standby) o `startCurrentSection`
+                            //    (conserva il punto). Testo sopra invariato.
                             //
                             // Correzione AI esterna #1 (Fase C): condizione SENZA
                             // `&& !audioEngine.linkIsConnected` — anche con Link
@@ -72,7 +82,9 @@ struct TransportView: View {
                         } else {
                             // Modalità Direttore: Q-BEATS è sorgente, parte
                             // standalone immediatamente.
-                            runner.startSetlist(audioEngine: audioEngine, session: session)
+                            // ⚠️ A240 — era `startSetlist`: azzerava canzone e
+                            //    sezione, e il punto si perdeva QUI (A239, sito 1).
+                            runner.startCurrentSection(audioEngine: audioEngine, session: session)
                         }
                 }
 

@@ -187,7 +187,13 @@ struct LiveView: View {
                         // esplicito: WaitingForDirectorView è renderizzata
                         // SOLO in `.waitingForDirector`, quindi questa
                         // closure scatta solo in quello stato.
-                        runner.startSetlist(audioEngine: audioEngine, session: session)
+                        // ⚠️ A240 — era `startSetlist`: azzerava il punto anche
+                        //    quando l'attesa seguiva uno STOP a metà show (A239,
+                        //    sito 3). RULING del referee: «si riparte da dov'eri»
+                        //    non cambia a seconda di chi preme. Il blocco CD-6 qui
+                        //    sopra descrive ancora le partenze vecchie — testo
+                        //    invariato, vale questa marcatura.
+                        runner.startCurrentSection(audioEngine: audioEngine, session: session)
                     }
                 }
 
@@ -461,7 +467,13 @@ struct LiveView: View {
             if case .standby = session.playbackState {
                 runner.startCurrentSong(audioEngine: audioEngine, session: session)
             } else {
-                runner.startSetlist(audioEngine: audioEngine, session: session)
+                // ⚠️ A240 — era `startSetlist` (il commento qui sopra e il blocco
+                //    Q-D3 più su lo descrivono ancora così — testo invariato): il
+                //    Follower fermo a metà show perdeva il punto SENZA toccare
+                //    nulla quando il Direttore premeva Play (A239, sito 5). RULING
+                //    del referee: conserva canzone e sezione; fallback 0/0 dentro
+                //    `startCurrentSection` se l'indice non si risolve.
+                runner.startCurrentSection(audioEngine: audioEngine, session: session)
             }
         }
     }

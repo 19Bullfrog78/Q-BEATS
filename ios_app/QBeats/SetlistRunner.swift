@@ -51,7 +51,8 @@ final class SetlistRunner: ObservableObject {
     /// il display non è ancora stato aggiornato. Il subscriber a
     /// `beatTickSubject` applica `updateSessionDisplay` al primo tick
     /// post-transition (= primo beat nuova sezione audio Strada A).
-    /// Reset esplicito ai entry points (`startSetlist`, `startCurrentSong`)
+    /// Reset esplicito ai entry points (`startSetlist`, `startCurrentSong`,
+    /// `startCurrentSection` — ⚠️ A240)
     /// per evitare update spurio al replay dopo Stop manuale durante
     /// transizione SEAMLESS (TD #41 lifecycle).
     @Published private(set) var pendingDisplayUpdate: Bool = false
@@ -106,6 +107,10 @@ final class SetlistRunner: ObservableObject {
 
     /// Primo Play della setlist — resetta indici a 0 e carica la prima sezione.
     /// Chiamato dal pulsante Play del transport quando da `.stopped`.
+    /// ⚠️ A240 (28/08) — NON PIÙ: il Play del transport chiama ora
+    /// `startCurrentSection`, che conserva il punto. Questa partenza resta come
+    /// reset esplicito e al 28/08 ha ZERO chiamanti nel prodotto (misura A240):
+    /// chi la richiama sappia che azzera ENTRAMBI gli indici.
     func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
         // Reset esplicito pendingDisplayUpdate: se l'utente ha fatto Stop
         // durante una transizione SEAMLESS (flag true) e ora replay, evita
@@ -137,6 +142,45 @@ final class SetlistRunner: ObservableObject {
         currentSectionIdx = 0
         os_log("[Q-BEATS][L1.b] startCurrentSong — songIdx:%d sectionIdx:0",
                log: .default, type: .default, currentSongIdx)
+        prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
+    }
+
+    /// ⚠️ CARTELLO A240 (28/08/2026) — DECISIONE IN CHAT, NON ANCORA NEI CANONICI.
+    /// Mauro ha scelto l'opzione (B) del bivio posto dal referee: dopo uno STOP,
+    /// il play riparte dalla CANZONE dove si era E dalla SEZIONE dove si era.
+    /// La (A) — canzone giusta, sezione dall'inizio — è SCARTATA come rimedio
+    /// parziale. ⛔ BOX5 (V35, capitolo MODELLO DI SESSIONE, blocco 3) dice solo
+    /// «si riparte da dov'eri», SENZA scomporre in canzone e sezione: l'incisione
+    /// nei canonici è un atomo doc successivo, e finché non atterra questo
+    /// cartello è la sede provvisoria della decisione. Ticket:
+    /// `TD-stop-perde-il-punto` (BUGS v67). Misura: referto A239 (chat, 28/08).
+    ///
+    /// Terza partenza — CONSERVA `currentSongIdx` E `currentSectionIdx`.
+    /// Le altre due restano: `startSetlist` azzera tutto; `startCurrentSong`
+    /// conserva la canzone e azzera la sezione (ramo standby fra due canzoni).
+    /// Chiamanti — i tre siti che RIPRENDONO, dal censimento A239: Play del
+    /// transport da `.stopped` · START LOCAL dall'attesa Direttore · segnale
+    /// Link ramo else. ⚠️ Per START LOCAL e ramo else la conservazione è RULING
+    /// del referee («si riparte da dov'eri» non cambia a seconda di chi preme),
+    /// non decisione esplicita di Mauro.
+    func startCurrentSection(audioEngine: AudioEngine, session: LiveSession) {
+        // Reset esplicito coerente con startSetlist/startCurrentSong (TD #41
+        // lifecycle).
+        pendingDisplayUpdate = false
+        // 🚨 GUARDIA A240, obbligatoria da mandato — da A239: se `currentSection`
+        // non si risolve, `prepareAndStartCurrentSection` degenera e nessun campo
+        // display si rinfresca. Con la conservazione l'indice non è più garantito
+        // a 0 per costruzione: se non si risolve, fallback ESPLICITO a 0/0 —
+        // mai fallire in silenzio.
+        if currentSection == nil {
+            os_log("[Q-BEATS][L1.b] startCurrentSection — indici non validi (songIdx:%d sectionIdx:%d songs:%d) → fallback 0/0",
+                   log: .default, type: .error,
+                   currentSongIdx, currentSectionIdx, catalog.count)
+            currentSongIdx = 0
+            currentSectionIdx = 0
+        }
+        os_log("[Q-BEATS][L1.b] startCurrentSection — songIdx:%d sectionIdx:%d",
+               log: .default, type: .default, currentSongIdx, currentSectionIdx)
         prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
     }
 

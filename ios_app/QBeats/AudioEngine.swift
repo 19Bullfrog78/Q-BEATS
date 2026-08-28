@@ -174,6 +174,9 @@ class AudioEngine: ObservableObject {
     // `engine.start()` ignorando il runner → `_sectionTotalBeats=0` su
     // Follower → check `_sectionTotalBeats > 0` non passava → counter
     // macrobar all'infinito + nome canzone non mostrato (Problema B / Bug 4).
+    // ⚠️ MARCATURA A240 (28/08) — l'observer oggi sceglie `startCurrentSong`
+    //    (standby) o `startCurrentSection` (conserva il punto): `startSetlist`
+    //    non è più su questo percorso. Testo sopra invariato.
     // Gate anti double-emit: `_linkStartEmitInFlight` (vedi callback).
     // Gate idempotenza observer: `guard session.playbackState != .playing`
     // in LiveView (Q-D3 ratificato). NB: in modalità Direttore (linkMode ==
@@ -511,6 +514,9 @@ class AudioEngine: ObservableObject {
         // far orchestrare LiveView (→ runner.startSetlist). Senza emit il
         // Follower partirebbe audio ma con `_sectionTotalBeats=0` → counter
         // all'infinito + nome canzone non mostrato (Bug 4 / Problema B).
+        // ⚠️ MARCATURA A240 (28/08) — oggi l'orchestrazione va a
+        //    `startCurrentSong`/`startCurrentSection` (conserva il punto):
+        //    `startSetlist` non è più su questo percorso. Testo sopra invariato.
         //
         // Doppia protezione anti race:
         //  (1) Gate `_linkStartEmitInFlight` lato AudioEngine (qui sotto):

@@ -12,6 +12,10 @@ import SwiftUI
 ///    seamless a `.playing` (questa vista scompare automaticamente).
 ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
 ///    standalone, ignora l'attesa Director.
+///  ⚠️ MARCATURA A240 (28/08) — le due uscite qui sopra NON passano più da
+///  `startSetlist`: l'observer sceglie `startCurrentSong` (standby) o
+///  `startCurrentSection` (conserva canzone e sezione); START LOCAL chiama
+///  `startCurrentSection`. Testo sopra invariato.
 ///  - `CANCEL` → `onExit()` (seam Nodo A, callback fornito dal presenter
 ///    via LiveView) → AppRootView commuta `screen = .home` → ritorno a
 ///    Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"

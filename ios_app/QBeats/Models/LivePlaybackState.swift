@@ -17,5 +17,9 @@ enum LivePlaybackState: Equatable {
     // a Bivio. CD-Q2=B ratificato libro mastro v14.
     // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ dopo N1b: l'uscita del
     //    player torna alla lista Shows della stanza. Testo sopra invariato.
+    // ⚠️ MARCATURA A240 (28/08) — (a) e (b) NON passano più da `startSetlist`:
+    //    l'observer sceglie `startCurrentSong` (standby) o `startCurrentSection`
+    //    (conserva il punto); START LOCAL chiama `startCurrentSection`.
+    //    Testo sopra invariato.
     case waitingForDirector
 }
