@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V35 — 27/08/2026
+**Versione:** V36 — 28/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1056,6 +1056,13 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - ⛔ **Una voce candidata NON è stata incisa perché non si riproduce:** «numero non riproducibile» (173 → 494 → 580) rende **582 stabile su sei chiamate identiche**. **Osservata, dichiarata, non incisa.**
 - ✅ **Misurato prima di scrivere: l'innesto alla riga 943 NON sposta alcuna citazione nuda.** Le citazioni `BOX5_QBEATS.md:NN` più alte del corpus sono `:564` e `:566`, che **precedono** l'innesto. ⚠️ **Vivono solo sulla gamba `E:`** (`HANDOFF/A58-USCITA-FINESHOW-RICOGNIZIONE.txt`): su `C:` il massimo è **390**, e una sonda che guardi solo `C:` **sottostima**.
 
+**Delta V36 vs V35:**
+
+- **MARCATURA ADDITIVA nel blocco 3**, riga «STOP nel player è REVERSIBILE»: **[R] Mauro il 28/08 ha sciolto «da dov'eri» in CANZONE e SEZIONE** — opzione (B), la (A) scartata. **Zero parole riscritte:** la riga del 27/08 resta, e la marcatura le sta accanto.
+- ⚠️ **La decisione è incisa come CONSEGUENZA, non come voce isolata:** nasce dalla rimozione dell'overlay di ripresa (§2, «nessun pannello sopra») — tolto il pannello, la scelta fra i suoi due bottoni diventa un default silenzioso, e questa è la scelta di quel default. **Chi rimettesse il pannello riaprirebbe una scelta.**
+- **[M] Costruita in A240, commit `d0225ef`** (terza partenza che conserva entrambi gli indici, tre siti cablati). ⛔ **Collaudo su device NON eseguito** al momento di questa incisione.
+- ✅ **Misurato prima di scrivere: nessuna citazione nuda slitta.** La riga BOX5 più alta citata dal corpus è **`:562`**; entrambi gli innesti di questa versione stanno **oltre la riga 1059**, quindi tutte le citazioni restano a monte e non si muovono. Controllo positivo sulla stessa sonda: le citazioni nel sorgente Swift (`:68 :331 :354 :458`) sono viste.
+
 **Delta V35 vs V34:**
 
 - **Capitolo NUOVO «MODELLO DI SESSIONE Q-LIVE»**, sede unica delle decisioni di sessione che fino a oggi vivevano SOLO in due chat e in un documento su Drive. Contiene: le **decisioni 6-18 del 26/08** di CD (ratificate in chat da Mauro, **nessun device le ha viste**), la **copy della conferma** con la riga ambra, le **decisioni di Mauro del 27/08 sera** che le superano in parte (bivio a tre vie sulla freccia dopo lo stop · le tre facce del dettaglio · «STOP significa una cosa sola» · il pulsante del dettaglio si chiama END SHOW · la decisione 8 regge · l'ambiguità di «gira» sciolta), e le **tre sorti della decisione 7**.
@@ -1200,6 +1207,10 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 ⚠️ **«Ratificata e mai costruita» si legge in modo diverso da «superata», e fra sei mesi la differenza conta.** La prima dice che qualcuno aveva deciso e nessuno ha eseguito; la seconda dice che la decisione non vale più. **Qui vale la prima.**
 
 ⇒ **Il difetto che ne discende è tracciato:** il ticket sul punto perso dopo lo stop, aperto il 27/08 su osservazione device di Mauro.
+
+⇒ ✅ **MARCATURA ADDITIVA 28/08 — «DA DOV'ERI» È SCIOLTO, e la riga sopra resta com'è.** Mauro ha deciso il 28/08 che «da dov'eri» significa **CANZONE e SEZIONE**: opzione **(B)** di un bivio posto dal referee; la **(A)** — canzone giusta, sezione riportata all'inizio — è **scartata come rimedio parziale**. ⇒ **Costruita in A240 (`d0225ef`); collaudo device NON ancora eseguito.**
+
+⚠️ **[A] E la scelta nasce come CONSEGUENZA della riga qui sopra, non a fianco:** tolto l'overlay di ripresa — «nessun pannello sopra», §2 e riga precedente — **la scelta fra i suoi due bottoni smette di essere dell'utente e diventa un default**. ⇒ **Questo è quel default.** Chi un giorno rimettesse il pannello deve sapere che sta riaprendo una scelta, non aggiungendo un comodo.
 
 ---
 
