@@ -104,7 +104,65 @@ final class QLiveSession: ObservableObject {
     /// `if let runner` non può apparire. Basta un'attesa a spezzare la garanzia:
     /// lì il ramo `else` diventa visibile. L'ordine si rispetta comunque — costa
     /// nulla — ma non è lui a proteggere.
+    ///
+    /// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — LA CLAUSOLA «SOSTITUISCE SEMPRE,
+    /// ANCHE A SLOT PIENO» (:87-91) È SUPERATA DALLA FIRMA B DI MAURO. Si marca e
+    /// NON si riscrive: come descrizione di QUESTO metodo resta vera — continua
+    /// ad assegnare e basta — ed è la storia di perché lo slot nacque con
+    /// un'assegnazione secca.
+    /// ⛔ COSA CAMBIA: il caso che quella clausola voleva coprire — «la band apre
+    /// un SECONDO show nella stessa serata» — non passa più di qui. La decisione
+    /// è salita al chiamante, cioè alla STANZA: `QLiveRootView` costruisce e
+    /// installa SOLO a slot vuoto, e a slot pieno si riattacca senza toccare lo
+    /// slot. Il secondo show ora esige `endShow()` prima, ed è la firma a dirlo.
+    /// ⇒ A slot pieno questo metodo non è più raggiungibile dal prodotto.
+    /// ⛔ Resta assegnazione secca DI PROPOSITO: un `guard runner == nil` qui
+    ///   metterebbe la stessa decisione in due posti, e due posti divergono. Il
+    ///   posto è uno solo, ed è la stanza.
+    /// ⚠️ COSA NON CAMBIA: il prezzo dichiarato in :91 — «il vecchio runner perde
+    ///   qui il suo ultimo riferimento forte» — è ancora esatto. È il meccanismo
+    ///   con cui lo show vivo restava orfano al rientro, e non è stato tolto: è
+    ///   stato reso irraggiungibile a monte.
     func install(_ newRunner: SetlistRunner) {
         runner = newRunner
+    }
+
+    /// ⟦PORTA-RIENTRO⟧ ② — IL SECONDO MUTATORE: lo slot si SVUOTA.
+    ///
+    /// **[M] Prima di oggi non esisteva UNA SOLA istruzione, in tutto il
+    /// prodotto, che riportasse `runner` a `nil`** — misurato per enumerazione:
+    /// `install` era l'unico scrittore, e assegnava sempre un valore non-nil. È
+    /// il difetto che CD ha chiamato «il bit *show aperto* non si spegne mai»
+    /// (politica del rientro, §1b): dentro la stanza, dopo il primo Start, quel
+    /// bit diceva **sì per sempre**.
+    ///
+    /// ⛔ NON È UN BOTTONE, ED È IL PUNTO. Si chiama DOVE LA SESSIONE SI CHIUDE,
+    /// non dentro il gesto che la chiude. Appendere lo spegnimento al bottone di
+    /// END SHOW significherebbe che il SECONDO innesco di END SHOW nasce già
+    /// dimenticandolo — ed è testuale in CD: «se lo si attacca al bottone, il
+    /// secondo innesco lo dimentica».
+    ///
+    /// DUE EFFETTI, e il secondo non è un di più:
+    ///  1. lo slot torna vuoto ⇒ la porta ricomincia a COSTRUIRE, e la band può
+    ///     aprire il secondo show della serata. Senza questo, il gate della
+    ///     porta da solo incatenerebbe la stanza al primo show — ed è la ragione
+    ///     per cui ① e ② sono indivisibili per firma.
+    ///  2. `liveSession.playbackState` torna a `.stopped`. ⛔ Senza (2) la (1) è
+    ///     una trappola: da A242 la sessione SOPRAVVIVE alla schermata, e uno
+    ///     stato `.fineSetlist` rimasto addosso farebbe aprire lo show NUOVO
+    ///     direttamente sulla schermata di END SHOW (`LiveView.swift:149`),
+    ///     perché `primeDisplay` arma lo standby SOLO da `.stopped`
+    ///     (`SetlistRunner.swift:361`). ⚠️ La riga NON è nuova e non è una
+    ///     decisione mia: è la stessa che viveva dentro la closure del bottone
+    ///     in `LiveView`, con la sua motivazione già scritta lì — qui è
+    ///     SPOSTATA, perché è al chiudersi della sessione che appartiene.
+    ///
+    /// ⛔ NON azzera i tredici campi di show della `liveSession`: non è chiesto,
+    ///    e cosa lo schermo legge al rientro è materia della FIRMA A (le sedici
+    ///    voci), che non è questo mandato. Qui si chiude la sessione, non si
+    ///    pulisce la vetrina.
+    func endShow() {
+        runner = nil
+        liveSession.playbackState = .stopped
     }
 }

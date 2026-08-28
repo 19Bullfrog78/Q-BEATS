@@ -67,6 +67,15 @@ import SwiftUI
 // ⚠️ Vale anche per il rimando a `QLiveSession.swift:12-15`: quel commento è
 // scaduto per lo stesso motivo, ed è marcato in loco.
 //
+// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — L'ISTRUZIONE DI RICERCA DI :62 NON
+// TROVA PIÙ NULLA, e va corretta perché è un'istruzione, non un'opinione: la
+// stringa `onStart(SetlistRunner(` in questo file NON ESISTE PIÙ. Da oggi il
+// runner nasce nella STANZA (`QLiveRootView`, ramo `.detail`) e questa vista
+// chiama `onStart()` e basta. ⇒ Cerca `onStart()`, non `onStart(SetlistRunner(`.
+// ⛔ Il resto della marcatura del 23/08 REGGE INTATTO: lo Start non è inerte, e
+//    da questo pulsante si entra nel player. Cambia CHI costruisce, non che
+//    succeda.
+//
 // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
 // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
 // file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è
@@ -86,6 +95,25 @@ import SwiftUI
 struct QLiveShowDetailView: View {
     let setlist: Setlist
     let onBack: () -> Void
+
+    /// ⟦PORTA-RIENTRO⟧ ③ — l'UNICO bit da cui dipende la PAROLA del bottone:
+    /// c'è uno show vivo in stanza, sì o no.
+    ///
+    /// ⛔ NON dice QUALE show, e non è una semplificazione: `SetlistRunner` non
+    /// conserva la setlist — il suo `init` (`SetlistRunner.swift:62-68`) tiene
+    /// solo il catalogo risolto — quindi il prodotto, oggi, non sa quale show
+    /// stia suonando. Nominarlo esigerebbe una proprietà nuova sul runner, che
+    /// questo mandato non tocca. Forma (iii-a), sciolta dal mandato.
+    ///
+    /// ⚠️ CONSEGUENZA NOTA E GIRATA A CD, non risolta qui: leggendo il dettaglio
+    /// dello show B mentre suona lo show A, il bottone dirà «rientra» e porterà
+    /// ad A senza dirlo.
+    ///
+    /// ⚠️ POSIZIONE NON CASUALE: sta PRIMA di `onStart` perché l'ordine di
+    /// dichiarazione È la firma dell'init memberwise, e il sito di montaggio
+    /// (`QLiveRootView`, ramo `.detail`) passa gli argomenti in quest'ordine.
+    let isShowLive: Bool
+
     /// ⟦S5b⟧ — Start. Il runner si costruisce QUI: questa vista possiede già i due
     /// soli ingredienti che servono, `setlist` (:78) e `store` (:81), e
     /// `SetlistRunner.init(setlist:store:)` non chiede altro
@@ -100,7 +128,22 @@ struct QLiveShowDetailView: View {
     /// root, contro la riga che lo assegna qui. Forma adottata:
     /// `(SetlistRunner) -> Void`. Rilievo #1 del referto A125 — se il referee
     /// vuole la lettera, il cambio è meccanico e sta in un solo giro.
-    let onStart: (SetlistRunner) -> Void
+    ///
+    /// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — IL GIRO È ARRIVATO, ED È
+    /// QUESTO. Il testo sopra resta come fu scritto: dichiarava la propria
+    /// scadenza («se il referee vuole la lettera, il cambio è meccanico») e la
+    /// scadenza è arrivata per una ragione che allora non c'era.
+    /// ⛔ COSA CAMBIA: la closure torna alla LETTERA della scheda, `() -> Void`,
+    /// e il runner NON nasce più qui. Non è un ripensamento di stile: la FIRMA B
+    /// di Mauro (28/08) dispone che a slot pieno la porta si RIATTACCHI e non
+    /// costruisca mai, e «costruire o riattaccarsi» è una decisione di SESSIONE.
+    /// Questa vista conosce la SUA setlist e non sa nulla della stanza: non è il
+    /// posto dove quella decisione può essere presa. Ora costruisce la stanza
+    /// (`QLiveRootView.swift`, ramo `.detail`), e questa foglia dice soltanto
+    /// «l'utente ha premuto».
+    /// ⇒ Con ciò il rilievo #1 del referto A125 è CHIUSO, e la divergenza
+    ///   dichiarata sopra non esiste più.
+    let onStart: () -> Void
 
     @ObservedObject private var store = QBeatsStore.shared
 
@@ -414,7 +457,17 @@ struct QLiveShowDetailView: View {
     // presente in TUTTI e tre gli stati (Frame 3/F/G lo portano tutti).
 
     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
-        let isEnabled = !resolved.songs.isEmpty
+        // ⟦PORTA-RIENTRO⟧ ③ — ⚠️ È L'UNICO PUNTO IN CUI HO ESTESO OLTRE LA LETTERA
+        // DEL MANDATO, e va guardato per primo. Prima era `!resolved.songs.isEmpty`
+        // secco. A slot pieno il bottone NON avvia questo show: riporta a quello
+        // VIVO ⇒ la vuotezza della setlist che si ha davanti non è più una ragione
+        // per chiudere il tocco. Con la condizione vecchia, aprire il dettaglio di
+        // uno show vuoto o tutto-orfano MENTRE un altro show suona darebbe un
+        // bottone SPENTO e nessuna strada per rientrare — un vicolo cieco creato
+        // dal cambiamento stesso.
+        // ⛔ Cambia la CONDIZIONE, non il trattamento visivo dello spento (opacità
+        //    0,4 · bordo · ombra): quello è pelle, e la pelle non si tocca.
+        let isEnabled = isShowLive || !resolved.songs.isEmpty
         return Button {
             // ⟦S5b⟧ — ARMA, NON SUONA. Qui non si tocca l'audio: si costruisce il runner
             // con la setlist SCELTA e lo si consegna al presentatore.
@@ -424,13 +477,36 @@ struct QLiveShowDetailView: View {
             //    canzone») e `BOX5_QBEATS.md:354` (§3 — «il click parte al secondo tap,
             //    schermo ovunque, o via MIDI»). Il secondo tap è già cablato e non si
             //    tocca: `LiveView.swift:134-137`.
-            onStart(SetlistRunner(setlist: setlist, store: store))
+            //
+            // ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — «si costruisce il runner»
+            //    QUI NON È PIÙ VERO: il runner nasce nella STANZA (firma B). Il
+            //    resto del testo sopra vale IDENTICO e non è mai stato in
+            //    discussione — ARMA-NON-SUONA e il divieto su `startSetlist` sono
+            //    esattamente ciò che questa porta continua a rispettare: anche il
+            //    ramo di RIENTRO naviga e basta, senza toccare il transport.
+            onStart()
         } label: {
             HStack(spacing: 10) {
-                PlayGlyphShape()
-                    .fill(Color.white)
-                    .frame(width: 16, height: 16)
-                Text("START SHOW")
+                // ⟦PORTA-RIENTRO⟧ ③ — IL GLIFO SPARISCE NELLO STATO DI RIENTRO. Un
+                // triangolo di play accanto a una parola che non avvia niente è una
+                // seconda bugia, più piccola della prima e della stessa specie.
+                // ⚠️ INFERITO, NON DECISO — ATTENDE CD. Nascondere è il minimo che
+                //    non mente; QUALE segno vada al suo posto è disegno, e non lo
+                //    invento. Quando CD consegna la veste, questo `if` è il posto.
+                if !isShowLive {
+                    PlayGlyphShape()
+                        .fill(Color.white)
+                        .frame(width: 16, height: 16)
+                }
+                // ⟦PORTA-RIENTRO⟧ ③ — LA PAROLA, e dipende dal solo bit `isShowLive`.
+                // `BACK TO SHOW` è parola di CD (decisione della porta, 28/08): non è
+                // copy inventata qui.
+                // ⚠️ VESTE MANCANTE, DICHIARATA: il rientro indossa la livrea
+                //    arancione dell'avvio — gradiente, glow, geometria e stato
+                //    disabilitato restano quelli dello Start, per mandato. È
+                //    un'approssimazione visiva nota, non una svista: la skin è di CD
+                //    e non è arrivata.
+                Text(isShowLive ? "BACK TO SHOW" : "START SHOW")
                     .font(.jbMono(.bold, size: 15))
                     .tracking(2.5)
                     .foregroundColor(.white)

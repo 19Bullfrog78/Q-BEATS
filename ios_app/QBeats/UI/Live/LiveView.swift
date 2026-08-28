@@ -8,6 +8,20 @@ struct LiveView: View {
     /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
     let onExit: () -> Void
+    /// ⟦PORTA-RIENTRO⟧ ② — seam di FINE SHOW, distinto da `onExit`.
+    ///
+    /// ⚠️ PERCHÉ NON BASTAVA `onExit`: fino a oggi END SHOW lo riusava — il
+    /// commento del ramo `.fineSetlist` più sotto lo chiama «TERZO inoltro dello
+    /// stesso seam» — e con un canale solo il presentatore non può distinguere
+    /// «me ne vado dal player» da «lo show è finito». Sono due fatti diversi e ora
+    /// hanno due fili diversi: il primo lascia lo show vivo in stanza, il secondo
+    /// lo chiude.
+    ///
+    /// ⛔ QUESTA VISTA NON SVUOTA NULLA e non deve: non possiede lo slot, non sa
+    ///    che esiste, e lo spegnimento non va appeso al gesto. Qui si SEGNALA il
+    ///    fatto; chi lo raccoglie è la stanza (`QLiveRootView.endShowAndLeave()`),
+    ///    che è anche l'unica a poterlo fare.
+    let onEndShow: () -> Void
     // ⚠️ A242 — era `@StateObject private var session = LiveSession()`: la
     //    sessione nasceva e MORIVA con questa vista, e con lei i sedici campi
     //    (censimento A229). Ora la possiede la STANZA (`QLiveSession.liveSession`,
@@ -162,10 +176,31 @@ struct LiveView: View {
                     //      `navigate(to: .shows)`): stesso identico canale già usato
                     //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
                     //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
-                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
-                        session.playbackState = .stopped
-                        onExit()
-                    })
+                    // ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — L'ORDINE OBBLIGATO
+                    //    DESCRITTO QUI SOPRA NON VIVE PIÙ IN QUESTA CLOSURE, e le due
+                    //    righe (a) e (b) non sono state tolte: sono state SPOSTATE
+                    //    nella stanza, dentro `QLiveSession.endShow()` +
+                    //    `QLiveRootView.endShowAndLeave()`, e lì stanno insieme e
+                    //    nello stesso ordine.
+                    //    · (a) il reset a `.stopped` è la riga 1 di `endShow()`, con
+                    //      la sua motivazione ripresa per intero — ed è diventata più
+                    //      necessaria, non meno: da A242 la sessione sopravvive di
+                    //      sicuro alla schermata, quindi il caso che (a) temeva non è
+                    //      più solo possibile, è certo.
+                    //    · (b) la navigazione è la riga 2, sullo stesso seam del
+                    //      presentatore.
+                    // ⇒ PERCHÉ SPOSTATE: qui erano dentro il GESTO. Lo spegnimento
+                    //   dello slot deve stare dove la sessione si chiude, o il
+                    //   secondo innesco di END SHOW — quello del dettaglio, disegnato
+                    //   da CD il 27/08 e OGGI NON COSTRUITO — nascerebbe già
+                    //   dimenticandolo.
+                    // ⛔ RESTART SETLIST di `FineSetlistView` NON è toccato da questo
+                    //    giro: resta inerte com'era. Una decisione ratificata il
+                    //    07/08 (`LIBRO_MASTRO_QBEATS.md:353`) dispone di TOGLIERLO da
+                    //    END SHOW, e il mandato ha sciolto che non è di questo giro.
+                    //    Lo si incontra per forza lavorando qui: è lasciato intatto
+                    //    di proposito, non per svista.
+                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: onEndShow)
                 }
 
                 // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR

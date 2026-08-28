@@ -89,6 +89,54 @@ struct QLiveRootView: View {
         page = newPage
     }
 
+    /// ⟦PORTA-RIENTRO⟧ ② — USCITA dal player verso l'imbuto interno. Sostituisce
+    /// la closure nuda `{ navigate(to: .shows) }` che stava al sito di montaggio:
+    /// la navigazione è IDENTICA, si aggiunge una sola condizione.
+    ///
+    /// ⛔ NON tocca il transport e non ferma l'audio: la decisione CD 18/07
+    ///    («navigazione ≠ transport», :78-85) resta intatta, e questo metodo la
+    ///    rispetta alla lettera. Qui si chiude una sessione GIÀ FINITA DA SÉ —
+    ///    non si ferma niente che stia suonando.
+    ///
+    /// PERCHÉ LA CONDIZIONE STA QUI E NON SUL BOTTONE — è il TERZO innesco della
+    /// firma, la FINE SCALETTA. Uno show esaurito è finito qualunque porta si usi
+    /// per uscire: se lo svuotamento vivesse solo sul BACK TO SHOWS di END SHOW,
+    /// chi esce dalla schermata di fine con la FRECCIA (`LiveHeaderView`)
+    /// lascerebbe in stanza un runner esaurito, e al rientro si riattaccherebbe a
+    /// uno show che non esiste più. È esattamente il caso che CD descrive al §1b:
+    /// «a scaletta finita, riaprendo, comparirebbe il velo sull'ultima canzone,
+    /// con un invito a toccare che rifarebbe partire un pezzo di uno show che non
+    /// esiste più».
+    ///
+    /// ⚠️ Lettura di `roomSession.liveSession.playbackState` AL MOMENTO DELL'AZIONE,
+    ///    dentro una closure — NON una dipendenza del `body`. Il VINCOLO DI
+    ///    PROPAGAZIONE (`QLiveSession.swift:26-38`) riguarda l'UI che non si
+    ///    aggiorna osservando un `ObservableObject` annidato: qui non si osserva
+    ///    nulla e non si disegna nulla, si legge un valore per decidere un'azione.
+    private func leavePlayer() {
+        if case .fineSetlist = roomSession.liveSession.playbackState {
+            roomSession.endShow()
+        }
+        navigate(to: .shows)
+    }
+
+    /// ⟦PORTA-RIENTRO⟧ ② — END SHOW ESPLICITO. Seam separato da `onExit`, e la
+    /// separazione È la mossa: `endShow()` deve poter essere chiamato da OGNI
+    /// innesco di fine-show senza che l'innesco debba ricordarsene.
+    ///
+    /// ⚠️ **[M] OGGI L'INNESCO È UNO SOLO, NON DUE.** Il mandato ne nomina due —
+    /// e CD ne disegna due il 27/08: la voce del BIVIO e la voce del DETTAGLIO
+    /// (rinomina STOP→END SHOW). Misurato a `eca1ae6c`: nel prodotto esiste
+    /// soltanto il BACK TO SHOWS di `FineSetlistView`, inoltrato da
+    /// `LiveView`. Il secondo non è stato dimenticato: **non è costruito**, ed è
+    /// disegno non ancora consegnato. ⛔ Non l'ho inventato.
+    /// ⇒ Quando arriverà, si aggancia QUI e non deve sapere altro. È
+    ///   precisamente il motivo per cui lo spegnimento non sta nel bottone.
+    private func endShowAndLeave() {
+        roomSession.endShow()
+        navigate(to: .shows)
+    }
+
     var body: some View {
         switch page {
         case .shows:
@@ -104,6 +152,15 @@ struct QLiveRootView: View {
                 QLiveShowDetailView(
                     setlist: show,
                     onBack: { navigate(to: .shows) },
+                    // ⟦PORTA-RIENTRO⟧ ③ — l'unico bit che decide la PAROLA del
+                    // bottone. ✅ LETTURA LEGITTIMA del contenitore-sessione, ed è
+                    // l'unico segnale che sa dare: «la si osserva SOLO per sapere se
+                    // il runner c'è — apparizione e scomparsa» (`QLiveSession.swift:
+                    // 34-38`). Qui si chiede esattamente quello. ⛔ NON è la lettura
+                    // VIETATA dallo stesso cartello: il runner non viene letto
+                    // ATTRAVERSO la sessione per darlo ai figli — quella continua a
+                    // passare per il gate `.metronome` qui sotto, invariato.
+                    isShowLive: roomSession.runner != nil,
                     // ⟦S5b⟧ `Cond (a)` — L'INVARIANTE È LA SINCRONIA, NON L'ORDINE
                     // (correzione del referee). Le due righe qui sotto stanno nella
                     // STESSA closure e senza alcuna attesa in mezzo: niente `Task`,
@@ -118,8 +175,41 @@ struct QLiveRootView: View {
                     //    sul transport (decisione CD 18/07, :78-85). Questo è un
                     //    INGRESSO — arma e basta. Il click parte al secondo tap
                     //    (`LiveView.swift:134-137`).
-                    onStart: { runner in
-                        roomSession.install(runner)
+                    // ⟦PORTA-RIENTRO⟧ ① — COSTRUISCE LA STANZA, NON LA FOGLIA.
+                    // «Costruire o riattaccarsi» è una decisione di SESSIONE, e la
+                    // sessione la possiede questo nodo. La foglia ora dice soltanto
+                    // «l'utente ha premuto»: non sa, e non deve sapere, se in stanza
+                    // c'è uno show vivo.
+                    //
+                    // ⛔ COSA C'ERA PRIMA, e perché è stato tolto: il runner nasceva
+                    //    nella foglia e arrivava qui già costruito; `install` lo
+                    //    installava ANCHE a slot pieno, e il runner vivo perdeva
+                    //    l'ultimo riferimento forte. Lo show in corso restava ORFANO
+                    //    — il motore scaricava la coda e taceva con `isPlaying`
+                    //    ancora vero, la closure di fine-sezione usciva al `guard let
+                    //    self` (`SetlistRunner.swift:375-376`), e nessuno accendeva
+                    //    più END SHOW. È il guasto visto sul device il 28/08.
+                    //
+                    // ⛔ A SLOT PIENO NON SI COSTRUISCE E NON SI INSTALLA NULLA: si
+                    //    naviga e basta, ed è il «BACK TO SHOW» della firma B. Per
+                    //    ricostruire serve prima `endShow()` — che è ② e sta in
+                    //    questo stesso commit, per vincolo di indivisibilità: il gate
+                    //    da solo incatenerebbe la stanza al primo show della serata.
+                    //
+                    // ⚠️ L'INVARIANTE ⟦S5b⟧ `Cond (a)` È INTATTA E ORA VALE PER
+                    //    ENTRAMBI I RAMI: la decisione e la `navigate` stanno nella
+                    //    STESSA closure sincrona, senza attese in mezzo. Il ramo
+                    //    `else` del gate `.metronome` non può apparire né a slot
+                    //    vuoto (si è appena installato) né a slot pieno (c'era già).
+                    //
+                    // `QBeatsStore.shared` è lo stesso accesso che la foglia usava
+                    // per costruire (`QLiveShowDetailView.swift`, `store`): il
+                    // singleton non cambia, cambia solo chi lo chiama.
+                    onStart: {
+                        if roomSession.runner == nil {
+                            roomSession.install(SetlistRunner(setlist: show,
+                                                              store: QBeatsStore.shared))
+                        }
                         navigate(to: .metronome)
                     }
                 )
@@ -181,7 +271,16 @@ struct QLiveRootView: View {
                 //    interna. Il VINCOLO DI PROPAGAZIONE resta rispettato: qui
                 //    si passa il RIFERIMENTO una volta sola; LiveView la osserva
                 //    direttamente, mai attraverso il contenitore.
-                LiveView(onExit: { navigate(to: .shows) }, session: roomSession.liveSession)
+                // ⚠️ ⟦PORTA-RIENTRO⟧ — `onExit` non è più una closure nuda di
+                //    navigazione: passa da `leavePlayer()`, che aggiunge UNA
+                //    condizione e nient'altro (vedi lì il perché). `onEndShow` è un
+                //    seam NUOVO: fino a oggi END SHOW riusava questo stesso `onExit`
+                //    («TERZO inoltro dello stesso seam», `LiveView.swift`), e con un
+                //    seam solo non c'è modo di distinguere «me ne vado» da «lo show
+                //    è finito».
+                LiveView(onExit: { leavePlayer() },
+                         onEndShow: { endShowAndLeave() },
+                         session: roomSession.liveSession)
                     .environmentObject(runner)
             } else {
                 // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un

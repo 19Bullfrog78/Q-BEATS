@@ -1,0 +1,399 @@
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 7b9713f..1a31223 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -8,6 +8,20 @@ struct LiveView: View {
+     /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
+     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+     let onExit: () -> Void
++    /// ⟦PORTA-RIENTRO⟧ ② — seam di FINE SHOW, distinto da `onExit`.
++    ///
++    /// ⚠️ PERCHÉ NON BASTAVA `onExit`: fino a oggi END SHOW lo riusava — il
++    /// commento del ramo `.fineSetlist` più sotto lo chiama «TERZO inoltro dello
++    /// stesso seam» — e con un canale solo il presentatore non può distinguere
++    /// «me ne vado dal player» da «lo show è finito». Sono due fatti diversi e ora
++    /// hanno due fili diversi: il primo lascia lo show vivo in stanza, il secondo
++    /// lo chiude.
++    ///
++    /// ⛔ QUESTA VISTA NON SVUOTA NULLA e non deve: non possiede lo slot, non sa
++    ///    che esiste, e lo spegnimento non va appeso al gesto. Qui si SEGNALA il
++    ///    fatto; chi lo raccoglie è la stanza (`QLiveRootView.endShowAndLeave()`),
++    ///    che è anche l'unica a poterlo fare.
++    let onEndShow: () -> Void
+     // ⚠️ A242 — era `@StateObject private var session = LiveSession()`: la
+     //    sessione nasceva e MORIVA con questa vista, e con lei i sedici campi
+     //    (censimento A229). Ora la possiede la STANZA (`QLiveSession.liveSession`,
+@@ -162,10 +176,31 @@ struct LiveView: View {
+                     //      `navigate(to: .shows)`): stesso identico canale già usato
+                     //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+                     //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
+-                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
+-                        session.playbackState = .stopped
+-                        onExit()
+-                    })
++                    // ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — L'ORDINE OBBLIGATO
++                    //    DESCRITTO QUI SOPRA NON VIVE PIÙ IN QUESTA CLOSURE, e le due
++                    //    righe (a) e (b) non sono state tolte: sono state SPOSTATE
++                    //    nella stanza, dentro `QLiveSession.endShow()` +
++                    //    `QLiveRootView.endShowAndLeave()`, e lì stanno insieme e
++                    //    nello stesso ordine.
++                    //    · (a) il reset a `.stopped` è la riga 1 di `endShow()`, con
++                    //      la sua motivazione ripresa per intero — ed è diventata più
++                    //      necessaria, non meno: da A242 la sessione sopravvive di
++                    //      sicuro alla schermata, quindi il caso che (a) temeva non è
++                    //      più solo possibile, è certo.
++                    //    · (b) la navigazione è la riga 2, sullo stesso seam del
++                    //      presentatore.
++                    // ⇒ PERCHÉ SPOSTATE: qui erano dentro il GESTO. Lo spegnimento
++                    //   dello slot deve stare dove la sessione si chiude, o il
++                    //   secondo innesco di END SHOW — quello del dettaglio, disegnato
++                    //   da CD il 27/08 e OGGI NON COSTRUITO — nascerebbe già
++                    //   dimenticandolo.
++                    // ⛔ RESTART SETLIST di `FineSetlistView` NON è toccato da questo
++                    //    giro: resta inerte com'era. Una decisione ratificata il
++                    //    07/08 (`LIBRO_MASTRO_QBEATS.md:353`) dispone di TOGLIERLO da
++                    //    END SHOW, e il mandato ha sciolto che non è di questo giro.
++                    //    Lo si incontra per forza lavorando qui: è lasciato intatto
++                    //    di proposito, non per svista.
++                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: onEndShow)
+                 }
+ 
+                 // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index 6a92bb2..669c611 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -89,6 +89,54 @@ struct QLiveRootView: View {
+         page = newPage
+     }
+ 
++    /// ⟦PORTA-RIENTRO⟧ ② — USCITA dal player verso l'imbuto interno. Sostituisce
++    /// la closure nuda `{ navigate(to: .shows) }` che stava al sito di montaggio:
++    /// la navigazione è IDENTICA, si aggiunge una sola condizione.
++    ///
++    /// ⛔ NON tocca il transport e non ferma l'audio: la decisione CD 18/07
++    ///    («navigazione ≠ transport», :78-85) resta intatta, e questo metodo la
++    ///    rispetta alla lettera. Qui si chiude una sessione GIÀ FINITA DA SÉ —
++    ///    non si ferma niente che stia suonando.
++    ///
++    /// PERCHÉ LA CONDIZIONE STA QUI E NON SUL BOTTONE — è il TERZO innesco della
++    /// firma, la FINE SCALETTA. Uno show esaurito è finito qualunque porta si usi
++    /// per uscire: se lo svuotamento vivesse solo sul BACK TO SHOWS di END SHOW,
++    /// chi esce dalla schermata di fine con la FRECCIA (`LiveHeaderView`)
++    /// lascerebbe in stanza un runner esaurito, e al rientro si riattaccherebbe a
++    /// uno show che non esiste più. È esattamente il caso che CD descrive al §1b:
++    /// «a scaletta finita, riaprendo, comparirebbe il velo sull'ultima canzone,
++    /// con un invito a toccare che rifarebbe partire un pezzo di uno show che non
++    /// esiste più».
++    ///
++    /// ⚠️ Lettura di `roomSession.liveSession.playbackState` AL MOMENTO DELL'AZIONE,
++    ///    dentro una closure — NON una dipendenza del `body`. Il VINCOLO DI
++    ///    PROPAGAZIONE (`QLiveSession.swift:26-38`) riguarda l'UI che non si
++    ///    aggiorna osservando un `ObservableObject` annidato: qui non si osserva
++    ///    nulla e non si disegna nulla, si legge un valore per decidere un'azione.
++    private func leavePlayer() {
++        if case .fineSetlist = roomSession.liveSession.playbackState {
++            roomSession.endShow()
++        }
++        navigate(to: .shows)
++    }
++
++    /// ⟦PORTA-RIENTRO⟧ ② — END SHOW ESPLICITO. Seam separato da `onExit`, e la
++    /// separazione È la mossa: `endShow()` deve poter essere chiamato da OGNI
++    /// innesco di fine-show senza che l'innesco debba ricordarsene.
++    ///
++    /// ⚠️ **[M] OGGI L'INNESCO È UNO SOLO, NON DUE.** Il mandato ne nomina due —
++    /// e CD ne disegna due il 27/08: la voce del BIVIO e la voce del DETTAGLIO
++    /// (rinomina STOP→END SHOW). Misurato a `eca1ae6c`: nel prodotto esiste
++    /// soltanto il BACK TO SHOWS di `FineSetlistView`, inoltrato da
++    /// `LiveView`. Il secondo non è stato dimenticato: **non è costruito**, ed è
++    /// disegno non ancora consegnato. ⛔ Non l'ho inventato.
++    /// ⇒ Quando arriverà, si aggancia QUI e non deve sapere altro. È
++    ///   precisamente il motivo per cui lo spegnimento non sta nel bottone.
++    private func endShowAndLeave() {
++        roomSession.endShow()
++        navigate(to: .shows)
++    }
++
+     var body: some View {
+         switch page {
+         case .shows:
+@@ -104,6 +152,15 @@ struct QLiveRootView: View {
+                 QLiveShowDetailView(
+                     setlist: show,
+                     onBack: { navigate(to: .shows) },
++                    // ⟦PORTA-RIENTRO⟧ ③ — l'unico bit che decide la PAROLA del
++                    // bottone. ✅ LETTURA LEGITTIMA del contenitore-sessione, ed è
++                    // l'unico segnale che sa dare: «la si osserva SOLO per sapere se
++                    // il runner c'è — apparizione e scomparsa» (`QLiveSession.swift:
++                    // 34-38`). Qui si chiede esattamente quello. ⛔ NON è la lettura
++                    // VIETATA dallo stesso cartello: il runner non viene letto
++                    // ATTRAVERSO la sessione per darlo ai figli — quella continua a
++                    // passare per il gate `.metronome` qui sotto, invariato.
++                    isShowLive: roomSession.runner != nil,
+                     // ⟦S5b⟧ `Cond (a)` — L'INVARIANTE È LA SINCRONIA, NON L'ORDINE
+                     // (correzione del referee). Le due righe qui sotto stanno nella
+                     // STESSA closure e senza alcuna attesa in mezzo: niente `Task`,
+@@ -118,8 +175,41 @@ struct QLiveRootView: View {
+                     //    sul transport (decisione CD 18/07, :78-85). Questo è un
+                     //    INGRESSO — arma e basta. Il click parte al secondo tap
+                     //    (`LiveView.swift:134-137`).
+-                    onStart: { runner in
+-                        roomSession.install(runner)
++                    // ⟦PORTA-RIENTRO⟧ ① — COSTRUISCE LA STANZA, NON LA FOGLIA.
++                    // «Costruire o riattaccarsi» è una decisione di SESSIONE, e la
++                    // sessione la possiede questo nodo. La foglia ora dice soltanto
++                    // «l'utente ha premuto»: non sa, e non deve sapere, se in stanza
++                    // c'è uno show vivo.
++                    //
++                    // ⛔ COSA C'ERA PRIMA, e perché è stato tolto: il runner nasceva
++                    //    nella foglia e arrivava qui già costruito; `install` lo
++                    //    installava ANCHE a slot pieno, e il runner vivo perdeva
++                    //    l'ultimo riferimento forte. Lo show in corso restava ORFANO
++                    //    — il motore scaricava la coda e taceva con `isPlaying`
++                    //    ancora vero, la closure di fine-sezione usciva al `guard let
++                    //    self` (`SetlistRunner.swift:375-376`), e nessuno accendeva
++                    //    più END SHOW. È il guasto visto sul device il 28/08.
++                    //
++                    // ⛔ A SLOT PIENO NON SI COSTRUISCE E NON SI INSTALLA NULLA: si
++                    //    naviga e basta, ed è il «BACK TO SHOW» della firma B. Per
++                    //    ricostruire serve prima `endShow()` — che è ② e sta in
++                    //    questo stesso commit, per vincolo di indivisibilità: il gate
++                    //    da solo incatenerebbe la stanza al primo show della serata.
++                    //
++                    // ⚠️ L'INVARIANTE ⟦S5b⟧ `Cond (a)` È INTATTA E ORA VALE PER
++                    //    ENTRAMBI I RAMI: la decisione e la `navigate` stanno nella
++                    //    STESSA closure sincrona, senza attese in mezzo. Il ramo
++                    //    `else` del gate `.metronome` non può apparire né a slot
++                    //    vuoto (si è appena installato) né a slot pieno (c'era già).
++                    //
++                    // `QBeatsStore.shared` è lo stesso accesso che la foglia usava
++                    // per costruire (`QLiveShowDetailView.swift`, `store`): il
++                    // singleton non cambia, cambia solo chi lo chiama.
++                    onStart: {
++                        if roomSession.runner == nil {
++                            roomSession.install(SetlistRunner(setlist: show,
++                                                              store: QBeatsStore.shared))
++                        }
+                         navigate(to: .metronome)
+                     }
+                 )
+@@ -181,7 +271,16 @@ struct QLiveRootView: View {
+                 //    interna. Il VINCOLO DI PROPAGAZIONE resta rispettato: qui
+                 //    si passa il RIFERIMENTO una volta sola; LiveView la osserva
+                 //    direttamente, mai attraverso il contenitore.
+-                LiveView(onExit: { navigate(to: .shows) }, session: roomSession.liveSession)
++                // ⚠️ ⟦PORTA-RIENTRO⟧ — `onExit` non è più una closure nuda di
++                //    navigazione: passa da `leavePlayer()`, che aggiunge UNA
++                //    condizione e nient'altro (vedi lì il perché). `onEndShow` è un
++                //    seam NUOVO: fino a oggi END SHOW riusava questo stesso `onExit`
++                //    («TERZO inoltro dello stesso seam», `LiveView.swift`), e con un
++                //    seam solo non c'è modo di distinguere «me ne vado» da «lo show
++                //    è finito».
++                LiveView(onExit: { leavePlayer() },
++                         onEndShow: { endShowAndLeave() },
++                         session: roomSession.liveSession)
+                     .environmentObject(runner)
+             } else {
+                 // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
+diff --git a/ios_app/QBeats/UI/QLive/QLiveSession.swift b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+index efd27fd..0c8b0ce 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveSession.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+@@ -104,7 +104,65 @@ final class QLiveSession: ObservableObject {
+     /// `if let runner` non può apparire. Basta un'attesa a spezzare la garanzia:
+     /// lì il ramo `else` diventa visibile. L'ordine si rispetta comunque — costa
+     /// nulla — ma non è lui a proteggere.
++    ///
++    /// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — LA CLAUSOLA «SOSTITUISCE SEMPRE,
++    /// ANCHE A SLOT PIENO» (:87-91) È SUPERATA DALLA FIRMA B DI MAURO. Si marca e
++    /// NON si riscrive: come descrizione di QUESTO metodo resta vera — continua
++    /// ad assegnare e basta — ed è la storia di perché lo slot nacque con
++    /// un'assegnazione secca.
++    /// ⛔ COSA CAMBIA: il caso che quella clausola voleva coprire — «la band apre
++    /// un SECONDO show nella stessa serata» — non passa più di qui. La decisione
++    /// è salita al chiamante, cioè alla STANZA: `QLiveRootView` costruisce e
++    /// installa SOLO a slot vuoto, e a slot pieno si riattacca senza toccare lo
++    /// slot. Il secondo show ora esige `endShow()` prima, ed è la firma a dirlo.
++    /// ⇒ A slot pieno questo metodo non è più raggiungibile dal prodotto.
++    /// ⛔ Resta assegnazione secca DI PROPOSITO: un `guard runner == nil` qui
++    ///   metterebbe la stessa decisione in due posti, e due posti divergono. Il
++    ///   posto è uno solo, ed è la stanza.
++    /// ⚠️ COSA NON CAMBIA: il prezzo dichiarato in :91 — «il vecchio runner perde
++    ///   qui il suo ultimo riferimento forte» — è ancora esatto. È il meccanismo
++    ///   con cui lo show vivo restava orfano al rientro, e non è stato tolto: è
++    ///   stato reso irraggiungibile a monte.
+     func install(_ newRunner: SetlistRunner) {
+         runner = newRunner
+     }
++
++    /// ⟦PORTA-RIENTRO⟧ ② — IL SECONDO MUTATORE: lo slot si SVUOTA.
++    ///
++    /// **[M] Prima di oggi non esisteva UNA SOLA istruzione, in tutto il
++    /// prodotto, che riportasse `runner` a `nil`** — misurato per enumerazione:
++    /// `install` era l'unico scrittore, e assegnava sempre un valore non-nil. È
++    /// il difetto che CD ha chiamato «il bit *show aperto* non si spegne mai»
++    /// (politica del rientro, §1b): dentro la stanza, dopo il primo Start, quel
++    /// bit diceva **sì per sempre**.
++    ///
++    /// ⛔ NON È UN BOTTONE, ED È IL PUNTO. Si chiama DOVE LA SESSIONE SI CHIUDE,
++    /// non dentro il gesto che la chiude. Appendere lo spegnimento al bottone di
++    /// END SHOW significherebbe che il SECONDO innesco di END SHOW nasce già
++    /// dimenticandolo — ed è testuale in CD: «se lo si attacca al bottone, il
++    /// secondo innesco lo dimentica».
++    ///
++    /// DUE EFFETTI, e il secondo non è un di più:
++    ///  1. lo slot torna vuoto ⇒ la porta ricomincia a COSTRUIRE, e la band può
++    ///     aprire il secondo show della serata. Senza questo, il gate della
++    ///     porta da solo incatenerebbe la stanza al primo show — ed è la ragione
++    ///     per cui ① e ② sono indivisibili per firma.
++    ///  2. `liveSession.playbackState` torna a `.stopped`. ⛔ Senza (2) la (1) è
++    ///     una trappola: da A242 la sessione SOPRAVVIVE alla schermata, e uno
++    ///     stato `.fineSetlist` rimasto addosso farebbe aprire lo show NUOVO
++    ///     direttamente sulla schermata di END SHOW (`LiveView.swift:149`),
++    ///     perché `primeDisplay` arma lo standby SOLO da `.stopped`
++    ///     (`SetlistRunner.swift:361`). ⚠️ La riga NON è nuova e non è una
++    ///     decisione mia: è la stessa che viveva dentro la closure del bottone
++    ///     in `LiveView`, con la sua motivazione già scritta lì — qui è
++    ///     SPOSTATA, perché è al chiudersi della sessione che appartiene.
++    ///
++    /// ⛔ NON azzera i tredici campi di show della `liveSession`: non è chiesto,
++    ///    e cosa lo schermo legge al rientro è materia della FIRMA A (le sedici
++    ///    voci), che non è questo mandato. Qui si chiude la sessione, non si
++    ///    pulisce la vetrina.
++    func endShow() {
++        runner = nil
++        liveSession.playbackState = .stopped
++    }
+ }
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index 7f57d27..b4d772a 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -67,6 +67,15 @@ import SwiftUI
+ // ⚠️ Vale anche per il rimando a `QLiveSession.swift:12-15`: quel commento è
+ // scaduto per lo stesso motivo, ed è marcato in loco.
+ //
++// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — L'ISTRUZIONE DI RICERCA DI :62 NON
++// TROVA PIÙ NULLA, e va corretta perché è un'istruzione, non un'opinione: la
++// stringa `onStart(SetlistRunner(` in questo file NON ESISTE PIÙ. Da oggi il
++// runner nasce nella STANZA (`QLiveRootView`, ramo `.detail`) e questa vista
++// chiama `onStart()` e basta. ⇒ Cerca `onStart()`, non `onStart(SetlistRunner(`.
++// ⛔ Il resto della marcatura del 23/08 REGGE INTATTO: lo Start non è inerte, e
++//    da questo pulsante si entra nel player. Cambia CHI costruisce, non che
++//    succeda.
++//
+ // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
+ // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
+ // file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è
+@@ -86,6 +95,25 @@ import SwiftUI
+ struct QLiveShowDetailView: View {
+     let setlist: Setlist
+     let onBack: () -> Void
++
++    /// ⟦PORTA-RIENTRO⟧ ③ — l'UNICO bit da cui dipende la PAROLA del bottone:
++    /// c'è uno show vivo in stanza, sì o no.
++    ///
++    /// ⛔ NON dice QUALE show, e non è una semplificazione: `SetlistRunner` non
++    /// conserva la setlist — il suo `init` (`SetlistRunner.swift:62-68`) tiene
++    /// solo il catalogo risolto — quindi il prodotto, oggi, non sa quale show
++    /// stia suonando. Nominarlo esigerebbe una proprietà nuova sul runner, che
++    /// questo mandato non tocca. Forma (iii-a), sciolta dal mandato.
++    ///
++    /// ⚠️ CONSEGUENZA NOTA E GIRATA A CD, non risolta qui: leggendo il dettaglio
++    /// dello show B mentre suona lo show A, il bottone dirà «rientra» e porterà
++    /// ad A senza dirlo.
++    ///
++    /// ⚠️ POSIZIONE NON CASUALE: sta PRIMA di `onStart` perché l'ordine di
++    /// dichiarazione È la firma dell'init memberwise, e il sito di montaggio
++    /// (`QLiveRootView`, ramo `.detail`) passa gli argomenti in quest'ordine.
++    let isShowLive: Bool
++
+     /// ⟦S5b⟧ — Start. Il runner si costruisce QUI: questa vista possiede già i due
+     /// soli ingredienti che servono, `setlist` (:78) e `store` (:81), e
+     /// `SetlistRunner.init(setlist:store:)` non chiede altro
+@@ -100,7 +128,22 @@ struct QLiveShowDetailView: View {
+     /// root, contro la riga che lo assegna qui. Forma adottata:
+     /// `(SetlistRunner) -> Void`. Rilievo #1 del referto A125 — se il referee
+     /// vuole la lettera, il cambio è meccanico e sta in un solo giro.
+-    let onStart: (SetlistRunner) -> Void
++    ///
++    /// ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — IL GIRO È ARRIVATO, ED È
++    /// QUESTO. Il testo sopra resta come fu scritto: dichiarava la propria
++    /// scadenza («se il referee vuole la lettera, il cambio è meccanico») e la
++    /// scadenza è arrivata per una ragione che allora non c'era.
++    /// ⛔ COSA CAMBIA: la closure torna alla LETTERA della scheda, `() -> Void`,
++    /// e il runner NON nasce più qui. Non è un ripensamento di stile: la FIRMA B
++    /// di Mauro (28/08) dispone che a slot pieno la porta si RIATTACCHI e non
++    /// costruisca mai, e «costruire o riattaccarsi» è una decisione di SESSIONE.
++    /// Questa vista conosce la SUA setlist e non sa nulla della stanza: non è il
++    /// posto dove quella decisione può essere presa. Ora costruisce la stanza
++    /// (`QLiveRootView.swift`, ramo `.detail`), e questa foglia dice soltanto
++    /// «l'utente ha premuto».
++    /// ⇒ Con ciò il rilievo #1 del referto A125 è CHIUSO, e la divergenza
++    ///   dichiarata sopra non esiste più.
++    let onStart: () -> Void
+ 
+     @ObservedObject private var store = QBeatsStore.shared
+ 
+@@ -414,7 +457,17 @@ struct QLiveShowDetailView: View {
+     // presente in TUTTI e tre gli stati (Frame 3/F/G lo portano tutti).
+ 
+     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
+-        let isEnabled = !resolved.songs.isEmpty
++        // ⟦PORTA-RIENTRO⟧ ③ — ⚠️ È L'UNICO PUNTO IN CUI HO ESTESO OLTRE LA LETTERA
++        // DEL MANDATO, e va guardato per primo. Prima era `!resolved.songs.isEmpty`
++        // secco. A slot pieno il bottone NON avvia questo show: riporta a quello
++        // VIVO ⇒ la vuotezza della setlist che si ha davanti non è più una ragione
++        // per chiudere il tocco. Con la condizione vecchia, aprire il dettaglio di
++        // uno show vuoto o tutto-orfano MENTRE un altro show suona darebbe un
++        // bottone SPENTO e nessuna strada per rientrare — un vicolo cieco creato
++        // dal cambiamento stesso.
++        // ⛔ Cambia la CONDIZIONE, non il trattamento visivo dello spento (opacità
++        //    0,4 · bordo · ombra): quello è pelle, e la pelle non si tocca.
++        let isEnabled = isShowLive || !resolved.songs.isEmpty
+         return Button {
+             // ⟦S5b⟧ — ARMA, NON SUONA. Qui non si tocca l'audio: si costruisce il runner
+             // con la setlist SCELTA e lo si consegna al presentatore.
+@@ -424,13 +477,36 @@ struct QLiveShowDetailView: View {
+             //    canzone») e `BOX5_QBEATS.md:354` (§3 — «il click parte al secondo tap,
+             //    schermo ovunque, o via MIDI»). Il secondo tap è già cablato e non si
+             //    tocca: `LiveView.swift:134-137`.
+-            onStart(SetlistRunner(setlist: setlist, store: store))
++            //
++            // ⚠️ CARTELLO ⟦PORTA-RIENTRO⟧ (28/08/2026) — «si costruisce il runner»
++            //    QUI NON È PIÙ VERO: il runner nasce nella STANZA (firma B). Il
++            //    resto del testo sopra vale IDENTICO e non è mai stato in
++            //    discussione — ARMA-NON-SUONA e il divieto su `startSetlist` sono
++            //    esattamente ciò che questa porta continua a rispettare: anche il
++            //    ramo di RIENTRO naviga e basta, senza toccare il transport.
++            onStart()
+         } label: {
+             HStack(spacing: 10) {
+-                PlayGlyphShape()
+-                    .fill(Color.white)
+-                    .frame(width: 16, height: 16)
+-                Text("START SHOW")
++                // ⟦PORTA-RIENTRO⟧ ③ — IL GLIFO SPARISCE NELLO STATO DI RIENTRO. Un
++                // triangolo di play accanto a una parola che non avvia niente è una
++                // seconda bugia, più piccola della prima e della stessa specie.
++                // ⚠️ INFERITO, NON DECISO — ATTENDE CD. Nascondere è il minimo che
++                //    non mente; QUALE segno vada al suo posto è disegno, e non lo
++                //    invento. Quando CD consegna la veste, questo `if` è il posto.
++                if !isShowLive {
++                    PlayGlyphShape()
++                        .fill(Color.white)
++                        .frame(width: 16, height: 16)
++                }
++                // ⟦PORTA-RIENTRO⟧ ③ — LA PAROLA, e dipende dal solo bit `isShowLive`.
++                // `BACK TO SHOW` è parola di CD (decisione della porta, 28/08): non è
++                // copy inventata qui.
++                // ⚠️ VESTE MANCANTE, DICHIARATA: il rientro indossa la livrea
++                //    arancione dell'avvio — gradiente, glow, geometria e stato
++                //    disabilitato restano quelli dello Start, per mandato. È
++                //    un'approssimazione visiva nota, non una svista: la skin è di CD
++                //    e non è arrivata.
++                Text(isShowLive ? "BACK TO SHOW" : "START SHOW")
+                     .font(.jbMono(.bold, size: 15))
+                     .tracking(2.5)
+                     .foregroundColor(.white)
