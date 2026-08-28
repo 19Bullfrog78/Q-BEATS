@@ -8,7 +8,12 @@ struct LiveView: View {
     /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
     let onExit: () -> Void
-    @StateObject private var session = LiveSession()
+    // ⚠️ A242 — era `@StateObject private var session = LiveSession()`: la
+    //    sessione nasceva e MORIVA con questa vista, e con lei i sedici campi
+    //    (censimento A229). Ora la possiede la STANZA (`QLiveSession.liveSession`,
+    //    cartello A242 lì) e questa vista la OSSERVA soltanto. ⛔ Nessun
+    //    default: ogni sito di montaggio dichiara quale sessione passa.
+    @ObservedObject var session: LiveSession
     // L1.b — Tick di riferimento per il bar counter relativo alla sezione corrente.
     // beatTickCounter di AudioEngine cresce monotono dalla partenza; per resettare
     // il display "Battuta X di Y" ad ogni cambio sezione manteniamo qui in Layer 3
@@ -242,6 +247,14 @@ struct LiveView: View {
             // (Storia, da leggere come tale:)
             // Coerente con TD #28 (17/05/2026): stato iniziale `.stopped`, no
             // overlay standby, videata deve mostrare dati setlist caricata.
+            // ⚠️ A242 — AZZERAMENTO ESPLICITO, l'unico del giro: il mixer è
+            //    mobilio della schermata, non memoria dello show. Fino a oggi si
+            //    chiudeva da solo perché la sessione MORIVA con la vista; da
+            //    A242 la sessione è della stanza e sopravvive all'uscita — senza
+            //    questa riga si rientrerebbe col mixer aperto senza capire come.
+            //    Ogni ALTRO campo della sessione sopravvive DI PROPOSITO: vedi
+            //    il cartello A242 in `QLiveSession.swift`.
+            session.showMixer = false
             runner.primeDisplay(session: session)
             // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
             // Override il sync da audioEngine sopra: la setlist caricata è "verità"

@@ -175,7 +175,13 @@ struct QLiveRootView: View {
                 //    `audioEngine` (0 occorrenze) pur ricevendolo a
                 //    `AppRootView.swift:45`. Re-iniettarlo qui romperebbe lo
                 //    specchio dichiarato in testa a questo file.
-                LiveView(onExit: { navigate(to: .shows) })
+                // ⚠️ A242 — la sessione è passata ESPLICITA, senza default: la
+                //    possiede la stanza (`roomSession.liveSession`, cartello A242
+                //    in QLiveSession.swift) e sopravvive alla navigazione
+                //    interna. Il VINCOLO DI PROPAGAZIONE resta rispettato: qui
+                //    si passa il RIFERIMENTO una volta sola; LiveView la osserva
+                //    direttamente, mai attraverso il contenitore.
+                LiveView(onExit: { navigate(to: .shows) }, session: roomSession.liveSession)
                     .environmentObject(runner)
             } else {
                 // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un

@@ -43,6 +43,44 @@ final class QLiveSession: ObservableObject {
     /// `private(set)`: da ⟦S5b⟧ si riempie SOLO da `install(_:)` qui sotto.
     @Published private(set) var runner: SetlistRunner? = nil
 
+    /// ⚠️ CARTELLO A242 (28/08/2026) — LA MEMORIA DELLO SCHERMO È DELLA STANZA.
+    /// Prima mossa di due (⟦S-EXIT⟧: «lo stato dello show appartiene allo show,
+    /// non alla schermata» — l'invito è nel doc di questa classe, più sopra).
+    /// Fino ad A242 la `LiveSession` nasceva `@StateObject` dentro `LiveView` e
+    /// MORIVA a ogni uscita dal player: i sedici campi (censimento A229) e
+    /// l'ascoltatore del Play del Direttore morivano con lei — è il meccanismo
+    /// dietro `TD-rientro-senza-stop-sgancia-audio-e-grafica` 🚨 e
+    /// `TD-follower-parte-cieco-a-player-chiuso` 🚨 (BUGS v68).
+    ///
+    /// COSA SOPRAVVIVE ORA all'uscita dal player (restando nella stanza):
+    /// TUTTI i sedici campi — di proposito. I tredici che descrivono lo show
+    /// (stato, nomi, posizione, BPM, time-sig, ProMode) SONO la memoria che si
+    /// voleva salvare; i due morti (`isBacktrackLocked`, `accentPattern` —
+    /// A229 famiglia D) sopravvivono inerti, invariati.
+    /// COSA NO: `showMixer` è mobilio della schermata, azzerato ESPLICITAMENTE
+    /// a ogni ingresso (`LiveView`, onAppear — l'unico azzeramento del giro);
+    /// gli otto `@State` di `LiveView` (ancora del bar counter, finestre di
+    /// fade, mirror seamless) restano della vista e muoiono con lei PER
+    /// SCELTA: sono ritmo di rendering, non stato dello show.
+    ///
+    /// ⚠️ EFFETTO SECONDARIO DICHIARATO: la closure di fine-sezione del runner
+    /// tiene la sessione con `weak`; finché la sessione moriva, fuori dal
+    /// player la closure usciva al guard e lo show NON avanzava. Ora avanza
+    /// anche a player chiuso (standby a fine canzone compreso). È il
+    /// comportamento voluto — la memoria vive — ma NESSUN device l'ha visto.
+    ///
+    /// ⛔ LA MOSSA (b) NON È FATTA: l'ascoltatore del Play del Direttore
+    /// (`.onReceive(audioEngine.linkStartedSubject)`) vive ANCORA in `LiveView`
+    /// e muore ANCORA con la schermata. `TD-follower-parte-cieco` NON è chiuso
+    /// da questa mossa: serve il mandato successivo.
+    ///
+    /// Il VINCOLO DI PROPAGAZIONE qui sopra vale identico per questo campo:
+    /// `let` NON pubblicato — il contenitore continua a notificare solo la
+    /// comparsa del runner. I figli osservano la `LiveSession` DIRETTAMENTE
+    /// (`@ObservedObject`, passata esplicita al montaggio), MAI attraverso il
+    /// contenitore.
+    let liveSession = LiveSession()
+
     /// ⟦S5b⟧ — MUTATORE DELLO SLOT: la porta che ⟦S4R⟧ aveva lasciato mancante
     /// APPOSTA (:12-15). È il solo punto in cui il runner entra nella stanza.
     ///
