@@ -161,7 +161,53 @@ final class QLiveSession: ObservableObject {
     ///    e cosa lo schermo legge al rientro è materia della FIRMA A (le sedici
     ///    voci), che non è questo mandato. Qui si chiude la sessione, non si
     ///    pulisce la vetrina.
-    func endShow() {
+    /// ⚠️ CARTELLO A253 (29/08/2026) — TERZO EFFETTO: LO STOP DEL MOTORE, e la
+    /// firma cambia APPOSTA. L'etichetta di CD promette «this will stop other
+    /// devices too» (fogli 27/08 R4 e 29/08 §B): chiudere lo show DEVE fermare
+    /// il click, o l'etichetta mente — la categoria che il §D del rev3 esiste
+    /// per vietare. Fino ad A253 questo metodo non chiamava nessuno stop.
+    ///
+    /// ⛔ LO STOP STA QUI E NON NEI BOTTONI, per la stessa ragione di :139-143:
+    ///    ogni innesco di END SHOW passa di qui. E il motore entra come
+    ///    PARAMETRO — idioma di casa: `SetlistRunner` lo riceve per parametro e
+    ///    non lo conserva (`startSetlist(audioEngine:session:)`) — così
+    ///    l'obbligo è strutturale: il prossimo innesco non può nascere senza,
+    ///    non compila.
+    ///
+    /// ✅ A MOTORE GIÀ FERMO LA CHIAMATA È INERTE, misurato a fonte:
+    ///    `stopSync()` esce al `guard self.isRunning` (`AudioEngine.swift:1694`)
+    ///    PRIMA di `link_engine_stop` (`:1701`) ⇒ nessun evento alla band. È ciò
+    ///    che rende lo stop INCONDIZIONATO qui: sul ramo `.fineSetlist` (motore
+    ///    già fermato dal runner, `SetlistRunner.swift:466`) non fa nulla.
+    ///
+    /// ⚠️ ORDINE: lo stop PRIMA di svuotare lo slot — prima si zittisce la
+    ///    stanza, poi si chiude la sessione.
+    ///
+    /// ⚠️ CORREZIONE A254 (29/08/2026) — LA FRASE CHE SEGUIVA QUI ERA VERA MA
+    ///    INDICAVA LA PROTEZIONE SBAGLIATA. `stop()` dispatcha `.stopped`
+    ///    SUL MOTORE (`AudioEngine.playbackState`, un `@Published` diverso da
+    ///    quello di questa sessione) async su main SENZA CONDIZIONE —
+    ///    `AudioEngine.swift:1100-1101` sta FUORI dal `guard self.isRunning`
+    ///    di `stopSync()` (:1694): parte a OGNI `stop()`, motore già fermo
+    ///    compreso. Quella scrittura può arrivare TARDI: se nel frattempo si
+    ///    è aperto un secondo show e `primeDisplay` ha già armato
+    ///    `liveSession.playbackState = .standby`, un `.stopped` dell'ENGINE
+    ///    in ritardo la scavalcherebbe. La scrittura sincrona di questo
+    ///    metodo non protegge da questo: è un evento successivo, indipendente,
+    ///    su un campo diverso.
+    ///
+    ///    CIÒ CHE LO IMPEDISCE è la GUARDIA in `LiveView.swift:461-466`
+    ///    (`case .standby, .fineSetlist: return`, dentro
+    ///    `.onReceive(audioEngine.$playbackState)`) — non un ordine scritto
+    ///    qui. Quella stessa guardia è dichiarata (`LiveView.swift:442-460`)
+    ///    come ciò che tiene in piedi l'ARMAMENTO D'INGRESSO DI ⟦S5b⟧, e
+    ///    `:459-460` avverte già, da PRIMA di A253, che togliere `.standby`
+    ///    da quella lista «romperebbe ⟦S5b⟧ senza toccarne una riga». A253
+    ///    non crea questa dipendenza: la EREDITA — e senza questa riga
+    ///    restava una protezione che nessuno sapeva di dover difendere.
+    ///    (Righe citate sul file DOPO A253.)
+    func endShow(audioEngine: AudioEngine) {
+        audioEngine.stop()
         runner = nil
         liveSession.playbackState = .stopped
     }

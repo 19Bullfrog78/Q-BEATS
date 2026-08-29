@@ -232,6 +232,14 @@ struct LiveView: View {
                     //   secondo innesco di END SHOW — quello del dettaglio, disegnato
                     //   da CD il 27/08 e OGGI NON COSTRUITO — nascerebbe già
                     //   dimenticandolo.
+                    //   ⚠️ MARCATURA A253 (29/08/2026) — «OGGI NON COSTRUITO» È
+                    //     SCADUTO: il secondo innesco esiste (voce END SHOW del
+                    //     dettaglio, `QLiveShowDetailView`) ed è agganciato a
+                    //     `endShowAndLeave()`, come queste righe prevedevano. E la
+                    //     chiusura ha preso una riga in più IN TESTA: `endShow`
+                    //     ora si chiama `endShow(audioEngine:)` e ferma il motore
+                    //     PRIMA di svuotare lo slot — il reset a `.stopped` di (a)
+                    //     non è più la prima riga del corpo, ed è sempre lì.
                     // ⛔ RESTART SETLIST di `FineSetlistView` NON è toccato da questo
                     //    giro: resta inerte com'era. Una decisione ratificata il
                     //    07/08 (`LIBRO_MASTRO_QBEATS.md:353`) dispone di TOGLIERLO da

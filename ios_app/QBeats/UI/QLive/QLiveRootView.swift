@@ -75,6 +75,28 @@ struct QLiveRootView: View {
     /// (`LIBRO_MASTRO_QBEATS.md:285`) e NON si tocca: cambia la sola proprietà.
     @StateObject private var roomSession = QLiveSession()
 
+    /// A253 — il motore, DICHIARATO e non iniettato: arriva dall'iniezione di
+    /// `AppRootView.swift:53` su questa stessa view (catena provata nel cartello
+    /// del gate `.metronome` più sotto, «`audioEngine` NON si re-inietta»).
+    /// Serve ai due chiamanti di `endShow(audioEngine:)`: lo stop del motore
+    /// vive LÀ, dove ogni innesco passa, e il parametro obbliga chi chiama.
+    /// ⚠️ ASIMMETRIA CON LO SPECCHIO, dichiarata: `QStageRootView` non dichiara
+    ///    `audioEngine` (0 occorrenze) e resta così — Q-Stage non possiede una
+    ///    sessione da chiudere. Lo specchio è di struttura, non un vincolo di
+    ///    identità riga-per-riga.
+    ///
+    /// ⚠️ COSTO DICHIARATO (A254, 29/08/2026): DA OGGI QUESTA RADICE OSSERVA
+    ///    IL MOTORE, e il suo `body` si ridisegna a ogni `@Published` che
+    ///    pubblica — `currentBeat` (`AudioEngine.swift:104`) compreso,
+    ///    scritto una volta per battuta dentro il callback di render
+    ///    (`:2419-2421`): 2-4 volte al secondo a tempi da palco. Non è un
+    ///    difetto: è un costo nuovo, non una svista. PRIMA di A253 questa
+    ///    view aveva ZERO occorrenze reali di `audioEngine` — lo stesso «0
+    ///    occorrenze» che il cartello del gate `.metronome` più sotto misura
+    ///    su `QStageRootView`, misurato identico anche su questo file a
+    ///    `HEAD`. Da A253 vale solo per lo specchio.
+    @EnvironmentObject private var audioEngine: AudioEngine
+
     // DECISIONE CD 18/07 (ratificata — LIBRO Sez.2, riga 18/07/2026):
     // navigazione ≠ transport. NESSUNO stop audio va agganciato alle
     // transizioni di `page`, in NESSUNA forma (niente `.onChange(of: page)`
@@ -113,9 +135,16 @@ struct QLiveRootView: View {
     ///    PROPAGAZIONE (`QLiveSession.swift:26-38`) riguarda l'UI che non si
     ///    aggiorna osservando un `ObservableObject` annidato: qui non si osserva
     ///    nulla e non si disegna nulla, si legge un valore per decidere un'azione.
+    /// ⚠️ MARCATURA A253 (29/08/2026) — DA OGGI `endShow(audioEngine:)` PORTA LO
+    ///    STOP DEL MOTORE, e il «non ferma l'audio» qui sopra resta vero PER
+    ///    MISURA, non più per costruzione: su questo ramo il motore è già fermo
+    ///    (`SetlistRunner.swift:466`, ramo fineSetlist) e `stopSync()` esce al
+    ///    `guard self.isRunning` (`AudioEngine.swift:1694`) prima di
+    ///    `link_engine_stop` — nessun evento alla band. Non si ferma niente che
+    ///    stia suonando, perché non c'è.
     private func leavePlayer() {
         if case .fineSetlist = roomSession.liveSession.playbackState {
-            roomSession.endShow()
+            roomSession.endShow(audioEngine: audioEngine)
         }
         navigate(to: .shows)
     }
@@ -132,8 +161,14 @@ struct QLiveRootView: View {
     /// disegno non ancora consegnato. ⛔ Non l'ho inventato.
     /// ⇒ Quando arriverà, si aggancia QUI e non deve sapere altro. È
     ///   precisamente il motivo per cui lo spegnimento non sta nel bottone.
+    ///
+    /// ⚠️ MARCATURA A253 (29/08/2026) — È ARRIVATO: il secondo innesco è la voce
+    ///    END SHOW del dettaglio (`QLiveShowDetailView`, `endShowRow`),
+    ///    agganciata a questo stesso metodo come secondo chiamante. Nessun
+    ///    percorso nuovo, e la previsione delle due righe qui sopra si è
+    ///    avverata alla lettera: è nato senza dover sapere altro.
     private func endShowAndLeave() {
-        roomSession.endShow()
+        roomSession.endShow(audioEngine: audioEngine)
         navigate(to: .shows)
     }
 
@@ -211,7 +246,15 @@ struct QLiveRootView: View {
                                                               store: QBeatsStore.shared))
                         }
                         navigate(to: .metronome)
-                    }
+                    },
+                    // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio
+                    // (fogli CD 27/08 §② e 29/08 §B). STESSA funzione del primo,
+                    // nessun percorso nuovo. La foglia dice «l'utente ha premuto
+                    // END SHOW»; chi chiude — stop del motore, slot, stato — è la
+                    // stanza. Un tap, NESSUNA conferma (§C del 29/08: da fuori lo
+                    // show non sta sotto le mani, la sottoriga ha già detto cos'è
+                    // vivo; un «sei sicuro?» addestrerebbe a spingere via i popup).
+                    onEndShow: { endShowAndLeave() }
                 )
             } else {
                 EmptyView()

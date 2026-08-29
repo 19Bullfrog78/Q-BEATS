@@ -145,6 +145,25 @@ struct QLiveShowDetailView: View {
     ///   dichiarata sopra non esiste più.
     let onStart: () -> Void
 
+    /// A253 — il SECONDO innesco di END SHOW (terza faccia del dettaglio, fogli
+    /// CD 27/08 §② e 29/08 §B). Stessa forma di `onStart`, per la stessa
+    /// ragione: la foglia dice soltanto «l'utente ha premuto END SHOW»; chi
+    /// chiude — stop del motore, slot, stato — è la stanza
+    /// (`QLiveRootView.endShowAndLeave()` → `QLiveSession.endShow(audioEngine:)`).
+    let onEndShow: () -> Void
+
+    /// A253 — il motore, DICHIARATO e non iniettato: arriva da
+    /// `AppRootView.swift:53`, iniettato su `QLiveRootView` un livello sopra
+    /// (catena provata nel cartello del gate `.metronome` di quel file). Serve
+    /// SOLO alla sottoriga della voce END SHOW, per i suoi due segnali:
+    /// `linkIsConnected` (SE la riga compare — R4 del foglio 27/08) e
+    /// `isPlaying` (QUALE stato dice — §B del foglio 29/08).
+    /// ⚠️ COSTO DICHIARATO: osservare l'intero `AudioEngine` ridisegna questa
+    ///    vista a ogni @Published del motore (`currentBeat` compreso, a show
+    ///    vivo). È l'idioma di casa (`LiveView.swift:5`, `LiveHeaderView`), non
+    ///    un'invenzione di questo atomo.
+    @EnvironmentObject private var audioEngine: AudioEngine
+
     @ObservedObject private var store = QBeatsStore.shared
 
     var body: some View {
@@ -456,7 +475,133 @@ struct QLiveShowDetailView: View {
     // MARK: - Startfoot (§CSS `.startfoot` :265 · `.startbtn` :270-273) — sempre in fondo,
     // presente in TUTTI e tre gli stati (Frame 3/F/G lo portano tutti).
 
+    // A253 — DA OGGI IL PIEDE È UN CONTENITORE A DUE POSTI, non più il solo
+    // bottone: a show vivo porta SOPRA la voce END SHOW («in alto quella che
+    // chiude, in basso quella che prendi» — regola delle facce, foglio 27/08
+    // frame ③). `spacing: 10` = gap del `.vstack` del freeze 27/08; paddings e
+    // gradiente sono gli stessi che il piede aveva già, spostati dal bottone al
+    // contenitore perché ora sfumano le righe sotto ENTRAMBE le voci.
+    // ⛔ RESUME NON C'È E NON È UNA DIMENTICANZA: bloccato dal §D del rev3
+    //    (28/08) — «finché l'esecutore non onora la sezione, Resume from
+    //    [section] non va a schermo. Non "con copy più prudente": assente» — e
+    //    «la terza faccia eredita il blocco». Costruirlo è un difetto.
     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
+        VStack(spacing: 10) {
+            if isShowLive {
+                endShowRow
+            }
+            startButton(resolved)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 20)
+        // §CSS `.startfoot` :265 — `linear-gradient(to top, var(--qlive-bg) 66%,
+        // rgba(14,14,16,0))`. NON è decorazione: con `.songlist` che scorre (LIBRO:342) è ciò
+        // che fa SFUMARE le righe sotto il footer; senza, le canzoni spuntano di netto da sotto
+        // lo Start. CSS `to top` = asse dal basso verso l'alto ⇒ `.bottom → .top`; opaco da 0%
+        // a 66%, poi dissolvenza ad alpha 0.
+        .background(
+            LinearGradient(
+                stops: [
+                    .init(color: Color(hex: "#0e0e10"), location: 0.0),
+                    .init(color: Color(hex: "#0e0e10"), location: 0.66),
+                    .init(color: Color(hex: "#0e0e10").opacity(0), location: 1.0)
+                ],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+        )
+    }
+
+    // A253 — LA VOCE END SHOW, il secondo innesco (fogli CD 27/08 §② e 29/08 §B).
+    // Veste dal freeze 27/08, `.vrow`/`.vrow.end` verbatim: h 56 (64 con
+    // sottoriga) · radius 15 · gap 11 · padding 0/16 · JB Mono 700 13.5 ls 2.2
+    // UPPERCASE · bordo 1px rgba(255,59,48,0.52) · testo #ff8a80 · sottoriga
+    // (`em`) JB Mono 600 10 ls 1.1, ambra #ffd35a, col triangolo d'avviso.
+    // (Coincidenza di valore col token `QStageTheme.stop` #ff3b30: NON riusato —
+    // stanze separate, hex verbatim dal freeze come per `accent` in QLiveKit.)
+    //
+    // I DUE SEGNALI, e perché proprio loro:
+    //  · la sottoriga COMPARE con `audioEngine.linkIsConnected` — R4 del 27/08:
+    //    «Link acceso e almeno un apparecchio collegato. Senza, la riga non c'è
+    //    e la voce torna a 56 pt». Senza apparecchi, «this will stop other
+    //    devices too» sarebbe un'etichetta che mente — la categoria che il §D
+    //    esiste per vietare. Stesso segnale del chip Link (`LiveHeaderView`,
+    //    per simbolo: `if audioEngine.linkIsConnected`).
+    //  · lo STATO della sottoriga è `audioEngine.isPlaying` — lo stato REALE del
+    //    motore, @Published, scritto solo dal motore stesso. ⛔ NON `isShowLive`:
+    //    quel bit dice «uno show è APERTO» (runner != nil), e uno show aperto
+    //    può essere muto — agganciarlo lì produrrebbe un'altra etichetta che
+    //    mente. ⚠️ Limite NOTO di `isPlaying` (rev3.1 §2): non vede
+    //    l'esaurimento della coda («il terzo interruttore che a isPlaying
+    //    manca»). Le due finestre in cui mentiva: lo show orfano è reso
+    //    irraggiungibile da ⟦PORTA-RIENTRO⟧, e a fine scaletta il runner ferma
+    //    il motore (`SetlistRunner.swift:466`) che spegne `isPlaying`.
+    //
+    // COPY: dal §B del foglio 29/08, verbatim — «This will stop other devices
+    // too» / «The show is playing now · this will stop other devices too»
+    // (· = MIDDLE DOT U+00B7). ⚠️ DIVERGENZA FRA I DUE FOGLI, dichiarata: il
+    // markup del 27/08 porta «the other devices»; il §B del 29/08 — posteriore,
+    // ed È la spec dei due stati — lo scrive senza «the». Vince il 29/08.
+    // ⚠️ Lo stato 2 non ha un frame disegnato (il 29/08 dà solo la copy): a
+    //    390pt la riga lunga non sta in una riga da 10pt ⇒ `.lineLimit(2)`,
+    //    dentro i 64pt (17,8+3+2×13,2 = 47,4). Scelta dichiarata, attende CD.
+    //
+    // UN TAP, NESSUNA CONFERMA (§C del 29/08): la sottoriga È il dato che manca,
+    // non una domanda. E nessun RESUME qui (§D rev3, vedi cartello sopra).
+    // ⚠️ EREDITA la conseguenza (iii-a) dichiarata su `isShowLive` (:99-110):
+    //    dal dettaglio dello show B con lo show A vivo, END SHOW chiude lo show
+    //    DI STANZA — cioè A — senza dirlo. Stesso limite del bottone BACK TO
+    //    SHOW, girato a CD, non risolto qui.
+    private var endShowRow: some View {
+        let subline: String? = audioEngine.linkIsConnected
+            ? (audioEngine.isPlaying
+                ? "The show is playing now \u{00B7} this will stop other devices too"
+                : "This will stop other devices too")
+            : nil
+        return Button(action: onEndShow) {
+            HStack(spacing: 11) {
+                EndShowGlyphShape()
+                    .stroke(Color(hex: "#ff8a80"),
+                            style: StrokeStyle(lineWidth: 2 * 15 / 24, lineCap: .round, lineJoin: .round))
+                    .frame(width: 15, height: 15)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("END SHOW")
+                        .font(.jbMono(.bold, size: 13.5))
+                        .tracking(2.2)
+                        .foregroundColor(Color(hex: "#ff8a80"))
+                    if let subline {
+                        HStack(spacing: 5) {
+                            LinkWarnTriangleShape()
+                                .stroke(Color(hex: "#ffd35a"),
+                                        style: StrokeStyle(lineWidth: 1.4 * 11 / 12, lineCap: .round, lineJoin: .round))
+                                .frame(width: 11, height: 10)
+                            Text(subline)
+                                .font(.jbMono(.semibold, size: 10))
+                                .tracking(1.1)
+                                .foregroundColor(Color(hex: "#ffd35a"))
+                                .lineLimit(2)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .frame(height: subline == nil ? 56 : 64)
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .strokeBorder(Color(hex: "#ff3b30").opacity(0.52), lineWidth: 1)
+            )
+            // Hit-area: il GESTO copre l'intera riga (56/64 ≥ 44) — lezione del
+            // gate device S3: il `.contentShape` sta DENTRO la label del Button
+            // (`RoomSwitchBar.swift:152-164`).
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func startButton(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
         // ⟦PORTA-RIENTRO⟧ ③ — ⚠️ È L'UNICO PUNTO IN CUI HO ESTESO OLTRE LA LETTERA
         // DEL MANDATO, e va guardato per primo. Prima era `!resolved.songs.isEmpty`
         // secco. A slot pieno il bottone NON avvia questo show: riporta a quello
@@ -557,25 +702,8 @@ struct QLiveShowDetailView: View {
         //    prescritto (:333). Confronto: Frame F/G del freeze,
         //    `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html`.
         .disabled(!isEnabled)
-        .padding(.horizontal, 18)
-        .padding(.top, 14)
-        .padding(.bottom, 20)
-        // §CSS `.startfoot` :265 — `linear-gradient(to top, var(--qlive-bg) 66%,
-        // rgba(14,14,16,0))`. NON è decorazione: con `.songlist` che scorre (LIBRO:342) è ciò
-        // che fa SFUMARE le righe sotto il footer; senza, le canzoni spuntano di netto da sotto
-        // lo Start. CSS `to top` = asse dal basso verso l'alto ⇒ `.bottom → .top`; opaco da 0%
-        // a 66%, poi dissolvenza ad alpha 0.
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Color(hex: "#0e0e10"), location: 0.0),
-                    .init(color: Color(hex: "#0e0e10"), location: 0.66),
-                    .init(color: Color(hex: "#0e0e10").opacity(0), location: 1.0)
-                ],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-        )
+        // A253 — paddings e gradiente del piede sono SALITI al contenitore
+        // (`startfoot` qui sopra): coprono ora anche la voce END SHOW.
     }
 }
 
@@ -628,6 +756,53 @@ private struct PlayGlyphShape: Shape {
         path.addLine(to: pt(19, 12))
         path.addLine(to: pt(7, 19))
         path.closeSubpath()
+        return path
+    }
+}
+
+// A253 — glifo `.vrow.end` (§markup del freeze 27/08, viewBox 24×24, reso 15×15):
+// porta con freccia in uscita — "M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" +
+// "M10 8l-4 4 4 4M6 12h9", stroke 2. I due raccordi r2 sono resi con `addArc`
+// nella STESSA convenzione di `LockShape` qui sopra (`clockwise: false`, angoli
+// crescenti nello spazio y-in-giù), che è collaudata su device.
+private struct EndShowGlyphShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let scale = rect.width / 24
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale) }
+        var path = Path()
+        // Telaio della porta: M15 4h3, raccordo r2 → (20,6), v12, raccordo r2 → (18,20), h-3.
+        path.move(to: pt(15, 4))
+        path.addLine(to: pt(18, 4))
+        path.addArc(center: pt(18, 6), radius: 2 * scale,
+                    startAngle: .degrees(270), endAngle: .degrees(0), clockwise: false)
+        path.addLine(to: pt(20, 18))
+        path.addArc(center: pt(18, 18), radius: 2 * scale,
+                    startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        path.addLine(to: pt(15, 20))
+        // Freccia in uscita: M10 8l-4 4 4 4 + M6 12h9.
+        path.move(to: pt(10, 8))
+        path.addLine(to: pt(6, 12))
+        path.addLine(to: pt(10, 16))
+        path.move(to: pt(6, 12))
+        path.addLine(to: pt(15, 12))
+        return path
+    }
+}
+
+// A253 — triangolo d'avviso della sottoriga di END SHOW (§markup del freeze
+// 27/08: viewBox 12×11, reso 11×10): "M6 1l5 9H1z" + barra "M6 4.4v2",
+// stroke 1.4. ⚠️ La scala è sul viewBox 12, non 24 come i fratelli.
+private struct LinkWarnTriangleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let scale = rect.width / 12
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale) }
+        var path = Path()
+        path.move(to: pt(6, 1))
+        path.addLine(to: pt(11, 10))
+        path.addLine(to: pt(1, 10))
+        path.closeSubpath()
+        path.move(to: pt(6, 4.4))
+        path.addLine(to: pt(6, 6.4))
         return path
     }
 }
