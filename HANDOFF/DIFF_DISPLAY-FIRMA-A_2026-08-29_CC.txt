@@ -1,0 +1,199 @@
+diff --git a/ios_app/QBeats/UI/Live/BarCounterView.swift b/ios_app/QBeats/UI/Live/BarCounterView.swift
+index aa51e3b..5e2ea24 100644
+--- a/ios_app/QBeats/UI/Live/BarCounterView.swift
++++ b/ios_app/QBeats/UI/Live/BarCounterView.swift
+@@ -19,10 +19,18 @@ struct BarCounterView: View {
+             default:
+                 let isInf   = total == -1
+                 let isReady = total > 0 || isInf
++                // ⟦DISPLAY-FIRMA-A⟧ A5+C1 (29/08) — current == 0 significa SPENTO
++                // (stessa semantica di `beatActive`: «0 = nessuno»). Accade al
++                // rientro su uno show che suona, finché il primo confine di
++                // sezione non consegna l'ancora vera: la posizione dentro la
++                // sezione non è pubblicata da nessuno, e «Bar 0» sarebbe una
++                // bugia quanto un numero vecchio. Trattino, non zero — verdetto
++                // CD firmato 28/08. Il TOTALE resta disegnato: si ricava dalla
++                // sezione («il binario si disegna anche senza il treno»).
+                 Group {
+                     Text("Bar ")
+                         .foregroundColor(Color.white.opacity(0.88))
+-                    + Text(isReady ? "\(current)" : "—")
++                    + Text(isReady && current > 0 ? "\(current)" : "—")
+                         .fontWeight(.bold)
+                         .foregroundColor(.white)
+                     + Text(" of ")
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 1a31223..2535ecf 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -34,6 +34,44 @@ struct LiveView: View {
+     // il primo tick della sezione corrente, e calcoliamo `currentBar` come tick relativo.
+     @State private var sectionStartTick: Int = 1
+     @State private var pendingSectionStart: Bool = false
++    // ⟦DISPLAY-FIRMA-A⟧ A5+C1 (28-29/08) — L'ANCORA HA UN CICLO DI VITA, non solo
++    // un valore. `sectionStartTick` da solo non distingue «ancora conquistata» da
++    // «valore di init mai ancorato»: al RIENTRO su uno show che suona, il tick
++    // handler calcolava comunque col valore di init (1) — o peggio, con una
++    // FALSA ancora (vedi `lastSeenSectionIdx` sotto) — e il contatore ripartiva
++    // da capo nella sezione. È il disallineamento visto sul device il 29/08.
++    // ⇒ Finché l'ancora non è CONQUISTATA (avvio fresco tickN==1, o primo tick
++    //   dopo un VERO cambio di sezione), contatore e LED restano SPENTI:
++    //   0 = trattini/nessun LED, la semantica che `beatActive` dichiara già
++    //   («0 = nessuno», LiveSession.swift:27). Verdetto CD firmato 28/08:
++    //   «trattini finché la sezione non cambia, poi i numeri veri».
++    // ⛔ Il motore NON pubblica una posizione dentro la sezione (misurato:
++    //   `beatTickSubject` porta un contatore monotono dalla partenza,
++    //   `currentBeat` è timeline assoluta Link/MIDI) ⇒ NON esiste una fonte da
++    //   cui «leggere» la battuta al rientro. Spento non è prudenza: è l'unica
++    //   resa onesta.
++    @State private var barAnchorValid: Bool = false
++    // ⟦DISPLAY-FIRMA-A⟧ — FILTRO DELLA FALSA ANCORA. `runner.$currentSectionIdx`
++    // emette il valore corrente ALLA SOTTOSCRIZIONE (fatto sorgentato: vedi ⓘ
++    // Apple-doc più sotto, :~326-331): al montaggio quell'emissione armava
++    // `pendingSectionStart` e il PRIMO tick del rientro diventava l'ancora —
++    // falsa: currentBar=1 col motore a metà sezione. Qui si ricorda l'ultimo
++    // indice VISTO e si arma solo su un CAMBIO reale.
++    @State private var lastSeenSectionIdx: Int? = nil
++    // ⟦DISPLAY-FIRMA-A⟧ A7+C3 — FILTRO DELL'EMISSIONE INIZIALE dei mirror motore.
++    // Stessa radice: al subscribe i @Published del motore emettono il valore
++    // CORRENTE, che al rientro è stantio rispetto alla posizione (il runner può
++    // essere avanzato mentre la vista era smontata) e sovrascriveva ciò che
++    // `primeDisplay` aveva appena ricalcolato dalla sezione — il 140 e il 3/4
++    // del video del 28/08. Si scarta la SOLA emissione di sottoscrizione; ogni
++    // cambio successivo passa identico a prima.
++    // ⛔ NON si è usata la guardia `audioEngine.isPlaying` (pattern TD#38),
++    //   e la ragione è misurata: `setBPM` pubblica `currentBPM` A MOTORE FERMO
++    //   nel cambio canzone (prepare gira PRIMA di start) — quella guardia
++    //   avrebbe mangiato il BPM della canzone nuova.
++    @State private var bpmMirrorPrimed: Bool = false
++    @State private var bpbMirrorPrimed: Bool = false
++    @State private var repsMirrorPrimed: Bool = false
+     // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
+     // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
+     @State private var sectionHold: Bool = false
+@@ -290,6 +328,17 @@ struct LiveView: View {
+             //    Ogni ALTRO campo della sessione sopravvive DI PROPOSITO: vedi
+             //    il cartello A242 in `QLiveSession.swift`.
+             session.showMixer = false
++            // ⟦DISPLAY-FIRMA-A⟧ A5+C1+C2 — SPENTO AL MONTAGGIO. Da A242 la
++            // sessione sopravvive alla schermata, quindi `currentBar` e
++            // `beatActive` arrivano qui con i valori dell'ULTIMA volta — e a
++            // motore muto nessun tick li correggerà mai: è l'accento verde
++            // acceso a click spento del video del 28/08 (C2, il verdetto più
++            // validato dal campo). Si azzerano SEMPRE al montaggio: se il motore
++            // suona, i numeri veri tornano alla conquista dell'ancora (primo
++            // confine di sezione); se è muto, spento È la resa giusta.
++            // 0 = trattini (BarCounterView) / nessun LED (MetSlotStripView).
++            session.currentBar = 0
++            session.beatActive = 0
+             runner.primeDisplay(session: session)
+             // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
+             // Override il sync da audioEngine sopra: la setlist caricata è "verità"
+@@ -298,6 +347,13 @@ struct LiveView: View {
+             if let section = runner.currentSection {
+                 displayBpb = section.beatsPerBar
+                 displayAccentPattern = section.accentPattern
++                // ⟦DISPLAY-FIRMA-A⟧ C3 — il time-sig dell'header è la FACCIA di
++                // displayBpb e fin qui non aveva un ricalcolo al montaggio: lo
++                // scrivevano solo il mirror motore e il tick handler, quindi al
++                // rientro restava quello sopravvissuto della sessione — il 3/4
++                // del video del 28/08. Stessa fonte delle due righe sopra: la
++                // sezione della posizione, non il motore.
++                session.currentTimeSig = timeSigString(for: section.beatsPerBar)
+             }
+         }
+         // MARK: - AudioEngine → LiveSession sync
+@@ -367,9 +423,21 @@ struct LiveView: View {
+             }
+         }
+         .onReceive(audioEngine.$currentBPM) { bpm in
++            // ⟦DISPLAY-FIRMA-A⟧ A7 — RICALCOLA dalla sezione: il valore del
++            // montaggio lo scrive `primeDisplay` (SetlistRunner.swift, sezione
++            // della posizione); l'emissione di sottoscrizione del motore — che
++            // può essere stantia rispetto alla posizione — si scarta. Ogni
++            // cambio successivo (setBPM al cambio canzone, tempo-callback Link,
++            // swap al downbeat) passa identico a prima.
++            if !bpmMirrorPrimed { bpmMirrorPrimed = true; return }
+             session.currentBPM = bpm
+         }
+         .onReceive(audioEngine.$beatsPerBar) { beats in
++            // ⟦DISPLAY-FIRMA-A⟧ C3 — stessa forma di A7 qui sopra: il montaggio
++            // lo copre l'onAppear (sezione della posizione), l'emissione di
++            // sottoscrizione si scarta. I rami sotto restano INTATTI per ogni
++            // cambio vero, playing o no.
++            if !bpbMirrorPrimed { bpbMirrorPrimed = true; return }
+             // TD #38(a) fix: durante setlist playing bufferizza al next tick
+             // (finestra SEAMLESS). Fuori playing (setup, Stop, Q-Stage→LiveView
+             // return) applica subito al mirror.
+@@ -395,6 +463,15 @@ struct LiveView: View {
+             }
+         }
+         .onReceive(audioEngine.$currentSectionRepetitions) { reps in
++            // ⚠️ ⟦DISPLAY-FIRMA-A⟧ — ESTENSIONE OLTRE LA LETTERA DEL MANDATO,
++            // dichiarata: il mandato nomina A5+C1 come «il contatore di battuta»,
++            // e questo publisher ne governa la metà «of Y». Senza il filtro,
++            // l'emissione di sottoscrizione (motore, stantio al rientro)
++            // sovrascriveva il totale che `primeDisplay` aveva appena ricalcolato
++            // dalla sezione: «Bar — of ⟨vecchio⟩» non è invisibile. Stessa forma
++            // dei due filtri sopra; prima candidata a bocciatura se il referee
++            // la legge fuori perimetro.
++            if !repsMirrorPrimed { repsMirrorPrimed = true; return }
+             // TD #40 fix: stesso pattern di $beatsPerBar.
+             if audioEngine.isPlaying {
+                 pendingReps = reps
+@@ -416,11 +493,13 @@ struct LiveView: View {
+             if tickN == 1 {
+                 sectionStartTick = 1 - audioEngine.startBeatOffset
+                 pendingSectionStart = false
++                barAnchorValid = true
+             } else if pendingSectionStart {
+                 // L1.b — avanzamento sezione mid-canzone (seamless): il 1° tick
+                 // della nuova sezione diventa l'ancora → currentBar=1.
+                 sectionStartTick = tickN
+                 pendingSectionStart = false
++                barAnchorValid = true
+             }
+             // TD #38(a) + #40 fix: applica i mirror bufferizzati al primo
+             // tick post-arrivo @Published (= primo beat nuova sezione audio).
+@@ -441,6 +520,19 @@ struct LiveView: View {
+                 session.totalBarsInSection = reps
+                 pendingReps = nil
+             }
++            // ⟦DISPLAY-FIRMA-A⟧ A5+C1+C2 — SENZA ANCORA NON SI CONTA. Al rientro
++            // su uno show che suona i tick arrivano ma nessuno sa a quale battuta
++            // della sezione appartengano (il motore non pubblica quella
++            // posizione): calcolare con un'ancora non conquistata è come
++            // inventarla. Spento — trattini e LED muto — finché il primo confine
++            // di sezione non consegna l'ancora vera; da lì i numeri veri, da
++            // soli. ⛔ I mirror bufferizzati qui sopra si applicano COMUNQUE:
++            // sono valori di sezione, non derivati dell'ancora.
++            guard barAnchorValid else {
++                session.beatActive = 0
++                session.currentBar = 0
++                return
++            }
+             let bpb = max(1, Int(displayBpb))
+             // Tick relativo alla sezione corrente (1-based dentro la sezione).
+             let relativeTick = tickN - sectionStartTick + 1
+@@ -454,8 +546,19 @@ struct LiveView: View {
+         // → nessun tick fino al prossimo startCurrentSong, che farà partire
+         // l'engine fresh (beatTickCounter=0); il primo tick=1 sarà catturato
+         // qui come sectionStartTick.
+-        .onReceive(runner.$currentSectionIdx) { _ in
+-            pendingSectionStart = true
++        // ⚠️ ⟦DISPLAY-FIRMA-A⟧ (29/08) — SI ARMA SOLO SU UN CAMBIO REALE. Prima
++        //    il marker si armava anche sull'emissione di SOTTOSCRIZIONE (un
++        //    @Published emette il valore corrente al subscribe — ⓘ sorgentato
++        //    più sopra): al rientro su uno show che suona, il primo tick
++        //    diventava così una FALSA ancora e il contatore ripartiva da capo
++        //    nella sezione — il disallineamento visto sul device il 29/08.
++        //    L'emissione iniziale ora REGISTRA l'indice senza armare; ogni
++        //    transizione vera arma identica a prima.
++        .onReceive(runner.$currentSectionIdx) { idx in
++            if let last = lastSeenSectionIdx, last != idx {
++                pendingSectionStart = true
++            }
++            lastSeenSectionIdx = idx
+         }
+         .onReceive(audioEngine.$audioMode) { mode in
+             session.isProMode = mode == .pro
