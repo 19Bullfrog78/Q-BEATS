@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V37 — 29/08/2026
+**Versione:** V38 — 29/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -978,6 +978,8 @@ tornare col totale.**
 | **RIGHE INVECE DI OCCORRENZE** | P2 | `grep` conta **RIGHE**, non occorrenze: una stringa spezzata da un a-capo **non esiste** per `grep`, e su un documento mandato a capo a 76 colonne ogni frase lunga può nascondersi in mezzo | contare sul **testo appiattito** (`tr '\n' ' '`), oppure scegliere stringhe **copiate da una riga sola** | `HANDOFF/CONGEDO_CC_2026-08-26_A220.md:439` («sesta faccia») |
 | **PATTERN DEGENERE** | P3 | `grep -c $'\r'` su un file **senza CR** rende **il numero totale delle righe**, non zero: il pattern matcha ogni riga. ⚠️ Anche la forma ancorata `$'\r$'` mente allo stesso modo | confrontare l'esito col **totale** delle righe: se coincide, il filtro non ha filtrato | `LIBRO_MASTRO_QBEATS.md:352` (06/08/2026, «FALSO-*POSITIVO* DA FILTRO — PRIMA DELLA SUA SERIE») |
 | **PARAMETRO IGNORATO IN SILENZIO** | P3 | l'API di GitHub Actions accetta parametri **sconosciuti senza errore** e li **scarta**: `?conclusion=success` non filtra nulla e la risposta rende l'insieme intero | **quadratura**: enumerare le classi e verificare che la somma torni col totale non filtrato | **misurato qui il 26/08/2026 — prima incisione** |
+| **POSITIVO DI FORMA SBAGLIATA** | P2 | la sonda ha un controllo positivo, **e il positivo non è della stessa forma dell'oggetto cercato** ⇒ il positivo vede, la sonda no, e lo zero passa per misura. Due casi misurati il 29/08: **(1)** `= SetlistRunner(` rende zero perché il runner nasce nella forma `install(SetlistRunner(` — il positivo era un'altra costruzione, non un'altra *forma* di costruzione; **(2)** cercare un pannello per **modificatore di sistema** (`confirmationDialog` · `.alert(` · `.sheet(`) in un'app che i pannelli **li disegna a mano** (`ZStack` + velo) — il positivo era un modificatore, l'oggetto è una vista | **il positivo si sceglie nella STESSA FORMA di ciò che si cerca**, non nella stessa famiglia: se cerchi una stringa di UI, il positivo è una stringa di UI che sai esistere; se cerchi una vista fatta a mano, il positivo è una vista fatta a mano | **misurato qui il 29/08/2026 (A258, A260) — prima incisione** |
+| **ASSENZA DALLA PROPRIA VISTA** | P2 | l'osservatore **non può vedere** il supporto dove l'oggetto vive, e legge il proprio zero come inesistenza. Non è una sonda mal scritta: è una sonda **giusta puntata dove l'oggetto non è**. Tre occorrenze: `git log --grep` su ID **mai committati** (rende zero per costruzione, ed è stato usato come controllo positivo) · `git grep` sugli **untracked** · un mount che espone «Il mio Drive» e **non** «Il mio computer», dove vive il riflesso | **dichiarare «invisibile da qui», MAI «non esiste»**, e nominare il supporto che non si è potuto interrogare. Un secondo supporto, o un secondo osservatore, prima di concludere | **§7 della Costituzione** (`FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md`) ne porta la METÀ SIMMETRICA («niente fonte verificabile, non entra»); questa è **la metà mancante** — vedi la nota sotto |
 
 ### La voce nuova, misurata alla fonte prima di inciderla
 
@@ -997,6 +999,16 @@ pianta** rende lo stesso numero di `conclusion` ⇒ `conclusion` **non esiste** 
 questo endpoint, e ciò che non esiste **viene scartato senza dirlo**. Il
 parametro valido è `status`, che accetta anche i valori di conclusione.
 ⛔ **Un filtro sbagliato non fallisce: rende TUTTO.**
+
+### La metà mancante del §7 — dove va incisa, e perché NON è stata incisa là (A260, 29/08/2026)
+
+**Il §7 della Costituzione** (`FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md`, «FONTE O NIENTE») governa **una direzione sola**: cosa fare quando **non trovi la fonte di un claim** — «in assenza di fonte verificabile il default è rimuovere o formulare in modo generico».
+
+⛔ **Non dice nulla del caso simmetrico, che è quello che ci è costato caro tre volte il 29/08:** quando **tu non puoi vedere** il supporto su cui l'oggetto vive. Lì il default del §7 non si applica — non stai attribuendo un valore a una libreria: **stai leggendo il tuo stesso zero come un fatto sul mondo.**
+
+⇒ **La regola, in una riga: CHI NON VEDE DICHIARA «INVISIBILE DA QUI», MAI «NON ESISTE».** Il §7 protegge dal claim senza fonte; questa protegge dalla **conclusione senza accesso**. Sono due metà della stessa disciplina.
+
+⚠️ **[A] PERCHÉ STA QUI E NON IN §7, e lo dichiaro invece di deciderlo in silenzio:** il mandato A260 la colloca «§7, la metà mancante», e per contenuto **ha ragione**. **Non ho toccato la Costituzione**: è documento di regime, la sua ultima modifica è di giugno (`bd70783`), e nessun mandato mi ha mai autorizzato a scriverci. ⇒ **Incisa qui, dove vivono i difetti di misura, con il puntatore al §7.** Se il referee vuole che salga in Costituzione, **è un atomo suo e il testo è già scritto: sono le due righe in grassetto qui sopra.**
 
 ⚠️ **[A] Perché questa voce ha un predecessore e non apre una serie:** la
 meccanica è diversa da `LIBRO:352` — là un pattern degenere che matcha tutto, qui
@@ -1055,6 +1067,14 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - **Voce NUOVA, prima incisione — «PARAMETRO IGNORATO IN SILENZIO»:** l'API di GitHub Actions scarta i parametri sconosciuti **senza errore** e rende l'insieme intero. Dimostrata per controprova, non supposta: un parametro **inventato** rende lo stesso numero di `?conclusion=`. ⇒ **La riga `LIBRO:352`, che si dichiarava «PRIMA DELLA SUA SERIE», da oggi ha un secondo membro**, ed è la polarità **P3**.
 - ⛔ **Una voce candidata NON è stata incisa perché non si riproduce:** «numero non riproducibile» (173 → 494 → 580) rende **582 stabile su sei chiamate identiche**. **Osservata, dichiarata, non incisa.**
 - ✅ **Misurato prima di scrivere: l'innesto alla riga 943 NON sposta alcuna citazione nuda.** Le citazioni `BOX5_QBEATS.md:NN` più alte del corpus sono `:564` e `:566`, che **precedono** l'innesto. ⚠️ **Vivono solo sulla gamba `E:`** (`HANDOFF/A58-USCITA-FINESHOW-RICOGNIZIONE.txt`): su `C:` il massimo è **390**, e una sonda che guardi solo `C:` **sottostima**.
+
+**Delta V38 vs V37:**
+
+- **MARCATURA ADDITIVA nel BLOCCO 3 «LE TRE SORTI DELLA DECISIONE 7»:** la metà **«con un OVERLAY DI RIPRESA»** passa da *ratificata e mai costruita* a **SUPERATA** (Mauro, 29/08). ⛔ **Le altre due metà REGGONO e la tabella non è stata riscritta.** Lo stop del player resta **secco, senza pannello**, e il ciclo STOP → Play che riparte da **canzone e sezione** è il comportamento **definitivo, non un ripiego** — costruito in A240 (`d0225ef`), **collaudo device VERDE 28/08**, che chiude anche il «collaudo NON ancora eseguito» della marcatura del 28/08.
+- ⚠️ **Divergenza dichiarata dalla lettera del mandato A260**, che chiedeva «la decisione 7 è superata» **in blocco**: in blocco sarebbe **falso**, e questa stessa sede lo dice tre righe sopra. Inciso ciò che è vero — **una metà su tre** — invece di mettere due canonici in contraddizione.
+- **Due voci NUOVE nella TASSONOMIA DEI DIFETTI DI MISURA**, entrambe **P2** e misurate il 29/08: **POSITIVO DI FORMA SBAGLIATA** (il controllo positivo vede ma non è della stessa *forma* dell'oggetto cercato — due casi: `= SetlistRunner(` e la ricerca di un pannello per modificatore di sistema in un'app che i pannelli li disegna a mano) e **ASSENZA DALLA PROPRIA VISTA** (`git log --grep` su ID mai committati · `git grep` sugli untracked · il mount che non espone «Il mio computer»).
+- **La METÀ MANCANTE DEL §7 incisa qui, con puntatore alla Costituzione:** il §7 governa il claim senza fonte, **non** la conclusione senza accesso. ⛔ **La Costituzione NON è stata toccata** — documento di regime, ultima modifica `bd70783` di giugno, nessun mandato me lo ha mai autorizzato: il testo pronto è nella nota, se il referee vuole farlo salire è un atomo suo.
+- ⚠️ **Incoerenza PRE-ESISTENTE dichiarata e NON riparata qui:** il file era a **V37** senza che esistesse un blocco `Delta V37 vs V36` — l'ultimo scritto era V36. **Non l'ho inventato a posteriori** (non so cosa contenesse) e non ho rinumerato niente: V38 segue V37 come da testata.
 
 **Delta V36 vs V35:**
 
@@ -1211,6 +1231,16 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 ⇒ ✅ **MARCATURA ADDITIVA 28/08 — «DA DOV'ERI» È SCIOLTO, e la riga sopra resta com'è.** Mauro ha deciso il 28/08 che «da dov'eri» significa **CANZONE e SEZIONE**: opzione **(B)** di un bivio posto dal referee; la **(A)** — canzone giusta, sezione riportata all'inizio — è **scartata come rimedio parziale**. ⇒ **Costruita in A240 (`d0225ef`); collaudo device NON ancora eseguito.**
 
 ⚠️ **[A] E la scelta nasce come CONSEGUENZA della riga qui sopra, non a fianco:** tolto l'overlay di ripresa — «nessun pannello sopra», §2 e riga precedente — **la scelta fra i suoi due bottoni smette di essere dell'utente e diventa un default**. ⇒ **Questo è quel default.** Chi un giorno rimettesse il pannello deve sapere che sta riaprendo una scelta, non aggiungendo un comodo.
+
+⇒ ✅ **MARCATURA ADDITIVA 29/08 (A260) — LA SECONDA METÀ PASSA DA «RATIFICATA E MAI COSTRUITA» A SUPERATA. Ratificata da Mauro. Le altre due metà REGGONO INVARIATE e la tabella sopra non si riscrive.**
+
+⛔ **Si marca SOLO la riga «con un OVERLAY DI RIPRESA», e la precisione non è pedanteria:** il mandato A260 chiedeva di incidere «la decisione 7 è superata» **in blocco**, e in blocco sarebbe **falso** — lo dice questa stessa sede tre righe sopra («la 7 non è "superata" né "riformulata": le sue tre metà hanno sorti diverse»). **«STOP nel player è REVERSIBILE» regge** (è anzi ciò che il ciclo STOP → Play realizza), e **«nel dettaglio ferma tutto ed esce» regge** — ora anche COSTRUITO (A253). Scrivere «la 7 è superata» avrebbe messo due canonici in contraddizione su tre quarti del loro contenuto.
+
+**COSA CAMBIA:** l'overlay di ripresa **non è più un lavoro in attesa di esecutore: non si costruisce.** STOP nel player resta uno **stop secco, senza pannello**, e **il ciclo STOP → Play che riparte da CANZONE e SEZIONE è il comportamento DEFINITIVO, non un ripiego in attesa del pannello**. ✅ Costruito in A240 (`d0225ef`), **collaudo device VERDE 28/08** — il collaudo che la marcatura del 28/08 qui sopra dava ancora come non eseguito.
+
+⇒ **La riga «[A] la scelta … diventa un default» qui sopra va letta al presente e senza scadenza:** non è più un default provvisorio in attesa che il pannello torni. **Il pannello non torna.** ⛔ Chi volesse rimetterlo non aggiunge un comodo: **riapre una decisione ratificata due volte** (27/08 «nessun pannello sopra» · 29/08 questa).
+
+⚠️ **E RESTA VERO CHE L'OVERLAY ESISTE NEL CODICE**, irraggiungibile dal transport e raggiungibile da una schermata di debug e da un'azione MIDI assegnabile dall'utente. **Superata la decisione, il codice non è sparito** — ed è ora un difetto con un ticket suo (`TD-restart-song-falsa-ricevuta`, BUGS), non un pezzo di un lavoro futuro.
 
 ---
 
