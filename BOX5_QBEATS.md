@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V36 — 28/08/2026
+**Versione:** V37 — 29/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1234,3 +1234,25 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 ⇒ **Stessa schermata, stesse due parole, due significati.** ⚠️ **È la stessa forma di collisione che il 26/08 ha portato a rinominare «Mode» in «Role» e «List view» in «Chart Mode».**
 
 ⛔ **Inciso come aperto, non risolto: decidono CD e Mauro.** ⚠️ E fuori dal dettaglio le stesse due parole sono **già** il titolo della schermata di fine scaletta dentro il player: **contando quella, i sensi sono tre.**
+
+
+---
+
+## SETTE REGOLE DI METODO — nate misurando, 27-29/08/2026 (raccolta A249)
+
+> **Perché stanno qui e non in un referto:** ognuna è nata da un errore **già commesso** in questi tre giorni, e ognuna sarebbe rifatta da chi non la trova **prima**. Sede unica: questo capitolo. ⛔ **Non si riassumono altrove: si citano.**
+
+**1 · LE CINTURE SI METTONO SULL'ATTO, NON SUL BOTTONE.** I bottoni si moltiplicano, l'atto no. Una guardia appesa a un controllo nasce già dimenticata dal controllo successivo. *(CD — terza migrazione dello stesso tipo in tre giorni. Istanza misurata: gli inneschi dell'avvio sono tre, e uno è il MIDI.)*
+
+**2 · 🚨 UN GUASTO PUÒ ESSERE L'UNICA IMPLEMENTAZIONE DI UNA FUNZIONE CHE NESSUNO HA SCRITTO.** Chiudendolo la si perde, e **nessuna riga dice che è sparita**. ⇒ **Quando si chiude un guasto, si enumera cosa stava facendo per sbaglio, PRIMA che se ne vada.** *(Nato da `TD-show-non-abbandonabile`: la porta rotta ricostruiva il runner, e quella ricostruzione era anche l'unica uscita da uno show. A244 ha chiuso il guasto e ha creato un bloccante palco.)*
+
+**3 · UN VERDETTO SULLA SOPRAVVIVENZA NON È UN VERDETTO SUL FUNZIONAMENTO.** Che un dato sopravviva non dice che il comando che lo usa funzioni. *(Firma A, +1 punto di ripresa: il dato sopravviveva davvero, e l'esecutore non onorava la sezione.)*
+
+**4 · UN VERDETTO CHE NOMINA UNA FONTE NON È UN VERDETTO CHE LA FONTE ESISTE.** ⇒ **Accanto a ogni «si legge da» va il nome di chi lo pubblica, o è un desiderio.** *(C1 fu scritto «si legge dal motore» quando nessuno pubblicava quel numero; ritirato e poi ripristinato quando si è misurato che la fonte c'era, privata.)*
+
+**5 · 🚨 LA DOMANDA È «IL MOTORE LO SA?», NON «LO PUBBLICA?».** ⚠️ **Tre volte su tre, in tre giorni, la cosa che mancava era PRIVATA, non assente** — e le tre volte sono **errori del referee**, che si incidono come tali. **La protesi la paga chi suona ogni sera; l'esposizione la paga chi costruisce, una volta.** *(La terza istanza ha prodotto `snapshotSectionPosition` e la sincronizzazione istantanea al rientro, dopo che «la fonte non esiste» era già stato scritto in un mandato.)*
+
+**6 · GLI ID DEI MANDATI-CODICE VIVONO NEI MESSAGGI DI COMMIT, NON NEI FILE.** Una sonda ID senza `git log --grep` **ha un buco**, e ⛔ **un positivo a zero è una sonda cieca, non un ID libero**. *(Reperto di CC, A247: la prima sonda rendeva zero anche sui controlli positivi, perché A244 e A245 non vivono in nessun file.)* Vedi anche la TASSONOMIA DEI DIFETTI DI MISURA, sopra.
+
+**7 · IL TEST DA APPLICARE A OGNI STATO CHE SI DISEGNA:** se questo stato si apre e l'utente **cambia idea**, con quale gesto esce — **e QUEL GESTO È COSTRUITO?** ⛔ **«Disegnato» non è una risposta.** *(CD. È il test che avrebbe intercettato `TD-show-non-abbandonabile` prima del device.)*
+

@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-LIVE › PLAYER — LA POLITICA DEL RIENTRO · rev3
+ LA PORTA E IL SEGNALE BUGIARDO
+ NOME FILE  2026-08-28_QLive-Player_POLITICA-DEL-RIENTRO__rev3-LA-PORTA-E-IL-SEGNALE-BUGIARDO__SUPERSEDE-rev2.html
+ DATA       28/08/2026 · risponde a RICHIESTA-CD-POLITICA-RIENTRO-FINE
+ STATO      PROPOSTA · ratificabile in blocco. SUPERSEDE il rev2 su DUE righe
+            e ne AGGIUNGE una che il rev2 non aveva:
+            ① §A  LA PORTA — la decisione che mi era stata chiesta (NUOVA)
+            ② §B  il gradino 1 riscritto: isPlaying mente in una direzione sola
+            ③ §C  il +1 «Punto di ripresa»: verdetto confermato, frase ritirata
+            ④ §D  l'overlay dello stop reversibile: gerarchia dei danni, sentenza
+            Le altre 14 voci dei sedici NON si toccano: si portano dentro dal rev2.
+ ⛔ NON FIRMARE IL REV2. Contiene una riga falsificata alla fonte (+1) e un
+    gradino che poggia su un segnale che ora sappiamo bugiardo (gradino 1).
+    Questo foglio le corregge e porta dentro tutto il resto. Si firma questo.
+ ⛔ NON riapre: decisione 9, decisione 10, copy dell'1.1, rinomina STOP→END SHOW.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<title>Q-BEATS · La politica del rientro — rev3 · la porta e il segnale bugiardo · 28/08/2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{--paper:#e9e7e2;--ink:#1a1812;--ink2:rgba(26,24,18,.66);--ink3:rgba(26,24,18,.42);--line:rgba(26,24,18,.13);--card:#f7f5ef;--ok:#0d6b2b;--okbg:rgba(40,205,65,.13);--okbd:rgba(40,205,65,.42);--blu:#1a4a8a;--blubg:rgba(26,74,138,.09);--blubd:rgba(26,74,138,.34);--warn:#8a5a00;--warnbg:rgba(245,184,32,.2);--warnbd:rgba(245,184,32,.52);--flag:#a8281f;--flagbg:rgba(177,40,31,.09);--flagbd:rgba(177,40,31,.36);--mutedbg:rgba(26,24,18,.05);--mutedbd:rgba(26,24,18,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Inter,sans-serif;line-height:1.56;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:52px 28px 110px}
+a{color:var(--blu);text-decoration:none}a:hover{color:#0d3060;text-decoration:underline}
+code{background:var(--mutedbg);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.88em}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--ok)}
+h1{font-size:34px;font-weight:900;letter-spacing:-.8px;margin:9px 0 10px;line-height:1.1}
+.sub{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.4px;color:var(--ink3);text-transform:uppercase;margin-bottom:26px}
+.rule{background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid var(--okbd);border-radius:18px;padding:26px 28px;margin-bottom:14px}
+.rule .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:#7fe093;margin-bottom:13px}
+.rule p{font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.42;text-wrap:pretty}
+.rule p b{color:#a8f0b8}
+.rule code{background:rgba(255,255,255,.11);color:#fff}
+.rule .why{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(255,255,255,.72);margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.12);text-wrap:pretty}
+.rule .why b{color:#fff}
+.rule.blu{background:linear-gradient(160deg,#121722,#0f1219);border-color:var(--blubd)}
+.rule.blu .lbl{color:#8fc0ff}
+.rule.blu p b{color:#bcd8ff}
+.states{display:grid;gap:0;margin-top:18px}
+.st{display:grid;grid-template-columns:168px 1fr;gap:16px;align-items:start;padding:13px 0;border-top:1px solid rgba(255,255,255,.13)}
+.st .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:#8fc0ff;text-transform:uppercase;line-height:1.5}
+.st .d{font-size:14px;color:rgba(255,255,255,.79);line-height:1.52;text-wrap:pretty}
+.st .d b{color:#fff}
+.v{display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;padding:4px 9px;border-radius:7px;white-space:nowrap}
+.v.rit{color:var(--ok);background:var(--okbg);border:1px solid var(--okbd)}
+.v.ric{color:var(--blu);background:var(--blubg);border:1px solid var(--blubd)}
+.v.spe{color:#f2efe6;background:#211f18;border:1px solid #211f18}
+.v.can{color:var(--flag);background:var(--flagbg);border:1px solid var(--flagbd)}
+.v.bit{color:var(--ok);background:var(--okbg);border:1px solid var(--okbd)}
+section{margin-bottom:40px}
+h2{font-size:11.5px;font-family:'JetBrains Mono',monospace;letter-spacing:2.3px;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:18px}
+h3{font-size:19px;font-weight:800;letter-spacing:-.3px;margin:0 0 8px;text-wrap:pretty}
+p.b{font-size:15px;color:var(--ink2);margin-bottom:13px;max-width:840px;text-wrap:pretty}
+p.b b{color:var(--ink)}
+p.b:last-child{margin-bottom:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 23px;margin-bottom:12px}
+.card.hot{background:#fdf8ec;border-color:var(--warnbd)}
+.card.bad{background:#fbf1ef;border-color:var(--flagbd)}
+.card.cool{background:#f0f3f8;border-color:var(--blubd)}
+.tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;padding:4px 9px;border-radius:6px;margin-bottom:11px}
+.tag.w{color:var(--warn);background:var(--warnbg);border:1px solid var(--warnbd)}
+.tag.f{color:var(--flag);background:var(--flagbg);border:1px solid var(--flagbd)}
+.tag.o{color:var(--ok);background:var(--okbg);border:1px solid var(--okbd)}
+.tag.b{color:var(--blu);background:var(--blubg);border:1px solid var(--blubd)}
+ol.mount{counter-reset:m;list-style:none;margin:14px 0 0}
+ol.mount li{position:relative;padding:11px 0 11px 46px;border-top:1px solid var(--line);font-size:14.5px;color:var(--ink2);text-wrap:pretty}
+ol.mount li b{color:var(--ink)}
+ol.mount li::before{counter-increment:m;content:counter(m);position:absolute;left:0;top:11px;width:27px;height:27px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+ol.mount li.chg::before{background:var(--flag)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media(max-width:760px){.two{grid-template-columns:1fr}.st{grid-template-columns:1fr;gap:5px}}
+.col{background:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+.col h4{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:11px}
+.col.on h4{color:var(--blu)}
+.col.off h4{color:var(--ink)}
+.col ul{list-style:none}
+.col li{font-size:13.5px;color:var(--ink2);padding:6px 0 6px 15px;position:relative;border-top:1px solid var(--line);text-wrap:pretty}
+.col li:first-child{border-top:0}
+.col li b{color:var(--ink)}
+.col li::before{content:"";position:absolute;left:0;top:13px;width:7px;height:7px;border-radius:50%}
+.col.on li::before{background:var(--blu)}
+.col.off li::before{border:1px solid var(--mutedbd)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+thead th{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);text-align:left;padding:0 10px 9px;border-bottom:1px solid var(--line)}
+tbody td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2);text-wrap:pretty}
+tbody tr:hover{background:rgba(255,255,255,.4)}
+td.id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--ink3);width:34px;white-space:nowrap}
+td.nm{font-weight:700;color:var(--ink);width:186px}
+td.vd{width:126px;white-space:nowrap}
+.grp{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink);background:var(--mutedbg)}
+.grp td{padding:9px 10px;border-bottom:1px solid var(--line)}
+table.idx td.fl{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink);width:auto;font-weight:600;word-break:break-all}
+table.idx td.pu{color:var(--ink2)}
+ul.pl{list-style:none;margin:10px 0 0}
+ul.pl li{position:relative;padding:7px 0 7px 22px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line);text-wrap:pretty}
+ul.pl li:first-child{border-top:0}
+ul.pl li b{color:var(--ink)}
+ul.pl li::before{content:"·";position:absolute;left:6px;top:7px;font-weight:900;color:var(--ink3)}
+ul.pl li.no::before{content:"⛔";left:0;font-size:11px;top:9px}
+ul.pl li.q::before{content:"?";left:3px;font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--flag)}
+ul.pl li.ok::before{content:"✔";left:2px;font-size:11px;color:var(--ok);font-weight:800}
+.gap{background:var(--card);border:1px dashed var(--mutedbd);border-radius:14px;padding:19px 22px;margin-bottom:11px}
+.gap .n{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--flag);margin-bottom:8px}
+.ratify{background:#1c1608;color:#f3e2b0;border:1px solid var(--warnbd);border-radius:18px;padding:25px 28px}
+.ratify h2{color:#ffd35a;border-color:rgba(245,184,32,.28);margin-bottom:16px}
+.ratify .it{display:flex;gap:13px;padding:12px 0;border-top:1px solid rgba(255,255,255,.11);font-size:14px;line-height:1.55;text-wrap:pretty}
+.ratify .it:first-of-type{border-top:0}
+.ratify .n{flex:0 0 26px;height:26px;border-radius:7px;background:rgba(245,184,32,.18);border:1px solid rgba(245,184,32,.45);color:#ffd35a;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.ratify .it b{color:#fff}
+.ratify .it.ask .n{background:rgba(255,90,70,.16);border-color:rgba(255,120,100,.5);color:#ff9a8a}
+.ratify .it.new .n{background:rgba(140,200,255,.16);border-color:rgba(140,200,255,.5);color:#a8d4ff}
+footer{font-size:12px;color:var(--ink3);border-top:1px solid var(--line);padding-top:20px;margin-top:44px;font-family:'JetBrains Mono',monospace;line-height:1.7}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="kick">CD → Mauro · rev3 · ratificabile in blocco</div>
+<h1>La politica del rientro</h1>
+<p class="sub">28/08/2026 · rev3 · <b>la porta e il segnale bugiardo</b> · supersede il rev2 su due righe, ne aggiunge una · 14 verdetti portati dentro invariati</p>
+
+<div class="card bad">
+<span class="tag f">Prima di tutto: la firma</span>
+<h3>Non firmare il rev2. Firma questo.</h3>
+<p class="b">Il rev2 è ratificabile per <b>quattordici voci su sedici</b>, e quelle quattordici le porto dentro qui senza toccarle. Ma contiene <b>una riga falsificata alla fonte</b> (il +1, §C) e <b>un gradino che poggia su un segnale che ora sappiamo bugiardo</b> (il gradino 1, §B). Una firma sopra una riga falsa non si mette: fra sei settimane nessuno si ricorda che c'era una nota a margine, e quella riga vale come ratificata. <b>Il rev2 diventa storico oggi, non domani.</b></p>
+<p class="b">E aggiunge la cosa che il rev2 <b>non aveva affatto</b>: la decisione che mi avete chiesto. Era l'ultimo buco del foglio e non lo sapevo — <b>avevo scritto una politica su cosa mostrare al rientro senza avere una regola su cosa il rientro fa.</b> Il §A è quella regola.</p>
+</div>
+
+<div class="rule">
+<div class="lbl">La regola, in una riga — aggiornata</div>
+<p>Sopravvive <b>solo quello che hai deciso tu: dove sei nello show</b>, e <b>se il silenzio l'hai chiesto tu.</b> Tutto il resto o <b>si ricalcola da lì</b>, o <b>resta spento finché il click non parla.</b> E da oggi: <b>al motore non si chiede se sta suonando. Si aspetta un beat.</b></p>
+<div class="why"><b>Il rev3 non aggiunge niente a quello che sopravvive: cambia chi viene interrogato.</b> Il motore dichiara di suonare anche a telefono muto — quindi la sua parola non è una prova. Il beat sì: <b>il beat non può mentire perché il beat È il suono.</b> Uno schermo che aspetta un beat non ha bisogno che nessuno gli dica la verità: gliela porta l'unica cosa che il pubblico sente.</div>
+</div>
+
+<section>
+<h2>§A · La decisione che mi avete chiesto — la porta</h2>
+
+<div class="rule blu">
+<div class="lbl">Decisione di disegno · CD · 28/08/2026</div>
+<p>Rientrare in un player che sta suonando <b>non fa ripartire niente.</b> Il player <b>si riattacca</b> allo show vivo. E il bottone che poteva distruggerlo <b>smette di esistere in quello stato.</b></p>
+<div class="states">
+<div class="st"><div class="k">slot vuoto</div><div class="d">La porta legge <code>START SHOW</code> e <b>costruisce</b>. È l'unico caso in cui costruisce. Comportamento di oggi, invariato.</div></div>
+<div class="st"><div class="k">slot pieno<br />(vivo o fermo)</div><div class="d">La porta legge <code>BACK TO SHOW</code> e <b>si riattacca. Non costruisce mai.</b> Cosa appare sullo schermo lo decidono i gradini del §B — non la porta.</div></div>
+<div class="st"><div class="k">per ricostruire</div><div class="d">Serve <b>prima</b> chiudere: <code>END SHOW</code>, che esiste già, in due inneschi, con la sua riga di avviso Link addosso. <b>Due atti, due nomi.</b> La ricostruzione costa un gesto in più — ed è esattamente quello che deve costare.</div></div>
+</div>
+<div class="why"><b>Tre atti, tre nomi, un oggetto solo — lo show.</b> <code>START SHOW</code> costruisce · <code>BACK TO SHOW</code> si riattacca · <code>END SHOW</code> chiude. La famiglia si legge da sola e non ha bisogno che nessuno la spieghi: è la stessa medicina di ieri sera su <code>STOP</code>→<code>END SHOW</code>, applicata un piano più su.</div>
+</div>
+
+<div class="card">
+<span class="tag b">Perché così — e perché non un popup</span>
+<ol class="mount">
+<li><b>Perché la mia §7① lo aveva già deciso, e non me n'ero accorto.</b> «Lo show non si è messo in pausa perché hai guardato altrove»: tutta la politica esce da lì. Se il rientro ricostruisse lo show, quell'assunzione sarebbe <b>falsa in casa propria</b> — starei scrivendo sedici verdetti su come mostrare fedelmente uno show che l'atto di guardarlo uccide.</li>
+<li><b>Perché un atto distruttivo non si nasconde dietro un gesto di navigazione.</b> Oggi lo stesso tap che significa «fammi rivedere lo schermo» <b>ammazza in silenzio lo show che sta suonando</b>. Non è un difetto del bottone: è una <b>collisione di nomi</b> — un'etichetta per due atti. Identica a quella di ieri, e si cura allo stesso modo.</li>
+<li><b>Perché il popup è lo strumento sbagliato proprio qui.</b> Una domanda modale <b>mentre il click gira e la band suona</b>, la cui risposta sbagliata ferma il concerto. E l'utente non ha chiesto di far partire niente: ha chiesto di <b>tornare</b>. Una domanda si deve solo quando il gesto è ambiguo — e qui l'ambiguità <b>non è nel gesto, è nell'etichetta.</b> ⇒ <b>Non si disambigua con un popup quello che si disambigua con un nome.</b></li>
+<li><b>Perché non legge il segnale bugiardo.</b> La porta non chiede «sta suonando?». Chiede <b>«lo slot è pieno?»</b> — un fatto binario e affidabile. ⇒ <b>La decisione del §A è immune al guasto del §B</b>, e questo non è un caso: era il criterio con cui l'ho scelta fra le alternative.</li>
+<li><b>Perché costa zero schermate.</b> Nessuna vista nuova, nessun gesto nuovo, nessun overlay. Una parola che cambia su una condizione sola. Il disegno da fare è <b>una skin per il secondo stato</b> del bottone che già c'è — e il posto in cui viverla esiste.</li>
+</ol>
+</div>
+
+<div class="card cool">
+<span class="tag b">Il regalo strutturale — e non è mio</span>
+<h3>Il mio prerequisito del §1b e questa decisione <em>sono un lavoro solo.</em></h3>
+<p class="b">Misurato e passatomi: <b>il posto dove va messo lo spegnimento del bit «show aperto» e il posto che gestisce la sostituzione di uno show vivo sono lo stesso punto di codice.</b> ⇒ Non chiedo due cose. Chiedo che <b>un posto solo impari tre comportamenti:</b></p>
+<ul class="pl">
+<li><b>slot vuoto → costruisci</b> (quello che fa già)</li>
+<li><b>slot pieno → riattacca, non costruire</b> (§A, oggi)</li>
+<li><b>la sessione si chiude → spegni il bit</b> (§1b del rev2, invariato: <code>END SHOW</code> in <b>due</b> inneschi + fine scaletta ⇒ va attaccato <b>dove la sessione si chiude, non dentro il bottone</b>)</li>
+</ul>
+<p class="b" style="margin-top:13px"><b>E c'è un effetto collaterale che vale da solo:</b> se la porta non può più sostituire uno show vivo, allora «lo slot non si svuota mai» <b>smette di essere pericoloso in quella direzione.</b> Resta da spegnere per il velo (§1b), ma non può più farti perdere un concerto. <b>Una riparazione che disinnesca un difetto che non stava riparando</b> è il segno che il punto era quello giusto.</p>
+</div>
+</section>
+
+<section>
+<h2>§B · La conseguenza — il segnale bugiardo e il gradino 1 riscritto</h2>
+
+<div class="card hot">
+<span class="tag w">Cosa faccio del gradino che poggiava sulla domanda al motore</span>
+<h3>Il segnale mente <em>in una direzione sola.</em> Quindi si legge in una direzione sola.</h3>
+<p class="b">Non lo butto e non lo sostituisco: lo <b>leggo per metà</b>, perché è per metà vero, e la metà vera è quella che mi serviva davvero. Dalla misura che mi porti: lo accende uno, lo spengono due — <b>lo STOP esplicito e l'interruzione audio</b> — e <b>nessuno</b> lo spegne quando la coda si esaurisce da sola.</p>
+<ul class="pl">
+<li class="ok"><b><code>false</code> è certo.</b> Le due sole cose che lo scrivono <b>zittiscono davvero l'app</b>. Se dice «non suono», non suona. ⇒ <b>Tre gradini su quattro leggevano solo questa metà</b>: il 2 (velo giù), il 3 (ferma e pronta), il 4 (show chiuso). <b>Restano identici al rev2. Zero righe cambiate.</b></li>
+<li class="no"><b><code>true</code> non è una prova.</b> Significa <b>«qualcuno ha premuto play e nessuno ha premuto stop»</b> — non «esce del suono». ⇒ <b>Il guasto tocca un gradino su quattro</b>, ed è l'unico che leggeva la metà bugiarda. Un segnale con un errore <b>a direzione nota</b> non è un segnale inservibile: è un segnale che si legge da un lato solo.</li>
+</ul>
+</div>
+
+<div class="card">
+<span class="tag w">Gradino 1 · riscritto</span>
+<h3>Motore non fermato → il player si monta <em>in ascolto.</em> Il primo beat lo accende.</h3>
+<p class="b">Non si monta «in esecuzione» sulla parola del motore: si monta su <b>quello che può dimostrare senza un beat</b>, e lascia <span class="v spe">spento</span> tutto quello che <b>solo un beat vero può dimostrare</b>. Poi aspetta. <b>Niente velo</b>, perché un velo invita un tap, e quel tap su uno show che suona <b>farebbe partire una seconda volta.</b></p>
+<div class="two">
+<div class="col on"><h4>Si disegna — lo prova il puntatore o la sezione</h4><ul>
+<li>nome della <b>canzone</b> e della <b>sezione</b></li>
+<li><b>BPM</b> e <b>divisione</b> dichiarati dalla sezione</li>
+<li><b>quante lucine</b> disegnare (C3)</li>
+<li><b>battute totali</b> della sezione (A8)</li>
+<li>la <b>rotaia</b> della macrobarra a lunghezza giusta</li>
+</ul></div>
+<div class="col off"><h4>Resta spento — lo prova solo un beat</h4><ul>
+<li><b>contatore di battuta</b> → trattini (C1)</li>
+<li><b>LED del beat</b> → spento (C2)</li>
+<li><b>riempimento</b> della macrobarra → nessuno (A5)</li>
+<li><b>transport</b> → disegnato ma <b>inerte</b>, per la sola durata della finestra</li>
+</ul></div>
+</div>
+<p class="b" style="margin-top:16px"><b>Il transport inerte è una scelta, non una dimenticanza:</b> non può dire «play» (premerlo raddoppierebbe la partenza) e non può dire «sto suonando» (sarebbe la bugia). Un transport inerte per <b>meno di due secondi</b> non lo nota nessuno; un transport sbagliato sul palco costa una canzone.</p>
+</div>
+
+<div class="card hot">
+<span class="tag w">E la finestra si chiude da sé — non con una domanda, con una scadenza</span>
+<h3>Due beat al BPM della sezione, e mai meno di 1,5 s. Poi lo schermo <em>conclude</em>.</h3>
+<p class="b">Se dentro quella finestra <b>arriva un beat</b>: si accende tutto, in un colpo, sul beat a cui appartiene — <b>nessuna animazione di accensione</b> (animazioni minimal, §6). Se <b>non arriva niente</b>: il silenzio è reale, e lo schermo <b>cade nel gradino 2</b> — velo giù, nome dal puntatore, un tap per partire. È il caso della coda esaurita, cioè esattamente quello che il device ha mostrato ieri.</p>
+<ul class="pl">
+<li><b>Perché due beat:</b> nessuna musica tollera due click mancanti. È la finestra <b>più corta che non possa dare un falso allarme</b> — e la finestra si misura sola, perché il BPM è un valore che lo schermo ha già disegnato.</li>
+<li><b>Perché un pavimento:</b> a tempi veloci due beat sono troppi pochi millisecondi per essere un giudizio. 1,5 s è la soglia sotto cui non scendo.</li>
+<li class="no"><b>Il velo non arriva mai in anticipo.</b> Non si mostra il velo «per sicurezza» aspettando che un beat lo strappi: quel velo, per un secondo e mezzo, <b>inviterebbe un tap che raddoppia la partenza</b> — e strapparlo sarebbe uno sfarfallio dal lato sbagliato. <b>Il velo è una conclusione, non un'ipotesi.</b></li>
+<li class="q"><b>E questo non è un ripiego: è la stessa disciplina del §1c.</b> Là ho rifiutato uno schermo che aspetta un ordine che non può arrivare. Uno schermo che aspetta un beat che non arriverà <b>è la stessa malattia</b> — e la cura non è un segnale migliore, è una scadenza. <b>Ogni attesa che disegno deve avere scritto dentro come finisce se non finisce.</b></li>
+</ul>
+</div>
+
+<div class="card cool">
+<span class="tag b">Il conto vero della falsificazione</span>
+<h3>Costa <em>una regola sul tempo.</em> Non costa una schermata e non cambia un verdetto.</h3>
+<p class="b">I quattro valori che avrebbero mentito montando «in esecuzione» sulla parola del motore <b>sono esattamente le quattro voci del Gruppo C</b>, e le avevo già messe <span class="v spe">Spento</span> o <span class="v ric">Ricalcola</span> nel rev1 — <b>prima che la prova esistesse.</b> ⇒ La bugia di <code>isPlaying</code> passa attraverso una politica che <b>non credeva già al motore su nessuno dei suoi valori.</b> Non è fortuna: è cosa serve una regola generale.</p>
+<p class="b"><b>E non aggiunge uno stato:</b> «in ascolto» e il gradino 3 «ferma e pronta» <b>sono la stessa lastra</b> — niente velo, struttura disegnata, valori vivi spenti. L'unica differenza è il <b>destino</b>: una può essere accesa da un beat, l'altra aspetta il tuo pollice. <b>Una lastra, due destini</b> — la stessa mossa del gradino 2, che era <b>una schermata, due contenuti.</b> ⇒ Al disegno non arriva una schermata nuova: arriva <b>un timer.</b></p>
+</div>
+</section>
+
+<section>
+<h2>§C · Il verdetto falsificato — cosa regge, cosa ritiro</h2>
+
+<div class="card bad">
+<span class="tag f">+1 · Punto di ripresa</span>
+<h3>Il verdetto regge. La frase che gli avevo messo accanto no — e l'ho scritta violando la mia stessa §7⑤.</h3>
+<ul class="pl">
+<li class="ok"><b>Resta:</b> <span class="v rit">Ritrova</span>. Il <b>dato</b> sopravvive al rientro, misurato alla fonte. La riga rispondeva a <b>«questo sopravvive?»</b> — e la risposta è sì. Resta anche la granularità (<b>sezione</b>, non battuta) e resta la copy <code>Resume from [section]</code>, che <b>promette una sezione</b>: esatta, non generosa.</li>
+<li class="no"><b>Ritiro:</b> «<i>la promessa è mantenibile senza fare niente</i>». <b>Falsa.</b> C'è da fare: <code>Resume from ⟨sezione⟩</code> chiama una funzione che <b>scarta il nome che riceve</b> e fa ripartire e basta; <code>Dall'inizio ⟨canzone⟩</code> finisce in un <b>corpo vuoto</b>. <b>Entrambi i bottoni dell'overlay sono morti</b>, uno dei due rumorosamente.</li>
+</ul>
+</div>
+
+<div class="rule">
+<div class="lbl">La riga di confine che mancava — e che va scritta una volta per tutte</div>
+<p>Le sedici righe dicono <b>cosa sopravvive a un rientro.</b> <b>Nessuna delle sedici dice che qualcosa funziona.</b></p>
+<div class="why"><b>L'errore non è stato sbagliare una misura: è stato far rispondere a una riga una domanda che non era la sua.</b> Da «il dato c'è» sono scivolato a «il bottone mantiene la promessa» in una parentesi, e la parentesi è passata per verdetto. ⇒ Da oggi, in ogni foglio di questa serie: <b>un verdetto sulla sopravvivenza non è un verdetto sul funzionamento.</b> Se un foglio vuole dire la seconda cosa, la dice in una riga sua, con una misura sua.</div>
+</div>
+
+<div class="card">
+<span class="tag f">Autodiagnosi — perché me la scrivo, terza volta in tre giorni</span>
+<h3>La direzione dell'errore è l'indizio, non l'argomento.</h3>
+<p class="b">La §7⑤ dice, di mia mano: <b>«non ho misurato niente, tutto viene dalla tua misura»</b>. Poi ho scritto una frase su un <b>esecutore</b> che non avevo fatto misurare da nessuno. <b>26/08:</b> una riga <i>compatibile</i> con la tesi presa per una riga che la <i>stabilisce</i>. <b>27/08:</b> una radice comune creduta perché chiudeva due problemi con una mossa. <b>Oggi:</b> un «non c'è lavoro da fare» dato per misurato. ⇒ Tre volte, e <b>sempre nella direzione che mi risparmiava lavoro.</b></p>
+<p class="b">La regola che mi ero dato ieri era giusta e l'avevo applicata a una classe troppo stretta. La allargo: <b>quando una riga mi dice che non c'è lavoro da fare, quella è l'ipotesi da far misurare — non da usare.</b> Non conta di che parli: conta da che parte pende.</p>
+</div>
+</section>
+
+<section>
+<h2>§D · L'overlay dello stop reversibile — la mia sentenza</h2>
+
+<div class="card">
+<h3>Due bottoni morti non sono lo stesso danno. La gerarchia decide l'ordine.</h3>
+<ul class="pl">
+<li><b><code>Restart song</code> → corpo vuoto = <span style="color:var(--warn)">seccatura.</span></b> Premi, non succede niente, lo show resta fermo. Si scopre in una pressione, <b>dal telefono non esce un suono sbagliato</b>, nessuno in sala sente un errore. Premi di nuovo, o usi il transport.</li>
+<li><b><code>Resume from Bridge</code> → riparte da capo = <span style="color:var(--flag)">danno.</span></b> La band è al Bridge, il click attacca dall'Intro <b>al BPM sbagliato, davanti a delle persone.</b> Lo schermo ha detto una cosa e la sala ne ha sentita un'altra. È la categoria che tutta questa politica esiste per impedire — <b>peggiorata:</b> qui non è lo schermo che mente, è lo schermo che dice il vero e l'app che fa un'altra cosa.</li>
+</ul>
+<p class="b" style="margin-top:15px;padding-top:14px;border-top:1px solid var(--line)"><b>La sentenza, in quattro righe:</b></p>
+<ol class="mount">
+<li><b><code>Resume</code> si ripara per primo.</b> Non perché sia più difficile: perché il suo guasto costa una canzone.</li>
+<li><b>Finché l'esecutore non onora la sezione, <code>Resume from [section]</code> non va a schermo.</b> Non «con copy più prudente»: <b>assente</b>. Non esiste una formulazione onesta per un Resume che riparte da capo — l'unica sarebbe <code>Restart song</code>, che è <b>l'altro bottone</b>. ⇒ Non è ammorbidibile: o mantiene, o non c'è.</li>
+<li><b>L'overlay può uscire con <code>Restart song</code> da solo</b>, se il corpo vuoto viene riempito. <b>Un bottone che funziona è un overlay che funziona.</b> Due bottoni di cui uno mente non lo è.</li>
+<li class="chg"><b>La terza faccia eredita il blocco.</b> Il <code>RESUME (from…)</code> del dettaglio è <b>lo stesso comando da un'altra porta</b>: stessa stringa, stesso esecutore, stessa data. Se esce prima della riparazione, <b>mente anche lì</b> — e mente a qualcuno che sta sfogliando la scaletta con calma e ha ogni ragione di fidarsi.</li>
+</ol>
+</div>
+
+<div class="card hot">
+<span class="tag w">Cambio di stato del difetto — da segnalare al cruscotto</span>
+<p class="b">Ieri, nel rev2, avevo scritto che il difetto separato del Resume <b>«resta aperto da solo e va inciso da solo»</b>. Oggi non è più isolato: <b>ha un consumatore ratificato.</b> Il <code>RESUME</code> della terza faccia lo usa, e la terza faccia è la porta che il rev2 stesso indica come <b>la prima che si apre</b> (era l'unica delle tre a non richiedere orchestrazione di motore). ⇒ <b>Da difetto aperto a bloccante di una schermata ratificata.</b> È una promozione di priorità, e va scritta dove la si legge.</p>
+</div>
+</section>
+
+<section>
+<h2>§E · Cosa ha validato il campo — e cosa ha diagnosticato</h2>
+
+<div class="card cool">
+<span class="tag b">28/08 · fatti nudi, letti da CD</span>
+<h3>Tre orologi, uno schermo. Non è un bug: è la malattia che i sedici verdetti curano.</h3>
+<p class="b">Negli ultimi secondi lo schermo teneva insieme <b>INTRO 100</b> (dallo show, congelato), <b>140 in 3/4</b> (dal motore, giusto), <b>«Bar 9 of 2»</b> (denominatore dal motore — giusto: la sezione è di 2 battute; numeratore contato <b>dall'istante del rientro</b>), e un <b>accento verde acceso a click spento.</b> ⇒ <b>Uno schermo assemblato da tre fonti senza un'autorità dichiarata per valore.</b> La risposta della politica non è «aggiustiamo il contatore»: è che <b>ogni valore ha una fonte sola, e sta scritta.</b> Le sedici righe <i>sono</i> quella scrittura. Il device non ha validato una riga: ha validato la <b>forma</b> del foglio.</p>
+<p class="b"><b>E «Bar 9 of 2» è il regalo più grande che quel guasto potesse fare:</b> un valore <b>impossibile</b> non va cercato, si vede. ⇒ Aggiungo una riga a C1 che prima non c'era: <b>il numeratore non si conta dal rientro, si legge dal motore.</b> Se non è leggibile resta sui trattini — <b>per sempre, se serve.</b> Un contatore alimentato da qualcosa che non sia la posizione del motore <b>prima o poi stampa un numero che non può esistere</b>, e quel numero è sempre in scena.</p>
+</div>
+
+<table>
+<thead><tr><th>Id</th><th>Voce</th><th>Verdetto</th><th>Cosa cambia in questo foglio</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="4">Le quattro righe che questo foglio tocca — le altre dodici arrivano invariate dal rev2</td></tr>
+<tr><td class="id">B1</td><td class="nm">Stato del player</td><td class="vd"><span class="v bit">Due bit</span></td><td><b>Verdetto invariato.</b> Cambia il <b>gradino 1</b>: non «il motore suona → monta in esecuzione», ma <b>«non è stato fermato → monta in ascolto»</b>, con la scadenza del §B. Gradini 2, 3, 4 e i §1b/§1c <b>identici al rev2</b>.</td></tr>
+<tr><td class="id">C1</td><td class="nm">Battuta corrente</td><td class="vd"><span class="v spe">Spento</span></td><td><b>Confermato dal campo</b> — e con una riga in più: <b>il numeratore si legge dal motore, non si conta dal rientro.</b> «Bar 9 of 2» è il valore impossibile che lo dimostra.</td></tr>
+<tr><td class="id">C2</td><td class="nm">LED del beat</td><td class="vd"><span class="v spe">Spento</span></td><td><b>Confermato dal campo, non negoziabile.</b> Accento verde acceso a click spento: la bugia peggiore dell'app, vista in scena. Nessun cambiamento — solo la prova.</td></tr>
+<tr><td class="id">+1</td><td class="nm">Punto di ripresa</td><td class="vd"><span class="v rit">Ritrova</span></td><td><b>Verdetto confermato sul DATO.</b> <span class="v can">Ritirata</span> la frase «senza fare niente»: l'esecutore non mantiene. Vedi §C e la sentenza del §D.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>§F · Cosa mi manca — dichiarato, non riempito</h2>
+
+<div class="gap">
+<div class="n">Manca 1 · non blocca niente</div>
+<p class="b"><b>Se al motore si possa chiedere «hai qualcosa di schedulato davanti a te?».</b> Alla regola che ho scritto <b>non serve</b> — la scadenza dei due beat la sostituisce, e per questo l'ho scritta così. Ma se quella domanda esiste e risponde onestamente, <b>sostituisce una scadenza con una certezza</b> e la finestra d'ascolto collassa a zero. ⇒ Non è una richiesta di funzionalità: è una domanda la cui risposta <b>semplifica</b> la mia regola. Se non c'è, non cambia nulla.</p>
+</div>
+
+<div class="gap">
+<div class="n">Manca 2 · voglio il numero, non una costante scelta da me</div>
+<p class="b"><b>Qual è il BPM più basso che l'app ammette per una sezione.</b> Il pavimento di 1,5 s l'ho ricavato ragionando, non da un numero. Se una sezione può stare molto sotto i 40 BPM, due beat superano i 3 secondi, e <b>3 secondi di transport inerte non sono più «non li nota nessuno»</b>: diventano una schermata che non risponde. ⇒ Prima di chiamare chiusa la regola voglio sapere il minimo reale, e se serve metto <b>anche un tetto</b> alla finestra.</p>
+</div>
+
+<div class="gap">
+<div class="n">Manca 3 · questo, sì, può rompere il §A</div>
+<p class="b"><b>Se lo show vivo sappia da sé su quale canzone e sezione è.</b> La mia decisione della porta presuppone che riattaccarsi a uno show vivo <b>trovi un puntatore giusto.</b> Il device ha mostrato la sezione congelata sulla prima mentre il motore era corretto — e <b>io non so se la cosa congelata fosse il puntatore dello show o la copia che ne teneva lo schermo.</b> ⇒ Se è il puntatore dello show, il mio gradino 1 <b>monta una schermata onesta sopra uno show che mente</b>, e la riparazione non è di disegno. <b>È l'unica misura che può far cadere il §A</b>, e non posso farla io.</p>
+</div>
+</section>
+
+<section>
+<h2>§G · Il fatto di canale — non mi difendo</h2>
+
+<div class="card bad">
+<span class="tag f">◈ un piano sotto il mio stesso punto ◈</span>
+<h3>Nove fogli su Drive, zero raggiungibili da chi costruisce. È la mia malattia, non un'analogia.</h3>
+<p class="b">Il mio punto ◈ dice che le decisioni <b>si incidono, non si ratificano in chat</b>. Nello stesso momento i miei deliverable del 26 e 27 stanno in un posto <b>che chi costruisce non legge</b>, e l'indice si ferma al 25/08. ⇒ La regola che mi mancava, e che vale più della scusa: <b>un deliverable non è consegnato quando è su Drive. È consegnato quando è nell'indice che chi costruisce apre.</b> Drive è deposito; l'indice è consegna. Le ho confuse per due giorni <b>mentre denunciavo esattamente quello.</b></p>
+<p class="b">Git non è la mia mano. Quello che è mio è <b>non far ricostruire a naso</b> le righe dell'indice: le scrivo qui pronte, così è un <b>incollare</b> e non un archeologia. Se una riga descrive male un file, correggetela — è mia e la firmo, ma non la difendo.</p>
+</div>
+
+<table class="idx">
+<thead><tr><th>File</th><th>A cosa serve · stato</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="2">26/08/2026 · DA_CD_PER_CC/26_08_2026/</td></tr>
+<tr><td class="fl">PERIMETRO_SESSIONE_QLIVE_26_08_2026.md</td><td class="pu">Perimetro della sessione Q-Live: cosa è in gioco e cosa resta fuori. <b>Vale come cornice</b>, non contiene decisioni.</td></tr>
+<tr><td class="fl">RISPOSTA_CD_AL_REFEREE_PERIMETRO_E_CHART_MODE_26_08_2026.md</td><td class="pu">Risposta CD su perimetro + chart mode. <b>Storico</b> — la parte viva è passata nei fogli del 27.</td></tr>
+<tr><td class="fl">PROMPT_CC_SESSIONE_VIVA_FUORI_DAL_PLAYER_26_08_2026.md</td><td class="pu">La domanda a CC sulla <b>sessione viva fuori dal Player</b>: è l'antenato diretto del §A di questo foglio. <b>Chiuso dal rev3.</b></td></tr>
+<tr><td class="fl">CHIUSURA_26_08_2026__MODELLO_SESSIONE_E_VERDETTO_TECNICO.md</td><td class="pu">Modello di sessione + verdetto tecnico di chiusura giornata. <b>Riferimento</b> per il modello, non per lo stato.</td></tr>
+<tr><td class="fl">CONGEDO_CD_PASSAGGIO_NUOVA_CHAT_26_08_2026.md</td><td class="pu">Passaggio di consegne fra chat. <b>Non normativo</b> — utile solo per ricostruire il filo.</td></tr>
+<tr class="grp"><td colspan="2">27/08/2026 · DA_CD_PER_CC/27_08_2026/</td></tr>
+<tr><td class="fl">…POLITICA-DEL-RIENTRO__risposta-CD-16-voci.html</td><td class="pu">rev1 della politica. <b>SUPERATO</b> dal rev2, poi dal rev3.</td></tr>
+<tr><td class="fl">…POLITICA-DEL-RIENTRO__rev2-TERZO-SEGNALE__SUPERSEDE-rev1.html</td><td class="pu">rev2 · il terzo segnale. <b>SUPERATO dal rev3 (questo foglio) — NON firmare.</b> Resta la fonte delle 12 voci non toccate.</td></tr>
+<tr><td class="fl">DESIGN/QLive_Player/…Attesa-vestita__velo-corto-fascia-viva_390x844.html</td><td class="pu">L'attesa vestita: <b>velo corto + fascia viva</b>. Riferimento visivo 1:1 del gradino 2.</td></tr>
+<tr><td class="fl">DESIGN/QLive_Player/…Attesa-e-Dettaglio__rev2-FRECCIA-AL-DETTAGLIO-SPIA…_390x844.html</td><td class="pu">Attesa + dettaglio, <b>freccia al dettaglio</b>. È la strada che il §2 riusa per la guardia alla porta.</td></tr>
+<tr><td class="fl">DESIGN/QLive_Player/…Bivio-tre-vie-e-TERZA-FACCIA-del-Dettaglio__390x844.html</td><td class="pu"><b>Ratificato.</b> Popup a tre vie + terza faccia del dettaglio. ⚠️ Il suo <code>RESUME</code> è <b>bloccato</b> dal §D di questo foglio.</td></tr>
+<tr class="grp"><td colspan="2">28/08/2026 · DA_CD_PER_CC/28_08_2026/</td></tr>
+<tr><td class="fl">…POLITICA-DEL-RIENTRO__rev3-LA-PORTA-E-IL-SEGNALE-BUGIARDO__SUPERSEDE-rev2.html</td><td class="pu"><b>CORRENTE.</b> La porta (§A) · il gradino 1 riscritto (§B) · il +1 corretto (§C) · la sentenza sull'overlay (§D).</td></tr>
+</tbody>
+</table>
+</section>
+
+<div class="ratify">
+<h2>Cosa firmi — sei voci, e le prime due sono nuove</h2>
+<div class="it new"><div class="n">1</div><div><b>LA PORTA.</b> <code>START SHOW</code> costruisce <b>solo a slot vuoto</b> · a slot pieno la porta legge <code>BACK TO SHOW</code> e <b>si riattacca, non costruisce mai</b> · per ricostruire serve prima <code>END SHOW</code>. <b>Tre atti, tre nomi.</b> Zero schermate nuove, zero popup.</div></div>
+<div class="it new"><div class="n">2</div><div><b>IL GRADINO 1 RISCRITTO.</b> Il segnale del motore si legge <b>in una direzione sola</b>: <code>false</code> è certo, <code>true</code> non è una prova. Non fermato → <b>montaggio in ascolto</b> (struttura disegnata, valori vivi spenti, transport inerte, <b>niente velo</b>) · <b>il primo beat accende</b> · <b>scadenza: due beat al BPM della sezione, mai meno di 1,5 s</b>, poi cade nel gradino 2. <b>Il velo è una conclusione, non un'ipotesi.</b></div></div>
+<div class="it"><div class="n">3</div><div><b>IL +1 CORRETTO.</b> <span style="color:#a8f0b8">Ritrova</span> <b>confermato sul dato</b> · <b>ritirata</b> la frase «senza fare niente» · e la riga di confine incisa una volta per tutte: <b>un verdetto sulla sopravvivenza non è un verdetto sul funzionamento.</b></div></div>
+<div class="it"><div class="n">4</div><div><b>L'OVERLAY.</b> <code>Resume</code> si ripara <b>per primo</b> · <code>Resume from [section]</code> <b>non va a schermo</b> finché l'esecutore non onora la sezione (non ammorbidibile: o mantiene, o non c'è) · l'overlay <b>può uscire con <code>Restart song</code> da solo</b> · <b>la terza faccia eredita il blocco.</b></div></div>
+<div class="it"><div class="n">5</div><div><b>C1 con una riga in più:</b> il numeratore della battuta <b>si legge dal motore, non si conta dal rientro</b> — altrimenti trattini, per sempre se serve. <b>C2 confermato dal campo.</b> Gradini 2/3/4, §1b, §1c e le <b>altre dodici voci: invariate dal rev2</b> e ratificate qui.</div></div>
+<div class="it ask"><div class="n">!</div><div><b>Prerequisito per CC, non una ratifica.</b> Un posto solo, <b>tre comportamenti</b>: <b>vuoto → costruisci · pieno → riattacca · si chiude → spegni il bit «show aperto»</b> (in <b>due</b> inneschi di <code>END SHOW</code> + fine scaletta ⇒ attaccato <b>dove la sessione si chiude</b>, non dentro il bottone). Misurato: <b>§1b e la porta sono lo stesso punto di codice — un lavoro solo, non due.</b></div></div>
+<div class="it ask"><div class="n">◈</div><div><b>Due incisioni, non chat.</b> ① Le righe d'indice del §G — <b>consegnato = nell'indice, non su Drive.</b> ② Il difetto del <code>Resume</code> passa da <b>«aperto da solo» a bloccante di una schermata ratificata.</b> E le tre cose che mi mancano (§F) vanno <b>chieste, non dedotte</b>: la terza può far cadere il §A.</div></div>
+</div>
+
+<footer>
+CD → Mauro · rev3 · 28/08/2026 · risponde a RICHIESTA-CD-POLITICA-RIENTRO-FINE<br />
+SUPERSEDE 2026-08-27_…rev2-TERZO-SEGNALE (che a sua volta superseded il rev1 di pari data) · <b>il rev2 non va firmato</b><br />
+Non riapre: decisione 9 · decisione 10 · copy dell'1.1 · rinomina STOP→END SHOW · le dodici voci non citate qui<br />
+Vincoli applicati: §6 animazioni minimal · §7② un valore sbagliato è peggio di nessun valore · §7③ uno-due secondi al buio, una mano · target ≥44pt · lingua UI EN, annotazioni IT
+</footer>
+
+</div></body>
+</html>

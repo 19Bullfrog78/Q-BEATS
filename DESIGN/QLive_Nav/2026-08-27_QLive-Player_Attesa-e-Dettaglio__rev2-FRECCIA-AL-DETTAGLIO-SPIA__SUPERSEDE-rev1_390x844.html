@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-LIVE › PLAYER + DETTAGLIO — rev2 · LA FRECCIA PORTA AL DETTAGLIO · SPIA SHOW ATTIVO
+ NOME FILE  2026-08-27_QLive-Player_Attesa-e-Dettaglio__rev2-FRECCIA-AL-DETTAGLIO-SPIA__SUPERSEDE-rev1_390x844.html
+ DATA       27/08/2026 · risponde a RISPOSTA-CD-2026-08-27-CORREZIONE-FRECCIA-E-SPIA-FINE
+ STATO      PROPOSTA · rev2. SUPERSEDE il rev1 di pari data su DUE punti, entrambi
+            decisi da Mauro: (1) la freccia in attesa porta al DETTAGLIO, non alle
+            card; (2) il pannello della conferma e' CESTINATO. Aggiunge la SPIA di
+            show attivo e il DETTAGLIO con show vivo. Del resto del rev1 non si
+            tocca una parola: geometria del velo, fascia viva, mute vivo, nome
+            dello show al centro, le tre scritte sul velo, le cinque aggiunte.
+
+ ⛔ E LA CORREZIONE NE RIPARA UNA SECONDA, CHE NON MI ERA STATA SEGNALATA.
+   Nel rev1 la freccia in attesa portava ALLE CARD. Regge solo perche' c'era la
+   conferma: la conferma chiudeva la sessione, e senza sessione le card sono
+   legittime. Togliere la conferma E tenere le card avrebbe violato la
+   decisione 1 («alle card non si torna finche' non si chiude lo show»).
+   ⇒ Le due modifiche NON sono indipendenti: tengono insieme. Freccia al
+   dettaglio + nessuna conferma = perimetro piu' chiuso di prima, non piu' largo.
+
+ COSA PORTO
+   A · La freccia: destinazione DETTAGLIO. La conferma cade (uscire dall'attesa
+       non uccide niente, e ora non porta nemmeno fuori dal perimetro).
+   B · La SPIA di show attivo, in DUE GRADI dichiarati: cosa mostra oggi
+       («l'audio gira» — disponibile) e cosa mostrerebbe in attesa (dopo la mossa).
+       Vive nel DETTAGLIO e NON nella schermata d'attesa: motivo al pannello ⑤.
+   C · Il DETTAGLIO con show vivo: rilettura del foglio 25/08 contro il modello
+       nuovo. La lamella 2+1 regge; la NAVBAR PERDE LA FRECCIA (decisione 8).
+   D · Due correzioni d'indirizzo accolte: i campi sono SEDICI PIU' OTTO ·
+       il vincolo 44pt sta in CD-Q8 (freeze 11/07), non in LIBRO r.348.
+
+ 🚨 TRAPPOLA NON PRESA, e la dichiaro: la spia NON si alimenta da «c'e' uno show
+   caricato». Quello slot non si svuota mai (misura del referee, in attesa di
+   conferma indipendente da CC): una spia alimentata da li' resterebbe accesa
+   tutta la sera. Fino a conferma contraria: non usarla.
+
+ ⛔ FUORI PERIMETRO, non toccato: pulsantiera del Player e suoi bottoni ·
+   teleprompter · slot metronomo · bar counter · Chart Mode · striscia viva
+   (sezione + battuta: ha bisogno della mossa) · Resume · card della lista ·
+   salto di canzone · fascia del dettaglio · geometria rev6 · «···».
+
+ ℹ️ Contrasti CALCOLATI sui token dichiarati, non misurati su device.
+ ⚠️ L'assunzione «l'attesa si legge a 2 m» resta MIA e resta dichiarata — e ora
+   so anche perche' non era ereditabile: quella distanza e' stata smontata il
+   31/07 da Mauro stesso, che non l'aveva mai chiesta. Non la reintroduco.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Player + Dettaglio — rev2 · freccia al dettaglio + spia show attivo · 390×844 · 27/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--linkg:#00c96e;--ledbt:#2a6bd6;--line:rgba(255,255,255,0.08);--tag-pending:rgba(255,255,255,0.22);--disabled:0.4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:2010px;position:relative;-webkit-font-smoothing:antialiased;}
+a{color:#9a6800;text-decoration:none;}a:hover{color:#c48a10;}
+@keyframes qb-standby{0%,100%{opacity:1}50%{opacity:0.45}}
+@keyframes qb-pulse{0%,100%{opacity:1}50%{opacity:0.34}}
+.btitle{position:absolute;left:56px;top:30px;width:1300px;color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#0d6b2b;}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;line-height:1.14;}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty;}
+.btitle p b{color:#16140f;}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.btitle .no{color:#b1281f;font-weight:700;}
+.testata{position:absolute;left:1400px;top:30px;width:1304px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px;}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0;}
+.testata .anc b{color:#fff;}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09);}
+.trow:first-of-type{border-top:0;}
+.trow .k{flex:0 0 150px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093;}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty;}
+.trow .v b{color:#fff;}.trow .v .no{color:#ff9a8a;font-weight:700;}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.trow.stop .k{color:#ff9a8a;}
+.trow.am .k{color:#ffd35a;}
+.sech{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:rgba(0,0,0,0.42);}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:414px;flex-wrap:wrap;}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4);}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;}
+.stt.nw{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.stt.am{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);}
+.stt.bad{color:#b1281f;background:rgba(177,40,31,0.10);border:1px solid rgba(177,40,31,0.45);}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg);}
+.frame.nw{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5);}
+.frame.fut{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(245,184,32,0.6);}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff;}
+.sb .r{display:flex;gap:7px;align-items:center;}
+/* ── PLAYER · fascia header (zona 8% CD-0) — in attesa resta VIVA ── */
+.plhead{flex:0 0 66px;height:66px;display:flex;align-items:center;gap:8px;padding:0 12px;position:relative;}
+.plhead.lit{background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.07);}
+.hit{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;}
+.sq{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);}
+.plmid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;}
+.shname{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,0.34);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.plright{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+.leds{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:8px;}
+.leds i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.07);}
+.leds i.link{background:var(--linkg);box-shadow:0 0 4px var(--linkg);}
+.veil{flex:1;position:relative;background:var(--qlive-bg);}
+.nextlbl{position:absolute;left:0;right:0;top:95px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.30);}
+.nextname{position:absolute;left:0;right:0;top:118px;text-align:center;padding:0 20px;font-family:'Inter',sans-serif;font-size:52px;font-weight:900;letter-spacing:-2px;line-height:0.92;text-transform:uppercase;color:#fff;animation:qb-standby 2.2s ease-in-out infinite;}
+.taphint{position:absolute;left:0;right:0;bottom:84px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.20);}
+.cin{position:absolute;left:0;right:0;bottom:60px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,0.14);}
+/* ── DETTAGLIO (rev6 + lamella 25/08) ── */
+.navbar{flex:0 0 54px;height:54px;display:flex;align-items:center;justify-content:center;position:relative;padding:0 14px;}
+.navbar .back{display:flex;align-items:center;gap:5px;color:var(--live-l);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.4px;position:absolute;left:14px;top:50%;transform:translateY(-50%);min-height:44px;}
+.roomseg{display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:4px;gap:3px;}
+.roomseg .opt{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:9px;color:var(--text3);min-height:34px;display:inline-flex;align-items:center;}
+.roomseg .opt.live-on{color:#fff;background:rgba(212,63,0,0.24);border:1px solid rgba(212,63,0,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+/* ── LA SPIA — un oggetto, tre stati, colore + moto ── */
+.spia{position:absolute;left:14px;top:50%;transform:translateY(-50%);min-height:44px;display:flex;align-items:center;gap:7px;}
+.spia i{width:9px;height:9px;border-radius:50%;background:var(--live-l);box-shadow:0 0 0 4px rgba(212,63,0,0.20);flex:0 0 auto;}
+.spia b{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--live-l);}
+.spia.playing i{animation:qb-pulse 1.5s ease-in-out infinite;}
+.spia.standby i{box-shadow:0 0 0 4px rgba(212,63,0,0.12);}
+.spia.standby b{color:rgba(255,138,92,0.75);}
+.dhead{padding:8px 18px 14px;}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.12;}
+.dhrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px;}
+.ro{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;}
+.songrow{display:flex;align-items:center;gap:10px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;background:transparent;}
+.songrow .crail.pending{background:var(--tag-pending);}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--live-l);width:18px;text-align:right;flex:0 0 auto;}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0;}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto;}
+.songrow.now{background:rgba(212,63,0,0.10);border-radius:10px;border-bottom-color:transparent;margin:0 -4px;padding-left:10px;}
+.songrow.now .nm{color:#fff;}
+.nowtag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.5px;padding:2px 6px;border-radius:5px;background:rgba(212,63,0,0.18);color:var(--live-l);border:1px solid rgba(212,63,0,0.4);flex:0 0 auto;}
+.stag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:6px;flex:0 0 auto;background:rgba(255,255,255,0.06);color:var(--text2);border:1px dashed rgba(255,255,255,0.28);}
+.vstack{flex:0 0 auto;padding:12px 18px 20px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0));}
+.vrow{height:56px;border-radius:15px;display:flex;align-items:center;gap:11px;padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;}
+.vrow.stop{background:linear-gradient(150deg,#ff5245,#e21f14);color:#fff;box-shadow:0 6px 18px rgba(255,59,48,0.30),inset 0 1px 0 rgba(255,180,140,0.28);}
+.vrow.rst{background:rgba(212,63,0,0.10);border:1px solid rgba(212,63,0,0.45);color:var(--live-l);}
+.gsep{height:1px;background:var(--line);margin:4px 0;flex:0 0 auto;}
+.vrow.ret{background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3);}
+/* ── annotazioni ── */
+.mez{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.6px;color:#c0431a;background:rgba(232,228,219,0.94);border:1px solid rgba(192,67,26,0.45);border-radius:6px;padding:3px 7px;width:390px;line-height:1.5;}
+.mez.am{color:#8a5a00;border-color:rgba(245,184,32,0.6);}
+.pan{position:absolute;background:#fbf9f4;border:1px solid rgba(0,0,0,0.14);border-radius:16px;padding:18px 20px;box-shadow:0 8px 22px rgba(0,0,0,0.07);color:#16140f;}
+.pan h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:#0d6b2b;margin-bottom:12px;}
+.pan h4.st{color:#b1281f;}
+.pan h4.am{color:#8a5a00;}
+.pan p{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.pan p b{color:#16140f;}
+.pan p+p{margin-top:9px;}
+.pan code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.pan .no{color:#b1281f;font-weight:700;}
+.gt{display:flex;gap:12px;padding:11px 0;border-top:1px solid rgba(0,0,0,0.10);align-items:flex-start;}
+.gt:first-of-type{border-top:0;padding-top:2px;}
+.gt .c1{flex:0 0 120px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.4px;color:#16140f;}
+.gt .c2{flex:0 0 128px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:6px;text-align:center;}
+.gt .c3{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.gt .c3 b{color:#16140f;}
+.ok-tag{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.fut-tag{color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.55);}
+.no-tag{color:#b1281f;background:rgba(177,40,31,0.10);border:1px solid rgba(177,40,31,0.45);}
+.rule{margin-top:12px;padding:11px 13px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.35);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#14471f;text-wrap:pretty;}
+.rule b{color:#0a2e13;}
+.trap{margin-top:12px;padding:11px 13px;background:rgba(177,40,31,0.07);border:1px solid rgba(177,40,31,0.4);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#7a1c14;text-wrap:pretty;}
+.trap b{color:#4d0f0a;}
+.spdemo{display:flex;gap:10px;margin:12px 0 4px;}
+.spdemo .t{flex:1;background:#0e0e10;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:12px 12px 11px;}
+.spdemo .t .hd{display:flex;align-items:center;gap:7px;height:26px;}
+.spdemo .t .cap{font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.5;letter-spacing:0.3px;color:rgba(255,255,255,0.45);margin-top:8px;border-top:1px solid rgba(255,255,255,0.09);padding-top:8px;}
+.spdemo .t .cap b{color:#fff;}
+.spdemo .t .cap .g{color:#ffd35a;}
+.ap{display:flex;gap:11px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.10);}
+.ap:first-of-type{border-top:0;padding-top:0;}
+.ap .q{flex:0 0 26px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.5);border-radius:6px;height:20px;display:flex;align-items:center;justify-content:center;}
+.ap .t{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.ap .t b{color:#16140f;}
+</style>
+</head>
+<body>
+
+<div class="btitle">
+  <div class="kick">CD · Q-Live › Player + Dettaglio · rev2 · 27/08/2026</div>
+  <h1>La freccia porta al dettaglio — e la spia dice che lo show è vivo</h1>
+  <p><b>Supersede il rev1 di pari data su due punti</b>, entrambi tuoi: la freccia in attesa porta al <b>dettaglio</b> (non alle card) e il <b>pannello della conferma è cestinato</b>. Del rev1 <span class="no">non tocco una parola</span> su geometria del velo, fascia viva, mute vivo, nome dello show al centro, le tre scritte, le cinque aggiunte.</p>
+  <p><b>La tua correzione ne ripara una seconda, e non me l'avevi segnalata.</b> Nel rev1 la freccia in attesa arrivava <b>alle card</b>: regge solo perché c'era la conferma, che chiudeva la sessione — e senza sessione le card sono legittime. <b>Togliere la conferma e tenere le card avrebbe violato la decisione 1.</b> Le due modifiche non sono indipendenti: <b>tengono insieme</b>, e il risultato è un perimetro <b>più chiuso</b> di quello che avevo disegnato io.</p>
+  <p>Aggiungo la <b>spia</b> in due gradi dichiarati e il <b>dettaglio con show vivo</b> — che, come dici, non era bloccato: il segnaposto vive nella stanza. <b>Quello che manca è lo stato, non la canzone.</b></p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">rev2 · supersede rev1 su 2 punti</span><span class="anc">risponde a <b>RISPOSTA-CD-2026-08-27-CORREZIONE-FRECCIA-E-SPIA-FINE</b></span></div>
+  <div class="trow"><div class="k">① La freccia</div><div class="v">In attesa porta al <b>DETTAGLIO dello show</b>. Motivo tuo, e regge: <b>l'attesa è show vivo</b>, non show fermo — la decisione del 26/08 manda al dettaglio il Player che gira, e l'attesa gira. La <b>regola unica non si rompe</b>: la freccia porta sempre dove sta lo show.</div></div>
+  <div class="trow"><div class="k">② La conferma</div><div class="v"><b>CESTINATA.</b> Non c'è più niente da chiedere: uscire dall'attesa non uccide niente <b>e non porta fuori dal perimetro</b>. La conferma resta armata <b>solo dove la sessione muore</b> — cioè su <code>STOP</code> nel dettaglio. La domanda ④ del rev1 (forma dell'alert) <b>esce da questo foglio</b> e resta viva là.</div></div>
+  <div class="trow"><div class="k">③ Le tue risposte</div><div class="v"><b>Mute vivo in attesa: sì</b> — accolto, disegnato. <b>Nome dello show al centro</b>: confermato, invariato. Le cinque aggiunte del rev1 restano tutte, <b>nessuna ritirata</b>.</div></div>
+  <div class="trow am"><div class="k">④ La spia</div><div class="v">Un <b>oggetto solo</b>, tre stati, <b>colore + moto</b>: nessuna forma nuova. Vive nel <b>dettaglio</b>, dove il bisogno è reale, e <b>non</b> nella schermata d'attesa (là l'informazione è già la cosa più grande sulla lastra). <b>Grado 1 oggi</b>: pallino che respira = l'audio gira, e <b>non si spegne col mute</b>. <b>Grado 2 dopo la mossa</b>: pallino fermo = vivo ma in attesa. Pannello ⑤.</div></div>
+  <div class="trow stop"><div class="k">⑤ Due indirizzi</div><div class="v"><b>Corretti, con la ragione.</b> <code>sectionStartTick</code> <b>non</b> è fra i sedici: vive nel Player, non nella memoria dello show — e il numero vero è <b>sedici PIÙ OTTO</b>. Il vincolo 44pt sta in <b>CD-Q8</b> (freeze domande 11/07), <span class="no">non</span> in LIBRO r.348, che è l'artefatto normativo di Shows del 06/08. Pannello ⑦.</div></div>
+  <div class="trow"><div class="k">Non toccato</div><div class="v">Pulsantiera · teleprompter · slot metronomo · bar counter · Chart Mode · <b>striscia viva</b> (sezione + battuta: serve la mossa) · Resume · card · salto di canzone · fascia del dettaglio · geometria rev6.</div></div>
+</div>
+
+<div class="sech" style="left:56px;top:500px;">Le tre schermate — dove porta la freccia, e cosa trova quando ci arriva</div>
+
+<div class="flbl" style="left:56px;top:530px;"><span class="b">① ATTESA — invariata dal rev1</span><span class="stt nw">solo la destinazione cambia</span></div>
+<div class="frame nw" style="left:56px;top:570px;" data-screen-label="01 — attesa vestita, velo corto, freccia al dettaglio">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="plhead lit">
+    <div class="hit"><div class="sq"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="rgba(255,255,255,0.70)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg></div></div>
+    </div>
+  </div>
+  <div class="veil">
+    <div class="nextlbl">Next:</div>
+    <div class="nextname">Roxanne</div>
+    <div class="taphint">Tap anywhere to start</div>
+    <div class="cin">Count-in · 2 bars</div>
+  </div>
+</div>
+<div class="mez" style="left:56px;top:1426px;">La freccia <b>non ferma niente e non chiede niente</b>: porta al dettaglio. Nessuna conferma, nessun overlay. <b>Qui la spia non c'è</b> — motivo al pannello ⑤.</div>
+
+<div class="flbl" style="left:500px;top:530px;"><span class="b">② DETTAGLIO · atterraggio con show vivo</span><span class="stt nw">Costruibile oggi</span></div>
+<div class="frame nw" style="left:500px;top:570px;" data-screen-label="02 — dettaglio in sessione, show che suona, spia PLAYING">
+  <div class="sb"><span>21:14</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="navbar">
+    <div class="spia playing"><i></i><b>Playing</b></div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">2</span><span class="nm">Roxanne</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="vstack">
+    <div class="vrow stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>Stop</div>
+    <div class="vrow rst"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L9 12l9 6z" fill="currentColor"></path><rect x="5" y="6" width="2.2" height="12" rx="1" fill="currentColor"></rect></svg>Restart song</div>
+    <div class="gsep"></div>
+    <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Return</div>
+  </div>
+</div>
+<div class="mez" style="left:500px;top:1426px;"><b>Al posto della freccia c'è la spia.</b> Decisione 8: nel dettaglio entrato dal Player la freccia <b>non c'è</b> — e lo slot che si libera è esattamente dove serve il segno di «show vivo». Lamella <b>2+1 del 25/08</b>, invariata.</div>
+
+<div class="flbl" style="left:944px;top:530px;"><span class="b">③ LO STESSO · in attesa</span><span class="stt am">Dopo la mossa</span></div>
+<div class="frame fut" style="left:944px;top:570px;" data-screen-label="03 — dettaglio in sessione, show in attesa, spia STANDBY">
+  <div class="sb"><span>21:18</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="navbar">
+    <div class="spia standby"><i></i><b>Standby</b></div>
+    <div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div>
+  </div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow now"><span class="crail pending"></span><span class="idx">2</span><span class="nm">Roxanne</span><span class="nowtag">▸ NEXT</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="vstack">
+    <div class="vrow stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>Stop</div>
+    <div class="vrow rst"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L9 12l9 6z" fill="currentColor"></path><rect x="5" y="6" width="2.2" height="12" rx="1" fill="currentColor"></rect></svg>Restart song</div>
+    <div class="gsep"></div>
+    <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Return</div>
+  </div>
+</div>
+<div class="mez am" style="left:944px;top:1426px;"><b>Cosa cambia rispetto a ②, e basta:</b> il pallino <b>non respira</b> e la parola è <code>Standby</code>. <b>Oggi questa schermata non è disegnabile</b>: in attesa il motore tace, la spia sarebbe spenta e il dettaglio sembrerebbe morto mentre lo show è vivo. <b>È esattamente il pezzo che la mossa compra.</b></div>
+
+<div class="pan" style="left:1400px;top:530px;width:1304px;">
+  <h4>④ La freccia — cosa cambia, e perché la conferma non serve più</h4>
+  <p><b>Una regola sola, e ora è davvero una:</b> <b>la freccia porta dove sta lo show.</b> Player che gira → dettaglio. Player fermo → card. L'attesa <b>gira</b>, quindi va al dettaglio. Nel rev1 avevo trattato l'attesa come «fermo» perché non suona: <b>ma il silenzio dell'attesa è dentro la performance</b>, non fuori. Il tuo criterio è più forte del mio, e non per gusto — <b>è quello che tiene in piedi la decisione 1</b>.</p>
+  <p><b>La conferma cade perché non c'è più un confine da attraversare.</b> Il rev1 la teneva armata sul gesto che portava alle card: quel gesto <b>chiudeva la sessione</b>, e la conferma stava sul confine (decisione 16), non sul bottone. Ora la freccia <b>resta dentro il perimetro</b> ⇒ nessun confine ⇒ <b>nessuna domanda</b>. La decisione 16 non viene indebolita: viene <b>applicata correttamente</b>. Il suo unico innesco qui è <code>STOP</code> nel dettaglio.</p>
+  <p><b>Dove è finita la protezione, allora?</b> Nel gesto stesso: la freccia sta nell'angolo alto a sinistra — <b>l'unico punto della lastra che chiede una seconda intenzione</b> (decisione 13, parole tue: «dev'essere scomodo da raggiungere»). Prima erano due cancelli su un gesto innocuo; adesso è <b>un cancello su un gesto innocuo</b> e <b>due su quello letale</b>: conferma + una voce che si chiama <code>STOP</code> e sta in un altro schermo. <b>Il peso si è spostato dove serve.</b></p>
+</div>
+
+<div class="pan" style="left:1400px;top:830px;width:1304px;">
+  <h4 class="am">⑤ La spia — un oggetto, tre stati, due gradi dichiarati</h4>
+  <p><b>Forma:</b> il pallino arancio con l'alone — <b>non è un'invenzione</b>, è la marca «qualcosa è vivo» già in uso nella fascia del 18/07 (<code>livedot</code>, pulse 1.5s) e nella targhetta <code>PLAYING</code> della lista (25/08). <b>Riuso, non aggiungo</b>: una spia nuova sarebbe un terzo modo di dire la stessa cosa. Sta nella <b>navbar del dettaglio</b>, nello slot che la freccia lascia libero. Nessun elemento nuovo sullo schermo: <b>uno in meno, uno in più, stesso posto.</b></p>
+  <div class="spdemo">
+    <div class="t"><div class="hd"><div class="spia playing" style="position:static;transform:none;min-height:0;"><i></i><b>Playing</b></div></div><div class="cap"><b>Il motore gira.</b> Pallino che <b>respira</b>. ✅ <b>Disponibile oggi</b> — e non si spegne col mute: mutare porta il volume a zero, <b>non ferma il motore</b>. È il caso che hai nominato.</div></div>
+    <div class="t"><div class="hd"><div class="spia standby" style="position:static;transform:none;min-height:0;"><i></i><b>Standby</b></div></div><div class="cap"><b>Vivo, non suona.</b> Pallino <b>fermo</b>, parola più tenue. <span class="g">⛔ Serve la mossa</span>: oggi «in attesa» e «fermo» non si distinguono.</div></div>
+    <div class="t"><div class="hd"><div class="spia" style="position:static;transform:none;min-height:0;opacity:0.18;"><i></i><b>—</b></div></div><div class="cap"><b>Niente.</b> Show fermo: la spia <b>non c'è</b>, non è «grigia». Lo slot torna alla freccia, che è la sua forma fuori sessione.</div></div>
+  </div>
+  <p><b>Perché il moto e non il colore.</b> In penombra il colore dice «arancio = Q-Live» e lo dice già in tre punti dello schermo; <b>il moto dice «adesso»</b>, e nessun altro elemento del dettaglio si muove. Un respiro da 1.5s è sotto la soglia dell'irritazione e sopra quella dell'accorgersene di sbieco — ed è <b>l'unica animazione</b> di questa schermata (§6: minimal, solo se comunica stato).</p>
+  <p><b>Perché NON sta nella schermata d'attesa.</b> Là il segno di «show vivo» è il <b>nome della prossima canzone a 52pt che pulsa</b>: la spia sarebbe la stessa informazione, detta due volte, in piccolo. E nel Player in play lo dicono già teleprompter e bar counter. <b>La spia serve dove niente si muove — cioè nel dettaglio.</b> Se un domani apri altre stanze con la sessione viva, la spia le segue: la regola è «un solo posto per stanza, sempre lo stesso slot».</p>
+  <div class="trap">🚨 <b>La trappola non l'ho presa.</b> La via ovvia — «c'è uno show caricato ⇒ accendi» — è rotta: quello slot <b>non si svuota mai</b>, resta pieno dopo il primo Start e la spia resterebbe accesa <b>tutta la sera</b>. Una spia che è sempre accesa non è una spia, è <b>decorazione</b> — e per §6 andrebbe tolta. ⚠️ Misura del solo referee, in attesa di conferma indipendente da CC: <b>se cade, la via torna disponibile</b>. Fino ad allora la spia si alimenta <b>solo</b> da «il motore gira».</div>
+</div>
+
+<div class="sech" style="left:56px;top:1510px;">Le due correzioni d'indirizzo, e cosa resta aperto</div>
+
+<div class="pan" style="left:56px;top:1542px;width:870px;">
+  <h4>⑥ Il dettaglio con show vivo — cosa è alimentabile oggi, cosa no</h4>
+  <p><b>Hai ragione: non era bloccato, e l'avevo messo fuori perimetro per una ragione che valeva solo in parte.</b> Il segnaposto vive nella stanza e sopravvive all'uscita ⇒ il dettaglio <b>sa già quale canzone</b>. Tanto basta per due cose che sono l'ossatura della schermata: la <b>riga marcata</b> nella lista e la <b>lamella al posto dello Start</b>.</p>
+  <div class="gt"><div class="c1">Quale canzone</div><div class="c2 ok-tag">Oggi</div><div class="c3">Riga marcata <code>▸ NOW</code>, tinta 10%, bordo-sinistro. <b>Viene dalla stanza</b>, non dal Player.</div></div>
+  <div class="gt"><div class="c1">Stop / Restart / Return</div><div class="c2 ok-tag">Oggi</div><div class="c3">Lamella <b>2+1 del 25/08</b>, invariata: <code>STOP</code> · <code>RESTART SONG</code> — riga — <code>RETURN</code>. Al posto dello Start, che sullo show in corso non esiste (D11).</div></div>
+  <div class="gt"><div class="c1">Il motore gira</div><div class="c2 ok-tag">Oggi</div><div class="c3">Alimenta la <b>spia</b>, grado 1. Sopravvive all'uscita dal Player.</div></div>
+  <div class="gt"><div class="c1">In attesa / count-in</div><div class="c2 fut-tag">Serve la mossa</div><div class="c3">Spia grado 2 (<code>Standby</code>) e la distinzione fra «attesa» e «fermo». Frame ③.</div></div>
+  <div class="gt"><div class="c1">Sezione e battuta</div><div class="c2 no-tag">Serve la mossa</div><div class="c3"><b>Striscia viva: non la disegno.</b> Sono i dati che vivono in <code>LiveSession</code>. Disegnarli ora sarebbe un mockup che funziona e un'app che no.</div></div>
+  <div class="rule"><b>Rilettura del 25/08 contro il modello nuovo — una riga cambia, e non è cosmetica.</b> Il foglio del 25/08 disegna questa schermata con la <b>freccia «‹ Shows»</b> nella navbar, perché ci si arrivava <b>dalla lista</b>. Con il perimetro chiuso <b>quella strada non esiste più</b> (con la sessione viva non sei nella lista) e la decisione 8 dice che <b>nel dettaglio entrato dal Player la freccia non c'è</b>. ⇒ <b>Stessa schermata, due ingressi, una differenza sola:</b> dalla lista ha la freccia e lo Start; dal Player <b>non ha la freccia</b> e ha la lamella. Tolta quella, le card sono <b>irraggiungibili per navigazione</b> — che è la decisione 1, resa vera dai pixel e non da un divieto.</div>
+</div>
+
+<div class="pan" style="left:950px;top:1542px;width:850px;">
+  <h4 class="st">⑦ Due indirizzi sbagliati miei — corretti, con la ragione per cui li ho sbagliati</h4>
+  <p><b>① «<code>sectionStartTick</code> è già nell'elenco dei sedici».</b> <span class="no">Falso.</span> Vive nel Player, non nella memoria dello show: la mossa <b>non lo salverebbe</b>. Ho letto «muore all'uscita» e ho concluso «è fra i sedici» — <b>sono due insiemi diversi che condividono un sintomo</b>. È la stessa forma dell'errore del 26/08: una riga <i>compatibile</i> con la tesi presa per una riga che la <i>stabilisce</i>.</p>
+  <p><b>E la cosa che mi serve più della correzione: sono SEDICI PIÙ OTTO.</b> Il Player ha <b>otto valori suoi</b> che muoiono all'uscita e che la mossa sulla memoria dello show <b>non tocca</b>. ⇒ Quando arriverà la misura dei sedici campi, il disegno del rientro <b>non può fermarsi lì</b>: chi conta solo i sedici <b>ne dimentica un terzo</b>. Lo scrivo qui perché è l'unico posto dove non lo perdo: <b>la domanda «cosa si azzera al rientro» ha 24 righe, non 16</b>.</p>
+  <p><b>② «LIBRO r.348» per il vincolo dei 44pt.</b> <span class="no">Indirizzo sbagliato</span> — quella riga è l'artefatto normativo di Q-Live Shows del <b>06/08</b>. Il vincolo sta in <b>CD-Q8</b>, dentro il <b>freeze delle domande dell'11/07</b>. La citazione l'avevo ereditata da un mio foglio precedente <b>senza andare alla fonte</b>: esattamente ciò che la regola che mi sono dato vieta. ✅ <b>E il precedente mi copre</b>: riquadro visibile piccolo + <b>area di tocco 44pt</b> è <b>già ratificato</b>, con la nota che la <b>tecnica</b> per ottenerlo è <b>dominio di CC</b>. Il mio «36 disegnati, 44 di bersaglio» non è un'eccezione che chiedo: è <b>l'applicazione di una regola che esiste</b>.</p>
+</div>
+
+<div class="pan" style="left:1824px;top:1542px;width:880px;">
+  <h4 class="am">⑧ Aperto — tre, e la prima è per CC</h4>
+  <div class="ap"><div class="q">①</div><div class="t"><b>In attesa, il segnaposto punta a quale canzone?</b> Nel frame ③ ho marcato la <b>prossima</b> (<code>▸ NEXT</code> sulla 2) perché in attesa è lei che sta per partire. Ma non l'ho misurato: <b>se l'indice avanza solo al via</b>, in attesa il segnaposto è ancora sulla canzone <b>finita</b>, e la riga marcata sarebbe la 1. <b>Domanda a CC</b>, non a te — cambia una riga di questo disegno, non il disegno.</div></div>
+  <div class="ap"><div class="q">②</div><div class="t"><b>Le parole della spia: <code>Playing</code> e <code>Standby</code>.</b> Ho preso <code>PLAYING</code> perché è <b>già la parola</b> della targhetta del 25/08 — coerenza, non gusto. <code>STANDBY</code> è quella di <code>§12</code>. Se preferisci il pallino <b>senza parola</b> (solo il segno, più pulito), si toglie: la parola serve la prima volta, il moto serve sempre.</div></div>
+  <div class="ap"><div class="q">③</div><div class="t"><b>Il nome della voce che chiude lo show</b> — la tua D6, che resta rimandata. Qui compare come <code>STOP</code> nella lamella (25/08). Quando la deciderai, questo foglio si adegua: <b>è una stringa in un posto</b>, non un disegno.</div></div>
+  <div class="ap"><div class="q">✅</div><div class="t"><b>Chiuse dal tuo giro, le registro:</b> mute vivo in attesa (<b>sì</b>) · centro della fascia (<b>nome dello show</b>) · conferma in attesa (<b>cestinata</b>) · forma dell'alert (<b>esce da questo foglio</b>, resta viva dove la sessione muore).</div></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-LIVE › PLAYER — L'ATTESA VESTITA · il velo si accorcia, la fascia resta viva
+ NOME FILE  2026-08-27_QLive-Player_Attesa-vestita__velo-corto-fascia-viva_390x844.html
+ DATA       27/08/2026 · risponde a RISPOSTA-CD-2026-08-27-SEI-DOMANDE-FINE
+ STATO      PROPOSTA. Prima superficie del Player disegnata da CD dopo il perimetro
+            del 26/08. Non supersede nessun foglio: il Player non aveva un vestito
+            approvato (PERIMETRO §7.6, «grafica e meccanismi del Player» → CD).
+
+ PERCHE' ORA — e perche' SOLO questo
+   D2 (27/08) da' via libera ai pezzi DENTRO il Player, dove `LiveSession` esiste e
+   il semaforo rosso non arriva. L'attesa e' dentro. Dettaglio-in-sessione, striscia
+   viva e Resume restano fermi: leggono la sessione da FUORI, e da fuori non c'e'.
+
+ LE QUATTRO PREMESSE CORRETTE — prese, non discusse
+   1 · Il Resume oggi rientra sulla canzone giusta (non ricomincia). Cio' che e' rotto
+       e' piu' stretto: fuori dal Player lo show NON AVANZA — batte e non segue.
+       ⚠️ E rientra dalla PRIMA SEZIONE, non da dove eri: mai ratificato. Non lo
+       disegno qui, ma lo registro come aperto (pannello ⑦).
+   2 · Barra stanze centrata = GIA' FATTA lato codice dal 21/08. Depennata: non
+       compare tra gli aperti di questo foglio.
+   3 · `END SHOW` e' parola OCCUPATA (titolo di stato a fine scaletta). Qui non la uso
+       come azione: l'unica azione distruttiva che disegno e' l'alert, e si chiama
+       `End show` dentro l'alert, dove il titolo di stato non arriva mai. ⚠️ Se anche
+       questa vicinanza da' fastidio, la D6 la risolve dopo la rimozione di RESTART.
+   4 · `CLAUDE.md` non esiste nel repo: la riconciliazione §12 resta SOSPESA. Questo
+       foglio cita §12 come SPEC RATIFICATA 19/05 (contenuto), non come file da
+       aggiornare.
+
+ COSA PORTO
+   A · La geometria del velo corto (decisione 13): dove si ferma, cosa cede, quanto.
+   B · Il verdetto su OGNUNO dei tre controlli della fascia — per STATO, non per
+       copertura. E' la risposta all'avviso «freccia scoperta non esiste come cosa
+       isolata»: non spacco lo strato, dichiaro tre disponibilita'.
+   C · La freccia in attesa → card, con conferma sul confine (D3 + decisione 16).
+   D · Cinque aggiunte dichiarate una per una, ognuna con la sua riga di ritiro.
+
+ ⛔ FUORI PERIMETRO, non toccato: pulsantiera e suoi bottoni · teleprompter · slot
+   metronomo · bar counter · Chart Mode e il suo vestito · dettaglio-in-sessione ·
+   striscia viva · Resume · card della lista · fascia del dettaglio · salto di canzone.
+
+ ⛔ NON RIPORTO il perimetro rosso pulsante (CD-2, 19/05): apparteneva alla Fase 4,
+   fronte chiuso. Non lo ritiro io — dichiaro che non lo reintroduco.
+
+ ℹ️ I contrasti citati sono CALCOLATI sui token dichiarati (formula WCAG su composito),
+   non misurati su device. Se il gate su device misura diverso, ha ragione il telefono.
+ ⚠️ Nessuna distanza di lettura e' ratificata in questo progetto: l'assunzione «attesa
+   si legge a 2 m» e' MIA e dichiarata, non ereditata.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Player — l'attesa vestita · velo corto + fascia viva · 390×844 · 27/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);--text:#fff;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--ok:#28cd41;--linkg:#00c96e;--ledbt:#2a6bd6;--line:rgba(255,255,255,0.08);--disabled:0.4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:2040px;position:relative;-webkit-font-smoothing:antialiased;}
+a{color:#9a6800;text-decoration:none;}a:hover{color:#c48a10;}
+@keyframes qb-standby{0%,100%{opacity:1}50%{opacity:0.45}}
+.btitle{position:absolute;left:56px;top:30px;width:1300px;color:#16140f;}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#0d6b2b;}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;line-height:1.14;}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty;}
+.btitle p b{color:#16140f;}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.btitle .no{color:#b1281f;font-weight:700;}
+.testata{position:absolute;left:1400px;top:30px;width:1304px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px;}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0;}
+.testata .anc b{color:#fff;}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09);}
+.trow:first-of-type{border-top:0;}
+.trow .k{flex:0 0 150px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093;}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty;}
+.trow .v b{color:#fff;}.trow .v .no{color:#ff9a8a;font-weight:700;}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a;}
+.trow.stop .k{color:#ff9a8a;}
+.trow.am .k{color:#ffd35a;}
+.sech{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:rgba(0,0,0,0.42);}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:414px;flex-wrap:wrap;}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4);}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;}
+.stt.nw{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.stt.fz{color:#5a5a5a;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.16);}
+.stt.am{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);}
+.stt.bad{color:#b1281f;background:rgba(177,40,31,0.10);border:1px solid rgba(177,40,31,0.45);}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg);}
+.frame.nw{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5);}
+.frame.ref{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(0,0,0,0.16);}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff;}
+.sb .r{display:flex;gap:7px;align-items:center;}
+/* ── FASCIA HEADER del Player (layout CD-0, zona 8%) — in attesa resta VIVA ── */
+.plhead{flex:0 0 66px;height:66px;display:flex;align-items:center;gap:8px;padding:0 12px;position:relative;}
+.plhead.lit{background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.07);}
+.hit{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;}
+.sq{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);}
+.sq.press{background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);}
+.plmid{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+.shname{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,0.34);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.plright{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+.leds{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:8px;}
+.leds i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.07);}
+.leds i.link{background:var(--linkg);box-shadow:0 0 4px var(--linkg);}
+.leds i.bt{background:var(--ledbt);box-shadow:0 0 4px var(--ledbt);}
+/* ── IL VELO — sfondo pieno #0e0e10 (§12, 19/05). Comincia SOTTO la fascia ── */
+.veil{flex:1;position:relative;background:var(--qlive-bg);}
+.nextlbl{position:absolute;left:0;right:0;top:95px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.30);}
+.nextname{position:absolute;left:0;right:0;top:118px;text-align:center;padding:0 20px;font-family:'Inter',sans-serif;font-size:52px;font-weight:900;letter-spacing:-2px;line-height:0.92;text-transform:uppercase;color:#fff;animation:qb-standby 2.2s ease-in-out infinite;}
+.taphint{position:absolute;left:0;right:0;bottom:84px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.20);}
+.cin{position:absolute;left:0;right:0;bottom:60px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,0.14);}
+/* misure disegnate sopra il frame */
+.mez{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.6px;color:#c0431a;background:rgba(232,228,219,0.94);border:1px solid rgba(192,67,26,0.45);border-radius:6px;padding:2px 6px;white-space:nowrap;}
+.mez.w{white-space:normal;width:390px;line-height:1.5;}
+.mline{position:absolute;background:rgba(192,67,26,0.55);}
+.regolo{position:absolute;width:390px;display:flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.3px;color:#c0431a;}
+.regolo span{flex:1;border:1px solid rgba(192,67,26,0.4);border-radius:6px;padding:4px 5px;text-align:center;background:rgba(192,67,26,0.06);}
+/* ── ALERT distruttivo, forma 26/07 (modale, bottoni orizzontali) ── */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.58);}
+.al{position:absolute;left:50%;transform:translateX(-50%);width:300px;background:rgba(34,34,38,0.96);border-radius:20px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.10);}
+.al .bd{padding:20px 18px 16px;text-align:center;}
+.al .ttl{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.2px;line-height:1.28;}
+.al .msg{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,0.82);margin-top:9px;text-wrap:pretty;}
+.al .btnsh{display:flex;border-top:1px solid rgba(255,255,255,0.12);}
+.al .btnsh .b{flex:1;height:46px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#0a84ff;}
+.al .btnsh .b.sep{border-left:1px solid rgba(255,255,255,0.12);}
+.al .dest{color:var(--stop);font-weight:700;}
+.al .def{font-weight:700;}
+/* ── pannelli di annotazione ── */
+.pan{position:absolute;background:#fbf9f4;border:1px solid rgba(0,0,0,0.14);border-radius:16px;padding:18px 20px;box-shadow:0 8px 22px rgba(0,0,0,0.07);color:#16140f;}
+.pan h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:#0d6b2b;margin-bottom:12px;}
+.pan h4.st{color:#b1281f;}
+.pan h4.am{color:#8a5a00;}
+.pan p{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.pan p b{color:#16140f;}
+.pan p+p{margin-top:9px;}
+.pan code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;}
+.pan .no{color:#b1281f;font-weight:700;}
+.pan .yes{color:#0d6b2b;font-weight:700;}
+.gt{display:flex;gap:12px;padding:11px 0;border-top:1px solid rgba(0,0,0,0.10);align-items:flex-start;}
+.gt:first-of-type{border-top:0;padding-top:2px;}
+.gt .c1{flex:0 0 150px;display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.4px;color:#16140f;}
+.gt .c2{flex:0 0 116px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:6px;text-align:center;}
+.gt .c3{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.gt .c3 b{color:#16140f;}
+.live-tag{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45);}
+.inert-tag{color:#5a5a5a;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.18);}
+.ask-tag{color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.55);}
+.ico{width:26px;height:26px;border-radius:8px;background:#0e0e10;border:1px solid rgba(255,255,255,0.12);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.rule{margin-top:12px;padding:11px 13px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.35);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#14471f;text-wrap:pretty;}
+.rule b{color:#0a2e13;}
+.add{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.10);}
+.add:first-of-type{border-top:0;padding-top:0;}
+.add .n{flex:0 0 22px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#c0431a;}
+.add .t{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.add .t b{color:#16140f;}
+.add .t em{font-style:normal;color:#8a5a00;}
+.ap{display:flex;gap:11px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.10);}
+.ap:first-of-type{border-top:0;padding-top:0;}
+.ap .q{flex:0 0 26px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.5);border-radius:6px;height:20px;display:flex;align-items:center;justify-content:center;}
+.ap .t{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty;}
+.ap .t b{color:#16140f;}
+</style>
+</head>
+<body>
+
+<div class="btitle">
+  <div class="kick">CD · Q-Live › Player · Proposta · 27/08/2026</div>
+  <h1>L'attesa vestita — il velo si accorcia, la fascia resta viva</h1>
+  <p>Risponde a <b>D2</b> («parti dai pezzi dentro il Player: sì») e a <b>D3</b> («in attesa la freccia porta alle card»). È la prima superficie del <b>Player</b> che disegno: fin qui non ne esisteva un vestito approvato — <code>PERIMETRO §7.6</code> la assegna a CD e la dichiara «ancora da rivedere».</p>
+  <p>L'attesa è <b>dentro</b> il perimetro dove <code>LiveSession</code> esiste: il semaforo rosso non la tocca. <b>Dettaglio-in-sessione, striscia viva e Resume restano fermi</b> — leggono la sessione da fuori, e da fuori oggi non c'è.</p>
+  <p>Il foglio contiene <b>una geometria</b> (dove si ferma il velo), <b>tre verdetti</b> (uno per ogni controllo della fascia) e <b>cinque aggiunte dichiarate</b>, ognuna con la sua riga di ritiro. <span class="no">Nessuna</span> tocca pulsantiera, teleprompter, Chart Mode o la card.</p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">Dentro il perimetro — nessun blocco attraversato</span><span class="anc">risponde a <b>RISPOSTA-CD-2026-08-27-SEI-DOMANDE-FINE</b></span></div>
+  <div class="trow"><div class="k">Poggia su</div><div class="v"><b>Decisione 13</b> (26/08): il velo si ferma sotto la fascia header, la freccia resta scoperta, il tap-per-partire cede <b>~8%</b> sul bordo alto · <b>Decisioni 6 + 16</b>: la freccia non ferma mai niente, la conferma sta <b>sul confine</b> · <b>D3</b> (27/08): in attesa la freccia porta <b>alle card</b>, la regola unica non si rompe · <b>§12 spec standby 19/05</b>: sfondo pieno <code>#0e0e10</code>, nome della prossima canzone centrato, pulse <code>2.2s</code> · <b>microcopy NEXT: 19/05</b> · <b>layout CD-0</b>: fascia = zona 8% · <b>target ≥44pt</b> (LIBRO r.348).</div></div>
+  <div class="trow"><div class="k">Prende atto</div><div class="v">Le <b>quattro premesse corrette</b> sono accolte senza discussione. Due cambiano questo foglio: la <b>barra stanze</b> non compare tra gli aperti (già fatta, 21/08) e la riconciliazione <code>CLAUDE.md §12</code> resta <b>sospesa</b> — cito §12 come <b>spec ratificata</b>, non come file da aggiornare.</div></div>
+  <div class="trow am"><div class="k">Avviso accolto</div><div class="v"><b>«Freccia scoperta» non esiste come cosa isolata</b>: freccia, mute e l'ingresso mixer stanno nello stesso strato coperto. <b>Non spacco lo strato</b> — e non chiedo di spaccarlo. Applico la regola che CC ha accolto il 26/08: <b>le disponibilità si gated sullo STATO, mai per copertura</b>. Tre controlli, tre verdetti espliciti (pannello ④). Il velo torna a essere ciò che dice di essere: <b>un fatto ottico</b>, non un interruttore.</div></div>
+  <div class="trow stop"><div class="k">Non toccato</div><div class="v">Pulsantiera e suoi bottoni · teleprompter · slot metronomo · bar counter · <b>Chart Mode</b> · dettaglio-in-sessione · striscia viva · <b>Resume</b> · card della lista · salto di canzone · <b>perimetro rosso pulsante CD-2</b> (Fase 4, fronte chiuso: <b>non lo reintroduco</b>).</div></div>
+  <div class="trow"><div class="k">Cosa serve da te</div><div class="v">Quattro risposte corte, pannello ⑦. La più importante è la <b>①</b>: il mute vivo in attesa, sì o no. Se è no, cambia un token e non cambia il disegno.</div></div>
+</div>
+
+<div class="sech" style="left:56px;top:466px;">Le tre schermate a scala reale — 390×844, sfondo Q-Live, testi UI in inglese</div>
+
+<div class="flbl" style="left:56px;top:496px;"><span class="b">① ATTESA — la schermata</span><span class="stt nw">Proposta</span></div>
+<div class="frame nw" style="left:56px;top:536px;" data-screen-label="01 — attesa vestita, velo corto">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 10.5a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8z" fill="#fff"/><path d="M4.6 7.1a4.8 4.8 0 016.8 0M2.2 4.6a8.3 8.3 0 0111.6 0" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+
+  <div class="plhead lit">
+    <div class="hit"><div class="sq"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="rgba(255,255,255,0.70)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="veil">
+    <div class="nextlbl">Next:</div>
+    <div class="nextname">Roxanne</div>
+    <div class="taphint">Tap anywhere to start</div>
+    <div class="cin">Count-in · 2 bars</div>
+  </div>
+</div>
+<div class="mline" style="left:56px;top:581px;width:390px;height:1px;"></div>
+<div class="mline" style="left:56px;top:647px;width:390px;height:1px;"></div>
+<div class="regolo" style="left:56px;top:1392px;"><span>44pt status bar</span><span>fascia 66pt · <b>viva</b></span><span>velo 734pt · tap</span></div>
+
+<div class="flbl" style="left:500px;top:496px;"><span class="b">② ATTESA + freccia premuta</span><span class="stt am">Conferma sul confine</span></div>
+<div class="frame" style="left:500px;top:536px;" data-screen-label="02 — attesa, conferma di uscita">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 10.5a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8z" fill="#fff"/><path d="M4.6 7.1a4.8 4.8 0 016.8 0M2.2 4.6a8.3 8.3 0 0111.6 0" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+
+  <div class="plhead lit">
+    <div class="hit"><div class="sq press"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="rgba(255,255,255,0.92)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="veil">
+    <div class="nextlbl">Next:</div>
+    <div class="nextname" style="animation:none;opacity:0.55;">Roxanne</div>
+    <div class="taphint" style="opacity:0.5;">Tap anywhere to start</div>
+    <div class="cin" style="opacity:0.5;">Count-in · 2 bars</div>
+  </div>
+  <div class="scrim"></div>
+  <div class="al" style="top:322px;">
+    <div class="bd"><div class="ttl">End the show?</div><div class="msg">You'll lose your place in the setlist.</div></div>
+    <div class="btnsh"><div class="b def">Cancel</div><div class="b sep dest">End show</div></div>
+  </div>
+</div>
+
+<div class="flbl" style="left:944px;top:496px;"><span class="b">③ Com'è OGGI</span><span class="stt fz">Riferimento · misurato</span></div>
+<div class="frame ref" style="left:944px;top:536px;" data-screen-label="03 — riferimento, attesa come e oggi">
+  <div class="sb"><span>21:09</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"/><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"/></svg><svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 10.5a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8z" fill="#fff"/><path d="M4.6 7.1a4.8 4.8 0 016.8 0M2.2 4.6a8.3 8.3 0 0111.6 0" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"/><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"/></svg></div></div>
+  <div class="plhead"><div class="hit"><div class="sq" style="opacity:0;"></div></div><div class="plmid"></div></div>
+  <div class="veil">
+    <div class="nextname" style="top:118px;">Roxanne</div>
+  </div>
+</div>
+<div class="mez w" style="left:944px;top:1392px;">velo su <b>tutto</b>: <code>opacity 0</code> + <code>pointerEvents none</code> — niente freccia, niente mute, niente LED</div>
+
+<div class="pan" style="left:1400px;top:496px;width:1304px;">
+  <h4>④ I tre controlli della fascia — un verdetto per ciascuno, <b>per stato</b> e non per copertura</h4>
+  <div class="gt">
+    <div class="c1"><span class="ico"><svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Freccia</div>
+    <div class="c2 live-tag">Viva → card</div>
+    <div class="c3"><b>Ratificata: D3.</b> In attesa il Player non sta suonando, e la decisione del 26/08 manda al dettaglio solo il Player <b>che gira</b>. La regola unica non si rompe. <b>Conferma sul confine</b> (decisione 16), pannello ②. ⚠️ D3 dice «uscire dall'attesa non uccide niente»: se «niente da uccidere» vuol dire <b>niente da chiedere</b>, la conferma cade e il pannello ② va cestinato — vedi aperto <b>③</b>. Fino a risposta <b>tengo la conferma</b>: è ratificata, «non uccide niente» è un motivo.</div>
+  </div>
+  <div class="gt">
+    <div class="c1"><span class="ico"><svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.6)" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg></span>Mute click</div>
+    <div class="c2 ask-tag">Viva · proposta</div>
+    <div class="c3"><b>Non ratificata: è la mia proposta.</b> Scoprire la fascia la scopre — e va bene così: mutare il click <b>prima</b> di partire è una mossa live legittima (conteggio silenzioso, cambio palco), è <b>reversibile</b>, non tocca la sessione e i tre slider restano ai loro valori (§7). Nessun danno possibile ⇒ nessun motivo per spegnerla. <b>Se dici no</b>: <code>opacity var(--disabled)</code> sul riquadro, nessun altro cambio.</div>
+  </div>
+  <div class="gt">
+    <div class="c1"><span class="ico" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;color:rgba(255,255,255,0.5);">TR</span>Ingresso mixer</div>
+    <div class="c2 inert-tag">Inerte</div>
+    <div class="c3">Sta nella <b>pulsantiera</b>, sotto il velo: qui non si vede. Ma <b>non è il velo a spegnerlo</b> — lo spegne lo stato «attesa». È la differenza che il rilievo del 26/08 chiedeva di rendere vera: se domani il velo si accorcia ancora, il mixer non si accende per sbaglio. <b>Il suo vestito non è in questo foglio</b> (pulsantiera fuori perimetro).</div>
+  </div>
+  <div class="rule"><b>La regola che sto applicando</b>, accolta da CC il 26/08 come «il rilievo migliore del giro»: <b>le disponibilità si gated sullo stato, mai ottenute per copertura</b>. Conseguenza pratica: <b>non serve dare alla freccia uno strato suo</b>. Lo strato condiviso può restare condiviso — quello che non può restare è la <b>sicurezza per occlusione</b>. Tre righe di stato al posto di uno strato in più: <b>meno lavoro, e la decisione in meno</b>.</div>
+</div>
+
+<div class="pan" style="left:1400px;top:906px;width:1304px;">
+  <h4>⑤ La geometria del velo — decisione 13, in pixel</h4>
+  <p><b>Il velo comincia a 110pt dal bordo alto</b>: 44pt di status bar + <b>66pt di fascia</b> (la zona <code>8%</code> del layout CD-0). <b>Le percentuali della decisione 13 si misurano sull'area contenuto del Player</b>, non sulla lastra intera: 844 − 44 = <b>800pt</b> ⇒ fascia <b>66/800 = 8,25%</b>, velo <b>734/800 = 91,75%</b>. Sulla lastra intera il velo è invece l'<b>87%</b>. ⚠️ <b>Base dichiarata perché i due numeri non coincidono</b> — «8% e 92%» valgono sull'area contenuto e su nient'altro. Nel mockup se ne misurano <b>732</b>: il frame ha 1pt di cornice per lato, sul device sono <b>734</b>.</p>
+  <p><b>La fascia non è «scoperta»: è illuminata.</b> Il velo resta lo <b>sfondo pieno <code>#0e0e10</code></b> ratificato in §12 (19/05) — non un vetro, non un'opacità. Perché la cessione si veda, la fascia prende una <b>lastra propria</b>: <code>rgba(255,255,255,0.025)</code> + filo <code>rgba(255,255,255,0.07)</code> in basso. Due token, nessuna deviazione dallo §12: il velo non cambia, cambia <b>ciò che gli sta sopra</b>. In play la fascia non ha lastra: la prende <b>solo in attesa</b>, ed è la firma dello stato.</p>
+  <p><b>Perché il bordo alto è il posto giusto</b> — parole tue: <em>«dev'essere scomodo da raggiungere per scongiurare chiusure accidentali»</em>. Con la bacchetta nell'altra mano il pollice riposa in basso: la freccia è l'unico punto della lastra che <b>richiede una seconda intenzione</b>. La conferma è la terza. <b>Due cancelli su un gesto che non è mai urgente.</b></p>
+  <p><b>Riquadri 36pt, aree di tocco 44pt.</b> I riquadri restano quelli di CD-0 (36×36, radius 10); il bersaglio è un <code>44×44</code> trasparente centrato. <b>Vincolo LIBRO r.348 rispettato sull'area</b>, non sul disegno — se CC lo implementa a 36 secchi, è fuori norma.</p>
+</div>
+
+<div class="pan" style="left:1400px;top:1180px;width:1304px;">
+  <h4 class="am">⑥ Cinque aggiunte — dichiarate una per una, ognuna con la sua riga di ritiro</h4>
+  <div class="add"><div class="n">①</div><div class="t"><b>Label <code>NEXT:</code></b> sopra il nome gigante (mono 9pt, tracking 2, opacity .30). §12 prescriveva il <b>nome e basta</b>: l'aggiungo perché ora in fascia c'è <b>un secondo nome</b> (lo show) e senza label il gigante può leggersi per un istante come «titolo dello show». Microcopy già ratificata (19/05), qui in una sede nuova. <em>Ritiro: si cancella la riga, il resto non si muove.</em></div></div>
+  <div class="add"><div class="n">②</div><div class="t"><b>Nome dello show in fascia</b> (mono 10.5pt, tracking 2.2, opacity .34). La fascia in attesa non può mostrare il titolo della canzone come in play: quella canzone <b>è finita o non è cominciata</b> — lo mostrerebbe mentendo. Lo show è l'unica cosa vera in quel momento, ed è ciò che la vecchia schermata iniziale vestita (<code>VL2_InitialScreen</code>) già portava. <em>Ritiro: centro vuoto, la fascia resta due controlli e tre LED.</em></div></div>
+  <div class="add"><div class="n">③</div><div class="t"><b><code>TAP ANYWHERE TO START</code></b> (opacity .20, in basso). La decisione 13 <b>crea un confine nuovo</b> — sopra si comanda, sotto si parte — e un confine invisibile va detto <b>una volta</b>. Al ventesimo show non lo leggi più: è per questo che sta al 20% e non al 50%. <em>Ritiro: si cancella. Il gesto resta, ratificato dal 02/05.</em></div></div>
+  <div class="add"><div class="n">④</div><div class="t"><b><code>COUNT-IN · 2 BARS</code></b> (opacity .14). Compare <b>solo se</b> <code>song.countIn > 0</code>, e dice il numero. È l'unica informazione che cambia <b>cosa senti</b> nel secondo dopo il tap: senza, parti e non sai se il primo colpo è tuo o della macchina. <em>Ritiro: si cancella — o si tiene solo la variante «1 bar / 2 bars» e si nasconde a 0.</em></div></div>
+  <div class="add"><div class="n">⑤</div><div class="t"><b>Lastra sulla fascia</b> (pannello ⑤). È il minimo che rende visibile la cessione dell'8%. <em>Ritiro: via la lastra, resta il solo filo in basso; oppure via anche il filo — e allora la fascia si distingue solo per ciò che contiene.</em></div></div>
+</div>
+
+<div class="sech" style="left:56px;top:1560px;">Cosa resta aperto, e cosa non riporto</div>
+
+<div class="pan" style="left:56px;top:1592px;width:1288px;">
+  <h4 class="st">⑦ Aperto — quattro risposte corte</h4>
+  <div class="ap"><div class="q">①</div><div class="t"><b>Il mute vivo in attesa: sì o no?</b> È l'unica delle tre disponibilità che non è ratificata da nessuno. Raccomandazione CD: <b>sì</b> (reversibile, utile prima di partire, nessun danno). <b>Un token se è no.</b></div></div>
+  <div class="ap"><div class="q">②</div><div class="t"><b>Il centro della fascia: nome dello show, vuoto, o posizione?</b> Ho scelto il nome (aggiunta ②). La terza via era <code>4 / 12</code> — quante ne restano: informazione vera e utile in attesa, ma è un <b>dato in più su una schermata che vive di uno solo</b>. Se la vuoi, la aggiungo in coda al nome.</div></div>
+  <div class="ap"><div class="q">③</div><div class="t"><b>La conferma in attesa resta?</b> La decisione 16 la arma proprio lì («freccia dal Player fermo → card»); la D3 dice che <b>non c'è niente da uccidere</b>. Le due non si contraddicono su <b>cosa fa</b> la freccia, solo su <b>se chiedere</b>. Io tengo la conferma — ma se in attesa l'uscita è innocua, il pannello ② <b>si cestina</b> e il gesto diventa immediato.</div></div>
+  <div class="ap"><div class="q">④</div><div class="t"><b>La forma dell'alert è ancora quella del 26/07?</b> L'ho disegnato come <b>forma ①</b> (modale, bottoni orizzontali, Cancel a sinistra) perché è la forma incisa in LIBRO il 26/07. Il foglio a <b>3 vie del 27/07</b> risulta «decisione aperta, decide Mauro» e <b>non ho trovato la scelta depositata</b>. Se hai scelto la ② o la ③, questo alert si ridisegna in dieci minuti.</div></div>
+  <div class="ap"><div class="q">!</div><div class="t"><b>Registro, non disegno:</b> il rientro riparte dalla <b>prima sezione</b>, non da dove eri (premessa 1) — <b>mai ratificato</b>. Non è dell'attesa e non lo tocco qui, ma è un candidato serio ai <b>sedici campi</b>: <code>sectionStartTick</code> è già nell'elenco delle cose che muoiono. <b>Quando arriva la misura, quella riga ha già un nome.</b></div></div>
+</div>
+
+<div class="pan" style="left:1400px;top:1592px;width:1304px;">
+  <h4>⑧ Cosa NON riporto, e perché non è una dimenticanza</h4>
+  <p><b>Il perimetro rosso pulsante (CD-2, 19/05).</b> Era l'estensione allo standby del brief <b>Fase 4</b>, fronte <b>chiuso</b>. Non lo ritiro io — non ne ho l'autorità e non serve: dichiaro che <b>non lo reintroduco</b>. Con il velo corto sarebbe anche in conflitto ottico: un perimetro pulsante <b>attraverserebbe la fascia viva</b>, cioè disegnerebbe come «zona in attesa» l'unica striscia che in attesa <b>risponde ai tocchi</b>. Se lo vuoi indietro, va ridisegnato per fermarsi sotto la fascia — e allora è un altro foglio.</p>
+  <p><b>Una schermata d'ingresso separata.</b> L'attesa <b>all'ingresso</b> e l'attesa <b>fra due canzoni</b> sono lo stesso stato — «il codice non li distingue» (D3), e la risposta vale per entrambi <b>per costruzione</b>. Disegnare due vestiti diversi vorrebbe dire chiedere a CC di distinguere due casi che il motore non ha: <b>una schermata, due occorrenze</b>. È anche il motivo per cui la vecchia <code>VL2_InitialScreen</code> (nome show + prima canzone + badge MIDI) non torna come pezzo a sé: <b>il suo contenuto è entrato qui</b> — lo show in fascia, la canzone al centro.</p>
+  <p><b>Il MIDI come via di partenza.</b> Ratificato («tap ovunque <b>o MIDI</b>»), non disegnato: sulla lastra non c'è nulla da mostrare, e una targhetta «MIDI ready» sarebbe una decorazione che non porta peso al dato. Resta nel testo, non sullo schermo.</p>
+</div>
+
+</body>
+</html>
