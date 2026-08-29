@@ -1167,6 +1167,52 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // === ⟦SYNC-ISTANTANEA⟧ A247+A248 (29/08/2026) — Snapshot posizione di sezione ===
+    // Consegna su main la terna (posizione dentro la sezione, totale della
+    // sezione, tick assoluto), catturata IN UNA SOLA closure su audioQueue:
+    // la coda è seriale (:392), quindi la terna è coerente per costruzione —
+    // nessun beat può scorrere fra le letture. Catturarle in hop separati
+    // sarebbe una corsa.
+    //
+    // PERCHÉ ESISTE: al rientro nel player la grafica non ha l'ancora di
+    // sezione e resta spenta fino al confine (6deea52). Il numero che manca
+    // È `_sectionBeatCounter` — l'asse CONTATORE, quello del seeding Follower
+    // e dello stop-a-fine-sezione — ma vive su audioQueue e la UI non può
+    // leggerlo direttamente. Questo è il ponte, one-shot al montaggio.
+    //
+    // ⛔ ZERO SUL CONTATORE HA DUE SIGNIFICATI, e per questo si consegna anche
+    //    il TOTALE (A248 — collisione trovata da CD, misurata dal referee):
+    //    · `sectionTotal == 0` → «nessuna sezione da contare»: LOOP
+    //      (l'incremento sta sotto la guardia `_sectionTotalBeats > 0` e
+    //      `loadSection` con repetitions <= 0 mette il totale a 0 — decisione
+    //      Mauro 29/08: i loop restano ciechi, NON si tocca il cuore audio)
+    //      oppure nessuna sezione caricata. Qui zero è davvero non-lo-so.
+    //    · `sectionTotal > 0 && sectionBeat == 0` → «sezione partita, primo
+    //      beat non ancora arrivato»: lo swap SEAMLESS azzera il contatore
+    //      DENTRO il beat che chiude la sezione vecchia, avendo già caricato
+    //      il totale nuovo — per un beat intero il contatore vale 0 con
+    //      l'audio che suona. Qui la posizione SI CONOSCE: è l'inizio.
+    //    · a motore fermo il contatore è comunque 0 (stop azzera) — è il
+    //      consumatore a escludere quel caso, con la sua guardia isPlaying.
+    //
+    // ⛔ NESSUN BLOCCO, NESSUNA ATTESA, su nessun thread: due dispatch
+    //    asincroni (audioQueue → main). Non gira sul render thread; aggiunge
+    //    alla coda audio una cattura di tre Int, una volta per montaggio del
+    //    player — zero lavoro periodico.
+    //
+    // ⚠️ FORMA NUOVA DICHIARATA: è il primo accessor del file che fa hop e
+    //    RENDE un valore — il pattern esistente usa audioQueue.async solo per
+    //    scrivere. La forma a closure ricalca `loadSection(onEnd:)` qui sopra.
+    func snapshotSectionPosition(_ deliver: @escaping (_ sectionBeat: Int, _ sectionTotal: Int, _ tick: Int) -> Void) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            let sectionBeat  = self._sectionBeatCounter
+            let sectionTotal = self._sectionTotalBeats
+            let tick         = self.beatTickCounter
+            DispatchQueue.main.async { deliver(sectionBeat, sectionTotal, tick) }
+        }
+    }
+
     // === Strada A — Pre-load parametri sezione successiva ===
     // Salva i parametri della prossima sezione nei _pendingNext* SENZA
     // toccare la sezione corrente e SENZA chiamare alcuna C-API DSP.

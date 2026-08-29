@@ -355,6 +355,69 @@ struct LiveView: View {
                 // sezione della posizione, non il motore.
                 session.currentTimeSig = timeSigString(for: section.beatsPerBar)
             }
+            // ⟦SYNC-ISTANTANEA⟧ A247 (29/08) — L'ANCORA SI CONQUISTA SUBITO, se
+            // il motore sa dov'è. Collaudo Mauro 29/08 su ⟦DISPLAY-FIRMA-A⟧:
+            // trattini corretti ma «resta tutto cieco fino al cambio — la
+            // sincronizzazione deve avvenire ALL'ISTANTE». La fonte c'è:
+            // l'asse CONTATORE del motore (`snapshotSectionPosition`, cartello
+            // A247 in AudioEngine). Da esso l'ancora è una sottrazione:
+            //   sectionStartTick = tick − sectionBeat + 1
+            // — la stessa identità che il ramo tickN==1 produce al join del
+            // Follower (tick=1, sectionBeat=offset+1 ⇒ 1−offset), verificata
+            // per coincidenza algebrica, non per analogia.
+            //
+            // TRE GUARDIE, ognuna con la sua ragione misurata:
+            //  · !barAnchorValid — un tick può aver già ancorato (o ancorerà
+            //    meglio: al confine `pendingSectionStart` sovrascrive comunque
+            //    questa ancora con quella vera). Mai retrocedere un'ancora.
+            //  · sectionTotal > 0 — ⛔ A248: il non-lo-so VERO è il TOTALE a
+            //    zero, non il contatore a zero. Sezione in LOOP (rischio
+            //    accettato da Mauro 29/08: i loop restano ciechi ma ONESTI)
+            //    o nessuna sezione caricata ⇒ niente ancora: restano i
+            //    trattini di 6deea52, che non si butta — si estende.
+            //    Il contatore a zero, da solo, NON è non-lo-so: vedi sotto.
+            //  · audioEngine.isPlaying — misurato: l'INTERRUZIONE AUDIO
+            //    (`.began`, AudioEngine ~:2680-2708) ferma il motore SENZA
+            //    azzerare il contatore («clock running»). Senza questa guardia,
+            //    rientrare durante un'interruzione aggancerebbe numeri
+            //    congelati su un motore muto — il valore vecchio che C1 vieta.
+            //
+            // ⚠️ A248 — IL CONFINE È UN BEAT LUNGO, e zero ci abita: lo swap
+            //    SEAMLESS azzera il contatore DENTRO il beat che chiude la
+            //    sezione vecchia (totale nuovo già caricato) ⇒ per un beat
+            //    intero (0,6 s a 100 BPM, 3 s a 20) il contatore vale 0 con
+            //    l'audio che suona. Chi montava lì restava CIECO FINO AL
+            //    CONFINE SUCCESSIVO: la guardia A247 `sectionBeat > 0`
+            //    scartava, e il filtro della falsa ancora aveva già consumato
+            //    l'emissione di sottoscrizione — nessun arming di riserva.
+            //    (Trovata da CD per ragionamento, misurata dal referee.)
+            //    ⇒ Con totale > 0 e contatore a 0 la posizione SI CONOSCE:
+            //    è l'inizio. L'ancora si conquista con la STESSA formula
+            //    (tick − 0 + 1 = il prossimo tick è il beat 1); i numeri NON
+            //    si scrivono qui — il beat in corso è l'ultimo della sezione
+            //    VECCHIA, e il suo dato è perso: scrivere «Bar 1» adesso
+            //    anticiperebbe di un beat una sezione non ancora suonata.
+            //    Trattini per ≤1 beat, poi il primo tick scrive Bar 1 da sé.
+            //
+            // Nel caso normale (contatore > 0) i numeri si scrivono QUI, non
+            // al prossimo tick: a 20 BPM il prossimo tick dista 3 secondi, e
+            // il mandato chiede l'istante.
+            // ⚠️ Il LED si riaccende per CONSEGUENZA della stessa ancora —
+            //    stessa aritmetica del tick handler, nessun disegno nuovo
+            //    (ratificato da CD 29/08: «contatore e LED sono lo stesso
+            //    dato a due granularità»). L'allineamento accento↔contatore
+            //    resta quello di oggi (materia Bug 2.b): non lo promette.
+            audioEngine.snapshotSectionPosition { sectionBeat, sectionTotal, tick in
+                guard !barAnchorValid, sectionTotal > 0, audioEngine.isPlaying else { return }
+                sectionStartTick = tick - sectionBeat + 1
+                barAnchorValid = true
+                // A248 — inizio-sezione (contatore 0): ancora sì, numeri al
+                // primo tick della sezione nuova, ≤1 beat da adesso.
+                guard sectionBeat > 0 else { return }
+                let bpb = max(1, Int(displayBpb))
+                session.beatActive = ((sectionBeat - 1) % bpb) + 1
+                session.currentBar = ((sectionBeat - 1) / bpb) + 1
+            }
         }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
