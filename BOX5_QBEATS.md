@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V38 — 29/08/2026
+**Versione:** V39 — 30/08/2026
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -59,7 +59,7 @@ Tutto il resto invariato da V25.
 
 **Delta V24 vs V23:**
 
-- **Fix package Fase D "Rafforzamento modalità Direttore" (28/05/2026):** guard start/stop e BPM estesi a tutti gli stati (`isRunning` rimosso, Bug 5 + Bug 5-BPM fix). Modello fresh play branching evoluto da 3 a 4 rami (Director standalone ratificato — chiude latenza 1.j). Rimosso claim stale "tre callback condividono guard" — ogni callback documentato separatamente. **Default LinkMode corretto da `.direttore` a `.collaborativa`** (commit `cb92faa` 24/05/2026 — BOX5 V23 lo documentava ancora erroneamente come `.direttore`). Tutto il resto invariato da V23.
+- **Fix package Fase D "Rafforzamento modalità Direttore" (28/05/2026):** guard start/stop e BPM estesi a tutti gli stati (`isRunning` rimosso, Bug 5 + Bug 5-BPM fix). Modello fresh play branching evoluto da 3 a 4 rami (Director standalone ratificato — chiude latenza 1.j). Rimosso claim stale "tre callback condividono guard" — ogni callback documentato separatamente. **Default LinkMode corretto da `.direttore` a `.collaborativa`** (commit `cb92faa` 24/05/2026 — BOX5 V23 lo documentava ancora erroneamente come `.direttore`). Tutto il resto invariato da V23. ⛔ **MARCATURA 30/08/2026 (A287) — QUESTA RIGA E' SCADUTA: IL DEFAULT NON E' PIU' `.collaborativa`. Zero parole riscritte sopra: si marca.** A `8a9faad` il codice dichiara **`.standalone`** in **TRE** punti indipendenti, non due: `AppSettings.swift:22` (il valore persistito), `AudioEngine.swift:283` (`_linkMode`, copia privata dell'audioQueue) e `AudioEngine.swift:55` (`currentLinkMode`, la copia pubblicata alla UI). Sonda per EFFETTO su chi **scrive** il campo con un default, non per nome. **La seconda sede di questo stesso fatto e' la riga-spec del capitolo «Invarianti tecnici Layer 3», marcata anch'essa.**
 
 **Delta V23 vs V22:**
 
@@ -552,7 +552,7 @@ Voci aperte. Nessuna di queste è stata riempita con un'ipotesi plausibile: dove
 | Link — preference pane | `ABLLinkSettingsSheetView` sempre accessibile via Button in SettingsView quando linkEnabled. Commit `a5451bd` |
 | `isIdleTimerDisabled` | Gestione centralizzata su root view via `onChange(of: scenePhase)`: true se `.active`, false altrimenti. Commit `341559d` |
 | AppDelegate — applicationDidBecomeActive | V20 — al ritorno foreground, se `linkEnabled == true` ri-asserisce `setLinkEnabled(true)`. LinkKit best practice. Risolve "Link rotto mid-session". Commit `9a2e529` |
-| Link — modalità Direttore/Collaborativa | V20 — `appSettings.linkMode` controlla comportamento Link. `_linkMode` audioQueue-private aggiornato in `applySettings()`. Default `.collaborativa` (cambiato da `.direttore` in `cb92faa` 24/05/2026). Commit `c8434b3`. V24 28/05/2026: guard start/stop e BPM estesi a tutti gli stati (`isRunning` rimosso). Phase guard invariato (implicito in play — vive dentro `scheduleNextBuffer`). Ogni callback documentato separatamente nelle righe seguenti. |
+| Link — modalità Direttore/Collaborativa | V20 — `appSettings.linkMode` controlla comportamento Link. `_linkMode` audioQueue-private aggiornato in `applySettings()`. Default `.collaborativa` (cambiato da `.direttore` in `cb92faa` 24/05/2026). Commit `c8434b3`. V24 28/05/2026: guard start/stop e BPM estesi a tutti gli stati (`isRunning` rimosso). Phase guard invariato (implicito in play — vive dentro `scheduleNextBuffer`). Ogni callback documentato separatamente nelle righe seguenti. ⛔ **MARCATURA 30/08/2026 (A287) — «Default `.collaborativa`» E' SCADUTO: a `8a9faad` il codice dice `.standalone` in TRE punti (`AppSettings.swift:22`, `AudioEngine.swift:283`, `AudioEngine.swift:55`). Zero parole riscritte: si marca.** 🚨 **LA CONSEGUENZA NON E' COSMETICA, ed e' la ragione per cui questa marcatura esiste:** chi ha ragionato su `TD-direttore-parte-da-bar2` — o su qualunque difetto di sincronizzazione — leggendo questa riga **ha ragionato sulla modalita' sbagliata**. In `.collaborativa` l'apparecchio **si adegua** alla timeline altrui; in `.standalone` **non la ascolta affatto**: sono due comportamenti diversi al Play, e le misure fatte assumendo il primo vanno rilette. ⚠️ **Il ruolo resta scegliibile a mano a ogni avvio** — cambia il **default**, non le opzioni. |
 | Link — Direttore tempo callback | V20 — Re-broadcast del proprio BPM quando peer prova a cambiarlo, vincendo sempre la negoziazione. Check `bpm != _audioBPM` evita loop di re-broadcast quando peer riceve il valore Q-B e ritorna lo stesso. V24 28/05/2026: guard esteso a tutti gli stati — `if _linkMode == .direttore` (rimosso `isRunning`). Pre-fix: Director in stop avrebbe adottato BPM del peer (Bug 5-BPM latente). Director è sorgente unica del tempo in ogni stato. Commit `a42e877` + `4375ee3` |
 | Link — Direttore phase sync | V20 — Skip silenzioso del `link_engine_sync_phase` quando in director play |
 | Link — Direttore start/stop callback | V20/V24 — Ignora start/stop da peer in ogni stato (anche in stop). Guard: `if _linkMode == .direttore { return }`. Bug 5 fix 28/05/2026: pre-fix richiedeva `isRunning`, Director in stop accettava start da peer Collab via START LOCAL. |
@@ -573,6 +573,26 @@ Voci aperte. Nessuna di queste è stata riempita con un'ipotesi plausibile: dove
 | Count-in BPM | Prima sezione canzone target |
 | TempoMap | Campo opzionale in BacktrackFile. `nil` = BPM fisso invariato |
 | La backtrack comanda | In modalità adaptive la sorgente di verità è la TempoMap, non il BPM utente |
+
+---
+
+## LIMITI DELLA LIBRERIA LINK — cosa l'app NON PUO' SAPERE (misurato al blob `8a9faad`, 30/08/2026)
+
+> ⚠️ **PERCHE' QUESTO CAPITOLO ESISTE E NON STA IN «Invarianti tecnici Layer 3 — INVIOLABILI».** Quel capitolo raccoglie **decisioni nostre**, che noi possiamo cambiare. Queste sono **proprieta' di una libreria di terzi**: non si ratificano e non si violano — **si subiscono**. Metterle la' le farebbe leggere come scelte, e il giorno che qualcuno volesse «cambiarle» non troverebbe nulla da cambiare. ⇒ **Sede separata, di proposito.**
+
+**① L'APP NON PUO' SAPERE QUANTI PEER CI SONO. Puo' sapere solo SE ce n'e' almeno uno.**
+- `link_engine_num_peers` **non e' un conteggio, e il nome mente**: rende **0 oppure 1**, mai altro. Misurato per EFFETTO, cercando chi **scrive** il campo: `numPeers_` e' dichiarato a `LinkEngine.mm:13`, **scritto in un solo punto** — `:57`, `le->numPeers_.store(peers)`, dove `peers` viene da `:56` `uint32_t peers = isConnected ? 1 : 0;` — e altrove solo **letto** (`:93`, `:114`, `:511`). **Uno scrittore, booleano.**
+- Il codice **lo dichiara da solo** a `:54-55`: la callback di Ableton e' booleana, e la libreria non espone un contatore nativo.
+- ⇒ **Ogni targhetta «N peer collegati» e' non costruibile**, e il ritiro deciso il 24/08 era corretto **per una ragione piu' forte di quella data allora**: non «il numero e' inaffidabile», ma **il numero non esiste**.
+- ✅ **Regge invece la domanda «almeno uno?»**, che e' esattamente la forma della callback: quello si puo' leggere.
+
+**② L'APP NON PUO' LEGGERE SE LO START/STOP SYNC E' ACCESO.**
+- `ABLLinkIsStartStopSyncEnabled` **esiste** nell'header Ableton (`Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h:83`, identico nelle altre due varianti dell'xcframework) ma **non e' esposta nel ponte: zero occorrenze in tutto `ios_app/`**. **Controllo positivo della stessa forma:** altre funzioni `ABLLink*` sono usate e la sonda le vede (`AudioEngine.swift` 3 · `LinkEngine.mm` 12 · `MIDIEngineBridge.h` 1).
+- ⚠️ **Da non confondere:** `ABLLinkStartStopSyncSupported: true` (`Info.plist:45`, `project.yml:24`) e' un'altra cosa — dichiara che l'app **supporta** la funzione, quindi l'interruttore **compare** nel pannello Link. Non dice, e non puo' dire, **se l'utente l'ha acceso**. L'header dichiara quell'interruttore controllabile **solo dall'utente**.
+
+🚨 **LA CONSEGUENZA DI DISEGNO, ed e' il motivo per cui questo capitolo va letto PRIMA di progettare:** la condizione d'innesco del **velo ambra** ha **due gambe, e una l'app NON PUO' LEGGERLA**. La gamba «c'e' almeno un peer» e' leggibile (①). La gamba «lo Start/Stop Sync e' acceso» **non lo e'** (②). ⇒ **Non e' un dettaglio da risolvere in costruzione: e' un vincolo che cambia cosa quel velo puo' promettere.** Chi lo disegna deve saperlo prima, non scoprirlo dopo.
+
+⚠️ **CONSEGUENZA OPERATIVA SUL COLLAUDO, gia' in uso:** ogni prova a due apparecchi ha un **passo zero** — aprire il pannello Link su **entrambi** e verificare a mano che lo Start/Stop Sync sia acceso. Se e' spento, il Play non propaga e **la prova non misura nulla**. L'app non puo' controllarlo al posto di chi collauda.
 
 ---
 
@@ -969,6 +989,21 @@ positivo sull'esistenza dell'oggetto la smaschera, perché l'oggetto c'è e la
 sonda risponde. **La smaschera solo la quadratura: la somma delle classi deve
 tornare col totale.**
 
+🚨 **REGOLA GENERALE, 30/08/2026 (A287) — ALLARGA LA REGOLA DELLE STRINGHE DI CONTROLLO NATA DAI QUATTRO FALSI ALLARMI, e vale per OGNI sonda:**
+**una sonda che rende zero non prova NULLA finche' non l'hai vista rendere
+diverso da zero su un caso noto.** ⛔ Non basta che *un'altra* sonda veda
+qualcosa: dev'essere **quella sonda**, sullo **stesso tipo di oggetto**.
+⚠️ **Tre casi in un giorno solo, il 30/08, e il filo comune e' uno:
+le sonde cedono sui caratteri non-ASCII.** (a) `grep -o $'\u2019'` ha reso **0**
+su un file che ne conteneva **16** — smascherato solo perche' il conteggio
+degli apostrofi dritti cresceva di **+6** invece che di decine; (b) una sonda
+sui `.md` in radice ha **perso un file** il cui nome contiene un trattino
+lungo, che git quota; (c) il referee ha costruito un file di controllo che
+**non conteneva i caratteri che credeva**, e ne ha concluso che la sonda
+funzionasse. ⇒ **Il controllo positivo va costruito misurandolo, non
+assumendolo: un file di prova va prima verificato che contenga davvero
+cio' che deve contenere.**
+
 ### Le voci
 
 | nome | polarità | causa meccanica | come si smaschera | dove è già inciso |
@@ -980,6 +1015,8 @@ tornare col totale.**
 | **PARAMETRO IGNORATO IN SILENZIO** | P3 | l'API di GitHub Actions accetta parametri **sconosciuti senza errore** e li **scarta**: `?conclusion=success` non filtra nulla e la risposta rende l'insieme intero | **quadratura**: enumerare le classi e verificare che la somma torni col totale non filtrato | **misurato qui il 26/08/2026 — prima incisione** |
 | **POSITIVO DI FORMA SBAGLIATA** | P2 | la sonda ha un controllo positivo, **e il positivo non è della stessa forma dell'oggetto cercato** ⇒ il positivo vede, la sonda no, e lo zero passa per misura. Due casi misurati il 29/08: **(1)** `= SetlistRunner(` rende zero perché il runner nasce nella forma `install(SetlistRunner(` — il positivo era un'altra costruzione, non un'altra *forma* di costruzione; **(2)** cercare un pannello per **modificatore di sistema** (`confirmationDialog` · `.alert(` · `.sheet(`) in un'app che i pannelli **li disegna a mano** (`ZStack` + velo) — il positivo era un modificatore, l'oggetto è una vista | **il positivo si sceglie nella STESSA FORMA di ciò che si cerca**, non nella stessa famiglia: se cerchi una stringa di UI, il positivo è una stringa di UI che sai esistere; se cerchi una vista fatta a mano, il positivo è una vista fatta a mano | **misurato qui il 29/08/2026 (A258, A260) — prima incisione** |
 | **ASSENZA DALLA PROPRIA VISTA** | P2 | l'osservatore **non può vedere** il supporto dove l'oggetto vive, e legge il proprio zero come inesistenza. Non è una sonda mal scritta: è una sonda **giusta puntata dove l'oggetto non è**. Tre occorrenze: `git log --grep` su ID **mai committati** (rende zero per costruzione, ed è stato usato come controllo positivo) · `git grep` sugli **untracked** · un mount che espone «Il mio Drive» e **non** «Il mio computer», dove vive il riflesso | **dichiarare «invisibile da qui», MAI «non esiste»**, e nominare il supporto che non si è potuto interrogare. Un secondo supporto, o un secondo osservatore, prima di concludere | **§7 della Costituzione** (`FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md`) ne porta la METÀ SIMMETRICA («niente fonte verificabile, non entra»); questa è **la metà mancante** — vedi la nota sotto |
+
+| **SONDA CIECA AI CARATTERI NON-ASCII** | P2 | la sonda e' costruita con una forma che l'ambiente **non interpreta**: `grep -o $'\u2019'` non e' supportata da ogni shell e cerca la **stringa letterale**, rendendo zero **ovunque**; oppure il bersaglio contiene un carattere che lo strumento **quota o riscrive** (git quota i nomi con trattino lungo, em-dash, accenti) e il filtro successivo lo perde. ⚠️ Rende zero **su tutte le gambe insieme**, quindi non c'e' una gamba discorde che insospettisca | ⛔ **si vede rendere la sonda diversa da zero su un caso noto, PRIMA di fidarsene** — e il caso noto va **misurato**, non assunto (il file di prova puo' non contenere cio' che si crede). Per i codepoint: contarli con uno strumento che legga davvero l'UTF-8, non col pattern di shell. Controprova d'appoggio: se una sonda **complementare** cresce molto meno del previsto, la prima sta mentendo | 30/08/2026 (A287) — tre casi in un giorno: apostrofi curvi, `.md` in radice perso per il trattino lungo, file di controllo del referee senza i caratteri attesi |
 
 ### La voce nuova, misurata alla fonte prima di inciderla
 
@@ -1075,6 +1112,12 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - **Due voci NUOVE nella TASSONOMIA DEI DIFETTI DI MISURA**, entrambe **P2** e misurate il 29/08: **POSITIVO DI FORMA SBAGLIATA** (il controllo positivo vede ma non è della stessa *forma* dell'oggetto cercato — due casi: `= SetlistRunner(` e la ricerca di un pannello per modificatore di sistema in un'app che i pannelli li disegna a mano) e **ASSENZA DALLA PROPRIA VISTA** (`git log --grep` su ID mai committati · `git grep` sugli untracked · il mount che non espone «Il mio computer»).
 - **La METÀ MANCANTE DEL §7 incisa qui, con puntatore alla Costituzione:** il §7 governa il claim senza fonte, **non** la conclusione senza accesso. ⛔ **La Costituzione NON è stata toccata** — documento di regime, ultima modifica `bd70783` di giugno, nessun mandato me lo ha mai autorizzato: il testo pronto è nella nota, se il referee vuole farlo salire è un atomo suo.
 - ⚠️ **Incoerenza PRE-ESISTENTE dichiarata e NON riparata qui:** il file era a **V37** senza che esistesse un blocco `Delta V37 vs V36` — l'ultimo scritto era V36. **Non l'ho inventato a posteriori** (non so cosa contenesse) e non ho rinumerato niente: V38 segue V37 come da testata.
+
+**Delta V39 vs V38:**
+
+- ⛔ **DUE MARCATURE sul DEFAULT DELLA MODALITA' LINK, sulle due sedi che lo dichiarano** — la riga-spec del capitolo «Invarianti tecnici Layer 3» e la riga di changelog in testa. Il documento diceva **`.collaborativa`**; il codice a `8a9faad` dice **`.standalone`** in **TRE** punti indipendenti (`AppSettings.swift:22`, `AudioEngine.swift:283`, `AudioEngine.swift:55`), non due come riportato nel mandato: **misurato per EFFETTO su chi scrive il campo**. 🚨 **Conseguenza incisa, non cosmetica:** chi ha ragionato su `TD-direttore-parte-da-bar2` leggendo BOX5 **ha ragionato sulla modalita' sbagliata**. Zero parole riscritte: si marca.
+- **Capitolo NUOVO «LIMITI DELLA LIBRERIA LINK — cosa l'app NON PUO' SAPERE»**, con due fatti misurati al blob `8a9faad`: **(①)** `link_engine_num_peers` **non e' un conteggio** — rende 0 o 1, scrittore **unico** a `LinkEngine.mm:57` da `:56` (`isConnected ? 1 : 0`), altrove solo letto; **(②)** `ABLLinkIsStartStopSyncEnabled` esiste nell'header Ableton (`ABLLink.h:83`) ma **non e' esposta nel ponte** — zero occorrenze in `ios_app/`, con controllo positivo che vede altre `ABLLink*`. 🚨 **Conseguenza di disegno:** la condizione d'innesco del **velo ambra** ha **due gambe e una l'app non puo' leggerla**. ⚠️ **Sede separata da «Invarianti tecnici Layer 3» di proposito:** quelli sono **nostri** e si possono cambiare, questi sono **di una libreria di terzi** e si subiscono — metterli la' li farebbe leggere come scelte.
+- **Voce NUOVA nella TASSONOMIA DEI DIFETTI DI MISURA — «SONDA CIECA AI CARATTERI NON-ASCII» (P2)**, piu' la **regola generale** che allarga quella nata dai quattro falsi allarmi: **una sonda che rende zero non prova nulla finche' non l'hai vista rendere diverso da zero su un caso noto** — e il caso noto va **misurato, non assunto**. Tre episodi in un giorno solo (30/08): apostrofi curvi non visti da `grep -o $'\u2019'` su un file che ne aveva 16, un `.md` in radice perso per il trattino lungo nel nome, e un file di controllo che non conteneva i caratteri che si credeva.
 
 **Delta V36 vs V35:**
 
