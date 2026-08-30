@@ -190,7 +190,28 @@ struct LiveView: View {
                     StandbyOverlayView(nextSongName: nextSong, scaleFactor: scaleFactor)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            runner.startCurrentSong(audioEngine: audioEngine, session: session)
+                            // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
+                            // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
+                            // riparte da sezione 8 battito 1» (= opzione B di A240;
+                            // foglio CD 27/08 «alla sezione, non alla battuta»).
+                            // Uno standby con sezione conservata >0 esiste SOLO al
+                            // rientro dopo uno STOP a metà canzone: `primeDisplay`
+                            // arma da .stopped SENZA toccare gli indici. L'ingresso
+                            // fresco (runner appena installato, indici 0/0) e lo
+                            // standby fra due canzoni (il ramo standby di
+                            // `makeSectionEndedClosure` azzera la sezione PRIMA di
+                            // armare) hanno sempre sezione 0 e restano sul ramo che
+                            // azzera — comportamento invariato per costruzione.
+                            // L'observer `linkStartedSubject` più sotto segue la
+                            // STESSA regola dal 30/08 (decisione Mauro: Direttore
+                            // e Follower INSIEME, A267-rev2, ⟦SOL-C⟧) — il limite
+                            // strutturale dell'allineamento è dichiarato nel
+                            // cartello lì.
+                            if runner.currentSectionIdx > 0 {
+                                runner.startCurrentSection(audioEngine: audioEngine, session: session)
+                            } else {
+                                runner.startCurrentSong(audioEngine: audioEngine, session: session)
+                            }
                         }
                 }
 
@@ -687,7 +708,30 @@ struct LiveView: View {
             // startCurrentSong preserva la canzone corrente; startSetlist
             // la resetterebbe a songIdx 0 (Song A). Vedi BUGS_QBEATS.md.
             if case .standby = session.playbackState {
-                runner.startCurrentSong(audioEngine: audioEngine, session: session)
+                // ⚠️ A267-rev2 (30/08/2026) — STESSA REGOLA DEL TAP SUL VELO
+                // (cartello A267 sopra): sezione conservata >0 = rientro dopo
+                // STOP a metà canzone → si riprende da lì; sezione 0 = standby
+                // fra due canzoni o ingresso fresco → dalla canzone, come oggi.
+                // Decisione Mauro 30/08: Direttore e Follower INSIEME.
+                // 🚨 QUESTA CORREZIONE ALLINEA I DUE APPARECCHI PERCHÉ FANNO LO
+                // STESSO CONTO, NON PERCHÉ SI PARLINO ⟦SOL-C⟧: nessuna API Link
+                // trasporta l'indice di sezione — i runner contano i beat
+                // ciascuno per sé, e coincidono solo se partiti insieme sulla
+                // stessa struttura e fermati insieme dallo stop di banda.
+                // NON regge se un apparecchio si aggancia in ritardo o rientra
+                // dopo una caduta di rete. Riparazione strutturale: Soluzione C
+                // — protocollo proprietario master/client (LIBRO:212,
+                // 20/05/2026, attiva).
+                // ⛔ I due rami di questo observer NON collassano in uno: con
+                // sezione 0 e `currentSection` irrisolvibile le due partenze
+                // divergono (`startCurrentSong` → fineSetlist immediato ·
+                // `startCurrentSection` → fallback 0/0 e riparte dalla prima
+                // canzone). Non unificare senza decisione.
+                if runner.currentSectionIdx > 0 {
+                    runner.startCurrentSection(audioEngine: audioEngine, session: session)
+                } else {
+                    runner.startCurrentSong(audioEngine: audioEngine, session: session)
+                }
             } else {
                 // ⚠️ A240 — era `startSetlist` (il commento qui sopra e il blocco
                 //    Q-D3 più su lo descrivono ancora così — testo invariato): il
