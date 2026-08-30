@@ -136,6 +136,13 @@ final class SetlistRunner: ObservableObject {
     // fra due canzoni (dove azzerare la sezione è corretto per costruzione), non
     // per una decisione presa sul rientro. Misura completa: `HANDOFF/
     // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
+    // ⚠️ MARCATURA A267 (30/08) — il caso rientro descritto qui sopra è RISOLTO
+    //    A MONTE: il tap sul velo (LiveView, overlay standby) instrada su
+    //    `startCurrentSection` quando la sezione conservata è >0, e arriva qui
+    //    solo con sezione 0 (ratifica Mauro 30/08). L'asimmetria di QUESTA
+    //    funzione — canzone conservata / sezione azzerata — resta, ed è
+    //    corretta per costruzione nel ramo standby fra due canzoni, che azzera
+    //    la sezione prima di armare. Testo sopra invariato.
     func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
         // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
         pendingDisplayUpdate = false

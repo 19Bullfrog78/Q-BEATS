@@ -43,6 +43,11 @@ struct TransportView: View {
                 //    SetlistRunner). L'asimmetria dei due gesti descritta sopra
                 //    resta ma cambia faccia: velo → sezione azzerata · Play →
                 //    tutto conservato. Testo sopra invariato.
+                // ⚠️ MARCATURA A267 (30/08) — «velo → sezione azzerata» non è più
+                //    sempre vero: con sezione conservata >0 il velo instrada su
+                //    `startCurrentSection` e CONSERVA anche lui (ratifica Mauro
+                //    30/08, cartello A267 in LiveView). Con sezione 0 azzera come
+                //    prima. Testo sopra invariato.
                 RubberBtnView(
                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
