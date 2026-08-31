@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-LIVE › PLAYER + DETTAGLIO — IL VELO DICE DA DOVE, E END SHOW VA SULLO SCAFFALE
+ NOME FILE  2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html
+ DATA       30/08/2026 — data dichiarata dal mio orologio, come richiesto.
+ BASE       2026-08-27_QLive-Player_Bivio-tre-vie-e-TERZA-FACCIA-del-Dettaglio__390x844.html
+            ⛔ NON ridisegnato: INCISO e MISURATO. R1-R6 restano.
+ STATO      ✅ Incide le sei decisioni di Mauro (30/08) · ✅ risponde alle due domande
+            del referee · 🔄 SUPERSEDE 2026-08-27_..._Attesa-vestita__velo-corto-fascia-viva
+            (era una «Proposta», non una ratifica: il velo qui torna in tre casi)
+ SORGENTE TOKEN  2026-07-11_Q7-Q16.html — ⛔ ZERO token nuovi, ZERO elementi nuovi.
+ MISURA DI CANALE  contratto 2026-07-18_QLive-Exit-in-Play.html = 58.463 byte ✅ combacia.
+            Presente nel progetto; ⛔ ASSENTE da Qbeats_IN_CD — guasto di canale agli atti.
+ ℹ️ Contrasti CALCOLATI sui token dichiarati, non misurati su device.
+ ⛔ FUORI PERIMETRO: pulsantiera · teleprompter · slot metronomo · bar counter ·
+   striscia viva · Chart Mode · card della lista · salto di canzone · faccia 1.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Il velo dice da dove + END SHOW sullo scaffale · 390×844 · 30/08</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--linkg:#00c96e;--line:rgba(255,255,255,0.08);--tag-pending:rgba(255,255,255,0.22)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#e8e4db;width:2760px;height:3640px;position:relative;-webkit-font-smoothing:antialiased}
+a{color:#9a6800;text-decoration:none}a:hover{color:#c48a10}
+@keyframes qb-standby{0%,100%{opacity:1}50%{opacity:0.45}}
+@keyframes qb-pulse{0%,100%{opacity:1}50%{opacity:0.34}}
+.btitle{position:absolute;left:56px;top:30px;width:1240px;color:#16140f}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#0d6b2b}
+.btitle h1{font-size:28px;font-weight:900;letter-spacing:-0.7px;margin-top:8px;line-height:1.14}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.62;color:rgba(0,0,0,0.62);margin-top:9px;letter-spacing:0.2px;text-wrap:pretty}
+.btitle p b{color:#16140f}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.btitle .no{color:#b1281f;font-weight:700}
+.testata{position:absolute;left:1340px;top:30px;width:1364px;background:linear-gradient(160deg,#1a1e16,#141712);color:#e8e4db;border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.18)}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#16140f;background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8fe0a0}
+.testata .anc b{color:#fff}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09)}
+.trow:first-of-type{border-top:0}
+.trow .k{flex:0 0 132px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7fe093}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.84);text-wrap:pretty}
+.trow .v b{color:#fff}.trow .v .no{color:#ff9a8a;font-weight:700}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a}
+.trow.stop .k{color:#ff9a8a}
+.trow.am .k{color:#ffd35a}
+.sech{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:rgba(0,0,0,0.42)}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:410px;flex-wrap:wrap}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4)}
+.stt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px}
+.stt.nw{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45)}
+.stt.q{color:#8a5a00;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5)}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg)}
+.frame.nw{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5)}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff}
+.sb .r{display:flex;gap:7px;align-items:center}
+.plhead{flex:0 0 66px;height:66px;display:flex;align-items:center;gap:8px;padding:0 12px;position:relative}
+.plhead.lit{background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.07)}
+.hit{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center}
+.sq{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09)}
+.sq.armed{background:rgba(212,63,0,0.16);border-color:rgba(255,138,92,0.6)}
+.plmid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center}
+.shname{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,0.34);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.plright{display:flex;align-items:center;gap:2px;flex:0 0 auto}
+.leds{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:8px}
+.leds i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.07)}
+.leds i.link{background:var(--linkg);box-shadow:0 0 4px var(--linkg)}
+.pbody{flex:1;position:relative;background:var(--qlive-bg);overflow:hidden}
+.oop{position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 10px)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.70)}
+.pop{position:absolute;left:18px;right:18px;top:132px;background:var(--qlive-surf);border:1px solid rgba(255,255,255,0.13);border-radius:22px;padding:20px 17px 17px;box-shadow:0 22px 54px rgba(0,0,0,0.62)}
+.popx{position:absolute;right:-12px;top:-12px;width:44px;height:44px;border-radius:50%;background:#1e1e23;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.5)}
+.popk{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--text2)}
+.popnm{font-size:26px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-top:7px;line-height:1.1}
+.popmt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:6px}
+.popact{margin-top:17px;display:flex;flex-direction:column;gap:9px}
+/* ── IL VELO — tre casi, quattro slot (decisione ⑥) ── */
+.velo{position:absolute;inset:0;background:var(--qlive-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 26px;text-align:center}
+.vlbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2r)}
+.vnm{font-family:'Inter',sans-serif;font-weight:900;font-size:52px;line-height:1.04;letter-spacing:-1.6px;color:#fff;margin-top:11px;animation:qb-standby 2.2s ease-in-out infinite}
+.vhint{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.2px;text-transform:uppercase;color:var(--text3);margin-top:26px}
+.vcin{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);margin-top:9px}
+.vghost{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:transparent;border:1px dashed rgba(255,255,255,0.14);border-radius:5px;margin-top:9px;padding:2px 8px}
+/* ── DETTAGLIO ── */
+.navbar{flex:0 0 54px;height:54px;display:flex;align-items:center;position:relative;padding:0 14px}
+.spia{min-height:44px;display:flex;align-items:center;gap:7px}
+.spia i{width:9px;height:9px;border-radius:50%;background:var(--live-l);box-shadow:0 0 0 4px rgba(212,63,0,0.20);flex:0 0 auto}
+.spia b{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--live-l)}
+.spia.playing i{animation:qb-pulse 1.5s ease-in-out infinite}
+.spia.stopped i{background:transparent;border:1.6px solid rgba(255,138,92,0.78);box-shadow:none}
+.spia.stopped b{color:rgba(255,138,92,0.78)}
+.dhead{padding:8px 18px 14px}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.12}
+.dhrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px}
+.ro{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden}
+.songrow{display:flex;align-items:center;gap:10px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;background:transparent}
+.songrow .crail.pending{background:var(--tag-pending)}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--live-l);width:18px;text-align:right;flex:0 0 auto}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto}
+.songrow.now{background:rgba(212,63,0,0.10);border-radius:10px;border-bottom-color:transparent;margin:0 -4px;padding-left:10px}
+.songrow.now .nm{color:#fff}
+.nowtag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.5px;padding:2px 6px;border-radius:5px;background:rgba(212,63,0,0.18);color:var(--live-l);border:1px solid rgba(212,63,0,0.4);flex:0 0 auto}
+.nowtag.off{background:transparent;color:rgba(255,138,92,0.72);border-style:dashed}
+.stag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:6px;flex:0 0 auto;background:rgba(255,255,255,0.06);color:var(--text2);border:1px dashed rgba(255,255,255,0.28)}
+.vstack{flex:0 0 auto;padding:12px 18px 20px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0))}
+.vrow{height:56px;border-radius:15px;display:flex;align-items:center;gap:11px;padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase}
+.vrow.rst{background:rgba(212,63,0,0.10);border:1px solid rgba(212,63,0,0.45);color:var(--live-l)}
+.vrow.ret{background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3)}
+.vrow.end{background:transparent;border:1px solid rgba(255,59,48,0.52);color:#ff8a80;height:64px}
+.vrow.res{height:66px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:0 8px 24px rgba(212,63,0,0.42),inset 0 1px 0 rgba(255,180,140,0.3)}
+.vrow .rl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vrow em{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.1px;text-transform:none;color:rgba(255,255,255,0.80);display:flex;align-items:center;gap:5px}
+.vrow em svg{flex:0 0 auto}
+.vrow.end em{color:#ffd35a}
+.gsep{height:1px;background:var(--line);margin:4px 0;flex:0 0 auto}
+/* SCAFFALE — decisione ⑤: stesso 1px, stesso token, geometria diversa */
+.gsep.shelf{margin:11px -17px;background:rgba(255,255,255,0.13)}
+.gsep.shelfv{margin:10px -18px;background:rgba(255,255,255,0.13)}
+/* ── annotazioni ── */
+.mez{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.6px;color:#c0431a;background:rgba(232,228,219,0.94);border:1px solid rgba(192,67,26,0.45);border-radius:6px;padding:4px 8px;width:390px;line-height:1.5}
+.mez.am{color:#8a5a00;border-color:rgba(245,184,32,0.6)}
+.mez.gr{color:#0d6b2b;border-color:rgba(40,205,65,0.5)}
+.pan{position:absolute;background:#fbf9f4;border:1px solid rgba(0,0,0,0.14);border-radius:16px;padding:18px 20px;box-shadow:0 8px 22px rgba(0,0,0,0.07);color:#16140f}
+.pan h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:#0d6b2b;margin-bottom:12px}
+.pan h4.st{color:#b1281f}
+.pan h4.am{color:#8a5a00}
+.pan p{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.68);text-wrap:pretty}
+.pan p b{color:#16140f}
+.pan p+p{margin-top:9px}
+.pan code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.pan .no{color:#b1281f;font-weight:700}
+.gt{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.10);align-items:flex-start}
+.gt:first-of-type{border-top:0;padding-top:2px}
+.gt .c1{flex:0 0 176px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.4px;color:#16140f}
+.gt .c2{flex:0 0 118px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:6px;text-align:center}
+.gt .c3{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty}
+.gt .c3 b{color:#16140f}
+.ok-tag{color:#0d6b2b;background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45)}
+.fut-tag{color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.55)}
+.no-tag{color:#b1281f;background:rgba(177,40,31,0.10);border:1px solid rgba(177,40,31,0.45)}
+.rule{margin-top:12px;padding:11px 13px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.35);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#14471f;text-wrap:pretty}
+.rule b{color:#0a2e13}
+.trap{margin-top:12px;padding:11px 13px;background:rgba(177,40,31,0.07);border:1px solid rgba(177,40,31,0.4);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#7a1c14;text-wrap:pretty}
+.trap b{color:#4d0f0a}
+.warn{margin-top:12px;padding:11px 13px;background:rgba(245,184,32,0.13);border:1px solid rgba(245,184,32,0.5);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:#6b4300;text-wrap:pretty}
+.warn b{color:#3d2600}
+.ap{display:flex;gap:11px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.10)}
+.ap:first-of-type{border-top:0;padding-top:0}
+.ap .q{flex:0 0 30px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#8a5a00;background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.5);border-radius:6px;height:20px;display:flex;align-items:center;justify-content:center}
+.ap .t{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.68);text-wrap:pretty}
+.ap .t b{color:#16140f}
+.mtab{width:100%;border-collapse:collapse;margin-top:4px}
+.mtab th{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:#0d6b2b;text-align:left;padding:7px 9px;border-bottom:1px solid rgba(0,0,0,0.16)}
+.mtab td{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:rgba(0,0,0,0.7);padding:8px 9px;border-bottom:1px solid rgba(0,0,0,0.08);vertical-align:top;text-wrap:pretty}
+.mtab td b{color:#16140f}
+.mtab td code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px}
+.mtab tr.hl td{background:rgba(40,205,65,0.07)}
+.mtab tr.no td{background:rgba(177,40,31,0.06)}
+.mtab .num{color:#16140f;font-weight:800}
+.foot{position:absolute;left:56px;width:2648px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:rgba(0,0,0,0.55);border-top:1px solid rgba(0,0,0,0.14);padding-top:16px}
+.foot b{color:#16140f}
+</style>
+</head>
+<body>
+
+<div class="btitle">
+  <div class="kick">CD · Q-Live › Player + Dettaglio · 30/08/2026</div>
+  <h1>Il velo dice da dove — e END SHOW sale sullo scaffale</h1>
+  <p><b>Data dichiarata dal mio orologio: 30/08/2026</b>, combacia con quella degli artefatti depositati. <b>Il foglio del 27/08 sera non è ridisegnato: è inciso e misurato.</b> R1–R6 restano tutte e sei, e le sei decisioni di stasera entrano dentro senza spostare un pixel di quello che non nominano.</p>
+  <p><b>Le due domande del referee hanno risposte diverse fra loro, e vale dirlo subito.</b> La prima <span class="no">non</span> è un'incoerenza: <b>la regola del pollice e la regola della lettura governano geometrie diverse</b>, e nel bivio la seconda vince perché il pannello <b>non è nella zona del pollice</b> — misurato al pannello ①. La seconda <b>sì</b>: la collisione è reale, e la scioglo <b>togliendo il verbo dal velo</b>, non scegliendo fra due verbi.</p>
+  <p><b>E una cosa la porto io, che nasce dal collaudo A267.</b> Il velo in ripresa <span class="no">non può</span> portare la riga del count-in: <b>il count-in esiste solo fra canzoni, mai fra sezioni</b> (invariante di modello, §7 e §13 di CLAUDE.md). ⇒ <b>Il terzo caso non si distingue solo per due parole: si distingue per una riga che non c'è.</b> È la prova strutturale che i tre casi sono tre, e non tre umori dello stesso.</p>
+  <p>🚨 <b>E correggo due mie citazioni di ieri, prima che qualcuno le usi.</b> Avevo scritto «il salto fra <code>END SHOW</code> e <code>BACK TO SHOW</code> è 24pt + 1px». <b>Sbagliate entrambe:</b> quel comando <span class="no">non si chiama</span> <code>BACK TO SHOW</code> (si chiama <code>RETURN</code> in faccia 2 e <code>RESUME</code> in faccia 3) e il salto ratificato misura <b>27px nel bivio e 29px nella lamella</b>, non 24. È la stessa perdita di contesto che ho segnalato io: <b>stringa staccata dalla sua stanza.</b> Le misure vere sono al pannello ③.</p>
+</div>
+
+<div class="testata">
+  <div class="fh"><span class="seal">✅ sei decisioni incise · due domande risposte</span><span class="anc">base <b>27/08 sera · R1–R6</b> · <span class="no">supersede</span> <b>Attesa-vestita</b> (era «Proposta») · token da <b>2026-07-11_Q7-Q16</b></span></div>
+  <div class="trow"><div class="k">① Freccia → dettaglio</div><div class="v"><b>Nessuna modifica.</b> Con il click che suona la freccia porta al dettaglio, diretto, e <b>il click continua</b>. È la rev2 e resta. ⇒ Frame ② lo mostra: <code>Playing</code> nella spia, lista viva, nessuna domanda in mezzo.</div></div>
+  <div class="trow"><div class="k">② Solo END SHOW</div><div class="v"><b>Nessuna modifica</b> — il disegno già faceva così. Dal dettaglio raggiunto con lo show vivo <span class="no">non esiste</span> freccia verso la lista: si torna con <code>RETURN</code> / <code>RESUME</code>, o si chiude con <code>END SHOW</code>. <b>Confermato agli atti.</b></div></div>
+  <div class="trow"><div class="k">③ Bivio a tre vie</div><div class="v"><b>Confermato</b> (frame ①). Le altre due strade sono <b>SUPERATE</b> e le incido come tali al pannello ⑤, così non tornano fra un mese sotto un altro nome.</div></div>
+  <div class="trow stop"><div class="k">④ Selettore fuori</div><div class="v"><b>Applicato — e costa due frame, non uno.</b> Il <code>roomseg</code> <span class="no">sparisce da entrambe</span> le facce vive: anche dalla <b>faccia 3</b>, perché lo show <b>fermo</b> è ancora <b>attivo</b>. ⇒ La navbar tiene i suoi 54pt <b>solo</b> per il target da 44 della spia. <b>Ricaduta:</b> sul dettaglio non resta <span class="no">nessun</span> posto dove l'apparato ambra possa comparire — vive sulla <b>lista</b> e su <b>END SHOW</b>.</div></div>
+  <div class="trow am"><div class="k">⑤ END SHOW separato</div><div class="v"><b>Applicato come SCAFFALE, non come spazio.</b> Stesso <code>1px</code>, stesso token, <b>geometria diversa</b>: la riga diventa <b>full-bleed</b> (esce dai 17px di padding, tocca i due bordi del pannello) e il salto passa da <b>27 → 41px</b>. ⇒ Non «un'altra riga più staccata»: <b>un'altra mensola</b>. <span class="no">Zero elementi nuovi, zero token nuovi.</span></div></div>
+  <div class="trow am"><div class="k">⑥ Il velo dice da dove</div><div class="v"><b>Disegnato in tre casi</b> (frame ④ e ⑤). <b>Quattro slot, uno solo cambia parola e uno sparisce.</b> Caso ripresa: <code>RESUME FROM ⟨SECTION⟩</code> + <b>niente count-in</b>. Casi partenza: <code>NEXT:</code> + count-in se <code>countIn&gt;0</code>. <b>La stringa è la tua del 27/08</b>, terzo posto: <code>Resume from [section]</code>.</div></div>
+  <div class="trow"><div class="k">🚨 Canale</div><div class="v">Contratto <code>2026-07-18_QLive-Exit-in-Play.html</code> <b>misurato: 58.463 byte ✅ combacia.</b> È nel progetto; ⛔ <b>assente da <code>Qbeats_IN_CD</code></b> — guasto di canale, <b>agli atti</b>, nella direzione opposta a quella di ieri. <b>Non mi fermo</b>: i byte tornano.</div></div>
+</div>
+
+<div class="sech" style="left:56px;top:626px;">I cinque lastri — il bivio con lo scaffale, le due facce senza selettore, il velo nei suoi due volti</div>
+
+<div class="flbl" style="left:56px;top:658px;"><span class="b">① BIVIO · END SHOW sullo scaffale</span><span class="stt nw">decisione ⑤</span></div>
+<div class="frame nw" style="left:56px;top:698px;" data-screen-label="01 — bivio a tre vie con END SHOW separato dallo scaffale full-bleed">
+  <div class="sb"><span>21:41</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"></rect><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"></path></svg></div></div>
+  <div class="plhead lit">
+    <div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"></path><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"></path></svg></div></div>
+    </div>
+  </div>
+  <div class="pbody">
+    <div class="oop"></div>
+    <div class="scrim"></div>
+    <div class="pop">
+      <div class="popx"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.82)" stroke-width="1.7" stroke-linecap="round"></path></svg></div>
+      <div class="popk">Show stopped</div>
+      <div class="popnm">Circuz</div>
+      <div class="popmt">Bridge · 121 · 6/8</div>
+      <div class="popact">
+        <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>Show details</div>
+        <div class="gsep shelf"></div>
+        <div class="vrow end"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="rl">End show<em><svg width="11" height="10" viewBox="0 0 12 11" fill="none"><path d="M6 1l5 9H1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M6 4.4v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>This will stop the other devices too</em></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mez" style="left:56px;top:1554px;"><b>La riga esce dai bordi del testo e tocca i bordi del pannello:</b> non è «più spazio», è <b>un'altra mensola</b>. Salto <b>27 → 41px</b>, opacità della riga <b>0.08 → 0.13</b> (= il bordo del pannello, già in tavolozza). ⇒ <b>Il pollice che scende non trova un ritmo da seguire: trova un confine.</b> <code>SHOW DETAILS</code> pieno · <code>END SHOW</code> outline, <b>sempre</b>.</div>
+
+<div class="flbl" style="left:500px;top:658px;"><span class="b">② FACCIA 2 · show che suona</span><span class="stt nw">④ selettore fuori</span></div>
+<div class="frame nw" style="left:500px;top:698px;" data-screen-label="02 — dettaglio show in esecuzione, senza selettore delle stanze">
+  <div class="sb"><span>21:39</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"></rect><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"></path></svg></div></div>
+  <div class="navbar"><div class="spia playing"><i></i><b>Playing</b></div></div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">2</span><span class="nm">Roxanne</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="vstack">
+    <div class="vrow end"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="rl">End show<em><svg width="11" height="10" viewBox="0 0 12 11" fill="none"><path d="M6 1l5 9H1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M6 4.4v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>This will stop the other devices too</em></span></div>
+    <div class="gsep shelfv"></div>
+    <div class="vrow rst"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L9 12l9 6z" fill="currentColor"></path><rect x="5" y="6" width="2.2" height="12" rx="1" fill="currentColor"></rect></svg>Restart song</div>
+    <div class="gsep"></div>
+    <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Return</div>
+  </div>
+</div>
+<div class="mez" style="left:500px;top:1554px;"><b>Il selettore delle stanze non c'è, e la navbar non si accorcia:</b> tiene 54pt perché la spia deve avere i suoi <b>44 di target</b>. Il centro resta <b>vuoto e dichiarato</b>. ⇒ <b>Due gradi di separazione, non uno:</b> lo <b>scaffale full-bleed</b> isola <code>END SHOW</code> (chiude), il <b>filo interno</b> stacca <code>RETURN</code> (esce). Tre mensole, tre mestieri.</div>
+
+<div class="flbl" style="left:944px;top:658px;"><span class="b">③ FACCIA 3 · show fermo</span><span class="stt nw">④ anche qui</span></div>
+<div class="frame nw" style="left:944px;top:698px;" data-screen-label="03 — terza faccia, show fermo, senza selettore delle stanze">
+  <div class="sb"><span>21:42</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"></rect><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"></path></svg></div></div>
+  <div class="navbar"><div class="spia stopped"><i></i><b>Stopped</b></div></div>
+  <div class="dhead">
+    <div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div>
+    <div class="mt">5 songs · 21 min</div>
+  </div>
+  <div class="songlist">
+    <div class="songrow now"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag off">▸ STOPPED</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">2</span><span class="nm">Roxanne</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="stag">tag</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="vstack">
+    <div class="vrow end"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="rl">End show<em><svg width="11" height="10" viewBox="0 0 12 11" fill="none"><path d="M6 1l5 9H1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M6 4.4v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>This will stop the other devices too</em></span></div>
+    <div class="gsep shelfv"></div>
+    <div class="vrow res"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"></path></svg><span class="rl">Resume<em>from Bridge</em></span></div>
+  </div>
+</div>
+<div class="mez gr" style="left:944px;top:1554px;"><b>Show FERMO è show ATTIVO:</b> il selettore sparisce anche qui, e questa è la trappola in cui sono già caduto cinque volte — <b>il silenzio è dentro l'esecuzione</b>, non fuori. ⇒ Uscire in Q-Stage da qui <b>ammazzerebbe uno show che è solo in pausa</b>: la decisione ④ vale <b>a sessione viva</b>, non a click che suona.</div>
+
+<div class="flbl" style="left:1388px;top:658px;"><span class="b">④ VELO · caso RIPRESA</span><span class="stt q">decisione ⑥ · nuovo</span></div>
+<div class="frame nw" style="left:1388px;top:698px;" data-screen-label="04 — velo del player, caso ripresa a metà canzone, RESUME FROM BRIDGE">
+  <div class="sb"><span>21:43</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"></rect><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"></path></svg></div></div>
+  <div class="plhead lit">
+    <div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"></path><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"></path></svg></div></div>
+    </div>
+  </div>
+  <div class="pbody">
+    <div class="velo">
+      <div class="vlbl">Resume from Bridge</div>
+      <div class="vnm">Circuz</div>
+      <div class="vhint">Tap anywhere</div>
+      <div class="vghost">count-in · non esiste qui</div>
+    </div>
+  </div>
+</div>
+<div class="mez am" style="left:1388px;top:1554px;"><b>Lo slot del count-in è disegnato VUOTO di proposito</b> (tratteggio = «qui non ci va niente, e non è una dimenticanza»): <b>il count-in vive solo fra canzoni</b> — invariante §7/§13, non una scelta di stasera. ⇒ <b>Il terzo caso si riconosce anche a schermo spento:</b> è l'unico velo con <b>tre righe</b> invece di quattro. ⛔ <b>Nel prodotto lo slot non si disegna</b>: qui è annotazione.</div>
+
+<div class="flbl" style="left:1832px;top:658px;"><span class="b">⑤ VELO · caso PARTENZA (2 e 3)</span><span class="stt nw">un lastro, due casi</span></div>
+<div class="frame nw" style="left:1832px;top:698px;" data-screen-label="05 — velo del player, caso partenza: fra canzoni e primo ingresso, NEXT">
+  <div class="sb"><span>21:37</span><div class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect y="7" width="3" height="5" rx="1" fill="#fff"></rect><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#fff"></rect><rect x="10" y="2" width="3" height="10" rx="1" fill="#fff"></rect><rect x="15" width="3" height="12" rx="1" fill="rgba(255,255,255,0.35)"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="rgba(255,255,255,0.4)" fill="none"></rect><rect x="2" y="2" width="15" height="8" rx="1.6" fill="#fff"></rect><path d="M23 4.2v3.6c1-.4 1-3.2 0-3.6z" fill="rgba(255,255,255,0.4)"></path></svg></div></div>
+  <div class="plhead lit">
+    <div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+    <div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div>
+    <div class="plright">
+      <div class="leds"><i class="link"></i><i></i><i></i></div>
+      <div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round" fill="none"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round" fill="none"></path><path d="M15 5c2.2 2 2.5 6.5 0 10" stroke="rgba(255,255,255,0.45)" stroke-width="1.3" stroke-linecap="round" fill="none"></path></svg></div></div>
+    </div>
+  </div>
+  <div class="pbody">
+    <div class="velo">
+      <div class="vlbl">Next:</div>
+      <div class="vnm">Roxanne</div>
+      <div class="vhint">Tap anywhere</div>
+      <div class="vcin">Count-in · 2 bars</div>
+    </div>
+  </div>
+</div>
+<div class="mez gr" style="left:1832px;top:1554px;"><b>Casi 2 e 3 sono LO STESSO lastro</b> — cambia solo <i>quale</i> canzone c'è nel nome. Non disegno un sesto frame per una differenza che non si vede: <b>se due stati hanno la stessa lastra, sono una lastra</b>, e la tabella lo dice. ⇒ <code>NEXT:</code> è onesto anche al primo ingresso: <b>è la prossima cosa che suonerà</b>, non «la seconda».</div>
+
+<div class="sech" style="left:56px;top:1660px;">Le due domande — e le misure per chi costruisce</div>
+
+<div class="pan" style="left:56px;top:1692px;width:1300px;">
+  <h4>① La regola del pollice — non c'è incoerenza, e la ragione è che le due lastre hanno due <em>default</em> opposti</h4>
+  <p><b>La tua domanda è legittima e la misura ti dà torto per un pelo, ma per il motivo giusto.</b> Nel bivio le due righe stanno in <b>y ≈ 403 → 494</b> di 844 — <b>il terzo centrale della lastra</b>. La zona dove il pollice <b>cade da solo</b>, senza mirare, è il <b>fondo</b> (y &gt; ~590): è lì che vive la lamella del dettaglio, che infatti tocca il bordo inferiore. ⇒ <b>Nel bivio la regola del pollice non ha presa</b>, perché <span class="no">nessuna</span> delle due righe è raggiungibile senza mirare. Non è la stessa geometria con l'ordine invertito: è <b>un'altra geometria</b>.</p>
+  <p><b>E allora cos'è che ordina il bivio? La lettura.</b> Il pannello ha un <b>ingresso alto</b> — occhiello, nome, meta — e l'occhio esce da quel testo <b>verso il basso</b>: la prima riga sotto è quella che l'occhio <b>prende per prima</b>. Mettere lì il comando distruttivo lo renderebbe <b>la risposta di default a un testo che stai ancora leggendo</b>. ⇒ Va <b>ultimo</b>, dietro un confine.</p>
+  <div class="rule"><b>⭐ La regola che riconcilia le due schermate, e le governa entrambe:</b> <b>il comando distruttivo va dove il gesto NON arriva da solo.</b> ⇒ In una <b>fascia fissa a fondo lastra</b> il default è il <b>basso</b> (il pollice) ⇒ <code>END SHOW</code> va <b>in alto</b>. In un <b>pannello sospeso a metà lastra</b> il default è l'<b>alto</b> (l'occhio, che esce dal testo) ⇒ <code>END SHOW</code> va <b>in basso</b>. <b>Stesso principio, geometrie opposte, perché il «da solo» è opposto.</b> ⛔ La formulazione del 27/08 («la riga in basso è quella che prendi») <span class="no">non era sbagliata: era locale</span> — valeva per la lamella e l'ho scritta come se valesse per l'app. <b>Questa la sostituisce e la contiene.</b></div>
+  <div class="warn"><b>Cosa faccio comunque, perché la tua domanda ha trovato una debolezza vera.</b> Se l'ordine è giusto, il <b>confine</b> era troppo debole: <code>1px</code> a <code>0.08</code> dentro i margini del testo <b>si legge come ritmo</b>, non come limite — e un pollice che scende segue il ritmo. ⇒ Con la decisione ⑤ diventa <b>scaffale</b>: <code>1px</code> a <code>0.13</code> (l'opacità del <b>bordo del pannello</b>, già in tavolozza), <b>full-bleed</b>, salto <b>27 → 41px</b>. <b>Nessun token nuovo, nessun elemento nuovo</b> — solo la geometria di una riga che c'era già.</div>
+  <div class="trap">🚨 <b>E la stessa debolezza era anche nella lamella, dove la tua domanda non guardava.</b> In faccia 2 <code>END SHOW</code> e <code>RESTART SONG</code> erano separati da <b>10px e nulla</b> — due righe adiacenti, una distruttiva. ⇒ <b>Lo scaffale va anche lì</b>, e la lamella passa a <b>tre mensole</b>: chiude · comanda · esce. <b>La tua domanda ha corretto la schermata che non aveva chiesto.</b></div>
+</div>
+
+<div class="pan" style="left:1400px;top:1692px;width:1304px;">
+  <h4 class="am">② La collisione della copy — la scioglo togliendo il verbo, non scegliendone uno</h4>
+  <p><b>La collisione è reale e il foglio è mio, quindi la pago io.</b> Con la decisione ⑥ il velo direbbe insieme «riprendi da Bridge» e «tocca per <b>iniziare</b>». ⇒ Le due strade ovvie erano: <b>far seguire il verbo al caso</b> (<code>…TO RESUME</code> / <code>…TO START</code>), oppure <b>mettere la copy al condizionale</b>. <span class="no">Rifiuto entrambe</span>, e la seconda per la stessa ragione con cui ieri ho rifiutato l'ambra condizionale: <b>a 2 m in penombra una subordinata non si legge.</b></p>
+  <p><b>La prima è più insidiosa, e il difetto è mio da riconoscere:</b> metterebbe <b>la parola che decide</b> in <b>due posti a due dimensioni</b> — <code>RESUME FROM BRIDGE</code> in alto a 9pt e <code>…TO RESUME</code> in basso a 10pt — e <b>quella in basso si legge per ultima</b>. Due copie della stessa notizia, di cui una arriva tardi: è <b>rumore che si traveste da rinforzo</b>.</p>
+  <div class="rule"><b>✅ Risposta: il verbo esce dal velo.</b> <code>TAP ANYWHERE</code>, <b>una stringa sola per tutti e tre i casi</b>. È un'istruzione completa (imperativo + ambito) e <b>non promette niente che possa mentire</b>: dice <b>cosa fare</b>, mentre lo slot sopra dice <b>cosa succede</b>. ⇒ <b>Un lavoro per riga</b>, e la collisione <span class="no">non si gestisce: si dissolve</span> — la parola contraddittoria non è scelta, è <b>rimossa dal posto sbagliato</b>. ⭐ È la stessa mossa della terza strada del 27/08: <b>guarda cosa danno per buono tutte e due le opzioni</b> — qui era «il velo deve dire il verbo».</div>
+  <div class="gt"><div class="c1">Il foglio Attesa-vestita</div><div class="c2 no-tag">Superato</div><div class="c3"><b>Sì, e lo rinomino.</b> Era una <b>«Proposta»</b>: il velo qui torna in <b>tre casi</b>, quindi quel foglio non è più corrente. Nuovo nome: <code>…__SUPERATO-DA-30-08__usare-IL-VELO-DICE-DA-DOVE.html</code>. ⇒ <b>Chi apre la cartella non può più leggerlo come vivo.</b></div></div>
+  <div class="gt"><div class="c1">Cosa NON tocco</div><div class="c2 ok-tag">Resta</div><div class="c3">La <b>fascia viva</b> e il <b>velo corto</b> (il velo copre il corpo, <span class="no">non</span> la fascia): sono la parte di quel foglio che <b>regge</b>, e la porto qui invariata nei frame ④ e ⑤. <b>Superare un foglio non vuol dire buttarne il contenuto.</b></div></div>
+  <div class="trap">🚨 <b>Un guasto che ho trovato misurando, e che vale più della collisione.</b> Lo slot alto stava a <b>opacity .30</b> = <b>2,63:1</b> sul fondo <code>#0e0e10</code>. Finché diceva <code>NEXT:</code> era un'etichetta relazionale; con ⑥ diventa <b>la riga che dice da dove riparte lo show</b> — <b>testo che porta azione</b>, e il vincolo misurato del 20/07 chiede <b>7:1</b>. ⇒ <b>Alzato a <code>--text2r</code> (.60) = 7,26:1.</b> Token esistente, zero invenzioni. ⛔ <b>Con .30 la decisione di Mauro sarebbe stata scritta e non letta:</b> il velo avrebbe detto da dove, e nessuno l'avrebbe visto.</div>
+</div>
+
+<div class="pan" style="left:56px;top:2352px;width:1300px;">
+  <h4>③ MISURE — il bivio e le due lamelle</h4>
+  <table class="mtab">
+    <tr><th style="width:186px">Elemento</th><th style="width:150px">Valore</th><th>Nota per chi costruisce</th></tr>
+    <tr><td><b>Pannello del bivio</b></td><td><span class="num">left/right 18</span> · top <span class="num">132</span></td><td>Dentro il corpo del player, che parte a <span class="num">y=110</span> (44 status + 66 fascia) ⇒ <b>y assoluto 242</b>. Radius <span class="num">22</span> · padding <span class="num">20/17/17</span> · superficie <code>--qlive-surf</code> · bordo <code>1px rgba(255,255,255,0.13)</code> · ombra <code>0 22px 54px rgba(0,0,0,0.62)</code>.</td></tr>
+    <tr><td><b>X sul perimetro</b></td><td><span class="num">44×44</span> · <span class="num">−12/−12</span></td><td>Cerchio a cavallo dell'angolo <b>alto-destro</b>. È l'unico gesto che <b>non fa niente</b> ⇒ raggiungibile senza leggere, e <b>fuori dal ritmo delle due righe</b>.</td></tr>
+    <tr><td><b>Scrim</b></td><td><code>rgba(0,0,0,0.70)</code></td><td>⛔ <b>Tap sullo scrim = come la X, e CONSUMA il tap.</b> Senza questo, chiudere il bivio farebbe <b>partire il metronomo</b> davanti alla band. Ratificato R1.</td></tr>
+    <tr><td>Occhiello · nome · meta</td><td>9 / 26 / 11</td><td><code>Show stopped</code> mono 9 · 800 · tracking 2.4 · <code>--text2</code> (.55) — <b>5,9:1</b>. Nome Inter 26 · 800 · −0.5 · bianco. Meta mono 11 · <code>--text2r</code>.</td></tr>
+    <tr class="hl"><td><b>⑤ Lo scaffale</b></td><td><span class="num">41px</span> · full-bleed</td><td><b>Salto 27 → 41.</b> Composizione: gap <span class="num">9</span> + margin <span class="num">11</span> + linea <span class="num">1</span> + margin <span class="num">11</span> + gap <span class="num">9</span>. La linea esce dal padding (<code>margin: 11px −17px</code>) e <b>tocca i due bordi</b>; opacità <span class="num">0.13</span> = quella del bordo del pannello. <b>Nessun token nuovo.</b></td></tr>
+    <tr><td>SHOW DETAILS</td><td><span class="num">56pt</span> · pieno</td><td>Gradiente arancio, testo bianco, radius <span class="num">15</span>. <b>In alto: è la strada che non toglie niente.</b></td></tr>
+    <tr class="hl"><td>END SHOW</td><td><span class="num">64pt</span> · outline</td><td><b>Sempre outline</b>, mai pieno: bordo <code>rgba(255,59,48,0.52)</code>, testo <code>#ff8a80</code> — <b>8,4:1</b>. ⚠️ <span class="num">56pt</span> quando la sottoriga non c'è: <b>altezza variabile dichiarata</b>, non una svista.</td></tr>
+    <tr><td>Sottoriga di Link</td><td>mono 10 · ambra</td><td><code>This will stop the other devices too</code> — <b>12,6:1</b>. ⚠️ <b>Condizionata</b>, e la condizione ha <b>due gambe</b>: apparecchio collegato <b>E</b> sincronizzazione Start/Stop accesa. ⛔ <b>La seconda oggi non è leggibile</b> ⇒ finché non lo è, <b>la riga non si costruisce</b>: assenza silenziosa, mai allarme mezzo armato.</td></tr>
+    <tr><td><b>Lamella · faccia 2</b></td><td>3 mensole</td><td><code>END SHOW</code> 64 — <b>scaffale 39</b> (gap 10 + 10 + 1 + 10 + gap 10, full-bleed <code>−18px</code>) — <code>RESTART SONG</code> 56 — <b>filo interno 29</b> — <code>RETURN</code> 56 pieno. <b>Chiude · comanda · esce.</b></td></tr>
+    <tr><td><b>Lamella · faccia 3</b></td><td>2 mensole</td><td><code>END SHOW</code> 64 — <b>scaffale 39</b> — <code>RESUME</code> 66 + <code>from Bridge</code>. Contenitore: padding <span class="num">12/18/20</span> · gap <span class="num">10</span>.</td></tr>
+    <tr class="no"><td><b>④ Selettore stanze</b></td><td>ASSENTE</td><td><b>Fuori da entrambe le facce vive</b>, faccia 3 compresa. La navbar tiene <span class="num">54pt</span> per il target <span class="num">44</span> della spia; <b>il centro resta vuoto e dichiarato</b>. ⇒ Sul dettaglio non resta <b>nessun</b> posto per l'apparato ambra.</td></tr>
+  </table>
+</div>
+
+<div class="pan" style="left:1400px;top:2352px;width:1304px;">
+  <h4 class="am">④ MISURE — il velo, e il vincolo dei tre casi</h4>
+  <p><b>Quattro slot, sempre gli stessi.</b> Fra i tre casi <b>uno slot cambia parola</b> e <b>uno sparisce</b>. Il nome è <b>Inter Black 900 · 52pt × scaleFactor</b> (§6), pulse <code>qb-standby</code> 2.2s — <b>lo stesso di §12</b>: il velo aspetta te, e lo dice muovendo la cosa che devi leggere.</p>
+  <table class="mtab">
+    <tr><th style="width:150px">Slot</th><th style="width:150px">Caso RIPRESA</th><th style="width:150px">Casi PARTENZA (2·3)</th><th>Misura</th></tr>
+    <tr class="hl"><td><b>A · relazione</b></td><td><code>Resume from ⟨section⟩</code></td><td><code>Next:</code></td><td>mono <span class="num">9</span> · 800 · tracking 2 · caps · <code>--text2r</code> (.60) ⇒ <b>7,26:1</b>. <b>Alzato da .30</b>: da ⑥ questa riga porta azione.</td></tr>
+    <tr><td><b>B · nome</b></td><td>canzone <b>corrente</b></td><td>canzone <b>successiva</b></td><td>Inter <span class="num">900</span> · <span class="num">52</span>pt × scaleFactor · −1.6 · bianco ⇒ <b>19,4:1</b>. Pulse 2.2s.</td></tr>
+    <tr><td><b>C · gesto</b></td><td colspan="2" style="text-align:center"><code>Tap anywhere</code> — <b>una stringa, tre casi</b></td><td>mono <span class="num">10</span> · 600 · tracking 2.2 · caps · <code>--text3</code> (.30) ⇒ 2,63:1 — <b>deroga, sotto</b>. Alzato da .20.</td></tr>
+    <tr class="no"><td><b>D · count-in</b></td><td><b>NON ESISTE</b></td><td><code>Count-in · N bars</code> se <code>countIn&gt;0</code></td><td>mono <span class="num">9.5</span> · <code>--text3</code>. Alzato da .14.</td></tr>
+  </table>
+  <div class="rule"><b>⛔ IL VINCOLO — e il dato che sceglie il caso non lo invento io.</b> Il discriminante è <b>«esiste un punto di ripresa dentro la canzone corrente»</b>: <b>sì</b> → caso ripresa · <b>no</b> → caso partenza. È <b>lo stesso dato che A267 usa per scegliere il ramo</b> ⇒ non chiedo un dato nuovo, chiedo <b>di leggere quello che decide già</b>. ⭐ <b>E c'è una seconda prova, strutturale:</b> il <b>count-in non esiste dentro una canzone</b> (§7 e §13: «solo tra canzoni, mai tra sezioni») ⇒ <b>i tre casi non differiscono per due parole: differiscono per una riga che non c'è.</b> Se un giorno il velo in ripresa mostrasse il count-in, <b>il modello si è rotto</b> — e lo si vede a occhio.</div>
+  <div class="trap">🚨 <b>La garanzia contro la bugia, che è la regola di ieri applicata qui.</b> Se il nome della sezione <b>non è disponibile</b>, il velo <span class="no">non scrive</span> <code>Resume from —</code> e <span class="no">non</span> scrive <code>Resume</code> nudo: <b>ricade sul caso partenza</b> (<code>Next:</code> + nome). ⇒ <b>Nominare la conseguenza, mai affermare lo stato</b>: un velo che promette un punto che non sa nominare <b>è la stessa bugia della targhetta «N on Link»</b>, ritirata il 24/08. <b>Meglio dire meno che dire falso.</b></div>
+  <div class="warn"><b>Deroga dichiarata, e la dichiaro io perché è mia.</b> Gli slot <b>C</b> e <b>D</b> stanno a <b>2,63:1</b>, sotto il pavimento <b>4,5:1</b> del 20/07. <b>Ragione:</b> il bersaglio del gesto è <b>l'intera lastra</b> — quelle righe <b>insegnano</b>, non <b>abilitano</b>: chi non le legge tocca comunque e funziona. ⇒ Alzarle al pavimento <b>appiattirebbe la gerarchia</b> del velo (100% nome · 60% da-dove · 30% contorno). ⚠️ <b>Sono già salite</b> da .20 e .14 — dove erano <b>1,81:1 e 1,44:1</b>, cioè <b>quasi invisibili</b>. <b>Se Mauro vuole il pavimento anche qui, si alzano: è una deroga, non una tesi.</b></div>
+</div>
+
+<div class="sech" style="left:56px;top:3020px;">Le sei decisioni incise — e le due strade etichettate SUPERATE</div>
+
+<div class="pan" style="left:56px;top:3052px;width:2648px;">
+  <h4>⑤ Agli atti — perché non vivano solo in chat</h4>
+  <div class="ap"><div class="q">D①</div><div class="t"><b>Con il click che suona, la freccia del player porta al DETTAGLIO</b> — diretto, nessuna domanda, <b>il click continua</b>. ⇒ <b>Il player non è modale</b>: cambiare stanza non ferma il metronomo. <b>Nessuna modifica al disegno</b>: era già così nel rev2.</div></div>
+  <div class="ap"><div class="q">D②</div><div class="t"><b>Dal dettaglio l'unica via verso la LISTA è <code>END SHOW</code></b> — «lo show muore e finisco nella lista degli show». <span class="no">Nessuna freccia</span> verso la lista dal dettaglio a show vivo: si torna con <code>RETURN</code>/<code>RESUME</code>, o si chiude. <b>Nessuna modifica.</b> ⭐ <b>E non c'è trappola</b>: da entrambe le facce vive esiste sempre una via che non distrugge.</div></div>
+  <div class="ap"><div class="q">D③</div><div class="t"><b>Dopo STOP la freccia apre il BIVIO A TRE VIE</b> — confermata. ⛔ <b>Le altre due sono SUPERATE e le incido come tali:</b> «STOP + freccia = <code>END SHOW</code> diretto verso la lista» <span class="no">SUPERATA</span> · «freccia sempre alla lista, nessuna differenza» <span class="no">SUPERATA</span>. <b>Scritte qui perché una strada superata che non è nominata torna fra un mese con un altro nome.</b></div></div>
+  <div class="ap"><div class="q">D④</div><div class="t"><b>Il selettore delle stanze NON esiste nel dettaglio dello show attivo</b> — applicato ai <b>frame ② e ③</b>. ⭐ <b>E la mia lettura, dichiarata:</b> vale <b>a sessione viva</b>, non «a click che suona» ⇒ <b>anche la faccia 3</b> lo perde, perché lo show <b>fermo</b> è ancora <b>attivo</b>. <b>Abolire la porta è più forte che chiedere conferma:</b> il contratto 18/07 lì non è violato, è <b>rimasto senza oggetto</b> — e resta <b>vigente sulla LISTA</b>, dove le sue due porte esistono ancora.</div></div>
+  <div class="ap"><div class="q">D⑤</div><div class="t"><b><code>END SHOW</code> visibilmente separato</b> — <b>SCAFFALE</b>: linea <code>1px</code> <b>full-bleed</b> a opacità <span class="num">0.13</span>, salto <b>41px</b> nel bivio e <b>39px</b> nelle lamelle. <b>Zero elementi nuovi, zero token nuovi</b> — la stessa riga di prima, un'altra geometria. ⭐ <b>Esteso anche alla faccia 2</b>, dove <code>END SHOW</code> e <code>RESTART SONG</code> erano separati da <b>10px e nulla</b>: era il punto più debole e nessuno l'aveva chiesto.</div></div>
+  <div class="ap"><div class="q">D⑥</div><div class="t"><b>Il velo dice dove riparte</b> — nome canzone + <code>RESUME FROM ⟨SECTION⟩</code> + <code>TAP ANYWHERE</code>. <b>Tre casi, quattro slot</b>, tabella al pannello ④. <b>La stringa è la tua del 27/08</b> (<code>Resume from [section]</code>) al suo <b>terzo posto</b>: overlay dello stop · terza faccia · velo. <b>Una stringa, tre posti</b> — nessuna seconda formula inventata.</div></div>
+  <div class="rule"><b>⭐ Due righe escono da qui ed entrano nel modello</b> (le incide CC, come la riga del 27/08 su BOX5): ① <b>«il comando distruttivo va dove il gesto non arriva da solo»</b> — in fascia fissa è in alto, in pannello sospeso è in basso: <b>stesso principio, geometria opposta</b>, e sostituisce la formulazione locale del 27/08. ② <b>«il count-in non entra mai in un velo di ripresa»</b> — conseguenza di §7/§13, ma finora non scritta dove serve, cioè addosso al velo.</div>
+  <div class="trap">🚨 <b>Guasti di canale agli atti, entrambe le direzioni.</b> Il contratto <code>2026-07-18_QLive-Exit-in-Play.html</code> <b>misura 58.463 byte ✅</b> ed è <b>nel progetto</b> — ma è <b>assente da <code>Qbeats_IN_CD</code></b>, dove invece c'è solo la mia nota di correzione del 24/08. ⇒ <b>Chi apre quella cartella legge l'errata corrige senza il testo corretto.</b> È lo stesso guasto del 29/08 nella direzione opposta: <b>difetto di canale, non disattenzione di nessuno.</b> ⛔ <b>E resta una cosa da fare a monte, non da me:</b> la nota del 24/08 <b>non è in LIBRO</b> — se r.288 viene riscritta senza ingerirla, <b>nasce la terza versione</b> che il punto ④ esiste per prevenire.</div>
+</div>
+
+<div class="foot" style="top:3545px;">
+  CD · 30/08/2026 · <b>incide e misura</b> <a href="../../../27_08_2026/DESIGN/QLive_Player/2026-08-27_QLive-Player_Bivio-tre-vie-e-TERZA-FACCIA-del-Dettaglio__390x844.html">27/08 sera · Bivio a tre vie + terza faccia</a> (R1–R6 intatte) · <b>supersede</b> <a href="../../../27_08_2026/DESIGN/QLive_Player/2026-08-27_QLive-Player_Attesa-vestita__velo-corto-fascia-viva__SUPERATO-DA-30-08__usare-IL-VELO-DICE-DA-DOVE_390x844.html">Attesa vestita</a> (era «Proposta») · contratto <a href="../../../18_07_2026/DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html">18/07 · Exit in Play</a> <b>58.463 byte ✅</b> + <a href="../../../18_07_2026/DESIGN/QLive_Nav/2026-08-24_QLive-Exit-in-Play_NOTA-DI-CORREZIONE-contratto-18-07__ritiro-chip-N-on-Link.html">nota 24/08</a> · indice: <a href="../../../../Q-BEATS%20-%20Stato%20Attuale.html">Q-BEATS — Stato Attuale</a><br />
+  Nessun codice Swift in questo foglio: verdetti di design, non implementazione. Annotazioni in italiano, <b>testo a schermo in inglese</b> (§6 · ratifica 27/06). Contrasti <b>calcolati sui token</b>, non misurati su device.
+</div>
+
+</body>
+</html>
