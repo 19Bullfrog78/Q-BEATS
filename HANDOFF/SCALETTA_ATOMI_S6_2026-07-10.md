@@ -1,6 +1,6 @@
 # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
 
-**Versione:** 15 (24/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
+**Versione:** 16 (31/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13) · **gamba «blocco schermo» del punto (a) di ⟦S-EXIT⟧ MISURATA SU DEVICE (Mauro 30/08), marcatura additiva in sez.C, 31/08** (v16)
 > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
 > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
 > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
@@ -450,6 +450,24 @@ Scomposizione ratificata:
     oltre al «<»: telefonata, blocco schermo, recupero memoria di iOS.
     È la domanda che DECIDE se (b) serve: se solo il «<» la smonta, fermare
     l'audio all'uscita è soluzione completa e il resto è sovraingegneria.
+
+⚠️ **MARCATURA 31/08 — LA GAMBA «BLOCCO SCHERMO» DEL PUNTO (a) È MISURATA SU DEVICE, E REGGE. Il punto (a) sopra resta come scritto: si marca, non si riscrive.**
+**Misura di Mauro, 30/08/2026:** schermo spento a mano per **dieci secondi durante il Play**. Verbatim: «**funziona**».
+⇒ Conferma **sul dispositivo** ciò che finora era soltanto **letto nel codice**: `ios_app/QBeats/UI/AppRootView.swift:57-62`
+e `:70-77`, rimisurati a `5eb18c7de46dba72483710feb18416c8a9eed0a9` — `isIdleTimerDisabled = true` all'`.onAppear` e
+riallineato allo `scenePhase`, quindi **lo schermo non si blocca da solo**; e `audioEngine.stop()` è dentro
+`.onChange(of: screen)` sul ramo `previousScreen == .qLive` (`:74`), quindi **è l'uscita dalla STANZA a fermare l'audio, non
+l'uscita dal player**. ⚠️ **SPAZZATA PER EFFETTO DICHIARATA — questa NON è un'affermazione universale.** `audioEngine.stop()` ha
+**altri chiamanti** nel prodotto, misurati con `git grep` a HEAD: il comando STOP del transport (`UI/Live/TransportView.swift:58`),
+`SetlistRunner.swift:465` e `:473`, `UI/QLive/QLiveSession.swift:210`, `UI/HomeRootView.swift:43` e `:46`, più i siti in `DebugView.swift`.
+⛔ **Nessuno di questi è agganciato a una transizione di schermata.** Qui si afferma **soltanto** che nessuna transizione di
+navigazione DENTRO la stanza ferma l'audio — **non** che esista un solo stop nel prodotto.
+⚠️ **Divergenza di indirizzo, riparata e dichiarata:** il mandato A298 indirizzava questo file a `ios_app/QBeats/AppRootView.swift`;
+il file sta in `ios_app/QBeats/UI/AppRootView.swift`. **I numeri di riga erano esatti, il path no.**
+⛔ **IL PUNTO (a) NON È CHIUSO: si è chiusa UNA delle sue tre gambe.** La gamba «**recupero memoria di iOS**» resta
+**SENZA PROVA**, né in codice né su device — e senza di essa la domanda che il punto (a) pone, cioè se (b) serva, **non ha ancora risposta**.
+⚠️ **Questa misura non era su nessun documento fino a oggi:** registrata in un congedo il 30/08 e **mai incisa**.
+⚠️ **Lacuna di catena dichiarata, NON riparata:** la catena di versioni in testa salta da **(v13)** a questa **(v16)** — **v14 e v15 non vi furono mai registrate**. Si dichiara qui; la riparazione, se si farà, è un atomo suo.
 (b) quanto pesa spostare lo stato dello show dalla schermata alla stanza.
 (c) SCHEDA ⟦S-EXIT⟧, scritta dal referee sul peso misurato — colma il buco
     del 07/08.
