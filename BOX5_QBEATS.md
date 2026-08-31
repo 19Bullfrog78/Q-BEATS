@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V40 — 30/08/2026
+**Versione:** V41 — 2026-08-31
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1006,6 +1006,8 @@ funzionasse. ⇒ **Il controllo positivo va costruito misurandolo, non
 assumendolo: un file di prova va prima verificato che contenga davvero
 cio' che deve contenere.**
 
+🚨 **LA REGOLA SI ALLARGA DI UNA GAMBA, 31/08/2026 (A293) — UNO ZERO INATTESO NON PROVA SOLO CHE LA SONDA SIA CIECA: PUÒ PROVARE CHE IL BERSAGLIO NON ESISTA PIÙ.** Misurato durante la scrittura di questo stesso giro (A292): uno script Python scriveva un canonico con `open(P, "wb").write(t.encode("utf-8"))`. **`open(P, "wb")` apre e TRONCA il file PRIMA che `encode()` possa sollevare** — su una coppia surrogata mal formata, `encode()` ha sollevato DOPO l'apertura, e il risultato è stato un canonico a **ZERO BYTE**. Lo stesso schema viveva anche negli script di scrittura di `BOX5` e di `LIBRO_MASTRO`: **sopravvissuto solo perché quei due testi non contenevano surrogati** — non per una proprietà del metodo, per un caso. ⚠️ **La parte che vale davvero, e la ragione per cui questa voce vive QUI e non in un capitolo sulle scritture:** il controllo eseguito subito dopo cercava una parola dentro il file e ha reso **zero**. **Quello zero è stato letto come «il frammento non c'è» invece che come «il file non c'è»** — un P1 vestito da P2, o viceversa: la sonda non era cieca, il bersaglio era **distrutto**. Scoperto due passi dopo, misurando i byte del file anziché il contenuto di una parola. ⇒ **REGOLA ESTESA: uno zero inatteso obbliga a verificare che il BERSAGLIO ESISTA — dimensione, byte totali — PRIMA di leggere lo zero come assenza del frammento cercato.** Vedere che la sonda risponde su un caso noto (il controllo positivo già in regola) non basta quando il caso noto stesso potrebbe essere sparito: il controllo positivo prova che la sonda VEDE, non che il file **c'è**. ✅ **Il rimedio, perché è la parte riusabile:** **codificare PRIMA di aprire** — `dati = t.encode("utf-8")` come riga a sé, e solo se non solleva si apre il file in scrittura — e **rifiutare scritture sospettosamente corte** (un canonico di centinaia di migliaia di byte che ne scriverebbe poche migliaia è quasi certamente un troncamento, non un contenuto).
+
 ### Le voci
 
 | nome | polarità | causa meccanica | come si smaschera | dove è già inciso |
@@ -1120,6 +1122,10 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - ⛔ **DUE MARCATURE sul DEFAULT DELLA MODALITA' LINK, sulle due sedi che lo dichiarano** — la riga-spec del capitolo «Invarianti tecnici Layer 3» e la riga di changelog in testa. Il documento diceva **`.collaborativa`**; il codice a `8a9faad` dice **`.standalone`** in **TRE** punti indipendenti (`AppSettings.swift:22`, `AudioEngine.swift:283`, `AudioEngine.swift:55`), non due come riportato nel mandato: **misurato per EFFETTO su chi scrive il campo**. 🚨 **Conseguenza incisa, non cosmetica:** chi ha ragionato su `TD-direttore-parte-da-bar2` leggendo BOX5 **ha ragionato sulla modalita' sbagliata**. Zero parole riscritte: si marca.
 - **Capitolo NUOVO «LIMITI DELLA LIBRERIA LINK — cosa l'app NON PUO' SAPERE»**, con due fatti misurati al blob `8a9faad`: **(①)** `link_engine_num_peers` **non e' un conteggio** — rende 0 o 1, scrittore **unico** a `LinkEngine.mm:57` da `:56` (`isConnected ? 1 : 0`), altrove solo letto; **(②)** `ABLLinkIsStartStopSyncEnabled` esiste nell'header Ableton (`ABLLink.h:83`) ma **non e' esposta nel ponte** — zero occorrenze in `ios_app/`, con controllo positivo che vede altre `ABLLink*`. 🚨 **Conseguenza di disegno:** la condizione d'innesco del **velo ambra** ha **due gambe e una l'app non puo' leggerla**. ⚠️ **Sede separata da «Invarianti tecnici Layer 3» di proposito:** quelli sono **nostri** e si possono cambiare, questi sono **di una libreria di terzi** e si subiscono — metterli la' li farebbe leggere come scelte.
 - **Voce NUOVA nella TASSONOMIA DEI DIFETTI DI MISURA — «SONDA CIECA AI CARATTERI NON-ASCII» (P2)**, piu' la **regola generale** che allarga quella nata dai quattro falsi allarmi: **una sonda che rende zero non prova nulla finche' non l'hai vista rendere diverso da zero su un caso noto** — e il caso noto va **misurato, non assunto**. Tre episodi in un giorno solo (30/08): apostrofi curvi non visti da `grep -o $'\u2019'` su un file che ne aveva 16, un `.md` in radice perso per il trattino lungo nel nome, e un file di controllo che non conteneva i caratteri che si credeva.
+
+**Delta V41 vs V40:**
+
+- **Estesa la regola generale sulle sonde a zero (`31/08/2026`, A293): uno zero inatteso obbliga a verificare che il BERSAGLIO esista, non solo che la sonda veda.** Nato da un canonico troncato a zero byte durante la scrittura di questo stesso giro (`open(...,"wb")` tronca prima che `encode()` possa sollevare) e da un controllo successivo che ha letto il proprio zero come «frammento assente» invece che «file assente». Rimedio registrato: codificare prima di aprire, rifiutare scritture sospettosamente corte.
 
 **Delta V40 vs V39:**
 
