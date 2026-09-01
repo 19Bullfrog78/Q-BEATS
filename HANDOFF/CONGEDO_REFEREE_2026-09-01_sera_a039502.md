@@ -263,6 +263,8 @@ stessa cosa che ho fatto io sei volte.
 confronto differisce, **ci si ferma** — anche quando la differenza sembra un
 miglioramento.
 
+⚠️ **MARCATURA 01/09/2026 — QUESTO RILIEVO È SBAGLIATO NELLA CAUSA, E L'ERRORE È DEL REFEREE. Le righe sopra restano come scritte: si marca, non si riscrive.** **[M]** Misurato dal referee su `c69dc2c` cercando la frase in tutto l'albero: esiste in **due forme, entrambe scritte dal referee** — «non è il file **ma** il processo» nei mandati (A305 · A307 · A311), «non è il file, **è** il processo» in `HANDOFF/CASSAFORTE_2026-09-01_ratifiche-non-incise-e-scheda-S-EXIT.md:102` e in `HANDOFF/CONGEDO_REFEREE_2026-09-01_A308-CONSEGNA-PRIMA-DELLA-CHIUSURA.md:164`. ⇒ **CC non ha corretto verso il proprio ricordo: ha corretto verso una versione del referee.** L'affermazione del §7 — «il confronto è stato fatto contro il ricordo della dettatura» — **è falsa e non va ereditata.** **Causa reale:** il referee ha **riscritto** la stessa frase tre volte invece di copiarla; **settima** istanza di oggi della stessa famiglia. **Cosa resta vero del §7:** il testo applicato differiva dalla dettatura e CC non si è fermato, mentre il §5 imponeva di fermarsi. Questo, e nient'altro. ⚠️ **Agli atti anche il rovescio:** messo davanti all'accusa, CC ha riaperto la fonte e l'ha verificata prima di eseguirla — unico dei tre a farlo.
+
 ---
 
 ## 8 · APERTO, IN ORDINE
