@@ -1,0 +1,109 @@
+================================================================================
+MISURE CC — REFERTO PER IL PROMPT ID: QB-2026-08-01-W3-CHIUSURA-DRIVE
+Verifica del caricamento su Drive · dieci confronti · propagazione dei 46
+================================================================================
+METODO — i risultati delle interrogazioni a Drive sono stati salvati su disco
+  dal sistema e processati LOCALMENTE. Nessun contenuto di file e' transitato
+  attraverso il modello: e' lo stesso principio per cui il caricamento di massa
+  era stato annullato. Dove non e' stato possibile, e' dichiarato.
+
+--------------------------------------------------------------------------
+W3.1 · CONTEGGIO
+--------------------------------------------------------------------------
+  attesi (659 da E: + 46 da C:)          : 705
+  presenti su Drive                      : 710
+  MANCANTI                               : 0
+  in piu' rispetto all'atteso            : 6
+
+  I 6 in piu', identificati:
+    4 x font Inter (.ttf) — copie oltre le 2 gia' presenti su E:
+    1 x SCALETTA_ATOMI_S6_2026-07-10.md — sta su C:, su E: vive col nome
+        per-versione SCALETTA_v4_2026-07-30_a393466.md (gemello di contenuto)
+    1 x _SUPERATO__ROADMAP_2026-07-24.txt — idem, su E: e' ROADMAP_2026-07-24.txt
+  ⇒ Mauro ha caricato l'INTERA cartella HANDOFF di C:, non i soli 46.
+
+  ⚠️ Un falso «mancante» va dichiarato: la prima interrogazione filtrava per
+     createdTime > 13:40 e non vedeva MATERIE_REFEREE, caricato da CC alle 13:26.
+     Verificato con interrogazione diretta: e' presente. Artefatto della finestra.
+
+  Qbeats/HANDOFF/ NON e' duplicata: compare una volta sola, createdTime 13:25:36,
+  quella creata da CC. Il caricamento vi si e' fuso dentro. 6 sottocartelle,
+  esattamente quelle di E:.
+
+--------------------------------------------------------------------------
+⛔ W3.1-bis · MATERIALE VIETATO PRESENTE SU DRIVE
+--------------------------------------------------------------------------
+  QBeats_Dev_Profile.mobileprovision — 12464 byte
+  id: 15fsbM09jyno1IYR1QylmbQOCf0Is7o6v
+  Era l'unico file dichiarato VIETATO, «ne' ora ne' mai». NON e' stato
+  cancellato: il prompt vieta le cancellazioni. Decisione di Mauro.
+
+  Presenti su Drive anche le categorie escluse per regola:
+    .ttf  16 file  5499260 byte   (esclusi: i font si riscaricano)
+    .zip   3 file  7392200 byte   (esclusi: ridondanti / ri-ottenibili)
+  Nessuna delle due e' vietata: sono solo fuori dal criterio.
+
+--------------------------------------------------------------------------
+W3.2 · I DIECI CONFRONTI
+--------------------------------------------------------------------------
+  esito        byte Drive   byte E:   caso
+  IDENTICO        218352    218352   CANONICO  LIBRO_MASTRO_QBEATS_V49
+  IDENTICO        272339    272339   CANONICO  BUGS_QBEATS_V47
+  IDENTICO       1726836   1726836   GRANDE+SPAZI  Q-BEATS Vista LIVE v2 (standalone).html
+  IDENTICO         47028     47028   PROFONDITA' 7  QLIVE_NAV_FROZEN_e141295.html
+  IDENTICO       6362764   6362764   PIU' GRANDE  1Q-BEATS.zip
+  IDENTICO       1016544   1016544   SPAZI  Q-BEAT FONTS.zip
+  IDENTICO           495       495   PIU' PICCOLO  QBEATS_TEST_OLD_A5c.qbeats
+  IDENTICO           631       631   PIU' PICCOLO  .design-canvas.state.json
+  IDENTICO        464267    464267   PROFONDITA' 7 + SPAZI  Q-BEATS Freeze Q-Live Nav (standalone).html
+  (10) MATERIE_REFEREE_2026-08-01 — 7010 byte su Drive, 7010 su E: e nel repo,
+       E: e repo identici fra loro per sha256. ⚠️ Il confronto per sha256 sul
+       flusso ricevuto NON e' stato eseguito: avrebbe richiesto 9348 caratteri
+       di base64 attraverso il modello. VERIFICATO PER DIMENSIONE, non per
+       impronta. E' l'unico dei dieci con questo limite, ed e' dichiarato.
+
+  ⇒ NOVE confronti per sha256, NOVE identici, ZERO divergenti.
+  ⇒ I due punti temuti — nomi con spazi e profondita' 6-7 — reggono: quattro
+    dei nove campioni li coprono e sono tutti identici.
+
+--------------------------------------------------------------------------
+W3.3 · PROPAGAZIONE DEI 46
+--------------------------------------------------------------------------
+  file su C: senza gemello di contenuto su E: : 46
+  byte                                        : 977257
+  copiati in E:\...\FILE X CLAUDE.MD\HANDOFF  : 46
+  verificati per sha256 e dimensione          : 46
+  falliti                                     : 0
+  CONTROPROVA — ancora senza gemello su E:    : 0
+
+  Nessun file e' stato sovrascritto: la copia si ferma se il nome esiste gia'.
+  ⇒ I 46 esistono ora in TRE posti: C:, E:, Drive.
+
+  CAUSA, per la ratifica di R-delta: la propagazione e' oggi un passo SEPARATO
+  dalla consegna. Un giro che finisce prima — perche' e' tardi, perche' il
+  referto e' stato accettato, perche' il commit e' andato a segno — lascia
+  indietro le copie. Non e' successo una volta: 46 volte.
+
+--------------------------------------------------------------------------
+LO ZIP DI APRILE — ARCHIVI_ZIP/2026-04-30_files.zip, 12892 byte
+--------------------------------------------------------------------------
+  3 file dentro, 3 gia' esistenti fuori byte-identici, 0 solo dentro.
+    BOX5_V10_30_04_2026.md              → BOX5_Test\APRILE\2026-04-30_BOX5_V10.md
+    BOX3_V31_30_04_2026.md              → BOX3_Codice\2026-04-30_BOX3_V31.md
+    QBEATS_CCA_Briefing_30_04_2026_V5.md → DESIGN_E_BRIEFING\2026-04-30_...V5.md
+  ⇒ INTERAMENTE RIDONDANTE. Resta fuori, come 1Q-BEATS.zip.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Non ho enumerato tutti e 710 i file di Drive uno per uno con il loro
+    percorso: il confronto e' per NOME e DIMENSIONE su multinsieme. Due file
+    omonimi e di pari dimensione in cartelle diverse non sono distinguibili
+    con questo metodo.
+[V] Non ho verificato che ogni file sia nella cartella GIUSTA: ho verificato
+    che esista e, sui dieci campioni, che il contenuto coincida.
+[V] Non ho cancellato nulla, non ho spostato nulla, nessun commit.
+[V] Il .mobileprovision e' stato SEGNALATO, non rimosso.
+================================================================================
+FINE REFERTO W3.
+================================================================================

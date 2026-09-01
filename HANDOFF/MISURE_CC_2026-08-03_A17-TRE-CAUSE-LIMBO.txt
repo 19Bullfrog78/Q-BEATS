@@ -1,0 +1,182 @@
+================================================================================
+REFERTO CC — ID ESEGUITO: QB-2026-08-03-A17-TRE-CAUSE-LIMBO
+================================================================================
+Aggancio verificato: l'ultimo referto prodotto riguardava il censimento R-δ (A13, più la
+correzione per aggiunta ad A11) — coerente con la condizione del prompt. Idempotenza:
+nessuna misura precedente delle tre cause di questo ticket in questa sessione — nessun
+referto da recuperare.
+
+RUOLO ESEGUITO: SOLA MISURA. Zero edit, zero commit, zero proposte di riscrittura del
+ticket, zero tocco al campo Stato.
+
+MARCATURA: [V] = misurato da me in questo turno, a fonte, su HEAD.
+
+================================================================================
+STATO A FONTE
+================================================================================
+HEAD                     c1556e57b1a81fafa7973b8647741ede9c92e6cf
+origin/master            c1556e57b1a81fafa7973b8647741ede9c92e6cf   (git ls-remote)
+Invariato dal giro precedente. Staging vuoto, zero tracciati modificati.
+
+================================================================================
+IL TICKET, VERBATIM, PRIMA DI MISURARE LE CAUSE
+================================================================================
+`BUGS_QBEATS.md:307-313`, TD-qlive-libero-limbo:
+
+>>> riga 309 (causa a tre pezzi) >>>
+**Causa sourced (3 pezzi):** (i) DEV fallback `LiveRootView.swift:8`
+(`setlists.first ?? Setlist.makeDefault()` = setlist degenere) → END SHOW istantaneo;
+(ii) Play in default `.collaborativa` → waiting (`TransportView.swift:38-58`, ramo senza
+check peer, commento `:48-51`; fronte Standalone §1.4); (iii) bottoni fine-show vuoti:
+`FineSetlistView.swift:19` `Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }`
++ `:21` RESTART SETLIST idem.
+<<<
+
+>>> riga 312 (la cura, non toccata) >>>
+**Cura:** scelta d'ingresso A) metronomo libero · B) setlist (memoria
+`project_qbeats_metronomo_libero`) → risolve il limbo alla radice + cablaggio bottoni +
+ponte Select Setlist→Live. Stessa radice di Nodo A (§1.2) + Nodo B
+(`LiveRootView.swift:6-10`).
+<<<
+
+================================================================================
+CAUSA (i) — DEV fallback `LiveRootView.swift:8` — MORTA, confermata su tre fronti
+================================================================================
+[V] `LiveRootView.swift`: ASSENTE. `find ios_app -iname 'LiveRootView.swift'` → zero righe
+di output (controllo positivo nella stessa forma: `find ios_app -iname 'TransportView.swift'`
+rende 1 riga, il file trovato — il metodo sa rendere non-zero).
+
+[V] Stringa letterale `setlists.first` (occorrenze, non righe — conteggio `grep -n`, una
+riga = una occorrenza qui perché compare al massimo una volta a riga): **1 sola occorrenza
+in tutto `ios_app/`**, ed è un FALSO POSITIVO da sottostringa —
+`QBeatsStore.swift:110: setlists.firstIndex(where: { $0.id == setlist.id })` — un metodo
+diverso (`firstIndex`, non `first`). La forma esatta citata dal ticket, `setlists.first ??`,
+rende **zero occorrenze**.
+
+[V] Stringa letterale `Setlist.makeDefault` (occorrenze): **zero** in tutto `ios_app/`.
+
+[V] Controllo positivo di metodo, stessa forma, stesso albero: `QBeatsStore.shared` rende
+**20 occorrenze** — il grep funziona, gli zeri sopra sono zeri veri.
+
+[R] (referee, contesto del prompt) `LIBRO_MASTRO_QBEATS.md:330` («⟦S4R⟧ CHIUSO — la
+proprietà del runner sale alla stanza») ratifica la cancellazione di `LiveRootView.swift` e
+del suo phantom. Coerente con la misura [V] sopra, non ri-verificato riga per riga in questo
+giro (il prompt lo dava come noto, la misura diretta sul codice è quella che conta).
+
+⇒ **La causa (i), come scritta nel ticket, non ha più un referente nel codice.** Il file, il
+metodo e il pattern citati sono tutti assenti a HEAD.
+
+================================================================================
+CAUSA (ii) — Play in default `.collaborativa` — VIVA MA LA PREMESSA È FALSA
+================================================================================
+[V] `TransportView.swift`, righe 38-58, VERBATIM INTEGRALE (le righe del ticket combaciano
+ESATTAMENTE con HEAD, zero slittamento):
+
+>>> INIZIO — TransportView.swift righe 36-63 >>>
+                        if audioEngine.isPlaying {
+                            audioEngine.stop()
+                        } else if audioEngine.currentLinkMode == .collaborativa {
+                            // CD-Q2=B + Bug 4 fix (Q-D1 ratificato libro mastro v15) —
+                            // In modalità Collaborativa il Follower NON parte
+                            // standalone al tap Play: entra in `.waitingForDirector`.
+                            // Uscita: (a) Director cross-device preme Play →
+                            // callback Link → audioEngine.linkStartedSubject →
+                            // LiveView observer chiama runner.startSetlist;
+                            // (b) tap START LOCAL nella WaitingForDirectorView;
+                            // (c) tap CANCEL → dismiss a Bivio.
+                            //
+                            // Correzione AI esterna #1 (Fase C): condizione SENZA
+                            // `&& !audioEngine.linkIsConnected` — anche con Link
+                            // connesso ai peer, finché Director non ha premuto
+                            // Play il Follower aspetta (CD-Q2=B letterale).
+                            //
+                            // Lettura `currentLinkMode` da @Published mirror su
+                            // AudioEngine (Q-D1: AppSettings è struct, mirror
+                            // obbligatorio; nome `currentLinkMode` evita collision
+                            // con `_linkMode` audio-queue privato — CI failure run
+                            // 26581236612).
+                            session.playbackState = .waitingForDirector
+                        } else {
+                            // Modalità Direttore: Q-BEATS è sorgente, parte
+                            // standalone immediatamente.
+                            runner.startSetlist(audioEngine: audioEngine, session: session)
+                        }
+<<< FINE >>>
+
+Commit a 40 che ha scritto questa riga (blame su `:38`):
+   007de8711babdb930daa918ebd525d7fee844e63   2026-05-29
+   «feat(link): Fase 6-7 — Bug 4 + CD-6 WAITING FOR DIRECTOR + badge HEAD + rafforzamento
+   modalità Direttore»
+⚠️ Codice VECCHIO — precede di due mesi l'intero giro §6/⟦S4R⟧, mai più toccato da allora.
+
+[V] Il ramo `.collaborativa` ESISTE ed È RAGGIUNGIBILE — non è morto come la causa (i). Ma
+scatta SOLO SE `audioEngine.currentLinkMode == .collaborativa` al momento del tap. Cercato
+DOVE quel valore nasce come DEFAULT, per SIMBOLO, in tutto `ios_app/`:
+
+   AppSettings.swift:22    var linkMode:            LinkMode = .standalone
+   AudioEngine.swift:55    @Published var currentLinkMode: LinkMode = .standalone
+   AudioEngine.swift:280   private var _linkMode:   LinkMode = .standalone   // solo audioQueue
+
+**TUTTI E TRE i siti di default dichiarano `.standalone`, NESSUNO dichiara `.collaborativa`.**
+Zero occorrenze di un default `.collaborativa` in tutto `ios_app/` (cercato `LinkMode =
+.collaborativa` e varianti: zero hit).
+
+[V] `LIBRO_MASTRO_QBEATS.md:268`, la ratifica citata dal ticket come «fronte Standalone
+§1.4», VERBATIM (estratto dirimente): «L'app **parte SEMPRE Standalone**, ruolo scelto a
+mano a ogni avvio, **nessuno stato memorizzato**.»
+
+⇒ **La premessa letterale del ticket («Play in default `.collaborativa`») è falsa**: il
+default, sia nel codice sia nella ratifica, è `.standalone`. Il ramo che porta al limbo
+WAITING FOR DIRECTOR non è morto — resta raggiungibile — ma solo se l'utente ha SCELTO A
+MANO il ruolo Follower/Collaborativa a quell'avvio (la ratifica stessa lo prevede: «ruolo
+scelto a mano»). Non ho misurato IN QUESTO GIRO il sito che implementa la scelta-a-mano del
+ruolo a ogni avvio: non era fra i tre punti richiesti, e non lo estendo di iniziativa.
+
+================================================================================
+CAUSA (iii) — bottoni fine-show vuoti — VIVA, verbatim identico al ticket
+================================================================================
+[V] `FineSetlistView.swift`, righe 19 e 21, VERBATIM (28 righe totali il file):
+
+>>> riga 19 >>>
+                    Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }
+<<<
+>>> riga 21 >>>
+                    Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
+<<<
+
+Identico, carattere per carattere, a quanto il ticket cita.
+
+Commit a 40 (blame su entrambe le righe, stesso commit):
+   899be2ce1da81f0e4a6280904d8d18087a8c1074   2026-05-21
+   «app: rename UI labels FineSetlistView FINE SHOW -> END SHOW, TORNA AGLI SHOWS -> BACK TO
+   SHOWS, RICOMINCIA -> RESTART SETLIST (post-ratifica R-CD5-10 21/05)»
+⚠️ Ancora più vecchio della causa (ii): 21/05, mai toccato da allora.
+
+[V] Raggiungibilità: `FineSetlistView(` ha **1 chiamante** — `LiveView.swift:145`. Non è
+codice morto: è montato nell'albero reale.
+
+⇒ **La causa (iii) è viva, verbatim, e raggiungibile.** È la causa che il prompt segnala
+come mai nominata esplicitamente altrove: i due bottoni dell'unica schermata di uscita da
+END SHOW non fanno letteralmente nulla — coerente con «l'utente deve chiudere l'app».
+
+================================================================================
+SINTESI DELLE TRE MISURE — fatti, non una riscrittura del ticket
+================================================================================
+   (i)   MORTA — file, metodo e pattern assenti a HEAD, su tre controlli indipendenti.
+   (ii)  VIVA, ma la premessa «default collaborativa» è FALSA — il default è `.standalone`
+         su tre siti indipendenti e nella ratifica; il ramo resta raggiungibile solo per
+         scelta esplicita dell'utente, non per default automatico.
+   (iii) VIVA, verbatim identico al ticket, raggiungibile — codice fermo dal 21/05.
+
+⛔ Non riscrivo la riga 309, non tocco la riga 312 (la cura A/B), non tocco il campo Stato
+a riga 313. La sintesi sopra è la fotografia delle tre misure, non una proposta di testo
+sostitutivo: quella si decide dopo aver letto questo referto.
+
+================================================================================
+PROPAGAZIONE R-δ — TRE DESTINAZIONI
+================================================================================
+① C: (questo file, in HANDOFF/, repo — untracked, nessun commit)
+② E: — copiato esplicitamente, verificato sotto
+③ Drive — atteso per sincronizzazione automatica del mirror E:, verificato sotto
+
+*Fine referto. Sola misura: nessuna riscrittura proposta.*

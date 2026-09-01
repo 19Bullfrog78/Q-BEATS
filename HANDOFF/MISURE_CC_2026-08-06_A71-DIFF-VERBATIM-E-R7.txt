@@ -1,0 +1,114 @@
+REFERTO QB-2026-08-06-A71-DIFF-VERBATIM-E-R7
+=============================================
+
+Orologio: 2026-08-06, locale +02:00. Data ID = data esecuzione.
+Integra A70 (non lo rifà): le scritture di A70 nel working tree sono state
+completate, non ricreate.
+
+ESITO: **ESEGUITO. DIFF COMPLETO CONSEGNATO NEL CORPO DELLA RISPOSTA IN CHAT.**
+  · Parte A — riga R7 §1 perimetro: SCRITTA.
+  · Parte B — tassonomia: MISURATA A FONTE, e il risultato impone di NON
+    assegnare un numero. Riga riformulata per POLARITÀ. Vedi §B.
+  · Parte C — diff verbatim di entrambi i canonici + i due messaggi di commit:
+    riportati NEL CORPO della risposta, non solo qui.
+  · NESSUN COMMIT, NESSUN PUSH.
+
+
+================================================================================
+CANCELLI D'INGRESSO — SUPERATI
+================================================================================
+  · A71 non collide (nome e contenuto; controllo positivo A70 presente).
+  · Aggancio: ultimo referto = A70-DEPOSITO-E-ANCORAGGIO-FREEZE. Corretto.
+  · HEAD = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f.
+  · Stato d'ingresso ESATTAMENTE come lasciato da A70: i due HTML in stage come
+    `A`, LIBRO e SCALETTA ` M` non staged. Verificato prima di toccare nulla.
+  · `SCALETTA:300` byte-identica a HEAD (confronto stringa-a-stringa) — verificata
+    all'INGRESSO e di nuovo in USCITA.
+  · Referto A64: `??` (untracked, invariato) — NON toccato.
+
+
+================================================================================
+PARTE A — L'ECCEZIONE R7: SCRITTA
+================================================================================
+Nuova riga in Sez.2, datata 2026-08-06, collocata **PRIMA** della riga di
+ancoraggio: il lettore incontra la regola che permette la forma, poi la forma.
+Testo integrale nel diff (§C).
+
+Contenuto in sintesi: il divieto di `LIBRO:88` vale per i documenti persistenti
+EDITABILI — lo dice la sua stessa motivazione, «ogni edit successivo li
+invalida» — e non per gli ARTEFATTI CONGELATI, dove lo sha256 è ammesso IN
+AGGIUNTA a `path @ commit` e al blob OID, MAI in sostituzione, perché è l'unico
+ponte verso le copie fuori da git. La riga registra anche che
+`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` dichiara tuttora «R7: nessuno sha256
+inciso»: formula che questa riga CIRCOSCRIVE senza riscriverla.
+
+
+================================================================================
+PARTE B — LA TASSONOMIA: MISURATA, E IL NUMERO NON SI PUÒ ASSEGNARE
+================================================================================
+Il mandato prevedeva la contingenza («se la serie numera solo i falsi-NEGATIVI,
+dillo e proponi la forma»). La misura dice questo, ed è più netta:
+
+MISURA 1 — LA SERIE ENUMERA SOLO I FALSI-NEGATIVI.
+  L'unico membro numerato in tutti i canonici è
+  `LIBRO_MASTRO_QBEATS.md:323` = «SESTA FORMA DI FALSO-**NEGATIVO**».
+  (Ricompare, come riassunto, nella voce di registro `LIBRO:494`.)
+  Il caso nuovo ha polarità OPPOSTA ⇒ forzarne dentro un ordinale mescolerebbe
+  due famiglie che la serie stessa tiene distinte.
+
+MISURA 2 — 🚨 LA SERIE NON È ENUMERATA. Reperto nuovo, non richiesto.
+  Cercate su LIBRO, BOX3, BOX5 e BUGS le forme «prima|seconda|terza|quarta|
+  quinta forma di» → **ZERO occorrenze**. L'ordinale «sesta» di `:323` **non ha
+  predecessori rintracciabili per nome in alcun canonico**.
+  ⚠️ Le due occorrenze di «seconda forma» in `BUGS_QBEATS.md:538` e `:1033`
+  sono di ALTRA materia: controllo positivo, `falso-negativo` in BUGS = 0.
+  ⇒ REGISTRATO NELLA RIGA, NON RIPARATO: ricostruire cinque forme mai scritte
+    sarebbe inventare storia. Materia di un giro doc a sé.
+
+MISURA 3 — LA POLARITÀ NUOVA È DAVVERO NUOVA.
+  `falso-positivo` (case-insensitive) → **0** occorrenze su LIBRO a HEAD
+  `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`, BOX3, BOX5, BUGS.
+
+FORMA ADOTTATA, e proposta per il futuro: **identificazione per POLARITÀ, non
+per numero.** Titolo: «FALSO-*POSITIVO* DA FILTRO — POLARITÀ NUOVA, PRIMA DELLA
+SUA SERIE», con dentro la ragione misurata di entrambe le scelte. Il quadro delle
+polarità è ora a tre e si somma:
+   `BOX3` V99 (d)  = un vuoto che sembra un fatto (exit 0)
+   `LIBRO:323`     = un exit 1 che sopprime la prova
+   questa          = un numero pieno che sembra una misura
+Stessa forma è stata riportata nel messaggio di commit 2, punto 3.
+
+
+================================================================================
+STATO FINALE DEL WORKING TREE
+================================================================================
+  A  DESIGN/QLive_Nav/…rev2-BUONA.html          blob c4abeb45a4ef282b7b827911b8680eee93a48092
+  A  DESIGN/QLive_Nav/…rev3-NORMATIVA.html      blob 430c9894c2539c4753f8ab0b8c3baf64d73f5335
+   M HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md    v7 → v8   341 → 342 righe   +2/−1
+   M LIBRO_MASTRO_QBEATS.md                     v53 → v54  502 → 509 righe   +10/−3
+  Righe datate `2026-08-06` in Sez.2: **6** (contate, non stimate).
+  ⛔ `ios_app/` NON compare in `git status`. Nessun canonico oltre a questi due.
+
+ESECUZIONE PREVISTA (invariata da A70), dopo ratifica + OK Mauro:
+  COMMIT 1 — deposito dei 2 HTML.
+  → leggo lo sha a 40 · sostituisco `⟪SHA40-DEPOSITO⟫` · riporto la riga verbatim
+  COMMIT 2 — LIBRO v54 + SCALETTA v8.
+
+
+================================================================================
+CORREZIONE DI PROCESSO RECEPITA
+================================================================================
+Il referee non ha accesso al disco e non riceve gli output degli strumenti: ciò
+che non è nel CORPO della risposta, per lui non esiste. Da questo giro i diff
+verbatim e i messaggi di commit vanno nel corpo della risposta in chat, sempre —
+non solo nel referto. Applicata qui e d'ora in avanti.
+
+
+DICHIARAZIONE STANDARD
+Ho misurato i file VERI a disco e a HEAD 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f,
+non a memoria. La tassonomia è stata letta a fonte con tre misure indipendenti, e
+la conclusione — nessun numero assegnabile — poggia su quelle, non su una
+preferenza di forma. Il reperto «la serie non è enumerata» è emerso durante la
+misura, non era richiesto, ed è registrato senza essere riparato. `SCALETTA:300`
+è byte-identica in ingresso e in uscita; il referto A64 non è stato toccato;
+nessuna modifica sotto `ios_app/`. Nessun commit, nessun push.

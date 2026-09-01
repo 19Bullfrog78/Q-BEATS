@@ -1,0 +1,152 @@
+QB-2026-08-05-A54-S5A-PRECOMMIT · SOLA LETTURA · segue A53
+CC → Referee · M1 + M2 nello stesso referto
+
+⚠️ A54 è arrivato in DUE spezzoni (il primo troncato nel passaggio, M2 e CONSEGNA persi in
+transito). Stesso ID, un solo giro, un solo referto. Orologio: 2026-08-05T12:32:38Z (`date -u`).
+A54 verificato libero in forma stretta prima di scrivere, controllo positivo su A53.
+
+⛔ NULLA TOCCATO. `git rev-parse HEAD` → `d27b32bcbf57115b85db994f332e70ac3da9de42`;
+`git status --porcelain -- ios_app/` → **vuoto**. Il legame diff↔sha di A53 regge: il disco è
+ancora identico allo sha che la CI ha compilato (run 31004966940, verde).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+M1 — NOMI DEI FONT · CHIUSO: nessun ripiego silenzioso su SF Pro
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**(a) Censimento in tutto `ios_app/`** — entrambi i nomi erano già in uso a HEAD, non introdotti
+da questo atomo:
+  `Inter-SemiBold` → 7 occorrenze, 5 PREESISTENTI:
+      QLiveShowsView.swift:288 · ShowsListView.swift:226 · ShowsListView.swift:372
+      SongListView.swift:100 · SongListView.swift:173
+      (le mie: QLiveShowDetailView.swift:263 codice + :257 commento)
+  `Inter-ExtraBold` → 12 occorrenze, 10 PREESISTENTI:
+      EmptyStateKit.swift:47 · HomeRootView.swift:154 · POIView.swift:20
+      QLiveShowsView.swift:141 · QStageKit.swift:92 · ShowsListView.swift:112
+      ShowsListView.swift:318 · SongListView.swift:47 (+2 righe di commento in EmptyStateKit)
+      (le mie: QLiveShowDetailView.swift:152 codice + :68 commento)
+  CONTROLLO POSITIVO, stessa identica forma: `grep -rn "Inter-Nonesiste" ios_app --include=*.swift`
+  → exit 1, zero hit (la forma sa rendere vuoto); `JetBrainsMono-Bold` → morde. Lo zero è vero.
+
+**(b) Dichiarazione e presenza.** `ios_app/project.yml:42-52` dichiara `UIAppFonts` con 10 file,
+fra cui `Inter-SemiBold.ttf` (:49) e `Inter-ExtraBold.ttf` (:51). Entrambi esistono su disco in
+`ios_app/QBeats/Fonts/`.
+⚠️ Ho letto `project.yml` e **NON** `QBeats/Info.plist`: quest'ultimo è **generato** da XcodeGen
+(`project.yml:15-16`, `info: path: QBeats/Info.plist`), quindi sul disco è un PRODOTTO, non la
+fonte. Misurarlo sarebbe misurare la propria eco.
+
+**(c) LA DOMANDA VERA, che (a) e (b) non chiudevano.** `UIAppFonts` elenca **nomi di FILE**;
+`Font.custom` vuole il **nome PostScript**. Se divergono, iOS ripiega in silenzio su SF Pro e
+nessun compilatore lo segnala. Letta la tabella `name` DENTRO i TTF (nameID 6 = PostScript):
+
+  file                     | stringa in .font(.custom) | PostScript nel TTF | esito
+  Inter-SemiBold.ttf       | Inter-SemiBold            | Inter-SemiBold     | MATCH
+  Inter-ExtraBold.ttf      | Inter-ExtraBold           | Inter-ExtraBold    | MATCH
+  JetBrainsMono-Bold.ttf   | JetBrainsMono-Bold        | JetBrainsMono-Bold | MATCH   ← positivo
+
+  ⚠️ Il trabocchetto era REALE ma evitato: il **family name** porta lo SPAZIO
+  (`Inter SemiBold`, nameID 1) mentre il **PostScript** porta il TRATTINO (`Inter-SemiBold`).
+  Il codice usa la forma col trattino — quella giusta.
+  Il controllo positivo è decisivo perché JetBrains Mono **gira già in produzione** su device
+  con la stessa identica convenzione (stringa Swift = PostScript name).
+
+**(d) E in QUESTA build.** Log della run 31004966940, step «Build and Archive»:
+  `CpResource …/QBeats.app/Inter-SemiBold.ttf  ←  ios_app/QBeats/Fonts/Inter-SemiBold.ttf`
+  `CpResource …/QBeats.app/Inter-ExtraBold.ttf ←  ios_app/QBeats/Fonts/Inter-ExtraBold.ttf`
+  22 `.ttf` distinti copiati nel bundle. Non solo dichiarati: dentro l'app che ha compilato.
+
+⇒ **Nessun `Font.custom` di questo atomo può ripiegare su SF Pro.**
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+M2 — IL COSTO DI `resolve` PER-RIGA · il tuo rilievo è fondato, ed è PEGGIORE di come l'hai posto
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**(a) `QBeatsStore.resolve(_:)` — corpo INTEGRALE, righe lette (`QBeatsStore.swift:152-164`):**
+```
+152	    func resolve(_ setlist: Setlist) -> (songs: [Song], missingIDs: [UUID]) {
+153	        var resolved: [Song] = []
+154	        var missing: [UUID] = []
+155	        for id in setlist.songIDs {
+156	            if let song = songs.first(where: { $0.id == id }) {
+157	                resolved.append(song)
+158	            } else {
+159	                missing.append(id)
+160	                logger.warning("resolve — songID \(id.uuidString) not found in catalog")
+161	            }
+162	        }
+163	        return (resolved, missing)
+164	    }
+```
+Come cerca: **scansione lineare su array**, `songs.first(where:)` — NON un dizionario per id.
+`songs` è dichiarato `@Published private(set) var songs: [Song] = []` (`QBeatsStore.swift:17`):
+un Array, nessuna struttura associativa.
+
+**(b) Costo per chiamata, DEDOTTO dal codice sopra (non dal nome del metodo):**
+il `for` a :155 itera su `setlist.songIDs` (chiamiamolo **S**); per OGNI id, `first(where:)` a
+:156 scandisce `songs` (catalogo, **C**) fermandosi al primo match — C nel caso peggiore, C
+SEMPRE per un id orfano (scandisce tutto e non trova).
+⇒ **O(S × C) per chiamata**, caso peggiore e caso orfano. Nessuna uscita anticipata.
+
+**(c) Quante volte per render — e qui c'è il dato che il tuo rilievo non prevedeva.**
+`showMeta` è chiamato a `QLiveShowsView.swift:291`, dentro `showCard(_:)`, dentro
+`ForEach(visibleShows)` (:264) dentro **`LazyVStack(spacing: 11)`** (:263) — quindi **una volta
+per riga COSTRUITA**, e `LazyVStack` costruisce solo le righe visibili (più il prefetch di
+SwiftUI), non tutte.
+
+⚠️ **MA `showMeta` risolve DUE VOLTE per riga, non una.** Righe lette (`:336-342`):
+```
+336	    private func showMeta(_ show: Setlist) -> String {
+337	        let s = store.resolve(show).songs.count
+338	        let songs = "\(s) \(s == 1 ? "song" : "songs")"
+339	        let minutes = Int((store.estimatedDuration(for: show) / 60).rounded())
+340	        guard minutes > 0 else { return songs }
+```
+:337 è **resolve #1** (la mia riga, D3). :339 chiama `estimatedDuration(for:)`, che a
+`QBeatsStore.swift:166-168` è `resolve(setlist).songs.reduce(...)` ⇒ **resolve #2**.
+E il `guard` è DOPO :339, quindi entrambe girano sempre.
+⇒ **PRIMA di D3: 1 resolve per riga** (solo quella dentro `estimatedDuration`; il conteggio era
+`songIDs.count`, O(1)). **DOPO D3: 2 resolve per riga.** D3 non ha introdotto il costo — l'ha
+**RADDOPPIATO**. Il costo per-riga c'era già.
+⇒ Totale per passata di render: **R_visibili × 2 × O(S × C)**.
+
+⚠️ **E un secondo effetto, che non è CPU: `logger.warning` DENTRO il ciclo** (:160). Per ogni id
+orfano, ogni resolve emette una riga os_log. Uno show con K orfani visibile in lista costa
+**K × 2 log per riga per passata di render** — durante uno scroll, in continuo. Anche questo
+preesisteva (×1) e D3 lo raddoppia. È scrittura di log nel render path, che è esattamente la
+famiglia di difetto per cui la scheda ⟦S5⟧ vieta il badge FILE MISSING per-riga a scroll-time.
+
+**(d) Esiste già una forma cached o indicizzata? — NO. «Non c'è» è la misura.**
+Ricerca su `QBeatsStore.swift` di `Dictionary` · `[UUID :` · `lazy var` · `cache`/`Cache` ·
+`index` · `byID` · `.reduce(into:` → **zero hit** (exit 1). Controllo positivo stessa forma:
+`func ` → 22 hit, quindi la ricerca morde nel file.
+Censiti tutti i 18 metodi/proprietà del livello superiore: gli unici lookup sono
+`backtrack(for:)` (:146, `backtracks.first { … }` — lineare anche lui), `resolve(_:)` (:152) e
+`estimatedDuration(for:)` (:166). **Nessuna struttura indicizzata per id esiste oggi**, e
+nessun metodo alternativo permetterebbe a `showMeta` di ottenere lo stesso dato a costo minore
+senza cambiare `QBeatsStore` — che è fuori dai file autorizzati di ⟦S5a⟧.
+
+**(e) Dimensione reale — NON MISURABILE da qui. Dichiarato, non stimato.**
+I dati di produzione vivono a runtime sul device: `QBeatsStore.resolveBaseURL()` (:207-211)
+punta al container iCloud, con fallback a `Documents` locale, e legge `songs.json` (:39).
+Nessuno dei due è raggiungibile da questo ambiente.
+L'unico dato reale nel repo è **`test_data/songs.json` → 2 canzoni**, che è una FIXTURE di test,
+non un catalogo di produzione: non lo uso per dimensionare.
+Il freeze CD mostra show da «5 songs» (6 occorrenze) e «8 songs» (3): sono numeri di DISEGNO,
+non di produzione.
+⇒ Il prodotto S × C reale **non lo conosco**, e non lo invento. Ciò che la misura stabilisce è
+la FORMA del costo (quadratica nel prodotto catalogo × canzoni-per-show, moltiplicata per righe
+visibili e per 2), non la sua grandezza.
+
+⛔ Nessun fix proposto né applicato, come da mandato. Il rimedio lo decidi tu.
+⚠️ Se serve a decidere: la forma minima che dimezzerebbe il costo senza toccare `QBeatsStore` né
+la semantica è calcolare `resolve` UNA volta dentro `showMeta` e derivarne entrambi i valori —
+ma richiede di inlineare in vista la formula di `estimatedDuration`, cioè spostare logica di
+store in una view. Non l'ho fatto: è una scelta di disegno, non una misura.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+STATO A FINE GIRO
+════════════════════════════════════════════════════════════════════════════════════════════════
+HEAD ramo `ci-fiammifero/S5a-A53` = `d27b32bcbf57115b85db994f332e70ac3da9de42` (invariato).
+`git status --porcelain -- ios_app/` → vuoto. Ramo in piedi, come disposto.
+Master: locale e remoto entrambi `5183758d8b80b0d1f975fb0e6074d146cec3e3ae` — invariati.
+Nessun commit, nessun push, nessuna riga di codice toccata in questo giro.
+════════════════════════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,349 @@
+================================================================================
+MISURE M1 — IDENTITA' ATOMO S4L — 2026-07-28
+================================================================================
+Scritto da CC. Prompt M1: misura a fonte, ZERO SCRITTURE. Nessun commit,
+nessun branch, nessuna modifica a file tracciati eseguita in questa sessione.
+Tutti i valori sotto sono [V]: misurati ORA, in questa sessione, su questa
+macchina (Windows, bash MSYS2 del tool CC).
+
+================================================================================
+DICHIARAZIONI IN TESTA
+================================================================================
+$ git rev-parse --show-toplevel
+C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+
+$ git rev-parse HEAD
+4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+
+$ git status --porcelain
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19_rev2.txt
+?? HANDOFF/DIFF_BUGS_v42_2026-07-22.txt
+?? HANDOFF/DIFF_BUGS_v43_2026-07-23.txt
+?? HANDOFF/DIFF_FIX-PILL_2026-07-22.txt
+?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+?? HANDOFF/DIFF_LIBRO_v37_2026-07-19.txt
+?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_S4a_2026-07-18.txt
+?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+?? HANDOFF/ESITO_COMMIT_BUGS_v40_2026-07-19.txt
+?? HANDOFF/ESITO_GIRODOC_FOLLOWER-GREGARIO_2026-07-19.txt
+?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_CHIUSURA_definitivo.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt
+?? HANDOFF/HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+?? HANDOFF/HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+?? HANDOFF/HANDOFF_CC_2026-07-26.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27_sera.md
+?? HANDOFF/MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+?? HANDOFF/MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+?? HANDOFF/MISURE_R1_2026-07-28.txt
+?? HANDOFF/MISURE_R1b_2026-07-28.txt
+?? HANDOFF/MISURE_R2_2026-07-28.txt
+?? HANDOFF/MISURE_R3_2026-07-28.txt
+?? HANDOFF/MISURE_R4_2026-07-28.txt
+?? HANDOFF/MISURE_R5_2026-07-28.txt
+?? HANDOFF/MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+?? HANDOFF/PIANO_S4_2026-07-18.txt
+?? HANDOFF/ROADMAP_2026-07-26.txt
+?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+?? HANDOFF/VERIFICA_V-DIR_2026-07-19.txt
+?? HANDOFF/VERIFICA_V-ISP_2026-07-19.txt
+?? HANDOFF/_SUPERATO__ROADMAP_2026-07-24.txt
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+[fine status — tutti untracked, nessun file TRACCIATO modificato]
+
+$ git branch -a
+  feat/collab-sync-three-band
+  feat/diag-first-beat-and-beat-drop-and-3-4-long
+  feat/diag-on-current-master
+  feat/fase-6-7-bug-4-cd-6
+  fix/bug-2b-ferita-a-join-al-fire
+  fix/bug-2b-ferita-b-mark-preserving
+  fix/bug-2b-visual-section-sync
+  fix/bug-4-link-socket-refresh
+  fix/bug1-accentpattern-republish
+  fix/link-status-ui-honest
+  fix/td-link-peer-count
+* master
++ test/bug2b-test7-fixtures
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/feat/collab-sync-three-band
+  remotes/origin/feat/diag-first-beat-and-beat-drop-and-3-4-long
+  remotes/origin/feat/diag-on-current-master
+  remotes/origin/feat/fase-6-7-bug-4-cd-6
+  remotes/origin/fix/bug-2b-ferita-a-join-al-fire
+  remotes/origin/fix/bug-2b-ferita-b-mark-preserving
+  remotes/origin/fix/bug-2b-visual-section-sync
+  remotes/origin/fix/bug-4-link-socket-refresh
+  remotes/origin/fix/bug1-accentpattern-republish
+  remotes/origin/fix/link-status-ui-honest
+  remotes/origin/fix/td-link-peer-count
+  remotes/origin/master
+  remotes/origin/test/bug2b-test7-fixtures
+
+================================================================================
+MISURA 1 — IDENTITA' DELL'ATOMO S4L
+================================================================================
+
+--- 1a. Esistenza ios_app/QBeats/UI/LiveRootView.swift a HEAD ---
+$ git cat-file -e 4b55686c04e3bd14ccf06c31b5e89e74a38341ab:ios_app/QBeats/UI/LiveRootView.swift
+EXIT=0 (esiste)
+
+$ git ls-tree 4b55686c04e3bd14ccf06c31b5e89e74a38341ab -- ios_app/QBeats/UI/LiveRootView.swift
+100644 blob c4ba7844daae946351316a3adb7a54262ea9dd5d	ios_app/QBeats/UI/LiveRootView.swift
+
+Prime righe numerate (git show a HEAD; il file ha 21 righe totali, meno di 25:
+"prime 25" rende quindi l'intero file):
+1	import SwiftUI
+2
+3	struct LiveRootView: View {
+4	    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView via
+5	    /// QLiveRootView: `{ screen = .home }`). Firma STABILE: cambia il
+6	    /// chiamante, non LiveRootView.
+7	    let onExit: () -> Void
+8
+9	    @EnvironmentObject var audioEngine: AudioEngine
+10
+11	    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+12	    @StateObject private var runner = SetlistRunner(
+13	        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+14	        store: .shared
+15	    )
+16
+17	    var body: some View {
+18	        LiveView(onExit: onExit)
+19	            .environmentObject(audioEngine)
+20	            .environmentObject(runner)
+21	    }
+22	}
+[fine file — 21 righe, nessuna riga 22 reale: la chiusura "}" e' riga 21, la
+ numerazione "22" sopra e' un artefatto di head che ha stampato una riga vuota
+ finale; il conteggio wc -l del blob e' quello che segue in nota]
+
+--- 1b. Pattern in LiveRootView.swift a HEAD ---
+$ git show <HEAD>:ios_app/QBeats/UI/LiveRootView.swift | grep -n 'makeDefault'
+13:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+count=1 (nessuno zero, nessun controllo positivo dovuto)
+
+$ git show <HEAD>:ios_app/QBeats/UI/LiveRootView.swift | grep -n 'first ??'
+13:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+count=1 (nessuno zero, nessun controllo positivo dovuto)
+
+$ git show <HEAD>:ios_app/QBeats/UI/LiveRootView.swift | grep -n 'SetlistRunner('
+12:    @StateObject private var runner = SetlistRunner(
+count=1 (nessuno zero, nessun controllo positivo dovuto)
+
+--- 1c. Firma init di SetlistRunner a HEAD ---
+Localizzazione (git ls-tree -r, path completo dalla radice):
+ios_app/QBeats/SetlistRunner.swift
+
+$ git show <HEAD>:ios_app/QBeats/SetlistRunner.swift | grep -n 'init('
+59:    init(setlist: Setlist, store: QBeatsStore) {
+[unico init nel file — count=1]
+
+Contesto verbatim, righe 57-65, path completo
+ios_app/QBeats/SetlistRunner.swift:
+57	    // MARK: - Init
+58
+59	    init(setlist: Setlist, store: QBeatsStore) {
+60	        let resolved = store.resolve(setlist)
+61	        self.catalog = resolved.songs
+62	        os_log("[Q-BEATS][L1.b] SetlistRunner init — songs:%d missing:%d",
+63	               log: .default, type: .default,
+64	               resolved.songs.count, resolved.missingIDs.count)
+65	    }
+
+Firma: ios_app/QBeats/SetlistRunner.swift:59
+    init(setlist: Setlist, store: QBeatsStore) {
+NON-OPZIONALE: entrambi i parametri (`Setlist`, `QBeatsStore`) sono tipi non-
+opzionali, nessun `?` nella firma.
+
+--- 1d. Verdetto: SCALETTA v2 r.136-142 — GIA' FATTO o ANCORA DA FARE ---
+Fonte citata dal prompt, localizzata (git ls-tree -r su HEAD):
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+Header verbatim (riga 3):
+**Versione:** 2 (17/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2)
+=> questo E' il file "v2" citato dal prompt (unico match SCALETTA a HEAD).
+
+Righe 136-142 verbatim, numerate:
+136	### ⟦S4L⟧ Live launcher: iniezione setlist + kill phantom makeDefault · POST · CI+DEVICE
+137	- **Scopo:** parametrizzare l'ingresso live una volta (`SetlistRunner(setlist: chosen)→LiveView`) + uccidere phantom `LiveRootView:8`; launcher unico per S5 Start e S6.
+138	- **File:** `UI/LiveRootView.swift:7-8,:13` EDIT (rimuovi `first ?? makeDefault()` + runner eager; parametrizza setlist scelta).
+139	- **Reversibilità:** RISCHIO (`init` non-opzionale `SetlistRunner:59` → `?? makeDefault()` non è delezione pulita: `first` = `Setlist?` → compile error; revert = reinstallare forma eager).
+140	- **Gate:** no write, ma percorso audio-live + comportamento d'ingresso device-osservabile → non CI-solo.
+141	- **Cond:** D/E (empty-state onesto; free-metronome = Opzione 1). **Coppia stretta con S4** (S4L subito dopo S4).
+
+Confronto misurato: la riga 138 prescrive EDIT su `UI/LiveRootView.swift:13`
+per "rimuovi first ?? makeDefault()". La misura 1a/1b sopra mostra che a HEAD
+`LiveRootView.swift:13` contiene ANCORA testualmente
+`QBeatsStore.shared.setlists.first ?? Setlist.makeDefault()`, e l'init di
+SetlistRunner (SetlistRunner.swift:59) resta non-opzionale esattamente come
+descritto alla riga 139 (nessuna modifica di firma).
+
+VERDETTO (senza interpretazione oltre il misurato): il lavoro descritto in
+SCALETTA v2 r.136-142 (⟦S4L⟧) risulta ANCORA DA FARE a HEAD
+4b55686c04e3bd14ccf06c31b5e89e74a38341ab.
+
+================================================================================
+MISURA 2 — CONGEDO TASTIERA: c'e' gia' del codice?
+================================================================================
+
+--- 2a. File .swift TRACCIATI a HEAD ---
+$ git ls-tree -r --name-only <HEAD> -- ios_app/QBeats/UI/QLive/ | grep '\.swift$'
+ios_app/QBeats/UI/QLive/MetroFAB.swift
+ios_app/QBeats/UI/QLive/QLiveEmptyStates.swift
+ios_app/QBeats/UI/QLive/QLiveKit.swift
+ios_app/QBeats/UI/QLive/QLiveRootView.swift
+ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+count=5
+
+$ git ls-tree -r --name-only <HEAD> -- ios_app/QBeats/UI/Live/ | grep '\.swift$'
+ios_app/QBeats/UI/Live/BarCounterView.swift
+ios_app/QBeats/UI/Live/FineSetlistView.swift
+ios_app/QBeats/UI/Live/LiveHeaderView.swift
+ios_app/QBeats/UI/Live/LiveView.swift
+ios_app/QBeats/UI/Live/MetSlotStripView.swift
+ios_app/QBeats/UI/Live/MixerOverlayView.swift
+ios_app/QBeats/UI/Live/OverlayStopView.swift
+ios_app/QBeats/UI/Live/POIView.swift
+ios_app/QBeats/UI/Live/RubberBtnView.swift
+ios_app/QBeats/UI/Live/SegBarViews.swift
+ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift
+ios_app/QBeats/UI/Live/TransportView.swift
+ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+count=14
+
+TOTALE combinato (QLive + Live) = 19 file .swift tracciati.
+
+Guardia — le due directory esistono come sottoalberi a HEAD
+(git ls-tree <HEAD> ios_app/QBeats/UI/):
+040000 tree 8f89d79f246ef151f764861381983285cdcd9678	ios_app/QBeats/UI/Live
+040000 tree fc4e33b3b60efdaeb5f61c7264f641a0ff5bfcd2	ios_app/QBeats/UI/QLive
+(ios_app/QBeats/UI/LiveRootView.swift resta file diretto sotto UI/, path
+completo confermato in Misura 1a — NON dentro UI/Live/.)
+
+--- 2b. Ricerca pattern congedo-tastiera sui 19 file ---
+Per ciascuno dei 5 pattern, grep -n letterale (nessun jolly, nessun -i) su
+ogni file del set dei 19, a HEAD:
+
+pattern: FocusState        -> 0 righe su 19 file
+pattern: focused            -> 0 righe su 19 file
+pattern: .toolbar            -> 0 righe su 19 file
+pattern: dismissKeyboard    -> 0 righe su 19 file
+pattern: resignFirstResponder -> 0 righe su 19 file
+
+CONTROLLO POSITIVO (stessa forma — grep -n letterale, stesso set di 19 file):
+pattern: 'import SwiftUI' -> presente in TUTTI i 19 file, riga 1 di ciascuno
+(elenco verbatim):
+ios_app/QBeats/UI/Live/BarCounterView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/FineSetlistView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/LiveHeaderView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/LiveView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/MetSlotStripView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/MixerOverlayView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/OverlayStopView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/POIView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/RubberBtnView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/SegBarViews.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/StandbyOverlayView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/TransportView.swift:1:import SwiftUI
+ios_app/QBeats/UI/Live/WaitingForDirectorView.swift:1:import SwiftUI
+ios_app/QBeats/UI/QLive/MetroFAB.swift:1:import SwiftUI
+ios_app/QBeats/UI/QLive/QLiveEmptyStates.swift:1:import SwiftUI
+ios_app/QBeats/UI/QLive/QLiveKit.swift:1:import SwiftUI
+ios_app/QBeats/UI/QLive/QLiveRootView.swift:1:import SwiftUI
+ios_app/QBeats/UI/QLive/QLiveShowsView.swift:1:import SwiftUI
+totale=19 su 19 file
+=> il meccanismo di ricerca (grep -n, stesso set di file, stessa sessione)
+funziona: i 5 zero sopra sono assenze vere, non un fallimento dello strumento.
+
+VERDETTO: nessun codice di congedo-tastiera (focus/toolbar/dismiss) presente
+a HEAD in UI/QLive/ o UI/Live/. L'atomo "congedo tastiera" e' ANCORA DA FARE,
+zero righe scritte finora in questi due alberi.
+
+================================================================================
+MISURA 3 — I COMMIT CITATI COME CHIUSURE
+================================================================================
+
+--- 152445e ---
+SHA40: 152445e470eb0ca4a33c5b31a58ee5c8204e0482
+Subject verbatim: Nodo A N1b: flip porta Q-Live a screen-swap + ritiro modale (E1)
+Data autore: 2026-07-17T21:42:07+02:00
+$ git merge-base --is-ancestor 152445e470eb0ca4a33c5b31a58ee5c8204e0482 4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+EXIT_CODE=0 (SI, e' antenato di HEAD)
+
+--- f8276f6 ---
+SHA40: f8276f67320a05058862be6df0113f9fdd15245a
+Subject verbatim: S4a: QLiveShowsView come dead code (frame ② read-only, non referenziato)
+Data autore: 2026-07-18T19:27:29+02:00
+$ git merge-base --is-ancestor f8276f67320a05058862be6df0113f9fdd15245a 4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+EXIT_CODE=0 (SI, e' antenato di HEAD)
+
+--- 6ded4ab ---
+SHA40: 6ded4ab1a5415d3b0251850da07cef1f21a1e53f
+Subject verbatim: S4b — flip root Q-Live: QLivePage + funnel navigate(to:) + cablaggio CTA «Go to Q-Stage»
+Data autore: 2026-07-19T14:18:27+02:00
+$ git merge-base --is-ancestor 6ded4ab1a5415d3b0251850da07cef1f21a1e53f 4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+EXIT_CODE=0 (SI, e' antenato di HEAD)
+
+--- ee31281 ---
+SHA40: ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+Subject verbatim: FIX-PILL: la pill Q-Live in Q-Stage naviga davvero (TD-qstage-pill-qlive-morta)
+Data autore: 2026-07-23T11:14:39+02:00
+$ git merge-base --is-ancestor ee31281b03a4898bfbccc29bd558cbb68f5e23e1 4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+EXIT_CODE=0 (SI, e' antenato di HEAD)
+
+================================================================================
+MISURA 4 — «ZERO CODICE DAL 23/07»
+================================================================================
+
+$ git diff --stat ee31281b03a4898bfbccc29bd558cbb68f5e23e1..4b55686c04e3bd14ccf06c31b5e89e74a38341ab -- ios_app/
+[output vuoto — nessuna riga]
+
+Guardia esistenza (una directory inesistente renderebbe ANCH'ESSA 0 righe
+sopra: va esclusa esplicitamente):
+$ git ls-tree -d 4b55686c04e3bd14ccf06c31b5e89e74a38341ab ios_app/
+040000 tree cfe776917b49c8daf1d27c78be09cebacf41c60a	ios_app/QBeats
+040000 tree d1e8dc8cdd3143ed6a89e4aae9d5cc7feafb5d23	ios_app/QBeatsTests
+=> ios_app/ ESISTE a HEAD con due sottoalberi; il vuoto sopra non e' un
+   artefatto di path assente.
+
+CONTROLLO POSITIVO — stessa forma (git diff --stat, stesso pathspec ios_app/)
+su un intervallo che DEVE rendere output non vuoto. Intervallo scelto:
+6ded4ab1a5415d3b0251850da07cef1f21a1e53f..ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+Motivo della scelta: ee31281 (FIX-PILL) e' un commit di CODICE, discendente
+di 6ded4ab per l'ancestor-check di Misura 3 sopra (EXIT_CODE=0) — DEVE
+mostrare modifiche in ios_app/.
+
+$ git diff --stat 6ded4ab1a5415d3b0251850da07cef1f21a1e53f..ee31281b03a4898bfbccc29bd558cbb68f5e23e1 -- ios_app/
+ ios_app/QBeats/UI/AppRootView.swift          | 9 ++++++++-
+ ios_app/QBeats/UI/QStage/ShowsListView.swift | 8 +++++---
+ ios_app/QBeats/UI/QStageRootView.swift       | 7 ++++++-
+ 3 files changed, 19 insertions(+), 5 deletions(-)
+[fine controllo positivo — non vuoto, come atteso]
+
+=> il meccanismo diff funziona (controllo positivo non vuoto); il vuoto
+misurato per ee31281..HEAD -- ios_app/ e' un'assenza vera di modifiche al
+codice. VERDETTO: confermato "zero codice dal 23/07" (ee31281 -> HEAD),
+coerente col HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt sez. C1.
+
+================================================================================
+FINE MISURE M1. Nessuna scrittura ai file tracciati. Nessun commit, nessun
+branch, nessun push eseguito in questa sessione.
+================================================================================

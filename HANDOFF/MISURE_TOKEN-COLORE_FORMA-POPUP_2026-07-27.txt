@@ -1,0 +1,312 @@
+================================================================================
+MISURE VERBATIM — token colore + forma popup Remove — 2026-07-27
+================================================================================
+Prodotto da CC, misure di prima mano (comando + output), per la ratifica referee
+richiesta su: 3 righe nuove LIBRO Sez.2 + sezione «Token visivi» BOX5 V28.
+Questo file è solo l'artefatto di misura. Nessuna scrittura su canonici.
+Tutti i path E: hanno il disco esplicito. Tutte le letture di testo CD sono via
+decoder bash UTF-8 nativo (mai PowerShell Get-Content senza -Encoding UTF8).
+
+================================================================================
+A) INVENTARIO — E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\
+   DA_CD_PER_CC\27_07_2026\UPDATE2\
+================================================================================
+CMD: Get-ChildItem -File | sha256 + byte + CreationTime
+
+2026-07-27_Alert-Distruttivo-FORMA__3-vie.html
+    byte=43464  sha256=9c3ea2bfce36d43d1018bdc29b6c3b25083895e1b5f202ab043d415ed0dc1edd  created=2026-07-27 19:32:59
+2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md
+    byte=7444   sha256=df55ccdc3a8bcaa01987be7dedbe719ccbb62a5b7dc5c59c149b964bc9489115  created=2026-07-27 19:33:22
+2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html
+    byte=58620  sha256=50b34c398f5b738ef85bb27cbc2b45883d4f45807e92c61b3af163d2260dabec  created=2026-07-27 19:32:13
+2026-07-27_QLive-Shows-Read-only-Chip__3-vie.html
+    byte=45484  sha256=646d0aa71e9ac061a32e9f88738160ef8d337bd8d12ae859749d135ebc0d83ef  created=2026-07-27 19:33:09
+    (IDENTICO alla copia in UPDATE — invariato, confermato)
+2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html
+    byte=27803  sha256=83c5c51d12081d5908b506fe7669b9c9746c9ab66a0bb9b2be958a3b8fabdf6c  created=2026-07-27 19:32:52
+
+conteggio file = 5 (atteso: A, B, C, D invariato, 5° nuovo — torna)
+
+================================================================================
+B) DIFF — A: UPDATE\...RIEMISSIONE-FREEZE-24-07.html (068915fe...) vs
+             UPDATE2\...RIEMISSIONE-FREEZE-24-07.html (50b34c39...)
+================================================================================
+CMD: diff -u vecchio nuovo
+righe diff totali = 32   hunk = 2
+
+@@ -3,7 +3,18 @@
+ ================================================================================
+  CD · RIEMISSIONE del FREEZE 24/07 — Card show: azione «Start» + menu «···»
+
+- NOME FILE      2026-07-27_QLive-Shows-Card-Azione-Overflow__RIEMISSIONE-del-FREEZE-24-07.html
++ NOME FILE      2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html  (57 char)
++                Nome ALLINEATO il 27/07 a quello gia' registrato da CC su E: (trattino
++                singolo prima di RIEMISSIONE). Il nome di lavoro CD ...Card__RIEMISSIONE...
++                (58, doppio underscore) e' RITIRATO: non usarlo, divergeva al car. 28.
++                Nome originale, mutilato in copia: ...Card-Azione-Overflow__RIEMISSIONE-del-FREEZE-24-07.html (77).
++                Budget: <=64 char sul nome INTERO, estensione compresa (misura referee).
++
++ IMPRONTA       CAMBIATA il 27/07. Il file NON e' rigenerato e NON e' riemesso: sostanza,
++                layout, decisioni e frame sono invariati. Ma e' stato toccato nei DUE punti
++                in cui nomina se' stesso (questa intestazione + id-card), quindi il byte
++                stream e' diverso e l'impronta precedente non vale piu'. Chi si fida del
++                registro per impronta deve rimisurare questo file.
+  DEPOSITO       ...\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\
+  STATO          RIEMISSIONE — si AFFIANCA al freeze 24/07, non lo sostituisce.
+  METODO         Il file 2026-07-24_..._FREEZE.html RESTA dov'e', invariato, con la
+@@ -375,7 +386,8 @@
+ <div class="idcard" style="left:56px;top:2610px;width:2208px;">
+   <h3>Identità del file — per CC <span class="tag">leggere a fonte</span></h3>
+   <dl class="idl">
+-    <dt>Nome file</dt><dd><b>2026-07-27_QLive-Shows-Card-Azione-Overflow__RIEMISSIONE-del-FREEZE-24-07.html</b> <em>— univoco, non rinominare</em></dd>
++    <dt>Nome file</dt><dd><b>2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html</b> — <b>57 caratteri</b>. E' il nome <b>gia' registrato da CC su E:</b>, e questo file vi e' stato <b>allineato</b> il 27/07: il nome di lavoro CD <code>...Card__RIEMISSIONE...</code> (58, doppio underscore) e' <b>ritirato</b> — divergeva al carattere 28 e nulla lo avrebbe fatto collidere in modo visibile. Il nome originale, <code>...Card-Azione-Overflow__RIEMISSIONE-del-FREEZE-24-07.html</code>, era di <b>77</b> caratteri e tornava <b>mutilato</b> in copia. Budget misurato dal referee: <b>&lt;=64 caratteri sul nome intero</b>, estensione compresa — non sullo stem (uno stem da 62 e' stato mutilato lo stesso).</dd>
++    <dt>Impronta</dt><dd><b>E' CAMBIATA</b> il 27/07 — e va detto, perche' su E: questo file e' registrato <b>per impronta</b>. Il file <b>non</b> e' rigenerato e <b>non</b> e' riemesso: sostanza, layout, decisioni e frame sono <b>invariati</b>. Ma e' stato toccato nei <b>due punti in cui nomina se' stesso</b> (intestazione + questa riga), quindi il byte stream e' diverso e l'impronta precedente non vale piu'. «Rinominato a contenuto invariato» sarebbe stato <b>falso</b>: chi si fida del registro va rimisurato qui.</dd>
+     <dt>Deposito</dt><dd>...\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\ — «depositato» e' vero <b>solo se CC lo misura li'</b>: a parole non e' una prova.</dd>
+     <dt>Stato</dt><dd><b>Riemissione</b> — si <b>affianca</b> al freeze 24/07. <b>Non</b> e' un'errata, <b>non</b> sostituisce, <b>non</b> rigenera.</dd>
+     <dt>Rapporto col 24/07</dt><dd>Il file <b>2026-07-24_...-FREEZE.html</b> resta <b>invariato</b> e la sua impronta resta valida: 4 decisioni vigenti, frame ①③ vigenti. Marcati superati <b>solo</b> i tre frammenti (i)(ii)(iii).</dd>
+
+VERDETTO A: confermato esattamente come dichiarato. 2 hunk, entrambi autocitazione.
+
+================================================================================
+C) DIFF — B: UPDATE\...QL-SHOWS-01-10__RIEMISSIONE.html (bd23b010...) vs
+             UPDATE2\...QL-SHOWS-01-10__RIEMISSIONE.html (83c5c51d...)
+================================================================================
+righe diff totali = 41   hunk = 3
+
+@@ -142,8 +142,8 @@
+ <div class="cor" style="top:1900px;">
+   <h4><span class="n f">formale</span><span class="rows">riga 10</span>Citazione «Q20» resa conforme</h4>
+-  <div class="now">...Q20 (serie Q17-Q22 . taratura 20/07/2026) - APERTA, RIEMESSA 26/07 ...</div>
+-  <div class="why">Regola d'igiene: mai un «Qn» nudo. ... una citazione senza serie e data e' un rimando che non chiude...</div>
++  <div class="now">...(stessa citazione) ... Fonte: ...Q20-RIEMISSIONE.html, sha256 5dcfbbfb...5ab9d408»</div>
++  <div class="why">... la regola nella sua prima forma era MONCA, e la correzione e' di Mauro (27/07): la serie e la
++  data disambiguano il NUMERO; non sostituiscono mai la FONTE. ... «Q17-Q22» nel titolo del file di taratura e'
++  un'ETICHETTA DI INTERVALLO, non un elenco: in quel file «Q20» non compare (ci sono Q17, Q19, Q22)...</div>
+
+@@ -208,11 +208,17 @@
+   fonte: DA_CD_PER_CC\26_07_2026\...Q20-RIEMISSIONE.html
++  sha256 5dcfbbfb...5ab9d408 (impronta: misura referee 27/07)
+   ...
+-  [FORMALE 27/07: aggiunta serie+data alla citazione «Q20». Nessun cambio di sostanza.]
++  [FORMALE 27/07 - in due tempi. (a) AGGIUNTE serie+data. (b) AGGIUNTA l'impronta sha256.
++  Regola corretta da Mauro 27/07: la serie e la data disambiguano il NUMERO, non sostituiscono
++  mai la FONTE - "Q17-Q22" nel titolo di un file e' un'ETICHETTA DI INTERVALLO...]
+
+@@ -235,7 +241,7 @@
+-    <dt>Citazioni "Qn"</dt><dd>Solo Q20 . serie Q17-Q22 . 20/07/2026. Regola: mai "Qn" senza serie + data...</dd>
++    <dt>Citazioni "Qn"</dt><dd>Una sola: Q20 (serie Q17-Q22 . 20/07/2026), con fonte-file + sha256 accanto.
++    Regola in forma corretta (Mauro, 27/07): mai "Qn" nudo ... ma serie e data disambiguano il NUMERO,
++    non sostituiscono mai la FONTE. ... Forma buona = Qn (serie, data) -> fonte file + sha256.</dd>
+
+VERDETTO B: confermato esattamente come dichiarato. 3 hunk = impronta attribuita
+in 2 punti + regola riscritta in 3 passaggi (mai Qn nudo -> serie/data disambiguano
+il numero ma non sostituiscono la fonte -> forma buona = numero+serie+data+impronta).
+
+================================================================================
+D) DIFF — C: UPDATE\...Alert-Distruttivo-FORMA__3-vie.html (9917bf75...) vs
+             UPDATE2\...Alert-Distruttivo-FORMA__3-vie.html (9c3ea2bf...)
+================================================================================
+righe diff totali = 107   hunk = 9
+righe TOLTE (contenuto) = 5    righe AGGIUNTE = 31
+
+--- geometria (CMD: grep -o 'top:[0-9]*px' vecchio|nuovo, diff dei due elenchi) ---
+6a7,8
+> top:12px
+> top:1315px
+11c13,14
+< top:1560px
+---
+> top:14px
+> top:1627px
+=> Il box del vincolo duro si sposta 1560px -> 1627px; nasce un box nuovo a 1315px.
+   "Geometria zero" e' FALSO.
+
+--- colore: hex nelle righe TOLTE vs AGGIUNTE (CMD: grep -oE '#[0-9a-fA-F]{3,6}') ---
+TOLTE:    (nessuna)
+AGGIUNTE: #16140f x1, #1c1608 x1, #f0ece2 x1, #f3e2c0 x1, #ffd35a x7, #fff x2
+=> ZERO valori di colore preesistenti modificati. Le "7 dichiarazioni" sono 7
+   occorrenze dello STESSO colore nuovo (#ffd35a, ambra) dentro regole CSS
+   completamente nuove (.q20b e famiglia, .delta .d.q20) - non 7 dichiarazioni
+   esistenti toccate.
+
+--- ricerca 'blu'/'blue' nel file NUOVO (CMD: grep -n -i 'blu') ---
+71:  ...filter:blur(1px)...          (falso positivo: "blur", non colore)
+309: "Riga Q-Stage (blu notte, fuori dal play)..."  <- GIA' PRESENTE nel vecchio,
+     invariata (verificato: grep -n 'blu notte' sul file VECCHIO -> stessa riga
+     284, stesso testo). Non fa parte del diff, non e' del giro di oggi.
+CONTROLLO POSITIVO: grep -c -i 'rosso' -> 3 (il filtro funziona)
+=> ZERO occorrenze di "blu"/"blue" riferite a contenuto NUOVO. Le stringhe
+   "pannello blu"/"riga blu" NON esistono nel file consegnato.
+
+--- 'pannello' nel vecchio vs nuovo ---
+vecchio: 1 occorrenza ("pannello rosso in basso a destra" - vincolo duro Not-in-Q-Live)
+nuovo:   2 occorrenze (la stessa + NUOVA: "pannello ambra a destra, riga ambra sotto
+         ogni forma" - riferita al box Q20 appena aggiunto)
+=> Le due stringhe strutturalmente equivalenti a "pannello blu/riga blu" ESISTONO,
+   ma con colore AMBRA, non blu.
+
+VERDETTO C: la claim "sette dichiarazioni di colore, geometria e contenuto zero"
+NON REGGE. Aggiunta sostanziale di contenuto (analisi collisione Q20 su tutte e
+tre le forme, nuova riga in tabella, nuova voce identita', nuovo box posizionato),
+geometria toccata (riposizionamento + nuovo box), 7 occorrenze del MEDESIMO colore
+nuovo (non 7 dichiarazioni preesistenti cambiate). "Pannello blu/riga blu" non
+esiste nel file: esiste "pannello ambra/riga ambra" - stessa struttura, colore
+diverso.
+
+================================================================================
+E) IL QUINTO FILE — spiegazione della propria origine (2026-07-27_BOX5-V28__
+   Token-Colore-PAYLOAD.md, sha256 df55ccdc...9489115, 7444 B, 91 righe)
+================================================================================
+Contenuto integrale gia' letto (vedi turno precedente). Punto rilevante per la
+tracciabilita' del "blu": Sezione (c), verbatim:
+"Chiusa a quattro significa: una quinta voce richiede una ratifica sua. Aggiungerne
+una a mano e' esattamente quello che ho fatto oggi con il blu."
+Sezione (d), verbatim: "...un accento di stanza (blu/arancio/teal) non entra mai a
+colorare un'annotazione... Questa regola oggi non sta scritta da nessuna parte.
+L'ho enunciata a voce in chat il 27/07 rispondendo a Mauro..."
+=> Conferma indipendente, scritta da CD stesso, del perche' il "blu" del claim
+   iniziale non e' nel file finale: e' stato un tentativo, corretto prima della
+   consegna, e CD lo documenta da sé.
+
+================================================================================
+F) I QUATTRO DOCUMENTI DESIGN SYSTEM — valori verbatim + controlli positivi
+================================================================================
+--- 1) QBEATS_CD_to_CC_DesignSystem_26_06_2026.md ---
+Path: DA_CD_PER_CC\11_07_2026\1Q-BEATS\ (estrazione 1Q-BEATS.zip, 11/07 15:03:11)
+sha256 d04585d316c8dd05635fe9752c4ae500f3f44b603e3bd34eeb5ff63f6bbb04f3, 9975 B
+
+CMD: sed -n '15,25p'
+15  --line:      rgba(255,255,255,0.08)
+16  --line2:     rgba(255,255,255,0.14)
+17  --text:      #ffffff
+18  --text2:     rgba(255,255,255,0.55)
+19  --text3:     rgba(255,255,255,0.30)
+20  --studio:    #2a6bd6   /* BLU — ambiente Q-Stage / preparazione */
+21  --live:      #d43f00   /* ARANCIO — ambiente Q-Live / palco */
+22  --amber:     #f5b820   /* AMBRA — attenzione/alert/azione primaria */
+23  --green:     #28cd41   /* VERDE — pronto/acceso/in-sync */
+24  --stop:      #ff3b30   /* ROSSO — stop/distruttivo/bloccante */
+25  --ink:       #11131a   /* testo scuro su bottoni chiari (ambra/verde) */
+
+CMD: grep -n 'Q-Studio' -> [nessun output, zero occorrenze]
+CONTROLLO POSITIVO: grep -c 'Q-Stage' -> 3
+
+=> TRAPPOLA CONFERMATA A FONTE: il token si chiama "--studio" ma il proprio
+   commento dice esplicitamente "ambiente Q-Stage". La stringa "Q-Studio" non
+   compare MAI in questo documento (zero su zero, filtro provato con Q-Stage=3).
+   Chi leggesse solo il nome del token concluderebbe il contrario del vero.
+
+--- 2) RISPOSTA_CD_DS_Terna_Home_28_06_2026.md ---
+Path: DA_CD_PER_CC\11_07_2026\1Q-BEATS\DA_CD_PER_CC\28_06_2026\Home\
+sha256 65b68e3b64b43fd597847aa5c780f74546e482db2c3eb2e124bb0c059cbeff5d, 4645 B
+
+CMD: sed -n '14,22p'
+16  ## B) §3.4 — terna accenti + regola `-tint`: RATIFICATO / assorbito
+17  - Terna per-modulo confermata: Q-Stage #2a6bd6 · Q-Live #d43f00 · Q-Studio #17a8a8,
+    ognuno col suo -tint (#9cc0f5 / #ff8a5c / #5fc8c8). I tre -tint sono pinnati a
+    valore (hand-tuned per leggibilita' su fill a bassa opacita') — non da formula
+    lighten a runtime.
+18  - --orange #d43f00 = token condiviso (asserzione di BRAND Q-Live): d'accordo.
+    E' il colore-marchio Q-Live, finora hardcoded → ora si riferisce, non si duplica.
+    (Gia' marcato cosi' nel mio handoff Home §2: «vive nel tema Live → CC la condivide».)
+19  - --blue-tint #9cc0f5 = un solo token, doppio uso intenzionale (tint dell'accento
+    blu + testo-su-blu degli stati selezionati)...
+20  - Chiuso da §8 del mio handoff: --teal + --orange-tint + --teal-tint ratificati →
+    CC li scrive in QStageTheme con la diff Home.
+
+=> "CONDIVISO" CHIARITO A FONTE: non significa "condiviso con un'altra stanza".
+   Significa: il valore era hardcoded (duplicato) in piu' punti del codice; ora
+   diventa UN riferimento unico invece di N copie. E' condiviso FRA I PUNTI DEL
+   CODICE che lo usano, non fra ambienti diversi dell'app.
+
+--- 3) HANDOFF_CD_Home_28_06_2026.md — TRE COPIE, TRE CONTENUTI DIVERSI ---
+(gia' misurato in turno precedente — riportato per completezza)
+copia 1: DA_CD_PER_CC\11_07_2026\1Q-BEATS\DA_CD_PER_CC\28_06_2026\Home\
+         sha256 3e5ef78e0d9a98c3e829df44ecfa4252fc5a1098a562005db2ef0bb451d7bb88, 10583 B
+copia 2: DA_CD_PER_CC\GIUGNO\28_06_2026\HOME - BIVIO\28_06_2026\Home\
+         sha256 55f005a4b42c3738a5ec05cfba2ee1d6770e24255c9bae7c50764afe167b841b, 10159 B
+copia 3: DA_CD_PER_CC\GIUGNO\28_06_2026\HOME - BIVIO 2\DA_CD_PER_CC\28_06_2026\Home\
+         sha256 d43d0076811d22fe88e5baea27368bd302823db9572df935e171d12245975638, 10663 B
+Il VALORE della terna coincide identico sulle tre copie (righe 38-41 in tutte):
+38  | --blue   | #2a6bd6 | accento Q-Stage | [DS] |
+39  | --orange | #d43f00 | accento Q-Live (...) | [DS] |
+41  | --teal   | #17a8a8 | accento Q-Studio | [NUOVO] |
+Divergono solo nella prosa circostante (annotazioni extra, elenco -tint), mai nel
+valore esadecimale. Nessuna delle tre copie e' al percorso "28_06_2026\Home\"
+diretto sotto DA_CD_PER_CC\ — quel percorso NON esiste (Test-Path -> False).
+
+--- 4) HANDOFF_CD_SHOWS_09_07_2026.md ---
+Path LIVE: DA_CD_PER_CC\09_07_2026\ (+ 2 copie altrove, hash identico)
+sha256 c7b50de73a938095d383b897706f8c62e5427e3dcbdee1ae87998236028c127c, 18312 B
+40  | --studio | #2a6bd6 | accento Q-Stage (CTA ghost "Create in Songs") | [DS] |
+51  | --live   | #d43f00 | accento Q-Live: indici, chevron, Start | [DS] |
+66  > Referee — riconciliazione DS: esistono gia' --green #28cd41 e (pending Home)
+    --teal #17a8a8 accento Q-Studio...
+NOTA A PARTE (non tocca la terna, verificata a byte): riga 66 contiene "volутamente"
+con due lettere cirilliche (U+0443, U+0442) al posto delle latine — corruzione reale
+nel file sorgente, verificata in esadecimale (od -c), non un artefatto del decoder.
+
+================================================================================
+G) CANONICI A HEAD — citazioni del referee, RIVERIFICATE da CC in prima persona
+================================================================================
+--- BOX5_QBEATS.md, sezione Token visivi ---
+CMD: git show HEAD:BOX5_QBEATS.md | grep -n 'Token visivi' -A 3
+120: ## Token visivi — UNICA FONTE DI VERITÀ
+121:
+122: (invariato da V22)
+123:
+124: ---
+=> CONFERMATO: sezione vuota. Header di BOX5 dichiara "Versione V27" — da V22 a
+   V27 sono CINQUE versioni in cui la sezione e' rimasta "(invariato da V22)".
+
+--- BOX5_QBEATS.md riga 167 (citata dal referee) ---
+CMD: git show HEAD:BOX5_QBEATS.md | sed -n '165,169p'
+167: - **Accento: `#28cd41` (V21)**
+=> CONFERMATO verbatim. Token dell'app, in BOX5 da V21.
+
+--- BOX5_QBEATS.md riga 155 (citata dal referee) ---
+CMD: git show HEAD:BOX5_QBEATS.md | sed -n '153,157p'
+155: - Mute button top-right: ... Muto = barra diagonale ambra `#f5b820`. ...
+=> CONFERMATO verbatim.
+
+--- BUGS_QBEATS.md riga 719 (citata dal referee) ---
+CMD: git show HEAD:BUGS_QBEATS.md | sed -n '717,721p'
+719: - **TD #26:** chiuso 14/05/2026 sera commit `a5dea34` (MetSlotStripView accent
+     verde `#28cd41` + token BOX5 conformi).
+=> CONFERMATO verbatim. Il claim del referee (due dei quattro colori annotazione
+   SONO gia' l'app) e' corretto — verificato da CC a fonte, non solo accettato.
+
+================================================================================
+H) FORMA POPUP ② — verbatim dal file C NUOVO (UPDATE2, sha256 9c3ea2bf...),
+   con numero di riga. Attribuito al FILE, non a parole di Mauro.
+================================================================================
+CMD: grep -n 'Ordine:\|Default:\|Distruttivo:'
+244: Ordine: Cancel ← | → Remove · Default: Cancel · Distruttivo: a destra   [forma ①]
+252: Ordine: Remove ↑ / Cancel ↓ · Default: Cancel (in basso, grassetto) ·
+     Distruttivo: in cima                                                   [forma ②]
+260: Ordine: Remove (blocco) / Cancel (staccato) · Default: nessuno ·
+     Distruttivo: in alto nel blocco azioni                                 [forma ③]
+
+CMD: sed -n '246,257p' (box ②, righe pro/con/warn/q20)
+253: Bottoni full-width: nessuna adiacenza orizzontale...
+254: Il sicuro e' l'ultimo e il piu' vicino al pollice: la posizione di riposo
+     cade su Cancel, non su Remove.
+255: Non e' la forma nativa a 2 bottoni: iOS impila da se' solo con label lunghe.
+     Con «Cancel/Remove» corte la fattibilita' va verificata da CC — potrebbe
+     servire un contenitore custom, e un contenitore custom e' codice che
+     dobbiamo mantenere noi.
+256: Il distruttivo in cima e' piu' visibile...
+257: Q20 (LIBRO r.304): identico a ①. «Tap fuori» resta il congedo tastiera
+     ratificato e NON annulla l'alert: i due significati non si toccano mai.
+
+CMD: grep -n 'Tap fuori' (riga tabella di confronto)
+278: Tap fuori | ① non chiude | ② non chiude | ③ chiude = Cancel
+
+=> CONFERMATO VERBATIM, dal FILE: ② = Remove in alto / Cancel in basso (default,
+   grassetto) / distruttivo in cima / tap fuori NON chiude, nessuna collisione Q20.
+   CONFERMATO VERBATIM, dal FILE (non da Mauro): la fattibilita' nativa e' segnalata
+   come DA VERIFICARE da CC, non come acquisita — coerente col punto 2 del referee.
+
+================================================================================
+FINE ARTEFATTO.
+================================================================================

@@ -1,0 +1,306 @@
+REFERTO QB-2026-08-07-A81 — GEOMETRIA DEL DISEGNO CD + ESTRAZIONE DEL DIFF
+===========================================================================
+
+Orologio: 2026-08-07T17:23:10Z, locale 2026-08-07 19:23:10 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ IN TESTA E DA SOLO — IL SOSPETTO DEL REFEREE È FONDATO NELLA SOSTANZA,
+   MA NON È UN VICOLO CIECO. E IL PERICOLO VERO È UN ALTRO.
+================================================================================
+
+[M] LA SOVRAPPOSIZIONE C'È, ED È TOTALE.
+    Barra unica del disegno CD (misurata dal CSS, non dal racconto): y 738 … 794.
+    Pannello mixer a HEAD: y 632,76 … 810 (schermo, iPhone 13).
+    ⇒ La barra sta INTERAMENTE dentro il pannello, 105 pt sotto il suo bordo superiore.
+      Oggi la stessa barra è al CENTRO (y ~395 … 451) e il pannello non la tocca:
+      il disegno la porta DA FUORI A DENTRO. Il senso dell'allarme è corretto.
+    ⚠️ I numeri del referee erano diversi (pannello 667-844) perché collocavano il
+      pannello sullo SCHERMO; il pannello vive nell'AREA SAFE (`GeometryReader` di
+      `LiveView:76` senza `ignoresSafeArea`). L'errore è di 22 pt e non cambia il verdetto:
+      la sovrapposizione resta del 100%.
+
+[M] MA A8(c) RISPONDE **SÌ**: UNA VIA D'USCITA RESTA, ED È SEMPRE DISPONIBILE.
+    Sopra il pannello, e sotto niente, sta la zona `Color.clear` di `LiveView:197-202`
+    — alta `geo.size.height × 0,49` ≈ 374 pt, larga tutto lo schermo, y 258,89 … 632,76 —
+    il cui unico gesto è `session.showMixer = false`. È inevitabile e non ostruita.
+    ⇒ Chiudi il mixer con un tocco in quella fascia, e la barra torna scoperta e premibile.
+      NON è il vicolo cieco di ⟦S5x⟧: il trigger «in testa e da solo» per vicolo cieco
+      NON è scattato. Questo blocco è in testa perché il pericolo che segue lo merita.
+
+⚠️ [M]+[I] IL PERICOLO VERO, CHE NESSUNO AVEVA NOMINATO — CAMBIA NATURA, NON SOLO POSTO.
+    OGGI il tocco sbagliato cade sulla zona `Color.clear`: **chiude il mixer**, il bottone
+    resta visibile per tutto il tempo, l'errore si ripara da solo (A80/A6: «primo tap rubato»).
+    COL DISEGNO CD il tocco sbagliato cade sul PANNELLO, e lì sotto ci sono i quattro
+    `Slider` di `MixerChannelView` — che nella fascia y ≈ 665 … 809 occupano quasi tutta
+    l'altezza utile, cioè PROPRIO la banda 738-794 della barra.
+    ⇒ Due conseguenze nuove, entrambe peggiori del tap rubato:
+      (1) [M] IL BOTTONE NON SI VEDE PIÙ. Il fondo del pannello è `Color(hex: "#16161a")`
+          (`MixerOverlayView:25`), tinta unita, nessun `opacity` e nessun materiale su
+          quello strato — l'unica uscita della schermata diventa INVISIBILE, non solo
+          intercettata. Chi non sa che deve toccare più in alto non ha alcun indizio.
+      (2) [I] IL TOCCO PUÒ CAMBIARE IL MIX. Se lo `Slider` consuma il tocco invece di
+          lasciarlo passare al contenitore, il gesto non chiude niente e può muovere un
+          volume — CLICK o BACKTRACK — a fine show, al buio. NON MISURATO: è
+          comportamento SwiftUI a runtime, non testo; entrambi i rami sono descritti in A8(c).
+    ⇒ Questo è materia di CD e decisione di Mauro. NON propongo rimedi, NON apro ticket.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A81 ═══». INTEGRO. Eseguito per intero.
+0.2 [M] A81 LIBERO. Due supporti × due casse × due forme.
+      NOME sensibile: A81 repo=0 mirror=0 · NOME INsensibile: a81 repo=0 mirror=0
+      CONTENUTO INsensibile: A81 repo=30 mirror=40 — IDENTIFICATE una per una: tutte
+      sottostringhe esadecimali dentro impronte (`b7bca81b…`, `899be2ce1da81f…`,
+      `c1556e57b1a81fafa…`, `32bca7a816…`). NESSUNA è un identificativo di referto.
+      CONTROLLI POSITIVI non-zero: A79 nome=1/1 contenuto=33/38 · A80 nome=1/1 contenuto=20/26.
+0.3 [M] HEAD = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+
+REGIME [M]: zero modifiche sotto `ios_app/`, zero commit/push/branch, zero scritture sui
+canonici (verificato a fine giro). Il file di CD è stato SOLO LETTO: non copiato, non
+spostato, non committato — impronta rimisurata identica a prima e dopo la lettura.
+Due scritture eseguite, entrambe autorizzate: questo referto e il file del diff (punto 4),
+ciascuno in `HANDOFF/` + mirror `E:\…\FILE X CLAUDE.MD\HANDOFF\` (cartelle lette a fonte
+cercando dove vivono A79 e A80), verificate a due forme.
+
+
+================================================================================
+A7 — IL FILE DI CD, LETTO PER INTERO
+================================================================================
+
+[M] DICHIARAZIONE DI LETTURA: letto PER INTERO, righe 1-176, dal commento di testata
+    all'ultimo tag. 19476 byte · 176 righe · CR 0 · sha256
+    `6b6a2a76901fae04ce1315724fdd664d1c3b4c22ead6a755b1cce407f8d72b5c`,
+    RIMISURATO a inizio A81: IDENTICO a quanto A80 aveva rilevato alle 19:10 → il file
+    NON è stato riscritto fra i due giri. mtime 2026-08-07 18:34:49.
+
+A7(a) — QUALE REVISIONE È: **REV3**, la terza emissione. Tre diagnostici su tre concordi.
+--------------------------------------------------------------------------------------
+  · `.foot padding-bottom` — riga 72, VERBATIM:
+        .foot{flex:0 0 auto;padding:0 20px 50px;}
+    ⇒ vale **50**, non 34. È la correzione dichiarata come REV3.
+  · `border:1px` su `.frame.ko` / `.frame.ok` — righe 65-66, VERBATIM:
+        .frame.ko{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(255,59,48,0.55);}
+        .frame.ok{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.55);}
+    ⇒ NESSUN `border`. Resta solo il `box-shadow`, come REV3 dichiara. (Controprova: anche
+      `.frame` a `:64` non porta `border`.)
+  · Annotazioni delle due correzioni in intestazione — righe 10-22, VERBATIM:
+        REV2       07/08 · due correzioni di IMPAGINAZIONE DEL FOGLIO, non di disegno:
+                     · didascalia «350 pt» → sotto il frame ② (era sovrapposta al pulsante)
+                     · pannello ③ → top:1006 (copriva l'ultima riga del pannello ②)
+        REV3       07/08 · il DISEGNO ora corrisponde ai NUMERI dichiarati nel pannello ②
+                   (prima li contraddiceva di 1-15pt — inaccettabile in un handoff di misure):
+                     · .foot padding-bottom 34 → 50 (34 home indicator + 16 respiro, come
+                       dice il testo). Bordo inferiore CTA ora a y 794 REALI.
+                     · tolto il border:1px da .frame.ko/.ok: il riquadro di stato è già
+                       il box-shadow. Ora il device è 390×844 VERI e «x 20 · w 350» è
+                       letterale, non approssimato.
+                     · baricentro ricalcolato sul disegno nuovo: y ≈ 378.
+                   La sostanza del disegno è invariata dalla prima emissione.
+                   La schermata 390×844 è INVARIATA rispetto alla prima emissione.
+  ⇒ Entrambe le annotazioni sono presenti. Il file sul disco è **REV3**, benché il nome non
+    porti suffisso: la revisione si legge SOLO dentro, ed è un difetto di forma del nome —
+    registrato, non riparato (il file non si tocca).
+
+A7(b) — LA GEOMETRIA VERA DELLA BARRA UNICA, dal CSS  [M]
+------------------------------------------------------------
+  Catena verbatim che la determina (frame ②, `<div class="frame ok" style="left:590px; top:406px;">`
+  a riga 132, con dentro `<div class="foot"><div class="cta">Back to Shows</div></div>` a riga 135):
+      :64  .frame{position:absolute;width:390px;height:844px;…display:flex;flex-direction:column;…}
+      :67  .sb{height:44px;flex:0 0 44px;…}
+      :69  .stagecol{flex:1;…padding-bottom:26px;}
+      :72  .foot{flex:0 0 auto;padding:0 20px 50px;}
+      :73  .cta{height:56px;border-radius:14px;…}
+  ⇒ COORDINATE DENTRO IL FOGLIO 390×844, calcolate dalla catena (colonna flex, `.foot`
+    è l'ultimo blocco e non cresce):
+      altezza `.foot` = 0 (padding-top) + 56 (cta) + 50 (padding-bottom) = **106**
+      `.foot`  occupa  y **738 … 844**
+      **BARRA**: y **738 … 794** (h 56) · x **20 … 370** (w **350** = 390 − 2×20) · radius 14
+      sotto la barra restano **50 pt**
+  ⇒ COINCIDE con quanto CD dichiara nel pannello ② (riga 142, VERBATIM):
+      «<b>Pulsante unico</b> — <code>x 20</code> · <code>w 350</code> (390 − 2×20) ·
+       <code>h 56</code> · <code>radius 14</code>. Bordo inferiore a <code>y 794</code>:
+       sotto restano <b>50pt</b> (34 di home indicator + 16 di respiro). Target <b>56 ≫ 44</b>.»
+    Disegno e numeri dichiarati sono d'accordo: è esattamente ciò che REV3 diceva di aver
+    riparato, ed è verificato qui indipendentemente dal CSS.
+  ⚠️ Il testo di CD parla anche di «barra piena da margine a margine»: 350 su 390 è
+    «pieno entro i margini di 20», non da bordo a bordo. Nessuna contraddizione — i numeri
+    citati sono espliciti — ma chi legge solo la prosa può aspettarsi 390.
+
+A7(c) — ALTRE REVISIONI: **NESSUNA**  [M]
+--------------------------------------------
+  Ricerca ESAUSTIVA, nessun limite di profondità, su TUTTO `C:\…\Q-BEATS` e TUTTO
+  `E:\…\Q-BEATS`, per `*EndShow*` E per `*Secondo-Pulsante*` (case-insensitive):
+  UN SOLO file HTML, quello misurato. Gli altri hit sono TRE referti CC del 03/08
+  (`DIFF_SCALETTA-v7_2026-08-03_A19/A25/A26-CANCELLO-ENDSHOW.txt`), presenti su entrambi i
+  supporti — nessuno è un deliverable CD. CONTROLLO POSITIVO stessa forma:
+  `*FREEZE-CONSOLIDATO*` rende i due HTML noti del 06/08.
+  ⇒ Non c'è nulla da scegliere: REV1 e REV2 non esistono su disco. Solo REV3 sopravvive,
+    sotto un nome che non lo dice.
+
+
+================================================================================
+A8 — IL PANNELLO MIXER
+================================================================================
+
+A8(a) — È OPACO? **SÌ.**  [M]
+  `MixerOverlayView.swift:25`, VERBATIM:  `.background(Color(hex: "#16161a"))`
+  Tinta unita, nessun `opacity` e nessun `Material` su quello strato. Le quattro occorrenze
+  di `opacity` nel file (`:29`, `:54`, `:68`, `:73`) sono tutte su ALTRO: il filo di bordo
+  superiore, il colore delle etichette, il tint degli slider, e la resa dei canali
+  disabilitati (`MixerChannelView`, riga 73) — nessuna tocca il fondo del pannello.
+  Anche lo strato che lo contiene (`LiveView:194-207`) non porta `opacity`.
+  ⇒ Ciò che sta sotto il pannello NON si vede. Per niente.
+
+A8(b) — LA BARRA DI A7(b) FINISCE DENTRO IL PANNELLO? **SÌ, al 100%.**  [M] geometria, [I] resa
+  Sistema di riferimento, misurato: `LiveView:76` apre `GeometryReader { geo in` SENZA
+  `ignoresSafeArea` (l'unico `ignoresSafeArea` del file è a `:89`, sul solo colore di fondo)
+  ⇒ `geo` è l'AREA SAFE. Baseline dichiarata iPhone 13: schermo 390×844, inset 47 sopra /
+  34 sotto ⇒ area safe y 47 … 810, `geo.size.height` = 763.
+      pannello mixer  = `UIScreen.main.bounds.height × 0,21` = 844 × 0,21 = **177,24**
+                        ancorato in fondo all'area safe ⇒ y **632,76 … 810**
+      zona tap-close  = `geo.size.height × 0,49` = 763 × 0,49 = **373,87**, subito sopra
+                        ⇒ y **258,89 … 632,76**
+      barra CD        = y **738 … 794**
+  ⇒ 738 ≥ 632,76 e 794 ≤ 810: la barra è **interamente** dentro il pannello, con 105,24 pt
+    di pannello sopra di lei e 16 pt sotto. Sovrapposizione **100 %**.
+  ⇒ CONFRONTO CON OGGI, per far vedere che è il disegno a spostare le cose e non la misura:
+    a HEAD i due pulsanti sono CENTRATI nell'area safe (`FineSetlistView:22`, VStack senza
+    allineamento verticale) ⇒ BACK TO SHOWS ≈ y 395 … 451, che cade nella zona tap-close e
+    **non** nel pannello. Il disegno lo porta da y ~395 a y 738: fuori dal pannello → dentro.
+  ⚠️ [I] Le quote dipendono dalla baseline dichiarata (iPhone 13); su iPad cambiano i
+    numeri, non l'ordine verticale (pannello in fondo, `.foot` in fondo → si sovrappongono
+    sempre). Nessuna misura eseguita su device.
+
+A8(c) — CON IL MIXER APERTO, DOPO Ⓐ, RESTA UN MODO DI USCIRE? **SÌ.**  [M]
+  Censimento ESAUSTIVO dei gesti attivi in `.fineSetlist` con `showMixer == true`, sullo
+  stato dell'albero montato (base: censimento A79-A1, riverificato qui sui due file):
+    (1) `LiveView:197-202` — `Color.clear`, h = `geo.size.height × 0,49`, larghezza piena,
+        `.contentShape(Rectangle())`, `.onTapGesture { session.showMixer = false }`.
+        y 258,89 … 632,76. NON ostruita da nulla: sopra c'è solo END SHOW, che sta più in
+        basso nello z-order. ⇒ **VIA D'USCITA GARANTITA**: un tocco lì chiude il mixer, poi
+        la barra a y 738 è scoperta e premibile.
+    (2) `MixerOverlayView:32-35` — `.contentShape(Rectangle())` + `.onTapGesture { showMixer
+        = false }` sul contenitore del pannello. Funziona dove il tocco NON è consumato da
+        uno `Slider`. ⇒ via d'uscita CONDIZIONATA.
+    (3) Terze vie: **ZERO**. Nessuno swipe esiste nell'albero montato (A79-A1: `swipe` rende
+        1 in tutto il repo UI, ed è un COMMENTO in `QLiveShowsView:271`, pagina non montata);
+        nessun `NavigationStack` in catena ⇒ nessun back-swipe di sistema; nessun `TabView`.
+        CONTROLLO POSITIVO della forma: la stessa ricerca trova i `DragGesture` reali di
+        `LiveView:117` e `TransportView:105` — quindi la forma discrimina, e lo zero vale.
+  ⇒ NON è un vicolo cieco. Il trigger del mandato NON scatta.
+  ⚠️ [I] NON MISURATO — se uno `Slider` consuma il tap o lo lascia passare al contenitore:
+    è comportamento SwiftUI a runtime. Ramo A (consuma): il tocco sulla barra invisibile non
+    chiude niente e può muovere un volume. Ramo B (passa): chiude il mixer, come oggi.
+    In ENTRAMBI i rami la via (1) resta valida: il verdetto «non è vicolo cieco» non dipende
+    da quale ramo sia vero.
+
+
+================================================================================
+A9 — `UIScreen` È DAVVERO UNICO
+================================================================================
+  [M] CONFERMATO. Sweep su tutti i `.swift` tracciati sotto `ios_app/`, letti dal blob:
+      `UIScreen`  cassa sensibile   = **1**
+      `uiscreen`  cassa insensibile = **1**   (stessa occorrenza, nessuna variante)
+      unica riga, VERBATIM:
+        `ios_app/QBeats/UI/Live/MixerOverlayView.swift:24`
+        `        .frame(height: UIScreen.main.bounds.height * 0.21)`
+  CONTROLLO POSITIVO, forma corretta e stessa notazione:
+      `geo.size`        = **25** occorrenze su **9** file
+      `GeometryReader`  = **10** occorrenze
+      (fra cui `MixerOverlayView` stesso, che usa `geo.size` 2 volte in `MixerChannelView`:
+       il file conosce la forma giusta e la usa altrove — l'anomalia è isolata a `:24`.)
+  ⇒ Causa, non nota: tutta l'app misura sull'AREA SAFE; quella riga sola misura sullo
+    SCHERMO. Conseguenza aritmetica [M]: il pannello è alto 177,24 mentre la zona transport
+    che sostituisce è alta `geo.size.height × 0,21` = 160,23 ⇒ **17,01 pt più alto del suo
+    alloggio**. [I] E in ambienti dove finestra ≠ schermo (iPad in multitasking) misurerebbe
+    una grandezza che non c'entra con la finestra. Materia del ticket. NON APERTO, come da
+    mandato.
+
+
+================================================================================
+4 — ESTRAZIONE DEL DIFF
+================================================================================
+
+[M] File prodotto: `HANDOFF/DIFF_LIBRO-v55_2026-08-07_A81-RESTART-SETLIST-TOLTO.txt`
+    13199 byte · 36 righe · CR 0
+    sha256 `1de954a7a95947fdbb9c7b081cabf9468ee3c88fa50973ca07742fb6f54a2800`
+
+[M] PROVA DI IDENTITÀ — nessuna ricomposizione, nessuna rigenerazione.
+    Il corpo del diff è stato ESTRATTO PER RIGHE dal referto A80 (righe 179-203, dalla riga
+    `--- a/LIBRO_MASTRO_QBEATS.md (v54 @ 2960f08)` all'ultima riga di contesto ` ---`) e
+    riscritto tale e quale sotto un'intestazione di consegna. Verifica a due forme:
+      sha256 del corpo embedded in A80        = 0d91a1110e2baddbfd8b164505d6d60bca12da09a5b48d6bf3da24de9ecfcacd
+      sha256 del corpo nel file estratto      = 0d91a1110e2baddbfd8b164505d6d60bca12da09a5b48d6bf3da24de9ecfcacd
+      `cmp` fra i due corpi                   = exit 0, nessuna differenza
+    ⇒ Il corpo è BYTE-IDENTICO all'embedded. Ciò che il file aggiunge è SOLO
+      l'intestazione di consegna (11 righe: giro, sorgente, faccia, natura di proposta,
+      contesto -U2, origine dell'estrazione) — che sta FUORI dal corpo del diff.
+
+[M] STRUTTURA DEL CORPO, ricontata sul file: 25 righe · **3** hunk (`@@ -3,7 +3,7 @@`,
+    `@@ -351,4 +351,5 @@`, `@@ -504,4 +505,5 @@`) · 5 righe aggiunte + `+++` di testata
+    · 3 righe rimosse + `---` di testata. Forma `-U2` come i DIFF_LIBRO precedenti.
+
+[M] Il diff resta UNA PROPOSTA: NON applicato, NON committato. Verificato a fine giro che
+    il blob del LIBRO a HEAD è ancora `f7cd8085023ef0382e8c26e81b802d2a6e3b3274` e che
+    `git status` sui cinque canonici è vuoto.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho proposto alcun rimedio geometrico (vietato dal §3): la sovrapposizione è
+    misurata e riferita, la soluzione è materia di CD e decisione di Mauro.
+  · NON ho aperto il ticket del mixer, benché A9 ne fornisca ora la causa misurata.
+  · NON ho toccato, copiato, spostato né committato il file di CD: solo letto.
+  · NON ho applicato il diff; NON ho toccato SCALETTA, BUGS, BOX3, BOX5.
+  · NON ho misurato NULLA su device: tutta la geometria di A8 è calcolo dal codice e dal
+    CSS, su baseline iPhone 13 dichiarata. Le quote reali su iPad NON SONO MISURATE.
+  · NON ho stabilito se uno `Slider` consumi il tap: NON MISURABILE da testo, dichiarato.
+  · NON ho letto per intero `TransportView.swift` né i leaf senza gesti; i due file
+    centrali di A8 (`MixerOverlayView` 75 righe, `LiveView` 466) erano già letti interi in
+    A80/A78 e qui riverificati sui punti citati.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SUL CALCOLO, non sulla conclusione. Il tuo pannello a «y 667-844» lo colloca sullo
+  SCHERMO; misurato, sta nell'AREA SAFE (`y 632,76 … 810`), perché il `GeometryReader` di
+  `LiveView:76` non ignora la safe area. Sono 22 pt e non cambiano il verdetto — la
+  sovrapposizione resta del 100% — ma cambiano il MARGINE: la barra non è «71 pt dentro»,
+  è **105 pt dentro**, e sotto di lei restano 16 pt di pannello, non zero. Se qualcuno
+  proverà a cavarsela alzando la barra, i pt da recuperare sono più di quelli che il tuo
+  calcolo suggerisce.
+
+D2 — SULLA GRAVITÀ, e qui divergo dall'inquadramento. Il mandato chiedeva di verificare se
+  fosse «il bug che ⟦S5x⟧ doveva chiudere, ricreato dal disegno». Misurato: **non lo è** —
+  la zona tap-close di 374 pt resta sempre disponibile e non ostruita. Ma il quadro non è
+  per questo più tranquillo, perché la natura del difetto cambia in peggio: OGGI il tocco
+  sbagliato cade su una zona che CHIUDE il mixer e il bottone è sempre VISIBILE; col
+  disegno il tocco cade su un pannello OPACO che nasconde il bottone e sotto cui stanno
+  quattro slider. Si passa da «un tap rubato, autoriparante» a «l'unica uscita è invisibile,
+  e il tocco sbagliato può cambiare il mix». Non chiamerei questo «meno grave»: è meno
+  bloccante e più insidioso, che sono due assi diversi.
+
+D3 — SU CHI DEVE RISPONDERE. Il file di CD chiede a CC due misure (M1 e M2, riga 170-171) e
+  le ha avute in A79 (nessuno swipe; TD #43 in piedi). Ma l'interazione mixer/END SHOW non
+  è fra le due domande di CD: CD non poteva porla, perché il mixer non compare in nessuno
+  dei suoi tre frame né nel pannello ③ «cosa NON c'è sulla schermata». ⇒ Il disegno REV3 è
+  stato fatto SENZA sapere che esiste uno strato sopra END SHOW. Prima di ratificare il
+  DISEGNO — non la decisione Ⓐ, che regge — questa misura va messa in mano a CD, o si
+  ratifica una geometria decisa su un quadro incompleto.
+
+D4 — INVARIATO E RIBADITO: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e NON validati su device, e
+  A79-A3 ha misurato che ⟦S5a⟧ è raggiungibile e validabile SUBITO, senza dipendere da
+  ⟦S5b⟧. Ogni giro che passa aggiunge piani sopra un gate mai chiuso.
+
+FINE REFERTO A81.

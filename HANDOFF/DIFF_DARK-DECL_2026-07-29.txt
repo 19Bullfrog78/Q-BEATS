@@ -1,0 +1,16 @@
+diff --git a/ios_app/project.yml b/ios_app/project.yml
+index 2eaf168..ecebdb3 100644
+--- a/ios_app/project.yml
++++ b/ios_app/project.yml
+@@ -15,6 +15,11 @@ targets:
+     info:
+       path: QBeats/Info.plist
+       properties:
++        # DARK-DECL (device 29/07/2026): senza questa chiave gli elementi di sistema
++        # (tastiera, pannello Ableton Link) seguono lo stile del device, non l'app —
++        # tutta cablata scura. Apple, UIUserInterfaceStyle, iOS 13.0+: "Dark" forza lo
++        # stile scuro ignorando l'impostazione di sistema.
++        UIUserInterfaceStyle: Dark
+         NSLocalNetworkUsageDescription: "Q-BEATS uses the local network to connect to Network MIDI sessions on other devices."
+         ABLLinkStartStopSyncSupported: true
+         ABLLinkPeerName: "Q-BEATS"

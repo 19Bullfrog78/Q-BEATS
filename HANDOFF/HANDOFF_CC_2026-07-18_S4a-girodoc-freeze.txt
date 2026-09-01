@@ -1,0 +1,201 @@
+HANDOFF CC — chiusura sessione 2026-07-18 — per il CC della prossima sessione
+Autore: CC (questa sessione) · Nessuna modifica al repo in questo turno (solo questo file).
+Scritto dal MIO punto di vista, senza tentare di allineare al handoff del referee (separato
+per costruzione — l'indipendenza dei due R1 è ciò che ha fatto emergere discrepanze reali
+in questa sessione, tre volte: vedi §6). Non riassumo le decisioni ratificate: rimando ai
+canonici che le contengono. Un handoff che diventa residenza è E3 — questo è trasporto.
+
+════════════════════════════════════════════════════════════════════════
+1 — STATO GIT A FINE SESSIONE (verificato ORA, in questo turno, non ereditato)
+════════════════════════════════════════════════════════════════════════
+$ git log -5 --format="%H %h | %an <%ae> | %s"
+fe6d34b18f2fa666e1cb3fcac050c94374a1cca9 fe6d34b | Mauro Martintoni <di_tutto@icloud.com> | HANDOFF: SCALETTA_ATOMI_S6 tracciata in git (cambio di regime, contenuto invariato)
+57c8b2a1e0662d0ccbf72da83e59a2e00af9aed6 57c8b2a | Mauro Martintoni <di_tutto@icloud.com> | DESIGN: freeze CD overlay uscita-stanza in play + fascia Q-Live
+2d36784c3591ee547ab4f960c8a7c59d64af513a 2d36784 | Mauro Martintoni <di_tutto@icloud.com> | LIBRO_MASTRO v36 — Sez.2 +5 righe cross-team 18/07 (nav≠transport, runner-sale, uscita-stanza, CTA, allarme asimmetrico) + Sez.5 HEAD f8276f6 + changelog v35 ricostruito
+1daef537a908c9fbe41a70d8da2754abbe95b781 1daef53 | Mauro Martintoni <di_tutto@icloud.com> | BUGS_QBEATS.md: v39 — nuovo ticket TD-qlive-exit-unconfirmed-stop (§1.1, doc-only)
+f8276f67320a05058862be6df0113f9fdd15245a f8276f6 | Mauro Martintoni <di_tutto@icloud.com> | S4a: QLiveShowsView come dead code (frame ② read-only, non referenziato)
+
+TUTTI e 5 con autore Mauro, ZERO Co-Authored-By (verificato per ciascuno con
+`git log -1 --format="%an <%ae>|%(trailers)"` al momento del commit — non ripetuto qui,
+ma verificabile identicamente da chiunque su ognuno degli sha sopra).
+
+HEAD = origin/master = `fe6d34b18f2fa666e1cb3fcac050c94374a1cca9` (verificato: `git rev-parse
+HEAD` e `git rev-parse origin/master` danno lo stesso valore in questo turno).
+
+CI, 5 run, tutte VERDI (letture verbatim fatte nei rispettivi turni, non dedotte da exit
+code — riporto qui solo l'id e l'esito, il verbatim completo è nella cronologia sessione):
+  f8276f6 → run 29653954692 → ✓ build 4m41s
+  1daef53 → run 29659099809 → ✓ build 2m0s
+  2d36784 → run 29659399545 → ✓ build 2m19s
+  57c8b2a → run 29659760555 → ✓ build 1m59s
+  fe6d34b → run 29660052191 → ✓ build 2m19s
+Warning costanti su tutte e 5 (non-bloccanti, noti da prima di questa sessione): Node.js 20
+deprecato sui runner GitHub Actions; tap Homebrew `aws/tap` non-trusted.
+
+Worktree (`git worktree list`):
+  C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS  fe6d34b [master]   ← repo LIVE
+  C:/Users/BULLFROG/qb_fixB                      add556f [test/bug2b-test7-fixtures]
+`qb_fixB` NON è un errore di memoria (rettificato in BOX3 V97 (f) — l'errore storico era
+su `qb_fixA`/`qb468clone`, gruppo distinto). Il trigger di rimozione di `qb_fixB` è
+soddisfatto da tempo (dopo gate device S3); rimozione = azione manuale Mauro, non eseguita.
+
+Untracked residui (`git status --short`, 15 voci, tutte già note, nessuna sorpresa):
+  13× HANDOFF/*.txt — trasporti/verifiche/piani prodotti in questa sessione e nelle
+      precedenti (elenco in §5, con lo status di ciascuno)
+  2× piani orfani in root: QBEATS_A5C_PIANO_2026-07-04.md, QBEATS_ATOMC_PIANO_2026-07-06.md
+      (invariati, da classificare — §5)
+
+════════════════════════════════════════════════════════════════════════
+2 — COSA È STATO SPEDITO (con dove trovarne il dettaglio ratificato)
+════════════════════════════════════════════════════════════════════════
+· **S4a** — `ios_app/QBeats/UI/QLive/QLiveShowsView.swift` (commit `f8276f6`, +309/-0).
+  DEAD CODE: nessun file esistente lo referenzia. Verificato in questa sessione con
+  `git diff HEAD -- ios_app/QBeats/UI/QLive/QLiveRootView.swift ios_app/QBeats/UI/
+  AppRootView.swift` = vuoto su ENTRAMBI, prima e dopo il commit S4a. **CI-verde ≠ chiuso**:
+  mai visto a schermo (nessun Xcode nell'ambiente CC). Chiusura visiva = gate device S4b.
+  Checklist token 8/8 verificata contro il freeze — dettaglio in `HANDOFF/
+  VERIFICA_S4a_TOKEN_2026-07-18.txt` (sha256 `8403fd66…`, trasporto, non canonico).
+
+· **Giro doc ridotto (3 canonici, un file alla volta, 2 cancelli/file — metodo in §6):**
+  - **BOX3 V96→V97** — `ARCHIVIO.MD/18_07_2026/BOX3_V97_2026-07-18.md`. GITIGNORED, quindi
+    NESSUN commit git per questo file (verificato: `git ls-files --error-unmatch` sul path
+    fallisce = non tracciato, per design — vedi Costituzione, BOX3 non è VIVA-in-git).
+    Propagato al mirror E:\…\BOX3_Codice\, sha256 `d2bb68b66e8790aa3f6a42dad1d876b75252a97
+    95618e79111effbe72d2b1e69` identico ai due capi (verificato in sessione). Contiene i
+    punti (a)-(h) e 6 marcatori inline che neutralizzano il vecchio prereq (k) — dettaglio
+    NON riassunto qui, leggere il canonico.
+  - **BUGS v38→v39** — commit `1daef53`. Nuovo ticket §1.1 `TD-qlive-exit-unconfirmed-stop`.
+    Dettaglio ratificato: leggere il ticket nel canonico, non qui.
+  - **LIBRO v35→v36** — commit `2d36784`. Sez.2 +5 righe cross-team. Dettaglio ratificato:
+    leggere LIBRO_MASTRO_QBEATS.md Sez.2 (righe successive alla riga NODO A 17/07), non qui.
+
+· **Freeze CD** — `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html` (commit `57c8b2a`).
+  Blob sha256 verificato in sessione = `8d7a3150050f2d9ee88d552f6a59649081518a1189182174c
+  5dfed655c398860` (identico al valore ratificato dal referee prima del commit). Contratto
+  1:1 per S6 (overlay STOP-con-conferma + fascia in-play). NON implementato: doc/design only,
+  nessun file .swift toccato in questo commit (verificato: `git show --stat 57c8b2a` = 1
+  solo file, il .html).
+
+· **SCALETTA tracciata** — `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` (commit `fe6d34b`).
+  Blob sha256 verificato in sessione = `d2cdf1204709834ca96959fae571611846ec278b7cd68428
+  c114ef72d6a60437` (identico al valore ratificato dal referee). CONTENUTO NON MODIFICATO
+  in questo commit — è Versione 2 (17/07), STALE rispetto a HEAD attuale e allo stato reale
+  di S4/S4L. La riscrittura in v3 è ratifica referee DOPO S4b, non fatta qui.
+
+════════════════════════════════════════════════════════════════════════
+3 — S4b: COSA È GIÀ RATIFICATO (non rinegoziare) + PERIMETRO ATTESO
+════════════════════════════════════════════════════════════════════════
+Ratificato in questa sessione, con fonte:
+  · Ruling D1-split (BOX3 V97 (c)): installare `page` + `switch page` + `navigate(to:)` +
+    commento di guardia con la decisione CD 18/07. Formulazione del funnel proposta da CC,
+    ratificata dal referee CON UN TAGLIO: **NIENTE `previousPage`** (unico consumatore era
+    l'handler di stop, che NON esiste — vietato in ogni forma, anche inerte). `previousPage`
+    si aggiunge SOLO insieme al suo primo lettore reale (atteso S6).
+  · Vincolo tecnico: `QLivePage` case-only (Equatable auto-sintetizzato, come `Screen` in
+    `AppRootView.swift:18`); il payload (show/setlist selezionata) sta in `@State` separato,
+    MAI dentro l'enum.
+  · **CTA «Go to Q-Stage» cablata a `onSwitchToStage` GIÀ a S4b** (anticipo di S6) — QUESTA
+    RIGA È IN **LIBRO v36 Sez.2** (riga 4, attribuzione «CC proposta + referee ratifica»),
+    **NON in BOX3 V97**. Segnalazione esplicita fatta al referee durante il giro doc: V97
+    contiene solo la storia della CTA come no-op (§6 corpo, S2b/S2c), non questa decisione.
+    Chi legge SOLO BOX3 (abitudine naturale, è il documento-leggi-per-primo) NON la trova.
+  Fonte primaria per il disegno completo di S4b (atomi, rischi, checklist token, gate):
+  `HANDOFF/PIANO_S4b_REV_2026-07-18.txt` — è un TRASPORTO, non canonico, ma è l'unico posto
+  dove il disegno di S4b vive per intero; BOX3 V97 lo cita per punti, non lo riproduce.
+
+Perimetro atteso (dal piano, non ancora eseguito): `QLiveRootView.swift` EDIT +
+`AppRootView.swift` EDIT (iniezione `onSwitchToStage`). **`QLiveShowsView.swift` NON si
+tocca** — S4a l'ha già scritta e verificata token-per-token; S4b la referenzia, non la
+modifica.
+
+════════════════════════════════════════════════════════════════════════
+4 — VERIFICHE APERTE (il prossimo CC le fa, non le eredita per fatte)
+════════════════════════════════════════════════════════════════════════
+· **`isPlaying` vs `isRunning` — proprietà DISTINTE, mai provata la loro sincronia.**
+  Verificato ORA: `AudioEngine.swift:56` `@Published var isPlaying: Bool = false` (letta
+  da `TransportView.swift:36`) vs `AudioEngine.swift:273` `private var isRunning = false`
+  (letta dalla guardia `stopSync():1638`). Sono DUE campi diversi. L'ESITO A del ticket
+  BUGS v39 (CANCEL di WaitingForDirector non è band-stop) costruisce la catena logica su
+  `isPlaying==false` (da `TransportView.swift:36/58`) e poi la applica alla guardia
+  `guard self.isRunning` (`AudioEngine.swift:1638`) SENZA aver dimostrato che i due campi
+  sono sempre allineati. Se esiste una finestra in cui `isPlaying==false` ma `isRunning==
+  true` (o viceversa), l'ESITO A del ticket va rivisto. Non l'ho verificato in questa
+  sessione — lo marco esplicitamente aperto.
+· **RoomSwitchBar nel player — oggi [R], parola di Mauro, non [V].** Grep fatto ORA:
+  `grep -rln "RoomSwitchBar(" ios_app/QBeats --include="*.swift"` → SOLO
+  `UI/QLive/QLiveShowsView.swift` e `UI/QStage/ShowsListView.swift`. Nessuna istanza in
+  `UI/Live/*.swift` (il player). Questo è coerente con «il player non ha RoomSwitchBar»,
+  ma è un grep puntuale su HEAD `fe6d34b`, non una verifica semantica del freeze («il
+  freeze copre DUE sfondi, non tre» — la barra-stanze assente nel player). Il freeze CD
+  del 18/07 poggia su quel fatto: va confermato per simbolo prima di implementare S6 su
+  quella base, non solo per assenza-di-grep.
+· **Ancore di S4b da riancorare a HEAD.** Il piano (`PIANO_S4b_REV`) e BOX3 V97 citano
+  simboli e talvolta righe verificate a `f8276f6`/`ed5425c`. Il repo si è mosso di 4 commit
+  da lì (fino a `fe6d34b`, tutti doc/design-only — NESSUNO tocca `.swift` nel perimetro S4b,
+  verificabile con `git log --oneline f8276f6..HEAD -- ios_app/`, che risulta VUOTO in
+  questa sessione). Quindi le ancore *dovrebbero* reggere, ma vanno riverificate per
+  simbolo a HEAD reale all'apertura della sessione S4b, non fidandosi del numero di riga
+  scritto nei documenti — è la disciplina R7/R1 di tutta questa sessione, non un'eccezione.
+
+════════════════════════════════════════════════════════════════════════
+5 — DEBITI TECNICI MIEI (non del referee)
+════════════════════════════════════════════════════════════════════════
+· **2 piani orfani, invariati, root repo, untracked**: `QBEATS_A5C_PIANO_2026-07-04.md`
+  (persistenza/backup A5c) e `QBEATS_ATOMC_PIANO_2026-07-06.md` (subdivision downbeat DSP).
+  Vivo/morto da stabilire — non deciso in questa sessione, non è competenza mia deciderlo
+  da solo (potrebbero contenere lavoro non ancora incassato).
+· **13 file HANDOFF/*.txt di trasporto, scopo perlopiù esaurito** (i canonici che
+  descrivevano sono già scritti/committati): `DIFF_BUGS_v34_TD-peer-reconnect-button_2026-
+  07-11_v2.txt`, `DIFF_GIRO_DOC_2026-07-17.txt`, `DIFF_N0/N1a/N1b_2026-07-17.txt` (Nodo A,
+  già in master) — questi 5 sono relitti di sessioni precedenti, con scopo esaurito da
+  prima di oggi. I 8 di OGGI hanno ancora valore di replay/audit per un po' (VERIFICA_R1,
+  PIANO_S4, PIANO_S4b_REV, DIFF_S4a, VERIFICA_S4a_TOKEN, DOC_BOX3_V97, DOC_BUGS_v39,
+  DOC_LIBRO_v36) ma diventeranno relitti anche loro non appena S4b chiude. Non li ho
+  cancellati: nessuna istruzione di farlo, e non è mai stata azione mia decidere quando un
+  trasporto è morto — resta a Mauro/referee.
+· **Commenti-codice con numeri di riga superati**: BOX3 V96/V97 §"COMMENTI-STALE da
+  bonificare in S4L" ne elenca alcuni (es. `SetlistRunner.swift` cita `AudioEngine.swift:
+  503` per una guardia che oggi è altrove) — registrato nel canonico, non ancora bonificato,
+  non l'ho toccato in questa sessione (fuori scope di ogni atomo spedito oggi).
+
+════════════════════════════════════════════════════════════════════════
+6 — METODO CHE HA FUNZIONATO, DA RIPETERE (con l'esempio, non l'enunciato)
+════════════════════════════════════════════════════════════════════════
+· **Consegna via UN file .txt che Mauro allega** — i tool result non arrivano al referee
+  nel copia-incolla. Ogni trasporto/canonico prodotto oggi è stato scritto su disco PRIMA
+  di essere descritto in chat, mai riassunto come sostituto del file.
+· **Verifica per IMPRONTA prima del contenuto — esempio reale di oggi**: nella cartella di
+  drop CD (`DA_CD_PER_CC/18_07_2026/`) c'erano DUE file: `2026-07-18_QLive-Exit-in-Play.html`
+  (quello giusto) e `2026-07-18_QLive-Exit-in-Play-standalone.html` (harness=16 occorrenze
+  di `about:blank`/`blob:`/`postMessage`/`mountPage`, sha256 `8ff47031…` — DIVERSO). Prenderlo
+  per nome (entrambi iniziano identico) avrebbe messo in repo la versione sbagliata. Solo il
+  confronto sha256 contro il valore ratificato PRIMA di copiare ha impedito l'errore.
+· **Propagazione DAL BLOB GIT, non dal file su disco.** Ogni mirror di oggi (BUGS→2 mirror+
+  snapshot v39, LIBRO→2 mirror, BOX3→1 mirror, SCALETTA nessun mirror aggiuntivo perché ORA
+  vive in git) è stato scritto con `git show HEAD:<path> > tmp && cp tmp <mirror>`, MAI
+  copiando il file di lavoro su disco (che può avere CRLF locali). Criterio probante SEMPRE
+  sha256 sul blob, mai `grep -c $'\r'` (inaffidabile su Git-Bash/Windows — lezione già in
+  memoria da prima di questa sessione, riconfermata oggi).
+· **Controllo `.gitattributes` PRIMA di committare artefatti binari/HTML.** Verificato in
+  sessione: `DESIGN/** -text` e `HANDOFF/** -text` → git tratta questi path come binari,
+  zero conversione eol → il blob committato è byte-identico al file ricevuto. Fatto per il
+  freeze CD e per la SCALETTA, in entrambi i casi con verifica `git show HEAD:<path> |
+  sha256sum` DOPO il commit, non solo prima.
+· **Un file alla volta, completo, fermata con registro.** Applicato rigidamente al giro doc
+  (BOX3 → BUGS → LIBRO, in quest'ordine INVERTITO rispetto al piano iniziale perché il
+  referee ha corretto: un canonico non deve mai citare un ticket che non esiste ancora).
+· **Due cancelli distinti, sempre**: ratifica referee sul trasporto/diff, POI OK Mauro, POI
+  (e solo poi) scrittura del canonico/commit. Applicato a tutti e 5 i commit di oggi senza
+  eccezioni — nessun commit è stato fatto su una mia sola iniziativa.
+
+════════════════════════════════════════════════════════════════════════
+7 — UNA RIGA ONESTA
+════════════════════════════════════════════════════════════════════════
+NON ho verificato, in questa sessione, se i 4 commit doc-only dopo S4a (`1daef53`,
+`2d36784`, `57c8b2a`, `fe6d34b`) abbiano in qualche modo toccato build settings, project.yml,
+Info.plist o CI config — l'ho assunto dal fatto che ogni `git show --stat <sha>` mostrava un
+solo file .md/.html per commit, ma non ho fatto un audit esplicito «questi 4 commit sono
+innocui per il build» oltre al fatto che la CI è verde su ciascuno. È una differenza sottile:
+CI-verde prova che il build passa, non prova che nessuno di quei 4 commit *avrebbe potuto*
+toccare qualcos'altro per errore — l'ho solo dedotto dal diff-stat a 1-file, che è debole ma
+è quello che ho. Chi legge questo handoff non dia per verificato più di questo.

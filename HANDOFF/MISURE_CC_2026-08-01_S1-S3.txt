@@ -1,0 +1,559 @@
+==============================================================================
+MISURE CC — REFERTO S1-S3 — prompt coperti: QB-2026-08-01-S1-PREP, -S2-CATENA,
+            -S3-STESURA. Emesso su richiesta C3 di QB-2026-08-01-S4-COMMIT.
+SOLA LETTURA sui file misurati. Zero commit. Nessun canonico modificato.
+==============================================================================
+PERCHE' ESISTE QUESTO FILE — rettifica di canale ratificata dal referee: «incolla
+  in chat» valeva OLTRE al referto, non INVECE del referto. La catena di severita'
+  del ticket 🔴 e il testo delle otto voci vivevano finora SOLO in chat. Una riga di
+  canonico non puo' poggiare su una fonte che esiste solo in una conversazione.
+
+FORMA DELLE IMPRONTE — DICHIARATA, non sperata (richiesta C2).
+  Le impronte di RIGA in questo referto sono date in DUE forme:
+    · SENZA newline finale — e' la forma che CC ha usato finora;
+    · CON newline finale   — e' la forma della prova per intervallo del referee,
+      perche' `sed -n 'Np'` emette anche il terminatore di riga.
+  Riconciliazione dimostrata: la riga 519 di BUGS rende 136 B / sha 8f8e99e6… senza
+  newline, e 137 B / sha 3bf86c94… con — e 3bf86c94… e' esattamente il valore che il
+  referee ha calcolato per intervallo. Due misure giuste, forme diverse.
+  I DELTA di file includono sempre un newline per riga inserita.
+
+[V] HEAD: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+[V] Orologio: 2026-08-01 11:46:04 +0200
+
+--------------------------------------------------------------------------
+C1 — LA CITAZIONE SENZA FONTE: QLiveSession.swift PER INTERO
+--------------------------------------------------------------------------
+[V] Esito: OPZIONE (i). Le righe 12-15 dicono ESATTAMENTE cio' che la clausola di
+    S1.f attribuisce loro. La clausola RESTA, e S1.f non cambia di un byte.
+
+    file  : ios_app/QBeats/UI/QLive/QLiveSession.swift
+    sha256: ecd181c691faf1b18d7ae9cd732f61fbaede2224bfa4b1203241791cec12c5be
+    byte  : 1882
+    righe : 36
+
+--- INIZIO VERBATIM QLiveSession.swift (36 righe, numerazione reale) ---
+    1  import Foundation
+    2  import Combine
+    3  
+    4  /// Contenitore-sessione della stanza Q-Live — forma B, ratificata in
+    5  /// `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb28ad87627e3c6df926993a3df297df90`.
+    6  ///
+    7  /// Possiede lo SLOT del runner, non il runner. All'ingresso nella stanza lo
+    8  /// slot è VUOTO, perché nessuna scaletta è ancora stata scelta; il runner
+    9  /// nasce allo Start con la setlist SCELTA, sopravvive alla navigazione INTERNA
+   10  /// della stanza e muore all'uscita dalla stanza.
+   11  ///
+   12  /// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+   13  /// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+   14  /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+   15  /// il solo posto in cui il runner può nascere.
+   16  ///
+   17  /// VINCOLO DI PROPAGAZIONE — verbatim da
+   18  /// `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:
+   19  /// «Un `ObservableObject` ANNIDATO dentro un altro NON propaga:
+   20  /// `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del
+   21  /// runner, NON i suoi cambi interni (canzone/sezione/BPM). I figli devono
+   22  /// osservare IL RUNNER (`@ObservedObject`/`@EnvironmentObject` sul runner), NON
+   23  /// la sessione — pena UI metronomo CONGELATA che sembrerebbe un bug del DSP.»
+   24  ///
+   25  /// Conseguenza operativa, che è anche il solo modo corretto di usare questa
+   26  /// classe: la si osserva SOLO per sapere se il runner c'è — apparizione e
+   27  /// scomparsa sono l'unico segnale che sa dare. ⛔ Nessun figlio legga MAI
+   28  /// il runner ATTRAVERSO il contenitore-sessione: compila, SEMBRA GIUSTA, ed è
+   29  /// il difetto descritto sopra.
+   30  @MainActor
+   31  final class QLiveSession: ObservableObject {
+   32  
+   33      /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+   34      /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+   35      @Published private(set) var runner: SetlistRunner? = nil
+   36  }
+--- FINE VERBATIM ---
+
+[V] Le quattro righe sotto accusa, isolate:
+   12  /// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+   13  /// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+   14  /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+   15  /// il solo posto in cui il runner può nascere.
+    ⇒ «Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è il solo posto
+      in cui il runner può nascere.» La clausola di S1.f e' sorgentata.
+
+--------------------------------------------------------------------------
+C1-bis — FONTE DIRETTA PER S1.a, AppRootView.swift:14-17
+--------------------------------------------------------------------------
+[V] Accolta. AFFIANCATA al confronto di conteggi, non sostitutiva: il commento prova
+    l'INTENZIONE, il confronto 10→0 prova la RIMOZIONE.
+   14      /// Routing top-level della Home: commutazione di schermata (NON push).
+   15      /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
+   16      /// della Home fa `screen = .qLive` (entry-point canonico unico); la
+   17      /// modale UIKit è stata ritirata.
+[V] Conseguenza: S1.a CAMBIA. Impronte nuove nel §F.
+
+--------------------------------------------------------------------------
+§A — LA CATENA DI SEVERITA' A HEAD (S2-CATENA, (a)…(e))
+--------------------------------------------------------------------------
+[V] PERIMETRO: `git grep` e' TESTUALE, non valuta il preprocessore ⇒ i rami #if DEBUG
+    sono DENTRO ogni conteggio. Cio' che in v46 restava fuori era il comportamento a
+    runtime. HomeRootView.swift ha quattro #if DEBUG (:15 :39 :45 :79) e contiene 0
+    occorrenze dei quattro simboli; controllo positivo stesso file `Button` → 3.
+
+  ### (a) '= SetlistRunner(' — costruzioni
+      (nessun output — ZERO occorrenze)
+
+  ### (a) 'SetlistRunner' — forma larga
+HEAD:ios_app/QBeats/AudioEngine.swift:302:    // Riempiti da preloadNextSection() chiamato dal SetlistRunner all'inizio
+HEAD:ios_app/QBeats/AudioEngine.swift:1204:    /// Chiamare SOLO dal ramo avanza di SetlistRunner, dopo scheduleBPMChange.
+HEAD:ios_app/QBeats/AudioEngine.swift:1400:            // kickScheduling nel ramo avanza SetlistRunner) anzichè nel beat callback
+HEAD:ios_app/QBeats/AudioEngine.swift:1419:            // Usato dal ramo avanza di SetlistRunner: a fine sezione, il prossimo
+HEAD:ios_app/QBeats/AudioEngine.swift:2596:                                // (i) Dispatch closure SetlistRunner su main.
+HEAD:ios_app/QBeats/Models/LiveSession.swift:31:    // L'overlay `.standby` viene mostrato SOLO quando il SetlistRunner
+HEAD:ios_app/QBeats/Models/LiveSession.swift:33:    // SetlistRunner.swift ramo standby). Cambiato da `.standby(nextSongName: "—")`
+HEAD:ios_app/QBeats/SetlistRunner.swift:10:/// AudioEngine ignora il setlist: SetlistRunner è il callsite di
+HEAD:ios_app/QBeats/SetlistRunner.swift:25:final class SetlistRunner: ObservableObject {
+HEAD:ios_app/QBeats/SetlistRunner.swift:64:        os_log("[Q-BEATS][L1.b] SetlistRunner init — songs:%d missing:%d",
+HEAD:ios_app/QBeats/UI/Live/LiveView.swift:6:    @EnvironmentObject var runner: SetlistRunner
+HEAD:ios_app/QBeats/UI/Live/LiveView.swift:34:    //   - TD #41 risolto separatamente in SetlistRunner via beatTickSubject
+HEAD:ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift:24:                // (currentSectionName azzerato dal ramo standby di SetlistRunner)
+HEAD:ios_app/QBeats/UI/Live/TransportView.swift:6:    @EnvironmentObject var runner: SetlistRunner
+HEAD:ios_app/QBeats/UI/QLive/QLiveSession.swift:35:    @Published private(set) var runner: SetlistRunner? = nil
+
+  ### (a) controllo positivo '= AudioEngine('
+HEAD:ios_app/QBeats/AudioEngine.swift:33:    static let shared = AudioEngine()
+
+  ### (b) 'LiveRootView' — GREZZO
+HEAD:ios_app/QBeats/SetlistRunner.swift:7:/// Lo SLOT che lo ospita vive in `QLiveSession`, posseduta da `QLiveRootView`
+HEAD:ios_app/QBeats/UI/AppRootView.swift:47:                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+HEAD:ios_app/QBeats/UI/AppRootView.swift:51:                    QLiveRootView(onExit: { screen = .home },
+HEAD:ios_app/QBeats/UI/Live/LiveView.swift:8:    /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:7:/// Nodo A: `QLiveRootView` POSSIEDE il seam `onExit` (hookpoint unico) e lo
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:28:///    della LETTERA storica («renderizza `LiveRootView`, MAI `LiveView`
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:31:///    lo dispone. Applicazione: `LiveRootView` non esiste più — esisteva solo
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:34:struct QLiveRootView: View {
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:52:    /// procedurale: `QLiveRootView` è l'unico nodo che nasce e muore con la
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:56:    /// `LiveRootView.swift:12`, con 0 chiamanti. Un azzeramento esplicito su un
+HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift:12:// QLiveRootView, referenziata e a schermo. 🔴 Chiusura visiva = gate device S4b.
+HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift:40:    /// Seam d'uscita verso Home (Cond A): a S4b sarà l'`onExit` di QLiveRootView.
+HEAD:ios_app/QBeats/UI/QStageRootView.swift:10:/// Possiede DUE seam: `onExit()` → Home, `onSwitchToLive()` → Q-Live (specchio di QLiveRootView).
+HEAD:ios_app/QBeats/UI/QStageRootView.swift:15:    /// Specchio di `QLiveRootView.onSwitchToStage`.
+
+  ### (b) 'LiveRootView' — FILTRATO (non preceduto da Q ne' da alfanumerico)
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:28:///    della LETTERA storica («renderizza `LiveRootView`, MAI `LiveView`
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:31:///    lo dispone. Applicazione: `LiveRootView` non esiste più — esisteva solo
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:56:    /// `LiveRootView.swift:12`, con 0 chiamanti. Un azzeramento esplicito su un
+
+  ### (b) controllo positivo 'QLiveShowsView('
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:93:            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+
+  ### (c) 'LiveView(' — tutti i costruttori
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:145:                LiveView(onExit: { navigate(to: .shows) })
+
+  ### (c) controllo positivo 'TransportView('
+HEAD:ios_app/QBeats/UI/Live/LiveView.swift:124:                    TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+
+  ### (d) 'navigate(' — definizione, commenti, chiamate
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:14:/// la navigazione INTERNA della stanza è `page` + funnel `navigate(to:)`.
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:86:    private func navigate(to newPage: QLivePage) {
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:95:            EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:107:                //    INTERNO (`navigate(to: .shows)`), MAI a `onExit`. Freeze CD
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:145:                LiveView(onExit: { navigate(to: .shows) })
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:159:                // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+
+  ### (d) 'page = ' — assegnazioni
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:87:        page = newPage
+
+  ### (e) '.environmentObject(' — tutte le iniezioni
+HEAD:ios_app/QBeats/QBeatsApp.swift:16:                .environmentObject(audioEngine)
+HEAD:ios_app/QBeats/UI/AppRootView.swift:45:                        .environmentObject(audioEngine)
+HEAD:ios_app/QBeats/UI/AppRootView.swift:53:                        .environmentObject(audioEngine)
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:132:                //  · Apple, `View.environmentObject(_:)`: «Supplies an
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:146:                    .environmentObject(runner)
+
+[V] BILANCIO DELLE QUATTRO PREMESSE DI r.122:
+    (1) '= SetlistRunner(' un solo sito, LiveRootView.swift:12  → FALSIFICATA nella
+        forma: ZERO siti, e quel file non esiste piu'. Movimento verso il SICURO.
+    (2) 'LiveRootView' a zero call-site                         → REGGE, piu' forte:
+        il tipo e' cancellato; le 3 superstiti sono commenti nel solo QLiveRootView.
+    (3) 'LiveView' irraggiungibile DI CONSEGUENZA               → il NESSO e' MORTO:
+        LiveView E' costruito, unico costruttore QLiveRootView.swift:145.
+    (4) 'navigate(to:)' a zero chiamanti                        → FALSIFICATA: un
+        chiamante vero, :145. Bilancio: 1 definizione + 4 commenti + 1 chiamata.
+
+--------------------------------------------------------------------------
+§B — QLiveRootView.swift, LE PARTI CITATE
+--------------------------------------------------------------------------
+[V] sha256 del file intero: 9ac3adf964c4dd283e4c8f847cf7cf24cc24f0ec92cbbe1d4422a02fb1ff1ec8
+    byte: 10437
+
+--- INIZIO VERBATIM righe 34-95: dichiarazioni, valore iniziale di page, imbuto ---
+   34  struct QLiveRootView: View {
+   35      let onExit: () -> Void
+   36      /// Switch di stanza → Q-Stage. Iniettata da AppRootView
+   37      /// (`{ screen = .qStage }` ESPLICITO, non un toggle).
+   38      let onSwitchToStage: () -> Void
+   39  
+   40      /// Navigazione INTERNA della stanza — specchio esatto di `Screen` in
+   41      /// AppRootView: enum NIDIFICATO, CASE-ONLY (Equatable auto-sintetizzato).
+   42      /// L'eventuale payload (selected show, S5) vivrà in un `@State` SEPARATO,
+   43      /// MAI dentro l'enum.
+   44      private enum QLivePage { case shows, detail, metronome }
+   45  
+   46      @State private var page: QLivePage = .shows
+   47  
+   48      /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
+   49      /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
+   50      ///
+   51      /// PERCHÉ VIVE QUI, e perché la morte del runner è STRUTTURALE e non
+   52      /// procedurale: `QLiveRootView` è l'unico nodo che nasce e muore con la
+   53      /// stanza. Misura a `40f099bb28ad87627e3c6df926993a3df297df90`, prima di
+   54      /// questo atomo: NESSUN CODICE TIENE IN VITA UN RUNNER — 0 overlay
+   55      /// always-on, 0 cache, 0 singleton; unico sito di costruzione
+   56      /// `LiveRootView.swift:12`, con 0 chiamanti. Un azzeramento esplicito su un
+   57      /// evento d'uscita sarebbe invece cieco a ogni percorso non previsto, e
+   58      /// l'unico posto dove appenderlo — `AppRootView.onChange(of: screen)` — è
+   59      /// già dichiarato cieco alle uscite che NON cambiano `screen`
+   60      /// (`BOX3_QBEATS.md:51`): erediterebbe quella cecità per costruzione.
+   61      ///
+   62      /// ⚠️ NON SORGENTATO (§7): la tesi «il ramo di `switch` rilascia la memoria
+   63      /// del sottoalbero», che il blocco INVARIANTI qui sopra usa, è comportamento
+   64      /// SwiftUI di cui NON abbiamo fonte. È marcata, non rimossa, e NON è la
+   65      /// motivazione di questa scelta: la motivazione è la misura qui sopra.
+   66      ///
+   67      /// ⛔ SI CHIAMA `roomSession`, e non col nome nudo, per una COLLISIONE:
+   68      /// `LiveView.swift:11` porta già una propria proprietà con quel nome nudo
+   69      /// (di tipo `LiveSession`), e `LiveView` è renderizzata DENTRO il gate qui
+   70      /// sotto. Due oggetti diversi con lo stesso identificatore, uno annidato nel
+   71      /// sottoalbero dell'altro, renderebbero ambiguo ogni divieto scritto su quel
+   72      /// nome. Il NOME DELLA CLASSE `QLiveSession` è ratificato
+   73      /// (`LIBRO_MASTRO_QBEATS.md:285`) e NON si tocca: cambia la sola proprietà.
+   74      @StateObject private var roomSession = QLiveSession()
+   75  
+   76      // DECISIONE CD 18/07 (ratificata — LIBRO Sez.2, riga 18/07/2026):
+   77      // navigazione ≠ transport. NESSUNO stop audio va agganciato alle
+   78      // transizioni di `page`, in NESSUNA forma (niente `.onChange(of: page)`
+   79      // con stop — ruling D1; vietato anche inerte). Il click lo ferma SOLO uno
+   80      // STOP esplicito del transport: con Link Director uno stop è un evento di
+   81      // BANDA, non può essere il sottoprodotto di un «indietro». Lo stop
+   82      // legittimo al bordo-stanza (uscita da `.qLive`) vive in AppRootView
+   83      // `.onChange(of: screen)` — FUORI da questo strato.
+   84      /// Porta UNICA di mutazione di `page`: nessuna assegnazione diretta fuori
+   85      /// da qui. A S4b ha zero chiamanti (la porta è installata per S5/S6).
+   86      private func navigate(to newPage: QLivePage) {
+   87          page = newPage
+   88      }
+   89  
+   90      var body: some View {
+   91          switch page {
+   92          case .shows:
+   93              QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+   94          case .detail:
+   95              EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+--- FINE VERBATIM righe 34-95 ---
+
+--- INIZIO VERBATIM righe 96-165: ramo .metronome, gate, costruttore, else ---
+   96          case .metronome:
+   97              // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
+   98              if let runner = roomSession.runner {
+   99                  // UNICO punto in cui il runner entra nell'albero delle viste.
+  100                  // I figli lo osservano DIRETTAMENTE (`@EnvironmentObject` sul
+  101                  // runner: `LiveView.swift:6`). ⛔ MAI leggere attraverso la
+  102                  // sessione — il contenitore-sessione della stanza: compila, SEMBRA GIUSTO, e
+  103                  // produce l'UI metronomo CONGELATA che sembra un guasto del DSP
+  104                  // — `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`.
+  105                  //
+  106                  // ⛔ IL BACK DEL PLAYER NON È UN'USCITA DI STANZA: va all'IMBUTO
+  107                  //    INTERNO (`navigate(to: .shows)`), MAI a `onExit`. Freeze CD
+  108                  //    `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html:286 @
+  109                  //    40f099bb28ad87627e3c6df926993a3df297df90` — «Navigazione ≠
+  110                  //    transport … back dal player → lista (click continua, (c));
+  111                  //    … Nessuna tocca il clock.» — e `:290`, stesso commit:
+  112                  //    «Player (metronomo) = nessun terzo sfondo … sul player la
+  113                  //    barra stanze non c'è → nessuna uscita-stanza, niente gate
+  114                  //    lì.» Passare `onExit` qui significherebbe che a ⟦S5⟧ un
+  115                  //    tocco involontario esce dalla stanza e UCCIDE IL CLICK,
+  116                  //    saltando il gate «Stop & Exit / Stay» obbligatorio in play.
+  117                  //    ⛔ Quel gate NON si costruisce qui: è ⟦S-EXIT⟧, e nel
+  118                  //    freeze vive su lista e dettaglio, non sul player.
+  119                  //    ⚠️ INFERITO, NON DECISO — il CANCEL del Follower. `LiveView`
+  120                  //    inoltra la closure a DUE leaf (`LiveView.swift:9`):
+  121                  //    `LiveHeaderView` (back) e `WaitingForDirectorView` (CANCEL
+  122                  //    del Follower in attesa). Questo ricablaggio li muove
+  123                  //    ENTRAMBI, ma il freeze copre il SOLO back dal player e sul
+  124                  //    CANCEL non dice nulla. Restare in stanza è corretto e qui
+  125                  //    NON si cambia: si DICHIARA che la scelta è inferita, e la
+  126                  //    ratifica spetta a ⟦S-EXIT⟧.
+  127                  //
+  128                  // `audioEngine` NON si re-inietta, e NON è un'omissione:
+  129                  //  · iniettato a `AppRootView.swift:53 @
+  130                  //    40f099bb28ad87627e3c6df926993a3df297df90`, DIRETTAMENTE su
+  131                  //    questa view — un livello sopra il gate;
+  132                  //  · Apple, `View.environmentObject(_:)`: «Supplies an
+  133                  //    observable object to a view's hierarchy», disponibile alle
+  134                  //    subview della gerarchia — developer.apple.com/
+  135                  //    documentation/swiftui/view/environmentobject(_:);
+  136                  //  · prova IN-REPO su percorso esercitato A OGNI AVVIO:
+  137                  //    `HomeRootView.swift:14` dichiara `@EnvironmentObject var
+  138                  //    audioEngine` e `AppRootView.swift:34-35` NON gliene inietta
+  139                  //    uno locale — arriva solo da `QBeatsApp.swift:16`. Se la
+  140                  //    propagazione non funzionasse, l'app crasherebbe all'avvio;
+  141                  //  · simmetria: lo specchio `QStageRootView` non dichiara
+  142                  //    `audioEngine` (0 occorrenze) pur ricevendolo a
+  143                  //    `AppRootView.swift:45`. Re-iniettarlo qui romperebbe lo
+  144                  //    specchio dichiarato in testa a questo file.
+  145                  LiveView(onExit: { navigate(to: .shows) })
+  146                      .environmentObject(runner)
+  147              } else {
+  148                  // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
+  149                  // futuro lettore cablerebbe per errore.
+  150                  // Qui va l'EMPTY-STATE ONESTO della pagina metronomo.
+  151                  // ⛔ NON messo in ⟦S4R⟧: il disegno è materia CD e NON esiste
+  152                  //    freeze per questa pagina. CC non genera UX.
+  153                  // ⛔ Nessun testo d'interfaccia, nessun componente
+  154                  //    `QLiveEmptyStates`/`EmptyStateKit`, nessun pulsante —
+  155                  //    nemmeno disabilitato: un disabilitato è già una promessa di
+  156                  //    Start, e lo Start è ⟦S5⟧.
+  157                  // ⟦S5⟧ NON parte senza questo empty-state.
+  158                  // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
+  159                  // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+  160                  // il back del player qui sopra, e porta a `.shows`.
+  161                  EmptyView()
+  162              }
+  163          }
+  164      }
+  165  }
+--- FINE VERBATIM righe 96-165 ---
+    (i due intervalli sono CONTIGUI e NON si sovrappongono: 34-95 + 96-165.)
+
+[V] LE DUE SERRATURE, lette su questo testo:
+    SERRATURA A — `page` nasce `.shows` (:46); unica assegnazione :87, dentro
+      l'imbuto; unica chiamata vera all'imbuto :145, che passa `.shows`; e :145 sta
+      DENTRO `case .metronome`. `.shows` e' un pozzo assorbente.
+    SERRATURA B — `if let runner = roomSession.runner` (:98) su uno slot
+      `private(set)` senza mutatore, con zero costruzioni di SetlistRunner nel repo.
+    Il solo `.environmentObject(runner)` dell'albero e' :146, sulla stessa riga
+      chiusa da entrambe. Le altre tre iniezioni passano `audioEngine`.
+
+--------------------------------------------------------------------------
+§C — AppRootView.swift PER INTERO (79 righe)
+--------------------------------------------------------------------------
+[V] sha256: fff290e8d2c14725edeb9a934edbd4bfd94dd3b98166fa52ab1e5a26194953bc
+    byte: 3979   righe: 79
+--- INIZIO VERBATIM ---
+    1  import SwiftUI
+    2  import os
+    3  
+    4  struct AppRootView: View {
+    5      @EnvironmentObject var audioEngine: AudioEngine
+    6      @Environment(\.scenePhase) private var scenePhase
+    7      @State private var showSplash = true
+    8      @State private var screen: Screen = .home
+    9      /// Nodo A N1a — valore precedente di `screen` per il handler `.onChange`
+   10      /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+   11      /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+   12      @State private var previousScreen: Screen = .home
+   13  
+   14      /// Routing top-level della Home: commutazione di schermata (NON push).
+   15      /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
+   16      /// della Home fa `screen = .qLive` (entry-point canonico unico); la
+   17      /// modale UIKit è stata ritirata.
+   18      private enum Screen { case home, qStage, qLive }
+   19  
+   20      var body: some View {
+   21          ZStack {
+   22              if showSplash {
+   23                  SplashView()
+   24                      .onAppear {
+   25                          DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+   26                              withAnimation(.easeOut(duration: 0.4)) {
+   27                                  showSplash = false
+   28                              }
+   29                          }
+   30                      }
+   31              } else {
+   32                  switch screen {
+   33                  case .home:
+   34                      HomeRootView(onOpenQStage: { screen = .qStage },
+   35                                   onOpenQLive: { screen = .qLive })
+   36                  case .qStage:
+   37                      // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
+   38                      // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+   39                      // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+   40                      // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+   41                      // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+   42                      // lo stop vive al bordo-stanza, non sulla navigazione.
+   43                      QStageRootView(onExit: { screen = .home },
+   44                                     onSwitchToLive: { screen = .qLive })
+   45                          .environmentObject(audioEngine)
+   46                  case .qLive:
+   47                      // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+   48                      // onExit e lo inoltra alla gerarchia Q-Live; le closure
+   49                      // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+   50                      // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+   51                      QLiveRootView(onExit: { screen = .home },
+   52                                    onSwitchToStage: { screen = .qStage })
+   53                          .environmentObject(audioEngine)
+   54                  }
+   55              }
+   56          }
+   57          .onAppear {
+   58              UIApplication.shared.isIdleTimerDisabled = true
+   59          }
+   60          .onChange(of: scenePhase) { newPhase in
+   61              UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+   62          }
+   63          // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+   64          // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+   65          // (non-deterministico su view riusata/cachata; il vecchio
+   66          // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+   67          // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+   68          // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+   69          // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+   70          .onChange(of: screen) { newScreen in
+   71              if newScreen == .qLive {
+   72                  audioEngine.triggerDNDReminderIfNeeded()
+   73              } else if previousScreen == .qLive {
+   74                  audioEngine.stop()
+   75              }
+   76              previousScreen = newScreen
+   77          }
+   78      }
+   79  }
+--- FINE VERBATIM ---
+
+--------------------------------------------------------------------------
+§D — IL TESTO INTEGRALE DELLE OTTO VOCI
+--------------------------------------------------------------------------
+[V] Sono INSERZIONI PURE tranne S1.d, che sostituisce il titolo r.519.
+
+  ======== S1.a  —  BUGS_QBEATS.md, dopo r.289
+  sha256 SENZA newline: 7298fbc79c5e9c5c2025b7db26de50120f0cdd3b99a5cfbbf3bae7b1b494e0f9  (2570 B)
+  sha256 CON   newline: 8189a7e1fac364e5170853d156050c92a99dd3a8f8307772ed2f982cfc03192c  (2571 B)
+  --- INIZIO TESTO ---
+  - ⚠️ **MARCATURA — LA TESI DI `r.289` È FALSIFICATA NEL CONTENUTO, non solo negli indirizzi. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. La riga resta come scritta: si marca, non si riscrive.** **(1) LA TESI È FALSA.** «Q-Live NON è in questo enum: è montata come modale UIKit»: a HEAD `enum Screen` è dichiarato a `ios_app/QBeats/UI/AppRootView.swift:18 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` e recita `private enum Screen { case home, qStage, qLive }` — `.qLive` **è** nell'enum, e il ramo `case .qLive` monta `QLiveRootView(onExit:onSwitchToStage:)`. La modale UIKit è stata **ritirata** da ⟦NODO A⟧ N1b, commit `152445e`, e **la prova è DOPPIA — le due metà non si sostituiscono**. **(a) FONTE DIRETTA NEL CODICE, che prova l'INTENZIONE:** `ios_app/QBeats/UI/AppRootView.swift:14-17 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` dichiara «Routing top-level della Home: commutazione di schermata (NON push). Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta della Home fa `screen = .qLive` (entry-point canonico unico); la modale UIKit è stata ritirata». **(b) CONFRONTO DI CONTEGGI FRA REV, che prova la RIMOZIONE:** fra `152445e^` (`beb9e084fefcfb7f9dbb31971147dc59929fc737`) e HEAD, sugli `.swift` tracciati: `presentLive` **10 → 0** righe, `modalPresentationStyle` **1 → 0**, `UIHostingController` **6 → 2** e le due superstiti sono **commenti** (`Models/LivePlaybackState.swift:16`, `QLiveRootView.swift:19`); controllo positivo a radice diversa su entrambe le rev, `struct ` → 89 e 93. **(2) I QUATTRO BERSAGLI NON CORRISPONDONO.** `:8` = `@State private var screen: Screen = .home` · `:13` = **riga vuota**, 1 byte · `:27-33` = chiusura della closure dello splash e apertura dello `switch` (`showSplash = false`, tre graffe, `} else {`, `switch screen {`, `case .home:`) — nessuno dei tre è l'enum. **(3) IL COMMENTO CITATO NON ESISTE PIÙ.** A `:10-12` non c'è «Q-Live resta una modale UIKit … riconciliazione top-level = Nodo A (a verbale)», ma tre righe di documentazione su `previousScreen`: «`/// Nodo A N1a — valore precedente di 'screen' per il handler '.onChange'`». **(4) FORMA DELL'INDIRIZZO, d'ora in poi:** il bersaglio si nomina **per simbolo** — *la dichiarazione `private enum Screen` e il ramo `case .qLive` di `AppRootView`* — e un numero di riga, se compare, porta `@ <commit>`. ⛔ **CONSEGUENZA SULLA SEVERITÀ: NESSUNA.** `r.289` descrive il PERIMETRO di un atomo, non un difetto: la sua falsificazione non riapre e non chiude nulla.
+  --- FINE TESTO ---
+
+  ======== S1.b  —  BUGS_QBEATS.md, dopo r.129 [1 di 3]
+  sha256 SENZA newline: 087eb0fe026282d5b3bfcaf731d395dad458be1d4e45aa0fb7b951b4ff1172b6  (1375 B)
+  sha256 CON   newline: 12b14bc9bf7540a98890eddfb862127be4d37260938a5f14ea18fa4423d858f3  (1376 B)
+  --- INIZIO TESTO ---
+- ⚠️ **MARCATURA — IL PROPRIETARIO DEL REROUTING CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `r.121`, `r.125`, `r.128`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Zero parole riscritte.** **COSA CAMBIA:** ognuna delle cinque attribuisce a ⟦S6⟧ il ricablaggio della destinazione del back. Il ricablaggio **è già avvenuto**, e l'ha portato **⟦S4R⟧**: commit `bfc9228` («S4R fase 2b: la proprietà del runner sale alla stanza Q-Live»), ratificato in `LIBRO_MASTRO_QBEATS.md:330 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` («⟦S4R⟧ CHIUSO — la proprietà del runner sale alla stanza»). A HEAD il back del player va all'imbuto **interno**, non alla Home: *il ramo `.metronome` di `QLiveRootView` costruisce `LiveView(onExit:)` con `navigate(to: .shows)`* (`ios_app/QBeats/UI/QLive/QLiveRootView.swift:145 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`). **COSA NON CAMBIA:** ⛔ **SCADENZA e SEVERITÀ restano vere.** Il «🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO» di `r.128` non si tocca, e la mitigazione operativa di `r.125` resta l'unica difesa disponibile. Si cambia **il proprietario dell'atomo**, non lo stato del ticket. ⚠️ **FUORI DA QUESTA MARCATURA:** `r.126`, che non contiene «rerouting» e non è toccata; `r.999` e `r.981`, che sono **registro** = storia e non si marcano mai.
+  --- FINE TESTO ---
+
+  ======== S1.c-BUGS  —  BUGS_QBEATS.md, dopo r.129 [2 di 3]
+  sha256 SENZA newline: fed7bf8ca8e60b594e55f9b08d6698dafda9e79c196c84fe799cccb122e1829a  (1148 B)
+  sha256 CON   newline: 5d8102e9358f06d58c5810e4fca493b42c68f0a3f3057381a3cc737fe632a8ed  (1149 B)
+  --- INIZIO TESTO ---
+- ⚠️ **MARCATURA DI FORMA — DUE INDIRIZZI AL CODICE DI QUESTO TICKET SONO SCADUTI, e si riscrivono PER SIMBOLO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Le righe restano come scritte.** **(a) `r.118` cita `AppRootView.swift:61-68` come «il canonico».** A HEAD `:61` è `UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)`, dentro `.onChange(of: scenePhase)`, e `:63-69` sono **commento**. Il canonico è *l'handler `.onChange(of: screen)` di `AppRootView`, il ramo `else if previousScreen == .qLive` che chiama `audioEngine.stop()`* — a HEAD `ios_app/QBeats/UI/AppRootView.swift:70-77 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`, con la chiamata a `:74`, **unica occorrenza di `audioEngine.stop()` nel file**. **(b) `r.120` cita `AppRootView.swift:43` per `{ screen = .home }` di Q-Live.** A HEAD `:43` è il costruttore di **Q-Stage**, non di Q-Live. Il bersaglio è *il ramo `case .qLive`, costruttore `QLiveRootView(onExit:)`* — a HEAD `:51-52 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. ⛔ **Nessun numero di questo ticket è stato corretto in loco: la correzione vive qui, per simbolo.**
+  --- FINE TESTO ---
+
+  ======== S1.f  —  BUGS_QBEATS.md, dopo r.129 [3 di 3]
+  sha256 SENZA newline: b6f2d104bb1ddb69dad45acf8392534b6f68c39072bf07c4f509b3e7d493d49b  (3924 B)
+  sha256 CON   newline: 648ca124d5858a6eaa012f38cd28609fc63ed2ed4627f661ab09f5ee9d3ac18e  (3925 B)
+  --- INIZIO TESTO ---
+- ⚠️ **MARCATURA — LE QUATTRO PREMESSE DI `r.122` SONO SCADUTE; LA CONCLUSIONE REGGE, MA SU UN FONDAMENTO NUOVO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Nessuna riga riscritta, severità invariata.** **PERIMETRO DELLA MISURA, dichiarato perché in v46 non lo fu:** `git grep` è **testuale** e non valuta il preprocessore — ogni conteggio qui sotto **include** i rami `#if DEBUG`, che non sono mai stati fuori da una ricerca per stringa; ciò che in v46 restava fuori era il **comportamento a runtime**. Controprova: `HomeRootView.swift` porta quattro `#if DEBUG` (`:15`, `:39`, `:45`, `:79`) e contiene **0** occorrenze di `SetlistRunner`, `LiveRootView`, `LiveView(` e `navigate(` — controllo positivo stessa forma stesso file, `Button` → **3**. **LE QUATTRO PREMESSE.** **(1)** «`= SetlistRunner(` un solo sito, `LiveRootView.swift:12`» — **FALSIFICATA NELLA FORMA**: a HEAD i siti di costruzione sono **ZERO** e quel file **non esiste più**; il movimento è da uno a nessuno, cioè **verso il sicuro**. **(2)** «`LiveRootView` a zero call-site» — **REGGE**, e per una ragione più forte: il tipo è **cancellato**, e le tre occorrenze superstiti (filtro dichiarato: `LiveRootView` non preceduto da `Q` né da alfanumerico, perché `QLiveRootView` la contiene come sottostringa) sono **commenti** nel solo `ios_app/QBeats/UI/QLive/QLiveRootView.swift`, `:28` `:31` `:56`, e `:31` recita «`LiveRootView` non esiste più»; controllo positivo stessa forma `QLiveShowsView(` → **1**. **(3)** «`LiveView` irraggiungibile **DI CONSEGUENZA**» — **IL NESSO CAUSALE È MORTO**: `LiveView` **È** costruito, unico costruttore `QLiveRootView.swift:145`; controllo positivo a radice diversa `TransportView(` → **1**. **(4)** «`navigate(to:)` a zero chiamanti» — **FALSIFICATA**: un chiamante **vero**, `:145`; il bilancio a HEAD è **1 definizione** (`:86`) + **4 commenti** (`:14` `:95` `:107` `:159`) + **1 chiamata**. **LA CONCLUSIONE «IL PERICOLO NON MORDE ANCORA» REGGE, e il suo fondamento è RISCRITTO, non ereditato: poggia su DUE SERRATURE INDIPENDENTI che in v46 non erano misurate.** **SERRATURA A — la pagina.** `page` nasce `.shows` (`QLiveRootView.swift:46`); l'unica assegnazione di `page` in tutto il codice è `:87`, dentro l'imbuto; l'unica chiamata vera all'imbuto è `:145` e passa **`.shows`**; e `:145` sta **dentro** `case .metronome`, cioè dentro il ramo che solo un cambio di `page` aprirebbe. ⇒ **`.shows` è un pozzo assorbente**: nessuna transizione raggiungibile porta a `.metronome` o `.detail`. **SERRATURA B — il runner.** Lo slot è `@Published private(set) var runner: SetlistRunner? = nil` (`ios_app/QBeats/UI/QLive/QLiveSession.swift:35`), **senza mutatore in nessun punto del repo**, e `= SetlistRunner(` ha **zero** siti ⇒ `if let runner` (`:98`) **non lega mai**. Il solo `.environmentObject(runner)` dell'albero è `:146`, sulla stessa riga chiusa da entrambe le serrature; le altre tre iniezioni del progetto passano tutte `audioEngine`. ⚠️ **IL MARGINE SI È RIDOTTO, e questa è la cosa che il prossimo lettore deve sapere.** In v46 «irraggiungibile» voleva dire **che il codice non esisteva**. A HEAD il codice **esiste** ed è soltanto chiuso dietro un ramo morto: prima per arrivare al pericolo bisognava **SCRIVERE** codice, ora basta **RAGGIUNGERLO**. ⚠️ **⟦S5⟧ APRE ENTRAMBE LE SERRATURE NELLO STESSO ATOMO, e non è più un'intuizione:** `QLiveRootView.swift:95` dichiara «scaffold — mutatori a S5 (tap riga → `navigate(.detail)`)», e ⟦S5⟧ porta lo **Start**, che è ciò che costruirebbe il runner — il solo posto in cui può nascere, per dichiarazione di `QLiveSession.swift:12-15`. ⛔ **SEVERITÀ INVARIATA: 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO.** Questa marcatura **non muove lo stato** e va letta per quello che è: nessun declassamento, nessuna chiusura, nessuna riapertura.
+  --- FINE TESTO ---
+
+  ======== S1.e  —  BUGS_QBEATS.md, dopo r.356
+  sha256 SENZA newline: c4ff6104fac68712c19dc9ee0e6a4da6723f33edde6028739d686ed1c7d00256  (1021 B)
+  sha256 CON   newline: 5634de045e980323f0550abe4895649cc68bed3283fe72c56a4452fb1c60db61  (1022 B)
+  --- INIZIO TESTO ---
+- ⚠️ **MARCATURA — `LIBRO:467` È UN PUNTATORE SCADUTO: il suo bersaglio si indirizza per CONTENUTO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. La riga resta com'è.** Le **due** occorrenze di `LIBRO:467` in questo bullet vanno lette come **«la voce 43 del registro Sez.6 del LIBRO — quella che nomina la proprietà del runner»**. Il numero è deriva pura: la voce 43 stava a `:467` al commit `3164564` del 2026-07-30, a `:475` a `8822598`, e a HEAD sta a **`:476`** (controprova: `sed -n '476p'` rende **1** sulla stringa «proprietà del runner»). Chi deve incidere un numero scriva **`LIBRO_MASTRO_QBEATS.md:476 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`**, mai il numero nudo. ⛔ **Questa marcatura NON tocca `r.1006`**, che porta la terza occorrenza di `LIBRO:467`: è **registro** = storia. ⚠️ **La qualifica di «PUNTATORE PURO» data a `LIBRO:467` in questo stesso bullet RESTA VERA e non è in discussione**: si corregge la forma dell'indirizzo, non la natura del sito.
+  --- FINE TESTO ---
+
+  ======== S1.d — titolo RIMOSSO  —  BUGS_QBEATS.md, riga 519
+  sha256 SENZA newline: 8f8e99e6400710744359bc27324e53b5c33a87e520993bf1cc32bc8a9ab86f8e  (136 B)
+  sha256 CON   newline: 3bf86c942b6395e783d5a0fe4e1a45ef73011097fa28e7504c85f3b98023d171  (137 B)
+  --- INIZIO TESTO ---
+### LIBRO-sez6-buco-v25-v26 — righe changelog v25/v26 mancanti in LIBRO_MASTRO Sez.6 (🟡 OPEN BASSA / doc-hygiene — pre-esistente)
+  --- FINE TESTO ---
+
+  ======== S1.d — titolo NUOVO  —  BUGS_QBEATS.md, riga 519
+  sha256 SENZA newline: dc71899c03ef577cf726fac2e9f6d04a871f250eb883c5c0c2280cae666068c9  (113 B)
+  sha256 CON   newline: 22ea14823d6056ea3c822d3fd0dc7cbe2e9cfd5358b8623a2fa026bdfc15c817  (114 B)
+  --- INIZIO TESTO ---
+### LIBRO-sez6-buco-v25-v26 — righe changelog v25/v26 mancanti in LIBRO_MASTRO Sez.6 — 🟢 CHIUSO 01/08/2026
+  --- FINE TESTO ---
+
+  ======== S1.d — motivazione  —  BUGS_QBEATS.md, dopo r.523
+  sha256 SENZA newline: 2507efa0cc552887fd30ca61bdd02b9fc4973ab22673e0c2c2527d309e265bff  (1105 B)
+  sha256 CON   newline: 8ecaa0702f0856ca7fb67e6fe703bc6e533690354fd023658f345b2391acf17e  (1106 B)
+  --- INIZIO TESTO ---
+- ⚠️ **CHIUSO PER ACCERTAMENTO il 2026-08-01. IL TICKET NON HA OGGETTO: le voci 25 e 26 non sono MAI STATE SCRITTE.** Il ticket prescriveva il `git log` del LIBRO come unica via lecita (`r.522`: «MAI a memoria»), e quella via è stata percorsa. Misura CC in sola lettura sulla finestra **completa** fra la rev con header v24 (`2b5cdd3`) e quella con header v27 (`82d743e`): **42 punti misurati** — tutti i 41 commit della finestra più l'estremo inferiore, inclusi i 38 che non toccano il LIBRO. Il conteggio delle righe di registro Sez.6 rende **24 su ogni punto** e sale a 25 solo nel commit di v27; la seconda forma, che non usa la data, rende **0 ovunque**. ⛔ **Non c'è backfill da fare**: non è che il contenuto di v25/v26 sia irrecuperabile — **non è mai esistito**, gli header furono bumpati senza scrivere la riga di changelog. ⚠️ Chiusura per **ACCERTAMENTO**, non per fix: `r.522` resta valida come regola e non è stata violata. Output grezzi in `HANDOFF/MISURE_CC_2026-08-01_Q1-Q3.txt` (sha256 `3b9b2007589741c476fd859dd6e0a683a437972c41c9bc308bc59929d2224a28`), sezione Q1.
+  --- FINE TESTO ---
+
+  ======== S1.c-BOX3  —  BOX3_QBEATS.md, dopo r.33
+  sha256 SENZA newline: 24354f5f88029dc2a6ac50fffc8c9f9c94ed3f1ea1bde354a74e93be85c82255  (792 B)
+  sha256 CON   newline: 011cd81625ba54c7e7b527282a2f974a9fde0a9b40099a8fe2871829be5a17fe  (793 B)
+  --- INIZIO TESTO ---
+ · **(f) MARCATURA DI FORMA SU (d) — l'indirizzo del canonico è SCADUTO, si riscrive per SIMBOLO.** Il punto (d) qui sopra cita `AppRootView.swift:61-68`. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`: a `:61` c'è `UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)` dentro `.onChange(of: scenePhase)`, e `:63-69` sono commento. Il canonico è *l'handler `.onChange(of: screen)` di `AppRootView`, ramo `else if previousScreen == .qLive` → `audioEngine.stop()`*, a HEAD `ios_app/QBeats/UI/AppRootView.swift:70-77 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` con la chiamata a `:74`. ⛔ **Il punto (d) NON è stato riscritto e la sua sostanza NON cambia**: il modello «sessione ≡ stanza» regge identico — cambia solo come si nomina il bersaglio.
+  --- FINE TESTO ---
+
+  ======== S1.c-LIBRO  —  LIBRO_MASTRO_QBEATS.md, dopo r.334 (Sez.2)
+  sha256 SENZA newline: 4a35ab11fdf8eeea73b9d055bea925f716b42555c904a363538e8a07ce395d32  (1299 B)
+  sha256 CON   newline: 0e1c0e215832626ca71409cda39513b7f9aad8c19f2cf1d488c7ba1f85b0f78a  (1300 B)
+  --- INIZIO TESTO ---
+| 2026-08-01 | **ESTENSIONE AI SORGENTI DELLA REGOLA DI INDIRIZZAMENTO — «per SIMBOLO, non per riga».** La regola **esiste già in casa** e si estende, non si inventa: `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` la impone al **freeze** («Riferimenti al freeze per SELETTORE, mai per riga») e `:129` la applica **già a un sorgente** («per SIMBOLO: `stop()` → `stopSync()` … a HEAD `AudioEngine.swift:1638`/`:1705`»). **Estensione ratificata:** ogni nuovo indirizzo a un sorgente `.swift` si scrive **per SIMBOLO** — dichiarazione, funzione, ramo, costruttore — e il numero di riga, se compare, è un **ausilio alla lettura** che **DEVE** portare `@ <commit a 40>`. **Motivo misurato, non teorico:** al 2026-08-01 quattro puntatori vivi su `AppRootView.swift` risultavano scaduti dopo tre atomi di §6 — ⟦NODO A⟧, ⟦S4b⟧, ⟦S4R⟧ — che hanno spostato le righe **senza cambiare i simboli**: `BUGS:118` e `BOX3:33` (`:61-68`), `BUGS:120` (`:43`), `BUGS:289` (`:8,13,27-33` e `:10-12`). ⛔ **Le righe storiche e il registro NON si convertono**: si convertono i **siti vivi**, per marcatura additiva, e le righe esistenti non si riscrivono. | Mauro + CC + referee | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` · `:129` · marcature BUGS/BOX3 di questo giro | attiva | — |
+  --- FINE TESTO ---
+
+  ======== S1.g + S1.h  —  BUGS_QBEATS.md, dopo r.616, in coda a §1.3
+  blocco di 11 righe
+  sha256 SENZA newline finale: 96f34852f1978bd8478343b1fef15f8dc5c8d4400d58bef22c8178297907688f  (2115 B)
+  sha256 CON   newline finale: bc48125bc2822b2fcb4bc0ab61ff0ac6b11c7c1e48fb69f371c21138f19886d0  (2116 B)
+  --- INIZIO TESTO ---
+### TD-riscrittura-integrale-exit-unconfirmed-stop — il ticket §1.1 porta TRE strati di marcature sopra un testo falso in più punti (🟡 OPEN BASSA / doc-hygiene)
+- **Il fatto:** `TD-qlive-exit-unconfirmed-stop` (§1.1) è oggi leggibile solo all'indietro. Il corpo è ancorato a `f8276f6` e afferma al presente cose false a HEAD; sopra ci sono la **marcatura v46** (`r.122`), le **marcature del 01/08** su proprietario del rerouting, forma degli indirizzi e catena di severità. Tre strati, e ognuno è corretto: è la **somma** a non essere più leggibile in avanti.
+- **Perché non adesso:** riscrivere ora significherebbe fissare un testo su due metà che stanno per cambiare **entrambe** — la pre-esistente l'ha già mossa ⟦S4R⟧, la nuova la muoverà ⟦S5⟧ con lo Start e ⟦S6⟧ con l'overlay. Si riscriverebbe due volte.
+- **Quando:** a ⟦S5⟧ e ⟦S6⟧ chiusi. Riscrittura **da zero**, non un'altra marcatura: marcare all'infinito un testo che nessuno può più leggere in avanti diventa **sedimento**.
+- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto su codice, prodotto o palco. **Dominio:** CC.
+
+### TD-doccomment-navigate-zero-chiamanti — `QLiveRootView.swift:85` dichiara zero chiamanti dell'imbuto, falsificato da `:145` dello STESSO file (🟡 OPEN BASSA / commento-codice stale)
+- **Il fatto:** il doc-comment a `:85` recita «A S4b ha zero chiamanti (la porta è installata per S5/S6)». Misurato a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`: l'imbuto `navigate(to:)` ha **un chiamante vero**, `:145`, nello stesso file, introdotto da ⟦S4R⟧. Il commento era vero a ⟦S4b⟧ e nessuno l'ha aggiornato.
+- **Impatto:** zero sul comportamento — è un commento. Il rischio è di lettura: chi lo prende per buono conclude che il ramo `.metronome` non è raggiungibile **per assenza di chiamanti**, che a HEAD è falso (la ragione vera è che l'unica chiamata passa `.shows`).
+- **⛔ NON si tocca in un giro doc-only:** è **codice**. Si traccia qui e si corregge nel primo atomo che apre quel file. **Dominio:** CC.
+- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG.
+  --- FINE TESTO ---
+
+--------------------------------------------------------------------------
+§F — IMPRONTE PROSPETTICHE, CON LA FACCIA DICHIARATA
+--------------------------------------------------------------------------
+[V] Calcolate IN MEMORIA: alla data di questo referto nessun byte e' stato scritto
+    nei tre canonici. Le facce sono dedotte dai CR del file SU DISCO, non dalla
+    versione CRLF sintetizzata dallo strumento — errore trovato e corretto in corsa.
+
+  BUGS_QBEATS.md   — DUE FACCE (1010 CR su disco, `text: unspecified`)
+    PRIMA  blob LF    b24d1b3c9a2c913104f16a8ea3c5adf20f1230cca7e3ef09d874cbca32a2415a  256406 B
+           disco CRLF a92246b1d204779417e844f6d0d55c09253801cecf2f4f47bc68129b4b9763dc  257416 B  1010 CR
+    DOPO   blob LF    f0915e76b13f8dc2c87a86d3ae75e1fca35a60a49e655fd58ea6c193ec2a0bc4  269648 B
+           disco CRLF 9fff41155d0718452f238192aeccd8b8965deb182904ea1b47a9fb7612738fc9  270675 B  1027 CR
+    delta  LF +13242 B   CRLF +13259 B   righe +18  -1
+
+  BOX3_QBEATS.md   — UNA FACCIA SOLA (0 CR su disco, `text: unset` = -text)
+    PRIMA  c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c   89457 B  0 CR
+    DOPO   e13dc9429c1ea4092a94b6f089c672390a3f077261a7d88c07aa23e8cd1ac3f1   90250 B  0 CR
+    delta  +793 B   righe +1  -0
+
+  LIBRO_MASTRO_QBEATS.md — DUE FACCE (485 CR su disco, `text: unspecified`)
+    PRIMA  blob LF    39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5  215598 B
+           disco CRLF 532928dce92680a98e0a291e0e44f571f70bcb95aad0ab38b50fdf6bb87c7fdf  216083 B  485 CR
+    DOPO   blob LF    6161c73909d520802fd1349a84046d1bee951298617284d8d1ecd9bce7aec111  216898 B
+           disco CRLF 04ecc1a3345c25467a3f78e4b7559d84b7ce5e848629f845fc98b02ae745c29e  217384 B  486 CR
+    delta  LF +1300 B   CRLF +1301 B   righe +1  -0
+
+  TOTALE: 20 righe +, 1 riga -, su 3 file.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Nessuna misura su device. Nessun percorso a runtime esercitato: quanto sopra e'
+    struttura di montaggio letta sul testo, non comportamento osservato.
+[V] Il ramo #if DEBUG e' dentro le RICERCHE TESTUALI ma non e' stato ESEGUITO.
+[V] Non ho letto per intero BUGS, BOX3, LIBRO: solo gli intervalli citati.
+[V] Le impronte DOPO sono prospettiche: nessun canonico e' stato scritto.
+[R] I file:riga citati DENTRO le righe marcate, diversi da AppRootView,
+    QLiveRootView e QLiveSession, non sono stati riverificati in questo giro.
+[V] ⛔ AL MOMENTO DI QUESTO REFERTO IL COMMIT NON E' STATO ESEGUITO: manca l'ok
+    esplicito di Mauro, che e' il secondo dei due cancelli.
+
+==============================================================================
+FINE REFERTO S1-S3.
+==============================================================================

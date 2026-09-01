@@ -1,0 +1,141 @@
+TRASPORTO DOC — BOX3 V96 → V97 — testo nuovo/modificato VERBATIM (per referee)
+Data: 2026-07-18 · Autore: CC · FILE 1 di 3 del giro doc ridotto.
+Canonico: ARCHIVIO.MD/18_07_2026/BOX3_V97_2026-07-18.md (gitignored — NON committato;
+propagazione = file + mirror E:\…\FILE X CLAUDE.MD\BOX3_Codice\ + sha256 ai due capi).
+BOX3 è AUTOPORTANTE: V97 = questo blocco «Supersede V96» ANTEPOSTO al corpo di V96
+INVARIATO, SALVO i tre marcatori inline in coda (sezione «MODIFICHE INLINE AL CORPO»)
+che neutralizzano il vecchio (k) — il motivo tecnico del giro.
+NB metodo: sotto è la formulazione ratificata, trascritta integrale (non riassunta).
+Applico il canonico V97 SOLO dopo ratifica verbatim + OK Mauro (due cancelli).
+
+─────────────────────────────────────────────────────────────────────────
+RIGA DI TESTA DI V97 (sostituisce la riga 1 di V96) — punto (h)
+─────────────────────────────────────────────────────────────────────────
+BOX3 V97 — 2026-07-18 (AUTOPORTANTE) · HEAD=origin=f8276f6 (⚠️ campo strutturalmente stale
+by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo;
+chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato 18/07: HEAD reale =
+`f8276f6` = S4a «QLiveShowsView come dead code», CI `29653954692` verde)
+
+─────────────────────────────────────────────────────────────────────────
+BLOCCO NUOVO — da anteporre subito sotto la riga di testa
+─────────────────────────────────────────────────────────────────────────
+Supersede V96 (S4a su master + tre ratifiche 18/07 che RISCRIVONO il prereq di S4; il punto
+(k) di V96 è SUPERATO — istruiva a costruire uno stop sulla navigazione interna, ora vietato
+da CD; vedi (a) e MODIFICHE INLINE):
+
+ · §1 CANCELLI §6: **S4a 🟢 su master** — commit `f8276f6` «S4a: QLiveShowsView come dead
+   code (frame ② read-only, non referenziato)», 1 file +309/−0, autore Mauro, zero trailer;
+   CI `29653954692` verde (build 4m41s, soli warning noti Node20/aws-tap). ⚠️ **CI-verde ≠
+   chiuso**: QLiveShowsView è DEAD CODE, non referenziato, mai visto a schermo → chiusura
+   visiva = gate device S4b. QLiveRootView.swift e AppRootView.swift NON toccati (S4b, atomo
+   separato, bloccato in attesa della stesura ratificata).
+
+ · **(a) 🚨 PUNTO (k) RISCRITTO — la direzione di V96 DECADE.** La decisione CD 18/07
+   (opzione (c)) stabilisce che **navigazione e transport sono separati**: uscendo dal
+   metronomo il click NON si ferma MAI; lo ferma SOLO uno STOP esplicito (bottone nel
+   metronomo, o MIDI Stop da pedaliera). Ragione dirimente: con Link Director uno stop è un
+   evento di BANDA, non può essere il sottoprodotto di un «indietro».
+   → Il prereq (k) nella forma «aggiungi uno stop alla navigazione interna» È **SUPERATO**.
+     Vietato installare `.onChange(of: page)` con stop, in nessuna forma (neanche inerte).
+   → Al suo posto, il PREREQUISITO VERO: se l'audio SOPRAVVIVE alla navigazione, deve
+     sopravvivere anche lo STATO che lo governa. Oggi `SetlistRunner` è `@StateObject` in
+     `LiveRootView.swift:12-13` → muore al pop; `audioEngine` viene da `QBeatsApp` e
+     sopravvive. Al rientro nascerebbe un runner FRESCO (canzone 1) col click già avanti = UI
+     e clock divergenti sul palco. **DECISIONE MAURO 18/07 (ratificata): la proprietà del
+     runner SALE** — il runner sopravvive alla navigazione interna e muore SOLO all'uscita da
+     Q-Live. Atterra in **S4L**, NON in S4. In S4 il problema è MUTO (metronomo
+     irraggiungibile dopo il flip S4b → S6).
+
+ · **(b) §0/§7 — CLAIM LINK SORGENTATO A HEAD E CORRETTO** (supersede reperto (l) di V96, che
+   restava «da riancorare»). Fonte terza = header Ableton VENDORED nel repo
+   `Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h`. Catena a HEAD
+   f8276f6: `link_engine_stop` (`LinkEngine.mm:485-496`) fa `ABLLinkSetIsPlaying(state,false,…)`
+   + `ABLLinkCommitAppSessionState`; l'header dice (`:230-236`) che il commit «will be
+   communicated to other peers in the session», MA (`:18-20`) «only shared with other peers
+   when start/stop synchronization is enabled», e (`:75-82`) tale abilitazione è «only
+   controllable by the USER via the Link settings dialog… not controllable programmatically».
+   → **CORREZIONE del claim V96**: `ABLLinkStartStopSyncSupported: true` (`project.yml:19`)
+   NON attiva la propagazione — **PERMETTE ALL'UTENTE** di attivarla dal dialog Link, ed è una
+   scelta **PER-PEER**. Conseguenza operativa: l'effetto-banda (i Follower si fermano su uno
+   stop del leader) esiste SOLO a configurazione utente accesa, sui device coinvolti. La
+   conclusione operativa del §0 non cambia: lo stop non deve essere il sottoprodotto spurio di
+   altro — ora RAFFORZATA dalla decisione CD (nessuno stop da navigazione). Interruzione iOS
+   (telefonata) INVARIATA: `AudioEngine.swift:2676-2677` non chiama `link_engine_stop` → NON
+   propaga (righe identiche a HEAD, riverificate). Il reperto (l) passa da «da riancorare» a
+   **FATTO OPERATIVO sorgentato**.
+
+ · **(c) RULING D1-SPLIT (per S4b).** Si installa: `page` + `switch page` + `navigate(to:)` +
+   il COMMENTO DI GUARDIA con la decisione CD 18/07 (incisione della ratifica dove un futuro
+   lettore la cablerebbe per errore — NON uno stop commentato). NON si installa
+   `.onChange(of: page)` con stop (dead code che ESEGUE una politica vietata: E3 al
+   contrario). NON si installa `previousPage` (unico consumatore era l'handler di stop = stato
+   morto senza lettore; si aggiungerà col suo lettore quando servirà, presumibilmente S6).
+   Vincolo tecnico invariato: `QLivePage` case-only (Equatable auto-sintetizzato, come
+   `Screen`); il payload sta in `@State` separato, mai nell'enum.
+
+ · **(d) MODELLO RATIFICATO «sessione ≡ stanza».** La navigazione INTERNA di Q-Live NON chiude
+   la sessione live (runner + click); l'uscita dalla STANZA la chiude. Con questo modello il
+   canonico `AppRootView.swift:61-68` (stop all'uscita da `.qLive`) e la decisione CD
+   convivono SENZA contraddizione: il canonico non è «stop-da-navigazione», è fine-sessione al
+   bordo-stanza. (Resta la questione di sicurezza sull'uscita-stanza col click attivo: vedi
+   BUGS v39 + LIBRO v36 (3) — direzione CD (iii) ratificata, freeze del disegno atteso.)
+
+ · **(e) VINCOLO TECNICO S4L da incidere.** Un `ObservableObject` ANNIDATO dentro un altro NON
+   propaga: `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del runner,
+   NON i suoi cambi interni (canzone/sezione/BPM). I figli devono osservare **IL RUNNER**
+   (`@ObservedObject`/`@EnvironmentObject` sul runner), NON la sessione — pena UI metronomo
+   CONGELATA che sembrerebbe un bug del DSP. Da scrivere come VINCOLO nella scheda ⟦S4L⟧ alla
+   riscrittura SCALETTA (ratifica referee), insieme all'emendamento esplicito dell'invariante
+   Nodo A «renderizza LiveRootView, MAI LiveView diretto» (scopo preservato — mai LiveView
+   senza runner iniettato, garantito dal gate `if let runner`; lettera cambiata).
+
+ · **(f) RETTIFICA §14 — `qb_fixB` NON era un errore di memoria.** È un worktree REALE del
+   repo LIVE: verificato 18/07 `git worktree list` → `C:\Users\BULLFROG\qb_fixB` branch
+   `test/bug2b-test7-fixtures @ add556f`. L'errore riguardava SOLO il gruppo STALE, che è
+   **`qb_fixA` su `qb468clone`** (i due cloni indipendenti di giugno). La nota di V96 («NB:
+   corregge il mio handoff 14/07 che parlava di qb_fixB») correggeva TROPPO LARGO: cancellava
+   anche un dato giusto. `qb_fixB` resta il worktree con trigger-di-rimozione soddisfatto
+   (§14, azione manuale Mauro); `qb468clone`+`qb_fixA` restano i cloni cancellabili.
+
+ · **(g) SCALETTA — regime da decidere: NON è a copia singola.** Ne esistono DUE copie sullo
+   STESSO disco E: con lo STESSO nome e contenuto DIVERGENTE: v2 corretta (Versione 2,
+   17/07, NODO A 🟢) in `FILE X CLAUDE.MD/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`; v1 STALE
+   (Versione 1, 12/07) in `FILE X CLAUDE.MD/HANDOFF/REFEREE_SYNC_2026-07-13/SCALETTA_ATOMI_S6_
+   2026-07-10.md`; ZERO copie in git. È una TRAPPOLA PER NOME-FILE (chi apre per nome può
+   prendere la v1). Registrato come DEBITO APERTO in §14; la cancellazione della v1 è azione
+   manuale di Mauro. (Nota: al prossimo giro doc la SCALETTA va anche riscritta per S4L —
+   punto (e) — e portata a regime doppia-copia C:+E: come BOX3/BOX5, ratifica referee.)
+
+ · **(h) HEAD e stato:** campo di testa aggiornato a `f8276f6` (vedi riga di testa sopra).
+   Campo HEAD **STALE BY-DESIGN**: non usarlo come puntatore; l'HEAD vero si verifica con
+   `git log -1` a fonte.
+
+ · Nient'altro cambiato nella sostanza rispetto a V96; il corpo di V96 (da «Supersede V95» in
+   giù) è riportato sotto INVARIATO per continuità autoportante, SALVO le tre modifiche inline
+   qui sotto (che NON riscrivono la storia: la marcano superata dove istruirebbe male).
+
+─────────────────────────────────────────────────────────────────────────
+MODIFICHE INLINE AL CORPO PORTATO AVANTI (il motivo tecnico del giro)
+Tre marcatori, byte-precisi, da inserire nel corpo V96 quando confluisce in V97.
+NON si cancella il testo storico: gli si antepone il marcatore di superamento.
+─────────────────────────────────────────────────────────────────────────
+[M1] In testa al punto «· (k) 🚨 PREREQUISITO BLOCCANTE DI S4 …» del blocco Supersede V95,
+     inserire PRIMA del testo esistente:
+       ⛔ SUPERATO da V97 (a) — CD 18/07: navigazione ≠ transport, NESSUNO stop sulla
+          navigazione interna. NON eseguire quanto segue; tenuto solo come storia. ↓
+[M2] In testa al punto «· (l) REPERTO DA RIANCORARE …» del blocco Supersede V95, inserire
+     PRIMA del testo esistente:
+       ✅ CHIUSO da V97 (b) — claim Link sorgentato a `ABLLink.h` e CORRETTO (il flag
+          PERMETTE, non attiva; per-peer). Testo sotto = storia del reperto. ↓
+[M3] In coda al punto «· Worktree `qb_fixB` (…)» del §14 (registro consolidato), aggiungere:
+       ⚠️ RETTIFICA V97 (f): `qb_fixB` è worktree REALE (verificato 18/07), NON un errore di
+          memoria; l'errore era su `qb_fixA`/`qb468clone`. La nota V95 correggeva troppo largo.
+     E aggiungere al §14, come nuova voce di debito:
+       · **SCALETTA_ATOMI_S6 — DUE copie omonime divergenti su E:** v2 corretta in
+         `HANDOFF/`, v1 stale (12/07) in `HANDOFF/REFEREE_SYNC_2026-07-13/`, zero in git →
+         trappola per nome-file. Cancellazione v1 = azione manuale Mauro. Regime doppia-copia
+         C:+E: da decidere (ratifica referee). [V97 (g)]
+
+─────────────────────────────────────────────────────────────────────────
+FINE TRASPORTO FILE 1. Attendo ratifica verbatim del referee + OK di Mauro prima di scrivere
+il canonico V97 e propagarlo. Nessun canonico toccato in questo turno.

@@ -1,0 +1,102 @@
+QB-2026-08-05-A55-S5A-COMMIT · segue A54
+CC → Referee · ⟦S5a⟧ COMMITTATO SU MASTER · CI VERDE · ramo temporaneo spento
+
+ID: A55, assegnato da te. Verificato libero in forma stretta prima di scrivere, controllo
+positivo su A54. Orologio: 2026-08-05T13:09:04Z (`date -u`).
+Due cancelli, distinti e entrambi ricevuti: ratifica referee sul diff verbatim
+(sha256 `85f47246…b670126a`) + OK di Mauro.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+ESITO — in tre righe
+════════════════════════════════════════════════════════════════════════════════════════════════
+master: `5183758d8b80b0d1f975fb0e6074d146cec3e3ae` → **`25056b66eda40ad76d91a886ace442b7064ca900`**
+CI su master: run **31009171778**, `conclusion: success`, 15/15 step verdi.
+Ramo `ci-fiammifero/S5a-A53`: **cancellato**, remoto e locale, dopo il verde e dopo la prova
+che il suo contenuto era integralmente su master.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C1 — PARTENZA, DIMOSTRATA
+════════════════════════════════════════════════════════════════════════════════════════════════
+branch: `ci-fiammifero/S5a-A53` · HEAD: `d27b32bcbf57115b85db994f332e70ac3da9de42`
+master locale: `5183758d8b80b0d1f975fb0e6074d146cec3e3ae` ✅ come atteso
+master remoto: `5183758d8b80b0d1f975fb0e6074d146cec3e3ae`
+`git status --porcelain -- ios_app/` → **vuoto** ✅
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C2 — CHERRY-PICK · e UNA FERMATA CHE IL MANDATO NON PREVEDEVA
+════════════════════════════════════════════════════════════════════════════════════════════════
+`git checkout master` → ok. `git cherry-pick d27b32b` → commit `3667d5c`, **zero conflitti**.
+autore/committer: Mauro Martintoni <di_tutto@icloud.com>. Co-Authored-By: assente.
+
+⛔ **FERMATA PRIMA DEL PUSH — mandato nullo.** Il cherry-pick preserva il MESSAGGIO verbatim, e
+quel messaggio su master era **falso in tre punti**: «COMMIT DI PROVA su ramo temporaneo» ·
+«NON un commit di lavoro» · «Da NON mergiare: master resta intatto finche' referee ratifica e
+Mauro da' l'OK» — mentre era il commit di lavoro, era mergiato, master non era più intatto e
+i due cancelli erano stati dati. Pushare avrebbe inciso una falsità nella storia PERMANENTE e
+PUBBLICA di master: la stessa classe di difetto che qui si chiama «riga falsa in un canonico»,
+applicata alla storia git. Fermata e riferita invece di eseguita.
+⇒ Sbloccata da te con il testo sostitutivo verbatim (A1), applicato senza riformularlo.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+A1/A2 — AMENDA DEL MESSAGGIO, E LA PROVA CHE L'ALBERO NON È CAMBIATO
+════════════════════════════════════════════════════════════════════════════════════════════════
+`git commit --amend` col testo che hai dettato, verbatim. `3667d5c` → **`25056b6`**.
+VERIFICATO DOPO l'amend, non assunto:
+  autore   : Mauro Martintoni <di_tutto@icloud.com>
+  committer: Mauro Martintoni <di_tutto@icloud.com>
+  Co-Authored-By: **ASSENTE**
+
+⚠️ **L'sha cambia, l'ALBERO no — dimostrato:**
+  tree atteso (compilato da CI) : `63c793a8d0ec122cdfc9657992c309568f83821e`
+  tree di HEAD dopo l'amend     : `63c793a8d0ec122cdfc9657992c309568f83821e`  ✅ IDENTICI
+  `git diff d27b32b HEAD -- ios_app/` → **vuoto**
+⇒ La garanzia «su master c'è ESATTAMENTE il codice che ha compilato» regge attraverso
+  cherry-pick E amend. Il messaggio è cambiato, una riga di codice no.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C3/C4 — ALBERO E PUSH
+════════════════════════════════════════════════════════════════════════════════════════════════
+Alberi verificati (sopra). Push: `git push origin master` → `5183758..25056b6`.
+⚠️ **Verificato A FONTE, non dall'output del push** («il testo che un comando stampa non è una
+misura del suo effetto»):
+  `git ls-remote origin master` → **`25056b66eda40ad76d91a886ace442b7064ca900`**
+  `git rev-parse master`        → **`25056b66eda40ad76d91a886ace442b7064ca900`**
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C5 — CI SU MASTER
+════════════════════════════════════════════════════════════════════════════════════════════════
+run **31009171778** · `event: push` · `headSha: 25056b66eda40ad76d91a886ace442b7064ca900`
+(sha COMPLETO a 40) · **`conclusion: success`**
+https://github.com/19Bullfrog78/Q-BEATS/actions/runs/31009171778
+Confermato su DUE forme indipendenti: exit-status del watch **e** `gh run view --json conclusion`.
+15/15 step verdi, compreso **Build and Archive** (l'unico che compila davvero questa view: il
+banco `QBeatsTests` monta solo `QBeats/Models`, `project.yml:138-140`).
+Errori Swift nel log: **zero**.
+⚠️ È la SECONDA compilazione dello stesso albero `63c793a8…`: la prima sul ramo temporaneo
+(run 31004966940, workflow_dispatch), questa su master (push). Stesso albero, due verdi.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C6 — FIAMMIFERO SPENTO, DOPO AVER PROVATO CHE NON SI PERDEVA NULLA
+════════════════════════════════════════════════════════════════════════════════════════════════
+Remoto: `git push origin --delete ci-fiammifero/S5a-A53` → `[deleted]`.
+⚠️ Locale: `git branch -d` ha RIFIUTATO — «not fully merged». Corretto e atteso: dopo
+cherry-pick + amend lo sha è diverso (`d27b32b` vs `25056b6`) e la raggiungibilità di git non
+sa che sono equivalenti. **Non ho forzato alla cieca**: prima ho dimostrato l'equivalenza —
+  tree ramo `d27b32b`   : `63c793a8d0ec122cdfc9657992c309568f83821e`
+  tree master `25056b6` : `63c793a8d0ec122cdfc9657992c309568f83821e`  ✅
+  `git diff d27b32b master` → **vuoto** (nessun contenuto esclusivo del ramo)
+— e solo dopo `git branch -D`. Nulla di irrecuperabile è stato cancellato.
+VERIFICA FINALE: `git ls-remote --heads origin "ci-fiammifero/*"` → **vuoto** ·
+`git branch --list "ci-fiammifero/*"` → **vuoto**.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+STATO FINALE
+════════════════════════════════════════════════════════════════════════════════════════════════
+branch corrente : master
+master locale   : `25056b66eda40ad76d91a886ace442b7064ca900`
+master remoto   : `25056b66eda40ad76d91a886ace442b7064ca900`
+albero          : `63c793a8d0ec122cdfc9657992c309568f83821e`
+`git status --porcelain -- ios_app/` → vuoto
+⛔ **⟦S5a⟧ è CI-VERDE e NON VALIDATO SU DEVICE.** Mai visto a schermo: nessun Xcode in ambiente
+CC. «CI-verde ≠ chiuso» — la chiusura è il gate device di Mauro, e non è stato fatto.
+════════════════════════════════════════════════════════════════════════════════════════════════

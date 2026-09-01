@@ -1,0 +1,179 @@
+================================================================================
+DIFF B6 — LIBRO v43: ratifica sdoppiamento ⟦S4L⟧ in tre atomi — 2026-07-28
+================================================================================
+Scritto da CC. NON committato: manca l'OK di Mauro su QUESTO diff specifico.
+La ratifica del referee su B4 c'è ed è incollata verbatim nel prompt di questo
+giro; quella su questo diff B6 è cosa distinta e non è ancora arrivata.
+
+REPO   : C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+HEAD   : 8289944dd98b3372a422e5c3481831b3fc727ca5
+BRANCH : master
+
+================================================================================
+GATE DI VERIFICA PRE-SCRITTURA — richiesti dal prompt, tutti passati
+================================================================================
+1) HEAD e impronta SCALETTA
+   git rev-parse HEAD                      -> 8289944dd98b3372a422e5c3481831b3fc727ca5
+   atteso dal prompt                       -> 8289944dd98b3372a422e5c3481831b3fc727ca5   COINCIDE
+   git show 8289944…:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md | sha256sum
+     -> 700d7caa7c20756e22c44665851203fd0e1fa279ccddcc37fa61cab5549c0e14   COINCIDE
+   versione dichiarata dentro la SCALETTA a quel commit -> «Versione: 3 (28/07/2026)»
+
+2) «S4K» e «S4R» PRIMA dell'edit, in QUATTRO notazioni
+   (righe / occorrenze × sensibile / insensibile al caso)
+     S4K  0  0  0  0
+     S4R  0  0  0  0
+   CONTROLLI POSITIVI, stessa forma, sullo stesso file:
+     S4L       15 righe / 28 occorrenze
+     Mauro    160 righe / 225 occorrenze
+     SCALETTA   6 righe / 13 occorrenze
+   => il meccanismo di conteggio funziona: i due zero sono assenze vere.
+
+3) Punto d'innesto INDIVIDUATO, non assunto
+   Sezioni misurate: Sez.1 r.99 · Sez.2 r.191 · Sez.3 r.320 · Sez.4 r.343 ·
+   Sez.5 r.388 · Sez.6 r.406. La Sez.3 ESISTE.
+   Ultima riga-tabella di Sez.2 = r.316 (REGOLA INDIRIZZO DI CONTENUTO);
+   r.317 vuota, r.318 «---», r.320 «## Sezione 3». Inserimento DOPO r.316.
+   Schema colonne da r.196: | Data | Decisione | Proposta da | Doc ref | Stato |
+   Superseded da |
+
+================================================================================
+⚠️ IL PROMPT DESCRIVE UNA SOLA MODIFICA, MA UNA v43 NE RICHIEDE QUATTRO
+================================================================================
+Il prompt descrive solo la riga nuova in Sez.2, ma il titolo dice «LIBRO v43» e
+il file ha convenzioni interne che una versione nuova deve rispettare, pena un
+documento che mente su sé stesso. Misurato PRIMA di decidere:
+  · r.5  «**Versione:** 42 (28/07/2026)»  -> bump a 43
+  · r.6  «**Ultima modifica:** … (v42 — …)» -> riscritta per v43, nella forma
+    che il file usa da sempre (cosa cambia + header bump + doc-only)
+  · Sez.6 «Storico versioni file» traccia OGNI versione: 40 righe, l'ultima è
+    «| 42 | 2026-07-28 | …» a r.449. Una v43 senza la sua riga lascerebbe lo
+    storico bucato -> aggiunta la riga 43.
+  · Sez.5 «HEAD codice pre-doc-commit» = `ee31281`: VERIFICATO che NON cambia.
+    `git diff --stat ee31281..HEAD -- ios_app/` rende VUOTO; i tre commit
+    intermedi (54ccddc, 8926c2a, 4b55686, 0a6ebaf, 8289944) sono tutti doc-only.
+    Sez.5 quindi NON è stata toccata, e la riga v43 lo dichiara — come fece v42.
+Totale: 2 righe modificate (header) + 2 righe aggiunte (Sez.2, Sez.6).
+
+================================================================================
+FACCIA — LIBRO è a DUE FACCE, ed è la disciplina che cambia rispetto ai giri
+BOX5/SCALETTA (quelli sono a faccia unica LF)
+================================================================================
+PRE-EDIT   disco: sha256 26ec91115efbc84820402589d0c82af155dd5bab50458c4a359ac62cea108bf2
+                  byte(disco)=158204 · righe(terminatori, wc -l)=453 · CR=453
+           blob : sha256 065873628a7760e379b4b16f222fa19db9425507dbfd828532cd77a1f447a28a
+                  byte(blob)=157751 · righe(blob)=453 · CR(blob)=0
+           158204 − 157751 = 453 = esattamente il numero di CR. Coerente.
+
+POST-EDIT  disco: sha256 734c01585e4985de5fba5453940763d25383fc8f8fea8b6834b0bebf14355817
+                  byte(disco)=163167 · righe(terminatori, wc -l)=455 · CR=455
+           INVARIANTE DUE FACCE: CR == righe(terminatori) -> 455 == 455  OK
+           CRLF accoppiati: 455 CRLF su 455 CR -> nessun CR orfano.
+           CONTROLLO POSITIVO nella stessa forma su file a faccia LF, che
+           devono rendere 0: BOX5_QBEATS.md CR=0 · SCALETTA CR=0.
+           => il comando sa contare i CR; il 455 su LIBRO è un valore vero,
+              non un artefatto.
+
+FACCIA BLOB CHE VERRÀ SCRITTA AL COMMIT (non è ancora nel repo):
+           `git check-attr text eol` su LIBRO -> entrambi «unspecified»
+           (LIBRO NON è in .gitattributes: lì ci sono HANDOFF/**, DESIGN/**,
+           BOX3_QBEATS.md, BOX5_QBEATS.md). `core.autocrlf = true`.
+           Verifica incrociata, non dedotta:
+             OID che git produrrebbe dal disco  = a15beefb2ed26556766da82707330c010754b812
+             OID della faccia LF calcolata a mano = a15beefb2ed26556766da82707330c010754b812
+             COINCIDONO => il blob sarà LF, come i 42 precedenti.
+           byte(faccia LF) = 162712 · CR = 0 · 163167 − 162712 = 455. Coerente.
+           sha256(faccia LF) = 17dd0bc4c1663493a3e64864f59c69dd397c569179a232e3d5cbdbcaee1cea08
+
+================================================================================
+STRUTTURA DOPO L'EDIT
+================================================================================
+  righe-tabella in Sez.2  : 121 -> 122   (+1)
+  righe-versione in Sez.6 :  40 ->  41   (+1)
+  Sezioni: 1 r.99 · 2 r.191 · 3 r.321 · 4 r.344 · 5 r.389 · 6 r.407
+  «S4K» ora 3 righe / 5 occorrenze  ·  «S4R» ora 3 righe / 5 occorrenze
+  CONTROLLO POSITIVO: «S4L» 15 -> 18 righe.
+
+================================================================================
+LE SEI ENUMERAZIONI BOX3 — verificate DA ME, non prese dall'agente
+================================================================================
+Il prompt le descrive come portanti «la forma letterale S4 → S4L → S5 → S6».
+Misurato a fonte (`git show 8289944…:BOX3_QBEATS.md`), tutte e sei contengono
+«S4L» in contesto d'ordine, ma LE FORME NON SONO UNIFORMI:
+   r.60   «S4→S4L nell'ordine SCALETTA sez.C — non è il pros…»
+   r.151  «S4→S4L»
+   r.212  «S4→S4L nell'ordine.»
+   r.647  «Ordine: NODO A ✅ → **S4** → S4L → S5 → S6.»
+   r.662  «S4→S4L nell'ordine sopra. Non è il prossimo atomo…»
+   r.676  «⟦S4⟧/⟦S4L⟧/⟦S5⟧»
+La riga incisa dice quindi «nominano «S4L» in contesto d'ordine con forme NON
+uniformi», e riporta i tre campioni misurati — non una forma letterale unica
+che non esiste. BOX3 NON è stato toccato (ultimo commit che lo tocca resta
+7c804c1); le sei righe si leggono con la regola, non si riscrivono.
+
+================================================================================
+
+================================================================================
+UN REFUSO MIO, TROVATO E CORRETTO PRIMA DELLA CONSEGNA
+================================================================================
+Rileggendo il diff ho visto che nella riga Sez.2 avevo scritto «S4L⟧ —
+delimitatori disallineati: apre col caporale, chiude con la parentesi-atomo.
+In questo documento «» marca una citazione e ⟦⟧ marca un atomo: mescolarli fa
+leggere «S4L» come se fosse un token-atomo monco.
+Misura che lo ha isolato, sul bilancio dei delimitatori in tutto il file:
+    PADRE v42   atomi 28/28 (sbilancio 0)  ·  caporali 188/188 (sbilancio 0)
+    v43 pre-fix atomi 53/54 (sbilancio −1) ·  caporali 211/210 (sbilancio +1)
+    v43 post-fix atomi 53/53 (sbilancio 0) ·  caporali 211/211 (sbilancio 0)
+Il padre era perfettamente bilanciato: lo sbilancio era interamente mio, e ora
+è rientrato. Verifica finale: «S4L⟧ = 0 occorrenze · «S4L» = 3 occorrenze.
+Il byte in meno (163168 → 163167) è la differenza fra ⟧ (3 byte UTF-8) e »
+(2 byte): coerente, non una perdita di contenuto.
+
+================================================================================
+DIFFSTAT
+================================================================================
+    LIBRO_MASTRO_QBEATS.md | 6 ++++--
+    1 file changed, 4 insertions(+), 2 deletions(-)
+
+HUNK (tocca SOLO i quattro punti dichiarati):
+   @@ -5,2 +5,2 @@
+   @@ -316,0 +317 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
+   @@ -449,0 +451 @@ Le domande **CD-Q7** e **CD-Q8**, aperte in v28 (11/07 mattina), sono state riso
+
+================================================================================
+git diff -- LIBRO_MASTRO_QBEATS.md   (VERBATIM, INTEGRALE)
+================================================================================
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 3924b7d..a15beef 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,8 +2,8 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 42 (28/07/2026)
+-**Ultima modifica:** 2026-07-28 (v42 — Sez.2 +8: cinque ratifiche 27/07 (PALETTE ANNOTAZIONI CD · REGOLA DENTRO/FUORI LA CORNICE · FORMA POPUP REMOVE ② · CONTRATTO Q20 RICONFERMATO · CHIP «Read-only» RIMOSSO) + RETTIFICA clausola di deposito (opzione A-bis) + VARIANTE `-standalone` NON-NORMATIVA (risposta CD) + REGOLA INDIRIZZO DI CONTENUTO (regola di processo). Header bump 41→42. Doc-only, nessun fix codice.)
++**Versione:** 43 (28/07/2026)
++**Ultima modifica:** 2026-07-28 (v43 — Sez.2 +1: **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI** ratificato (⟦S4K⟧ congedo tastiera → ⟦S4R⟧ launcher → ⟦S4L⟧ prima scrittura; ordine obbligatorio), con la REGOLA DI RILETTURA delle citazioni di «S4L» anteriori al 28/07, che chiude il riferimento incrociato delle sei enumerazioni d'ordine di BOX3 **senza toccarle**. Sez.5 «HEAD codice pre-doc-commit» invariato a `ee31281`: misurato, `git diff --stat ee31281..HEAD -- ios_app/` rende vuoto (i tre commit intermedi sono doc-only). Header bump 42→43. Doc-only, nessun fix codice.)
+ **Edit author:** CC chat principale 28/07/2026
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+@@ -314,6 +314,7 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
+ | 2026-07-28 | **RETTIFICA — clausola di deposito della riga `2026-07-27` "DOVE VIVE «Remove from Q-Live» ALL'ATOMO ⟦S4L⟧ — opzione A-bis".** Quella riga dichiara il mockup di confronto «non depositato su E:, vive nel progetto CD». La clausola CADE, e il motivo è il METODO, non l'esito: è una dichiarazione di NON-deposito scritta in un canonico senza che nessuno avesse misurato su E: — §7 non ammette eccezioni di segno, una negazione di deposito è una misura come un'affermazione: o entra da misura, o non entra. Se il file non ci fosse stato, la riga sarebbe stata vera E UGUALMENTE ILLEGITTIMA. A misura (CC 27/07, riverificata 28/07) il file ESISTE: `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\2026-07-27_QLive-Shows-Remove-a-S4L-confronto.html` · 40367 B · sha256 `6455c8a98976fcb78a79c2f06822b8f02a152ffdcc9158e4b6d2a4091d2e19fc` · CreationTime 2026-07-27 13:41:19. ⛔ NON si scrive «la pull è avvenuta dopo la stesura del payload»: l'orario della stesura è inverificabile per costruzione — la clausola si elimina, non si declassa a [R]. Cade la SOLA clausola di non-deposito; tutto il resto della ratifica A-bis è INVARIATO e la riga originaria resta `attiva` (regola di Sez.2: le righe non si cancellano mai — questa riga AGGIUNGE, non supersede). | referee (su misura CC) | misura 27/07: `HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt` sez. 3.4 [V], sha256 `d9e2a39b…b499f41f` · riverifica 28/07: `HANDOFF/MISURE_R3_2026-07-28.txt` | attiva | — |
+ | 2026-07-28 | **VARIANTE `-standalone` — CD risponde: NON-NORMATIVA. Chiude la pendenza della riga `2026-07-20` "FREEZE uscita-stanza CONSEGNATO E ANCORATO".** Quella riga registrava: su E: esiste una variante `-standalone` (sha `8ff47031…`), contenuto DIVERSO, MAI committata; decisione CD attesa — o entra nel repo, o si dichiara non-normativa. CD ha risposto: **NON-NORMATIVA, non entra nel repo** — verbatim: «farlo entrare adesso ratificherebbe per via di deposito ciò che non è passato da una decisione». Il file resta su E: come documento di lavoro senza autorità: `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\18_07_2026\2026-07-18_QLive-Exit-in-Play-standalone.html` · 484560 B · sha256 `8ff470313d71e1a795bb654cabece71cb6435a141e1cd586984a9359b88d89e5` (misura CC 27/07, riverificata 28/07). Il normativo TRACCIATO resta `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html`. La riga `2026-07-20` resta `attiva`: questa riga la COMPLETA — registra la risposta che quella attendeva — non la sostituisce. Il file NON si committa. | CD (risposta, riportata dal referee — [R]) + Mauro | misura 27/07: `HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt` sez. 3.4 [V] · riverifica 28/07: `HANDOFF/MISURE_R3_2026-07-28.txt` | attiva | — |
+ | 2026-07-28 | **REGOLA INDIRIZZO DI CONTENUTO — regola di processo cross-team, accanto a R-β e R-γ.** `path:riga @ commit` è un INDIRIZZO DI CONTENUTO, non un'attribuzione di paternità: ogni commit è uno snapshot dell'albero INTERO — a quel commit il file esiste e la riga ha un contenuto, che quel commit l'abbia toccata o no. Si verifica con `git show <sha40>:<path>`, e lo falsifica SOLO che a quell'albero la riga non dica quello. «È un commit di documentazione che non tocca il file» è un NON SEQUITUR, non una falsificazione. Un'ancora è invalida solo se il file NON ESISTE a quel commit. ⚠️ Un `fatal:` di `git show` non è un verdetto finché non se ne legge il TESTO: «exists on disk, but not in <sha>» = CASE sbagliato nel path (`core.ignorecase=true` su questa macchina: il filesystem risolve, git no), NON una falsificazione · «does not exist in <sha>» = quella sì. Guardie: `git cat-file -e <sha40>:<path>` (exit 0 = esiste) · `git ls-tree --name-only <sha40>:<dir>` (rivela il case vero). Il path completo, col case esatto, È PARTE DELL'INDIRIZZO. CINQUE forme di falso-negativo agli atti: (1) `grep -c $'\r'` sui fine-riga · (2) `gh … --commit` con sha corto · (3) `--stat` su una directory · (4) pattern MULTI-PAROLA su file a capo fisso — si appiattisce con `tr -s '[:space:]' ' '`, MAI col join semplice `tr '\n' ' '`, che fallisce sulle continuazioni indentate · (5) `git show` col case sbagliato. COROLLARIO: il controllo positivo di un rimedio usa ESATTAMENTE la forma che il rimedio deve curare — un controllo con una forma più facile lo aggira e certifica un rimedio rotto. | referee + CC | ratifica referee 28/07 su misure CC: `HANDOFF/MISURE_R2_2026-07-28.txt` sha256 `6b73504257db7bb02e3768e6812efe165b8066cd5c17a381563a05d3c0c16c85` (25863 B) | attiva | — |
++| 2026-07-28 | **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI — ratificato.** La scheda ⟦S4L⟧ della SCALETTA v2 (`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`) conteneva **due contratti opposti sotto un solo nome**: «no write» (scopo originario) e «prima scrittura sui dati utente» (questa Sez.2, riga `2026-07-26` **EMENDAMENTO ALL'INVARIANTE**). In più `BOX3_QBEATS.md:34 @ 8289944dd98b3372a422e5c3481831b3fc727ca5` chiedeva di incidere un vincolo tecnico «nella scheda ⟦S4L⟧» che riguarda il **solo launcher**. Decisione Mauro 28/07, ratifica referee 28/07 (verifica indipendente in tre parti sul diff B4 — impronte, contabilità 162+/12− coincidente col diffstat, 162 righe aggiunte verificate presenti — più riverifica a fonte di BOX3 r.30, r.34 e LIBRO r.311). Sdoppiata in tre: **⟦S4K⟧** congedo tastiera (nessuna scrittura, nessun tocco al runner) → **⟦S4R⟧** launcher: iniezione setlist + kill phantom `makeDefault` + vincolo `ObservableObject` annidato + emendamento invariante Nodo A + **proprietà del runner** (decisione Mauro 18/07, `BOX3_QBEATS.md:30 @ 8289944dd98b3372a422e5c3481831b3fc727ca5`, qui trasportata: prima viveva solo in un commento BOX3, ora ha casa in un atomo) → **⟦S4L⟧** (nome resta, oggetto cambia): prima scrittura sui dati utente, «Remove from Q-Live» + menu «···». **ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧.** Dettaglio completo, citazioni e pendenze proprie di ciascun atomo in `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` sez. B, versione 3: **questa riga non duplica quel contenuto, lo ratifica.** ⚠️ **REGOLA DI RILETTURA per ogni citazione di «S4L» anteriore al 28/07:** se l'oggetto è il **launcher, il runner, il suo ciclo di vita o la sua proprietà, l'ingresso live, `LiveRootView`, `SetlistRunner`, il phantom `makeDefault`**, oppure un'**enumerazione d'ordine** degli atomi §6, si legge **⟦S4R⟧**; se l'oggetto è **Remove, il menu «···» o la scrittura sui dati utente**, resta **⟦S4L⟧**. Ancorare la rilettura a due soli lemmi («launcher»/«makeDefault») NON basta: i casi dirimenti non li contengono — `BOX3:30` (proprietà del runner) e `BOX3:45` (commenti-stale) rendono **0 occorrenze** di entrambi. ✅ **CHIUDE IL RIFERIMENTO INCROCIATO** delle sei enumerazioni d'ordine di `BOX3_QBEATS.md` (`:60`, `:151`, `:212`, `:647`, `:662`, `:676` @ 8289944dd98b3372a422e5c3481831b3fc727ca5), che nominano «S4L» in contesto d'ordine con forme NON uniformi (misurato: «S4→S4L» · «Ordine: NODO A ✅ → **S4** → S4L → S5 → S6» · «⟦S4⟧/⟦S4L⟧/⟦S5⟧»): da questa riga in poi **si leggono con la regola di rilettura, non si aggiornano a mano riga per riga**. Nessuna delle sei è stata toccata. | Mauro (decisione) + referee (ratifica) | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` versione 3, commit `8289944dd98b3372a422e5c3481831b3fc727ca5` — impronta blob del file a quel commit sha256 `700d7caa7c20756e22c44665851203fd0e1fa279ccddcc37fa61cab5549c0e14` (verificata con `git show`), CI `30385438701` conclusion `success`, `headSha` coincidente. Testo della ratifica referee incollato verbatim nel prompt di questo giro, non parafrasato | attiva | — |
+ 
+ ---
+ 
+@@ -447,6 +448,7 @@ Le domande **CD-Q7** e **CD-Q8**, aperte in v28 (11/07 mattina), sono state riso
+ | 40 | 2026-07-22 | Mauro + CC + referee | **Sez.2 +2 righe cross-team (22/07), entrambe di RETTIFICA DEL REGISTRO — zero prodotto, zero codice.** (1) **TD#17, condizione di chiusura agli atti**: (A) run palco 2-3h VR2800 banda singola senza perdita peer **OPPURE** (B) Soluzione C in produzione — alternative, non cumulative; roaming cross-banda = caratterizzazione, non condizione; stato invariato 🟠 OPEN MEDIA non bloccante. La decisione era di Mauro dal 21/07 ma non era mai entrata in un canonico: per **R-γ** non esisteva, e restava in vigore la formula del 22/06 (roam incluso, condizioni in AND). (2) **Rettifica della riga `2026-07-21`**: la premessa sulla SCALETTA è falsa in entrambe le metà — tracciata da `fe6d34b` del **18/07** (tre giorni PRIMA di quella ratifica), e su E: **una sola** copia, byte-identica a quella del repo e a quella del Progetto (sha256 `D2CDF120…`, Versione 2). La decisione regge, l'esempio no; la riga storica **non** è stata modificata (trattamento `CLAUDE.md`). Registrato come **aperto** il regime della SCALETTA (tracciata ma fuori dal regime root + in-place, mentre R-γ la enumera fra i canonici) → atomo doc separato. **Sez.5 «HEAD codice pre-doc-commit» invariato a `6ded4ab`**: fra v39 e v40 solo il doc-commit `ccb8151` (BOX3 V98), zero file `.swift` toccati. Header bump 39→40. Doc-only, nessun fix codice. |
+ | 41 | 2026-07-27 | Mauro + CC + referee | **Sez.2 +10 righe cross-team (24/07 e 26-27/07).** Card Q-Live›Shows, 4 decisioni (`a97a4f54…`) · postilla 1 copy popup, ratificata **e superseded in giornata** · copy popup definitiva, che la supersede (bottone `Cancel` sciolto il 27/07 contro il `Keep` dei due contratti; primo alert distruttivo dell'app, quindi modello per i successivi; vincolo duro: Remove non si spedisce senza il chip «Not in Q-Live») · postilla 2, «···» non pre-⟦S4L⟧ · postilla 3, Remove inerte in sessione · contratto **Q20** congedo tastiera (`5dcfbbfb…`, supersede una proposta 23/07 mai depositata, 🔴 blocca ⟦S4L⟧) · tab-reset Q-Stage, chiude `TD-qstage-tab-reset` by-design a zero codice · **emendamento all'invariante**: Q-Live non è più di sola lettura, prima scrittura in ⟦S4L⟧ limitata all'appartenenza a Q-Live · **confine distruttivo**: la cancellazione definitiva potrà vivere solo in Q-Stage, e a HEAD non esiste in nessuna delle due stanze (`deleteSetlist` zero call-site) · **opzione A-bis**: a ⟦S4L⟧ «···» a una voce **+** swipe trailing; proposta CD di spostare tutto in ⟦S5⟧ respinta e ritirata dal proponente, postilla 2 integra. **Sez.3 +1**: CD-8, copy popup, registrata non incisa. **Sez.5 «HEAD codice pre-doc-commit» → `ee31281`** (⟦FIX-PILL⟧, 23/07): fra `131a511` e HEAD quattro commit, uno solo tocca `.swift`, notazione controprovata su tutta la storia. Header bump 40→41. Doc-only, zero codice. |
+ | 42 | 2026-07-28 | Mauro + CC + referee | **Sez.2 +8 righe: giro colore/forma-popup 27/07 inciso + 2 rettifiche + 1 regola di processo (doc-only).** Cinque ratifiche del 27/07, testo verbatim dal handoff referee 27/07 sera (`fb29d486…c757502e`), riverificato contro le misure CC: **PALETTE ANNOTAZIONI CD** (4 voci, 2 clausole; nella cella Doc ref la condizione della ratifica: la clausola (2) generalizzata NON viene dal payload `b5f40d9e…` ma da una misura CC sul sorgente — indirizzo di contenuto `ios_app/QBeats/UI/Live/LiveHeaderView.swift:107,109 @ 8fa50189b13f49ba3b291510f7d1a388d75b5909`) · **REGOLA DENTRO/FUORI LA CORNICE** · **FORMA POPUP REMOVE ②** (pendenza fattibilità nativa aperta: si chiude solo con URL Apple o device) · **CONTRATTO Q20 RICONFERMATO** (il 🔴 su ⟦S4L⟧ resta: ratifica ≠ costruzione) · **CHIP «Read-only» RIMOSSO** (distinto da «Not in Q-Live», che resta vincolo di spedizione). Più: **RETTIFICA clausola di deposito** (riga opzione A-bis: negazione mai misurata — il difetto è il metodo, non l'esito; il file esiste, `6455c8a9…`) · **VARIANTE `-standalone` NON-NORMATIVA** (risposta CD; chiude la pendenza della riga FREEZE `2026-07-20`) · **REGOLA INDIRIZZO DI CONTENUTO** (cinque falso-negativi agli atti, guardie `cat-file -e` / `ls-tree`). ⛔ NON scritta la rettifica dell'ancora `54ccddc` della riga TAB-RESET: bloccata dal referee — è un indirizzo di contenuto valido. Sez.5 «HEAD codice pre-doc-commit» invariato a `ee31281` (nessun commit fra v41 e questa stesura). Header bump 41→42. Doc-only, nessun fix codice. |
++| 43 | 2026-07-28 | Mauro + CC + referee | **Sez.2 +1 riga: sdoppiamento ⟦S4L⟧ in tre atomi, ratificato (doc-only).** Un solo nome portava due contratti opposti — «no write» e «prima scrittura sui dati utente» (riga `2026-07-26` EMENDAMENTO ALL'INVARIANTE) — e `BOX3:34` chiedeva di incidere «nella scheda ⟦S4L⟧» un vincolo che riguarda il solo launcher. Tre atomi: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧, ordine obbligatorio. La riga porta anche la **regola di rilettura per oggetto** (non per lemma) delle citazioni di «S4L» anteriori al 28/07: nasce da un reperto della verifica avversariale sul diff B4, confermato dal referee — la forma originaria, agganciata alle sole parole «launcher»/«makeDefault», avrebbe fatto **perdere silenziosamente** la decisione Mauro 18/07 sulla proprietà del runner (`BOX3:30`, che non contiene nessuna delle due parole). La regola chiude il riferimento incrociato delle sei enumerazioni d'ordine di BOX3 **senza riscriverle**: si leggono, non si aggiornano. ⚠️ Agli atti anche la correzione di un errore del prompt originario: la motivazione «il popup di conferma apre sopra una tastiera senza via d'uscita» è **falsa** e negata da due canonici indipendenti (`LIBRO:311` e `BOX5:390`, entrambi «Nessuna collisione col congedo tastiera»); la dipendenza ⟦S4K⟧→⟦S4L⟧ regge sulla ragione vera (`LIBRO:312`, la tastiera alzata e l'unica uscita che spegne la sessione). Sez.5 «HEAD codice» invariato a `ee31281` (misurato: diff su `ios_app/` vuoto fino a HEAD). Header bump 42→43. Doc-only, nessun fix codice. |
+ 
+ ---
+ 
+================================================================================
+FINE DIFF B6.
+================================================================================

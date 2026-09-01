@@ -1,0 +1,214 @@
+REFERTO QB-2026-08-06-A62-VERIFICA-POST-DISTACCO
+================================================
+
+Orologio: 2026-08-06T11:19:21Z, locale +02:00. Data ID = data esecuzione.
+
+VERIFICA ID — A62 NON COLLIDE.
+  · repo : `ls HANDOFF/ | grep -i 'A62'` -> exit 1 · `grep -rl 'A62' HANDOFF/` -> nessun file
+  · E:   : stessi comandi -> nessun match
+  · controllo positivo: `ls HANDOFF/ | grep -i 'A59'` -> presente su entrambi i supporti.
+
+AGGANCIO — CONFERMATO.
+  L'ultimo referto emesso E' A61. `ls -lt HANDOFF/` da':
+    2026-08-06 12:48  MISURE_CC_2026-08-06_A61-PREFLIGHT-DISTACCO-DRIVE.txt   <- il piu' recente
+    2026-08-06 12:32  MISURE_CC_2026-08-05_A59-DRIVE-SU-REPO.txt
+  Sequenza ID presenti: ... A53 A54 A55 A59 A61. Nessun A60, nessun A62.
+
+
+================================================================================
+PARTE 1 — INTEGRITA'
+================================================================================
+
+`git fsck --full`  ->  EXIT CODE 0.
+
+  righe totali        : 194
+  ripartizione        : 183 `dangling blob` · 10 `dangling commit` · 1 `dangling tree`
+  righe NON-`dangling`: ZERO  (`grep -v '^dangling '` -> vuoto)
+  ricerca `error|missing|broken|corrupt|fatal` (case-insensitive) -> 0 occorrenze
+
+  => NESSUN ERRORE. Cancello superato.
+
+/!\ RETTIFICA A UN MIO NUMERO DEL REFERTO A61 — la segnalo perche' e' un mio difetto,
+    non un cambiamento del repo.
+    In A61 ho scritto «Output: 200 righe» e «risultano dangling 9 commit».
+      · «200 righe» NON era una misura: non avevo eseguito `wc -l`, era una stima
+        presentata come misura. Non va usata come valore di riferimento.
+      · «9 commit» e' SBAGLIATO: l'output di A61 conteneva 10 righe `dangling commit`
+        (ricontate una per una).
+    CONSEGUENZA OPERATIVA: NON posso dichiarare un delta A61->A62 sul conteggio delle
+    righe di fsck, perche' non esiste un valore misurato del "prima". Oggi il valore
+    misurato e' 194 / 183 / 10 / 1, ed e' questo che vale da qui in avanti.
+
+
+================================================================================
+PARTE 2 — RICONFRONTO COL "PRIMA" DI A61, VOCE PER VOCE
+================================================================================
+
+  VOCE                          ATTESO (A61)                   ORA (A62)                      ESITO
+  ----------------------------  -----------------------------  -----------------------------  ---------
+  HEAD                          25056b66eda40ad76d91a886...     25056b66eda40ad76d91a886...    IDENTICO
+                                ...ace442b7064ca900             ...ace442b7064ca900
+  albero (HEAD^{tree})          63c793a8d0ec122cdfc96579...     63c793a8d0ec122cdfc96579...    IDENTICO
+                                ...92c309568f83821e             ...92c309568f83821e
+  branch                        master                         master                         IDENTICO
+  sha256 .git/HEAD              f6f2b945f6c411b02ba3da9c...    f6f2b945f6c411b02ba3da9c...    IDENTICO
+  sha256 .git/config            929d5441cb6eba0888c39d53...    929d5441cb6eba0888c39d53...    IDENTICO
+  sha256 .git/packed-refs       32bca7a816e47c959bb072e5...    32bca7a816e47c959bb072e5...    IDENTICO
+  file sotto .git/                                        858                            858  IDENTICO
+  file sotto .tmp.driveupload/                            790                            790  IDENTICO
+  ----------------------------  -----------------------------  -----------------------------  ---------
+  git status --porcelain              177 righe, tutte `??`          178 righe, tutte `??`    DIVERSO
+  file totali sotto la radice                            2450                           2451  DIVERSO
+  contenuto reale                                         802                            803  DIVERSO
+  non tracciati reali                                     176                            177  DIVERSO
+
+  VERBATIM DEI TRE SHA256 DI OGGI:
+    f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10  .git/HEAD
+    929d5441cb6eba0888c39d53cd1defae0ae62d805f3c4dafb661c56a7e863f71  .git/config
+    32bca7a816e47c959bb072e5741b4de3f39c6a2c4dc5fb0a8f2ae7f6e996b08b  .git/packed-refs
+
+  `git status --porcelain`: 178 righe, ripartizione per stato -> 178 `??`.
+  Voci NON-`??` (modificati / staged / cancellati): ZERO. Verbatim del filtro
+  `git status --porcelain | grep -v '^??'` -> output VUOTO.
+
+/!\ QUATTRO DIFFERENZE, TUTTE DI +1, E LE SEGNALO SENZA VALUTARLE.
+
+  IDENTIFICAZIONE DEL FILE IN PIU' (misura, non interpretazione):
+    HANDOFF/MISURE_CC_2026-08-06_A61-PREFLIGHT-DISTACCO-DRIVE.txt
+    dimensione 13 798 B · mtime 2026-08-06 12:48
+    E' il referto del giro precedente, scritto DOPO che l'impronta di partenza di A61
+    era stata catturata.
+
+  ⛔ NON dichiaro se questa differenza sia benigna: la valutazione e' del referee,
+     come da mandato. Riporto il fatto e il file.
+
+  /!\ NOTA PER IL PROSSIMO CONFRONTO: anche QUESTO referto, una volta scritto, e' un
+      file nuovo non tracciato. I valori di riferimento per il giro successivo saranno
+      quindi 179 righe di status / 2452 file totali / 804 contenuto reale / 178 non
+      tracciati reali, salvo altre scritture.
+
+  RIPRODUZIONE DI UNA MISURA CHE SEMBRAVA CAMBIATA, E NON E' CAMBIATA:
+    Una prima lettura ha dato `du -sh .tmp.driveupload` = 31M, contro i 320K di A61.
+    Ho riprodotto LA FORMA ESATTA della misura A61 (`du -sh .git .tmp.driveupload`,
+    UNA sola invocazione) e da':
+        32M   .git
+        320K  .tmp.driveupload      <- IDENTICO ad A61
+    La differenza era della FORMA, non del dato: in una singola invocazione `du`
+    conta ogni inode una volta sola, e i file di staging sono hard-link
+    (`stat` -> `link=2` su tutti i campioni controllati). Misurata la stessa cosa
+    nello stesso modo, il numero e' lo stesso. Registrato per non lasciare agli atti
+    un falso cambiamento.
+
+
+================================================================================
+PARTE 3 — IL PERIMETRO E' DAVVERO CHIUSO?
+================================================================================
+
+Fonte: %LOCALAPPDATA%\Google\DriveFS\root_preference_sqlite.db (+ -wal, -shm),
+COPIATI nello scratchpad e letti sulla copia. L'originale non e' mai stato aperto.
+
+TABELLA `roots` PER INTERO — UNA SOLA RIGA:
+
+    root_id                 = 2
+    metadata                = b' \xdf\xcb\x80\x80\x80\x80\xc0\x01'
+    media_id                = 'd6b9fed5-0000-0000-0000-100000000000'
+    title                   = 'FILE X CLAUDE.MD'
+    root_path               = 'HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD'
+    account_token           = '116582425977112133428'
+    sync_type               = 1
+    destination             = 1
+    medium                  = 1
+    state                   = 2
+    one_shot                = 0
+    is_my_drive             = 0
+    doc_id                  = ''
+    last_seen_absolute_path = 'E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD'
+
+CONTROLLI MIRATI (query per path esatto):
+  · radice Q-BEATS (C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS)  -> 0 righe  ASSENTE
+    => LA RADICE DEL REPO NON C'E' PIU'. Confermato.
+  · radice FILE X CLAUDE.MD (E:\...\Q-BEATS\FILE X CLAUDE.MD)       -> 1 riga   PRESENTE
+    => LA RADICE SU E: C'E' ANCORA, come voluto. Confermato.
+  In A59/A61 le righe erano DUE (root_id 2 e root_id 6). Ora e' UNA.
+
+LATO SOTTOSISTEMA MIRROR — fonte: mirror_sqlite.db, stessa procedura su copia.
+  · `mirror_item`, righe totali :  885     (in A59: 3060)
+  · `root_config`                :  una sola riga -> {root_id 2, root_state 1,
+                                      local_stable_id 1, is_my_drive 0}
+  · righe `is_root=1`            :  una sola -> local_filename 'FILE X CLAUDE.MD'
+  · discendenti della radice 'FILE X CLAUDE.MD' : 884   (in A59: 882)
+
+  · `.git` E' ANCORA TRACCIATO?  ->  **NO. ZERO VOCI.**
+      La ricerca `local_filename LIKE '.git%'` su `mirror_item` rende ZERO righe.
+      In A59 rendeva 4 voci ('.git', '.gitignore', '.github', '.gitattributes') e
+      la cartella '.git' aveva 1136 DISCENDENTI TRACCIATI.
+      Oggi: nessuna voce '.git*', quindi nessun discendente.
+
+  => Il perimetro non e' solo chiuso nella configurazione: e' stato SVUOTATO anche
+     nella contabilita' del mirror.
+
+
+================================================================================
+PARTE 4 — RESIDUI
+================================================================================
+
+`.tmp.driveupload/` — ANCORA PRESENTE nella radice del repo. NON TOCCATA.
+    path          : C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\.tmp.driveupload
+    attributi     : Hidden, Directory
+    CreationTime  : 01/08/2026 17:47:24
+    LastWriteTime : 06/08/2026 12:48:54
+    file dentro   : 790
+    byte (somma delle dimensioni dei file) : 30 011 026
+    `du -sh` nella forma di A61 (invocazione condivisa con .git) : 320K — invariato
+    /!\ I due numeri non si contraddicono: `du` deduplica gli inode e i file sono
+        hard-link (`link=2`). Sono due misure di cose diverse, entrambe riportate.
+
+ALTRI MARCATORI DRIVE NELLA CARTELLA DEL REPO:
+    `ls -la | grep -iE 'drive|\.tmp\.'`                    -> solo `.tmp.driveupload`
+    `find . -name '.tmp.drive*' -o -name '*.driveupload*'
+            -o -name '*.drivedownload*'`                   -> solo `./.tmp.driveupload`
+    => UN SOLO residuo in tutto l'albero del repo. Nessun `.tmp.drivedownload`,
+       nessun altro marcatore.
+
+TERMINE DI PARAGONE, misurato: nella radice E: che RESTA sincronizzata,
+    E:\...\FILE X CLAUDE.MD\.tmp.driveupload esiste, Hidden, LastWriteTime
+    06/08/2026 12:49:09, e contiene ZERO file.
+
+PROCESSO DRIVE: ancora attivo, GoogleDriveFS PID 13908 e 14012 — gli stessi di A59.
+
+⛔ NULLA E' STATO CANCELLATO. La cartella di staging resta dov'e': decide Mauro.
+
+
+================================================================================
+PARTE 5 — GITHUB
+================================================================================
+
+Dopo `git fetch origin`:
+    master locale : 25056b66eda40ad76d91a886ace442b7064ca900
+    origin/master : 25056b66eda40ad76d91a886ace442b7064ca900
+    remoto        : 25056b66eda40ad76d91a886ace442b7064ca900  refs/heads/master
+    fonte: `git rev-parse master` / `git rev-parse origin/master` / `git ls-remote origin master`
+    => I TRE COINCIDONO. Riconfermato.
+
+    `git log --oneline --all --not --remotes`  ->  OUTPUT VUOTO (0 righe).
+    => Nessun commit locale fuori da github. Riconfermato.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+Sola lettura sui sorgenti e sul sistema. NESSUNA modifica sotto ios_app/, NESSUNA in
+.git/, NESSUNA alle impostazioni di sistema o di Google Drive. NESSUNA cancellazione
+di nulla, nemmeno dei file di staging. NESSUNA copia, NESSUNO spostamento.
+I database di Drive sono stati COPIATI nello scratchpad e letti sulla copia; gli
+originali non sono mai stati aperti.
+Unica scrittura: questo referto in HANDOFF\ + mirror E:.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI a HEAD 25056b66eda40ad76d91a886ace442b7064ca900 e misurato il
+sistema live, non a memoria. Ogni affermazione porta il comando o il file da cui viene.
+Le quattro differenze della Parte 2 sono riportate coi due valori e col file che le
+produce, e NON sono state valutate: la valutazione e' del referee.
+Ho inoltre rettificato un mio numero errato del referto A61 (conteggio righe e commit
+dangling di `git fsck`), perche' era una stima presentata come misura.

@@ -1,0 +1,260 @@
+==============================================================================
+MISURE CC - REFERTO PER IL PROMPT ID: QB-2026-08-01-R1
+ID dichiarato in apertura, come da regola vincolante.
+SOLA LETTURA. Zero scritture, zero copie, zero cancellazioni, zero commit.
+==============================================================================
+METODO - indice per CONTENUTO, non per nome. Ogni file di ciascuna area e'
+  stato aperto in binario e ridotto a due impronte:
+    sha_raw  = sha256 dei byte come stanno
+    sha_norm = sha256 dopo aver sostituito CRLF con LF
+  La seconda serve a separare le divergenze VERE da quelle di sole fine-riga.
+  Ricorsivo: le sottocartelle sono incluse. I path con spazi sono gestiti
+  dalla libreria, non dalla shell: nessuno split su spazio e' possibile.
+
+  ⚠️ NOTA SULLA CAUTELA CHIESTA DAL REFEREE (due facce LIBRO/BUGS).
+  Il caso non si presenta in questa forma: LIBRO_MASTRO_QBEATS.md e
+  BUGS_QBEATS.md vivono in ROOT, non in HANDOFF, e qui si confrontano DUE
+  COPIE SU DISCO fra loro - nessun blob entra nel confronto. Il rischio
+  esiste comunque in forma generale: due copie della stessa cosa scritte
+  con fine-riga diverse. Per questo ogni divergenza di categoria (d) e'
+  passata al setaccio di sha_norm e, se risulta di sole fine-riga, e'
+  estratta in una lista (d-bis) SEPARATA invece di restare in (d).
+
+  ⚠️ IL FILE CHE SI CONTA DA SE' - trappola incontrata E EVITATA in questo giro.
+  Al primo tentativo il referto era generato con un redirect direttamente
+  dentro HANDOFF/: la shell crea il file PRIMA che l'indice cammini la
+  cartella, quindi il referto entrava nel proprio indice - da vuoto o da
+  parzialmente scritto - e falsava sia il conteggio sia i duplicati. Reso
+  94 file repo e 93 contenuti distinti. Il tentativo e' stato SCARTATO e il
+  file rimosso dall'area prima di rimisurare. I numeri qui sotto sono presi
+  con l'indice generato FUORI dalle due aree: il referto non c'e' dentro.
+  Conseguenza da tenere presente: appena questo file viene depositato in
+  repo e su E:, entrambe le aree crescono di uno rispetto ai numeri qui.
+
+[V] Area 1 - repo : C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF
+[V] Area 2 - E:   : E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF
+
+[V] file indicizzati, repo : forma1 len(indice)=93  forma2 contatore-di-walk=93  CONCORDI
+[V] file indicizzati, E:   : forma1 len(indice)=141  forma2 contatore-di-walk=141  CONCORDI
+
+--------------------------------------------------------------------------
+(d) STESSO NOME NELLE DUE AREE, sha256 DIVERSO - LE DIVERGENZE VERE
+--------------------------------------------------------------------------
+[V] LISTA VUOTA. Nessun file omonimo porta contenuti diversi fra le due aree,
+    nemmeno dopo aver escluso le differenze di sole fine-riga.
+
+(d-bis) STESSO NOME, sha_raw diverso MA sha_norm UGUALE
+        = differenza di SOLE FINE-RIGA, non di contenuto
+[V] LISTA VUOTA.
+
+--------------------------------------------------------------------------
+(b) STESSO CONTENUTO, NOMI DIVERSI - i falsi divergenti del confronto per nome
+--------------------------------------------------------------------------
+[V] 2 coppie di contenuto. Il confronto per NOME li contava due
+    volte, una per area: sono lo stesso documento sotto due nomenclature.
+  === sha 43bf5784f5ea8971bbaf1fe0f028cd258e8e53990df750cceec1e7ff50d1fd18
+      repo  SCALETTA_ATOMI_S6_2026-07-10.md   36070 B
+      E:    SCALETTA_v4_2026-07-30_a393466.md   36070 B
+  === sha e3a4feef46fa1e69c92d51396a548202591796647620273ad43015e61a369fc0
+      repo  _SUPERATO__ROADMAP_2026-07-24.txt   5963 B
+      E:    ROADMAP_2026-07-24.txt   5963 B
+
+--------------------------------------------------------------------------
+(c) DUPLICATI INTERNI - stesso sha256 piu' volte DENTRO la stessa area
+--------------------------------------------------------------------------
+[V] ⚠️ CONTRADDICE UN'ATTESA DEL PROMPT. Il prompt indica come duplicato gia'
+    noto «le due stampe byte-identiche di BOX5 V28 su E:». Quelle due stampe
+    NON stanno in E:/HANDOFF: stanno in FILE X CLAUDE.MD/BOX5_Test/LUGLIO/,
+    che e' fuori dalle due aree confrontate qui. Non possono comparire in (c)
+    e infatti non ci sono. Restano vere e byte-identiche dove stanno.
+[V] repo: 1 contenuti duplicati.
+  === sha 03b9d4fe148b48eb...  (21430 B)
+      BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+      BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+[V] E:: 0 contenuti duplicati.
+
+--------------------------------------------------------------------------
+(a) CONTENUTI A COPIA UNICA - sha256 presente in UNA SOLA area
+--------------------------------------------------------------------------
+[V] SOLO NEL REPO: 45 contenuti distinti.
+      BOX5v27-LIBROv39_DIFF_2026-07-21.txt   sha 03b9d4fe148b48eb...  21430 B
+      BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt   sha 03b9d4fe148b48eb...  21430 B
+      DIFF_B3_BOX5-V28_2026-07-28.txt   sha 22619d6e2098e80b...  24211 B
+      DIFF_B3bis_BOX5-V28_2026-07-28.txt   sha b4dfe599b6797e5c...  30195 B
+      DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt   sha a55c96b703f1a96c...  34628 B
+      DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt   sha 90fc314115bb8b35...  25058 B
+      DIFF_BUGS-v45_2026-07-30.txt   sha 5e66b7d714d488ad...  47335 B
+      DIFF_BUGS-v45_2026-07-30_rev2.txt   sha b726b1d1239ed13a...  51361 B
+      DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt   sha d25716af7985a598...  9621 B
+      DIFF_DARK-DECL_2026-07-29.txt   sha 39bd20e11d0f412f...  793 B
+      DIFF_FIX-PILL_2026-07-22.txt   sha 758a289da2731154...  6271 B
+      DIFF_GIRO_DOC_2026-07-17.txt   sha 3d649a3d7b49d302...  37013 B
+      DIFF_LIBRO-v44_2026-07-30.txt   sha 0f8d01c435ffb648...  25948 B
+      DIFF_LIBRO-v44_2026-07-30_rev2.txt   sha 0edd8c73a8784b0c...  29252 B
+      DIFF_LIBRO-v44_2026-07-30_rev3.txt   sha 5395ea127ec0b29c...  30262 B
+      DIFF_LIBRO-v45_2026-07-30.txt   sha 788beefffc25eb7e...  20440 B
+      DIFF_N0_seam-onExit_2026-07-17.txt   sha e666880548b0a5a4...  9753 B
+      DIFF_N1a_scaffold-qLive_2026-07-17.txt   sha 046291ee778d0dae...  6119 B
+      DIFF_N1b_flip-qLive_2026-07-17.txt   sha b8226f3c0d1f75ea...  12551 B
+      DIFF_S4K_congedo-tastiera_2026-07-29.txt   sha 274c63c56f95674c...  7321 B
+      DIFF_S4K_congedo-tastiera_rev2_2026-07-29.txt   sha 5691b712139211d7...  7874 B
+      HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt   sha a8cf64315a9ef87b...  2746 B
+      HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt   sha 956964872f1fee7b...  3086 B
+      HANDOFF_CC_2026-07-26.txt   sha 68f545c991bdffb1...  14569 B
+      HANDOFF_CC_2026-07-27.txt   sha 1b7b5555aa2addd8...  12443 B
+      HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt   sha d9e2a39b7f4fbe74...  44638 B
+      HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt   sha 7a1110b789796795...  17599 B
+      HANDOFF_CC_2026-07-28_sera_chiusura-sdoppiamento-S4L.txt   sha 08a34635f7608b59...  22353 B
+      HANDOFF_CC_2026-07-29_sera.md   sha c938a34b6854052d...  18747 B
+      HANDOFF_CC_2026-07-30_sera.md   sha a49522e25970a970...  31215 B
+      HANDOFF_CC_2026-07-30_sera_chiusura-v45.md   sha d688b2f601cb24c6...  37228 B
+      HANDOFF_REFEREE_2026-07-27.md   sha 537af3026357d7f1...  18510 B
+      HANDOFF_REFEREE_2026-07-27_sera.md   sha fb29d4866bf09ef0...  32596 B
+      HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md   sha a238b1801ae7b139...  18428 B
+      INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt   sha 0f4f98d6b51c3712...  12418 B
+      MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt   sha 56176e4c40ad080c...  11146 B
+      MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt   sha 532e4a7841783eab...  10971 B
+      MISURE_M1_IDENTITA-S4L_2026-07-28.txt   sha d74b4164c78c19e5...  16898 B
+      MISURE_R1_2026-07-28.txt   sha d9f89d81d3b7ca76...  19976 B
+      MISURE_R1b_2026-07-28.txt   sha ed2276310c46f473...  23918 B
+      MISURE_R2_2026-07-28.txt   sha 6b73504257db7bb0...  25863 B
+      MISURE_R3_2026-07-28.txt   sha 3087a80dec1f7db3...  64520 B
+      MISURE_R4_2026-07-28.txt   sha 41bbfcfa40957033...  12215 B
+      MISURE_R5_2026-07-28.txt   sha 889a0620b07b2905...  6671 B
+      MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt   sha 6bef059c20d5a5d4...  20376 B
+      ROADMAP_2026-07-26.txt   sha ddfaf0e2ad849120...  19261 B
+
+[V] SOLO SU E:: 94 contenuti distinti.
+      2026-04-29_QBEATS_Handoff_VolumiClick_Mute.md   sha 6a87cc09ff965f2f...  3959 B
+      2026-05-02_QBeats-Handoff_CD_a_CC.md   sha f3842bd27b47ae9c...  9875 B
+      ACCERTAMENTO_LETTURA_ABC_2026-07-13.txt   sha 3c1a21a0e0e89bc6...  6747 B
+      BOX3v93-SCALETTAv1-LIBROv32_DIFF_2026-07-13.txt   sha aad7327a61353a8b...  16243 B
+      BOX3v94-LIBROv33-BOX5v25_DIFF_2026-07-13.txt   sha 226d4c34893a7310...  11044 B
+      BUGS_v35_DIFF_2026-07-12.txt   sha 8fe63f012e20d72d...  6029 B
+      CC_REVIEW_SHOWS_HANDOFF_2026-07-09.md   sha 3276c94fe7866125...  10706 B
+      CD_FREEZE_QLIVE_NAV_2026-07-09.md   sha 831c8d6df06a0f3c...  6950 B
+      CD_FREEZE_QLIVE_NAV_CONSEGNA_2026-07-09.md   sha 20ba90dbbc548704...  2554 B
+      DIFF_BUGS-v41_2026-07-20_rev1.txt   sha b7110c51af03566f...  37134 B
+      DIFF_BUGS-v41_2026-07-20_rev2.txt   sha 681d44a542f2479a...  39036 B
+      DIFF_LIBRO-v38_2026-07-20_rev1.txt   sha e7c7dcae71b6a1da...  34634 B
+      DIFF_LIBRO-v38_2026-07-20_rev2.txt   sha b932813f11c20dda...  43935 B
+      DIFF_S4b_2026-07-19.txt   sha a9ca4d9dcc07e410...  16078 B
+      DIFF_S4b_2026-07-19_rev2_QLiveRootView.txt   sha 7b70cd9664153606...  7795 B
+      EMENDAMENTO_187_DIFF_2026-07-11_v2.txt   sha a80d934bf2739702...  16404 B
+      ESITO_COMMIT_BUGS-v41_2026-07-20_rev1.txt   sha e975a49b4dbad10b...  54595 B
+      ESITO_COMMIT_LIBRO-v38_2026-07-20_rev1.txt   sha 582b85c9aeb46525...  59040 B
+      ESITO_COMMIT_RETE-GIT_2026-07-21_rev1.txt   sha cffae6b5d2287ec6...  11002 B
+      ESITO_COMMIT_S4b_2026-07-19.txt   sha 59174091063387f3...  8252 B
+      HANDOFF_BUG2B_BORN_04_06_2026.md   sha a0564eb533941d90...  13713 B
+      HANDOFF_CC_2026-07-13_notte.txt   sha d9193e28ccd0162e...  20165 B
+      HANDOFF_CC_2026-07-13_sera.txt   sha 1f87b160685db243...  14094 B
+      HANDOFF_CC_2026-07-14_sera_NODOA.txt   sha 53678f7b1bec35b0...  30726 B
+      HANDOFF_CC_2026-07-15_sera.txt   sha 1709dd7c60fd586f...  19276 B
+      HANDOFF_CC_2026-07-17.md   sha 17453abd873e61bd...  11445 B
+      HANDOFF_CC_2026-07-18_nodoa-chiuso-giro-doc.txt   sha 17dab429757fcebd...  12753 B
+      HANDOFF_CC_2026-07-19_SERA_chiusura-S4b.txt   sha a45cda58033e6340...  25726 B
+      HANDOFF_CC_2026-07-20_rev1.txt   sha 74cb38d2fee366d6...  21340 B
+      HANDOFF_CC_2026-07-21_notte_V27-v39-CHIUSURA.txt   sha 73d692c0d52cb8d2...  17484 B
+      HANDOFF_CC_2026-07-21_rev1.txt   sha a93c2e7d31f8ccb6...  25325 B
+      HANDOFF_CC_2026-07-21_sera_REGIME-CANONICI.txt   sha 10deb21b7f1c6a54...  14868 B
+      HANDOFF_CHIUSURA_2026-07-13.txt   sha f8d4638e22430255...  12362 B
+      HANDOFF_REFEREE_2026-07-18_nodoa-chiuso.txt   sha 5991fa40a2f99982...  15947 B
+      HANDOFF_STUDIO_PER_CD_25_06_2026.md   sha dc76296a6b2dc271...  28410 B
+      IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt   sha 87015f16d995dac9...  15071 B
+      INDAGINE_C-TER_STORE-MODELLO_2026-07-19.txt   sha a59b80900a7be34a...  16921 B
+      INDAGINE_TASTO-MORTO-QSTAGE_2026-07-19.txt   sha 75c9be7e1ee110b3...  29926 B
+      INVENTARIO_CANONICI-VS-GIT_2026-07-20_rev1.txt   sha 7702fbbcab5399cd...  19873 B
+      INVENTARIO_DOCREF-FUORI-GIT_2026-07-20_rev1.txt   sha 6aa28e47e9182e73...  26988 B
+      INVENTARIO_GIRO-DOC_2026-07-20_rev1.txt   sha eaeff94ed1af8542...  62915 B
+      LIBRO_V30_DIFF_2026-07-12_v2.txt   sha cc66803f96d3be47...  23108 B
+      LIBRO_V31_DIFF_2026-07-12.txt   sha 1d31143da32552d1...  12962 B
+      PROPOSTA_RETE-GIT-CANONICI_2026-07-21_rev1.txt   sha dfd61cad25809bad...  32278 B
+      QBEATS_FONTI_PER_REFEREE_PIVOT_2026-07-08.txt   sha 4b7084e612e027f2...  28236 B
+      QBEATS_S0_DIFF_2026-07-10.txt   sha b573e5a901ce9c47...  1286 B
+      QBEATS_S0_STATUS_2026-07-10.txt   sha dd7a182fa1050664...  739 B
+      QBEATS_S1_S2F_DIFF_2026-07-11.txt   sha 17c4deadf887016f...  7943 B
+      QBEATS_S1_S2F_DIFF_v2_2026-07-11.txt   sha 62a468a9544ea906...  11948 B
+      QBEATS_S1_S2F_DIFF_v3_2026-07-11.txt   sha a091dac82272a593...  15030 B
+      QUADRA_TD17_2026-07-21_rev1.txt   sha eeb71140d9c1333f...  41829 B
+      R1-REF-01_B3_CTA_verbatim_2026-07-11.txt   sha 48793139f14d474a...  2885 B
+      R1-REF-02_RoomSwitchBar_intero_piu_ancore_S3_2026-07-11.txt   sha e18b9eda04c8007a...  13656 B
+      R1_VERIFICA_SOLA_LETTURA_2026-07-12.txt   sha 76fab5ff226a6768...  5995 B
+      REFEREE_SYNC_2026-07-12\2026-07-11_Q7-Q16.html   sha c9bd0b02d301386c...  74645 B
+      REFEREE_SYNC_2026-07-12\BUGS_QBEATS35.md   sha d46f6d9257728fda...  152359 B
+      REFEREE_SYNC_2026-07-12\LIBRO_MASTRO_QBEATS31.md   sha be131a42b8769521...  96909 B
+      REFEREE_SYNC_2026-07-13\BOX3_V94_2026-07-13.md   sha a1cdcb1f06eb3cc9...  39198 B
+      REFEREE_SYNC_2026-07-13\BOX5_V25_2026-07-13.md   sha 1a824ed97703582e...  30122 B
+      REFEREE_SYNC_2026-07-13\LIBRO_MASTRO_QBEATS33.md   sha 8977d86c806c57ce...  98497 B
+      ROADMAP_PRE_CD_16_05_2026.md   sha c2ec1b761150b4dd...  19355 B
+      S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v3.txt   sha ba52a3abea14b720...  16720 B
+      S2b_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt   sha 8972b6b909f7b6c7...  4971 B
+      S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt   sha dfd4f28c7a867fa5...  11287 B
+      S2d_DIFF_2026-07-12.txt   sha 1be2e189634ecc52...  15525 B
+      S2e_DIFF_2026-07-12.txt   sha ea4c1924b2ff68c0...  21327 B
+      S3_BACKUP_2026-07-13\Store\QBeatsStore.swift   sha 85025163f6f232f7...  11831 B
+      S3_BACKUP_2026-07-13\UI\QStageRootView.swift   sha 2f46fff3226f017e...  1567 B
+      S3_BACKUP_2026-07-13\UI\QStage\ShowsListView.swift   sha 349c89f82260f44b...  25291 B
+      S3_BOZZA_PROMPT_2026-07-13.txt   sha 6ef9bb1c7d21067e...  18080 B
+      S3_CHECKLIST_TOKEN_2026-07-13.txt   sha 78a33693a7ddaf4d...  17602 B
+      S3_DIFF_2026-07-13.txt   sha 7c632e86a8337444...  30310 B
+      S3_DOCCOMMIT_DIFF_2026-07-14.txt   sha 28bd9ae28b5826a8...  130281 B
+      S3_GATE_ACCERTAMENTO_2026-07-13.txt   sha 9d0912eca4033556...  15459 B
+      S3_HITFIX_BACKUP_2026-07-14\RoomSwitchBar.swift   sha 3b2ce964af7bb722...  14145 B
+      S3_HITFIX_BACKUP_2026-07-14\ShowsListView.swift   sha fb049486b665cd51...  26193 B
+      S3_HITFIX_DIFF_2026-07-14.txt   sha 8d34ffaf2c4365a5...  12336 B
+      S4B_FASE0_PIANO_2026-07-19.txt   sha ce8ce68523e2a557...  21649 B
+      SCALETTA-rename_BOX3v95_DIFF_2026-07-13.txt   sha 2296923cdcf8e55f...  8239 B
+      SCALETTA_S3_REVIEW_2026-07-12.txt   sha 50bdef67d8f76446...  20419 B
+      SCALETTA_v3_2026-07-28_8289944.md   sha 700d7caa7c20756e...  35661 B
+      VERIFICA_4TOCCHI-BARRA_2026-07-20_rev1.txt   sha 67acec04b0ace4b1...  17745 B
+      VERIFICA_CLAUDE-MD_2026-07-20_rev1.txt   sha c539cb8c6e0741f6...  18613 B
+      VERIFICA_FREEZE-DESIGN_2026-07-20_rev1.txt   sha 83f18d2fda87074a...  13247 B
+      VERIFICA_GATE-S4b_SCALETTA_2026-07-20.txt   sha 8d56f1f67b713eba...  23752 B
+      VERIFICA_REMOTE_CI_2026-07-19.txt   sha a8d06b34b4584ed4...  884 B
+      VERIFICA_STATO_GIT_2026-07-19.txt   sha 907f9e5ec2efe0f1...  3788 B
+      VERIFICA_STATO_GIT_2026-07-20.txt   sha f6c4eb3aa340d977...  17619 B
+      _superseded_by_v2\E1_MARCATORI_LIBRO_DIFF_2026-07-11.txt   sha 6a43b02a58444672...  16799 B
+      _superseded_by_v2\EMENDAMENTO_187_DIFF_2026-07-11.txt   sha ac21eeaed632c743...  13781 B
+      _superseded_by_v2\S2_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt   sha 1af8c7de0d21cebb...  14274 B
+      _superseded_by_v2\S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt   sha 6f923da82674dd7d...  10731 B
+      _superseded_by_v3\S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt   sha 1e986260a4d616e3...  16408 B
+      roadmap_sezione6_stato_18_luglio.svg   sha 3061e1a91d7bafe2...  14457 B
+
+--------------------------------------------------------------------------
+QUADRATURA ESPLICITA
+--------------------------------------------------------------------------
+  file nel repo (ricorsivo)            : 93
+  contenuti distinti nel repo          : 92
+  file su E: (ricorsivo)               : 141
+  contenuti distinti su E:             : 141
+
+  contenuti solo-repo   (a1)           : 45
+  contenuti solo-E:     (a2)           : 94
+  contenuti in ENTRAMBE (comuni)       : 47
+  a1 + comuni = distinti repo          : 45 + 47 = 92   QUADRA
+  a2 + comuni = distinti E:            : 94 + 47 = 141   QUADRA
+  file - contenuti distinti, repo      : 93 - 92 = 1 copie in eccesso
+  file - contenuti distinti, E:        : 141 - 141 = 0 copie in eccesso
+
+  di cui comuni ma con nomi diversi (b): 2
+  divergenze vere                   (d): 0
+  differenze di sole fine-riga  (d-bis): 0
+
+  ⚠️ RETTIFICA DEI NUMERI LORDI DEL CONFRONTO PER NOME.
+     Il confronto per nome rendeva 49 solo-repo e 80 solo-E:.
+     Per contenuto i numeri veri sono 45 e 94.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Non ho letto il CONTENUTO dei file: solo i loro byte, per impronta.
+    Due file con contenuto equivalente ma riscritto restano distinti.
+[V] Non ho confrontato le due aree con altri supporti: il Progetto Claude e
+    qualunque copia fuori da repo ed E: non entrano in questo indice.
+[V] Nessuna riparazione, nessuna copia, nessuna cancellazione: le liste
+    dicono cosa c'e', non cosa andrebbe fatto.
+[V] Le impronte di QUESTO referto non stanno qui dentro: sono nel messaggio.
+
+==============================================================================
+FINE REFERTO QB-2026-08-01-R1.
+==============================================================================

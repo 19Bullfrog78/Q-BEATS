@@ -1,0 +1,98 @@
+diff --git a/ios_app/QBeats/AudioEngine.swift b/ios_app/QBeats/AudioEngine.swift
+index 117f219..deebab2 100644
+--- a/ios_app/QBeats/AudioEngine.swift
++++ b/ios_app/QBeats/AudioEngine.swift
+@@ -1167,6 +1167,42 @@ class AudioEngine: ObservableObject {
+         }
+     }
+ 
++    // === ⟦SYNC-ISTANTANEA⟧ A247 (29/08/2026) — Snapshot posizione di sezione ===
++    // Consegna su main la coppia (posizione dentro la sezione, tick assoluto),
++    // catturata IN UNA SOLA closure su audioQueue: la coda è seriale (:392),
++    // quindi la coppia è coerente per costruzione — nessun beat può scorrere
++    // fra le due letture. Catturarle in due hop separati sarebbe una corsa.
++    //
++    // PERCHÉ ESISTE: al rientro nel player la grafica non ha l'ancora di
++    // sezione e resta spenta fino al confine (6deea52). Il numero che manca
++    // È `_sectionBeatCounter` — l'asse CONTATORE, quello del seeding Follower
++    // e dello stop-a-fine-sezione — ma vive su audioQueue e la UI non può
++    // leggerlo direttamente. Questo è il ponte, one-shot al montaggio.
++    //
++    // ⛔ ZERO SIGNIFICA «NON LO SO», NON «BATTUTA ZERO». Il contatore è 0
++    //    quando la sezione è in LOOP (l'incremento sta sotto la guardia
++    //    `_sectionTotalBeats > 0`, :2505, e un loop mette quel totale a 0 —
++    //    decisione Mauro 29/08: i loop restano ciechi, NON si tocca il cuore
++    //    audio), quando il motore è fermo (stop azzera, :1666), o quando
++    //    nessuna sezione è caricata. Chi consuma NON deve ancorarsi su 0.
++    //
++    // ⛔ NESSUN BLOCCO, NESSUNA ATTESA, su nessun thread: due dispatch
++    //    asincroni (audioQueue → main). Non gira sul render thread; aggiunge
++    //    alla coda audio una cattura di due Int, una volta per montaggio del
++    //    player — zero lavoro periodico.
++    //
++    // ⚠️ FORMA NUOVA DICHIARATA: è il primo accessor del file che fa hop e
++    //    RENDE un valore — il pattern esistente usa audioQueue.async solo per
++    //    scrivere. La forma a closure ricalca `loadSection(onEnd:)` qui sopra.
++    func snapshotSectionPosition(_ deliver: @escaping (_ sectionBeat: Int, _ tick: Int) -> Void) {
++        audioQueue.async { [weak self] in
++            guard let self else { return }
++            let sectionBeat = self._sectionBeatCounter
++            let tick        = self.beatTickCounter
++            DispatchQueue.main.async { deliver(sectionBeat, tick) }
++        }
++    }
++
+     // === Strada A — Pre-load parametri sezione successiva ===
+     // Salva i parametri della prossima sezione nei _pendingNext* SENZA
+     // toccare la sezione corrente e SENZA chiamare alcuna C-API DSP.
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 2535ecf..38bf9c5 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -355,6 +355,46 @@ struct LiveView: View {
+                 // sezione della posizione, non il motore.
+                 session.currentTimeSig = timeSigString(for: section.beatsPerBar)
+             }
++            // ⟦SYNC-ISTANTANEA⟧ A247 (29/08) — L'ANCORA SI CONQUISTA SUBITO, se
++            // il motore sa dov'è. Collaudo Mauro 29/08 su ⟦DISPLAY-FIRMA-A⟧:
++            // trattini corretti ma «resta tutto cieco fino al cambio — la
++            // sincronizzazione deve avvenire ALL'ISTANTE». La fonte c'è:
++            // l'asse CONTATORE del motore (`snapshotSectionPosition`, cartello
++            // A247 in AudioEngine). Da esso l'ancora è una sottrazione:
++            //   sectionStartTick = tick − sectionBeat + 1
++            // — la stessa identità che il ramo tickN==1 produce al join del
++            // Follower (tick=1, sectionBeat=offset+1 ⇒ 1−offset), verificata
++            // per coincidenza algebrica, non per analogia.
++            //
++            // TRE GUARDIE, ognuna con la sua ragione misurata:
++            //  · !barAnchorValid — un tick può aver già ancorato (o ancorerà
++            //    meglio: al confine `pendingSectionStart` sovrascrive comunque
++            //    questa ancora con quella vera). Mai retrocedere un'ancora.
++            //  · sectionBeat > 0 — ⛔ ZERO È «NON LO SO», NON «BATTUTA ZERO»:
++            //    sezione in LOOP (contatore mai incrementato — rischio
++            //    accettato da Mauro 29/08: i loop restano ciechi ma ONESTI),
++            //    motore fermo, o sezione non caricata. Su 0 niente ancora:
++            //    restano i trattini di 6deea52, che non si butta — si estende.
++            //  · audioEngine.isPlaying — misurato: l'INTERRUZIONE AUDIO
++            //    (`.began`, AudioEngine ~:2680-2708) ferma il motore SENZA
++            //    azzerare il contatore («clock running»). Senza questa guardia,
++            //    rientrare durante un'interruzione aggancerebbe numeri
++            //    congelati su un motore muto — il valore vecchio che C1 vieta.
++            //
++            // I numeri si scrivono QUI, non al prossimo tick: a 20 BPM il
++            // prossimo tick dista 3 secondi, e il mandato chiede l'istante.
++            // ⚠️ Il LED si riaccende per CONSEGUENZA della stessa ancora —
++            //    stessa aritmetica del tick handler, nessun disegno nuovo.
++            //    L'allineamento accento↔contatore resta quello di oggi
++            //    (materia Bug 2.b): questa mossa non lo promette.
++            audioEngine.snapshotSectionPosition { sectionBeat, tick in
++                guard !barAnchorValid, sectionBeat > 0, audioEngine.isPlaying else { return }
++                sectionStartTick = tick - sectionBeat + 1
++                barAnchorValid = true
++                let bpb = max(1, Int(displayBpb))
++                session.beatActive = ((sectionBeat - 1) % bpb) + 1
++                session.currentBar = ((sectionBeat - 1) / bpb) + 1
++            }
+         }
+         // MARK: - AudioEngine → LiveSession sync
+         .onReceive(audioEngine.$playbackState) { state in

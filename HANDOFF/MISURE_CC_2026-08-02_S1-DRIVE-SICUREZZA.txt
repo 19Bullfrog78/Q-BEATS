@@ -1,0 +1,189 @@
+================================================================================
+MISURE CC — REFERTO PER IL PROMPT ID: QB-2026-08-02-S1-DRIVE-SICUREZZA-E-CENSIMENTO
+ZERO COMMIT · ZERO CANCELLAZIONI · ZERO SCRITTURE SU FILE TRACCIATI
+================================================================================
+Modello effettivo: Opus 5 (il prompt indicava Sonnet 5).
+
+--------------------------------------------------------------------------
+BLOCCO A · COSA CONTIENE DAVVERO IL PROFILO DI FIRMA
+--------------------------------------------------------------------------
+⚠️ `security` è un comando macOS e su questa piattaforma NON esiste.
+   Equivalente usato: openssl cms -inform DER -verify -noverify
+   Esito: «CMS Verification successful», plist estratto di 8433 byte.
+   Letto sulla copia LOCALE E:\...\FILE X CLAUDE.MD\SYSTEM_PROMPT\ (12464 B),
+   che è quella di pari dimensione al file su Drive. MAI sulla copia Drive.
+
+CHIAVI DI PRIMO LIVELLO — enumerazione completa, 17:
+   1. AppIDName (str)                    10. PPQCheck (bool)
+   2. ApplicationIdentifierPrefix (1)    11. Platform (3)
+   3. CreationDate (datetime)            12. ProvisionedDevices (2)
+   4. DER-Encoded-Profile (bytes)        13. TeamIdentifier (1)
+   5. DeveloperCertificates (1)          14. TeamName (str)
+   6. Entitlements (5)                   15. TimeToLive (int)
+   7. ExpirationDate (datetime)          16. UUID (str)
+   8. IsXcodeManaged (bool)              17. Version (int)
+   9. Name (str)
+
+DETTAGLI RICHIESTI — conteggi e nomi, nessun valore:
+   ProvisionedDevices     : 2 UDID          (valori NON riportati)
+   DeveloperCertificates  : 1 elemento      (base64 NON riportato)
+   Entitlements           : 5 chiavi —
+        · application-identifier
+        · com.apple.developer.networking.multicast
+        · com.apple.developer.team-identifier
+        · get-task-allow
+        · keychain-access-groups
+   ExpirationDate         : 2027-05-18 09:49:25
+   TeamIdentifier         : X42CX3ZP3T — già pubblico: sta in BOX5 e nei due
+                            workflow, tutti file TRACCIATI di un repo PUBLIC.
+
+⛔ CHIAVE PRIVATA: ASSENTE.
+   Chiavi di primo livello riconducibili a una chiave privata: 0.
+   Contro-prova sul plist grezzo — occorrenze:
+     "PRIVATE KEY" 0 · "BEGIN RSA" 0 · "BEGIN EC PARAMETERS" 0 · "ENCRYPTED" 0
+     (controllo positivo, "UUID": 1)
+   `DeveloperCertificates` contiene il certificato PUBBLICO, non la chiave.
+
+CONSEGUENZA, per pesare il rischio: il profilo da solo NON firma nulla. Per
+firmare serve la chiave privata, che sta nel .p12. Ciò che è esposto è: 2 UDID
+di dispositivo, 1 certificato pubblico, l'app-id, il team-id (già pubblico) e
+l'entitlement multicast. Esposizione REALE ma LIMITATA.
+
+--------------------------------------------------------------------------
+BLOCCO B · SWEEP POSITIVO SU DRIVE — per FORMA, non contro la lista dei divieti
+--------------------------------------------------------------------------
+Forma di ricerca: interrogazione dell'intero insieme dei file non-cartella
+creati dalle 12:00Z del 01/08 (che contiene tutta e sola la cartella Qbeats),
+risultato salvato su disco dal sistema e classificato LOCALMENTE per estensione
+e per nome. Nessun contenuto è transitato dal modello.
+
+SONDE DELLA FORMA:
+   deve dare ZERO      — estensione .p12 : 0   OK
+   deve dare NON-ZERO  — estensione .md  : 303 OK
+
+CLASSE 1 — estensione di forma-credenziale: 1 file
+   12464 B  QBeats_Dev_Profile.mobileprovision
+            id 15fsbM09jyno1IYR1QylmbQOCf0Is7o6v
+   Nessun .p12 .pfx .cer .der .pem .key .p8 .keychain .jks .mobileconfig.
+
+CLASSE 2 — nome di forma-credenziale: 6 file, TUTTI FALSI POSITIVI
+   20376 B  MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt  id 1b5gsEIbxhMIJmL6Cz84f_gDQ4lU7SXYD
+   17602 B  S3_CHECKLIST_TOKEN_2026-07-13.txt               id 1LGnxj3DE3aLCNYjW2olcx-f-fuFsD_Nx
+   14009 B  VERIFICA_S4a_TOKEN_2026-07-18.txt               id 1Foru_rhX7NT2uaB4TUVqXI0ZiPTCSpra
+   13092 B  2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md    id 1ovb9ce9MELYQoJ107IZdZnIjgjuaV-v8
+   13092 B  2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md    id 1Hth4mPy2lVCFGV68ktsVaf8v2FtiffBE
+    5317 B  Q-BEATS - DA CC PER CD - Richiesta token Songs 27_06_2026.md
+                                                            id 1dDfoUIW5c_ttaR43TmkdKc2Uxevd3ile
+   Agganciano «token» ma parlano di TOKEN DI DESIGN (colore, tipografia), non di
+   credenziali. Stessa specie del falso positivo di ieri sul file di igiene.
+
+CLASSE 3 — estensione ASSENTE o TRONCATA: 2 file
+   37774 B  _SUPERATO__2026-07-26_QLive-Shows-Card-5-Risposte-di-Chiusura.ht
+            id 1NxyY_jVny57FHN2yJv0MmIB2gRTl2M7Z   (è un .html mozzato)
+   18064 B  .thumbnail
+            id 1yUC_JeTYRCJOK41xUc4ZOALNtZe8bsAF
+
+⛔⛔ REPERTO FUORI PERIMETRO MA PIÙ GRAVE DI TUTTO IL RESTO
+   In E:\...\Q-BEATS\CERTIFICATI\QBeats-Certs\ — ramo PARALLELO a
+   FILE X CLAUDE.MD, quindi NON caricato — esistono:
+       QBeatsCert.p12            3093 B
+       QBeatsPrivateKey.key      1704 B
+       p12_base64.txt            4126 B   <- estensione .txt
+       provision_base64.txt     16286 B   <- estensione .txt
+   Misurato: `p12_base64.txt` decodifica in 3093 byte che sono ESATTAMENTE il
+   contenuto di QBeatsCert.p12 (sha256 identico). È la chiave privata vestita da
+   documento di testo. Idem `provision_base64.txt` verso il profilo.
+   => Se quella cartella venisse mai caricata, un allowlist per estensione la
+      farebbe passare senza un avviso: un .txt che CONTIENE la chiave privata.
+   Verificato che oggi NON è su Drive: file .p12/.key/.pem/.p8/.cer sotto
+   FILE X CLAUDE.MD = 0 (controllo positivo stessa forma, .md = 302).
+
+--------------------------------------------------------------------------
+BLOCCO C · CENSIMENTO RIFATTO — E LA CAUSA DELL'ERRORE DI IERI
+--------------------------------------------------------------------------
+⛔ CAUSA TROVATA, ed è mia: ho contato le RIGHE della risposta API, non i FILE
+   DISTINTI. Un file con più genitori compare più volte nella stessa risposta.
+       righe restituite : 711        file distinti per id : 709
+       id ripetuti      : 2  ->  Inter-Regular.ttf, Inter-SemiBold.ttf
+   Ieri: 710 righe / 706 distinti. Il «710 presenti» e i «16 .ttf» erano
+   conteggi di righe. I .ttf distinti sono 12, esattamente come su E:, e i
+   «4 font Inter in più» NON esistono: erano righe doppie.
+
+PARTIZIONE ESAUSTIVA E DISGIUNTA — ogni file in esattamente una classe:
+   A) ATTESI PRESENTI su Drive                          705
+   B) ATTESI MANCANTI                                     1
+        6394 B  MISURE_CC_2026-08-01_W3-CHIUSURA-DRIVE.txt
+        -> scritto da CC su E: DOPO il caricamento: non poteva esserci.
+           Non è una perdita.
+   C) IN PIÙ su Drive                                     4
+       36070 B  SCALETTA_ATOMI_S6_2026-07-10.md   (da C:, gemello su E: col nome
+                                                   per-versione)
+        5963 B  _SUPERATO__ROADMAP_2026-07-24.txt (idem)
+        1642 B  LEGGIMI.md                        (file di prova di CC)
+         446 B  prova-canale.txt                  (file di prova di CC)
+
+   QUADRATURA:  A + C = 705 + 4 = 709 = file distinti su Drive.  CHIUDE.
+
+DOVE CADONO LE CATEGORIE NOMINATE DAL PROMPT:
+   .mobileprovision (1)   -> classe A, ATTESO PRESENTE.
+        ⚠️ «atteso» nel senso del CENSIMENTO: stava su E: e quindi doveva salire.
+        È VIETATO nel senso della POLITICA. Le due cose non coincidono, ed è
+        esattamente il buco per cui è passato.
+   .ttf (12 distinti)     -> classe A. Nessun duplicato: ieri erano righe.
+   .zip (3)               -> classe A: 1Q-BEATS.zip, Q-BEAT FONTS.zip,
+                             2026-04-30_files.zip.
+   4 font Inter duplicati -> NON ESISTONO. Artefatto di conteggio, ritirato.
+
+--------------------------------------------------------------------------
+BLOCCO D · MATERIE — LA LEGA MANCANTE
+--------------------------------------------------------------------------
+D.1 — le due copie locali, misurate SEPARATAMENTE, due forme ciascuna:
+   copia nel REPO : f46e7c21e44c65829855fc6322618de4731f1cc44ab02bf9bbf84722d11a9157
+                    7010 B · 109 LF · 0 CR
+   copia su E:    : f46e7c21e44c65829855fc6322618de4731f1cc44ab02bf9bbf84722d11a9157
+                    7010 B · 109 LF · 0 CR
+   metà del referee (dichiarata dal prompt, non un atteso):
+                    f46e7c21e44c65829855fc6322618de4731f1cc44ab02bf9bbf84722d11a9157
+                    7010 B · 109 LF · 0 CR
+   => TRE misure indipendenti concordi su tutte e quattro le grandezze.
+   ⚠️ Resta non misurata la sola cosa che manca: lo sha256 del flusso RICEVUTO
+      da Drive. Il file su Drive dichiara 7010 byte.
+
+D.2 — VERIFICA A FONTE UFFICIALE
+   Fonte: https://developers.google.com/workspace/drive/api/reference/rest/v3/files
+   La risorsa Files espone TRE campi di checksum:
+     md5Checksum    — «The MD5 checksum for the content of the file. This is only
+                      applicable to files with binary content in Google Drive.»
+     sha1Checksum   — «…only populated for files with content stored in Google
+                      Drive; it's not populated for Docs Editors or shortcut files.»
+     sha256Checksum — stessa formulazione di sha1Checksum.
+   => Esistono, e i nostri file sono binari veri (non convertiti in Documenti
+      Google): sarebbero popolati.
+
+   ⛔ MA IL CONNETTORE NON LI ESPONE. `get_file_metadata` restituisce un
+   sottoinsieme FISSO di 12 campi — canAddChildren, createdTime, fileExtension,
+   fileSize, id, mimeType, modifiedTime, owner, parentId, title, viewUrl,
+   viewedByMeTime. Verificato su DUE file: MATERIE e il canonico LIBRO v49.
+   Nessun campo di checksum in nessuna delle due risposte.
+
+   RISPOSTA ALLA DOMANDA POSTA: no, oggi questo NON rende superfluo lo
+   scaricamento. La scorciatoia esiste nell'API e non nello strumento.
+   Diventerebbe superflua solo se il connettore esponesse `sha256Checksum`:
+   allora 709 file si verificherebbero con poche interrogazioni di metadato
+   invece che con 709 scaricamenti.
+
+--------------------------------------------------------------------------
+CIÒ CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Non ho enumerato l'albero di Drive cartella per cartella: il censimento è su
+    NOME e DIMENSIONE, con id distinti. Due file omonimi e di pari peso in
+    cartelle diverse restano indistinguibili con questo metodo.
+[V] Non ho verificato che ogni file sia nella cartella giusta.
+[V] Non ho aperto i 6 falsi positivi della classe 2 per leggerli: ho letto il
+    loro nome e il contesto d'uso del termine «token» nel progetto.
+[V] Non ho misurato lo sha256 del flusso Drive per MATERIE (vedi D.1 e D.2).
+[V] Nessuna cancellazione, nessuno spostamento, nessun commit, nessun `git add`.
+    Il .mobileprovision su Drive è stato SEGNALATO, non rimosso.
+================================================================================
+FINE REFERTO S1.
+================================================================================

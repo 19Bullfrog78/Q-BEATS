@@ -1,0 +1,410 @@
+================================================================================
+HANDOFF CC — 2026-07-31 SERA, chiusura della seconda parte di giornata.
+================================================================================
+[V] Scritto da CC. File untracked NUOVO in HANDOFF/. Copre la giornata DOPO la
+    consegna di HANDOFF_CC_2026-07-31.txt del mattino, che NON è stato riscritto
+    né sovrascritto: le correzioni che ha ricevuto nel giro P1-P4 sono agli atti
+    nel referto di quel giro e nel §3 qui sotto.
+    comando: ls HANDOFF/HANDOFF_CC_2026-07-31*.txt
+
+CONVENZIONE — identica a quella del file del mattino, non la ripeto per esteso:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto · [R] ricordato, ereditato
+  o letto senza rimisurare · il tag apre il blocco e vale fino alla riga vuota ·
+  le continuazioni sono indentate · in dubbio, [R] · ciò che vive in un canonico
+  è INDIRIZZATO, mai copiato · riga tracciata = commit, riga untracked = sha256 +
+  superficie.
+
+[V] ⚠️ PROVENIENZA — OPPOSTA a quella del file del mattino, e cambia il peso dei
+    tag: quella sessione si era aperta sul prompt di chiusura e non aveva in
+    contesto la giornata; QUESTA sessione è la stessa che ha ESEGUITO i lavori
+    del pomeriggio e della sera. I [V] qui sotto sono misure mie, quasi tutte
+    rifatte in chiusura; dove riporto senza aver rimisurato stasera, il tag è
+    [R] anche se il fatto è mio. ⚠️ Per chi legge senza accesso a disco, git e
+    CI: ogni [V] di questo file è, per il lettore, un [R] finché Mauro non
+    riesegue il comando allegato.
+
+────────────────────────────────────────────────────────────────────────────
+§1 · STATO DEL REPO ALLA CHIUSURA SERALE
+────────────────────────────────────────────────────────────────────────────
+[V] Misure prese in chiusura; l'orologio della macchina, interrogato nella
+    stessa serie, rendeva `2026-07-31 22:40:54 +0200`.
+    comando: date '+%Y-%m-%d %H:%M:%S %z'
+
+[V] HEAD = origin/master = `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`, branch
+    corrente `master`. È il commit di LIBRO v48, l'unico commit di codice o doc
+    creato oggi dopo il mattino.
+    comando: git rev-parse HEAD ; git rev-parse origin/master ;
+             git rev-parse --abbrev-ref HEAD ; git log --oneline 8822598..HEAD
+
+[V] CI del commit: run `30661592440`, workflow «iOS Signed Build»,
+    conclusion `success`, headSha coincidente, headBranch `master`. Letta nel
+    JSON, non dedotta dall'exit code.
+    comando: gh run view 30661592440 --json databaseId,name,conclusion,headSha
+    ⚠️ Run F1 «Build Check» per questo commit: ZERO, misurato sul list con lo
+    sha a 40 — quindi nessun confronto warning-vs-baseline era applicabile.
+
+[V] Tracciati modificati: 0 righe da `git diff --stat`. Staging: 0 righe da
+    `git diff --cached --name-only`. L'albero tracciato è pulito.
+
+[V] Untracked: 86 voci al momento della misura, e la scomposizione CHIUDE:
+    83 in `HANDOFF/` + 2 piani sciolti in root (`QBEATS_A5C_PIANO_2026-07-04.md`,
+    `QBEATS_ATOMC_PIANO_2026-07-06.md`) + `tools/` = 86.
+    comando: git status --porcelain | grep -c '^??' ;
+             git status --porcelain | grep -c '^?? HANDOFF/' ;
+             git status --porcelain | grep '^??' | grep -v '^?? HANDOFF/'
+    ⚠️ QUESTO file incrementa il numero che dichiara: alla misura non esisteva.
+    Chi conta domani trovi 87 e non lo tratti come errore.
+
+[V] La cartella `HANDOFF/` porta 87 voci = 83 untracked + 4 tracciate, e le
+    quattro tracciate sono, per nome: `MISURE_CC_2026-07-30_R1-ACCERTAMENTI.txt`,
+    `NODO_A_PIANO_2026-07-10.md`, `PIANO_S4b_REV_2026-07-18.txt`,
+    `SCALETTA_ATOMI_S6_2026-07-10.md`. Il conto chiude: 83 + 4 = 87.
+    comando: ls HANDOFF/ | wc -l ; git ls-files HANDOFF/
+
+[V] Branch locali 13, di cui 12 non-merged in origin/master e 1 merged (`master`):
+    12 + 1 = 13. Branch remoti, esclusa la voce `HEAD ->`: 13.
+    comando: git branch | wc -l ; git branch --no-merged origin/master | wc -l ;
+             git branch --merged origin/master ; git branch -r | grep -v 'HEAD ->' | wc -l
+
+[V] Worktree: la topologia a QUATTRO copie su DUE cloni regge anche stasera.
+    Desktop @ `ddd5716` [master] + `qb_fixB` @ `add556f` (worktree del Desktop);
+    `qb468clone` @ `63fc3d2` + `qb_fixA` @ `b23b40e` (worktree di qb468clone).
+    comando: git worktree list ; git -C C:/Users/BULLFROG/qb468clone worktree list
+    ⚠️ Di qb468clone stasera ho rimisurato SOLO il worktree list: albero pulito e
+    non-ancestry stanno al §1 del file del mattino e non li ho rifatti — lì [V],
+    qui [R].
+
+[V] Versioni dei canonici lette DAI BLOB a `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`:
+    LIBRO 48 (31/07/2026) · BUGS 46 · BOX3 V99 · BOX5 V28 · SCALETTA 4.
+    Ultimo commit per canonico: LIBRO `ddd5716` · BUGS `e61efd0` · BOX3 `7c804c1`
+    · BOX5 `0a6ebaf`.
+    comando: git show HEAD:<file> | grep Versione ; git log --oneline -1 -- <file>
+
+[V] LIBRO a due facce, ricontato sul nuovo HEAD: disco 485 CR su 485 righe,
+    blob 485 righe e 0 CR. La numerazione coincide sulle due facce.
+    comando: tr -cd '\r' < LIBRO_MASTRO_QBEATS.md | wc -c ;
+             git show HEAD:LIBRO_MASTRO_QBEATS.md | wc -l
+
+[V] `tools/lint_canonici.py`: ancora untracked, sha256 ancora
+    `25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206`
+    (invariato dal mattino). TRE commit del 31/07 sono passati senza portarlo
+    dentro, e il conto chiude: `bfc9228`, `8822598`, `ddd5716` = 3.
+    comando: git status --porcelain -- tools/ ; sha256sum tools/lint_canonici.py ;
+             git log --oneline --since=2026-07-31 --until=2026-08-01 | wc -l
+
+────────────────────────────────────────────────────────────────────────────
+§2 · I FRONTI DELLA GIORNATA DOPO IL MATTINO — una riga ciascuno, il resto
+     è nei canonici e nei referti
+────────────────────────────────────────────────────────────────────────────
+[V] ⟦S6F⟧ ISTITUITO — LIBRO v48, riga di Sez.2 a
+    `LIBRO_MASTRO_QBEATS.md:334 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`,
+    voce 48 del registro a `:481`. Contenuto INDIRIZZATO lì, non ripetuto qui.
+    comando: git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -n 'ATOMO NUOVO PER LA FASCIA'
+
+[V] La v48 ha avuto TRE stesure, e il conto chiude a tre: la prima
+    (OID `647b3a2b…`, 216026 byte) morta per C2 a vuoto — la colonna Doc ref non
+    portava il puntatore `:329` e il controllo passava senza aver nulla da
+    controllare; la seconda (OID `2af49682…`, 216046 byte) morta per la clausola
+    «⟦S6⟧ è il rerouting del back», falsificata dal referee e da me a fonte; la
+    terza (OID `13ea0c311d116c6abe5633941285f8723215e516`, 216083 byte)
+    ratificata e committata. Le prime due NON esistono più su disco né in git:
+    solo nei referti.
+
+[V] Prima della v48 c'è stato un ABORT INTERO: il prompt che la chiedeva
+    portava al punto (1) l'affermazione «la metà pre-esistente di
+    TD-qlive-exit-unconfirmed-stop è chiusa da ⟦S4b⟧ e ⟦S4R⟧», che la mia
+    verifica a fonte ha FALSIFICATO prima di scrivere. Il LIBRO non fu toccato;
+    il punto (1) fu poi RITIRATO dal referee e la v48 riscritta senza. Le misure
+    stanno nel referto v48-ABORT (§3), la conseguenza operativa al §4 (d).
+
+[V] COMMIT + PROPAGAZIONE — commit `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`,
+    autore = committer = Mauro, trailer zero PROVATO con controllo positivo;
+    push a segno; CI `30661592440` success; stampa
+    `LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md` su E: verificata
+    STAMPA-VS-BLOB (sha256 identici); V47 su E: non toccata; istruzioni per il
+    Progetto Claude consegnate a Mauro. Tutto nel referto ESITO_COMMIT (§3).
+
+[R] Autorizzazioni: la ratifica del referee sul referto rev2 e l'OK di Mauro
+    («do l'ok», 2026-07-31) sono stati DICHIARATI dal prompt di commit. Non ho
+    modo di misurarli: li riporto come ricevuti.
+
+────────────────────────────────────────────────────────────────────────────
+§3 · LE ANCORE — i file prodotti oggi, impronte misurate ALLA CHIUSURA
+────────────────────────────────────────────────────────────────────────────
+[V] Otto file, tutti untracked in `HANDOFF/`, tutti verificati stasera contro il
+    mirror E: con `cmp` (exit 0 su otto file su otto — 8/8, il conto chiude).
+    Superficie disco. Forma: sha256sum · stat -c%s · wc -l · tr -cd '\r' | wc -c
+    · cmp repo/E:.
+
+    HANDOFF_CC_2026-07-31.txt (il file del MATTINO, dopo le correzioni P1-P4)
+      sha256 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f
+      36239 B · 555 righe · 0 CR
+      ⚠️ Fu consegnato al mattino con sha256 `74e6ab29…`; il giro P1-P4 lo ha
+      corretto (voce 6 del §3 riscritta senza il quantificatore; due voci di
+      DEBITO aggiunte in coda) e da allora porta l'impronta qui sopra. Chi
+      avesse a verbale la prima impronta trovi qui il perché non coincide.
+
+    MISURE_CC_2026-07-31_M0-M4.txt
+      sha256 ad3af9e3d9d91602c460ace65a73743463f4edb935ae8e3a3be835ad8c24f81b
+      51231 B · 734 righe · 0 CR
+
+    REFERTO_CC_2026-07-31_P1-P4.txt
+      sha256 b17624f930abfb8ec0bc2a3930b1bf4770de22bf1e277f517ea17741c37880e9
+      28706 B · 458 righe · 54 CR (dall'output Python su Windows, dichiarati
+      dentro il file; non normalizzati per non alterare il verbatim)
+
+    REFERTO_CC_2026-07-31_V1-V3.txt
+      sha256 bd462385f63ce5462ee864ad1b3a3ef124b92ffa356bbddd7a8bcf573387f71b
+      25118 B · 331 righe · 0 CR
+
+    REFERTO_CC_2026-07-31_v48-ABORT.txt
+      sha256 d53ea1b8db2dd164efc752d674817f658459ffba411e59756c2716d245ac05e8
+      18865 B · 334 righe · 0 CR
+
+    DIFF_LIBRO-v48_2026-07-31.txt (descrive la stesura MORTA `2af49682…`)
+      sha256 58f1317c8bba74934f0c679f7b7f37e808faa3256a395daed9679b95a140103e
+      28994 B · 265 righe · 0 CR
+
+    DIFF_LIBRO-v48_2026-07-31_rev2.txt (la stesura RATIFICATA; porta la prova
+      per segnaposto che dalla stesura morta è cambiata SOLO la clausola)
+      sha256 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406
+      29720 B · 277 righe · 7 CR (output Python, dichiarati dentro)
+
+    ESITO_COMMIT_LIBRO-v48_2026-07-31.txt
+      sha256 cbf67eb2710c4e6202566bc1c9a641987a5176fc3740041a9f634896fe329094
+      8913 B · 172 righe · 0 CR
+
+[V] La stampa V48 su E: rimisurata stasera: sha256 che apre per `39627eee…`,
+    215598 byte — identica al blob del LIBRO a HEAD.
+    comando: sha256sum "<E:>/LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md"
+
+────────────────────────────────────────────────────────────────────────────
+§4 · MISURE CHE SOPRAVVIVONO ALLA GIORNATA E CHE NESSUN CANONICO PORTA
+────────────────────────────────────────────────────────────────────────────
+[V] Sei voci, numerate; il conto chiude a sei.
+
+[V] (a) LE REGIONI DI QLiveShowsView — misurate due volte, da me e da una
+    rimisura indipendente col metodo del bilanciamento delle graffe, sul blob a
+    `8822598801ecbf9ca1be5adbf005f904c0b45f39` (il file NON è cambiato con
+    ddd5716, che tocca solo il LIBRO): `content` [234,250] con `MetroFAB()` a
+    247 · `showList` [252,267] con `ForEach` a 256-258 · `showCard` [272,311].
+    Tre coppie, tre intersezioni vuote. ⚠️ La disgiunzione regge sotto ENTRAMBE
+    le convenzioni di inclusione (riga-attributo 234 dentro o fuori; commento-doc
+    269-271 dentro o fuori) ma con margine di DUE righe (269 > 267): chi incide
+    questi numeri in un canonico DICHIARI la convenzione, o il primo ricontrollo
+    con la regola opposta renderà 235-250 oppure 269-311 e griderà alla
+    discrepanza. Referto M0-M4 punto M1c; nota sulla doppia convenzione nel
+    referto v48-ABORT §2.
+
+[V] (b) I SEI FRAME DEL FREEZE, con le etichette verbatim — il freeze
+    `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html` (blob `8d7a3150…`,
+    58463 byte) dichiara sei `data-screen-label`, e la spartizione chiude:
+    QUATTRO di uscita — «Exit gate over Shows list · Home · alarm (band)» ·
+    «Exit gate over Shows list · Home · neutral (no band)» · «Exit gate over
+    show detail · Switch → Q-Stage · alarm (band)» · «Exit gate over show
+    detail · Switch → Q-Stage · neutral (no band)» — e DUE di fascia — «Shows
+    list / Q-Live · in play [fascia + exit gated]» · «Show detail / Q-Live · in
+    play [fascia + switch gated]». 4 + 2 = 6. I nomi dei due frame di fascia
+    sono citati in LIBRO:334; le QUATTRO etichette di uscita non stanno in
+    nessun canonico: stanno qui e nel freeze.
+    comando: git show HEAD:<freeze> | grep -o 'data-screen-label="[^"]*"' | sort -u
+
+[V] (c) .swipeActions E IL CONTENITORE — la documentazione Apple dichiara la API
+    di base «a row in a list» (iOS 15.0+); la strada per ScrollView/LazyVStack
+    esiste ma è `swipeActionsContainer()`, dichiarata iOS 27.0 beta; il
+    deploymentTarget del progetto è "16.0" (`ios_app/project.yml:14` e `:137` a
+    HEAD). Il confronto fra i due numeri non l'ho tratto io: i numeri stanno nel
+    referto V1-V3 con URL, citazioni verbatim e catena di custodia. In nessun
+    canonico.
+
+[V] (d) IL CONTROESEMPIO DELLE DUE PORTE — la misura che ha causato l'ABORT e
+    che il giro BUGS in coda dovrà usare: a `8822598…` (invariata a ddd5716) il
+    back del player è ricablato all'imbuto interno (`QLiveRootView.swift:145`),
+    MA il canonico di stop è intatto (`AppRootView.swift:70-74`) e le due porte
+    che lo innescano sono montate sulla schermata a cui il back conduce
+    (`QLiveShowsView.swift:72` onHome, `:74` onSwitch → `AppRootView.swift:51-52`
+    → `:74 stop()`). La metà pre-esistente del ticket NON è chiusa: è ASSORBITA
+    nella metà nuova. Oggi non morde perché `= SetlistRunner(` ha zero siti di
+    costruzione fra i .swift tracciati — condizione che ⟦S5⟧ rimuove. Misure e
+    catena completa nel referto v48-ABORT §1; formulazione pronta per BUGS nel
+    §3 dello stesso referto.
+
+[V] (e) IL BERSAGLIO DI `LIBRO:467` DOPO IL COMMIT — nel blob a
+    `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` la voce 43 del registro sta alla
+    riga 476, e la stringa che il puntatore le attribuisce vi rende 1.
+    comando: git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -n '^| 43 | 2026-' ;
+             git show HEAD:LIBRO_MASTRO_QBEATS.md | sed -n '476p' |
+               grep -cF 'proprietà del runner'
+    È IL NUMERO a cui il giro BUGS dovrà puntare. La deriva storica (467 al
+    commit `3164564` del 2026-07-30 · 475 a `8822598` · 476 a `ddd5716`) è agli
+    atti nella voce 48 del registro, LIBRO:481.
+
+[V] (f) «rerouting» IN BUGS VIVE SU SEI RIGHE, non quattro — 120, 121, 125,
+    128, 129, 999; la misura del referee ne elencava quattro. Il giro BUGS le
+    copra tutte e sei.
+    comando: git show HEAD:BUGS_QBEATS.md | grep -in 'rerouting' | cut -d: -f1
+    controllo positivo stessa forma stesso file: 'Dominio' → 57 righe.
+
+────────────────────────────────────────────────────────────────────────────
+§5 · TRAPPOLE E FALSE MISURE TROVATE GIRANDO I CANCELLI — la parte che
+     scompare per prima se non è scritta
+────────────────────────────────────────────────────────────────────────────
+[V] Otto voci, numerate; il conto chiude a otto. Le prime due portano i nomi
+    «settima» e «ottava forma» con cui i referti le hanno battezzate.
+
+[V] (1) SETTIMA FORMA — controllo positivo vacuo per notazione: due asterischi
+    senza -F sono, in regex base, «zero o più asterischi» e agganciano OGNI
+    riga. Dimostrazione a due righe:
+      printf 'riga senza asterischi\n' | grep -c  -- '**'   → 1
+      printf 'riga senza asterischi\n' | grep -cF -- '**'   → 0
+    Un controllo positivo che aggancia tutto non protegge da niente.
+    (referto M0-M4, sezione M2)
+
+[V] (2) OTTAVA FORMA — un documento che CITA l'output del lint fallisce il lint
+    che sta citando: le righe di controllo positivo dello strumento portano i
+    token sostitutivi come DATO, e riprodurle in un referto le fa agganciare di
+    nuovo. Successo due volte oggi; la cura è descrivere senza citare, o
+    dichiarare la causa. (referti v48-ABORT §6 e DIFF v48 §4a)
+
+[V] (3) `gh run list --commit <sha a 40>` pochi secondi dopo il push rende `[]`
+    con exit 0: vuoto da TEMPISMO di registrazione, non da notazione. La
+    famiglia è quella del falso-zero da sha corto, ma la causa è diversa e la
+    cura pure: rimisurare fino a comparsa, non allungare lo sha (già a 40).
+    (referto ESITO_COMMIT, F3)
+
+[V] (4) SU QUESTA PIATTAFORMA sed E grep MANGIANO I CR: `sed -n Np | tr -cd
+    '\r'` rende 0 su un file che ne ha 483 (misurato sul LIBRO), e anche
+    `grep -c` col CR nel pattern rende 0. Rendono il vero solo `tr -cd` sul
+    file intero, `od -c`, e Python sui byte. La variante grep era già a
+    verbale in memoria; la variante sed è emersa oggi al cancello delle ancore.
+
+[V] (5) UN CONTROLLO POSITIVO CHE RENDE 0 NON È UN CONTROLLO POSITIVO — la
+    stringa `Detail` messa fra i positivi di V3 rendeva 0: elencarla lì avrebbe
+    reso falsa la frase «rendono tutti > 0». Spostata a misura separata PRIMA
+    della consegna. (referto V1-V3, V3)
+
+[V] (6) UN C2 CHE PASSA CON fonte=[] È VUOTO, NON PASSATO — alla prima stesura
+    v48 la colonna Doc ref non portava `:329` e il controllo «passava» senza
+    avere nulla da confrontare. La stesura è stata rifatta da HEAD. (referto
+    DIFF v48, §2)
+
+[V] (7) LA PIPE MASCHERA L'EXIT CODE — `lint … | tail` rende l'exit di tail,
+    non del lint. L'esito si misura SENZA pipe, in invocazione separata.
+    (referti DIFF v48 §5a e v48-ABORT §6)
+
+[V] (8) IL FILE CHE SI CONTA DA SÉ — due occorrenze oggi: il conteggio degli
+    untracked che include il referto in scrittura (dichiarato nel file del
+    mattino e di nuovo qui al §1), e il grep di censimento che aggancia il
+    documento che lo cita (voce 6 del §3 del mattino, corretta in P2 con
+    l'esclusione dichiarata). La cura è la stessa: dichiarare l'auto-conteggio,
+    non «aggiustare» il numero.
+
+────────────────────────────────────────────────────────────────────────────
+§6 · PRONTO E NON USATO — dove sta, e quanto durerà
+────────────────────────────────────────────────────────────────────────────
+[V] Nella scratchpad di QUESTA sessione — path assoluto:
+    C:\Users\BULLFROG\AppData\Local\Temp\claude\C--Users-BULLFROG\
+    47d2bed1-9362-4c48-bbb3-7ae352099fcc\scratchpad\ — restano gli strumenti
+    del giorno, in particolare `scrivi_v48b.py`: lo scrittore a byte grezzi del
+    LIBRO con modalità `--dry` (cancelli su BOM/CRLF/ancore/pipe, impronte
+    precalcolate PRIMA di toccare il disco, rilettura e confronto DOPO). È il
+    modello per la prossima scrittura su file a due facce.
+    ⚠️ È STORAGE TEMPORANEO DI SESSIONE: nessuna garanzia che sopravviva. La
+    forma DUREVOLE — i comandi, i cancelli, l'ordine — sta nei referti del §3,
+    che sono in HANDOFF/ e su E:. Se lo script serve e non c'è più, si
+    ricostruisce dal referto DIFF v48, che ne descrive ogni cancello.
+
+[R] Il workflow di rimisura indipendente (sei lotti + tre critici) usato per la
+    verifica pre-v48 ha lo script persistito dalla piattaforma; il suo valore
+    durevole — i reperti — è già distillato nel referto v48-ABORT e nel §4.
+
+────────────────────────────────────────────────────────────────────────────
+§7 · LA CODA DEL DEBITO — nomi cercabili per stringa
+────────────────────────────────────────────────────────────────────────────
+[V] «GIRO-BUGS-467-476» — il giro di riparazione di BUGS disposto oggi e NON
+    ancora eseguito a questa chiusura. Deve coprire: il puntatore `LIBRO:467`
+    → 476 (§4 e), con la FORMA del puntatore da decidere perché un numero nudo
+    scivola alla prossima riga di Sez.2 · le sei righe «rerouting» (§4 f) · il
+    cite di BUGS:120 su `AppRootView.swift:43` che a HEAD indica la stanza
+    Q-Stage e non Q-Live (misura nel referto v48-ABORT §4b) · la marcatura di
+    :126/:128 col proprietario ⟦S-EXIT⟧ e lo stato del freeze, nella
+    formulazione «metà assorbita, non chiusa» già pronta nel referto v48-ABORT
+    §3. decide: referee per la forma, Mauro per l'apertura.
+
+[V] «D-F1-ROSSO-PER-COSTRUZIONE» — invariato; su `ddd5716` nessuna run F1 è
+    partita (misurato, §1), quindi nessun warning confrontato. Registrato nel
+    file del mattino, coda DEBITO.
+
+[V] «D-HANDOFF-INCLUSIONE-NON-MISURATA» — i numeri si sono mossi ancora: alla
+    misura di stasera 87 voci nel repo contro 125 su E:.
+    comando: ls HANDOFF/ | wc -l ; ls "<E:>/HANDOFF" | wc -l
+    La direzione dell'inclusione resta NON misurata: i conteggi non la provano.
+
+[V] `tools/lint_canonici.py` untracked dopo TRE commit del 31/07 (§1). decide:
+    Mauro.
+
+[R] SCALETTA sez.C stale — ora manca anche ⟦S6F⟧; il giro suo è disposto dalla
+    stessa riga LIBRO:334. Non l'ho riletta stasera.
+
+[R] Upload del Progetto Claude: `LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md`
+    dentro, `…_V47_2026-07-31_8822598.md` fuori; i tre numeri di verifica stanno
+    nel referto ESITO_COMMIT F4b. In attesa di Mauro; la prova finale è
+    l'impronta calcolata dal referee sulla copia caricata.
+
+[R] Le marcature del mattino NON confluite nel giro BUGS — `SCALETTA:144`,
+    `BOX3:30` (puntatore `:12-13`), voce 38 del registro (LIBRO) — stanno al §4
+    del file del mattino. Non le ho riverificate stasera.
+
+[R] I due piani sciolti in root (§1) — stessa recidiva di collocazione già a
+    verbale il 17/07. decide: Mauro.
+
+────────────────────────────────────────────────────────────────────────────
+§8 · ⚠️ CIÒ CHE NON HO MISURATO
+────────────────────────────────────────────────────────────────────────────
+[V] Il freeze l'ho letto PER STRINGHE E PER FRAME, mai per intero: 58463 byte
+    di cui ho misurato etichette, conteggi e una riga verbatim (la voce della
+    fascia). Che il disegno sia COMPLETO o SUFFICIENTE a costruire ⟦S6F⟧ non
+    l'ho valutato, e nessun referto di oggi lo afferma.
+
+[V] Nessuna misura su device, in nessun giro di oggi. La CI success dice che la
+    build compila e firma, non che l'IPA sia stata installata o esercitata.
+
+[V] I log della run `30661592440` non li ho letti: ho letto il JSON di esito.
+    Nessun conteggio warning su questo commit (e nessuna run F1 con cui
+    confrontarlo).
+
+[V] Del giro Apple (V1): il testo viene dall'endpoint dati con uno strato di
+    estrazione dichiarato; i byte grezzi delle pagine non li ho letti. La
+    corroborazione a doppia interrogazione sta nel referto V1-V3.
+
+[R] Le marcature del mattino (SCALETTA:144 · BOX3:30 · voce 38) non riverificate
+    stasera; la finestra della clausola-limite di BUGS:123 resta non misurata,
+    come il ticket stesso dichiara; l'ancestry e la pulizia di qb468clone non
+    rimisurate stasera (§1); il contenuto delle altre voci di HANDOFF/ non
+    riletto oggi, salvo i file del §3 e quelli citati per nome nei referti.
+
+[V] L'inclusione fra `HANDOFF/` del repo e quello su E: resta non misurata:
+    stasera ho misurato i due conteggi e la parità `cmp` degli otto file del
+    §3, nient'altro.
+
+[R] Il ramo `#if DEBUG` di HomeRootView e ogni percorso a runtime: mai
+    esercitati da me — la nota è del referto v48-ABORT, la ripeto come limite.
+
+────────────────────────────────────────────────────────────────────────────
+CODA — CANCELLO E CONTI
+────────────────────────────────────────────────────────────────────────────
+[V] Cancello prima della consegna, nell'ordine: rilettura del testo per i
+    sostitutivi tipografici PRIMA del lint (la regola morde chi la scrive: i
+    referti di oggi ne sono la prova, e il conteggio a zero sta nel messaggio
+    di consegna) · `PYTHONIOENCODING=utf-8 python tools/lint_canonici.py
+    --libero <questo file>` · enumerazione della clausola (2) — capi-blocco
+    [V]/[R] + vuote + continuazioni indentate + residue = totale, con le residue
+    ELENCATE una per una e nessuna che asserisca alcunché · impronte + `cmp`
+    col mirror E:.
+    ⚠️ L'esito NUMERICO del lint e i conti dell'enumerazione stanno nel
+    MESSAGGIO di consegna, non qui: un file che dichiara il proprio esito lo
+    dichiara al momento sbagliato, e non può contenere il proprio sha256.
+
+================================================================================
+FINE HANDOFF SERALE.
+================================================================================

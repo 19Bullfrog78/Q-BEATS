@@ -1,0 +1,339 @@
+================================================================================
+REFERTO CC — ID ESEGUITO: QB-2026-08-02-A4-ATTERRAGGIO-31-07
+================================================================================
+Data di esecuzione: 2026-08-02.
+
+⚠️ ANNULLA E SOSTITUISCE: QB-2026-08-02-A1-ORDINE-CANONICI. Non eseguito come
+prompt valido in questo giro. Il file che avevo depositato ieri con quel nome
+(HANDOFF/MISURE_CC_2026-08-02_A1-ORDINE-CANONICI.txt, 21171 byte) RESTA su disco
+e su Drive — non l'ho cancellato, stesso motivo per cui altri artefatti superati
+restano: la cancellazione su Drive si propaga. È un ARTEFATTO SUPERATO con nome
+confondibile: chi lo apre deve sapere che il prompt che lo governava è annullato
+e che le sue misure sono state RIPETUTE qui, non estese.
+
+RUOLO ESEGUITO: SOLA LETTURA. Zero edit, zero staging, zero commit, zero push,
+zero proposte di riparazione, zero diff.
+
+MARCATURA: [V] = misurata da me in questo turno, a fonte, su HEAD.
+⛔ Nessun path, commit, sha o numero di riga a memoria: ogni cifra sotto è stata
+   ricalcolata in questo giro su blob riestratti da HEAD, non riusati dal giro
+   precedente (per escludere che una copia in scratchpad sia stata alterata).
+
+REGOLA DI CONTEGGIO DICHIARATA (vincolante per tutto il referto, come richiesto):
+ogni numero sotto specifica se conta OCCORRENZE (ogni match, anche più volte
+sulla stessa riga) o RIGHE-CHE-CONTENGONO (una riga vale 1 indipendentemente dal
+numero di match), e la forma/regex con cui è stato ottenuto.
+
+⚠️ UN ERRORE DI METODO CATTURATO IN QUESTO STESSO GIRO, dichiarato e non taciuto:
+la prima passata su M5 (vincolo ObservableObject) cercava «annidat», «non
+propaga», «apparizione», «scomparsa» CASE-SENSITIVE e rendeva zero per tutti e
+quattro, mentre BOX3:34 li porta in MAIUSCOLO («ANNIDATO», «APPARIZIONE/
+SCOMPARSA»). Corretto con una seconda passata case-insensitive prima di scrivere
+questo referto — è la stessa famiglia di falso-zero già catalogata (case-
+sensitivity), qui presa PRIMA che finisse in un numero consegnato, non dopo.
+
+================================================================================
+M0 — UNTRACKED, PRIMA DI SCRIVERE QUESTO REFERTO  [V]
+================================================================================
+porcelain totale          122   -> untracked 122, tracciati modificati 0
+untracked HANDOFF/        118
+forma 2 indipendente:     file in HANDOFF/ = 122, meno tracciati 4 = 118  ✅ concordi
+
+⚠️ Il numero 122/118 include già il deposito A1 di ieri (mai eseguito come
+   prompt, ma presente su disco dal turno precedente, 21171 byte, verificato
+   sopra). CON QUESTO REFERTO diventano 123 e 119.
+
+M1 — REMOTO e HEAD, riverificati  [V]
+   git ls-remote origin master   c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e
+   git rev-parse HEAD            c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e
+   => ALLINEATI, INVARIATO rispetto al giro precedente. I blob sotto sono stati
+      RIESTRATTI ora da HEAD (non riusati): stessi OID del giro precedente,
+      confermato per ciascuno dei sei file misurati in questo referto.
+
+================================================================================
+M2 — SEZ.C DELLA SCALETTA A HEAD: riga d'ordine, VERBATIM INTEGRALE  [V]
+================================================================================
+Sede: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md, riga 316
+Commit a 40 (ultimo che tocca il file): c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e
+Lunghezza della riga: 541 caratteri, riportata INTEGRALE.
+
+>>> INIZIO VERBATIM — SCALETTA riga 316 >>>
+**PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST:** S4 → **S4K** → **S4R** → **S4L** → S5 → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco è **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧.
+<<< FINE VERBATIM — SCALETTA riga 316 <<<
+
+CONFERMA DEL CONTESTO DEL REFEREE:
+   [V] CONFERMATO — porta ancora S4 → S4K → S4R → S4L → S5 → S6 (S4R prima di
+       S4L, S5 DOPO S4L): l'ordine PRE-emendamento del 31/07.
+   [V] CONFERMATO — «S-EXIT» in questa riga: ZERO occorrenze (vedi M1bis: la
+       SCALETTA rende zero su tutto il documento, non solo su questa riga).
+
+================================================================================
+M1bis — «S-EXIT» (ogni forma di trattino): OCCORRENZE vs RIGHE-CHE-CONTENGONO  [V]
+================================================================================
+Metodo: SEXIT_RE = "S" + [uno tra: ASCII U+002D, U+2010..U+2015, U+2212] + "EXIT".
+OCCORRENZE = match totali sul testo intero del blob. RIGHE = righe con ≥1 match.
+
+  doc        occorrenze   righe-che-contengono   numeri di riga
+  LIBRO           12              6              327, 328, 329, 334, 489, 491
+  BUGS             0              0              —
+  BOX3              0              0              —
+  BOX5              0              0              —
+  SCALETTA          0              0              —
+
+⚠️ QUESTA È LA CIFRA CHE NEL REFERTO A1 (ANNULLATO) ERA STATA DATA COME «12»
+   SENZA DISTINGUERE OCCORRENZE DA RIGHE: 12 = occorrenze, 6 = righe. Sono due
+   misure diverse dello stesso fenomeno, non un errore fra i due referti.
+
+CONTROPROVA SUL REPERTO DEL REFEREE (LIBRO): atteso righe [327,328,329,334,489,491].
+   Misurato ora: righe = [327, 328, 329, 334, 489, 491]  →  COINCIDE.
+   Occorrenze per singola riga (da dove viene 12 su 6 righe):
+     riga 327: 1   riga 328: 1   riga 329: 4   riga 334: 3   riga 489: 2   riga 491: 1
+     (1+1+4+3+2+1 = 12, coincide col totale)
+
+================================================================================
+M3 — OGNI SEDE, NEI CINQUE CANONICI A HEAD, CON UNA SEQUENZA DI ATOMI §6  [V]
+================================================================================
+Metodo: CHAIN = atomo (freccia atomo)+, frecce → -> ⇒ ⟶, atomi S4/S4K/S4R/S4L/
+S5/S6/S-EXIT (con/senza ⟦⟧, con/senza grassetto o ✅). OCCORRENZE = catene
+trovate (una riga può contenerne più di una). RIGHE = righe con ≥1 catena.
+
+  doc        righe-che-contengono   occorrenze(catene)
+  LIBRO              5                     10
+  BUGS               0                      0
+  BOX3               5                      5
+  BOX5               0                      0
+  SCALETTA           3                      4
+  TOTALE            13                     19
+
+ELENCO — documento, riga, lunghezza, catene:
+  LIBRO    riga 282   1642 car.   S4→S4L
+  LIBRO    riga 317   3060 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧ · S4→S4L · S4** → S4L → S5 → S6
+  LIBRO    riga 329   3986 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧ · S4 → S4K → S4R → S4L → S5 → S6 ·
+                                  S4 ✅ → ⟦S4K⟧ ✅ → ⟦S4R⟧ → ⟦S5⟧ → ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧
+  LIBRO    riga 477    816 car.   S4→S4L
+  LIBRO    riga 486   1525 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧ · ⟦S4K⟧→⟦S4L⟧
+  BOX3     riga 60     218 car.   S4→S4L
+  BOX3     riga 151     86 car.   S4→S4L
+  BOX3     riga 212     76 car.   S4→S4L
+  BOX3     riga 647     74 car.   S4** → S4L → S5 → S6
+  BOX3     riga 662     73 car.   S4→S4L
+  SCALETTA riga 157     95 car.   S4K → S4R → S4L
+  SCALETTA riga 163     47 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧
+  SCALETTA riga 316    541 car.   S4 → **S4K** → **S4R** → **S4L** → S5 → **S6 · S4K → S4R → S4L
+
+RILIEVO DI FATTO: l'ordine emendato del 31/07 (con ⟦S5⟧ prima di ⟦S4L⟧ e
+⟦S-EXIT⟧ fra i due) compare in UNA sola delle 19 catene, a LIBRO riga 329. Le
+altre 18 portano l'ordine anteriore.
+
+LIMITE DICHIARATO: il metodo cerca per FRECCIA. BOX3:676 («ancore-codice nude in
+⟦NODO A⟧/⟦S4⟧/⟦S4L⟧/⟦S5⟧») è una settima sede che nomina l'ordine in forma A
+SLASH, non a freccia: il metodo di M3 non la trova; compare invece in M4 sotto,
+perché lì la ricerca è per token-atomo e non per catena.
+
+================================================================================
+M4 — BOX3 A HEAD: righe che dichiarano STATO o ORDINE degli atomi §6  [V]
+================================================================================
+Metodo, in due passi dichiarati:
+  passo 1 — CANDIDATE: ogni riga con almeno un token-atomo (S4/S4K/S4R/S4L/S5/
+            S6/S-EXIT, con o senza ⟦⟧), qualunque contesto: 51 RIGHE.
+  passo 2 — fra le candidate, quelle con ANCHE una parola di stato (APERT*,
+            CHIUS*, PROSSIMO, SBLOCCAT*, BLOCCAT*, BLOCCANTE, SOSPES*, ATTIV*,
+            IRRAGGIUNGIBILE, VALIDAT*, RATIFICAT*, «NODO A», case-insensitive)
+            o una catena a freccia: 31 RIGHE.
+Le rimanenti 20 candidate (menzionano un atomo ma senza stato/ordine riconosciuto
+dal metodo) sono elencate a parte in coda, per trasparenza — NON per omissione.
+
+-- Le 31 righe stato/ordine, numeri: --
+3, 30, 34, 36, 39, 40, 41, 46, 51, 54, 57, 60, 61, 102, 151, 152, 154, 155, 212,
+435, 472, 476, 487, 638, 647, 649, 654, 662, 676, 693, 757
+
+-- VERBATIM delle righe più rilevanti alla domanda (stato esplicito sugli atomi §6) --
+
+  >>> BOX3 riga 40 (498 caratteri) >>>
+ · §1 CANCELLI §6: **NODO A 🟢 CHIUSO, device-validato 17/07** — 3 atomi N0 `a2fb816` / N1a `beb9e08` / N1b `152445e` (master, CI verdi; ultima CI `29608514870`, «build in 3m58s»). Gate device B+C+A-cheap PASSATO (Mauro): C (uscita col click attivo → tace) · A-cheap (3-4 rientri a freddo, no crash) · B (import `.qbeats` da app File con Q-Live a schermo → sheet SOPRA Q-Live + 2 song di test ritrovate in Q-Stage›Songs = import a fondo). **Sblocca S4.** Shippato **E1+E2**, NON E3 (vedi punto (j)).
+  <<<
+
+  >>> BOX3 riga 46 (91 caratteri) >>>
+ · §13 PROSSIMI STEP: NODO A rimosso (FATTO). Prossimo atomo reale = **S4** (Q-Live›Shows).
+  <<<
+
+  >>> BOX3 riga 57 (234 caratteri) >>>
+ · §1 CANCELLI §6: S3 passa da «pronto, NON aperto» a 🟢 **CHIUSO, device-validato 14/07** — commit `c77d69f` (master, fast-forward da `bench/s3-gate`, zero merge-commit). Gate 4 tocchi PASSATO su iPhone reale (build #564). Sblocca S5.
+  <<<
+
+  >>> BOX3 riga 60 (218 caratteri) >>>
+ · §13 PROSSIMI STEP: S3/gate rimossi (fatto). S5 tecnicamente sbloccato ma resta dietro Nodo A→S4→S4L nell'ordine SCALETTA sez.C — non è il prossimo atomo. Nodo A resta il prossimo atomo reale, prerequisiti invariati.
+  <<<
+
+  >>> BOX3 riga 154 (420 caratteri) >>>
+· **NODO A (spine navigazione) — 🟢 CHIUSO, device-validato 17/07** — N0 `a2fb816` / N1a `beb9e08` / N1b `152445e`, CI verdi, gate B+C+A-cheap PASS; shippato E1+E2. ⚠️ Caveat gate C + prereq bloccante S4 (uscite intra-`.qLive`) nel blocco «Supersede V95» in testa, punti (k)/(j). ⛔ NB V97: (k) è SUPERATO (a) — il prereq VERO di S4 è la proprietà del runner (S4L), NON uno stop sulla navigazione; (j) resta storia valida.
+  <<<
+
+  >>> BOX3 riga 155 (34 caratteri) — LA RIGA PIÙ DIRETTA DEL FILE SULLO STATO §6 >>>
+· S4 / S4L / S5 / S6 — non aperti.
+  <<<
+  ⚠️ Questa riga NON nomina ⟦S-EXIT⟧ — non poteva, l'atomo nasce il 31/07 e
+     questa dichiarazione è più vecchia (fa parte del corpo V95, riportato
+     invariato: vedi BOX3 riga 3 e riga 54 sulla stratificazione delle versioni).
+
+  >>> BOX3 riga 649 (82 caratteri) >>>
+   🚨 **PREREQUISITO BLOCCANTE DI S4** (Supersede V95 punto (k)): progettare DENTRO
+  <<<
+
+  >>> BOX3 riga 676 (80 caratteri) — la SETTIMA sede d'ordine, forma a slash >>>
+🔴 **BLOCCANTE prima del NODO A:** ancore-codice nude in ⟦NODO A⟧/⟦S4⟧/⟦S4L⟧/⟦S5⟧
+  <<<
+
+-- Le altre 20 righe-candidate (menzionano un atomo, nessuno stato/ordine
+   riconosciuto dal metodo), numeri, per trasparenza: --
+28, 32, 42, 45, 50, 150, 301, 303, 304, 427, 429, 431, 432, 446, 488, 621, 648,
+650, 661, 688
+   (verbatim completo di tutte e 51 disponibile nel file di lavoro; omesso qui
+   per lunghezza — nessuna di queste 20 nomina ⟦S-EXIT⟧ né un ordine fra atomi:
+   verificato, sono menzioni di resi grafici, debiti-commento o cronologia
+   versioni con un codice-atomo come etichetta, non come stato.)
+
+⇒ RISPOSTA ALLA DOMANDA: BOX3 NON dichiara mai lo stato di ⟦S5⟧ o ⟦S-EXIT⟧ dopo
+  il 31/07. L'ultima dichiarazione di stato esplicita sugli atomi §6 resta la
+  riga 155 («S4 / S4L / S5 / S6 — non aperti»), scritta prima dello sdoppiamento
+  del 28/07 e mai aggiornata da allora — coerente con l'assenza totale di
+  «S4R»/«S-EXIT» già misurata in M1bis e nel referto precedente.
+
+================================================================================
+M5 — BOX3 A HEAD: vincolo «ObservableObject annidato non propaga»  [V]
+================================================================================
+Prima passata (case-sensitive, come i pattern erano stati scritti): «annidat»,
+«non propaga», «apparizione», «scomparsa» → ZERO su tutti e quattro.
+⚠️ FALSO ZERO DA CASE, catturato e corretto in questo giro (vedi nota di testa):
+il testo li porta in MAIUSCOLO. Seconda passata, case-insensitive:
+
+  pattern            case-sensitive   case-insensitive
+  ObservableObject          2                2   (il pattern era già corretto)
+  annidat                    0                1
+  non propaga                0                2
+  apparizione                0                1
+  scomparsa                  0                1
+  @Published                 3                3
+
+Righe con «ObservableObject» o «annidat» (case-insensitive): 34, 264.
+
+Sede del vincolo: BOX3_QBEATS.md, riga 34.
+Commit a 40 (ultimo che tocca BOX3): 7c804c119fe458c99c08ce979dd877a89cc23f13
+(2026-07-22 — la riga stessa può essere più vecchia della V99: non ho misurato
+in questo giro a quale versione la riga sia nata, solo che è presente a HEAD).
+
+>>> INIZIO VERBATIM — BOX3 riga 34 (709 caratteri) >>>
+ · **(e) VINCOLO TECNICO S4L da incidere.** Un `ObservableObject` ANNIDATO dentro un altro NON propaga: `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del runner, NON i suoi cambi interni (canzone/sezione/BPM). I figli devono osservare **IL RUNNER** (`@ObservedObject`/`@EnvironmentObject` sul runner), NON la sessione — pena UI metronomo CONGELATA che sembrerebbe un bug del DSP. Da scrivere come VINCOLO nella scheda ⟦S4L⟧ alla riscrittura SCALETTA (ratifica referee), insieme all'emendamento esplicito dell'invariante Nodo A «renderizza LiveRootView, MAI LiveView diretto» (scopo preservato — mai LiveView senza runner iniettato, garantito dal gate `if let runner`; lettera cambiata).
+<<< FINE VERBATIM — BOX3 riga 34 <<<
+
+L'ALTRA occorrenza (riga 264) NON è la stessa materia — controllo di non-confusione:
+>>> BOX3 riga 264 (estratto) >>>
+ `@MainActor final class QBeatsStore: ObservableObject`, singleton `static let
+<<<
+  => è la dichiarazione della classe store, non il vincolo sull'annidamento.
+     Le due occorrenze di «ObservableObject» in BOX3 sono DUE materie diverse.
+
+⚠️ RILIEVO NON RICHIESTO MA PERTINENTE: il vincolo alla riga 34 dice esplicitamente
+   «Da scrivere come VINCOLO nella scheda ⟦S4L⟧ alla riscrittura SCALETTA
+   (ratifica referee)» — è un'istruzione di atterraggio dichiarata e MAI eseguita:
+   la scheda ⟦S4L⟧ nella SCALETTA a HEAD non porta il testo di questo vincolo
+   (verificato: zero occorrenze di «ANNIDATO» o «propaga» nel blob SCALETTA,
+   vedi M1bis-stile — ricontrollato in coda a questo referto).
+
+Controprova SCALETTA per il rilievo sopra:
+   occorrenze case-insensitive di 'annidat' in SCALETTA: 0
+   occorrenze case-insensitive di 'propaga' in SCALETTA: 0
+
+================================================================================
+M6 — QLiveRootView.swift: RAMO ELSE DEL GATE, VERBATIM  [V]
+================================================================================
+File:      ios_app/QBeats/UI/QLive/QLiveRootView.swift
+OID blob:  b956c6582f49897c5b0ea4f8015c2cda7fa9039d   byte: 10437   righe tot.: 166
+Commit a 40 (ultimo che tocca il file): bfc92285d165852a9c5618786a7e95f7166025e7
+                                          2026-07-31 «S4R fase 2b: la proprietà
+                                          del runner sale alla stanza Q-Live»
+Il gate `if let runner` è a riga 98 (nel blob riestratto ora). Ramo else: 147-162.
+
+>>> INIZIO VERBATIM — QLiveRootView.swift righe 147-162 >>>
+            } else {
+                // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
+                // futuro lettore cablerebbe per errore.
+                // Qui va l'EMPTY-STATE ONESTO della pagina metronomo.
+                // ⛔ NON messo in ⟦S4R⟧: il disegno è materia CD e NON esiste
+                //    freeze per questa pagina. CC non genera UX.
+                // ⛔ Nessun testo d'interfaccia, nessun componente
+                //    `QLiveEmptyStates`/`EmptyStateKit`, nessun pulsante —
+                //    nemmeno disabilitato: un disabilitato è già una promessa di
+                //    Start, e lo Start è ⟦S5⟧.
+                // ⟦S5⟧ NON parte senza questo empty-state.
+                // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
+                // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+                // il back del player qui sopra, e porta a `.shows`.
+                EmptyView()
+            }
+<<< FINE VERBATIM <<<
+
+Identico byte per byte al giro precedente (stesso OID, stesso commit): la
+condizione «⟦S5⟧ NON parte senza questo empty-state» a HEAD regge invariata, e
+il commento dichiara esplicitamente «il disegno è materia CD … CC non genera UX».
+
+================================================================================
+M7 — tools/lint_canonici.py  [V]
+================================================================================
+esiste su disco:  SÌ — 12076 byte
+sha256 (faccia su disco): 25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206
+tracciato?  NO — tre forme concordi:
+   `git ls-files tools/lint_canonici.py`  → vuoto
+   `git status --porcelain -- tools/`     → «?? tools/»
+   `git cat-file -e HEAD:tools/...`       → assente a HEAD
+Invariato rispetto al giro precedente (stesso sha256, stesso stato).
+
+================================================================================
+SINTESI DI CIÒ CHE QUESTO REFERTO STABILISCE, SENZA CONCLUDERE UNA RIPARAZIONE
+================================================================================
+Il quadro del referee è confermato e la misura lo precisa:
+ · La ratifica LIBRO:329 (31/07) vive in UNA riga su cinque canonici.
+ · SCALETTA sez.C (riga 316): non emendata, ordine pre-31/07, zero S-EXIT.
+ · BOX3: zero S4R, zero S-EXIT; l'unica dichiarazione di STATO esplicita sugli
+   atomi §6 (riga 155, «non aperti») è ANTERIORE allo sdoppiamento del 28/07 e
+   non è mai stata toccata da allora — non è un mancato aggiornamento del solo
+   31/07, è più vecchia di due giri.
+ · BUGS: zero S-EXIT (misurato nel referto precedente, non richiesto qui, non
+   ripetuto).
+ · Il vincolo ObservableObject-annidato (BOX3:34) porta scritta la propria
+   destinazione mancata: doveva atterrare nella scheda ⟦S4L⟧ della SCALETTA,
+   non c'è.
+ · Il ramo `else` di QLiveRootView.swift conferma che ⟦S5⟧ dipende da una
+   consegna CD (empty-state) che il codice stesso dichiara non esistente.
+
+Nessuna di queste righe è stata scritta, spostata o proposta in un diff da me
+in questo giro. La riparazione, come richiesto, resta al referee.
+
+================================================================================
+LIMITI DICHIARATI
+================================================================================
+1. M3 cerca per FRECCIA: la settima sede d'ordine (BOX3:676, forma a slash) non
+   vi compare, compare in M4 perché quel metodo cerca per token, non per catena.
+   ⇒ 13/19 di M3 resta un minimo per la sola forma «a freccia».
+2. M4 passo 2 usa una lista di parole-stato scelta da me (dichiarata sopra): le
+   20 righe-candidate escluse sono elencate per numero ma non tutte verbatim,
+   per lunghezza — nessuna nomina S-EXIT o un ordine, verificato a mano.
+3. Non ho misurato sedi d'ordine fuori dai cinque canonici (freeze CD, altri
+   file HANDOFF/, commenti nel resto del codice sorgente).
+4. L'errore di case-sensitivity in M5 è stato corretto PRIMA della consegna:
+   dichiarato per intero, non è un'ipotesi residua.
+
+================================================================================
+PROPAGAZIONE R-δ — TRE DESTINAZIONI
+================================================================================
+① C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\
+     MISURE_CC_2026-08-02_A4-ATTERRAGGIO-31-07.txt
+② E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\
+     MISURE_CC_2026-08-02_A4-ATTERRAGGIO-31-07.txt   (copiato esplicitamente)
+③ Drive — due copie sui due alberi paralleli già censiti, attese per
+     sincronizzazione automatica del mirror E: (stesso meccanismo del giro A1).
+⛔ L'impronta di questo file non può stare dentro il file stesso: sta nel
+   messaggio di consegna in chat, non qui.
+
+*Fine referto A4-ATTERRAGGIO-31-07. Sola lettura: nessuna riparazione proposta,
+nessun diff, nessuno staging, nessun commit.*

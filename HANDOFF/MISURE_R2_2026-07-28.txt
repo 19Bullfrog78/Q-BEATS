@@ -1,0 +1,422 @@
+================================================================================
+MISURE_R2_2026-07-28.txt
+Q-BEATS — prompt unico del 28/07. Zero commit, zero push, zero branch.
+================================================================================
+REGOLE: sha a 40 in ogni comando git · CR solo con tr -cd '\r' | wc -c ·
+righe dichiarate righe(terminatori, wc -l) · grep -c dichiarato
+righe-che-contengono, NON occorrenze · ogni zero col suo controllo positivo ·
+ogni citazione porta il NOME DEL FILE (sez. 3 del prompt) · output catturato
+per redirezione.
+================================================================================
+
+################################################################################
+# 1. CARTELLA DI ATTERRAGGIO E COPIA DEI DUE ARTEFATTI
+################################################################################
+
+--- 1.a  quale repo, e quindi quale HANDOFF
+$ git -C "$R" rev-parse --show-toplevel
+C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+
+PATH ASSOLUTO DELLA CARTELLA DI ATTERRAGGIO, con lettera di disco:
+  C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF
+
+  E' la HANDOFF su C:, dentro il repo di lavoro. NON quella su E:
+  (E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF),
+  che resta la tratta di Mauro.
+
+--- 1.b  esistenza di entrambe, per non lasciare ambiguo quale sia quale
+  ESISTE  /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF
+  ESISTE  /e/HOBBY/MUSICA - BATTERIA -SISTA/Q-BEATS/FILE X CLAUDE.MD/HANDOFF
+
+--- 1.c  COPIA (cp -p: copia, non sposta, non rigenera)
+  ---- MISURE_R1_2026-07-28.txt
+    sha256 ORIGINE      (scratchpad) : d9f89d81d3b7ca76c41781602d35638f89c2e91fdc33cf60ed78d2a5f927931e
+    sha256 DESTINAZIONE (HANDOFF)    : d9f89d81d3b7ca76c41781602d35638f89c2e91fdc33cf60ed78d2a5f927931e
+    cmp                              : IDENTICI byte-a-byte
+    byte(disco) 19976 · righe(terminatori, wc -l) 392 · CR 0
+  ---- MISURE_R1b_2026-07-28.txt
+    sha256 ORIGINE      (scratchpad) : ed2276310c46f47394d4c970cc7f7838e74b2b80cf102095f20c4e8c01e578a9
+    sha256 DESTINAZIONE (HANDOFF)    : ed2276310c46f47394d4c970cc7f7838e74b2b80cf102095f20c4e8c01e578a9
+    cmp                              : IDENTICI byte-a-byte
+    byte(disco) 23918 · righe(terminatori, wc -l) 483 · CR 0
+
+  ⚠️ Lo scratchpad resta popolato: la copia NON ha svuotato l'origine.
+     Gli originali sono comunque volatili — la copia in HANDOFF e' la durevole.
+
+
+################################################################################
+# 2. REGOLA INDIRIZZO DI CONTENUTO — accettata, con un addendum eseguibile
+################################################################################
+
+POSIZIONE DI CC, secca: LA REGOLA E' CORRETTA. Nessun dissenso.
+  (a) ACCETTATO SENZA RISERVE. `LiveHeaderView.swift:107,109 @ 8fa5018` NON e'
+      difettoso. Il difetto che ho segnalato e' NULLO e lo ritiro.
+      Mio errore: ho applicato la lettura 'chi ha generato la riga' a una
+      citazione che e' 'cosa dice la riga a quell'albero'. Sono due letture
+      diverse di un puntatore e vanno dichiarate, non confuse.
+  (b) ACCETTATO. La RETTIFICA B resta bloccata come motivata. Se si passa al
+      simbolo, si motiva sulla robustezza al drift, mai su una falsita'.
+
+--- 2.a  VERIFICA DELLA REGOLA SUL CASO IN QUESTIONE
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/Live/LiveHeaderView.swift   righe 105, 107, 109
+                if false {
+                        .fill(Color(hex: "#2a6bd6"))
+                        .shadow(color: Color(hex: "#2a6bd6"), radius: 3)
+  => l'indirizzo regge: il file esiste a quell'albero e le righe dicono quello.
+
+--------------------------------------------------------------------------------
+ADDENDUM — NON e' un controesempio alla regola. E' un guasto del COMANDO DI
+VERIFICA che la regola prescrive, ed e' vivo su QUESTA macchina.
+--------------------------------------------------------------------------------
+
+Il prompt chiede: un caso in cui `git show <sha40>:<path>` fallisce mentre il
+file ESISTE a quel commit. Esiste, ed e' Windows.
+
+$ git -C "$R" config core.ignorecase
+true
+
+Il file esiste a 8fa50189b13f49ba3b291510f7d1a388d75b5909 (case corretto):
+$ git -C "$R" cat-file -e 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/Live/LiveHeaderView.swift ; echo $?
+  exit=0  (0 = esiste)
+
+Stesso commit, stesso file, UNA lettera di differenza (`live` invece di `Live`):
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/live/LiveHeaderView.swift
+fatal: path 'ios_app/QBeats/UI/live/LiveHeaderView.swift' exists on disk, but not in '8fa50189b13f49ba3b291510f7d1a388d75b5909'
+
+E sul disco Windows lo STESSO path minuscolo apre il file senza protestare:
+$ wc -l < "$R/ios_app/QBeats/UI/live/LiveHeaderView.swift"
+147
+  ^ righe(terminatori, wc -l) — il filesystem risolve, git no.
+
+PERCHE' CONTA: chi legge quel `fatal:` conclude «l'ancora e' invalida, il file
+non c'e' a quel commit» — che e' esattamente la falsificazione che la regola
+ammette. Ma il file C'E'. La citazione e' valida e il comando ha mentito
+sull'unica cosa che la regola considera decisiva.
+
+IL SEGNALE CHE DISTINGUE I DUE CASI — git usa due messaggi diversi:
+
+  (A) case sbagliato, file ESISTE a quel commit:
+      fatal: path 'ios_app/QBeats/UI/live/LiveHeaderView.swift' exists on disk, but not in '8fa50189b13f49ba3b291510f7d1a388d75b5909'
+  (B) path davvero assente a quel commit:
+      fatal: path 'ios_app/QBeats/UI/Live/LiveRootView.swift' does not exist in '8fa50189b13f49ba3b291510f7d1a388d75b5909'
+
+  «exists on disk, but not in <sha>»  => NON e' una falsificazione: e' il case.
+  «does not exist in <sha>»           => quella si', il path non e' a quell'albero.
+
+GUARDIA, due comandi che non passano da `git show`:
+$ git -C "$R" cat-file -e <sha40>:<path>          (exit 0 = esiste)
+$ git -C "$R" ls-tree --name-only <sha40>:<dir>   (rivela il case vero)
+      Live
+      LiveRootView.swift
+
+  ⚠️ Questo e' il guasto che ha morso ME oggi, due volte, in forma vicina:
+     ho passato UI/QStage/QStageRootView.swift e UI/Live/LiveRootView.swift
+     (directory sbagliata, non case) e ho letto `does not exist`. Li' il
+     messaggio era quello giusto ed ero io a sbagliare path. Ma la lezione
+     e' la stessa: un fallimento di `git show` non e' di per se' un verdetto
+     sull'ancora finche' non lo si separa dal path.
+
+  Quinta forma di falso-negativo, da affiancare alle quattro gia' agli atti.
+
+
+################################################################################
+# 3. DUE HANDOFF, NUMERAZIONE PARALLELA — presa d'atto e corroborazione
+################################################################################
+
+Regola accettata: ogni citazione porta il NOME DEL FILE. Mai «il handoff».
+Le mie citazioni di ieri e di oggi dicevano «il handoff» intendendo
+HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt. Da qui in avanti, nome esplicito.
+
+--- 3.a  la voce esiste davvero in entrambi? conteggi, nessun contenuto stampato
+    (⛔ NON LEGGERE HANDOFF_REFEREE_*.md — righe 9-11 di
+     HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt. Uso solo grep -c.)
+  HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt       «angolo del riordino» -> 1 · righe(terminatori, wc -l) 502
+  HANDOFF_REFEREE_2026-07-27_sera.md                   «angolo del riordino» -> 1 · righe(terminatori, wc -l) 436
+  HANDOFF_REFEREE_2026-07-27.md                        «angolo del riordino» -> 1 · righe(terminatori, wc -l) 303
+  ^ righe-che-contengono, case-insensitive. Confermato: la voce esiste in tutti e tre.
+
+--- 3.b  la quarta forma di falso-zero, riprodotta qui per il verbale
+$ grep -c 'NESSUN commit' <HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt>
+0
+  ^ ZERO sul file che la contiene: pattern multi-parola su file a capo fisso.
+
+  ⚠️ ⚠️  IL RIMEDIO PRESCRITTO NON BASTA — misurato, non supposto.
+$ tr '\n' ' ' < <HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt> | grep -c 'NESSUN commit'
+0
+  ^ ANCORA ZERO. L'appiattimento da solo non risolve.
+
+  PERCHE': la riga 254 comincia con SEI SPAZI di indentazione. Sostituire il
+  ritorno a capo con UN solo spazio produce 'NESSUN' + SETTE spazi + 'commit'.
+  La giuntura, vista da vicino:
+      E NESSUN       commit tracciato ha
+
+  FORME CHE FUNZIONANO — servono spazi COLLASSATI, non solo sostituiti:
+  $ tr -s '[:space:]' ' ' < <file> | grep -c 'NESSUN commit'    ->  1
+  $ tr '\n' ' ' < <file> | tr -s ' ' | grep -c 'NESSUN commit'  ->  1
+
+  CONTROLLO POSITIVO che isola la causa: su una frase che sta TUTTA su una
+  riga sola, l'appiattimento semplice funziona benissimo —
+  $ tr '\n' ' ' < <file> | grep -c 'RIFERIMENTO STALE'          ->  1
+  quindi il filtro non e' rotto in generale: e' l'INDENTAZIONE al punto di
+  a capo a sconfiggerlo. Un file a capo fisso E rientrato li batte entrambi.
+
+  Oppure, piu' semplice e senza trasformazioni, UNA parola distintiva sola:
+  $ grep -c "quel simbolo"  ->  1
+
+  => CORREZIONE DA PORTARE ALLA REGOLA prima che venga incisa: la forma
+     `tr '\n' ' '` va sostituita con `tr -s '[:space:]' ' '`. Cosi' com'e'
+     scritta, la cura rende zero sullo stesso file su cui rende zero la
+     malattia — e passerebbe per verde.
+
+
+################################################################################
+# 4. I DUE TESTI RIEMESSI — copia integrale (l'originale sta nel corpo del messaggio)
+################################################################################
+
+--------------------------------------------------------------------------------
+(a) CELLA «Doc ref» della riga PALETTE ANNOTAZIONI CD — LIBRO Sez.2
+    Va fra la cella «Mauro» e la cella «attiva». NON contiene il carattere barra
+    verticale, che spezzerebbe la tabella.
+--------------------------------------------------------------------------------
+ ⚠️ **La ratifica è stata presa su uno stato del documento che non esiste più.** Al «si approvo» il payload era `df55ccdc…9489115` (7444 B), **distrutto per sovrascrittura in place il 27/07 alle 20:14** e non più presente su alcun supporto (scansione dei 615 file sotto `E:\…\FILE X CLAUDE.MD`, controllo positivo su lunghezza 13092 → 2 match). Fonte citabile oggi: `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md` sha256 `b5f40d9e…b46a891e` (13092 B), che **incorpora una correzione POSTERIORE alla ratifica** — il ritiro della clausola falsa «non è UI, non finisce mai in `.swift`» — la quale **non altera ciò che Mauro ha ratificato**: le quattro voci e il confine. **La catena non è rotta:** la clausola ritirata sopravvive *dentro* `b5f40d9e…` alla sua riga 65, citata verbatim e marcata falsa, quindi il delta fra le due versioni è verificabile senza il file perduto. ⚠️ **La clausola (2) nella forma generalizzata NON viene dal payload**, che si ferma al corollario «fuori dalla cornice» (r.101 di `2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md`; `LiveHeaderView` + «altra stanza» + «proprio ambiente» → zero occorrenze, controlli positivi 7/6/7): **viene da una misura di CC sul sorgente**, il cui **indirizzo di contenuto** è `ios_app/QBeats/UI/Live/LiveHeaderView.swift:107,109 @ 8fa50189b13f49ba3b291510f7d1a388d75b5909` — l'albero su cui CC ha misurato, 27/07, riverificato 28/07. Si controlla con `git show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/Live/LiveHeaderView.swift` leggendo le righe 105, 107 e 109, che rendono `if false {` poi `.fill(Color(hex: "#2a6bd6"))` poi `.shadow(color: Color(hex: "#2a6bd6"), radius: 3)`. Le tre righe sono **invariate** fino a `152445e470eb0ca4a33c5b31a58ee5c8204e0482`, ultimo commit che tocca il file: sha256 delle tre righe identico ai due alberi, `1c0d0973…76183571`. ⚠️ L'invarianza **corrobora** l'indirizzo, **non lo sostituisce**: l'ancora registra QUANDO CC ha misurato, e riscriverla col commit che ha introdotto le righe perderebbe quell'informazione. ⚠️ Il **path completo è parte dell'indirizzo**: `ios_app/QBeats/UI/Live/` contiene `LiveHeaderView.swift` ma **non** `LiveRootView.swift`, che sta in `ios_app/QBeats/UI/` diretto — citare il solo nome del file espone allo scambio fra i due
+
+--------------------------------------------------------------------------------
+(b) VOCE «ANGOLO DEL RIORDINO» — BUGS v44, da appendere DOPO la riga 308
+    (aggancio a TD-qlive-libero-limbo, righe 302-308; 309 vuota, 310 = ticket
+    successivo — misura di HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt sez. 4)
+--------------------------------------------------------------------------------
+- **ANGOLO DEL RIORDINO — non serve una cancellazione per cambiare quale show Q-Live caricherebbe.** `moveSetlists(from:to:) async` esiste in `Store/QBeatsStore.swift:120`. Finché non esiste una selezione esplicita dello show, Q-Live prende il **primo** elemento della lista (`setlists.first ?? Setlist.makeDefault()`), quindi **un semplice riordino cambia ciò che Q-Live caricherebbe**, senza che nulla venga cancellato e senza che l'utente sappia che l'ordine è anche una scelta. È lo stesso limbo di questo ticket raggiunto da un'altra porta: nessuna azione distruttiva, nessun avviso, nessun modo di accorgersene prima del palco.
+- **⚠️ RIFERIMENTO RIANCORATO — per STALENESS, non perché fosse falso.** La citazione `LiveRootView.swift:8` di questo ticket **era corretta quando è stata scritta**: al collaudo che cita — `59ab33e9e8761d7df98066c2a665729cd8cd778f`, 28/06 — il fallback `setlists.first ?? Setlist.makeDefault()` stava **davvero a riga 8**, come già a `fa92a7520bbf21a4aac023a3acafb07b02a44bf3` (13/05, «L1.b: SetlistRunner + wiring multi-section setlist») che l'ha introdotto. È diventata **stale il 17/07 con Nodo A**: `a2fb816fbb24fd606f1280336e513f5d079d992e` la porta a r.14, `152445e470eb0ca4a33c5b31a58ee5c8204e0482` a r.13, invariata a HEAD `8fa50189b13f49ba3b291510f7d1a388d75b5909`. Il commento `// L1.b DEV FALLBACK` segue la stessa storia: r.6 → r.12 → r.11. **Non si corregge una falsità: si sostituisce un indirizzo che il drift dei numeri di riga ha reso fragile.** L'indirizzo per riga resta valido a ciascun albero citato e si verifica con `git show <sha40>:ios_app/QBeats/UI/LiveRootView.swift`.
+- **Forma di riancoraggio: path + simbolo, mai il simbolo nudo.** Il file è `ios_app/QBeats/UI/LiveRootView.swift` — in `ios_app/QBeats/UI/` **diretto**, NON sotto `UI/Live/`. Il simbolo da solo è ambiguo: nel repo esistono **due** file che rispondono alla stringa `LiveRootView` — `ios_app/QBeats/UI/LiveRootView.swift` e `ios_app/QBeats/UI/QLive/QLiveRootView.swift` — e in BUGS a HEAD **6 righe contengono `LiveRootView`, di cui 1 contiene `QLiveRootView`** (righe-che-contengono, non occorrenze: `QLiveRootView` include `LiveRootView` come sottostringa). Forma buona: **path completo + simbolo** `setlists.first ?? Setlist.makeDefault()`. Controprova a fonte: nel file quasi-omonimo `QLiveRootView.swift` quel simbolo rende **0**, con controllo positivo `struct` → 1 sullo stesso file, quindi lo zero è un fatto e non un filtro rotto.
+- **Dominio:** CC. **Stato:** eredita 🟠 OPEN MEDIA di `TD-qlive-libero-limbo` — l'angolo del riordino **non apre un ticket nuovo**, allarga la superficie di questo.
+
+
+################################################################################
+# 5. LA CONTRADDIZIONE SUL WORKING TREE — sciolta
+################################################################################
+
+--- 5.a  i tre ambiti, comando esatto sopra ogni output
+
+$ git -C "$R" status --porcelain
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19_rev2.txt
+?? HANDOFF/DIFF_BUGS_v42_2026-07-22.txt
+?? HANDOFF/DIFF_BUGS_v43_2026-07-23.txt
+?? HANDOFF/DIFF_FIX-PILL_2026-07-22.txt
+?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+?? HANDOFF/DIFF_LIBRO_v37_2026-07-19.txt
+?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_S4a_2026-07-18.txt
+?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+?? HANDOFF/ESITO_COMMIT_BUGS_v40_2026-07-19.txt
+?? HANDOFF/ESITO_GIRODOC_FOLLOWER-GREGARIO_2026-07-19.txt
+?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_CHIUSURA_definitivo.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt
+?? HANDOFF/HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+?? HANDOFF/HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+?? HANDOFF/HANDOFF_CC_2026-07-26.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27_sera.md
+?? HANDOFF/MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+?? HANDOFF/MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+?? HANDOFF/MISURE_R1_2026-07-28.txt
+?? HANDOFF/MISURE_R1b_2026-07-28.txt
+?? HANDOFF/MISURE_R2_2026-07-28.txt
+?? HANDOFF/MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+?? HANDOFF/PIANO_S4_2026-07-18.txt
+?? HANDOFF/ROADMAP_2026-07-26.txt
+?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+?? HANDOFF/VERIFICA_V-DIR_2026-07-19.txt
+?? HANDOFF/VERIFICA_V-ISP_2026-07-19.txt
+?? HANDOFF/_SUPERATO__ROADMAP_2026-07-24.txt
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+[fine]
+$ git -C "$R" status --porcelain | wc -l
+44
+  ^ righe(terminatori, wc -l)
+
+$ git -C "$R" status --porcelain --untracked-files=no
+[fine — nessuna riga]
+$ git -C "$R" status --porcelain --untracked-files=no | wc -l
+0
+  ^ righe(terminatori, wc -l)
+
+$ git -C "$R" status --porcelain --untracked-files=all | wc -l
+44
+  ^ righe(terminatori, wc -l)
+
+--------------------------------------------------------------------------------
+DICHIARAZIONE SECCA — L'AMBITO DEL GIRO 1 E' RICOSTRUIBILE
+--------------------------------------------------------------------------------
+  Comando eseguito al giro 1 : git status --porcelain --untracked-files=no
+  Numero reso                : 0
+  Il NUMERO era giusto. Era la PAROLA a essere mal ambitata:
+  ho scritto «working tree pulito, zero righe» senza dichiarare che quello
+  zero escludeva i non tracciati. Nello stesso istante `--porcelain` nudo
+  rendeva 41. Nessuno dei due numeri e' falso: e' l'etichetta «pulito»,
+  applicata a un conteggio ristretto, a essere una descrizione mal ambitata.
+  Stessa famiglia del «16» senza ambito (V2), e la ragione per cui
+  `--untracked-files=no` non va MAI riportato come «working tree pulito»
+  ma come «nessun file TRACCIATO modificato».
+
+  ⚠️ E il conteggio e' cambiato OGGI PER MANO MIA: le due copie della sez. 1
+  hanno portato HANDOFF da 39 a 41 file non tracciati, e il totale da 41 a 43.
+  Questo file, quando atterra, lo porta a 44. Non e' deriva: e' l'effetto
+  dell'azione autorizzata al punto 1, dichiarato qui perche' nessuno lo legga
+  come una discordanza.
+--------------------------------------------------------------------------------
+
+--- 5.b  i .md non tracciati
+$ git -C "$R" status --porcelain --untracked-files=all -- '*.md'
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27_sera.md
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+[fine]
+
+$ git -C "$R" ls-files -- '*.md'      <- CONTROLLO POSITIVO
+ARCHIVIO.MD/06_05_2026/QBEATS_SYSTEM_PROMPT_V3_06_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX3_V43_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX3_V44_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX3_V45_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX5_V17_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX5_V18_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/BOX5_V19_07_05_2026.md
+ARCHIVIO.MD/07_05_2026/QBEATS_SYSTEM_PROMPT_V4_07_05_2026.md
+ARCHIVIO.MD/08_05_2026/BOX3_V46_08_05_2026.md
+ARCHIVIO.MD/08_05_2026/BOX5_V20_08_05_2026.md
+ARCHIVIO.MD/12_05_2026/BOX3_V52_12_05_2026.md
+ARCHIVIO.MD/12_05_2026/BOX3_V53_12_05_2026.md
+ARCHIVIO.MD/12_05_2026/BOX3_V54_12_05_2026.md
+ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md
+ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md
+ARCHIVIO.MD/12_05_2026/HANDOFF_TASKD_12_05_2026.md
+ARCHIVIO.MD/14_05_2026/BOX3_V56_14_05_2026.md
+ARCHIVIO.MD/16_05_2026/BOX3_V60_16_05_2026.md
+ARCHIVIO.MD/16_05_2026/BOX3_V61_16_05_2026.md
+ARCHIVIO.MD/16_05_2026/BOX3_V62_16_05_2026.md
+ARCHIVIO.MD/16_05_2026/HANDOFF_NEXT_CHAT_16_05_2026.md
+ARCHIVIO.MD/20_05_2026/TD44_REPORT_20_05_2026.md
+ARCHIVIO.MD/27_05_2026/RISPOSTE_CD_27_05_2026.md
+ARCHIVIO.MD/SENZA COLLOCAZIONE/REGISTRO_TEST_AUDACITY_V1.md
+BOX3_QBEATS.md
+BOX5_QBEATS.md
+BUGS_QBEATS.md
+DESIGN/QLive_Nav/HANDOFF_CD_QLIVE_NAV_Q7-Q10_11_07_2026.md
+DESIGN/QLive_Nav/README.md
+DESIGN_SYSTEM_QBEATS.md
+"Divisione di competenze \342\200\224 Q-BEATS.md"
+FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md
+HANDOFF/NODO_A_PIANO_2026-07-10.md
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+HANDOFF_STUDIO_PER_CD_25_06_2026.md
+LIBRO_MASTRO_QBEATS.md
+QBEATS_WIRING_MAP_2026-07-06.md
+context-qbeats.md
+implementation_plan.md
+[fine]
+$ git -C "$R" ls-files -- '*.md' | wc -l
+39
+  ^ righe(terminatori, wc -l)
+  ESITO: NON vuoto, ed elenca i canonici (BOX3_QBEATS.md, BOX5_QBEATS.md,
+  BUGS_QBEATS.md, LIBRO_MASTRO_QBEATS.md) => il filtro '*.md' FUNZIONA,
+  quindi l'elenco dei non tracciati qui sopra e' un fatto.
+
+--- 5.c  i DUE .md non tracciati IN ROOT, uno per uno
+  ---- QBEATS_A5C_PIANO_2026-07-04.md
+       byte(disco)               : 10329
+       righe(terminatori, wc -l) : 54
+       CR (tr -cd)               : 0
+       sha256                    : 4fdac67fbc36b25a8d643d8db12d8991f604a660ee9b1b578ff65323c6d8e547
+       prima riga                : # PIANO A5c v2 — backtracks.json nello store + backup/restore (ZERO CODICE)
+  ---- QBEATS_ATOMC_PIANO_2026-07-06.md
+       byte(disco)               : 11862
+       righe(terminatori, wc -l) : 118
+       CR (tr -cd)               : 0
+       sha256                    : 9b7d073858526c7329e296838b12d96bc1717c40eceea60ae82aaf79cba7fd63
+       prima riga                : # PIANO ATOM C — subdivision al DOWNBEAT (sample-accurate) — ZERO CODICE
+
+  ⚠️ Il filtro '*.md' rende QUATTRO righe, non due: le altre due sono i due
+     HANDOFF_REFEREE_*.md dentro HANDOFF/. In root i non tracciati sono due.
+
+--- 5.d  SONO COPIE DI UN CANONICO TRACCIATO?
+Metodo: sha256 di ciascun non-tracciato confrontato contro il sha256 del BLOB
+di OGNI .md tracciato a HEAD. Non per nome: per contenuto.
+  QBEATS_A5C_PIANO_2026-07-04.md
+    -> NESSUNA corrispondenza fra i 39 .md tracciati.
+  QBEATS_ATOMC_PIANO_2026-07-06.md
+    -> NESSUNA corrispondenza fra i 39 .md tracciati.
+
+  CONTROLLO POSITIVO del metodo (un tracciato confrontato con se stesso):
+    BOX5_QBEATS.md  blob 852a7269ea9e51d903e74f75670704157e9cbae92a1e958c7171fa798c6b7afa
+    BOX5_QBEATS.md disco 852a7269ea9e51d903e74f75670704157e9cbae92a1e958c7171fa798c6b7afa
+    COINCIDONO => il metodo sa rendere una corrispondenza, quindi i due
+    «nessuna corrispondenza» qui sopra sono fatti.
+
+  DICHIARAZIONE: nessuno dei due e' copia di un canonico. Sono ALTRO —
+  due PIANI DI ATOMO scritti da CC, entrambi in versione v2 che supersede una
+  v1 citata per sha nel proprio intestazione, entrambi marcati «ZERO CODICE»:
+    · QBEATS_A5C_PIANO_2026-07-04.md   — piano atomo B7-A5c, HEAD base a34e86a
+    · QBEATS_ATOMC_PIANO_2026-07-06.md — piano ATOM C subdivision, HEAD base 430f7fa
+  Documenti di lavoro mai tracciati, non canonici, non mirror.
+
+--- 5.e  dove stanno i non tracciati — solo conteggio per cartella
+$ git -C "$R" status --porcelain --untracked-files=all | awk '{print $2}' | sed 's#/[^/]*$##' | sort | uniq -c | sort -rn
+     42 HANDOFF
+      1 QBEATS_ATOMC_PIANO_2026-07-06.md
+      1 QBEATS_A5C_PIANO_2026-07-04.md
+
+  Le due righe con conteggio 1 sono i due file di root: `sed` non trova una
+  barra da tagliare e restituisce il nome del file. Non sono cartelle.
+
+
+################################################################################
+# 6. git ls-files ios_app/QBeats/UI/Live/
+################################################################################
+
+$ git -C "$R" ls-files ios_app/QBeats/UI/Live/
+ios_app/QBeats/UI/Live/BarCounterView.swift
+ios_app/QBeats/UI/Live/FineSetlistView.swift
+ios_app/QBeats/UI/Live/LiveHeaderView.swift
+ios_app/QBeats/UI/Live/LiveView.swift
+ios_app/QBeats/UI/Live/MetSlotStripView.swift
+ios_app/QBeats/UI/Live/MixerOverlayView.swift
+ios_app/QBeats/UI/Live/OverlayStopView.swift
+ios_app/QBeats/UI/Live/POIView.swift
+ios_app/QBeats/UI/Live/RubberBtnView.swift
+ios_app/QBeats/UI/Live/SegBarViews.swift
+ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift
+ios_app/QBeats/UI/Live/TransportView.swift
+ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+[fine]
+
+$ git -C "$R" ls-files ios_app/QBeats/UI/Live/ | wc -l
+14
+  ^ righe(terminatori, wc -l)
+
+  CONTROLLO POSITIVO — che l'elenco non sia un artefatto del filtro:
+$ git -C "$R" cat-file -e 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/Live/LiveHeaderView.swift ; echo $?
+  exit=0  (0 = il file esiste a quell'albero)
+
+================================================================================
+FINE. Zero commit, zero push, zero branch, nessun git add.
+$ git -C "$R" log -1 --format=%H
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+$ git -C "$R" status --porcelain --untracked-files=no | wc -l
+0
+  ^ righe(terminatori, wc -l) — nessun file TRACCIATO modificato
+    (formula corretta: NON «working tree pulito», vedi sez. 5.a)
+================================================================================

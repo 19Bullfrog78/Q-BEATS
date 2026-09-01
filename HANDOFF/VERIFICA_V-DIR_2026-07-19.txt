@@ -1,0 +1,313 @@
+VERIFICA V-DIR — "solo il Direttore ferma la band" è implementato o è intenzione di disegno?
+HEAD fe6d34b18f2fa666e1cb3fcac050c94374a1cca9 · READ-ONLY · 0 file tracciati toccati · 0 commit · 0 staging
+Autore: CC · 2026-07-19 · Ogni file:riga ANCORATO A QUESTO HEAD e RI-TROVATO in questa sessione.
+
+RISPOSTA SECCA IN CIMA (dettaglio verbatim sotto):
+Il percorso di STOP è MODE-BLIND. "Solo il Direttore ferma la band / il Follower ferma solo sé stesso"
+NON è implementato sul percorso di stop: NON esiste alcun ramo su currentLinkMode/_linkMode/Direttore
+lungo stop()→stopSync()→link_engine_stop. Ciò che esiste è una guardia sul percorso INVERSO (INBOUND):
+il Direttore IGNORA lo start/stop che arriva DAI peer (:533). L'affermazione è un'INTENZIONE DI DISEGNO
+(commento enum AppSettings.swift:6 "direttore … detta start/stop") realizzata solo parzialmente e da un
+MECCANISMO DIVERSO. Esiste un'ASIMMETRIA start-gattato / stop-non-gattato (§3d). Segnalo e mi fermo (nessun fix).
+
+════════════════════════════════════════════════════════════════════════
+0 — ANCORAGGIO
+════════════════════════════════════════════════════════════════════════
+pwd:  /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+git log -1 --format=%H%n%s :
+  fe6d34b18f2fa666e1cb3fcac050c94374a1cca9
+  HANDOFF: SCALETTA_ATOMI_S6 tracciata in git (cambio di regime, contenuto invariato)
+git status --short : 17 voci, TUTTE untracked (`??`), ZERO tracked modificati. (La 17ª è VERIFICA_V-ISP
+  del giro precedente; questo file sarà la 18ª. Nessun tracked ` M`/staged → contenuto su disco == blob a HEAD.)
+
+════════════════════════════════════════════════════════════════════════
+1 — IL PERCORSO COMPLETO DELLO STOP
+════════════════════════════════════════════════════════════════════════
+
+--- 1a. stop() PER INTERO (AudioEngine.swift:1078-1093, verbatim) ---
+   1078    func stop() {
+   1079        stopSync()
+   1080    #if QB_DIAG_SPY
+   1081        // SPIA passiva: flush finale del ring L1 (audio già fermo da stopSync → no race).
+   1082        if let h = metronomeHandle { metronome_flush_diag(h) }
+   1083    #endif
+   1084        // P1+P3 fix: allinea playbackState all'isPlaying su ogni percorso di stop.
+   1085        // Pattern già usato in handleStop() (.countIn/.playing) e restartFromBeginning().
+   1086        // Senza questo dispatch, lo stop manuale lasciava playbackState=.playing
+   1087        // mentre isPlaying=false → desincronizzazione UI (segmento bloccato bianco,
+   1088        // TransportView label/glyph fuori sync — TransportView re-render solo su
+   1089        // session.playbackState, non su audioEngine.isPlaying).
+   1090        DispatchQueue.main.async { [weak self] in
+   1091            self?.playbackState = .stopped
+   1092        }
+   1093    }
+
+--- 1a. stopSync() PER INTERO (AudioEngine.swift:1625-1713, verbatim) ---
+   1625    private func stopSync() {
+   1626        var wasRunning = false
+   1627        var bc = 0
+   1628        var bt = 0
+   1629        audioQueue.sync {
+   1630            pendingLinkStart?.cancel()
+   1631            pendingLinkStart = nil
+   1632            if isWaitingForLinkDownbeat {
+   1633                DispatchQueue.main.async {
+   1634                    self.isWaitingForLinkDownbeat = false
+   1635                }
+   1636            }
+   1637            wasRunning = self.isRunning
+   1638            guard self.isRunning else { return }
+   1639            self.isRunning = false
+   1640            bc = self.bufferCount
+   1641            bt = self.beatTotal
+   1642
+   1643            // Build #309: notifica Link che la riproduzione è ferma — API semantica.
+   1644            if let lh = linkEngineHandle {
+   1645                link_engine_stop(lh, mach_absolute_time())
+   1646            }
+   1647            // QA-1 drift analysis reset
+   1648            self.qa1BeatCounter  = 0
+   1649            self.qa1StartTime    = 0
+   1650            self.beatTickCounter = 0
+   1651            // L1.a — reset counter sezione per replay corretto.
+   1652            // _sectionTotalBeats e _onSectionEnd RESTANO registrati: la sezione
+   1653            // caricata deve persistere tra stop/play (es. utente preme Stop a
+   1654            // metà sezione e poi Play — la sezione ricomincia da capo, non
+   1655            // viene "scaricata"). Solo il counter va azzerato.
+   1656            self._sectionBeatCounter = 0
+   1657            // Bug 2.b ramo X — nessun offset d'ingresso stale al prossimo play.
+   1658            self.startBeatOffset = 0
+   1659            // Task D — Stop manuale o autostop: annulla cambio BPM pending.
+   1660            // Senza questo, un cambio armato pre-stop scatterebbe al replay
+   1661            // (DSP riapplicherebbe _pendingBPM al primo downbeat post-Play).
+   1662            // Cancel DSP + reset Swift, sempre simmetrico.
+   1663            if let mh = self.metronomeHandle {
+   1664                if self._pendingBPMValue != nil {
+   1665                    metronome_cancel_pending_bpm(mh)
+   1666                }
+   1667                // Strada A — Cancel BPB INCONDIZIONATO.
+   1668                // Dopo il ramo seamless tutti i _pendingNext* sono nil, ma
+   1669                // _bpbChangeDirty nel DSP è ancora true (armato in step d).
+   1670                // Se lo stop arriva tra lo swap e il downbeat, il cancel
+   1671                // condizionale non scatterebbe e il BPB pendente verrebbe
+   1672                // applicato al replay successivo.
+   1673                // No-op se _bpbChangeDirty già false — zero costo.
+   1674                metronome_cancel_pending_bpb(mh)
+   1675                // ATOM C (B1) — Cancel subdivision INCONDIZIONATO, stesso
+   1676                // rationale del BPB qui sopra: il canale scheduled
+   1677                // (_subdivScheduleDirty) NON è risanato dal reload — il
+   1678                // prepare usa il setter secco (canale _subdivDirty) — quindi
+   1679                // un pending armato in step d e mai scattato applicherebbe
+   1680                // al primo downbeat del replay la suddivisione della
+   1681                // transizione morta, sovrascrivendo quella corretta.
+   1682                metronome_cancel_pending_subdivision(mh)
+   1683            }
+   1684            self._pendingBPMValue = nil
+   1685            self._pendingBPMTargetTick = 0
+   1686            // Strada A — Reset tutti i _pendingNext* a nil.
+   1687            // Accent pattern NON richiede cancel: _patternDirty viene
+   1688            // sovrascritto dal prossimo setAccentPattern al reload.
+   1689            self._pendingNextBPM = nil
+   1690            self._pendingNextBPB = nil
+   1691            self._pendingNextAccentPattern = nil
+   1692            self._pendingNextSectionTotalBeats = nil
+   1693            self._pendingNextOnSectionEnd = nil
+   1694            self._pendingNextRepetitions = nil
+   1695            self._pendingNextSubdivisionMultiplier = nil
+   1696            self._pendingNextSwingRatio = nil
+   1697            // L1.a — Stop manuale durante drain: aborta dispatch pending.
+   1698            // Non chiamiamo la closure: stopSync sta già facendo il lavoro che
+   1699            // la closure di L1.a avrebbe fatto (stop motore + reset). Lasciarla
+   1700            // pending la farebbe scattare al prossimo Play, scenario indesiderato.
+   1701            self._sectionEndPending = false
+   1702            self._pendingEndClosure = nil
+   1703            self.backtrackPlayerNode.stop()
+   1704        }
+   1705        guard wasRunning else { return }
+   1706        playerNode.stop()
+   1707        engine.stop()
+   1708        let statusStr = "stopped buf:\(bc) beats:\(bt)"
+   1709        DispatchQueue.main.async {
+   1710            self.isPlaying   = false
+   1711            self.clickStatus = statusStr
+   1712        }
+   1713    }
+
+--- 1b. OGNI early-return / guardia / ramo lungo il percorso, con la proprietà su cui si basa ---
+ stop() (:1078):
+   · nessuna guardia, nessun ramo. Chiama stopSync() incondizionatamente (:1079). #if QB_DIAG_SPY (:1080)
+     è compile-flag, non runtime. Nessuna nozione di modalità.
+ stopSync() (:1625):
+   · :1632  if isWaitingForLinkDownbeat        → base: flag isWaitingForLinkDownbeat (non modalità).
+   · :1638  guard self.isRunning else { return } → base: isRunning. Se false ritorna PRIMA di :1645.
+   · :1644  if let lh = linkEngineHandle        → base: handle non-nil (non modalità).
+   · :1663  if let mh = self.metronomeHandle    → base: handle non-nil.
+   · :1664  if self._pendingBPMValue != nil     → base: pending BPM.
+   · :1705  guard wasRunning else { return }    → base: wasRunning (copia di isRunning).
+   NESSUNA di queste guardie legge currentLinkMode / _linkMode / un ruolo Direttore/Follower/leader.
+
+--- 1c. DOMANDA SECCA: da stop() a link_engine_stop, esiste UN SOLO ramo su currentLinkMode / Direttore/Follower/leader? ---
+ NO. Nessun ramo di modalità sul percorso stop.
+ L'unica chiamata a Link su questo percorso è :1645 `link_engine_stop(lh, mach_absolute_time())`, raggiunta
+ sotto le SOLE condizioni `guard self.isRunning` (:1638) e `if let lh = linkEngineHandle` (:1644). Nessun
+ `_linkMode`, nessun `currentLinkMode`, nessun `.direttore` fra :1078 e :1645. (Confermato anche a valle: il
+ corpo C link_engine_stop, §3, non ha logica di modalità.)
+
+════════════════════════════════════════════════════════════════════════
+2 — IL HANDLE (linkEngineHandle)
+════════════════════════════════════════════════════════════════════════
+
+--- 2a. Creazione / dichiarazione / distruzione (verbatim) ---
+ DICHIARAZIONE:  AudioEngine.swift:239   private var linkEngineHandle     : LinkEngineHandle? = nil
+ CREAZIONE:      AudioEngine.swift:409   linkEngineHandle = link_engine_create()
+   Contesto (setup del motore, incondizionato — verbatim :403-412):
+     403        metronomeHandle = metronome_create(sampleRate, 120.0)
+     404        midiEngineHandle = midi_engine_create()
+     (…)
+     409        linkEngineHandle = link_engine_create()
+     410        if let lh = linkEngineHandle {
+     411            linkSettingsPresenter = LinkSettingsPresenter(linkHandle: lh)
+     412        }
+   → :409 è eseguito in sequenza fissa dopo metronome/midi create; NON è dentro alcun `if mode`.
+ DISTRUZIONE:    AudioEngine.swift:633   if let lh = linkEngineHandle { link_engine_destroy(lh) }
+   (in blocco teardown :625-635, insieme a metronome_destroy/midi_engine_destroy/qbeats_link_pending_destroy.)
+
+--- 2b. La creazione dipende dalla modalità? Può essere nil quando il device è Follower? ---
+ NO. La creazione (:409) è INCONDIZIONATA — non c'è ramo Direttore/Collaborativa attorno ad essa.
+ Grep repo di TUTTI i siti che assegnano linkEngineHandle: SOLO due —
+   · :239  = nil   (default della dichiarazione)
+   · :409  = link_engine_create()   (creazione, incondizionata)
+ NON ESISTE alcun `linkEngineHandle = nil` di runtime (grep negativo): dopo :409 l'handle NON viene mai
+ riportato a nil; :633 lo DISTRUGGE (link_engine_destroy) ma NON riassegna la variabile. Quindi un Follower
+ (collaborativa) ha linkEngineHandle non-nil ESATTAMENTE come un Direttore. Il gate `if let lh` a :1644 è un
+ nil-check di sicurezza, non un discriminante di ruolo.
+ (Nota C: link_engine_stop stesso ha guard `if (!handle) return; … if (!engine->enabled_… ) return;` —
+  LinkEngine.mm:486/488 — cioè handle valido + Link abilitato, di nuovo NIENTE modalità.)
+
+════════════════════════════════════════════════════════════════════════
+3 — LA SIMMETRIA (start vs stop verso Link)
+════════════════════════════════════════════════════════════════════════
+
+--- 3a. TUTTE le chiamate a link_engine_stop (repo) ---
+ CHIAMATA (Swift):  AudioEngine.swift:1645   link_engine_stop(lh, mach_absolute_time())   — UNICA nel codice Swift.
+ DEFINIZIONE (C):   LinkEngine.mm:485-496 (verbatim):
+     485    void link_engine_stop(LinkEngineHandle handle, uint64_t hostTime) {
+     486        if (!handle) return;
+     487        LinkEngine* engine = (LinkEngine*)handle;
+     488        if (!engine->enabled_.load(std::memory_order_relaxed)) return;
+     490        ABLLinkSessionStateRef state = ABLLinkCaptureAppSessionState(engine->link_);
+     493        ABLLinkSetIsPlaying(state, false, hostTime);
+     495        ABLLinkCommitAppSessionState(engine->link_, state);
+     496    }
+   Dichiarazione header: MIDIEngineBridge.h:182. → il corpo NON conosce la modalità: setta Link isPlaying=false e basta.
+
+--- 3b. TUTTE le chiamate di AVVIO che parlano a Link (repo) ---
+ [S1] AudioEngine.swift:991   link_engine_start_at_beat_zero(lh, hostNow)
+ [S2] AudioEngine.swift:951   link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
+ [S3] AudioEngine.swift:757   link_engine_join_running_session(lh, futureHostTime)
+ (Le tre pongono ABLLink isPlaying=true — LinkEngine.mm:427/447/465 — la controparte "true" di link_engine_stop.
+  Definizioni C: :427-445, :447-463, :465-483. Header: MIDIEngineBridge.h:166/170 e la join in MIDIEngineBridge.h.)
+
+--- 3c. Per ciascuna: è gattata sulla modalità? ---
+ [STOP :1645]  NO. Sotto sole guardie isRunning (:1638) + handle (:1644). Nessun ramo di ruolo.
+ [S1 :991]     SÌ (ruolo/scenario). Raggiunta SOLO nel ramo:
+                 971  if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
+               cioè standalone-senza-peer OPPURE Direttore. Il commento C rafforza (LinkEngine.mm:438):
+               "SOLO per standalone (peers == 0) — il chiamante è responsabile di questo invariante."
+ [S2 :951]     Gattata su SCENARIO, non su ruolo: ramo `if resumeAtBeat != nil` (:937) — percorso di resume.
+ [S3 :757]     SÌ (ruolo/scenario). È la via del FOLLOWER collaborativo: sta in armSharedJoin (ramo `else` di
+               :971 → :1007 armSharedJoin), ed è una FUNZIONE DEDICATA che, per costruzione, NON sovrascrive la
+               timeline condivisa (LinkEngine.mm:474-476 "NESSUN RequestBeatAtTime … si adegua … senza sovrascriverla").
+
+--- 3d. ASIMMETRIA — segnalata (nessun fix proposto, come da vincolo) ---
+ L'AVVIO verso Link ha TRE porte DIFFERENZIATE per ruolo/scenario (Direttore→[S1] force-timeline;
+ Follower→[S3] join senza sovrascrivere; resume→[S2]); il Follower ha perfino una funzione C dedicata per
+ NON comandare la sessione. Lo STOP verso Link ha UNA sola porta ([STOP :1645]) raggiunta con ZERO nozione
+ di ruolo: un Follower chiama esattamente la stessa link_engine_stop di un Direttore, con lo stesso effetto
+ sullo stato condiviso ABLLink isPlaying=false.
+ → ASIMMETRIA CONFERMATA: start gattato sul ruolo, stop NON gattato. È esattamente il tipo di divario che
+   produce comportamenti "inspiegabili" quando cambia il numero/ruolo dei peer (vedi §4c per il perché il
+   caso a 2 device SEMBRA rispettare l'affermazione di Mauro).
+
+════════════════════════════════════════════════════════════════════════
+4 — LE MODALITÀ
+════════════════════════════════════════════════════════════════════════
+
+--- 4a. Casi dell'enum (verbatim, AppSettings.swift:3-9) ---
+     3    enum LinkMode: String, Codable {
+     4        case standalone      // Solo — NUOVO DEFAULT: Q-BEATS suona il proprio click, NON comanda NON segue i peer.
+     6        case direttore       // Q-BEATS sorgente unica autoritativa: detta start/stop, BPM, phase.
+     9        case collaborativa   // Standard Link peer-to-peer. Q-BEATS accetta tutto dai peer.
+ Storage in AudioEngine: :280 `private var _linkMode: LinkMode = .standalone // accesso SOLO su audioQueue`
+   (assegnato :209 `self._linkMode = s.linkMode`) ; mirror UI :55 `@Published var currentLinkMode: LinkMode = .standalone`.
+
+--- 4b. Quale modalità è "Direttore", quale è "Follower"? (dal codice) ---
+ · DIRETTORE = case `.direttore` (AppSettings.swift:6). Il codice lo usa per nome: :428, :533, :971, :2271.
+ · "FOLLOWER" — l'enum NON ha un caso `follower`. Il ruolo Follower È mappato su `.collaborativa`: lo dichiara
+   la UI in LiveView.swift:70 `case .collaborativa: return "FOLLOWER"` (badge HEAD). Cioè: nel codice
+   "Follower" = `.collaborativa` (il peer che "accetta tutto dai peer", commento :9). NON esiste il simbolo
+   `follower`/`leader` nell'enum — se cerco quei nomi come CASI enum: NON TROVATO (l'enum ha solo standalone/
+   direttore/collaborativa).
+
+--- 4c. Esiste un commento/simbolo che dichiari "solo il Direttore propaga lo stop"? ---
+ Ciò che ESISTE (intenzione + meccanismo INBOUND, verbatim):
+   · INTENZIONE (enum): AppSettings.swift:6 — "direttore … detta start/stop, BPM, phase." È l'unica dichiarazione
+     d'intento vicina all'affermazione di Mauro: il Direttore "detta" start/stop. NON dice che SOLO il suo stop
+     si propaghi, né che il Follower resti locale.
+   · MECCANISMO INBOUND (callback start/stop DAI peer), AudioEngine.swift:524-548 verbatim (estratto chiave):
+       528    // Modalità Direttore: ignora SEMPRE start/stop da peer in qualsiasi
+       529    //  stato (sorgente unica autoritativa).
+       533    if engine._linkMode == .direttore { return }
+       536    DispatchQueue.main.async {
+       537        if isPlaying && !engine.isPlaying { … engine.start() … }
+       544        } else if !isPlaying && engine.isPlaying {
+       545            engine.stop()
+       546        }
+     → Direttore: IGNORA lo start/stop ricevuto dai peer (:533). Collaborativa: lo SEGUE (start :542 / stop :545).
+       Questo è INBOUND (ricezione), non OUTBOUND (invio). Riguarda "chi obbedisce a un peer", non "chi può inviare".
+ Ciò che NON ESISTE (cercato, NON TROVATO):
+   · Un gate di modalità sulla link_engine_stop OUTBOUND (:1645) — NON TROVATO (verificato in §1c/§3c; grep
+     `_linkMode|currentLinkMode|direttore` sul percorso stop → nessun hit fra :1078 e :1645).
+   · Un commento/simbolo tipo "solo il Direttore propaga lo stop" / "il Follower ferma solo sé stesso" —
+     NON TROVATO. Cercato con grep repo-wide (case-insensitive) su: "detta start", "solo il direttore",
+     "propag", "ferma solo", "ferma la band / band … ferma", "stops only", "only … direct", "Follower … ferma/stop".
+     Gli hit trovati sono: enum :6 (intento, sopra), i commenti INBOUND :528-529, la storia in BUGS §"Bug 5"
+     (:559-566, guard INBOUND `_linkMode == .direttore`) e il ticket TD-qlive-exit-unconfirmed-stop (che dice
+     l'OPPOSTO dell'affermazione: "uscire → link_engine_stop → la band si ferma", senza qualificatore di ruolo).
+     Nessuno di questi dichiara che l'invio dello stop sia riservato al Direttore.
+
+════════════════════════════════════════════════════════════════════════
+SINTESI (cosa dice il codice ≠ cosa conclude CC — separati per §7)
+════════════════════════════════════════════════════════════════════════
+COSA DICE IL CODICE (verificato, verbatim sopra):
+ (1) Il percorso stop()→stopSync()→link_engine_stop (:1645) non ha alcun ramo di modalità (§1c). Il corpo C
+     di link_engine_stop non ha modalità (§3a). linkEngineHandle è creato incondizionatamente (§2).
+ (2) L'AVVIO verso Link è differenziato per ruolo (Direttore [S1], Follower [S3], resume [S2]); lo STOP no (§3).
+ (3) L'unico enforcement di ruolo legato allo stop è INBOUND: il Direttore ignora lo start/stop ricevuto dai
+     peer (:533); la collaborativa lo segue (:545).
+ (4) L'enum dichiara l'INTENZIONE "direttore detta start/stop" (:6); non esiste codice/commento che riservi
+     l'INVIO dello stop al Direttore (§4c, NON TROVATO).
+
+COSA CONCLUDO IO (CC) — inferenza etichettata, NON eseguita a runtime:
+ · L'affermazione di Mauro NON è implementata sul percorso di stop: è un'intenzione di disegno (enum :6)
+   realizzata solo in parte, e da un meccanismo diverso (l'ignore INBOUND del Direttore, :533).
+ · In una sessione a 2 device (1 Direttore + 1 Follower) il comportamento OSSERVATO combacia con l'affermazione,
+   ma per un motivo obliquo: il Follower che ferma CHIAMA link_engine_stop (:1645, non-gattato) e propaga; è il
+   Direttore che lo IGNORA (:533) → non essendoci altri peer, "solo il Follower si ferma". Aggiungendo un
+   SECONDO Follower, lo stop del primo Follower raggiungerebbe il secondo (segue a :545) → l'affermazione si
+   rompe. Questa è la conseguenza dell'asimmetria §3d. La propagazione effettiva alla banda resta condizionata
+   a Start/Stop Sync attivo per-peer (ABLLink.h, come da ticket TD-qlive-exit-unconfirmed-stop) — non l'ho
+   eseguita, la deduco dall'ordine del codice.
+ · Come da vincolo del referee: ASIMMETRIA segnalata, NESSUN fix proposto né scritto. Mi fermo qui.
+
+════════════════════════════════════════════════════════════════════════
+VINCOLI — conformità
+════════════════════════════════════════════════════════════════════════
+· Verbatim: stop()/stopSync() incollate per intero; enum, callback INBOUND, corpi C di start/stop verbatim.
+· "non c'è" vs "non l'ho trovato": distinti. NON TROVATO usato per: caso enum follower/leader (§4b), gate di
+  modalità sullo stop outbound (§4c), commento "solo il Direttore propaga lo stop" (§4c) — sempre col come.
+· Zero modifiche al working tree tracciato; nessuno staging; nessun commit; HEAD invariato fe6d34b. Unico file
+  creato = questo deliverable (untracked) + mirror E:.
+· Asimmetria emersa → segnalata (§3d) e NON corretta (nessun fix proposto), come richiesto.
+· Onestà runtime: non ho eseguito il codice (nessun Xcode lato CC); le conseguenze multi-Follower e la
+  propagazione Start/Stop Sync sono INFERENZE etichettate dall'ordine del sorgente, non osservazioni su device.

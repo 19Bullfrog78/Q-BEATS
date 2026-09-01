@@ -1,0 +1,30 @@
+diff --git a/old/BUGS_QBEATS.md b/new/BUGS_QBEATS.md
+index a675834..5cd2cfe 100644
+--- a/old/BUGS_QBEATS.md
++++ b/new/BUGS_QBEATS.md
+@@ -1,7 +1,7 @@
+ # BUGS_QBEATS — Tracker centralizzato bug e tech debt
+ 
+-**Versione:** 48
+-**Ultima modifica:** 2026-08-02
++**Versione:** 49
++**Ultima modifica:** 2026-08-03
+ **Autore iniziale:** CC chat principale 26/05/2026 sera
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+@@ -316,6 +316,15 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ - **Forma di riancoraggio: path + simbolo, mai il simbolo nudo.** Il file è `ios_app/QBeats/UI/LiveRootView.swift` — in `ios_app/QBeats/UI/` **diretto**, NON sotto `UI/Live/`. Il simbolo da solo è ambiguo: nel repo esistono **due** file che rispondono alla stringa `LiveRootView` — `ios_app/QBeats/UI/LiveRootView.swift` e `ios_app/QBeats/UI/QLive/QLiveRootView.swift` — e in BUGS a HEAD **6 righe contengono `LiveRootView`, di cui 1 contiene `QLiveRootView`** (righe-che-contengono, non occorrenze: `QLiveRootView` include `LiveRootView` come sottostringa). Forma buona: **path completo + simbolo** `setlists.first ?? Setlist.makeDefault()`. Controprova a fonte: nel file quasi-omonimo `QLiveRootView.swift` quel simbolo rende **0**, con controllo positivo `struct` → 1 sullo stesso file, quindi lo zero è un fatto e non un filtro rotto.
+ - **Dominio:** CC. **Stato:** eredita 🟠 OPEN MEDIA di `TD-qlive-libero-limbo` — l'angolo del riordino **non apre un ticket nuovo**, allarga la superficie di questo.
+ 
++### TD-fineshow-bottoni-morti — i due bottoni di END SHOW non fanno nulla (severità DA DECIDERE — proposta e motivo nel corpo)
++- **Sintomo:** in `FineSetlistView`, l'unica schermata raggiunta a fine show, i due bottoni non hanno azione — tap su BACK TO SHOWS o su RESTART SETLIST non succede nulla, nessuna via d'uscita se non chiudere l'app. Stesso sintomo già osservato nel collaudo `59ab33e` (28/06) e riconfermato 15/07, entrambi citati in `TD-qlive-libero-limbo` (sopra).
++- **Causa a fonte:** `ios_app/QBeats/UI/Live/FineSetlistView.swift:19` `Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }` e `:21` `Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }` — entrambe le closure sono vuote, solo un commento placeholder. Commit a 40 che le ha scritte (blame, invariato dal 21/05): `899be2ce1da81f0e4a6280904d8d18087a8c1074`. Verificato a HEAD `c1556e57b1a81fafa7973b8647741ede9c92e6cf`, `HANDOFF/MISURE_CC_2026-08-03_A17-TRE-CAUSE-LIMBO.txt`.
++- **Contrasto con la ratifica — le due metà NON sono uguali.** `LIBRO_MASTRO_QBEATS.md:154 @ eeb725dd46363d6cdc428a5aa43ede5881389d31` dichiara BACK TO SHOWS «attivo (ratificato 21/05 R-CD5-10)»: «torna alla libreria SHOWS» — un'azione ratificata da oltre due mesi, mai cablata. ⚠️ Per RESTART SETLIST manca la stessa copertura: `LIBRO_MASTRO_QBEATS.md:155 @ eeb725dd46363d6cdc428a5aa43ede5881389d31` («END SHOW … marca fine performance») ratifica il TITOLO/momento «END SHOW», non l'azione del secondo bottone; l'unica riga che nomina RESTART SETLIST è `LIBRO_MASTRO_QBEATS.md:153 @ 8ce1282e7ff0ddac21a231e3d6bb918ab78f7a91` («Restart Setlist … ricomincia la setlist appena suonata»), marcata **proposto (CD-3)**, non attivo. Per RESTART SETLIST resta aperta anche la domanda «cosa deve fare», non solo il cablaggio.
++- **Perché non è un flusso pre-produzione:** END SHOW è la fine NORMALE di ogni show portato a termine, non un caso limite. Oggi la schermata è irraggiungibile per due serrature indipendenti — pagina `.shows` come pozzo assorbente, slot del runner senza mutatore (`BUGS_QBEATS.md:132 @ 0ee9543d45d638df061c5a48872aaefeb8a88f26`) — ma quella stessa riga dichiara che **⟦S5⟧ apre entrambe le serrature nello stesso atomo**. Quando ⟦S5⟧ chiude, ogni show suonato per intero arriva qui.
++- **Severità — PROPOSTA, non decisa:** 🔴 ALTA / BLOCCANTE PALCO, per lo stesso motivo di `TD-qlive-exit-unconfirmed-stop` (`BUGS_QBEATS.md:128 @ 1daef537a908c9fbe41a70d8da2754abbe95b781`, 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO): la conseguenza non è una schermata scomoda, è l'assenza di QUALUNQUE via d'uscita da un flusso live se non il kill dell'app. Diversa da `TD-qlive-libero-limbo` (🟠 MEDIA): lì una via d'uscita indiretta esiste prima di arrivare a END SHOW; qui, una volta arrivati, non ce n'è nessuna. **La scelta del valore resta di Mauro.**
++- **Dominio:** CC (cablaggio dei due bottoni) + CD (comportamento di RESTART SETLIST, oggi solo proposto — CD-3).
++- **Stato:** 🟡 OPEN — severità NON assegnata: proposta sopra, decisione di Mauro.
++
+ ### TD-shows-authoring — Shows-lista reale, ma authoring setlist assente (🟠 OPEN MEDIA / feature-completion — fronte grosso, CD+referee)
+ - **Sintomo (device, collaudo `b1c50ab` 30/06, Mauro):** in Q-Stage la tab **Shows** non crea nulla — nessun `+`, nessuna lista. **NON è "manca il +": è tutta da costruire.** *(Storico al 30/06: la lista non esisteva ancora. Dall'atomo S3 [13-14/07] la lista ESISTE — vedi causa sourced aggiornata sotto; l'authoring resta com'era.)*
+ - **Causa sourced (aggiornata 15/07 — coordinate stale, sostanza invariata):** `QStageRootView.swift:22` monta oggi `ShowsListView(onExit:)` **REALE** (costruita nell'atomo S3, 13-14/07) — il commento di testata `QStageRootView.swift:7` ("Shows e Media sono placeholder") è esso stesso stale, vale ancora solo per Media (`QStageRootView.swift:26-31`, `QStagePlaceholderTab`). **Ma l'authoring dentro `ShowsListView` non è cablato:** nessun `+` crea-show (`ShowsListView.swift:42`, «§8 differito, nessun path di scrittura cablato»); card **non tappabili/non editabili** (`ShowsListView.swift:213-214`, «editing show = §8 differito»). **Shows-lista (display+search+sort) = reale; Shows-authoring (creare/editare/riordinare) = NON costruito.**

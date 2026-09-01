@@ -1,0 +1,330 @@
+REFERTO QB-2026-08-06-A67-S5X-CORREZIONE-COMMIT-CI-PUSH
+========================================================
+
+Orologio: 2026-08-06T15:26:32Z, locale +02:00. Data ID = data esecuzione.
+Atomo: ⟦S5x⟧ — cablaggio BACK TO SHOWS in FineSetlistView.
+
+ESITO: **ESEGUITO PER INTERO. COMMIT SU MASTER, CI VERDE ×3, RAMO TEMPORANEO RIMOSSO.**
+STATO DELL'ATOMO: ⟦S5x⟧ = **CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧**.
+
+  HEAD nuovo   : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  albero nuovo : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+  HEAD precedente: 25056b66eda40ad76d91a886ace442b7064ca900 (albero 63c793a8…)
+
+
+================================================================================
+CANCELLI D'INGRESSO — TUTTI SUPERATI
+================================================================================
+
+VERIFICA ID — A67 NON COLLIDE.
+  · repo : `ls HANDOFF/ | grep -i 'A67'` -> exit 1 · `grep -rl 'A67' HANDOFF/` -> nessun file
+  · controllo positivo: A66 presente.
+
+AGGANCIO — CONFERMATO.
+  Ultimo referto per mtime: MISURE_CC_2026-08-06_A66-S5X-COMMIT-CI-PUSH.txt (15:34).
+
+HEAD E DIFF RATIFICATO — INTATTI ALL'INGRESSO.
+  HEAD = 25056b66eda40ad76d91a886ace442b7064ca900, albero 63c793a8…, branch master,
+  soggetto ancora quello di ⟦S5a⟧ (nessun commit creato in A66, come dichiarato la').
+  `git status --porcelain -- ios_app/` -> 2 righe ` M`, le due attese.
+  `git diff --numstat` -> 11/1 e 19/1. Blob post-image: b4efb0b..4602937 e
+  46961e1..b436fa0 — ESATTAMENTE quelli di A64. Il diff ratificato era li', intatto.
+
+
+================================================================================
+PARTE 0 — LE DUE CORREZIONI + LE TRE VERIFICHE OBBLIGATORIE
+================================================================================
+
+VERIFICA (a) — IL SIMBOLO E' UNIVOCO? SI.
+  `grep -c 'case \.standby, \.fineSetlist' LiveView.swift` -> **1**
+  unica occorrenza a :250, con `return` sulla riga :251 (forma estesa citata).
+  CONTROPROVE (per mostrare che l'univocita' e' del COMPOSTO, non dei suoi pezzi):
+    `.fineSetlist` da solo -> 3 occorrenze (:144 ramo, :245 commento, :250 guardia)
+    `.standby`    da solo -> 7 occorrenze
+  ⇒ Il simbolo composto e' unico: l'indirizzo per simbolo regge. Si procede.
+
+VERIFICA (b) — IL CONTEGGIO E' INVARIATO? SI.
+  `git diff --numstat` dopo le correzioni -> 11  1  FineSetlistView · 19  1  LiveView
+  `git diff --stat`    -> 2 files changed, 30 insertions(+), 2 deletions(-)
+  Identico al ratificato. Sostituzioni una-a-una: nessuno slittamento rimesso in moto.
+  Cambiano i soli blob post-image (e' il contenuto corretto):
+    b4efb0b..**7abb5b5** (FineSetlistView)   ·   46961e1..**8e907ed** (LiveView)
+
+VERIFICA (c) — I DUE BLOCCHI CORRETTI, RILETTI A DISCO, VERBATIM:
+
+  --- FineSetlistView.swift :8-16 ---
+     8    /// ⟦S5x⟧ (A64) — tap su BACK TO SHOWS. Comportamento ratificato
+     9    /// `LIBRO_MASTRO_QBEATS.md:154` (R-CD5-10, 21/05): «torna alla libreria SHOWS».
+    10    /// Closure OPACA e OBBLIGATORIA (niente default no-op: un default rifarebbe il
+    11    /// bottone morto): questa vista non sa nulla di sessione né di navigazione —
+    12    /// la composizione delle azioni vive nel presentatore (`LiveView`, unico callsite),
+    13    /// che possiede la sessione.
+    14    /// ⛔ RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
+    15    /// (CD-3)» (`LIBRO:153`), mai ratificato — cablarlo, disabilitarlo o
+    16    /// nasconderlo è decisione CD, non di questo atomo.
+
+  --- LiveView.swift :144-164 ---
+   144                if case .fineSetlist = session.playbackState {
+   145                    // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
+   146                    // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
+   147                    //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
+   148                    //      di `page` è NON SORGENTATO (QLiveRootView.swift:64-67): se
+   149                    //      LiveView NON si smontasse, senza questo reset il prossimo
+   150                    //      ingresso al player si aprirebbe direttamente su END SHOW.
+   151                    //      Scrittura INERTE a motore già fermo (SetlistRunner:378):
+   152                    //      `LiveSession.playbackState` è @Published nudo, zero didSet
+   153                    //      (LiveSession.swift:35); la guardia `case .standby, .fineSetlist:
+   154                    //      return` più sotto NON è su questo percorso — ascolta il MOTORE
+   155                    //      (audioEngine.$playbackState), non la sessione.
+   156                    //  (b) onExit — il seam del presentatore (QLiveRootView.swift:157,
+   157                    //      `navigate(to: .shows)`): stesso identico canale già usato
+   158                    //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+   159                    //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
+   160                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
+   161                        session.playbackState = .stopped
+   162                        onExit()
+   163                    })
+   164                }
+
+  Le due sostituzioni sono le SOLE modifiche rispetto al diff di A64. Nessun'altra
+  riga toccata: gli altri indirizzi per riga restano come ratificato, e appartengono
+  al debito COMMENTI-STALE gia' tracciato in BOX3:45, come da mandato.
+
+
+================================================================================
+PARTE 1 — COMMIT
+================================================================================
+
+IDENTITA' — misurata prima, non assunta: `git config user.name/user.email` danno
+gia' Mauro Martintoni <di_tutto@icloud.com>, e tutti gli ultimi 12 commit di master
+hanno Autore = Committer = quello. Nessun `--author` necessario.
+`.git/hooks/` senza hook attivi, `commit.gpgsign` non impostato.
+⇒ `--no-verify` NON usato (vietato dal mandato, e comunque inutile: nessun hook).
+
+STAGE — FILE PER FILE, mai `git add -A`:
+    git add ios_app/QBeats/UI/Live/FineSetlistView.swift
+    git add ios_app/QBeats/UI/Live/LiveView.swift
+  Controllo dello stage PRIMA di committare:
+    `git diff --cached --name-status` -> ESATTAMENTE 2 righe, entrambe `M`
+    `git status --porcelain | grep -v '^??'` -> le stesse 2 righe, nient'altro
+    `git diff --cached --stat` -> 2 files changed, 30 insertions(+), 2 deletions(-)
+  ⇒ Nulla di non voluto e' finito in stage.
+
+COMMIT CREATO:
+    sha    : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+    albero : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+    Autore : Mauro Martintoni <di_tutto@icloud.com>
+    Commit : Mauro Martintoni <di_tutto@icloud.com>
+    data   : 2026-08-06 17:14:11 +0200
+    diffstat: 2 files changed, 30 insertions(+), 2 deletions(-)
+    trailer Co-Authored-By: `git log -1 --format='%B' | grep -i 'co-authored'`
+                            -> exit 1, ZERO trailer.
+
+MESSAGGIO — CONFERMATO DA A66 CON **UNA MODIFICA DICHIARATA**.
+  Il testo redatto in A66 e' stato riletto dopo le correzioni e resta esatto in ogni
+  affermazione. UNICA modifica, e il motivo:
+    · A66 citava «HANDOFF/MISURE_CC_2026-08-06_A64» — nome TRONCATO e senza ancora.
+    · Misurato: quel referto NON e' tracciato in git (`git ls-files HANDOFF/` da' 4
+      soli file, e A64 non e' fra questi) ⇒ su GitHub il puntatore sarebbe cieco.
+    · Misurata la PRATICA ESISTENTE: citare file HANDOFF/ non tracciati e' uso
+      consolidato in questo repo (5183758, 40f099bb, 4b55686c, e61efd0e), e il
+      precedente migliore — 8926c2af — li ANCORA col sha256.
+    ⇒ Adottata quella forma: nome COMPLETO + sha256, cosi' il puntatore e'
+      verificabile anche se il file non e' nel repo.
+
+MESSAGGIO EFFETTIVAMENTE COMMITTATO — VERBATIM, riletto da `git log -1 --format='%B'`:
+
+------------------------------ INIZIO MESSAGGIO ------------------------------
+S5x: cablaggio di BACK TO SHOWS in FineSetlistView
+
+Il bottone BACK TO SHOWS aveva una closure vuota dal 21/05
+(899be2ce1da81f0e4a6280904d8d18087a8c1074, lo stesso commit che gli ha
+dato questo nome). Da qui esegue il comportamento gia' ratificato in
+LIBRO_MASTRO_QBEATS.md:154 (R-CD5-10, 21/05): «torna alla libreria
+SHOWS».
+
+Nessun percorso nuovo: la via d'uscita esisteva gia'. LiveView riceve
+onExit dal presentatore, che lo costruisce come navigate(to: .shows), e
+lo inoltrava a due foglie, LiveHeaderView e WaitingForDirectorView.
+Questo e' il terzo inoltro dello stesso seam. Nessuno stato nuovo,
+nessuna navigazione nuova, nessun tipo nuovo.
+
+FineSetlistView riceve una closure opaca e non conosce ne' la sessione
+ne' la navigazione: la composizione delle due azioni sta in LiveView,
+che possiede la sessione. Il parametro non ha default, perche' un
+default no-op avrebbe ricreato il bottone morto in silenzio a ogni
+futuro callsite.
+
+L'azione fa due cose in quest'ordine: riporta session.playbackState a
+.stopped, poi invoca onExit. Il reset non e' ridondante: se il
+sottoalbero non venisse rilasciato al cambio di page — comportamento
+SwiftUI dichiarato NON SORGENTATO in QLiveRootView.swift:64-67 — senza
+di esso il prossimo ingresso al player si aprirebbe direttamente su END
+SHOW. E' corretto sotto entrambe le ipotesi.
+
+La scrittura di .stopped e' inerte: il motore e' gia' fermo quando si
+entra in fineSetlist, e playbackState e' un @Published nudo senza
+didSet. La guardia dell'onReceive su audioEngine.$playbackState non sta
+su questo percorso, perche' ascolta il motore e non la sessione: non e'
+stata toccata. Censimento degli osservatori nel referto A64, fuori dal
+controllo di versione: HANDOFF/MISURE_CC_2026-08-06_A64-S5X-BACK-TO-SHOWS.txt
+sha256 bd1079026aea69c0efc72882f7a723ffac2037c9b7a7b1419d419b3a66bc5a4c
+
+RESTART SETLIST resta invariato, closure vuota compresa: il suo
+comportamento e' «proposto (CD-3)» in LIBRO_MASTRO_QBEATS.md:153, mai
+ratificato. Cablarlo, disabilitarlo o nasconderlo e' decisione CD.
+
+NON VALIDATO SU DEVICE, e oggi non e' validabile: alla schermata END
+SHOW non si arriva ancora — page non diventa mai .metronome, lo slot
+del runner non ha mutatore, START SHOW e' inerte. Validazione differita
+a S5b.
+------------------------------- FINE MESSAGGIO -------------------------------
+
+VERIFICA A FONTE DELLE AFFERMAZIONI DEL MESSAGGIO:
+  · blame `899be2ce1da81f0e4a6280904d8d18087a8c1074` — verificato SU HEAD (in A66
+    avevo sbagliato interrogando il working tree modificato; corretto la' e qui
+    riverificato). Soggetto di quel commit: «app: rename UI labels FineSetlistView
+    FINE SHOW -> END SHOW, TORNA AGLI SHOWS -> BACK TO SHOWS, RICOMINCIA -> RESTART
+    SETLIST (post-ratifica R-CD5-10 21/05)» ⇒ «lo stesso commit che gli ha dato
+    questo nome» e' vero. Forma a 40 come prescrive il regime indirizzi.
+  · LIBRO:154 e LIBRO:153 — riletti oggi, indirizzi validi (file non toccato dal diff).
+  · QLiveRootView.swift:64-67 — riletto oggi, valido (file non toccato dal diff).
+  · La guardia e' citata PER SIMBOLO, senza numero di riga: immune alla deriva.
+  · sha256 del referto A64 — ricalcolato oggi, coincide.
+  · NESSUNA menzione di CI (al momento del commit non esisteva: citarla sarebbe
+    stato falso). NESSUNA occorrenza della parola «chiuso».
+
+
+================================================================================
+PARTE 2 — RAMO-FIAMMIFERO E CI
+================================================================================
+
+RAMO: `ci-fiammifero/s5x`, creato sullo STESSO commit di master (non un cherry-pick):
+  `git branch ci-fiammifero/s5x 4e4c2411…` -> ramo = 4e4c2411… = master. Pushato.
+  `git ls-remote origin ci-fiammifero/s5x` -> 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+
+TRIGGER: il workflow `ios_build.yml` scatta su `push: branches:[master]` oppure
+`workflow_dispatch`. Su un ramo temporaneo serve quindi il DISPATCH — stessa forma
+di ⟦S5a⟧. Misurato a fonte leggendo il workflow, non assunto.
+
+⚠️ ANOMALIA DI PROCESSO, DICHIARATA: il primo `gh workflow run` ha reso
+   **HTTP 500** (errore lato GitHub). Ho ritentato, e nel comando di retry avevo
+   incatenato DUE tentativi senza verificare fra l'uno e l'altro: sono partite
+   **DUE run identiche** sullo stesso sha. Imprecisione mia. Non ho cancellato
+   nessuna delle due: un annullamento avrebbe lasciato agli atti una run
+   «cancelled» piu' difficile da leggere di due verdi. Riportate entrambe.
+
+ESITI — TUTTI VERIFICATI A DUE FORME INDIPENDENTI (exit-status di `gh run watch`
+E `gh run view --json conclusion`, come prescrive la lezione sulle CI):
+
+  run 31114970791 · workflow_dispatch · ramo ci-fiammifero/s5x
+     headSha 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+     `gh run watch --exit-status` -> 0    ·   `--json conclusion` -> "success"
+     job `build`: conclusion success, steps_failed = []
+
+  run 31114985567 · workflow_dispatch · ramo ci-fiammifero/s5x   (la gemella)
+     headSha 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+     `--json conclusion` -> "success"
+
+  run 31115280518 · push · ramo master   (innescata dal push della Parte 4)
+     headSha 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+     `gh run watch --exit-status` -> 0    ·   `--json conclusion` -> "success"
+     job `build`: conclusion success, steps_failed = []
+
+  ⇒ TRE run verdi, tutte e tre sullo STESSO sha e quindi sullo stesso albero.
+
+
+================================================================================
+PARTE 3 — VERIFICA PRE-PUSH E LEGAME «VERDE = QUESTO ALBERO»
+================================================================================
+
+MASTER INTATTO PRIMA DEL PUSH:
+  origin/master           = 25056b66eda40ad76d91a886ace442b7064ca900
+  `git ls-remote` (fonte diretta) = 25056b66eda40ad76d91a886ace442b7064ca900
+  master locale           = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  ahead/behind vs origin/master = 0 behind, 1 ahead.
+  ⇒ Il remoto non era stato toccato da nessun altro; il locale era avanti del solo
+    commit di questo atomo.
+
+IL LEGAME, DICHIARATO ESPLICITAMENTE:
+  commit compilato dalla CI (headSha) : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  albero di quel commit               : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+  albero di master locale             : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+  albero del ramo-fiammifero          : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+
+  ⚠️ QUI IL LEGAME E' PIU' FORTE DI QUELLO DI ⟦S5a⟧, e vale la pena dirlo: la' ci
+  furono cherry-pick e amend, quindi lo sha cambiava e bisognava dimostrare
+  l'identita' degli ALBERI. Qui il ramo-fiammifero e' stato creato SULLO STESSO
+  COMMIT, mai ricreato: non c'e' stato ne' cherry-pick ne' amend, e cio' che la CI
+  ha compilato e' letteralmente lo stesso oggetto che sta su master — stesso sha E
+  stesso albero. «Verde = questo albero» qui e' un'identita', non una dimostrazione.
+
+
+================================================================================
+PARTE 4 — PUSH SU MASTER
+================================================================================
+
+  `git push origin master` -> `25056b6..4e4c241  master -> master`, exit 0.
+
+RICONFERMA A TRE FORME (dopo `git fetch`):
+  HEAD locale                      : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  master locale                    : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  origin/master                    : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  remoto (`git ls-remote`, diretto): 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  ⇒ TUTTI UGUALI.
+
+  HEAD nuovo   : 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  albero nuovo : 623a2c4c92c5c7c000d2a4fcf0f519bf3ccb7944
+
+RAMO TEMPORANEO CANCELLATO — solo dopo il verde E dopo il push, come prescritto:
+  remoto : `git push origin --delete ci-fiammifero/s5x` -> `[deleted]`, exit 0
+  locale : `git branch -d ci-fiammifero/s5x` -> «Deleted branch (was 4e4c241)», exit 0
+           ⚠️ usato `-d`, NON `-D`: git ha potuto confermare da solo che era
+           mergiato (stesso commit di master), quindi nessuna forzatura necessaria.
+  VERIFICA: `git branch --list 'ci-fiammifero/*'` -> vuoto
+            `git ls-remote origin 'refs/heads/ci-fiammifero/*'` -> vuoto
+
+WORKING TREE: `git status --porcelain -- ios_app/` -> VUOTO. Tutto committato.
+
+
+================================================================================
+PARTE 5 — STATO
+================================================================================
+
+⟦S5x⟧ = **CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧.**
+
+  Cosa e' provato: il codice compila (tre CI verdi sullo stesso albero) ed e' su
+  master, pubblico e immutabile.
+  Cosa NON e' provato: che il bottone funzioni. Nessuno l'ha visto a schermo, e
+  oggi NON e' vedibile — alla schermata END SHOW non si arriva: `page` non diventa
+  mai `.metronome`, lo slot del runner non ha mutatore, START SHOW e' inerte
+  (serrature d'ingresso I-1…I-4, misurate in A58).
+
+⛔ La parola «chiuso» da sola NON compare in questo referto riferita all'atomo, ne'
+   nel messaggio di commit.
+
+DEBITO REGISTRATO E NON RISOLTO (dal censimento di A64, ribadito qui perche' e'
+l'unica cosa che ⟦S5b⟧ dovra' guardare col device): all'ingresso in `.fineSetlist`
+`sectionHold` resta `true` per sempre — l'asyncAfter di LiveView scatta con un guard
+che fallisce in quello stato. Questo atomo NON lo tocca. Rileva solo nell'ipotesi
+«LiveView non si smonta al flip di page», che e' NON SORGENTATA.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+Modificati SOLO i 2 file dell'atomo, sotto ios_app/. Nessun altro file toccato,
+nessun canonico toccato (il giro documenti e' separato e non e' questo mandato).
+Nessun `git add -A`, nessun `--no-verify`, nessun `--force`, nessun `-D`.
+Scritture di questo giro: le due correzioni, il commit, il ramo temporaneo (creato e
+poi rimosso), e questo referto in HANDOFF\ + mirror E:.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI e misurato git e la CI dal vivo, non a memoria. Ogni
+affermazione porta il comando da cui viene. Le tre verifiche obbligatorie della
+Parte 0 sono state eseguite PRIMA di proseguire e sono riportate coi loro numeri.
+Gli esiti CI sono verificati a DUE forme indipendenti, non col solo exit code.
+L'anomalia delle due run gemelle e' dichiarata come imprecisione mia, non nascosta.
+La modifica al messaggio rispetto ad A66 e' dichiarata col suo motivo, e la pratica
+che la giustifica e' stata misurata sui commit esistenti, non assunta.

@@ -1,0 +1,1116 @@
+QB-2026-08-02-P1-CENSIMENTO-PUNTATORI
+MISURE_CC_2026-08-02_P1-CENSIMENTO-PUNTATORI.txt
+Mandato: censimento. Zero modifiche, zero commit, zero staging.
+Tutte le misure sul blob a HEAD = 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc (git show HEAD:<path>), non su disco, salvo dove esplicitamente indicato.
+====================================================================================================
+
+SEZIONE 0 — CONTROPROVA DEI DATI GIA' VERIFICATI DAL REFEREE SU LIBRO v50 (mandato punto 7)
+----------------------------------------------------------------------------------------------------
+Regola del prompt: se anche solo una di queste non torna, fermarsi e segnalare. Nessuna ha richiesto lo stop.
+
+  sha256 blob LIBRO           atteso 142c0c8b31241c430638f43106ddbceafd95b885c89b07ef9a77038af1f213b3
+                               misurato 142c0c8b31241c430638f43106ddbceafd95b885c89b07ef9a77038af1f213b3
+                               MATCH
+  byte(blob) LIBRO             atteso 235589 / misurato 235589 / MATCH
+  righe (wc -l) LIBRO          atteso 495 / misurato 495 / MATCH
+  CR nel blob LIBRO            atteso 0 / misurato 0 / MATCH
+  voce 43 del registro         attesa riga 484 / misurata riga 484
+
+  LIBRO:285 — contenuto atteso: proprieta' del runner (decisione Mauro 18/07).
+    verbatim (200c): | 2026-07-18 | **Proprietà del `SetlistRunner` sale alla stanza Q-Live (Mauro)** — se l'audio sopravvive alla navigazione, deve sopravvivere anche lo stato che lo governa. Slot RISERVATO e VUOTO all'i
+    ESITO: MATCH tematico (proprieta' SetlistRunner sale alla stanza, 2026-07-18).
+
+  LIBRO:290 — contenuto atteso: S4b spedito, commit 6ded4ab.
+    verbatim (200c): | 2026-07-20 | **S4b CHIUSO, device-validato** — Q-Live apre la lista Shows read-only invece di LiveView diretto; commit `6ded4ab`, CI `29686746553` verde. Gate device eseguito da Mauro il 20/07 sullo
+    ESITO: MATCH esatto anche sul commit citato a memoria (6ded4ab).
+
+  LIBRO:317 — contenuto atteso: 'proprieta' del runner' + assegnazione a atomo S4R + ancora BOX3:30.
+    verbatim primi 200c (fuorviante da solo): | 2026-07-28 | **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI — ratificato.** La scheda ⟦S4L⟧ della SCALETTA v2 (`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`) conteneva **due contratti opposti sotto un solo nome**: «
+    ATTENZIONE METODOLOGICA: i primi 200 caratteri mostrano solo l'apertura ('SDOPPIAMENTO S4L
+    IN TRE ATOMI') e SEMBRANO un mismatch. La riga e' pero' lunga ~3400 caratteri (riga Sez.2 densa);
+    piu' avanti nella STESSA riga compare: '-> S4R launcher: ... + proprieta' del runner (decisione
+    Mauro 18/07, BOX3_QBEATS.md:30 @ 8289944d...)'. Letta per intero: ESITO MATCH.
+    Questo e' un falso allarme che io stesso ho generato leggendo solo il troncamento a 200c,
+    corretto rileggendo la riga intera PRIMA di scrivere questo referto: agli atti per trasparenza,
+    e come avvertimento per chi legge la Sezione 3 qui sotto, che usa la stessa convenzione a 200c.
+
+  ESITO SEZIONE 0: le sei misure tornano tutte. Nessuno STOP necessario.
+
+====================================================================================================
+
+SEZIONE 1 — IDENTITA' DEI 5 CANONICI A HEAD (mandato punto 1)
+----------------------------------------------------------------------------------------------------
+HEAD (40 char): 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc
+
+  LIBRO      path reale: LIBRO_MASTRO_QBEATS.md
+             Versione 50 (01/08/2026)
+             OID blob: 82d17fcaef8947efc239985cb50e813f98a2c838   byte(blob): 235589
+
+  BUGS       path reale: BUGS_QBEATS.md
+             Versione 47 (ultima modifica 2026-08-01)
+             OID blob: c896f919b1ba93437eff56eee3ab592136203337   byte(blob): 272339
+
+  BOX3       path reale: BOX3_QBEATS.md
+             BOX3 V99 - 2026-07-22 (AUTOPORTANTE)
+             OID blob: 490d6d9b38c355dc53ddc9b31431f9a858f2b342   byte(blob): 89457
+
+  BOX5       path reale: BOX5_QBEATS.md
+             Versione V28 - 28/07/2026
+             OID blob: 21b23d621ac224c759b53d813196058483e3b056   byte(blob): 57158
+
+  SCALETTA   path reale: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+             Versione 4 (30/07/2026) - file REALE, vedi nota sotto
+             OID blob: d4306337ffccc0beec3fba595da61f67f1076fb4   byte(blob): 36070
+
+!! SCARTO RILEVATO: 'SCALETTA_QBEATS.md' (il nome letterale richiesto dal mandato) NON ESISTE.
+   Verificato in due forme indipendenti:
+     (1) git ls-files | grep -i scaletta  -> solo 'HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md'
+     (2) find repo -iname '*scaletta*'    -> stesso file + 2 file storici non-canonici (ARCHIVIO.MD, un diff)
+   Nessun file 'SCALETTA_QBEATS.md' esiste, ne' tracciato ne' untracked, in tutto il repo.
+   A differenza di LIBRO/BUGS/BOX3/BOX5 (root, convenzione NOME_QBEATS.md), la scaletta reale vive in
+   HANDOFF/ con nome per-data e NON segue quella convenzione. E' pero' TRACCIATA (confermato:
+   git ls-files --error-unmatch), con OID d4306337ffccc0beec3fba595da61f67f1076fb4, 36070 byte —
+   identico a quanto gia' dichiarato nell'handoff CC del 01/08 sera (corroborazione indipendente).
+   Ho risolto ogni citazione bare 'SCALETTA:NNN' e ogni citazione letterale 'SCALETTA_QBEATS.md:NNN'
+   (zero trovate, vedi Sezione 2) a QUESTO file per l'apertura dei bersagli in Sezione 3. E' una mia
+   risoluzione operativa per completare il censimento, non un fatto verificato dal testo che cita:
+   nessuna riga del corpus dichiara esplicitamente questa equivalenza.
+
+====================================================================================================
+
+SEZIONE 2 — CENSIMENTO OCCORRENZE (mandato punto 2). Conteggio per OCCORRENZA, non per riga.
+----------------------------------------------------------------------------------------------------
+Totale per token (somma sulle 5 fonti):
+    LIBRO_MASTRO_QBEATS.md         32
+    BUGS_QBEATS.md                 11
+    BOX3_QBEATS.md                 13
+    BOX5_QBEATS.md                  9
+    SCALETTA_QBEATS.md              0
+    LIBRO                          26
+    BUGS                           19
+    BOX3                           12
+    BOX5                            1
+    SCALETTA                       13
+    r.                             94
+    TOTALE                        230
+
+Rottura (fonte, token) -> occorrenze (solo celle non-zero):
+    LIBRO      LIBRO_MASTRO_QBEATS.md          9
+    LIBRO      BUGS_QBEATS.md                 11
+    LIBRO      BOX3_QBEATS.md                  6
+    LIBRO      BOX5_QBEATS.md                  5
+    LIBRO      LIBRO                           7
+    LIBRO      BUGS                            3
+    LIBRO      BOX3                            5
+    LIBRO      BOX5                            1
+    LIBRO      SCALETTA                        8
+    LIBRO      r.                             19
+    BUGS       LIBRO_MASTRO_QBEATS.md          4
+    BUGS       BOX3_QBEATS.md                  2
+    BUGS       LIBRO                          18
+    BUGS       BUGS                           16
+    BUGS       BOX3                            7
+    BUGS       SCALETTA                        5
+    BUGS       r.                             53
+    BOX3       r.                              2
+    BOX5       LIBRO_MASTRO_QBEATS.md          6
+    BOX5       r.                             19
+    SCALETTA   LIBRO_MASTRO_QBEATS.md         13
+    SCALETTA   BOX3_QBEATS.md                  5
+    SCALETTA   BOX5_QBEATS.md                  4
+    SCALETTA   LIBRO                           1
+    SCALETTA   r.                              1
+
+Ancorate (immediatamente seguite da @ <commit 40 char>): 36
+Nude (senza ancora):                                     194
+
+----------------------------------------------------------------------------------------------------
+SEZIONE 2.1 — ELENCO OCCORRENZE ANCORATE (@ commit a 40), elencate separatamente come richiesto
+----------------------------------------------------------------------------------------------------
+[A001] BOX5       r.336   LIBRO_MASTRO_QBEATS.md:301     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...py del popup Remove.** Ratificata 26/07, bottone confermato 27/07. Verbatim da `[LIBRO_MASTRO_QBEATS.md:301] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`:⏎⏎> Titolo `Remove "{show}" from Q-...
+[A002] BOX5       r.350   LIBRO_MASTRO_QBEATS.md:299     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...ente: freeze CD 24/07, ratificato Mauro — quattro decisioni chiuse, riprese in `[LIBRO_MASTRO_QBEATS.md:299] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`.⏎⏎- **§1 — forma ③ riga compatta, U...
+[A003] BOX5       r.383   LIBRO_MASTRO_QBEATS.md:308     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ... «···» e «Remove from Q-Live»⏎⏎**Entrambe le vie sulla riga — opzione A-bis** (`[LIBRO_MASTRO_QBEATS.md:308] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`, con la rettifica di r.314 sulla cl...
+[A004] BOX5       r.385   LIBRO_MASTRO_QBEATS.md:219     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...Vista LIVE, **serie CD-5, ratificate `2026-05-21`**, citate per riga: `Q8=A` → `[LIBRO_MASTRO_QBEATS.md:219] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` · `Q9=A` → `:220` · `Q10=A` → `:221...
+[A005] BOX5       r.405   LIBRO_MASTRO_QBEATS.md:304     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ... — fonte NON acquisita.** Il valore «iOS 16.0» circola nei deliverable CD e in `[LIBRO_MASTRO_QBEATS.md:304] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`, ma nessuno lo ha misurato contro l...
+[A006] BUGS       r.130   LIBRO_MASTRO_QBEATS.md:330     @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+        ...«S4R fase 2b: la proprietà del runner sale alla stanza Q-Live»), ratificato in `[LIBRO_MASTRO_QBEATS.md:330] @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` («⟦S4R⟧ CHIUSO — la proprietà del r...
+[A007] BUGS       r.361   LIBRO_MASTRO_QBEATS.md:476     @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+        ...** sulla stringa «proprietà del runner»). Chi deve incidere un numero scriva **`[LIBRO_MASTRO_QBEATS.md:476] @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`**, mai il numero nudo. ⛔ **Questa m...
+[A008] LIBRO      r.317   BOX3_QBEATS.md:30              @ 8289944dd98b3372a422e5c3481831b3fc727ca5
+        ...endamento invariante Nodo A + **proprietà del runner** (decisione Mauro 18/07, `[BOX3_QBEATS.md:30] @ 8289944dd98b3372a422e5c3481831b3fc727ca5`, qui trasportata: prima viveva solo...
+[A009] LIBRO      r.317   BOX3_QBEATS.md:34              @ 8289944dd98b3372a422e5c3481831b3fc727ca5
+        ...ente» (questa Sez.2, riga `2026-07-26` **EMENDAMENTO ALL'INVARIANTE**). In più `[BOX3_QBEATS.md:34] @ 8289944dd98b3372a422e5c3481831b3fc727ca5` chiedeva di incidere un vincolo tec...
+[A010] LIBRO      r.322   LIBRO_MASTRO_QBEATS.md:317     @ 6c7352a19b0dc6edadca8c14d34939ca30711369
+        ...za aperta»: misurata su LIBRO **v42**, ma la ratifica **è atterrata in v43** — `[LIBRO_MASTRO_QBEATS.md:317] @ 6c7352a19b0dc6edadca8c14d34939ca30711369`, misura CC 30/07: «S4K» 3 righe, «S...
+[A011] LIBRO      r.326   BOX3_QBEATS.md:32              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...onde di verifica temporanee** per colmare il buco: precedente ruling D1-SPLIT, `[BOX3_QBEATS.md:32] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` — dead code che esegue una politica...
+[A012] LIBRO      r.329   BOX5_QBEATS.md:328             @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...TIVO 3 — ⟦S4L⟧ NON È COSTRUIBILE OGGI, ed è il motivo dirimente.** Il canonico `[BOX5_QBEATS.md:328] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` (QL-SHOWS-06), ratificato in `LIBRO...
+[A013] LIBRO      r.329   LIBRO_MASTRO_QBEATS.md:302     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...d:328 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` (QL-SHOWS-06), ratificato in `[LIBRO_MASTRO_QBEATS.md:302] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` (POSTILLA 2), dichiara **cinque pez...
+[A014] LIBRO      r.339   BUGS_QBEATS.md:741-743         @ 0ee9543d45d638df061c5a48872aaefeb8a88f26
+        ...ritiri: `[R]` conversazione 01/08/2026, nessuna fonte documentale. Precedente: `[BUGS_QBEATS.md:741-743] @ 0ee9543d45d638df061c5a48872aaefeb8a88f26` | attiva | — |⏎| 2026-08-01 | **CLA...
+[A015] LIBRO      r.342   LIBRO_MASTRO_QBEATS.md:329     @ 0ee9543d45d638df061c5a48872aaefeb8a88f26
+        ...so di prova inciso nella riga «ORDINE DEGLI ATOMI §6 EMENDATO» del 2026-07-31 (`[LIBRO_MASTRO_QBEATS.md:329] @ 0ee9543d45d638df061c5a48872aaefeb8a88f26`) non lo conteneva, e lo scroll tocc...
+[A016] SCALETTA   r.39    LIBRO_MASTRO_QBEATS.md:306     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...a**: cade per il solo ⟦S4L⟧ (prima scrittura, vedi la sua scheda) per ratifica `[LIBRO_MASTRO_QBEATS.md:306] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`. Per **ogni altro atomo** la clauso...
+[A017] SCALETTA   r.141   LIBRO_MASTRO_QBEATS.md:306     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ... opposti — «no write» (v2, questa scheda) e «prima scrittura sui⏎dati utente» (`[LIBRO_MASTRO_QBEATS.md:306] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`). In più⏎`BOX3_QBEATS.md:34 @ 0a6eb...
+[A018] SCALETTA   r.142   BOX3_QBEATS.md:34              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...IBRO_MASTRO_QBEATS.md:306 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`). In più⏎`[BOX3_QBEATS.md:34] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` chiede di incidere un vincolo tecni...
+[A019] SCALETTA   r.148   LIBRO_MASTRO_QBEATS.md:295     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...o stessa forma: «Mauro» = 160 righe in LIBRO). Per il TEST DI RATIFICA di R-γ⏎(`[LIBRO_MASTRO_QBEATS.md:295] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`) — «è in LIBRO_MASTRO → è⏎ratificat...
+[A020] SCALETTA   r.165   BOX5_QBEATS.md:366             @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...Q20) · POST · CI+DEVICE⏎- **Scopo:** costruire il contratto Q20 come inciso in `[BOX5_QBEATS.md:366] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`⏎  (capitolo «Q-Live › Shows», § «Co...
+[A021] SCALETTA   r.182   LIBRO_MASTRO_QBEATS.md:312     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...ift` né `SetlistRunner`. DEVICE obbligatorio: la⏎  ratifica stessa lo impone — `[LIBRO_MASTRO_QBEATS.md:312] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`⏎  «Finché il congedo non è nell'app...
+[A022] SCALETTA   r.204   LIBRO_MASTRO_QBEATS.md:295     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...n sta sotto `UI/` affatto**.⏎  Entrambi i puntatori portano il commit per R-β (`[LIBRO_MASTRO_QBEATS.md:295] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`):⏎  nessun numero di riga senza anc...
+[A023] SCALETTA   r.206   BOX3_QBEATS.md:34              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...⏎  nessun numero di riga senza ancoraggio.⏎- **🔴 VINCOLO TECNICO — verbatim da `[BOX3_QBEATS.md:34] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:**⏎  «Un `ObservableObject` ANNIDAT...
+[A024] SCALETTA   r.211   BOX3_QBEATS.md:34              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...embrerebbe un bug del DSP.»⏎- **EMENDAMENTO INVARIANTE NODO A** (stessa fonte, `[BOX3_QBEATS.md:34] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`):⏎  l'invariante «renderizza LiveRo...
+[A025] SCALETTA   r.216   BOX3_QBEATS.md:30              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...e Mauro 18/07, ratificata, trasportata qui dallo sdoppiamento.**⏎  Verbatim da `[BOX3_QBEATS.md:30] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`: «la proprietà del runner⏎  SALE — ...
+[A026] SCALETTA   r.226   BOX3_QBEATS.md:45              @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...  ⟦S4R⟧ e ratifica la regola di rilettura.⏎- **COMMENTI-STALE da bonificare** (`[BOX3_QBEATS.md:45] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`): la lista⏎  «da bonificare in S4L»...
+[A027] SCALETTA   r.248   BOX5_QBEATS.md:381             @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...E⏎- **Scopo:** costruire «Remove from Q-Live» e il menu «···» come incisi in⏎  `[BOX5_QBEATS.md:381] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` (§ «Menu «···» e «Remove from⏎  Q-L...
+[A028] SCALETTA   r.254   LIBRO_MASTRO_QBEATS.md:306     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...**🔴 Gate — UNICO ATOMO DELLA SCALETTA CHE SCRIVE DATI UTENTE.** Per ratifica⏎  `[LIBRO_MASTRO_QBEATS.md:306] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`: «La prima scrittura sui dati⏎  ute...
+[A029] SCALETTA   r.258   LIBRO_MASTRO_QBEATS.md:307     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...⏎  `addSetlist` restano NON cablati, e nessuna cancellazione vive in Q-Live⏎  (`[LIBRO_MASTRO_QBEATS.md:307] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`). DEVICE obbligatorio: due⏎  afford...
+[A030] SCALETTA   r.260   LIBRO_MASTRO_QBEATS.md:308     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...o fra swipe trailing e gesti di navigazione⏎  **non è determinabile a fonte** (`[LIBRO_MASTRO_QBEATS.md:308] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`).⏎- **Dipendenze (entrambe dure):**...
+[A031] SCALETTA   r.263   LIBRO_MASTRO_QBEATS.md:312     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ... questo atomo porta l'utente a operare sulla riga **con la⏎  ricerca in uso**: `[LIBRO_MASTRO_QBEATS.md:312] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` — «Finché il⏎  congedo non è nell'a...
+[A032] SCALETTA   r.267   LIBRO_MASTRO_QBEATS.md:311     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...il popup di conferma collide con la tastiera: i canonici dicono l'opposto.**⏎  `[LIBRO_MASTRO_QBEATS.md:311] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` — «Nessuna collisione col⏎  congedo...
+[A033] SCALETTA   r.268   BOX5_QBEATS.md:390             @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...lisione col⏎  congedo-tastiera Q20: lo stesso file marca ② «identico a ①»» — e `[BOX5_QBEATS.md:390] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`⏎  — «Nessuna collisione col congedo...
+[A034] SCALETTA   r.280   LIBRO_MASTRO_QBEATS.md:303     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ..., non qui.⏎- **⚠️ PENDENZA — lo stato «sessione armata» non esiste a HEAD**⏎  (`[LIBRO_MASTRO_QBEATS.md:303] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`): l'unica occorrenza di `armed`⏎  è...
+[A035] SCALETTA   r.286   BOX5_QBEATS.md:328             @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3
+        ...efinizione e indirizzo, perché questo atomo lo eredita.** È `QL-SHOWS-06`⏎  di `[BOX5_QBEATS.md:328] @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`, ratificato in⏎  `LIBRO_MASTRO_QBEA...
+[A036] SCALETTA   r.287   LIBRO_MASTRO_QBEATS.md:302     @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+        ...OX5_QBEATS.md:328 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`, ratificato in⏎  `[LIBRO_MASTRO_QBEATS.md:302] @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199` (POSTILLA 2): **cinque pezzi,⏎  un ...
+Totale ancorate: 36
+
+----------------------------------------------------------------------------------------------------
+SEZIONE 2.2 — ELENCO OCCORRENZE NUDE (senza ancora), con contesto 80/80 caratteri
+----------------------------------------------------------------------------------------------------
+[N001] BOX3       r.735   r.79                 -> bersaglio BOX3  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...resenza di «(invariato da V22)»).⏎   · Referee «6» = insieme DIVERSO: includeva [r.79] (Modello dati, che HA un puntatore) ed⏎     escludeva r.341 (Task D) — criterio...
+[N002] BOX3       r.736   r.341                -> bersaglio BOX3  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...e DIVERSO: includeva r.79 (Modello dati, che HA un puntatore) ed⏎     escludeva [r.341] (Task D) — criterio «il corpo è solo la parentesi», applicato in modo⏎     inco...
+[N003] BOX5       r.323   r.303                -> bersaglio LIBRO  [forma composta 'LIBRO r.303' -> bersaglio LIBRO, non auto-riferimento]
+        ... scompare non insegna nulla, una voce spenta dice «non ora». [postilla 3, LIBRO [r.303]]⏎⚠️ Contratto, non descrizione dello stato corrente: a HEAD **non esiste uno st...
+[N004] BOX5       r.324   r.303                -> bersaglio LIBRO  [forma composta 'LIBRO r.303' -> bersaglio LIBRO, non auto-riferimento]
+        ...ktrackArmed` (`ios_app/QBeats/Audio/AudioEngine.swift:370` come citato in LIBRO [r.303]), flag interno al buffer del backtrack, senza rapporto con l'armamento di uno s...
+[N005] BOX5       r.328   r.302                -> bersaglio LIBRO  [forma composta 'LIBRO r.302' -> bersaglio LIBRO, non auto-riferimento]
+        ...Non si separano, e Remove non si stacca dalla pillola. Motivo aritmetico (LIBRO [r.302]): tolto Remove, nel «···» resterebbe la sola voce «View songs», che duplica il ...
+[N006] BOX5       r.341   r.301                -> bersaglio LIBRO  [forma composta 'LIBRO r.301' -> bersaglio LIBRO, non auto-riferimento]
+        ...e dal chip «Not in Q-Live» (QL-SHOWS-02).⏎🔴 **VINCOLO DURO DI SPEDIZIONE (LIBRO [r.301]): Remove non si spedisce senza il chip «Not in Q-Live».** Tolto dal popup il no...
+[N007] BOX5       r.342   r.313                -> bersaglio LIBRO  [forma composta 'LIBRO r.313' -> bersaglio LIBRO, non auto-riferimento]
+        ... sicurezza d'uso, non layout.⏎⚠️ **Due chip diversi, da non confondere** (LIBRO [r.313]): «Read-only», testata della lista Q-Live — **RIMOSSO**; «Not in Q-Live», chip ...
+[N008] BOX5       r.344   r.304                -> bersaglio LIBRO  [forma composta 'LIBRO r.304' -> bersaglio LIBRO, non auto-riferimento]
+        ...erie Q17–Q22 · taratura 20/07/2026). **RATIFICATO**: 26/07 («ok va bene», LIBRO [r.304]) e riconfermato sul contenuto riletto per intero il 27/07 («SI VA BENE», LIBRO ...
+[N009] BOX5       r.344   r.312                -> bersaglio LIBRO  [forma composta 'LIBRO r.312' -> bersaglio LIBRO, non auto-riferimento]
+        ...) e riconfermato sul contenuto riletto per intero il 27/07 («SI VA BENE», LIBRO [r.312]). Dettaglio nel § «Congedo tastiera» qui sotto.⏎⚠️ I due deliverable CD che mar...
+[N010] BOX5       r.345   r.312                -> bersaglio LIBRO  [forma composta 'LIBRO r.312' -> bersaglio LIBRO, non auto-riferimento]
+        ...ne 27/07 e la riemissione 26/07 — sono **superati su questo solo punto** (LIBRO [r.312]); **non si fa riemettere niente**. Cade con essi la clausola «NON incidere come...
+[N011] BOX5       r.363   r.299                -> bersaglio LIBRO  [forma composta 'LIBRO r.299' -> bersaglio LIBRO, non auto-riferimento]
+        ...*Due frammenti del freeze 24/07 sono superati, le quattro decisioni no** (LIBRO [r.299]): (i) la coda della decisione §4, «Popup: "leaves this list · stays in Q-Stage"...
+[N012] BOX5       r.364   r.313                -> bersaglio LIBRO  [forma composta 'LIBRO r.313' -> bersaglio LIBRO, non auto-riferimento]
+        ...vale QL-SHOWS-06.⏎- ⚠️ **Chip «Read-only» in testa alla lista: RIMOSSO** (LIBRO [r.313]). Dal giorno in cui Remove esiste, «sola lettura» non è più vero. I mockup CD c...
+[N013] BOX5       r.383   r.314                -> bersaglio BOX5  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ..._QBEATS.md:308 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`, con la rettifica di [r.314] sulla clausola di deposito della fonte): la riga Q-Live porta il menu «···» con...
+[N014] BOX5       r.388   r.307                -> bersaglio LIBRO  [forma composta 'LIBRO r.307' -> bersaglio LIBRO, non auto-riferimento]
+        ...-SHOWS-04.⏎- **Confine distruttivo Q-Live / Q-Stage — regola normativa** (LIBRO [r.307]): **Q-Live non contiene, e non conterrà, alcuna azione distruttiva sui dati del...
+[N015] BOX5       r.389   r.306                -> bersaglio LIBRO  [forma composta 'LIBRO r.306' -> bersaglio LIBRO, non auto-riferimento]
+        ...ist **intatta e viva** in Q-Stage.⏎- **Prima scrittura sui dati utente** (LIBRO [r.306]): con Remove, Q-Live cessa di essere di sola lettura. La scrittura è **limitata...
+[N016] BOX5       r.390   r.311                -> bersaglio LIBRO  [forma composta 'LIBRO r.311' -> bersaglio LIBRO, non auto-riferimento]
+        ... in §6.⏎- **Forma del popup: ② riquadro centrale, due bottoni impilati** (LIBRO [r.311], scelta Mauro). Proprietà attribuite al file, non a Mauro: ordine **Remove in a...
+[N017] BOX5       r.391   r.311                -> bersaglio LIBRO  [forma composta 'LIBRO r.311' -> bersaglio LIBRO, non auto-riferimento]
+        ... 1.⏎- ⚠️ **Non è incisa** la clausola «pattern per ogni conferma futura» (LIBRO [r.311]): impegnerebbe ogni conferma distruttiva successiva a un contenitore custom pri...
+[N018] BOX5       r.397   r.311                -> bersaglio LIBRO  [forma composta 'LIBRO r.311' -> bersaglio LIBRO, non auto-riferimento]
+        ...nvenzione.⏎⏎1. **Forma ② del popup Remove — fattibilità nativa APERTA.** (LIBRO [r.311]) iOS impila i due bottoni da sé **solo con etichette lunghe**; con «Cancel»/«Re...
+[N019] BOX5       r.398   r.311                -> bersaglio LIBRO  [forma composta 'LIBRO r.311' -> bersaglio LIBRO, non auto-riferimento]
+        ...costruibile come nativa.⏎2. **Debito `#f3e2c0` → `#f3e2b0` in `.q20b`.** (LIBRO [r.311]) Un carattere di scarto da `.gatebox`, misurato a fonte: stesso fondo `#1c1608`...
+[N020] BOX5       r.400   LIBRO_MASTRO_QBEATS.md:301 -> bersaglio LIBRO
+        ...n incisi.⏎4. **Placeholder del titolo del popup — due forme in circolazione.** `[LIBRO_MASTRO_QBEATS.md:301]` (la ratifica) porta `Remove "{show}" from Q-Live?`, con virgolette **dritte**;...
+[N021] BOX5       r.403   r.308                -> bersaglio LIBRO  [forma composta 'LIBRO r.308' -> bersaglio LIBRO, non auto-riferimento]
+        ...ailing — conflitto coi gesti di navigazione non determinabile a fonte.** (LIBRO [r.308]) È provata solo la metà di codice (zero `swipeActions` in `QLiveShowsView`); il...
+[N022] BOX5       r.404   r.303                -> bersaglio LIBRO  [forma composta 'LIBRO r.303' -> bersaglio LIBRO, non auto-riferimento]
+        ...ovare invece di una.⏎8. **Stato «sessione armata» — non esiste a HEAD.** (LIBRO [r.303]) Nasce insieme all'arma + standby. La dipendenza è soddisfatta per costruzione ...
+[N023] BUGS       r.122   LIBRO_MASTRO_QBEATS.md:290 -> bersaglio LIBRO
+        ...» di ⟦S4b⟧, che **È spedito** — commit `6ded4ab`, gate device 20/07, inciso in `[LIBRO_MASTRO_QBEATS.md:290]`. ⛔ **LA SEVERITÀ NON CAMBIA**, e va detto qui esplicitamente perché il prossim...
+[N024] BUGS       r.122   r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...b0001c7c2c50c9b9`. Le righe restano come scritte: si marca, non si riscrive.** `[r.120]` dice «**attiva OGGI**» e «**oggi la porta viva è UNA sola**» al **presente** d...
+[N025] BUGS       r.122   r.121                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        .../UI/QLive/QLiveRootView.swift:61`), **non** `LiveRootView`→`LiveView` diretto. `[r.121]` dice «**non ancora spedita**» di ⟦S4b⟧, che **È spedito** — commit `6ded4ab`, ...
+[N026] BUGS       r.130   r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...L PROPRIETARIO DEL REROUTING CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `[r.120]`, `r.121`, `r.125`, `r.128`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc69...
+[N027] BUGS       r.130   r.121                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...TARIO DEL REROUTING CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `[r.121]`, `r.125`, `r.128`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1...
+[N028] BUGS       r.130   r.125                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... REROUTING CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `r.121`, `[r.125]`, `r.128`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9e...
+[N029] BUGS       r.130   r.125                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...TA / 🚨 BLOCCANTE PALCO» di `r.128` non si tocca, e la mitigazione operativa di `[r.125]` resta l'unica difesa disponibile. Si cambia **il proprietario dell'atomo**, no...
+[N030] BUGS       r.130   r.126                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...tario dell'atomo**, non lo stato del ticket. ⚠️ **FUORI DA QUESTA MARCATURA:** `[r.126]`, che non contiene «rerouting» e non è toccata; `r.999` e `r.981`, che sono **r...
+[N031] BUGS       r.130   r.128                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...G CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `r.121`, `r.125`, `[r.128]`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`...
+[N032] BUGS       r.130   r.128                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... **SCADENZA e SEVERITÀ restano vere.** Il «🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO» di `[r.128]` non si tocca, e la mitigazione operativa di `r.125` resta l'unica difesa dispo...
+[N033] BUGS       r.130   r.129                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `r.121`, `r.125`, `r.128`, `[r.129]` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Zero pa...
+[N034] BUGS       r.130   r.981                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... MARCATURA:** `r.126`, che non contiene «rerouting» e non è toccata; `r.999` e `[r.981]`, che sono **registro** = storia e non si marcano mai.⏎- ⚠️ **MARCATURA DI FORM...
+[N035] BUGS       r.130   r.999                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... DA QUESTA MARCATURA:** `r.126`, che non contiene «rerouting» e non è toccata; `[r.999]` e `r.981`, che sono **registro** = storia e non si marcano mai.⏎- ⚠️ **MARCATU...
+[N036] BUGS       r.131   r.118                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Le righe restano come scritte.** **(a) `[r.118]` cita `AppRootView.swift:61-68` come «il canonico».** A HEAD `:61` è `UIApplica...
+[N037] BUGS       r.131   r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...chiamata a `:74`, **unica occorrenza di `audioEngine.stop()` nel file**. **(b) `[r.120]` cita `AppRootView.swift:43` per `{ screen = .home }` di Q-Live.** A HEAD `:43`...
+[N038] BUGS       r.132   r.122                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... correzione vive qui, per simbolo.**⏎- ⚠️ **MARCATURA — LE QUATTRO PREMESSE DI `[r.122]` SONO SCADUTE; LA CONCLUSIONE REGGE, MA SU UN FONDAMENTO NUOVO. Misurato sul bl...
+[N039] BUGS       r.261   BUGS:116-124         -> bersaglio BUGS
+        ...ce confine-sezione (cfr. §1.3 «Doppio-click Direttore al confine di sezione» / `[BUGS:116-124]`) — il percorso L3 **non deve saltarla**. `startSong` esente (audio fermo, ness...
+[N040] BUGS       r.270   BUGS:103-104         -> bersaglio BUGS
+        ...sa a un gesto.⏎- **Cosa NON si rompe durante il drop (device-confermato 11/06, `[BUGS:103-104]`):** il metronomo **continua a suonare** ed entrambi i device proseguono; il te...
+[N041] BUGS       r.278   BUGS:100             -> bersaglio BUGS
+        ...on fa passare il multicast Link cross-banda), il **VR2800 di palco è pulito** (`[BUGS:100]`), la **rete single-band = cura di palco sufficiente** (`BUGS:108-109`). Questo...
+[N042] BUGS       r.278   BUGS:108-109         -> bersaglio BUGS
+        ... è pulito** (`BUGS:100`), la **rete single-band = cura di palco sufficiente** (`[BUGS:108-109]`). Questo bottone è **rete di sicurezza a valle**, non il fix del bloccante (ch...
+[N043] BUGS       r.278   BUGS:109             -> bersaglio BUGS
+        ...on bloccante. **TD #17 è 🟠 OPEN MEDIA dal 22/06 — NON più 🚨 bloccante palco** (`[BUGS:109]`): root cause circoscritta al router **H388X** (non fa passare il multicast Lin...
+[N044] BUGS       r.293   r.289                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...conciliazione top-level = Nodo A (a verbale)".⏎  - ⚠️ **MARCATURA — LA TESI DI `[r.289]` È FALSIFICATA NEL CONTENUTO, non solo negli indirizzi. Misurato sul blob a HEA...
+[N045] BUGS       r.293   r.289                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ga, se compare, porta `@ <commit>`. ⛔ **CONSEGUENZA SULLA SEVERITÀ: NESSUNA.** `[r.289]` descrive il PERIMETRO di un atomo, non un difetto: la sua falsificazione non r...
+[N046] BUGS       r.315   r.6                  -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...10f7d1a388d75b5909`. Il commento `// L1.b DEV FALLBACK` segue la stessa storia: [r.6] → r.12 → r.11. **Non si corregge una falsità: si sostituisce un indirizzo che i...
+[N047] BUGS       r.315   r.11                 -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...b5909`. Il commento `// L1.b DEV FALLBACK` segue la stessa storia: r.6 → r.12 → [r.11]. **Non si corregge una falsità: si sostituisce un indirizzo che il drift dei nu...
+[N048] BUGS       r.315   r.12                 -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...a388d75b5909`. Il commento `// L1.b DEV FALLBACK` segue la stessa storia: r.6 → [r.12] → r.11. **Non si corregge una falsità: si sostituisce un indirizzo che il drift...
+[N049] BUGS       r.315   r.13                 -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...6e513f5d079d992e` la porta a r.14, `152445e470eb0ca4a33c5b31a58ee5c8204e0482` a [r.13], invariata a HEAD `8fa50189b13f49ba3b291510f7d1a388d75b5909`. Il commento `// L...
+[N050] BUGS       r.315   r.14                 -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...le il 17/07 con Nodo A**: `a2fb816fbb24fd606f1280336e513f5d079d992e` la porta a [r.14], `152445e470eb0ca4a33c5b31a58ee5c8204e0482` a r.13, invariata a HEAD `8fa50189b...
+[N051] BUGS       r.360   BOX3:30              -> bersaglio BOX3
+        ...O**. Censimento completo, e il conto chiude — **ASSERISCONO l'enunciato (6):** `[BOX3:30]` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355` (ques...
+[N052] BUGS       r.360   BOX3:30              -> bersaglio BOX3
+        ...(2):** `LIBRO:317` · `LIBRO:467` — nominano «proprietà del runner», ancorano a `[BOX3:30]`, **non asseriscono nulla**; `LIBRO:317` in più **ASSEGNA** la decisione all'at...
+[N053] BUGS       r.360   BOX3:33              -> bersaglio BOX3
+        ...nto completo, e il conto chiude — **ASSERISCONO l'enunciato (6):** `BOX3:30` · `[BOX3:33]` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355` (questa stessa ri...
+[N054] BUGS       r.360   BOX3_QBEATS.md:49    -> bersaglio BOX3
+        ...llet resta com'è, zero parole riscritte.** **(1)** «**è E3**» è **FALSO**: E3 (`[BOX3_QBEATS.md:49]`) è la ratifica del 14/07 vissuta **SOLO** in `HANDOFF_CC_2026-07-14_sera_NODOA...
+[N055] BUGS       r.360   BUGS:349             -> bersaglio BUGS
+        ... l'enunciato (6):** `BOX3:30` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `[BUGS:349]` · `BUGS:355` (questa stessa riga). **PUNTATORI PURI (2):** `LIBRO:317` · `LIBR...
+[N056] BUGS       r.360   BUGS:355             -> bersaglio BUGS
+        ...(6):** `BOX3:30` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `[BUGS:355]` (questa stessa riga). **PUNTATORI PURI (2):** `LIBRO:317` · `LIBRO:467` — nomi...
+[N057] BUGS       r.360   LIBRO:285            -> bersaglio LIBRO
+        ..., e il conto chiude — **ASSERISCONO l'enunciato (6):** `BOX3:30` · `BOX3:33` · `[LIBRO:285]` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355` (questa stessa riga). **PUNTATO...
+[N058] BUGS       r.360   LIBRO:317            -> bersaglio LIBRO
+        ...3-215` · `BUGS:349` · `BUGS:355` (questa stessa riga). **PUNTATORI PURI (2):** `[LIBRO:317]` · `LIBRO:467` — nominano «proprietà del runner», ancorano a `BOX3:30`, **non a...
+[N059] BUGS       r.360   LIBRO:317            -> bersaglio LIBRO
+        ...inano «proprietà del runner», ancorano a `BOX3:30`, **non asseriscono nulla**; `[LIBRO:317]` in più **ASSEGNA** la decisione all'atomo ⟦S4R⟧, che è un **attributo di quel ...
+[N060] BUGS       r.360   LIBRO:317            -> bersaglio LIBRO
+        ...distrugge indirizzi corretti**. ⚠️ La nota sui puntatori vale **IDENTICA** per `[LIBRO:317]` e `LIBRO:467`: è la **regola dei puntatori**, non un'eccezione per uno. ⚠️ **C...
+[N061] BUGS       r.360   LIBRO:467            -> bersaglio LIBRO
+        ...:349` · `BUGS:355` (questa stessa riga). **PUNTATORI PURI (2):** `LIBRO:317` · `[LIBRO:467]` — nominano «proprietà del runner», ancorano a `BOX3:30`, **non asseriscono nul...
+[N062] BUGS       r.360   LIBRO:467            -> bersaglio LIBRO
+        ...rizzi corretti**. ⚠️ La nota sui puntatori vale **IDENTICA** per `LIBRO:317` e `[LIBRO:467]`: è la **regola dei puntatori**, non un'eccezione per uno. ⚠️ **COSA INVECE REG...
+[N063] BUGS       r.360   LIBRO_MASTRO_QBEATS.md:285 -> bersaglio LIBRO
+        ...L⟧ in poi, uscire dalla stanza UCCIDE LA SESSIONE» **è ratificato a monte** in `[LIBRO_MASTRO_QBEATS.md:285]`, riga `2026-07-18` («il runner … **muore SOLO all'uscita dalla STANZA Q-Live**...
+[N064] BUGS       r.360   SCALETTA:213-215     -> bersaglio SCALETTA
+        ...hiude — **ASSERISCONO l'enunciato (6):** `BOX3:30` · `BOX3:33` · `LIBRO:285` · `[SCALETTA:213-215]` · `BUGS:349` · `BUGS:355` (questa stessa riga). **PUNTATORI PURI (2):** `LIBRO...
+[N065] BUGS       r.360   r.349                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...lcun ticket che lo **OSPITI**» è **vero** nel senso stretto in cui è scritto — `[r.349]` è un **trigger dentro un altro ticket**, non un ticket ospite dedicato.⏎- ⚠️ *...
+[N066] BUGS       r.361   LIBRO:467            -> bersaglio LIBRO
+        ...er dentro un altro ticket**, non un ticket ospite dedicato.⏎- ⚠️ **MARCATURA — `[LIBRO:467]` È UN PUNTATORE SCADUTO: il suo bersaglio si indirizza per CONTENUTO. Misurato ...
+[N067] BUGS       r.361   LIBRO:467            -> bersaglio LIBRO
+        ...696f21cf0c1ec899ee9ed07adab8`. La riga resta com'è.** Le **due** occorrenze di `[LIBRO:467]` in questo bullet vanno lette come **«la voce 43 del registro Sez.6 del LIBRO —...
+[N068] BUGS       r.361   LIBRO:467            -> bersaglio LIBRO
+        ...o. ⛔ **Questa marcatura NON tocca `r.1006`**, che porta la terza occorrenza di `[LIBRO:467]`: è **registro** = storia. ⚠️ **La qualifica di «PUNTATORE PURO» data a `LIBRO:...
+[N069] BUGS       r.361   LIBRO:467            -> bersaglio LIBRO
+        ...RO:467`: è **registro** = storia. ⚠️ **La qualifica di «PUNTATORE PURO» data a `[LIBRO:467]` in questo stesso bullet RESTA VERA e non è in discussione**: si corregge la fo...
+[N070] BUGS       r.361   r.1006               -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...1cf0c1ec899ee9ed07adab8`**, mai il numero nudo. ⛔ **Questa marcatura NON tocca `[r.1006]`**, che porta la terza occorrenza di `LIBRO:467`: è **registro** = storia. ⚠️ *...
+[N071] BUGS       r.395   BUGS:116-124         -> bersaglio BUGS
+        ...**Causa NON inchiodata:** famiglia race `==`-fire / kickScheduling al confine (`[BUGS:116-124]` / PIVOT-5), sensibile a spb intero. Contraddizione aperta: i callsite provano ...
+[N072] BUGS       r.529   r.522                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...SCRITTE.** Il ticket prescriveva il `git log` del LIBRO come unica via lecita (`[r.522]`: «MAI a memoria»), e quella via è stata percorsa. Misura CC in sola lettura su...
+[N073] BUGS       r.529   r.522                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... scrivere la riga di changelog. ⚠️ Chiusura per **ACCERTAMENTO**, non per fix: `[r.522]` resta valida come regola e non è stata violata. Output grezzi in `HANDOFF/MISU...
+[N074] BUGS       r.624   r.122                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...` e afferma al presente cose false a HEAD; sopra ci sono la **marcatura v46** (`[r.122]`), le **marcature del 01/08** su proprietario del rerouting, forma degli indiri...
+[N075] BUGS       r.672   r.698                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...o **zero ticket sul pinning**; l'**unica occorrenza del lemma** `xcodegen` è a `[r.698]`, dentro `TD #44`, ed è **altro argomento** (la causa root storica, non la vers...
+[N076] BUGS       r.993   BUGS:125-129         -> bersaglio BUGS
+        ...stale` declassato 🟠 OPEN MEDIA → 🔵 COSMETICO-SOSPESO + causa-dal-log corretta (`[BUGS:125-129]`): etichetta "VERIFICATO" → "PARZIALMENTE SUPPORTATO / non confermata dal log",...
+[N077] BUGS       r.1011  BUGS:103             -> bersaglio BUGS
+        ...ri-init manuale (uscire/rientrare dalla vista → «peer ri-formato all'istante», `[BUGS:103]`) è istantaneo → il bottone lo espone IN Q-Live senza far uscire il batterista....
+[N078] BUGS       r.1011  BUGS:103             -> bersaglio BUGS
+        ...Live senza far uscire il batterista. **Scopo preciso (device-confermato 11/06, `[BUGS:103]`):** durante il drop il tempo NON va fuori e il metronomo continua (−11 ms/16,6...
+[N079] BUGS       r.1011  BUGS:104             -> bersaglio BUGS
+        ...l 22/06, NON più 🚨): a peer Link perso il re-join automatico c'è ma è ~10 min (`[BUGS:104]`), mentre il ri-init manuale (uscire/rientrare dalla vista → «peer ri-formato a...
+[N080] BUGS       r.1013  r.1361               -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... UIKit); da rifare sulla build post-NODO A. **Nota secondaria:** spia `<Error>` [r.1361] `[Bug2b] WARN aggancio non su downbeat` (frazione −0.366) al resume-chiamata → ...
+[N081] BUGS       r.1014  BUGS:243-248         -> bersaglio BUGS
+        ...ordinate stale (doc-hygiene) — 2 ticket, sostanza invariata.** `Nodo A` (§1.2, `[BUGS:243-248]`): nomi pre-rename `BivioBoardView`/`enum Screen{bivio,qStage}` → `HomeRootView...
+[N082] BUGS       r.1014  BUGS:266-270         -> bersaglio BUGS
+        ...iro completo modale, Nodo A sciolto, LIBRO Sez.2). `TD-shows-authoring` (§1.2, `[BUGS:266-270]`): citazione `QStageRootView.swift:22-27 → QStagePlaceholderTab` per Shows era ...
+[N083] BUGS       r.1018  SCALETTA:130         -> bersaglio SCALETTA
+        ...rto da `36775a4` 13/07; CD-Q7 disattesa (LIBRO **v30**, non v31); il puntatore «[SCALETTA:130]» oggi atterra sulla riga «File:» di ⟦S4⟧ che non elenca file Q-Stage = trascriz...
+[N084] BUGS       r.1022  LIBRO:285            -> bersaglio LIBRO
+        ...ciato «da ⟦S4L⟧ in poi uscire dalla stanza uccide la sessione» — ratificato in `[LIBRO:285]` — **resta senza un ticket che lo ospiti in BUGS** (misurato: le 4 formulazioni...
+[N085] BUGS       r.1022  r.349                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... in BUGS** (misurato: le 4 formulazioni rendono 1 riga ciascuna, ed è sempre la [r.349] di quello stesso ticket; controlli positivi «SetlistRunner»→8, «Q-Live»→38). È ...
+[N086] BUGS       r.1022  r.698                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ione tarata a fonte: **zero ticket sul pinning**, unica occorrenza del lemma a `[r.698]` dentro TD #44 = **altro argomento**, controllo positivo «TD #44»→10) · `TD-zer...
+[N087] BUGS       r.1023  BOX3:30              -> bersaglio BOX3
+        ...sa**» è FALSO: censimento che chiude — **6 siti che ASSERISCONO** l'enunciato (`[BOX3:30]` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355`) **+ ...
+[N088] BUGS       r.1023  BOX3:30              -> bersaglio BOX3
+        ... `BUGS:355`) **+ 2 PUNTATORI PURI** (`LIBRO:317` · `LIBRO:467`, che ancorano a `[BOX3:30]` senza asserire; `LIBRO:317` in più ASSEGNA la decisione a ⟦S4R⟧) = **8 indiriz...
+[N089] BUGS       r.1023  BOX3:33              -> bersaglio BOX3
+        ...O: censimento che chiude — **6 siti che ASSERISCONO** l'enunciato (`BOX3:30` · `[BOX3:33]` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355`) **+ 2 PUNTATORI ...
+[N090] BUGS       r.1023  BOX3_QBEATS.md:49    -> bersaglio BOX3
+        ...ch-keyboard-trap` r.355 — due predicati falsificati.** «**è E3**» è FALSO: E3 (`[BOX3_QBEATS.md:49]`) è la ratifica del 14/07 vissuta SOLO in `HANDOFF_CC_2026-07-14_sera_NODOA.txt...
+[N091] BUGS       r.1023  BUGS:349             -> bersaglio BUGS
+        ...CONO** l'enunciato (`BOX3:30` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `[BUGS:349]` · `BUGS:355`) **+ 2 PUNTATORI PURI** (`LIBRO:317` · `LIBRO:467`, che ancorano ...
+[N092] BUGS       r.1023  BUGS:355             -> bersaglio BUGS
+        ...ciato (`BOX3:30` · `BOX3:33` · `LIBRO:285` · `SCALETTA:213-215` · `BUGS:349` · `[BUGS:355]`) **+ 2 PUNTATORI PURI** (`LIBRO:317` · `LIBRO:467`, che ancorano a `BOX3:30` s...
+[N093] BUGS       r.1023  LIBRO:285            -> bersaglio LIBRO
+        ...o che chiude — **6 siti che ASSERISCONO** l'enunciato (`BOX3:30` · `BOX3:33` · `[LIBRO:285]` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355`) **+ 2 PUNTATORI PURI** (`LIBRO...
+[N094] BUGS       r.1023  LIBRO:290            -> bersaglio LIBRO
+        ...`); `r.121` porta «non ancora spedita» di ⟦S4b⟧, che **È** spedito (`6ded4ab`, `[LIBRO:290]`). ⛔ **Severità INVARIATA**, detto esplicitamente perché non venga riaperta: a ...
+[N095] BUGS       r.1023  LIBRO:317            -> bersaglio LIBRO
+        ...O:285` · `SCALETTA:213-215` · `BUGS:349` · `BUGS:355`) **+ 2 PUNTATORI PURI** (`[LIBRO:317]` · `LIBRO:467`, che ancorano a `BOX3:30` senza asserire; `LIBRO:317` in più ASS...
+[N096] BUGS       r.1023  LIBRO:317            -> bersaglio LIBRO
+        ...RI PURI** (`LIBRO:317` · `LIBRO:467`, che ancorano a `BOX3:30` senza asserire; `[LIBRO:317]` in più ASSEGNA la decisione a ⟦S4R⟧) = **8 indirizzi in 4 documenti canonici**...
+[N097] BUGS       r.1023  LIBRO:467            -> bersaglio LIBRO
+        ...ETTA:213-215` · `BUGS:349` · `BUGS:355`) **+ 2 PUNTATORI PURI** (`LIBRO:317` · `[LIBRO:467]`, che ancorano a `BOX3:30` senza asserire; `LIBRO:317` in più ASSEGNA la decisi...
+[N098] BUGS       r.1023  SCALETTA:213-215     -> bersaglio SCALETTA
+        ... **6 siti che ASSERISCONO** l'enunciato (`BOX3:30` · `BOX3:33` · `LIBRO:285` · `[SCALETTA:213-215]` · `BUGS:349` · `BUGS:355`) **+ 2 PUNTATORI PURI** (`LIBRO:317` · `LIBRO:467`, ...
+[N099] BUGS       r.1023  r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...i, in `| 46 |`, e copre entrambi i siti. **(3) `TD-qlive-exit-unconfirmed-stop` [r.120]-121 — difetto SPECCHIATO, marcato senza toccare il testo.** `r.120` porta «atti...
+[N100] BUGS       r.1023  r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...firmed-stop` r.120-121 — difetto SPECCHIATO, marcato senza toccare il testo.** `[r.120]` porta «attiva OGGI» e «oggi la porta viva è UNA sola» al presente dentro un'an...
+[N101] BUGS       r.1023  r.121                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ve, `QLiveShowsView.swift:70`; `QLiveRootView` rende `QLiveShowsView`, `:61`); `[r.121]` porta «non ancora spedita» di ⟦S4b⟧, che **È** spedito (`6ded4ab`, `LIBRO:290`...
+[N102] BUGS       r.1023  r.349                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... Regge invece, e NON si corregge, «in BUGS non ha alcun ticket che lo OSPITI»: `[r.349]` è un trigger dentro un altro ticket, non un ticket ospite dedicato. **(2) LA S...
+[N103] BUGS       r.1023  r.355                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... ogni marcatura è additiva e **in loco**. **(1) `TD-qlive-search-keyboard-trap` [r.355] — due predicati falsificati.** «**è E3**» è FALSO: E3 (`BOX3_QBEATS.md:49`) è l...
+[N104] BUGS       r.1023  r.355                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...cato. **(2) LA STESSA QUALIFICA FALSA COMPARIVA IN DUE SITI DI v45, non uno:** `[r.355]` **e questa stessa tabella, riga `| 45 |`.** ⛔ La riga `| 45 |` **NON si tocca ...
+[N105] BUGS       r.1023  r.355                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... per lemma**: un grep su «E3» che marcasse tutte e tre le occorrenze del file (`[r.355]`, `r.569`, `r.1004`) **falsificherebbe un'affermazione vera**. **Prova agli att...
+[N106] BUGS       r.1023  r.569                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...a), `LiveView` irraggiungibile, funnel `navigate(to:)` a zero chiamanti. **(4) `[r.569]` NON toccata:** «una regola che vive in un commento non è opponibile: stessa fo...
+[N107] BUGS       r.1023  r.569                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...a**: un grep su «E3» che marcasse tutte e tre le occorrenze del file (`r.355`, `[r.569]`, `r.1004`) **falsificherebbe un'affermazione vera**. **Prova agli atti nello s...
+[N108] BUGS       r.1023  r.1004               -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...rep su «E3» che marcasse tutte e tre le occorrenze del file (`r.355`, `r.569`, `[r.1004]`) **falsificherebbe un'affermazione vera**. **Prova agli atti nello stesso comm...
+[N109] BUGS       r.1024  BOX3:33              -> bersaglio BOX3
+        ...**BOX3 FUORI DAL GIRO, per decisione del referee:** la marcatura preparata per `[BOX3:33]` non è stata scritta — BOX3 è stale dal 22/07 nella sua interezza e una nota ad...
+[N110] BUGS       r.1024  LIBRO:467            -> bersaglio LIBRO
+        ...gnava SCRIVERE codice, ora basta RAGGIUNGERLO. ⛔ Severità INVARIATA 🔴/🚨. **(6) `[LIBRO:467]` è deriva pura** → indirizzo di contenuto («voce 43 del registro»), un solo sit...
+[N111] BUGS       r.1024  LIBRO:467            -> bersaglio LIBRO
+        ...2 del LIBRO sposta di **una** riga tutto ciò che segue, quindi il bersaglio di `[LIBRO:467]` — la voce 43 — passa da `:476` a `:477` **dentro il commit che lo ripara**. È ...
+[N112] BUGS       r.1024  SCALETTA:8           -> bersaglio SCALETTA
+        ... (Sez.2, riga `2026-08-01`); la regola **esisteva già in casa** per il freeze (`[SCALETTA:8]`) e per un sorgente (`SCALETTA:129`), si estende e non si inventa. **(4) `LIBRO...
+[N113] BUGS       r.1024  SCALETTA:129         -> bersaglio SCALETTA
+        ...egola **esisteva già in casa** per il freeze (`SCALETTA:8`) e per un sorgente (`[SCALETTA:129]`), si estende e non si inventa. **(4) `LIBRO-sez6-buco-v25-v26` CHIUSO PER ACCE...
+[N114] BUGS       r.1024  r.118                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...rità INVARIATE, cambia solo l'atomo. **(3) INDIRIZZI AL CODICE PER SIMBOLO** — `[r.118]` e `r.120` riscritti per simbolo, la regola estesa ai sorgenti in `LIBRO` (Sez....
+[N115] BUGS       r.1024  r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ù. **(2) PROPRIETARIO DEL REROUTING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`[r.120]` `r.121` `r.125` `r.128` `r.129`, **non** `r.126`, che non contiene «rerouting»...
+[N116] BUGS       r.1024  r.120                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...IATE, cambia solo l'atomo. **(3) INDIRIZZI AL CODICE PER SIMBOLO** — `r.118` e `[r.120]` riscritti per simbolo, la regola estesa ai sorgenti in `LIBRO` (Sez.2, riga `2...
+[N117] BUGS       r.1024  r.121                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... PROPRIETARIO DEL REROUTING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`r.120` `[r.121]` `r.125` `r.128` `r.129`, **non** `r.126`, che non contiene «rerouting»); scade...
+[N118] BUGS       r.1024  r.122                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... **mai state scritte**, non c'è backfill da fare. **(5) LE QUATTRO PREMESSE DI `[r.122]` SONO SCADUTE, la conclusione REGGE su fondamento NUOVO**: ne sopravvive una; «...
+[N119] BUGS       r.1024  r.125                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...TARIO DEL REROUTING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`r.120` `r.121` `[r.125]` `r.128` `r.129`, **non** `r.126`, che non contiene «rerouting»); scadenza e se...
+[N120] BUGS       r.1024  r.126                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...S6⟧** — cinque righe coperte (`r.120` `r.121` `r.125` `r.128` `r.129`, **non** `[r.126]`, che non contiene «rerouting»); scadenza e severità INVARIATE, cambia solo l'a...
+[N121] BUGS       r.1024  r.128                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...L REROUTING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`r.120` `r.121` `r.125` `[r.128]` `r.129`, **non** `r.126`, che non contiene «rerouting»); scadenza e severità I...
+[N122] BUGS       r.1024  r.129                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`r.120` `r.121` `r.125` `r.128` `[r.129]`, **non** `r.126`, che non contiene «rerouting»); scadenza e severità INVARIATE...
+[N123] BUGS       r.1024  r.289                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...rive**; unica eccezione lo STATO, che vive nel titolo e non in una nota. **(1) `[r.289]` falsificata nel CONTENUTO**, non negli indirizzi: «Q-Live NON è in questo enum...
+[N124] BUGS       r.1024  r.356                -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...a pura** → indirizzo di contenuto («voce 43 del registro»), un solo sito vivo (`[r.356]`), `r.1006` è registro e non si tocca. **(7-8) Due debiti nuovi** in §1.3: risc...
+[N125] BUGS       r.1024  r.1006               -> bersaglio BUGS  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... indirizzo di contenuto («voce 43 del registro»), un solo sito vivo (`r.356`), `[r.1006]` è registro e non si tocca. **(7-8) Due debiti nuovi** in §1.3: riscrittura int...
+[N126] LIBRO      r.295   SCALETTA:130         -> bersaglio SCALETTA
+        ...odice, senza ancoraggio a commit. Casi che l'hanno prodotta (tutti del 20/07): `[SCALETTA:130]` (il commento in `ShowsListView.swift:84` atterra su una riga che oggi contradd...
+[N127] LIBRO      r.309   r.101                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...zata NON viene dal payload**, che si ferma al corollario «fuori dalla cornice» ([r.101] di `2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md`; `LiveHeaderView` + «altra st...
+[N128] LIBRO      r.309   r.167                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...* `#28cd41` è accento di componente dentro la cornice (slot metronomo, BOX5 V27 [r.167] da V21) e «pro» fuori — stesso numero, due ruoli legittimi. Vietato solo che un...
+[N129] LIBRO      r.311   r.252                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...basso e in grassetto · `Distruttivo` in cima, isolato · `Tap fuori` NON chiude ([r.252], r.257, r.278). Nessuna collisione col congedo-tastiera Q20: lo stesso file mar...
+[N130] LIBRO      r.311   r.255                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...-tastiera Q20: lo stesso file marca ② «identico a ①». ⚠️ **PENDENZA:** il file ([r.255]) segnala che iOS impila i due bottoni da sé solo con etichette lunghe; con «Can...
+[N131] LIBRO      r.311   r.257                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... in grassetto · `Distruttivo` in cima, isolato · `Tap fuori` NON chiude (r.252, [r.257], r.278). Nessuna collisione col congedo-tastiera Q20: lo stesso file marca ② «i...
+[N132] LIBRO      r.311   r.278                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...ssetto · `Distruttivo` in cima, isolato · `Tap fuori` NON chiude (r.252, r.257, [r.278]). Nessuna collisione col congedo-tastiera Q20: lo stesso file marca ② «identico...
+[N133] LIBRO      r.312   r.304                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...: «SI VA BENE». 🔴 **IL BLOCCO SU ⟦S4L⟧ RESTA IN PIEDI.** Il `🔴 blocca ⟦S4L⟧` di [r.304] è attaccato a «Chiude `TD-qlive-search-keyboard-trap` **a codice fatto**»: rigu...
+[N134] LIBRO      r.317   BOX3:30              -> bersaglio BOX3
+        ...mmi («launcher»/«makeDefault») NON basta: i casi dirimenti non li contengono — `[BOX3:30]` (proprietà del runner) e `BOX3:45` (commenti-stale) rendono **0 occorrenze** d...
+[N135] LIBRO      r.317   BOX3:45              -> bersaglio BOX3
+        ...basta: i casi dirimenti non li contengono — `BOX3:30` (proprietà del runner) e `[BOX3:45]` (commenti-stale) rendono **0 occorrenze** di entrambi. ✅ **CHIUDE IL RIFERIMEN...
+[N136] LIBRO      r.317   r.30                 -> bersaglio BOX3  [forma composta 'BOX3 r.30' -> bersaglio BOX3, non auto-riferimento]
+        ...ffstat, 162 righe aggiunte verificate presenti — più riverifica a fonte di BOX3 [r.30], r.34 e LIBRO r.311). Sdoppiata in tre: **⟦S4K⟧** congedo tastiera (nessuna scr...
+[N137] LIBRO      r.317   r.34                 -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ..., 162 righe aggiunte verificate presenti — più riverifica a fonte di BOX3 r.30, [r.34] e LIBRO r.311). Sdoppiata in tre: **⟦S4K⟧** congedo tastiera (nessuna scrittura...
+[N138] LIBRO      r.317   r.311                -> bersaglio LIBRO  [forma composta 'LIBRO r.311' -> bersaglio LIBRO, non auto-riferimento]
+        ...ggiunte verificate presenti — più riverifica a fonte di BOX3 r.30, r.34 e LIBRO [r.311]). Sdoppiata in tre: **⟦S4K⟧** congedo tastiera (nessuna scrittura, nessun tocco...
+[N139] LIBRO      r.318   r.32                 -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...e.** Token nuovi, entrambi propri di Q-Live: `QLiveTheme.accent` `#ff8a5c` (Q20 [r.32] `--live-l`; uso Q20 r.104 `.kbdone`) e `QLiveTheme.kbbar` `#1c1c20` (Q20 r.103 ...
+[N140] LIBRO      r.318   r.103                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...0 r.32 `--live-l`; uso Q20 r.104 `.kbdone`) e `QLiveTheme.kbbar` `#1c1c20` (Q20 [r.103] `.kbtoolbar` background) — `ios_app/QBeats/UI/QLive/QLiveKit.swift:15-16 @ 6c73...
+[N141] LIBRO      r.318   r.104                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...i propri di Q-Live: `QLiveTheme.accent` `#ff8a5c` (Q20 r.32 `--live-l`; uso Q20 [r.104] `.kbdone`) e `QLiveTheme.kbbar` `#1c1c20` (Q20 r.103 `.kbtoolbar` background) —...
+[N142] LIBRO      r.322   LIBRO:317            -> bersaglio LIBRO
+        ...gola e del corollario) + CC (le quattro misure) | `SCALETTA:141 @ 6c7352a1…` · `[LIBRO:317] @ 6c7352a1…` · XcodeGen `Docs/ProjectSpec.md` · censimento E: CC 30/07 · `git l...
+[N143] LIBRO      r.322   SCALETTA:141         -> bersaglio SCALETTA
+        ...eferee (formulazione della regola e del corollario) + CC (le quattro misure) | `[SCALETTA:141] @ 6c7352a1…` · `LIBRO:317 @ 6c7352a1…` · XcodeGen `Docs/ProjectSpec.md` · censi...
+[N144] LIBRO      r.325   r.318                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...o**: quattro rimandi citano quelle righe per **(data + titolo in grassetto)** — [r.318]→«ARTEFATTI NORMATIVI FUORI DAL CONTROLLO DI VERSIONE», r.319→«INDIRIZZO, NON CO...
+[N145] LIBRO      r.325   r.319                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... in grassetto)** — r.318→«ARTEFATTI NORMATIVI FUORI DAL CONTROLLO DI VERSIONE», [r.319]→«INDIRIZZO, NON COPIA» caso (b), r.324→⟦S4K⟧, r.408→«INDIRIZZO, NON COPIA» caso...
+[N146] LIBRO      r.325   r.324                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...MATIVI FUORI DAL CONTROLLO DI VERSIONE», r.319→«INDIRIZZO, NON COPIA» caso (b), [r.324]→⟦S4K⟧, r.408→«INDIRIZZO, NON COPIA» caso (d) — e correggere la chiave li romper...
+[N147] LIBRO      r.325   r.408                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...DAL CONTROLLO DI VERSIONE», r.319→«INDIRIZZO, NON COPIA» caso (b), r.324→⟦S4K⟧, [r.408]→«INDIRIZZO, NON COPIA» caso (d) — e correggere la chiave li romperebbe tutti e ...
+[N148] LIBRO      r.326   BOX3_QBEATS.md:30    -> bersaglio BOX3
+        ...* e la dichiarazione si chiude a **:15**; il puntatore `:12-13` — originato in `[BOX3_QBEATS.md:30] @ 0a6ebafa…` e riportato identico in `SCALETTA:219` — **tronca `store: .shared`...
+[N149] LIBRO      r.326   BOX3_QBEATS.md:32    -> bersaglio BOX3
+        ...ok) | misura CC in sola lettura @ `e61efd0e9bc2f9174b755e5a25e02a611c795cea` · `[BOX3_QBEATS.md:32]` e `:30 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` · `HANDOFF/SCALETTA_ATOMI_S...
+[N150] LIBRO      r.326   SCALETTA:219         -> bersaglio SCALETTA
+        ...:12-13` — originato in `BOX3_QBEATS.md:30 @ 0a6ebafa…` e riportato identico in `[SCALETTA:219]` — **tronca `store: .shared` e la parentesi di chiusura**. Corretto in `:12-15`...
+[N151] LIBRO      r.327   BUGS_QBEATS.md:126   -> bersaglio BUGS
+        ...detta l'ordine degli atomi non nomina questa materia in nessun punto**, mentre `[BUGS_QBEATS.md:126]` prescrive «da chiudere PRIMA di S6». **L'artefatto è integro, verificato a fon...
+[N152] LIBRO      r.327   BUGS_QBEATS.md:126   -> bersaglio BUGS
+        ...a2e00af9aed6` e @ HEAD · righe `2026-07-20` e `2026-07-28` di questa tabella · `[BUGS_QBEATS.md:126]`, `:127` | attiva | — |⏎| 2026-07-31 | **TRE CLAUSOLE DI SCRITTURA — e nessuna ...
+[N153] LIBRO      r.327   BUGS_QBEATS.md:127   -> bersaglio BUGS
+        ...er-count e stato Start/Stop Sync = dati L2, dentro un §6 dichiarato RT-neutro (`[BUGS_QBEATS.md:127]`). Vale invariato il ruling referee del 18/07: l'allarme ambra può COMPARIRE in...
+[N154] LIBRO      r.328   BUGS_QBEATS.md:126   -> bersaglio BUGS
+        ...**due attestazioni parziali concordanti**, non come un fatto misurato. **(b)** `[BUGS_QBEATS.md:126]` porta come Dipendenza «freeze del disegno **ATTESO da CD**» e «**Nessuna imple...
+[N155] LIBRO      r.328   BUGS_QBEATS.md:126   -> bersaglio BUGS
+        ...,b) + referee (misura c) + Mauro (ratifica) | `SCALETTA:144`, `:224`, `:230` · `[BUGS_QBEATS.md:126]`, `:128` · riga `2026-07-30` INDIRIZZO NON COPIA caso (d) · riga `2026-07-30` A...
+[N156] LIBRO      r.328   LIBRO:317            -> bersaglio LIBRO
+        ... a **`:224`** (forma `LIBRO_MASTRO_QBEATS.md:317`) e a **`:230`** (forma corta `[LIBRO:317]`) — **il documento nega la propria ratifica nello stesso file in cui la usa**; ...
+[N157] LIBRO      r.328   LIBRO_MASTRO_QBEATS.md:317 -> bersaglio LIBRO
+        ...mentre la stessa SCALETTA cita la ratifica che la scioglie a **`:224`** (forma `[LIBRO_MASTRO_QBEATS.md:317]`) e a **`:230`** (forma corta `LIBRO:317`) — **il documento nega la propria rat...
+[N158] LIBRO      r.328   SCALETTA:144         -> bersaglio SCALETTA
+        ...ree (formulazione) + CC (misure a,b) + referee (misura c) + Mauro (ratifica) | `[SCALETTA:144]`, `:224`, `:230` · `BUGS_QBEATS.md:126`, `:128` · riga `2026-07-30` INDIRIZZO N...
+[N159] LIBRO      r.329   BOX5_QBEATS.md:328   -> bersaglio BOX5
+        ...-278`, `:290-295`, `:300`, `:314 @ e61efd0e9bc2f9174b755e5a25e02a611c795cea` · `[BOX5_QBEATS.md:328] @ 0a6ebafa…` · `LIBRO_MASTRO_QBEATS.md:302`, `:317` · `BUGS_QBEATS.md:125` | at...
+[N160] LIBRO      r.329   BUGS_QBEATS.md:125   -> bersaglio BUGS
+        ... contenga ⟦S5⟧ finché ⟦S-EXIT⟧ non è chiuso device.** ⚠️ **E la mitigazione di `[BUGS_QBEATS.md:125]` — «non uscire dal metronomo col click attivo» — è agli atti come DIFETTO, non ...
+[N161] LIBRO      r.329   BUGS_QBEATS.md:125   -> bersaglio BUGS
+        ...a` · `BOX5_QBEATS.md:328 @ 0a6ebafa…` · `LIBRO_MASTRO_QBEATS.md:302`, `:317` · `[BUGS_QBEATS.md:125]` | attiva | — |⏎| 2026-07-31 | **⟦S4R⟧ CHIUSO — la proprietà del runner sale al...
+[N162] LIBRO      r.329   LIBRO_MASTRO_QBEATS.md:302 -> bersaglio LIBRO
+        ...e61efd0e9bc2f9174b755e5a25e02a611c795cea` · `BOX5_QBEATS.md:328 @ 0a6ebafa…` · `[LIBRO_MASTRO_QBEATS.md:302]`, `:317` · `BUGS_QBEATS.md:125` | attiva | — |⏎| 2026-07-31 | **⟦S4R⟧ CHIUSO — ...
+[N163] LIBRO      r.329   LIBRO_MASTRO_QBEATS.md:317 -> bersaglio LIBRO
+        ...PRIMA DI ⟦S4L⟧, e ⟦S-EXIT⟧ si colloca fra i due. Nessuna ratifica ribaltata.** `[LIBRO_MASTRO_QBEATS.md:317]` incide «ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧»: è l'ordine RECIPROCO dei ...
+[N164] LIBRO      r.329   SCALETTA:261         -> bersaglio SCALETTA
+        ...referee (emendamento e motivazione) + CC (misure a fonte) + Mauro (ratifica) | `[SCALETTA:261]`, `:272-274`, `:275-278`, `:290-295`, `:300`, `:314 @ e61efd0e9bc2f9174b755e5a2...
+[N165] LIBRO      r.329   SCALETTA:272-274     -> bersaglio SCALETTA
+        ... il campo di persistenza è rimandato («forma tecnica scelta CC ancora aperta», `[SCALETTA:272-274]`) e la **pillola ▶ non ha atomo assegnato in NESSUNA delle dodici schede** (mis...
+[N166] LIBRO      r.329   SCALETTA:275-278     -> bersaglio SCALETTA
+        ...ificherebbe spezzare un blocco che un canonico dichiara inseparabile.** In più `[SCALETTA:275-278]` registra che la sua reversibilità NON è pulita — un revert del codice non ripr...
+[N167] LIBRO      r.329   SCALETTA:290-295     -> bersaglio SCALETTA
+        ...to in NESSUNA delle dodici schede** (misura già agli atti nella scheda stessa, `[SCALETTA:290-295]`: «pillola» = 0 righe, «▶» = 0 righe nell'intero file). ⇒ **Costruire ⟦S4L⟧ ogg...
+[N168] LIBRO      r.334   LIBRO_MASTRO_QBEATS.md:329 -> bersaglio LIBRO
+        ..., che resta dove la mette la riga `2026-07-31` ORDINE DEGLI ATOMI §6 EMENDATO (`[LIBRO_MASTRO_QBEATS.md:329]`), e **NON dichiara nulla** sullo stato, sulla severità o sulle dipendenze del ...
+[N169] LIBRO      r.334   LIBRO_MASTRO_QBEATS.md:329 -> bersaglio LIBRO
+        ...e `2026-07-30` INDIRIZZO NON COPIA e `2026-07-31` ⟦S-EXIT⟧ di questa tabella · `[LIBRO_MASTRO_QBEATS.md:329]` (ORDINE DEGLI ATOMI §6 EMENDATO) | attiva | — |⏎| 2026-08-01 | **ESTENSIONE AI...
+[N170] LIBRO      r.335   BOX3:33              -> bersaglio BOX3
+        ...⟦S4R⟧ — che hanno spostato le righe **senza cambiare i simboli**: `BUGS:118` e `[BOX3:33]` (`:61-68`), `BUGS:120` (`:43`), `BUGS:289` (`:8,13,27-33` e `:10-12`). ⛔ **Le ...
+[N171] LIBRO      r.335   BUGS:118             -> bersaglio BUGS
+        ...O A⟧, ⟦S4b⟧, ⟦S4R⟧ — che hanno spostato le righe **senza cambiare i simboli**: `[BUGS:118]` e `BOX3:33` (`:61-68`), `BUGS:120` (`:43`), `BUGS:289` (`:8,13,27-33` e `:10-1...
+[N172] LIBRO      r.335   BUGS:120             -> bersaglio BUGS
+        ...tato le righe **senza cambiare i simboli**: `BUGS:118` e `BOX3:33` (`:61-68`), `[BUGS:120]` (`:43`), `BUGS:289` (`:8,13,27-33` e `:10-12`). ⛔ **Le righe storiche e il reg...
+[N173] LIBRO      r.335   BUGS:289             -> bersaglio BUGS
+        ...a cambiare i simboli**: `BUGS:118` e `BOX3:33` (`:61-68`), `BUGS:120` (`:43`), `[BUGS:289]` (`:8,13,27-33` e `:10-12`). ⛔ **Le righe storiche e il registro NON si convert...
+[N174] LIBRO      r.337   BOX5_QBEATS.md:68    -> bersaglio BOX5
+        ...**390pt** «misurato empiricamente 18/05/2026» (baseline `scaleFactor = 1.0`) e `[BOX5_QBEATS.md:68]` il pattern spedito `scaleFactor = geo.size.width / 390` (Layout strategy v1, V...
+[N175] LIBRO      r.337   BOX5_QBEATS.md:68    -> bersaglio BOX5
+        ...ne: `[R]` conversazione 01/08/2026, nessuna fonte documentale. Corroborazione: `[BOX5_QBEATS.md:68]` e `:83 @ 0ee9543d45d638df061c5a48872aaefeb8a88f26` | attiva | — |⏎| 2026-08-01...
+[N176] LIBRO      r.337   BOX5_QBEATS.md:83    -> bersaglio BOX5
+        ...ui promosso a foglio di design — a `0ee9543d45d638df061c5a48872aaefeb8a88f26`, `[BOX5_QBEATS.md:83]` incideva iPhone 13 = **390pt** «misurato empiricamente 18/05/2026» (baseline `...
+[N177] LIBRO      r.338   BUGS_QBEATS.md:741-743 -> bersaglio BUGS
+        ...rgine: esisteva già come DENOMINATORE in un ticket chiuso e device-confermato (`[BUGS_QBEATS.md:741-743] @` stesso commit — TD-ipad-home 🟢 CHIUSO 30/06/2026, collaudo `b1c50ab`), quind...
+[N178] LIBRO      r.338   BUGS_QBEATS.md:741-743 -> bersaglio BUGS
+        ...emissione a carico) | Decisione: `[R]` conversazione 01/08/2026. Misure: BOX5, `[BUGS_QBEATS.md:741-743]`, `README.md:34`, `HANDOFF_CD…:6`, sei freeze — tutte `@ 0ee9543d45d638df061c5a...
+[N179] LIBRO      r.339   BUGS_QBEATS.md:743   -> bersaglio BUGS
+        ...'onere di giustificare la forma: a `0ee9543d45d638df061c5a48872aaefeb8a88f26`, `[BUGS_QBEATS.md:743]` incideva `sf = .pad ? min(width/390, height*0.92/844) : width/390` (`HomeRootV...
+[N180] LIBRO      r.484   BOX3:30              -> bersaglio BOX3
+        ...perdere silenziosamente** la decisione Mauro 18/07 sulla proprietà del runner (`[BOX3:30]`, che non contiene nessuna delle due parole). La regola chiude il riferimento i...
+[N181] LIBRO      r.484   BOX3:34              -> bersaglio BOX3
+        ... scrittura sui dati utente» (riga `2026-07-26` EMENDAMENTO ALL'INVARIANTE) — e `[BOX3:34]` chiedeva di incidere «nella scheda ⟦S4L⟧» un vincolo che riguarda il solo laun...
+[N182] LIBRO      r.484   BOX5:390             -> bersaglio BOX5
+        ...via d'uscita» è **falsa** e negata da due canonici indipendenti (`LIBRO:311` e `[BOX5:390]`, entrambi «Nessuna collisione col congedo tastiera»); la dipendenza ⟦S4K⟧→⟦S4L...
+[N183] LIBRO      r.484   LIBRO:311            -> bersaglio LIBRO
+        ...astiera senza via d'uscita» è **falsa** e negata da due canonici indipendenti (`[LIBRO:311]` e `BOX5:390`, entrambi «Nessuna collisione col congedo tastiera»); la dipenden...
+[N184] LIBRO      r.484   LIBRO:312            -> bersaglio LIBRO
+        ...ne col congedo tastiera»); la dipendenza ⟦S4K⟧→⟦S4L⟧ regge sulla ragione vera (`[LIBRO:312]`, la tastiera alzata e l'unica uscita che spegne la sessione). Sez.5 «HEAD codi...
+[N185] LIBRO      r.487   LIBRO:322            -> bersaglio LIBRO
+        ...he dello stesso commit che dichiaravano posizioni diverse per ⟦S-EXIT⟧**, cioè `[LIBRO:322]` caso (d) commesso dentro il commit che lo cita, rimediato togliendo alla riga ...
+[N186] LIBRO      r.489   LIBRO:467            -> bersaglio LIBRO
+        ...zione in Sez.2 sposta di **una** riga tutto ciò che segue, quindi il puntatore `[LIBRO:467]` censito in `BUGS_QBEATS.md` r.356 e r.1006 — già alla deriva di **otto** righe...
+[N187] LIBRO      r.489   r.356                -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...utto ciò che segue, quindi il puntatore `LIBRO:467` censito in `BUGS_QBEATS.md` [r.356] e r.1006 — già alla deriva di **otto** righe prima di questo giro, perché il su...
+[N188] LIBRO      r.489   r.1006               -> bersaglio LIBRO  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ... che segue, quindi il puntatore `LIBRO:467` censito in `BUGS_QBEATS.md` r.356 e [r.1006] — già alla deriva di **otto** righe prima di questo giro, perché il suo bersagl...
+[N189] LIBRO      r.490   BOX3_QBEATS.md:34    -> bersaglio BOX3
+        ...LiveSession.swift:5` e `:18` citano `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb…` e `[BOX3_QBEATS.md:34] @ 0a6ebafa…` — numero di riga **con ancora a commit**. Il codice indirizzava i ...
+[N190] LIBRO      r.490   LIBRO_MASTRO_QBEATS.md:285 -> bersaglio LIBRO
+        ...zione opposta:** `ios_app/QBeats/UI/QLive/QLiveSession.swift:5` e `:18` citano `[LIBRO_MASTRO_QBEATS.md:285] @ 40f099bb…` e `BOX3_QBEATS.md:34 @ 0a6ebafa…` — numero di riga **con ancora a ...
+[N191] LIBRO      r.491   LIBRO:467            -> bersaglio LIBRO
+        ... 43 del registro passa da `:477` a `:484`, mentre `BUGS_QBEATS.md` cita ancora `[LIBRO:467]` in **nove** occorrenze su **quattro** righe (360, 361, 1023, 1024). Il giro di...
+[N192] SCALETTA   r.160   r.60                 -> bersaglio SCALETTA  [auto-riferimento (nessun NOME immediatamente precedente)]
+        ...cisioni trasportate nella⏎scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`[r.60]`, `:151`, `:212`, `:647`, `:662`, `:676`⏎@ 0a6ebafa72dfc8a4ebed6dd5474a99161955...
+[N193] SCALETTA   r.224   LIBRO_MASTRO_QBEATS.md:317 -> bersaglio LIBRO
+        ...qui sopra. Il re-instradamento è **CONFERMATO**: lo sdoppiamento è inciso⏎  in `[LIBRO_MASTRO_QBEATS.md:317]` (Sez.2, riga `2026-07-28`), che assegna la proprietà del runner a⏎  ⟦S4R⟧ e ra...
+[N194] SCALETTA   r.230   LIBRO:317            -> bersaglio LIBRO
+        ...occa quella zona». Stesso re-instradamento, **CONFERMATO** dalla stessa fonte (`[LIBRO:317]`).⏎- **Reversibilità:** RISCHIO (`init` non-opzionale `ios_app/QBeats/SetlistRu...
+Totale nude: 194
+
+====================================================================================================
+
+SEZIONE 3 — RISOLUZIONE BERSAGLI (mandato punto 3). Deduplicata per (bersaglio, num1, num2):
+aprire lo stesso bersaglio piu' volte renderebbe lo stesso contenuto; qui una riga per bersaglio
+UNICO, con l'elenco delle occorrenze in Sezione 2 che lo citano. Verbatim = primi 200 caratteri.
+ATTENZIONE: per i puntatori ANCORATI (@ commit), il contenuto qui sotto e' letto A HEAD, non al
+commit dell'ancora — sono percio' attesi a NON coincidere col contenuto dichiarato dalla citazione:
+e' la natura stessa dell'ancoraggio (fissa il PASSATO, non pretende di predire il FUTURO). Un
+mismatch qui NON e' un difetto per le ancorate; lo e' potenzialmente per le NUDE, che dichiarano
+implicitamente 'questo e' il contenuto ATTUALE'.
+----------------------------------------------------------------------------------------------------
+BERSAGLIO BOX3:30
+  citato da 10 occorrenza/e (2 ancorate, 8 nude): BUGSr.360, BUGSr.360, BUGSr.1023, BUGSr.1023, LIBROr.317, LIBROr.317, LIBROr.317, LIBROr.326, LIBROr.484, SCALETTAr.216
+  BOX3:30 verbatim ->  · **(a) 🚨 PUNTO (k) RISCRITTO — la direzione di V96 DECADE.** La decisione CD 18/07 (opzione (c)) stabilisce che **navigazione e transport sono separati**: uscendo dal metronomo il click NON si ferma
+
+BERSAGLIO BOX3:32
+  citato da 2 occorrenza/e (1 ancorate, 1 nude): LIBROr.326, LIBROr.326
+  BOX3:32 verbatim ->  · **(c) RULING D1-SPLIT (per S4b).** Si installa: `page` + `switch page` + `navigate(to:)` + il COMMENTO DI GUARDIA con la decisione CD 18/07 (incisione della ratifica dove un futuro lettore la cable
+
+BERSAGLIO BOX3:33
+  citato da 4 occorrenza/e (0 ancorate, 4 nude): BUGSr.360, BUGSr.1023, BUGSr.1024, LIBROr.335
+  BOX3:33 verbatim ->  · **(d) MODELLO RATIFICATO «sessione ≡ stanza».** La navigazione INTERNA di Q-Live NON chiude la sessione live (runner + click); l'uscita dalla STANZA la chiude. Con questo modello il canonico `AppRo
+
+BERSAGLIO BOX3:34
+  citato da 6 occorrenza/e (4 ancorate, 2 nude): LIBROr.317, LIBROr.484, LIBROr.490, SCALETTAr.142, SCALETTAr.206, SCALETTAr.211
+  BOX3:34 verbatim ->  · **(e) VINCOLO TECNICO S4L da incidere.** Un `ObservableObject` ANNIDATO dentro un altro NON propaga: `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del runner, NON i suoi camb
+
+BERSAGLIO BOX3:45
+  citato da 2 occorrenza/e (1 ancorate, 1 nude): LIBROr.317, SCALETTAr.226
+  BOX3:45 verbatim ->  · Lista COMMENTI-STALE da bonificare in S4L (solo commenti, zero impatto funzionale): `SetlistRunner.swift` cita `AudioEngine.swift:503` (guardia start reale `:859`) · `AudioEngine.swift:169` e `Live
+
+BERSAGLIO BOX3:49
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.360, BUGSr.1023
+  BOX3:49 verbatim ->  · **(j) E3 — SUPERATO, con una scoperta che SOPRAVVIVE.** E3 (14/07, ratificato referee+Mauro, vissuto SOLO in `HANDOFF_CC_2026-07-14_sera_NODOA.txt` §2.B, MAI entrato nel piano canonico) disponeva i
+
+BERSAGLIO BOX3:79
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BOX3r.735
+  BOX3:79 verbatim -> Nient'altro cambiato dal contenuto di V92.
+
+BERSAGLIO BOX3:341
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BOX3r.736
+  BOX3:341 verbatim -> sniffer». Verificato ora in `BUGS_QBEATS.md` (voce "TD #17", aggiornata da ultimo
+
+BERSAGLIO BOX5:68
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): LIBROr.337, LIBROr.337
+  BOX5:68 verbatim -> | **Layout strategy v1** | **Stesso layout componenti per tutti i device (Strada A — scaling proporzionale). Font/spacing ≥ 20pt tramite `pt_originale * scaleFactor` con `scaleFactor = geo.size.width 
+
+BERSAGLIO BOX5:83
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.337
+  BOX5:83 verbatim -> | iPhone 13 | Sviluppo e test (baseline scaling — `scaleFactor = 1.0`) | Lightning | **390pt** (misurato empiricamente 18/05/2026) |
+
+BERSAGLIO BOX5:314
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BOX5r.383
+  BOX5:314 verbatim -> ### Contratto QL-SHOWS — le dieci righe
+
+BERSAGLIO BOX5:328
+  citato da 3 occorrenza/e (2 ancorate, 1 nude): LIBROr.329, LIBROr.329, SCALETTAr.286
+  BOX5:328 verbatim -> **QL-SHOWS-06 · Blocco unico.** Pillola ▶ · «···» a UNA sola voce («Remove from Q-Live») · swipe trailing rosso sulla riga · popup di conferma · campo di persistenza: **cinque pezzi, un blocco solo**.
+
+BERSAGLIO BOX5:366
+  citato da 1 occorrenza/e (1 ancorate, 0 nude): SCALETTAr.165
+  BOX5:366 verbatim -> ### Congedo tastiera
+
+BERSAGLIO BOX5:381
+  citato da 1 occorrenza/e (1 ancorate, 0 nude): SCALETTAr.248
+  BOX5:381 verbatim -> ### Menu «···» e «Remove from Q-Live»
+
+BERSAGLIO BOX5:390
+  citato da 2 occorrenza/e (1 ancorate, 1 nude): LIBROr.484, SCALETTAr.268
+  BOX5:390 verbatim -> - **Forma del popup: ② riquadro centrale, due bottoni impilati** (LIBRO r.311, scelta Mauro). Proprietà attribuite al file, non a Mauro: ordine **Remove in alto / Cancel in basso** · default **Cancel*
+
+BERSAGLIO BUGS:6
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.315
+  BUGS:6 verbatim -> **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+
+BERSAGLIO BUGS:11
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.315
+  BUGS:11 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO BUGS:12
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.315
+  BUGS:12 verbatim -> Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Aggrega in un unico posto ciò che prima era distribuito tra `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` (lib
+
+BERSAGLIO BUGS:13
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.315
+  BUGS:13 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO BUGS:14
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.315
+  BUGS:14 verbatim -> **Regola d'oro:** se un bug non è qui non esiste come voce tracciata. Se compare in una chat ma non finisce qui, viene perso.
+
+BERSAGLIO BUGS:100
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.278
+  BUGS:100 verbatim -> - **Roadmap:** parte del blocco audio unitario 🔴 referee 24/05 (TD #A + three-band v2 + Test 2 Audacity).
+
+BERSAGLIO BUGS:103
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.1011, BUGSr.1011
+  BUGS:103 verbatim -> - **AGG 22/06/2026 — ROOT CAUSE CIRCOSCRITTA (device + sniffer):** la perdita peer accade con i due device su **bande Wi-Fi diverse**: alcuni router non fanno transitare il multicast di Link (`224.76.
+
+BERSAGLIO BUGS:103-104
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.270
+  BUGS:103 verbatim -> - **AGG 22/06/2026 — ROOT CAUSE CIRCOSCRITTA (device + sniffer):** la perdita peer accade con i due device su **bande Wi-Fi diverse**: alcuni router non fanno transitare il multicast di Link (`224.76.
+  BUGS:104 verbatim -> - **SCOPING (23/06) — qualifica «pulito»:** «VR2800 pulito» = **cross-banda STATICO** (device fermi, 10+ min). Il comportamento **sotto roam / perdita-banda** è in **indagine separata**: la run 23/06 
+
+BERSAGLIO BUGS:104
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1011
+  BUGS:104 verbatim -> - **SCOPING (23/06) — qualifica «pulito»:** «VR2800 pulito» = **cross-banda STATICO** (device fermi, 10+ min). Il comportamento **sotto roam / perdita-banda** è in **indagine separata**: la run 23/06 
+
+BERSAGLIO BUGS:108-109
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.278
+  BUGS:108 verbatim -> - **Causa = IPOTESI LEAD (meccanismo plausibile, n=1 sul differenziatore → NON «confermata/inchiodata»):** iPhone Follower con WiFi debole (22,7% campioni RSSI ≤ −82 dBm) → **roam BSSID @ ~`00:58:54`*
+  BUGS:109 verbatim -> - **Verifica avversariale 16/06 (workflow 6 agenti):** tabella 8 roam confermata da re-scan indipendente; **«buco di rete lungo → peer cade» FALSIFICATO** (roam innocuo #3 = buco 7,9 s e peer su; roam
+
+BERSAGLIO BUGS:109
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.278
+  BUGS:109 verbatim -> - **Verifica avversariale 16/06 (workflow 6 agenti):** tabella 8 roam confermata da re-scan indipendente; **«buco di rete lungo → peer cade» FALSIFICATO** (roam innocuo #3 = buco 7,9 s e peer su; roam
+
+BERSAGLIO BUGS:116-124
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.261, BUGSr.395
+  BUGS:116 verbatim -> [RIGA VUOTA]
+  BUGS:124 verbatim -> - **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time
+
+BERSAGLIO BUGS:118
+  citato da 3 occorrenza/e (0 ancorate, 3 nude): BUGSr.131, BUGSr.1024, LIBROr.335
+  BUGS:118 verbatim -> - **Sintomo:** col click ATTIVO, uscire da `.qLive` verso la Home fa scattare il canonico `AppRootView.swift:61-68` → `audioEngine.stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/S
+
+BERSAGLIO BUGS:120
+  citato da 8 occorrenza/e (0 ancorate, 8 nude): BUGSr.122, BUGSr.130, BUGSr.131, BUGSr.1023, BUGSr.1023, BUGSr.1024, BUGSr.1024, LIBROr.335
+  BUGS:120 verbatim ->   - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l
+
+BERSAGLIO BUGS:121
+  citato da 4 occorrenza/e (0 ancorate, 4 nude): BUGSr.122, BUGSr.130, BUGSr.1023, BUGSr.1024
+  BUGS:121 verbatim ->   - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/
+
+BERSAGLIO BUGS:122
+  citato da 3 occorrenza/e (0 ancorate, 3 nude): BUGSr.132, BUGSr.624, BUGSr.1024
+  BUGS:122 verbatim ->   - ⚠️ **MARCATURA v46 — le DUE metà sopra portano lo stesso difetto SPECCHIATO, misurato a HEAD `897d458e0777c2edbce349e4b0001c7c2c50c9b9`. Le righe restano come scritte: si marca, non si riscrive.**
+
+BERSAGLIO BUGS:125
+  citato da 5 occorrenza/e (0 ancorate, 5 nude): BUGSr.130, BUGSr.130, BUGSr.1024, LIBROr.329, LIBROr.329
+  BUGS:125 verbatim -> - **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista 
+
+BERSAGLIO BUGS:125-129
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.993
+  BUGS:125 verbatim -> - **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista 
+  BUGS:129 verbatim -> - **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+
+BERSAGLIO BUGS:126
+  citato da 6 occorrenza/e (0 ancorate, 6 nude): BUGSr.130, BUGSr.1024, LIBROr.327, LIBROr.327, LIBROr.328, LIBROr.328
+  BUGS:126 verbatim -> - **Dipendenza:** decisione CD (iii) ratificata 18/07 (LIBRO v36) — direzione FERMA, **freeze del disegno ATTESO da CD**, deve coprire ENTRAMBE le uscite (Home + Switch) e tutti i contesti di sfondo. 
+
+BERSAGLIO BUGS:127
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.327
+  BUGS:127 verbatim -> - **Fuori scope, registrato non implementato (NOTA referee 18/07, per quando arriva il freeze):** l'overlay richiederà peer-count + stato Start/Stop Sync = **dati L2**; §6 è dichiarato RT-neutro → la 
+
+BERSAGLIO BUGS:128
+  citato da 3 occorrenza/e (0 ancorate, 3 nude): BUGSr.130, BUGSr.130, BUGSr.1024
+  BUGS:128 verbatim -> - **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Sto
+
+BERSAGLIO BUGS:129
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.130, BUGSr.1024
+  BUGS:129 verbatim -> - **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+
+BERSAGLIO BUGS:243-248
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1014
+  BUGS:243 verbatim -> - **Distinta da (NON fondere):** TD-follower-rejoin **faccia B** (§1.1, "segmenti stantii DOPO cambio setlist", audio a volte stale) → **trigger diverso** (cambio setlist vs steady-state; audio stale 
+  BUGS:248 verbatim -> - **Origine:** emerso dalla verifica avversariale del fix di Bug 1 (workflow 8 agenti, 18/06/2026 — **pre-filtro di ragionamento di CC, NON device/compilatore, NON verità indipendente**). NON è la cau
+
+BERSAGLIO BUGS:266-270
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1014
+  BUGS:266 verbatim -> [RIGA VUOTA]
+  BUGS:270 verbatim -> - **Cosa NON si rompe durante il drop (device-confermato 11/06, `BUGS:103-104`):** il metronomo **continua a suonare** ed entrambi i device proseguono; il tempo **NON va fuori** (free-run −11 ms su 16
+
+BERSAGLIO BUGS:289
+  citato da 4 occorrenza/e (0 ancorate, 4 nude): BUGSr.293, BUGSr.293, BUGSr.1024, LIBROr.335
+  BUGS:289 verbatim -> - **Dominio:** CC. **Stato:** 🟠 OPEN MEDIA (feature-completion), gated dietro l'apertura del cantiere Tracce.
+
+BERSAGLIO BUGS:349
+  citato da 5 occorrenza/e (0 ancorate, 5 nude): BUGSr.360, BUGSr.360, BUGSr.1022, BUGSr.1023, BUGSr.1023
+  BUGS:349 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO BUGS:355
+  citato da 5 occorrenza/e (0 ancorate, 5 nude): BUGSr.360, BUGSr.1023, BUGSr.1023, BUGSr.1023, BUGSr.1023
+  BUGS:355 verbatim -> - **⚠️ SUPERATO IN PARTE — 29/07: la parte principale è CHIUSA su device. I quattro bullet sopra restano ESATTAMENTE come sono scritti: sono storia, si marca e non si riscrive.** Q20 **ha avuto rispos
+
+BERSAGLIO BUGS:356
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1024
+  BUGS:356 verbatim -> - **I sette zeri del bullet «Riscontro a fonte» erano veri a `6ded4ab` e NON lo sono più.** Rimisurati a HEAD `4d1f9741f5947e7677c84d3f31a586e34b7709f3` sullo stesso file `ios_app/QBeats/UI/QLive/QLiv
+
+BERSAGLIO BUGS:522
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.529, BUGSr.529
+  BUGS:522 verbatim -> - **Priorità:** 🟡 bassa / 📦 non bloccante palco. **Dominio:** CC.
+
+BERSAGLIO BUGS:569
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.1023, BUGSr.1023
+  BUGS:569 verbatim -> - **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto palco: l'assenza di una cancellazione non può cancellare niente.
+
+BERSAGLIO BUGS:698
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.672, BUGSr.1022
+  BUGS:698 verbatim -> - **Perché è un prerequisito duro — e la ragione NON è un divieto di Apple, è una misura.** Il bundle che oggi si spedirebbe è **incompleto in modo misurato**: zero file grafici e **quattro chiavi ico
+
+BERSAGLIO BUGS:741-743
+  citato da 3 occorrenza/e (1 ancorate, 2 nude): LIBROr.338, LIBROr.338, LIBROr.339
+  BUGS:741 verbatim -> ### TD-ipad-home — overflow portrait + landscape iPad — 🟢 CHIUSO 30/06/2026
+  BUGS:743 verbatim -> - **Causa (i) overflow portrait:** altezze-card-fisse × `sf` saturavano lo spazio tra gli Spacer su iPad. **Fix = tetto scaleFactor solo-iPad**, commit `87d22a9` (`HomeRootView.swift`: `sf = .pad ? mi
+
+BERSAGLIO BUGS:743
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.339
+  BUGS:743 verbatim -> - **Causa (i) overflow portrait:** altezze-card-fisse × `sf` saturavano lo spazio tra gli Spacer su iPad. **Fix = tetto scaleFactor solo-iPad**, commit `87d22a9` (`HomeRootView.swift`: `sf = .pad ? mi
+
+BERSAGLIO BUGS:981
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.130
+  BUGS:981 verbatim -> | 4 | 2026-05-31 | CC chat principale 31/05 | Esiti validazione device 31/05. **Bug cambio-canzone cross-device → 🟢 CHIUSO** (spostato in Sez. 2): orchestrazione validata (Follower su Slow 90, bar mul
+
+BERSAGLIO BUGS:999
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.130
+  BUGS:999 verbatim -> | 22 | 2026-06-28 | CC chat principale 28/06 | **Ticket collaudo device `59ab33e`.** NUOVI §1.2: TD-qlive-libero-limbo (limbo `LiveRootView:8` + waiting default `.collaborativa` `TransportView:38-58` 
+
+BERSAGLIO BUGS:1004
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1023
+  BUGS:1004 verbatim -> | 27 | 2026-07-01 | CC chat principale 01/07 | **`TD-ipad-editor-fontsize` 🟢 CHIUSO (device 01/07, Mauro «ok tutto bene»).** Fix = 7 atomi Mauro/zero-Co-Auth/CI-verdi su HEAD `11e5017` (scaleFactor ed
+
+BERSAGLIO BUGS:1006
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.361, BUGSr.1024
+  BUGS:1006 verbatim -> | 29 | 2026-07-03 | CC chat principale 03/07 | **Nuovo ticket §1.2 `TD-store-decode-swallow` (doc-only).** Errore di decode ingoiato in `QBeatsStore.coordinatedRead` (`Store/QBeatsStore.swift:163-165`
+
+BERSAGLIO BUGS:1361
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1013
+  BUGS:1361 verbatim -> [FUORI RANGE — BUGS ha 1029 righe a HEAD]
+
+BERSAGLIO LIBRO:32
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.318
+  LIBRO:32 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO LIBRO:34
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.317
+  LIBRO:34 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO LIBRO:101
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.309
+  LIBRO:101 verbatim -> ### App e modalità
+
+BERSAGLIO LIBRO:103
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.318
+  LIBRO:103 verbatim -> |---|---|
+
+BERSAGLIO LIBRO:104
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.318
+  LIBRO:104 verbatim -> | Q-BEATS, Q-B | App iOS per batteristi live (metronomo + setlist teleprompter + backtrack) |
+
+BERSAGLIO LIBRO:167
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.309
+  LIBRO:167 verbatim -> | `.playing` | Esecuzione in corso | attivo |
+
+BERSAGLIO LIBRO:219
+  citato da 1 occorrenza/e (1 ancorate, 0 nude): BOX5r.385
+  LIBRO:219 verbatim -> | 2026-05-21 | Q8=A — Layout schermo STOP: bottone "Resume from {section.name}" + bottone "Restart {song.name}" + zona swipe orizzontale + indicatore `<< X / Y >>` (mockup grezzo 20/05) | Mauro + CD |
+
+BERSAGLIO LIBRO:252
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.311
+  LIBRO:252 verbatim -> | 2026-05-27 | ⚠️ **MOTIVAZIONE CADUTA IN PARTE, RATIFICA VALIDA — la riga `2026-07-31` RETTIFICA — LA DISTANZA DI 2 METRI NON È MAI ESISTITA falsifica la premessa «leggibilità palco in penombra a 2m»
+
+BERSAGLIO LIBRO:255
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.311
+  LIBRO:255 verbatim -> | 2026-05-29 | **Caveat implementativo CD-Q2=B — CANCEL → Bivio (interim)**: la Vista WAITING FOR DIRECTOR implementa CANCEL come ritorno al **Bivio** (BivioBoard) invece che a **Select Setlist** come
+
+BERSAGLIO LIBRO:257
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.311
+  LIBRO:257 verbatim -> | 2026-06-11 | **Bug 2.b (Ferita A + Ferita B) CHIUSO** e mergiato su master `ee0cbc0` (squash, CI verde, *Verify entitlements* ✓). **Chiude il fronte cross-device di sync sezione + accento ai cambi d
+
+BERSAGLIO LIBRO:278
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.311
+  LIBRO:278 verbatim -> | 2026-07-11 | **Q14 (risolta)** — Copy corretta: «Shows without a date go last» → «Chronological» (criterio "Concert date" della sort sheet, Q11). **Motivo cross-team:** `Setlist.date` è un campo OBB
+
+BERSAGLIO LIBRO:285
+  citato da 5 occorrenza/e (0 ancorate, 5 nude): BUGSr.360, BUGSr.360, BUGSr.1022, BUGSr.1023, LIBROr.490
+  LIBRO:285 verbatim -> | 2026-07-18 | **Proprietà del `SetlistRunner` sale alla stanza Q-Live (Mauro)** — se l'audio sopravvive alla navigazione, deve sopravvivere anche lo stato che lo governa. Slot RISERVATO e VUOTO all'i
+
+BERSAGLIO LIBRO:290
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.122, BUGSr.1023
+  LIBRO:290 verbatim -> | 2026-07-20 | **S4b CHIUSO, device-validato** — Q-Live apre la lista Shows read-only invece di LiveView diretto; commit `6ded4ab`, CI `29686746553` verde. Gate device eseguito da Mauro il 20/07 sullo
+
+BERSAGLIO LIBRO:295
+  citato da 2 occorrenza/e (2 ancorate, 0 nude): SCALETTAr.148, SCALETTAr.204
+  LIBRO:295 verbatim -> | 2026-07-20 | **R-β e R-γ, regole di processo cross-team** — **R-β**: nessun puntatore a NUMERO DI RIGA, in un documento o in un commento di codice, senza ancoraggio a commit. Casi che l'hanno prodot
+
+BERSAGLIO LIBRO:299
+  citato da 2 occorrenza/e (1 ancorate, 1 nude): BOX5r.350, BOX5r.363
+  LIBRO:299 verbatim -> | 2026-07-24 | **CARD Q-LIVE › SHOWS — 4 decisioni chiuse.** §1 forma **③ riga compatta**, una sola, nessuna soglia card/riga (rimodellerebbe lo schermo alla quinta data); la forma ① card resta agli a
+
+BERSAGLIO LIBRO:301
+  citato da 3 occorrenza/e (1 ancorate, 2 nude): BOX5r.336, BOX5r.341, BOX5r.400
+  LIBRO:301 verbatim -> | 2026-07-26 | **COPY POPUP REMOVE — supersede la postilla 1.** Titolo `Remove "{show}" from Q-Live?` · messaggio `It leaves this list only — you'll find it again in Q-Stage.` (em-dash) · bottoni `Can
+
+BERSAGLIO LIBRO:302
+  citato da 4 occorrenza/e (2 ancorate, 2 nude): BOX5r.328, LIBROr.329, LIBROr.329, SCALETTAr.287
+  LIBRO:302 verbatim -> | 2026-07-26 | **POSTILLA 2 — il menu «···» NON si costruisce pre-⟦S4L⟧.** Pre-⟦S4L⟧ si costruisce **solo** la forma ③ della riga compatta, più il congedo tastiera Q20. Pillola ▶, «···», action sheet,
+
+BERSAGLIO LIBRO:303
+  citato da 4 occorrenza/e (1 ancorate, 3 nude): BOX5r.323, BOX5r.324, BOX5r.404, SCALETTAr.280
+  LIBRO:303 verbatim -> | 2026-07-26 | **POSTILLA 3 — «Remove from Q-Live» inerte con sessione armata o in play**: la voce resta visibile ma **disabilitata**. È un gesto di preparazione, non di palco: farlo a metà concerto m
+
+BERSAGLIO LIBRO:304
+  citato da 3 occorrenza/e (1 ancorate, 2 nude): BOX5r.344, BOX5r.405, LIBROr.312
+  LIBRO:304 verbatim -> | 2026-07-26 | **CONTRATTO Q20 — congedo tastiera in Q-Live › Shows.** Gesto canonico: «Done» su toolbar accessoria pinnata sopra la tastiera, sempre visibile, ≥44pt, arancio (accento Q-Live — **non**
+
+BERSAGLIO LIBRO:306
+  citato da 4 occorrenza/e (3 ancorate, 1 nude): BOX5r.389, SCALETTAr.39, SCALETTAr.141, SCALETTAr.254
+  LIBRO:306 verbatim -> | 2026-07-26 | **EMENDAMENTO ALL'INVARIANTE — Q-Live cessa di essere di sola lettura.** La prima scrittura sui dati utente entra con ⟦S4L⟧ ed è **limitata allo stato di appartenenza dello show a Q-Liv
+
+BERSAGLIO LIBRO:307
+  citato da 2 occorrenza/e (1 ancorate, 1 nude): BOX5r.388, SCALETTAr.258
+  LIBRO:307 verbatim -> | 2026-07-27 | **CONFINE DISTRUTTIVO Q-LIVE / Q-STAGE — regola normativa, non descrizione dello stato attuale.** Quando la cancellazione definitiva di una setlist verrà costruita, **potrà vivere solo 
+
+BERSAGLIO LIBRO:308
+  citato da 3 occorrenza/e (2 ancorate, 1 nude): BOX5r.383, BOX5r.403, SCALETTAr.260
+  LIBRO:308 verbatim -> | 2026-07-27 | **DOVE VIVE «Remove from Q-Live» ALL'ATOMO ⟦S4L⟧ — opzione A-bis.** A ⟦S4L⟧ la riga Q-Live porta **entrambe** le vie: il menu «···» con **una sola voce**, «Remove from Q-Live», **più** 
+
+BERSAGLIO LIBRO:311
+  citato da 7 occorrenza/e (1 ancorate, 6 nude): BOX5r.390, BOX5r.391, BOX5r.397, BOX5r.398, LIBROr.317, LIBROr.484, SCALETTAr.267
+  LIBRO:311 verbatim -> | 2026-07-27 | **FORMA POPUP REMOVE — Mauro sceglie ②** (riquadro centrale, due bottoni impilati). Proprietà attribuite al FILE, non a Mauro: `Ordine` Remove in alto / Cancel in basso · `Default` Canc
+
+BERSAGLIO LIBRO:312
+  citato da 5 occorrenza/e (2 ancorate, 3 nude): BOX5r.344, BOX5r.345, LIBROr.484, SCALETTAr.182, SCALETTAr.263
+  LIBRO:312 verbatim -> | 2026-07-27 | **CONTRATTO Q20 — RICONFERMATO SUL CONTENUTO RILETTO.** La ratifica è **già agli atti** alla riga `2026-07-26` **CONTRATTO Q20** (`Mauro: «ok va bene»`, stato `attiva`): questa riga **n
+
+BERSAGLIO LIBRO:313
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BOX5r.342, BOX5r.364
+  LIBRO:313 verbatim -> | 2026-07-27 | **CHIP «Read-only» in testa alla lista Q-Live — RIMOSSO.** Via A delle tre proposte da CD. Motivo: dal giorno in cui Remove esiste, «sola lettura» non è più vero — e la riga `2026-07-26
+
+BERSAGLIO LIBRO:317
+  citato da 12 occorrenza/e (1 ancorate, 11 nude): BUGSr.360, BUGSr.360, BUGSr.360, BUGSr.1023, BUGSr.1023, LIBROr.322, LIBROr.322, LIBROr.328, LIBROr.328, LIBROr.329, SCALETTAr.224, SCALETTAr.230
+  LIBRO:317 verbatim -> | 2026-07-28 | **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI — ratificato.** La scheda ⟦S4L⟧ della SCALETTA v2 (`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`) conteneva **due contratti opposti sotto un solo nome**: «
+
+BERSAGLIO LIBRO:318
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.325
+  LIBRO:318 verbatim -> | 2026-07-30 | **⟦S4K⟧ CONGEDO TASTIERA (contratto Q20) — CHIUSO, device-validato.** Commit `b9f4e5f0c806a40938136cd8bb076f590c5e851d`, CI run `30456740570` **success** (letta verbatim da `gh run view
+
+BERSAGLIO LIBRO:319
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.325
+  LIBRO:319 verbatim -> | 2026-07-30 | **DARK-DECL — `UIUserInterfaceStyle: Dark`. CHIUSO, device-validato.** Commit `6c7352a19b0dc6edadca8c14d34939ca30711369`, CI run `30463659772` **success**. Una sola riga, in `ios_app/pr
+
+BERSAGLIO LIBRO:322
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.487
+  LIBRO:322 verbatim -> | 2026-07-30 | **NUOVA REGOLA DI PROCESSO — INDIRIZZO, NON COPIA.** Accanto a R-β e R-γ: «**Un documento può CITARE il contenuto di un altro; non può DICHIARARNE LO STATO. Lo stato appartiene a chi lo
+
+BERSAGLIO LIBRO:324
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.325
+  LIBRO:324 verbatim -> | 2026-07-30 | **ARTEFATTI NORMATIVI FUORI DAL CONTROLLO DI VERSIONE — buco dichiarato, non regime.** Il contratto CD normativo di ⟦S4K⟧ — `2026-07-26_QLive-Shows-Keyboard-Dismiss__Q20-RIEMISSIONE.htm
+
+BERSAGLIO LIBRO:329
+  citato da 3 occorrenza/e (1 ancorate, 2 nude): LIBROr.334, LIBROr.334, LIBROr.342
+  LIBRO:329 verbatim -> | 2026-07-31 | **ORDINE DEGLI ATOMI §6 EMENDATO — ⟦S5⟧ SALE PRIMA DI ⟦S4L⟧, e ⟦S-EXIT⟧ si colloca fra i due. Nessuna ratifica ribaltata.** `LIBRO_MASTRO_QBEATS.md:317` incide «ORDINE OBBLIGATORIO: ⟦S4
+
+BERSAGLIO LIBRO:330
+  citato da 1 occorrenza/e (1 ancorate, 0 nude): BUGSr.130
+  LIBRO:330 verbatim -> | 2026-07-31 | **⟦S4R⟧ CHIUSO — la proprietà del runner sale alla stanza.** `QLiveSession` nuovo: slot runner opzionale **senza mutatore**, non riempibile per costruzione. Gate `if let runner` nel ram
+
+BERSAGLIO LIBRO:356
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.489
+  LIBRO:356 verbatim -> | CD-6 | Vista WAITING FOR DIRECTOR (Follower tap PLAY senza Director attivo via Link) | **implementato e validato device 29/05** (caveat CANCEL→Bivio interim, vedi sez. 2 29/05) | 2026-05-29 | Ratifi
+
+BERSAGLIO LIBRO:408
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.325
+  LIBRO:408 verbatim -> Entrambe nascono dalla giornata del 29/07 (Sez.2, righe ⟦S4K⟧ e DARK-DECL) e sono **registrazioni, non ratifiche**: nessuna delle due è decisa.
+
+BERSAGLIO LIBRO:467
+  citato da 11 occorrenza/e (0 ancorate, 11 nude): BUGSr.360, BUGSr.360, BUGSr.361, BUGSr.361, BUGSr.361, BUGSr.361, BUGSr.1023, BUGSr.1024, BUGSr.1024, LIBROr.489, LIBROr.491
+  LIBRO:467 verbatim -> | 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisione di prodotto* (Mauro 28/06) — app portrait-only su tutti i device, landscape=v2. 
+
+BERSAGLIO LIBRO:476
+  citato da 1 occorrenza/e (1 ancorate, 0 nude): BUGSr.361
+  LIBRO:476 verbatim -> | 35 | 2026-07-17 | Mauro + CC + referee | **Sez.2 +1 riga cross-team: NODO A CHIUSO** (device-validato Mauro 17/07) — Q-Live assorbita in `AppRootView.Screen.qLive`, modale UIKit ritirata, sblocca S4
+
+BERSAGLIO LIBRO:1006
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.489
+  LIBRO:1006 verbatim -> [FUORI RANGE — LIBRO ha 496 righe a HEAD]
+
+BERSAGLIO SCALETTA:8
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1024
+  SCALETTA:8 verbatim -> - **Freeze contratto (IN GIT):** contratto vivo `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0` (taglio +Q7-Q16). Riferimenti al freeze per SELETTORE, mai per riga. R7: nessuno sha256 inciso.
+
+BERSAGLIO SCALETTA:60
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): SCALETTAr.160
+  SCALETTA:60 verbatim -> - **Scopo:** 3 corpi empty (no-shows/show-vuoto/all-orphan) + CTA + slot MetroFAB; no header, no routing. ⚠️ La 10/07 diceva «CTA morte»: SUPERATO da CD-Q9 (LIBRO v31) — la CTA «Go to Q-Stage» è ATTIV
+
+BERSAGLIO SCALETTA:129
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): BUGSr.1024
+  SCALETTA:129 verbatim -> - **⚠️ PREREQ (bloccanti PRIMA di N1a/S4):** [1] leggere AudioEngine a source (`@ 6fca624`, per SIMBOLO: `stop()` → `stopSync()`, doppia guardia `guard self.isRunning` e `guard wasRunning` — a HEAD `A
+
+BERSAGLIO SCALETTA:130
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.1018, LIBROr.295
+  SCALETTA:130 verbatim -> [RIGA VUOTA]
+
+BERSAGLIO SCALETTA:141
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.322
+  SCALETTA:141 verbatim -> dati utente» (`LIBRO_MASTRO_QBEATS.md:306 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`). In più
+
+BERSAGLIO SCALETTA:144
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.328
+  SCALETTA:144 verbatim -> ⚠️ **RATIFICA NON ANCORA ATTERRATA IN LIBRO — pendenza aperta.** Misurato: «S4K» e «S4R» rendono
+
+BERSAGLIO SCALETTA:213-215
+  citato da 2 occorrenza/e (0 ancorate, 2 nude): BUGSr.360, BUGSr.1023
+  SCALETTA:213 verbatim ->   senza runner iniettato, garantito dal gate `if let runner` — ma ne cambia la **lettera**, perché il
+  SCALETTA:215 verbatim -> - **🔴 PROPRIETÀ DEL RUNNER — decisione Mauro 18/07, ratificata, trasportata qui dallo sdoppiamento.**
+
+BERSAGLIO SCALETTA:219
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.326
+  SCALETTA:219 verbatim ->   `ios_app/QBeats/UI/LiveRootView.swift:12-13 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`
+
+BERSAGLIO SCALETTA:261
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.329
+  SCALETTA:261 verbatim -> - **Dipendenze (entrambe dure):** ⟦S4R⟧ — serve il runner iniettato; ⟦S4K⟧ — il congedo tastiera
+
+BERSAGLIO SCALETTA:272-274
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.329
+  SCALETTA:272 verbatim ->   ⚠️ **Il file del campo di persistenza NON si dichiara qui:** la forma tecnica del campo è scelta
+  SCALETTA:274 verbatim ->   costruzione, non a naso adesso.
+
+BERSAGLIO SCALETTA:275-278
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.329
+  SCALETTA:275 verbatim -> - **Reversibilità:** ⚠️ **NON pulita come gli altri atomi §6** — è il solo che tocca i dati
+  SCALETTA:278 verbatim ->   della costruzione**, non qui.
+
+BERSAGLIO SCALETTA:290-295
+  citato da 1 occorrenza/e (0 ancorate, 1 nude): LIBROr.329
+  SCALETTA:290 verbatim -> - **⚠️ PENDENZA — la pillola ▶ non ha atomo assegnato in questa scaletta.** Delle cinque parti del
+  SCALETTA:295 verbatim ->   si registra, non si decide qui.**
+
+====================================================================================================
+SEZIONE 4 — SONDE OBBLIGATORIE (mandato punto 4)
+----------------------------------------------------------------------------------------------------
+Per ogni FORMA di pattern: una sonda NEGATIVA che non puo' esistere, una POSITIVA della stessa
+forma che deve esistere. Nessuno zero e' accettato senza una sonda positiva accanto (metodologia
+gia' in uso nel progetto: falso-zero da filtro).
+
+(1) forma bare NOME:num
+    negativa LIBRO:99999 -> 0 occorrenze (atteso 0)
+    positiva LIBRO:285   -> 0 occorrenze (atteso >0)
+    ESITO: ANOMALIA
+
+(2) forma bare NOME:num-num (range)
+    negativa LIBRO:99999-99998 -> 0 occorrenze (atteso 0)
+    positiva LIBRO:336-342     -> 0 occorrenze (atteso >0, e' l'handoff 01/08 a citarla)
+    ESITO: ANOMALIA
+
+(3) forma NOME_QBEATS.md:num (.md-suffisso)
+    negativa LIBRO_MASTRO_QBEATS.md:99999 -> 0 occorrenze (atteso 0)
+    positiva LIBRO_MASTRO_QBEATS.md:<qualsiasi num>, tutte le fonti -> 32 occorrenze (atteso >0)
+    ESITO: sonda valida
+
+    Sonda specifica sul token SCALETTA_QBEATS.md, che rende 0 in Sezione 2 (l'unico token davvero
+    a zero totale su tutte le fonti): il meccanismo di ricerca e' lo STESSO regex-shape del punto
+    precedente, gia' validato positivo su LIBRO_MASTRO_QBEATS.md. Seconda forma indipendente:
+    grep-equivalente regex 'SCALETTA_QBEATS.md:\d+' su tutte le fonti -> 0
+    sottostringa nuda 'SCALETTA_QBEATS.md' (anche senza ':num' dopo) su tutte le fonti -> 0
+    ESITO: zero CONFERMATO in due forme indipendenti — la stringa non compare MAI, nemmeno spezzata.
+
+(4) forma r.num
+    negativa r.99999 (tutte le fonti) -> 0 occorrenze (atteso 0)
+    positiva r.360   (tutte le fonti) -> 0 occorrenze (atteso >0)
+    ESITO: ANOMALIA
+
+====================================================================================================
+
+SEZIONE 5 — MISURE LIBRO A HEAD (mandato punto 5)
+----------------------------------------------------------------------------------------------------
+  byte(blob)        235589
+  righe (wc -l)      495
+  CR metodo A (tr -cd '\r' | wc -c, replicato in Python su byte)   0
+  CR metodo B (corroborazione via od -An -tx1, conteggio byte 0d)  0
+  CONCORDANO
+  byte(disco)        236084  (nota: DIVERSO dal blob per costruzione — CRLF su disco, LF nel blob;
+                      differenza attesa = numero di LF nel blob = 495; 495 osservata)
+  sha256(disco)      7d6f37b1d2b8cebde4e50708759200f7d68f5050baa909b0ca4b0da19ccd305b
+  voce 43 del registro -> riga 484
+
+====================================================================================================
+SEZIONE 6 — VERIFICHE SPECIFICHE, sospetti del referee su BUGS v47 @ 0ee9543, misurati a HEAD
+----------------------------------------------------------------------------------------------------
+
+(a) BUGS:349 punta a una riga VUOTA?
+    misura: BUGS riga 349 a HEAD = ''
+    ESITO: CONFERMATO
+
+(b) la riga che scrive 'BUGS:355 (questa stessa riga)' e' in realta' la 360?
+    citazioni letterali 'BUGS:355' trovate a: righe [360, 1023] di BUGS
+    contenuto REALE di BUGS:355 a HEAD (primi 150c): '- **⚠️ SUPERATO IN PARTE — 29/07: la parte principale è CHIUSA su device. I quattro bullet sopra restano ESATTAMENTE come sono scritti: sono storia, s'
+    contenuto di BUGS:360 (dove la citazione '355 = questa riga' vive davvero, primi 150c):
+      '- **Stato:** 🟡 **RESIDUO APERTO.** La trappola originale — tastiera non chiudibile in nessun modo — è 🟢 **CHIUSA su device il 29/07**; resta aperta la'
+    ESITO: CONFERMATO, e con un dettaglio in piu' non chiesto dal prompt: la citazione stale
+    'BUGS:355 (questa stessa riga)' non vive in UN solo posto ma in DUE: riga 360 (il bullet)
+    e riga 1023 (voce 46 del registro, che lo ricopia). Entrambe stale nello stesso modo.
+
+(c) la clausola 'questa marcatura NON tocca r.1006' si riferisce a occorrenze che oggi stanno
+    a r.1023 e r.1024?
+    citazioni letterali 'r.1006' trovate a: righe [361, 1024] di BUGS
+    contenuto REALE di BUGS:1006 a HEAD (primi 150c): '| 29 | 2026-07-03 | CC chat principale 03/07 | **Nuovo ticket §1.2 `TD-store-decode-swallow` (doc-only).** Errore di decode ingoiato in `QBeatsStore.c'
+    -> e' la voce 29 del registro (03/07, TD-store-decode-swallow): NULLA a che fare con LIBRO:467.
+    occorrenze nude 'LIBRO:467' in BUGS oggi, per riga: {360: 2, 361: 4, 1023: 1, 1024: 2}
+    -> vivono a riga 360 (x2, il bullet stesso) 361 (x4, la marcatura) 1023 (x1, voce 46)
+       1024 (x2, voce 47): le occorrenze di REGISTRO (quelle che 'r.1006' pretendeva di escludere)
+       sono esattamente 1023 e 1024, non 1006.
+    ESITO: CONFERMATO.
+
+(d) le occorrenze di 'LIBRO:' nudo in BUGS sono 18, non 9 (:467 x9, :317 x5, :285 x3, :290 x1)?
+    totale occorrenze token bare 'LIBRO' in BUGS: 18
+    composizione per bersaglio: {285: 3, 290: 1, 317: 5, 467: 9}
+    di cui ancorate (@ commit): 0  /  nude vere: 18
+    atteso dal prompt: {467: 9, 317: 5, 285: 3, 290: 1}  (somma 18)
+    ESITO: CONFERMATO ESATTO
+    Nota: le 18 occorrenze sono TUTTE nude (0 ancorate) — nessuna delle citazioni bare 'LIBRO:NNN'
+    dentro BUGS usa ancora la forma '@ <commit a 40>' ratificata il 01/08 (LIBRO:335) per i
+    sorgenti; qui non risulta applicata nemmeno una volta ai propri stessi puntatori su LIBRO.
+
+====================================================================================================
+
+Fine censimento. Nessuna correzione proposta, nessun file tracciato toccato, per mandato.
+Deposito: MISURE_CC_2026-08-02_P1-CENSIMENTO-PUNTATORI.txt

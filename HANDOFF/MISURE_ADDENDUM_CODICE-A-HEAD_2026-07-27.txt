@@ -1,0 +1,181 @@
+================================================================================
+ADDENDUM alle MISURE del 2026-07-27 — verifica del CODICE a HEAD
+================================================================================
+ADDENDUM al file MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+(sha256 6bef059c20d5a5d49bc9882bde2ed4fde8bdc1e0e9ee20ca292c4ebe5f80d55e, 20376 B).
+Quel file NON e' stato modificato: la sua impronta resta valida. Questo e' un file
+SEPARATO perche' l'impronta del primo era gia' stata dichiarata, e cambiarla in
+silenzio sarebbe il difetto che stiamo bonificando.
+
+Prodotto da CC, misure di prima mano. Nessuna scrittura sui canonici.
+HEAD = 8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+================================================================================
+1) I SEI VALORI NEL SORGENTE A HEAD — CI SONO TUTTI E SEI
+================================================================================
+CMD: grep -rni "<valore>" ios_app/
+
+2a6bd6 -> 3 occorrenze
+  ios_app/QBeats/UI/Live/LiveHeaderView.swift:107:  .fill(Color(hex: "#2a6bd6"))
+  ios_app/QBeats/UI/Live/LiveHeaderView.swift:109:  .shadow(color: Color(hex: "#2a6bd6"), radius: 3)
+  ios_app/QBeats/UI/QStage/QStageKit.swift:15:  static let blue = Color(hex: "#2a6bd6")
+d43f00 -> 1 occorrenza   ios_app/QBeats/UI/QStage/QStageKit.swift:16
+17a8a8 -> 1 occorrenza   ios_app/QBeats/UI/QStage/QStageKit.swift:17
+9cc0f5 -> 1 occorrenza   ios_app/QBeats/UI/QStage/QStageKit.swift:18
+ff8a5c -> 1 occorrenza   ios_app/QBeats/UI/QStage/QStageKit.swift:19
+5fc8c8 -> 1 occorrenza   ios_app/QBeats/UI/QStage/QStageKit.swift:20
+
+CONTROLLO POSITIVO: 28cd41 -> 5 occorrenze (MetSlotStripView.swift:29,38 ·
+QStageKit.swift:22 · SectionEditorView.swift:256,265). Il filtro funziona.
+
+================================================================================
+2) IL BLOCCO NEL CODICE, VERBATIM — ios_app/QBeats/UI/QStage/QStageKit.swift
+================================================================================
+CMD: git show HEAD:ios_app/QBeats/UI/QStage/QStageKit.swift | sed -n '1,27p'
+
+ 1  import SwiftUI
+ 2
+ 3  // MARK: - Token visivi condivisi di Q-Stage — Design System CD (27/06)
+ 4  // Q-STAGE = ambiente "fuori dal play" -> BLU NOTTE (#0c1024).
+ 5  // Il neutro #0e0e10 (antracite) resta SOLO alla Vista Q-Live sul palco.
+ 6  enum QStageTheme {
+ 7      static let bg       = Color(hex: "#0c1024")      // sfondo schermo · blu notte
+ 8      static let surface  = Color(hex: "#141832")      // card · contenitore gear
+ 9      static let surface2 = Color(hex: "#1c2248")      // superficie piu' chiara (raro)
+10      static let line     = Color.white.opacity(0.08)
+11      static let line2    = Color.white.opacity(0.14)
+12      static let text     = Color.white
+13      static let text2    = Color.white.opacity(0.55)
+14      static let text3    = Color.white.opacity(0.30)
+15      static let blue     = Color(hex: "#2a6bd6")      // accento Q-Stage · stati selezionati
+16      static let orange     = Color(hex: "#d43f00")    // accento Q-Live · BRAND Q-Live condiviso (§3.4) — non duplicare
+17      static let teal       = Color(hex: "#17a8a8")    // accento Q-Studio (§3.4)
+18      static let blueTint   = Color(hex: "#9cc0f5")    // -tint blu (§3.4) · doppio uso = testo-su-blu selezionato §7
+19      static let orangeTint = Color(hex: "#ff8a5c")    // -tint orange (§3.4)
+20      static let tealTint   = Color(hex: "#5fc8c8")    // -tint teal (§3.4)
+21      static let amber    = Color(hex: "#f5b820")      // azione primaria (FAB +), tab attiva
+22      static let green    = Color(hex: "#28cd41")      // chip IN SYNC (solo stile, non funzione)
+23      static let stop     = Color(hex: "#ff3b30")      // BLOCKED / distruttivo
+24      static let ink      = Color(hex: "#11131a")      // glifo "+" scuro su FAB ambra
+25
+26      static let accent   = amber                      // alias storico (= azione primaria)
+27  }
+
+=> VERDETTO PRINCIPALE: i sei valori NON sono aspirazionali. Sono implementati,
+   in un unico punto, con commenti che citano la stessa §3.4 dei documenti CD.
+   La sezione BOX5 documentera' un sistema CHE IL CODICE GIA' IMPLEMENTA.
+
+================================================================================
+3) NOMI: IL CODICE NON HA LA TRAPPOLA "--studio"
+================================================================================
+CMD: grep -rn '\-\-studio' ios_app/  -> 0
+CMD: grep -rn '\-\-teal'   ios_app/  -> 0
+CMD: grep -rn '\-\-live'   ios_app/  -> 2  (SOLO in commenti, vedi sotto)
+CONTROLLO POSITIVO (nomi Swift reali):
+  QStageTheme -> 138 occorrenze · blueTint -> 2 · orangeTint -> 9 · tealTint -> 3
+
+Il token del blu in Swift si chiama `blue`, NON `studio`. La trappola di nome
+(`--studio` = Q-Stage, non Q-Studio) esiste in DUE documenti CD
+(QBEATS_CD_to_CC_DesignSystem_26_06_2026.md r.20 · HANDOFF_CD_SHOWS_09_07_2026.md
+r.40) ma NON nel codice, e nemmeno nel terzo documento CD
+(HANDOFF_CD_Home_28_06_2026.md r.38, che usa gia' `--blue`).
+=> La trappola e' DOCUMENTALE, non implementativa. Va incisa come tale.
+
+================================================================================
+4) TRE DIVERGENZE MISURATE, da incidere accanto ai valori
+================================================================================
+(a) `#d43f00` — LA DEDUPLICA E' AVVENUTA.
+    La fonte CD (RISPOSTA_CD_DS_Terna r.18) dice «finora hardcoded -> ora si
+    riferisce, non si duplica». Misurato: 1 sola occorrenza in tutto ios_app/,
+    dentro il token. Claim VERIFICATA COMPLETATA.
+
+(b) `#2a6bd6` — 2 occorrenze HARDCODED fuori dal token, in DEAD CODE.
+    LiveHeaderView.swift:107,109 — dentro `if false` (STEP 2, placeholder LED
+    per `bleMIDIConnected`, non ancora cablato). Contesto verbatim r.104-110:
+      104  // STEP 2: sostituire false con audioEngine.bleMIDIConnected
+      105  if false {
+      106      Circle()
+      107          .fill(Color(hex: "#2a6bd6"))
+      108          .frame(width: 5, height: 5)
+      109          .shadow(color: Color(hex: "#2a6bd6"), radius: 3)
+      110  }
+    E' un TERZO ruolo del valore (colore LED in Q-Live), hardcoded, in codice
+    morto. Debito minore, non contraddizione viva. Da tracciare, non da bloccare.
+
+(c) `#ff8a5c` — DUE NOMI PER LO STESSO VALORE.
+    CD lo chiama `--orange-tint`. I commenti del codice lo chiamano `--live-l`:
+      ios_app/QBeats/UI/QLive/MetroFAB.swift:60      «icona/testo orangeTint (--live-l)»
+      ios_app/QBeats/UI/QLive/QLiveShowsView.swift:100  «colore --live-l, bg live .12...»
+    Stesso valore, due nomi in circolazione. Il nome Swift e' `orangeTint`.
+
+================================================================================
+5) ESISTE UN SECONDO NAMESPACE — QLiveTheme (non nei documenti misurati)
+================================================================================
+CMD: git show HEAD:ios_app/QBeats/UI/QLive/QLiveKit.swift | sed -n '1,12p'
+ 3  // MARK: - Token strutturali Q-Live — Design System CD (§3, freeze "Cancello 1" b23dfc78)
+ 4  // Q-LIVE = ambiente "sul palco" -> neutro antracite #0e0e10 (resta inline nelle viste Live).
+ 5  // I 3 token qui erano marcati [DS] nel freeze ma ASSENTI dal codice -> promossi (§3, "Zero-hex-fuori-DS").
+ 6  // Namespace SEPARATO da QStageTheme (kit di Q-Stage; QStageKit.swift:4-5 riserva #0e0e10 alla sola Q-Live).
+ 7  // NB: gli swatch colore-TAG restano fuori dal DS (R1-pending) finche' R1 non ratifica la palette — NON qui.
+ 8  enum QLiveTheme {
+ 9      static let surf = Color(hex: "#16161a")      // superficie card/pill Q-Live · --qlive-surf
+10      static let bd   = Color.white.opacity(0.06)  // bordo strutturale Q-Live    · --qlive-bd
+11      static let pick = Color(hex: "#1a1614")      // evidenza last-opened (cosmetica) · --qlive-pick
+12  }
+=> Il design system nel codice e' su DUE namespace, non uno. I quattro documenti
+   CD misurati non lo dicono. Non blocca l'incisione della terna, ma la sezione
+   non deve lasciar credere che QStageTheme sia tutto.
+
+NOTA DI NOME: il file si chiama QStageKit.swift ma l'enum si chiama QStageTheme.
+Un terzo file (EmptyStateKit.swift:17,45) cita «QStageTheme.text3 (via QStageKit)».
+Divergenza file/simbolo pre-esistente, segnalata per non generare citazioni rotte.
+
+================================================================================
+6) FILE C — LA VERIFICA APERTA SU #0a0e20 E' CHIUSA
+================================================================================
+File: E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\
+      27_07_2026\UPDATE2\2026-07-27_Alert-Distruttivo-FORMA__3-vie.html
+      sha256 9c3ea2bfce36d43d1018bdc29b6c3b25083895e1b5f202ab043d415ed0dc1edd
+
+CMD: grep -n '0a0e20'  -> 0 occorrenze
+CONTROLLO POSITIVO: grep -c '16140f' -> 8 (il filtro funziona)
+Altri blu: 3d80e6 -> 0 · 9cc0f5 -> 0 · 2a6bd6 -> 1
+
+L'unica occorrenza di 2a6bd6, riga 37, verbatim:
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.06);
+--qlive-pick:#1a1614;--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);
+--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff453a;--stage:#2a6bd6}
+
+RIGA IDENTICA nel file C VECCHIO (UPDATE, 9917bf75...): pre-esistente, NON del
+giro di oggi.
+
+E' USATA? CMD: grep -o '\-\-stage[^;:]*'  -> 1 sola occorrenza, riga 37 = la
+sola dichiarazione. Nessun uso.
+⚠️ Il primo controllo positivo che avevo scelto (`var(--live)`, `var(--amber)`)
+ha reso ZERO ANCH'ESSO: filtro non provato, misura non valida. Rifatto:
+  grep -c 'var('     -> 15   (il file USA le variabili CSS)
+  grep -o '--live[^;:]*' | uniq -c ->  1 «--live» · 1 «--live-l» · 1 «--live-l)»
+                                       · 1 «--live-l)}»   (le forme con ")" = usi)
+  grep -c 'd43f00' -> 2 · grep -c 'ff453a' -> 2  (colori anche inline)
+=> Ora il confronto regge: `--live-l` e' dichiarata E usata; `--stage` e' solo
+   dichiarata. `--stage:#2a6bd6` e' CSS MORTO ereditato dal template.
+
+VERDETTO C: il blu NON e' sopravvissuto in un gradiente. L'unica traccia e' una
+variabile dichiarata, mai usata, presente identica anche prima del giro di oggi.
+
+================================================================================
+7) PUNTO 3 DEL REFEREE — LE FONTI NON SI SONO MOSSE
+================================================================================
+CMD: Get-ChildItem 'E:\...\FILE X CLAUDE.MD' -File -Recurse | ? CreationTime -ge 19:34
+  -> 0 file
+Rimisurate ora, direttamente:
+  payload  df55ccdc3a8bcaa01987be7dedbe719ccbb62a5b7dc5c59c149b964bc9489115  7444 B
+  file C   9c3ea2bfce36d43d1018bdc29b6c3b25083895e1b5f202ab043d415ed0dc1edd  43464 B
+=> Identiche a quelle del primo artefatto. Nessuna correzione di CD e' ancora
+   arrivata su E:. La riga «palette» resta NON INCIDIBILE (la sua fonte contiene
+   ancora la clausola «mai l'app», falsa a fonte). Per la riga «forma», l'unica
+   verifica che era aperta e' chiusa qui al punto 6.
+
+================================================================================
+FINE ADDENDUM.
+================================================================================

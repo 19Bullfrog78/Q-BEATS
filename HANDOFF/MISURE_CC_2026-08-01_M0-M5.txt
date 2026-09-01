@@ -1,0 +1,712 @@
+================================================================================
+MISURE CC - 2026-08-01 - giro M0-M5 richiesto dal referee.
+SOLA LETTURA. Zero scritture sui file misurati. Zero commit. Zero correzioni.
+================================================================================
+REGOLA VINCOLANTE DEL GIRO: ogni numero con DUE forme indipendenti, o non entra.
+  Applicata cosi': byte = stat + wc -c (oppure cat-file -s + wc -c sui blob).
+  righe = wc -l + awk NR. CR = tr -cd + python su byte. OID git = rev-parse +
+  ls-tree + hash-object (tre forme). Ogni coppia porta il verdetto CONCORDI o
+  *** DISCORDI ***, stampato dal confronto, non dichiarato da CC.
+  Gli output sono GREZZI, rediretti dal comando. Il file non contiene il
+  proprio sha256: le impronte stanno nel messaggio di consegna.
+
+[V] Orologio macchina: 2026-08-01 10:24:11 +0200
+[V] HEAD: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+
+--------------------------------------------------------------------------
+M0 - QUALE FILE SERALE
+--------------------------------------------------------------------------
+[V] comando: ls -la HANDOFF/ | tail -20
+--- OUTPUT GREZZO ---
+-rw-r--r-- 1 BULLFROG 197609 25863 Jul 28 12:03 MISURE_R2_2026-07-28.txt
+-rw-r--r-- 1 BULLFROG 197609 64520 Jul 28 13:12 MISURE_R3_2026-07-28.txt
+-rw-r--r-- 1 BULLFROG 197609 12215 Jul 28 13:30 MISURE_R4_2026-07-28.txt
+-rw-r--r-- 1 BULLFROG 197609  6671 Jul 28 13:43 MISURE_R5_2026-07-28.txt
+-rw-r--r-- 1 BULLFROG 197609 20376 Jul 27 19:57 MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+-rw-r--r-- 1 BULLFROG 197609 14760 Jul 18 11:22 NODO_A_PIANO_2026-07-10.md
+-rw-r--r-- 1 BULLFROG 197609 28952 Jul 18 15:42 PIANO_S4_2026-07-18.txt
+-rw-r--r-- 1 BULLFROG 197609 28081 Jul 18 16:22 PIANO_S4b_REV_2026-07-18.txt
+-rw-r--r-- 1 BULLFROG 197609 28706 Jul 31 20:23 REFERTO_CC_2026-07-31_P1-P4.txt
+-rw-r--r-- 1 BULLFROG 197609 25118 Jul 31 20:31 REFERTO_CC_2026-07-31_V1-V3.txt
+-rw-r--r-- 1 BULLFROG 197609 18865 Jul 31 21:05 REFERTO_CC_2026-07-31_v48-ABORT.txt
+-rw-r--r-- 1 BULLFROG 197609 19261 Jul 27 11:30 ROADMAP_2026-07-26.txt
+-rw-r--r-- 1 BULLFROG 197609 36070 Jul 30 20:20 SCALETTA_ATOMI_S6_2026-07-10.md
+-rw-r--r-- 1 BULLFROG 197609  7559 Jul 30 21:30 STATO_FINALE_2026-07-30_sera_e61efd0.txt
+-rw-r--r-- 1 BULLFROG 197609 20590 Jul 31 12:45 STATO_FINALE_2026-07-31_40f099b.txt
+-rw-r--r-- 1 BULLFROG 197609 16561 Jul 18 15:15 VERIFICA_R1_2026-07-18.txt
+-rw-r--r-- 1 BULLFROG 197609 14009 Jul 18 16:45 VERIFICA_S4a_TOKEN_2026-07-18.txt
+-rw-r--r-- 1 BULLFROG 197609 23701 Jul 19 09:04 VERIFICA_V-DIR_2026-07-19.txt
+-rw-r--r-- 1 BULLFROG 197609 25703 Jul 19 08:34 VERIFICA_V-ISP_2026-07-19.txt
+-rw-r--r-- 1 BULLFROG 197609  5963 Jul 26 10:23 _SUPERATO__ROADMAP_2026-07-24.txt
+--- FINE OUTPUT ---
+
+[V] Candidati: tutti i file di HANDOFF/ che portano 2026-07-31 nel nome.
+    numero di candidati, forma 1 (ls|grep|wc): 17
+    numero di candidati, forma 2 (find|wc):    17
+
+[V] SWEEP DISCRIMINANTE. Il referee descrive un testo con sezioni STATO /
+    PROSSIMO / DECISIONI PENDENTI / GIUDIZI / METODO / CIO' CHE NON HA
+    VERIFICATO / ROUTING / DEBITO, che dichiara DUE commit di giornata e non
+    contiene ne' §1 ne' la stringa Dominio. Colonne: S1 = righe con §1;
+    DOM = righe con Dominio; poi una colonna per ciascuna sezione descritta.
+--- OUTPUT GREZZO ---
+FILE                                         S1  DOM STAT PROS DECP GIUD METO ROUT DEBI NONV
+DIFF_LIBRO-v46_2026-07-31.txt                 0    0    0    1    0    0    0    1    0    0
+DIFF_LIBRO-v46_2026-07-31_rev2.txt            0    0    0    1    0    0    0    1    0    0
+DIFF_LIBRO-v47_2026-07-31.txt                 3    0    0    0    0    0    0    0    2    0
+DIFF_LIBRO-v47_2026-07-31_rev2.txt            3    0    0    0    0    0    0    0    2    0
+DIFF_LIBRO-v47_2026-07-31_rev3.txt            3    0    0    0    0    0    0    0    2    0
+DIFF_LIBRO-v48_2026-07-31.txt                 0    0    0    0    0    0    0    1    1    3
+DIFF_LIBRO-v48_2026-07-31_rev2.txt            0    1    0    0    0    0    0    9    1    0
+DIFF_S4R-fase2_2026-07-31.txt                 0    0    0    0    0    0    0    0    0    0
+DIFF_S4R-fase2b_2026-07-31.txt                0    0    0    0    0    0    0    0    0    0
+ESITO_COMMIT_LIBRO-v48_2026-07-31.txt         0    0    0    0    0    0    0    0    2    0
+HANDOFF_CC_2026-07-31.txt                     4    0    2    4    0    0    0    1    5    7
+HANDOFF_CC_2026-07-31_sera.txt                8    1    0    0    0    0    1    4    3    1
+MISURE_CC_2026-07-31_M0-M4.txt                4    0    0    0    0    3    0    0    0    2
+REFERTO_CC_2026-07-31_P1-P4.txt               1    0    0    1    0    0    0    1    7    4
+REFERTO_CC_2026-07-31_V1-V3.txt               1    9    0    1    0    0    0    6    0    2
+REFERTO_CC_2026-07-31_v48-ABORT.txt           2    0    0    0    0    0    1    2    0    2
+STATO_FINALE_2026-07-31_40f099b.txt           0    0    3    1    0    0    0    1    0    0
+--- FINE OUTPUT ---
+
+[V] NESSUN candidato porta DECISIONI PENDENTI. Uno solo porta GIUDIZI, ed e'
+    un referto di misure. Cerco allora per CONTENUTO e non per nome, su
+    TUTTO il repo e TUTTO l'albero E:, con controllo positivo della forma.
+--- OUTPUT GREZZO ---
+repo, file con 'DECISIONI PENDENTI'  : 1
+E:,   file con 'DECISIONI PENDENTI'  : 0
+repo, file con 'NON HA VERIFICATO'   : 1
+E:,   file con 'NON HA VERIFICATO'   : 0
+  -- controlli positivi delle STESSE due ricerche, forma identica --
+repo, file con 'DECISIONI' : 98
+E:,   file con 'DECISIONI' : 234
+repo, file con 'Q-BEATS'   : 416
+E:,   file con 'Q-BEATS'   : 654
+--- FINE OUTPUT ---
+
+[V] ⛔ VERDETTO M0 - SONO DUE DOCUMENTI DIVERSI, E IL SECONDO NON ESISTE QUI.
+    Il documento che ho misurato io e' HANDOFF/HANDOFF_CC_2026-07-31_sera.txt:
+    ha sezioni §1..§8 piu' CODA, dichiara TRE commit di giornata (numero che
+    ho gia' falsificato: sono quattro) e contiene la stringa Dominio una volta.
+    Il documento descritto dal referee NON esiste ne' nel repo ne' su E::
+    'DECISIONI PENDENTI' e 'NON HA VERIFICATO' rendono ZERO su entrambi gli
+    alberi, mentre i controlli positivi della stessa forma rendono centinaia
+    di file. Non e' un falso-zero da notazione: e' un'assenza misurata.
+    FERMATO QUI sulla questione del file serale: nessuna correzione, nessuna
+    riconciliazione, nessuna ipotesi su quale sia il documento del referee.
+    Le misure M1-M5 sono state eseguite perche' indipendenti dal file serale e
+    perche' il referee e' dichiarato in attesa: se 'FERMATI' voleva dire
+    abortire l'intero giro, si scarti tutto quanto segue e lo si dica.
+
+[V] PRIME 12 RIGHE VERBATIM + IMPRONTE DI OGNI CANDIDATO.
+    sha256 con due forme: sha256sum e python hashlib.
+--- OUTPUT GREZZO ---
+=== DIFF_LIBRO-v46_2026-07-31.txt
+  sha256 f1 sha256sum: 62fbeca8952b1b404f623f940e15f17930b176e33d609163b21040718d0a9013
+  sha256 f2 hashlib  : 62fbeca8952b1b404f623f940e15f17930b176e33d609163b21040718d0a9013   CONCORDI
+  byte   f1 stat=31103        f2 wc-c=31103        CONCORDI
+  righe  f1 wc-l=36        f2 awkNR=36       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 786c231..2453aed 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,9 +2,9 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 45 (30/07/2026)
+-**Ultima modifica:** 2026-07-30 (v45 — **Sez.2 +1 riga**: la colonna data di Sez.2 e del registro ratificata come **componente dell'indirizzo di riga**, congelata una volta scritta, corretta o sbagliata che sia; più la regola gemella sulla **scrittura** della data — dall'orologio della macchina che committa, mai dal contesto di sessione, e verificata dopo il commit contro `%cI`. ⛔ **Nessuna riga storica corretta:** le otto chiavi `2026-07-30` di v44 (Sez.2 ×7 + registro ×1) e i quattro rimandi interni che le indirizzano restano intatti. Nata dal rilievo, misurato a fonte, che **v44 copre una sola giornata reale, il 29/07/2026** — i tre commit fra v43 `c3caa58` e `4d1f974` sono tutti del 29 — e che questa stessa intestazione, in v44, era avanti di un giorno. Header bump 44→45. Doc-only, nessun fix codice.)
+-**Edit author:** CC chat principale 30/07/2026
++**Versione:** 46 (31/07/2026)
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v46_2026-07-31_rev2.txt
+  sha256 f1 sha256sum: b222fefc127d2ac31c134823a526983f3e932cd9279d98aee58b6aa57eae6d8f
+  sha256 f2 hashlib  : b222fefc127d2ac31c134823a526983f3e932cd9279d98aee58b6aa57eae6d8f   CONCORDI
+  byte   f1 stat=31103        f2 wc-c=31103        CONCORDI
+  righe  f1 wc-l=36        f2 awkNR=36       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 786c231..26e5560 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,9 +2,9 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 45 (30/07/2026)
+-**Ultima modifica:** 2026-07-30 (v45 — **Sez.2 +1 riga**: la colonna data di Sez.2 e del registro ratificata come **componente dell'indirizzo di riga**, congelata una volta scritta, corretta o sbagliata che sia; più la regola gemella sulla **scrittura** della data — dall'orologio della macchina che committa, mai dal contesto di sessione, e verificata dopo il commit contro `%cI`. ⛔ **Nessuna riga storica corretta:** le otto chiavi `2026-07-30` di v44 (Sez.2 ×7 + registro ×1) e i quattro rimandi interni che le indirizzano restano intatti. Nata dal rilievo, misurato a fonte, che **v44 copre una sola giornata reale, il 29/07/2026** — i tre commit fra v43 `c3caa58` e `4d1f974` sono tutti del 29 — e che questa stessa intestazione, in v44, era avanti di un giorno. Header bump 44→45. Doc-only, nessun fix codice.)
+-**Edit author:** CC chat principale 30/07/2026
++**Versione:** 46 (31/07/2026)
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31.txt
+  sha256 f1 sha256sum: 294899d320b2473cf1162d1cca53901c17aa689140d4911abe75a4f39b4faa4d
+  sha256 f2 hashlib  : 294899d320b2473cf1162d1cca53901c17aa689140d4911abe75a4f39b4faa4d   CONCORDI
+  byte   f1 stat=45920        f2 wc-c=45920        CONCORDI
+  righe  f1 wc-l=67        f2 awkNR=67       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47. NON COMMESSO.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Le righe +/- sono invarianti rispetto al
+contesto: verificato a -U0, -U3 e -U10, stessi conteggi.
+================================================================================
+
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 26e5560..73a6d26 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31_rev2.txt
+  sha256 f1 sha256sum: d24fb8188b325368747181d2110ce959065b244e27e13a8dd2aa3a467099dec1
+  sha256 f2 hashlib  : d24fb8188b325368747181d2110ce959065b244e27e13a8dd2aa3a467099dec1   CONCORDI
+  byte   f1 stat=46417        f2 wc-c=46417        CONCORDI
+  righe  f1 wc-l=70        f2 awkNR=70       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47 — rev2. NON COMMESSO.
+Sostituisce DIFF_LIBRO-v47_2026-07-31.txt (rev1), che si CONSERVA come traccia.
+Delta rev1 -> rev2: enfasi annidata sciolta sui tre marcatori (un solo livello di
+grassetto) + marcatore di :249 riscritto (cade l'inquadratura sulla distanza, non
+l'argomento) + riferimento temporale fluttuante «oggi» ancorato al 31/07/2026.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Righe +/- invarianti: verificato a -U0, -U3, -U10.
+================================================================================
+
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31_rev3.txt
+  sha256 f1 sha256sum: 52f38fc7e31b555f58081a43e1e328d4e897d6c42c48aacef0a5e73becab58c5
+  sha256 f2 hashlib  : 52f38fc7e31b555f58081a43e1e328d4e897d6c42c48aacef0a5e73becab58c5   CONCORDI
+  byte   f1 stat=46424        f2 wc-c=46424        CONCORDI
+  righe  f1 wc-l=71        f2 awkNR=71       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47 — rev3. NON COMMESSO.
+Conserva rev1 e rev2 come traccia di cio' che e' stato respinto.
+Delta rev2 -> rev3: UNA PAROLA. In :292 l'articolo era doppiato,
+  «SUPERATA dalla la riga» -> «SUPERATA dalla riga».
+  Nasce dalla normalizzazione sulla forma «la riga»: :249 e :252 la portano
+  correttamente perche' li' la preposizione e' nuda; su :292 non ci va.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Righe +/- invarianti: verificato a -U0/-U3/-U10.
+================================================================================
+
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v48_2026-07-31.txt
+  sha256 f1 sha256sum: 58f1317c8bba74934f0c679f7b7f37e808faa3256a395daed9679b95a140103e
+  sha256 f2 hashlib  : 58f1317c8bba74934f0c679f7b7f37e808faa3256a395daed9679b95a140103e   CONCORDI
+  byte   f1 stat=28994        f2 wc-c=28994        CONCORDI
+  righe  f1 wc-l=265        f2 awkNR=265       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48 (RISTRETTA): diff pronto, NON committato
+==============================================================================
+
+UN SOLO FILE toccato: LIBRO_MASTRO_QBEATS.md. Nessun commit, nessun push,
+nessun branch. BUGS, SCALETTA, BOX3 e BOX5 NON sono stati toccati.
+Due cancelli davanti: ratifica referee, poi OK di Mauro. Nessuno dei due
+è assolto da questa consegna.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git status --porcelain --untracked-files=no
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v48_2026-07-31_rev2.txt
+  sha256 f1 sha256sum: 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406
+  sha256 f2 hashlib  : 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406   CONCORDI
+  byte   f1 stat=29720        f2 wc-c=29720        CONCORDI
+  righe  f1 wc-l=277        f2 awkNR=277       CONCORDI
+  CR     f1 tr-cd=7       f2 python=7      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48 rev2: RETTIFICA DI UNA CLAUSOLA
+==============================================================================
+
+UN SOLO FILE toccato: LIBRO_MASTRO_QBEATS.md. Nessun commit, nessun push,
+nessun branch. BUGS, SCALETTA, BOX3 e BOX5 NON toccati.
+Due cancelli davanti: ratifica referee, poi OK di Mauro.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git status --porcelain --untracked-files=no
+ M LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_S4R-fase2_2026-07-31.txt
+  sha256 f1 sha256sum: 5929ee3f6cb1f40b6cbe052f64d4518b5952832ca7298208b9f77ca378ba5aed
+  sha256 f2 hashlib  : 5929ee3f6cb1f40b6cbe052f64d4518b5952832ca7298208b9f77ca378ba5aed   CONCORDI
+  byte   f1 stat=10354        f2 wc-c=10354        CONCORDI
+  righe  f1 wc-l=190        f2 awkNR=190       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF ⟦S4R⟧ FASE 2 — COSTRUZIONE. NON COMMESSO.
+Albero di partenza: 40f099bb28ad87627e3c6df926993a3df297df90 (= origin/master)
+Nulla in staging: git diff --cached --name-only = 0 righe.
+================================================================================
+
+PARTE 1 — git diff (3 file TRACCIATI)
+--------------------------------------------------------------------------------
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e88a40e..1e60d7d 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+  --- fine prime 12 righe ---
+=== DIFF_S4R-fase2b_2026-07-31.txt
+  sha256 f1 sha256sum: b47783880a5dc1c22a45c065be969ba905697a2a2fb0bfe0254e6e61449d9938
+  sha256 f2 hashlib  : b47783880a5dc1c22a45c065be969ba905697a2a2fb0bfe0254e6e61449d9938   CONCORDI
+  byte   f1 stat=12987        f2 wc-c=12987        CONCORDI
+  righe  f1 wc-l=224        f2 awkNR=224       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF ⟦S4R⟧ FASE 2b — COSTRUZIONE CORRETTA. NON COMMESSO.
+Albero di partenza: 40f099bb28ad87627e3c6df926993a3df297df90 (= origin/master)
+Sostituisce DIFF_S4R-fase2_2026-07-31.txt (NON ratificato), che si CONSERVA
+come traccia di cio' che il referee ha respinto.
+Nulla in staging: git diff --cached --name-only = 0 righe.
+================================================================================
+
+PARTE 1 — git diff (3 file TRACCIATI)
+--------------------------------------------------------------------------------
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e88a40e..1e60d7d 100644
+  --- fine prime 12 righe ---
+=== ESITO_COMMIT_LIBRO-v48_2026-07-31.txt
+  sha256 f1 sha256sum: cbf67eb2710c4e6202566bc1c9a641987a5176fc3740041a9f634896fe329094
+  sha256 f2 hashlib  : cbf67eb2710c4e6202566bc1c9a641987a5176fc3740041a9f634896fe329094   CONCORDI
+  byte   f1 stat=8913        f2 wc-c=8913        CONCORDI
+  righe  f1 wc-l=172        f2 awkNR=172       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — COMMIT + PROPAGAZIONE LIBRO v48
+==============================================================================
+
+Autorizzazione dichiarata dal prompt: ratifica referee sul referto rev2
+(sha256 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406)
++ OK di Mauro del 2026-07-31, verbatim «do l'ok». Entrambi i cancelli chiusi
+PRIMA di ogni azione di questo referto.
+Comandi e output verbatim. Nessuna conclusione: le trae il referee.
+
+==============================================================================
+F0 — CANCELLO DI ABORT: superato, tre valori verbatim
+  --- fine prime 12 righe ---
+=== HANDOFF_CC_2026-07-31.txt
+  sha256 f1 sha256sum: 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f
+  sha256 f2 hashlib  : 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f   CONCORDI
+  byte   f1 stat=36239        f2 wc-c=36239        CONCORDI
+  righe  f1 wc-l=555        f2 awkNR=555       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+HANDOFF CC — 2026-07-31, chiusura sessione.
+================================================================================
+[V] Scritto da CC. File untracked in HANDOFF/. In questo giro nessun canonico è
+    stato toccato, nessun commit è stato creato, nessun push è stato fatto.
+    comando: git status --porcelain ; git log -1 --format=%H
+
+CONVENZIONE DI QUESTO FILE — non è un'affermazione sul mondo, è come si legge:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto. Porta la misura, non la
+      conclusione.
+  [R] ricordato, ereditato o letto da un artefatto, NON rimisurato oggi.
+  Un tag apre l'affermazione e vale fino alla riga vuota successiva; le righe di
+  --- fine prime 12 righe ---
+=== HANDOFF_CC_2026-07-31_sera.txt
+  sha256 f1 sha256sum: 4d209703ca322c514fac60643a4228f121eaf4413a0ea3a2c2959e475618aa63
+  sha256 f2 hashlib  : 4d209703ca322c514fac60643a4228f121eaf4413a0ea3a2c2959e475618aa63   CONCORDI
+  byte   f1 stat=27172        f2 wc-c=27172        CONCORDI
+  righe  f1 wc-l=410        f2 awkNR=410       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+HANDOFF CC — 2026-07-31 SERA, chiusura della seconda parte di giornata.
+================================================================================
+[V] Scritto da CC. File untracked NUOVO in HANDOFF/. Copre la giornata DOPO la
+    consegna di HANDOFF_CC_2026-07-31.txt del mattino, che NON è stato riscritto
+    né sovrascritto: le correzioni che ha ricevuto nel giro P1-P4 sono agli atti
+    nel referto di quel giro e nel §3 qui sotto.
+    comando: ls HANDOFF/HANDOFF_CC_2026-07-31*.txt
+
+CONVENZIONE — identica a quella del file del mattino, non la ripeto per esteso:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto · [R] ricordato, ereditato
+  o letto senza rimisurare · il tag apre il blocco e vale fino alla riga vuota ·
+  --- fine prime 12 righe ---
+=== MISURE_CC_2026-07-31_M0-M4.txt
+  sha256 f1 sha256sum: ad3af9e3d9d91602c460ace65a73743463f4edb935ae8e3a3be835ad8c24f81b
+  sha256 f2 hashlib  : ad3af9e3d9d91602c460ace65a73743463f4edb935ae8e3a3be835ad8c24f81b   CONCORDI
+  byte   f1 stat=51231        f2 wc-c=51231        CONCORDI
+  righe  f1 wc-l=734        f2 awkNR=734       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+MISURE CC — 2026-07-31 — M0..M4 — SOLA LETTURA
+==============================================================================
+Nessuna scrittura sul repo, nessun commit, nessun branch, nessun push.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessun ABORT: i quattro punti sono tutti stati eseguiti.
+Comandi eseguiti da: /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+Ogni output sotto e' output di comando, non trascrizione.
+
+VARIABILI USATE NEI COMANDI RIPORTATI — dichiarate perche' senza di esse i
+comandi sotto non sarebbero riproducibili:
+  $SW     = ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_P1-P4.txt
+  sha256 f1 sha256sum: b17624f930abfb8ec0bc2a3930b1bf4770de22bf1e277f517ea17741c37880e9
+  sha256 f2 hashlib  : b17624f930abfb8ec0bc2a3930b1bf4770de22bf1e277f517ea17741c37880e9   CONCORDI
+  byte   f1 stat=28706        f2 wc-c=28706        CONCORDI
+  righe  f1 wc-l=458        f2 awkNR=458       CONCORDI
+  CR     f1 tr-cd=54       f2 python=54      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — CHIUSURA GIRO HANDOFF (P1..P4)
+==============================================================================
+Un solo file toccato: HANDOFF/HANDOFF_CC_2026-07-31.txt  (untracked).
+ZERO canonici, ZERO commit, ZERO push, ZERO branch.
+Ogni output sotto e' output di comando, non trascrizione.
+Nessuna conclusione: le trae il referee.
+
+⚠️ SUPERFICIE DI QUESTO REFERTO — dichiarata perche' non e' uniforme: il file
+e' a terminazione LF TRANNE le righe che provengono dall'output di Python, che
+su Windows emette CRLF. NON le ho normalizzate: normalizzarle avrebbe alterato
+un output che il prompt chiede verbatim. Il conteggio dei ritorni-carrello e'
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_V1-V3.txt
+  sha256 f1 sha256sum: bd462385f63ce5462ee864ad1b3a3ef124b92ffa356bbddd7a8bcf573387f71b
+  sha256 f2 hashlib  : bd462385f63ce5462ee864ad1b3a3ef124b92ffa356bbddd7a8bcf573387f71b   CONCORDI
+  byte   f1 stat=25118        f2 wc-c=25118        CONCORDI
+  righe  f1 wc-l=331        f2 awkNR=331       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — TRE VERIFICHE CORTE (V1 · V2 · V3)
+==============================================================================
+ZERO scritture sul repo, ZERO commit, ZERO push, ZERO branch.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessuna conclusione: le trae il referee.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat        # tracciati modificati
+[VUOTO]
+$ git diff --cached --stat
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_v48-ABORT.txt
+  sha256 f1 sha256sum: d53ea1b8db2dd164efc752d674817f658459ffba411e59756c2716d245ac05e8
+  sha256 f2 hashlib  : d53ea1b8db2dd164efc752d674817f658459ffba411e59756c2716d245ac05e8   CONCORDI
+  byte   f1 stat=18865        f2 wc-c=18865        CONCORDI
+  righe  f1 wc-l=334        f2 awkNR=334       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48: ABORT PRIMA DELLA SCRITTURA
+==============================================================================
+
+⛔ IL LIBRO NON È STATO TOCCATO. Nessun diff da mostrare, e il motivo è che
+   il diff avrebbe inciso in un canonico un'affermazione che ho MISURATO falsa.
+   Zero canonici, zero commit, zero push, zero branch.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat
+[VUOTO — nessun tracciato modificato]
+  --- fine prime 12 righe ---
+=== STATO_FINALE_2026-07-31_40f099b.txt
+  sha256 f1 sha256sum: 69c31c856eae42d0244323ac23e66dc482d0f3b73887d21b8cfcd2e426d44231
+  sha256 f2 hashlib  : 69c31c856eae42d0244323ac23e66dc482d0f3b73887d21b8cfcd2e426d44231   CONCORDI
+  byte   f1 stat=20590        f2 wc-c=20590        CONCORDI
+  righe  f1 wc-l=286        f2 awkNR=286       CONCORDI
+  CR     f1 tr-cd=0       f2 python=0      CONCORDI
+  --- prime 12 righe verbatim ---
+================================================================================
+STATO FINALE — 2026-07-31, chiusura sessione. Cambio chat.
+================================================================================
+Scritto da CC. Per l'apertura della sessione nuova (R1: ricalcolare a fonte, non
+ereditare questi numeri).
+
+Marcatura obbligatoria: [V] = misurato in questa sessione, col comando accanto.
+                        [R] = riportato da altri, non verificabile da CC.
+
+REGOLA DI CONTENUTO DI QUESTO FILE: qui sta SOLO ciò che non si ricava dai file.
+Ciò che vive in LIBRO/BUGS/BOX3/BOX5/SCALETTA viene INDIRIZZATO, mai copiato e
+mai dichiarato di stato (LIBRO_MASTRO_QBEATS.md, Sez.2, riga 2026-07-30
+  --- fine prime 12 righe ---
+--- FINE OUTPUT ---
+
+--------------------------------------------------------------------------
+M1 - IDENTITA' COPIA-PROGETTO <-> BLOB
+--------------------------------------------------------------------------
+[V] Il path della SCALETTA e' stato RISOLTO, non indovinato: unico file
+    tracciato che risponda al nome. Verifica sotto.
+    comando: git ls-files | grep -i scaletta
+--- OUTPUT GREZZO ---
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+--- FINE OUTPUT ---
+
+--- BOX5_QBEATS.md
+    atteso referee : 21b23d621ac224c759b53d813196058483e3b056   57158 B   596 righe
+    OID   f1 rev-parse   : 21b23d621ac224c759b53d813196058483e3b056
+    OID   f2 ls-tree     : 21b23d621ac224c759b53d813196058483e3b056
+    OID   f3 hash-object : 21b23d621ac224c759b53d813196058483e3b056
+    byte  f1 cat-file -s : 57158        f2 wc-c : 57158
+    righe f1 wc-l        : 596        f2 awkNR: 596
+    ESITO : IDENTICO all'atteso su OID, byte e righe. (le tre forme OID coincidono e le due forme byte/righe coincidono)
+
+--- BUGS_QBEATS.md
+    atteso referee : 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1   256406 B   1010 righe
+    OID   f1 rev-parse   : 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1
+    OID   f2 ls-tree     : 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1
+    OID   f3 hash-object : 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1
+    byte  f1 cat-file -s : 256406        f2 wc-c : 256406
+    righe f1 wc-l        : 1010        f2 awkNR: 1010
+    ESITO : IDENTICO all'atteso su OID, byte e righe. (le tre forme OID coincidono e le due forme byte/righe coincidono)
+
+--- HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+    atteso referee : d4306337ffccc0beec3fba595da61f67f1076fb4   36070 B   337 righe
+    OID   f1 rev-parse   : d4306337ffccc0beec3fba595da61f67f1076fb4
+    OID   f2 ls-tree     : d4306337ffccc0beec3fba595da61f67f1076fb4
+    OID   f3 hash-object : d4306337ffccc0beec3fba595da61f67f1076fb4
+    byte  f1 cat-file -s : 36070        f2 wc-c : 36070
+    righe f1 wc-l        : 337        f2 awkNR: 337
+    ESITO : IDENTICO all'atteso su OID, byte e righe. (le tre forme OID coincidono e le due forme byte/righe coincidono)
+
+--- BOX3_QBEATS.md
+    atteso referee : 490d6d9b38c355dc53ddc9b31431f9a858f2b342   89457 B   803 righe
+    OID   f1 rev-parse   : 490d6d9b38c355dc53ddc9b31431f9a858f2b342
+    OID   f2 ls-tree     : 490d6d9b38c355dc53ddc9b31431f9a858f2b342
+    OID   f3 hash-object : 490d6d9b38c355dc53ddc9b31431f9a858f2b342
+    byte  f1 cat-file -s : 89457        f2 wc-c : 89457
+    righe f1 wc-l        : 803        f2 awkNR: 803
+    ESITO : IDENTICO all'atteso su OID, byte e righe. (le tre forme OID coincidono e le due forme byte/righe coincidono)
+
+--------------------------------------------------------------------------
+M2 - LE TRE FACCE DEL LIBRO
+--------------------------------------------------------------------------
+(a) WORKING TREE  C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/LIBRO_MASTRO_QBEATS.md
+    byte   f1 stat=216083        f2 wc-c=216083        CONCORDI
+    righe  f1 wc-l=485        f2 awkNR=485       CONCORDI
+    CR     f1 tr-cd=485       f2 python=485      CONCORDI
+
+(b) BLOB A HEAD   HEAD:LIBRO_MASTRO_QBEATS.md
+    byte   f1 cat-file -s=215598   f2 wc-c=215598   CONCORDI
+    righe  f1 wc-l=485          f2 awkNR=485  CONCORDI
+    CR     f1 tr-cd=0         f2 python=0 CONCORDI
+
+(c) STAMPA SU E:  /e/HOBBY/MUSICA - BATTERIA -SISTA/Q-BEATS/FILE X CLAUDE.MD/LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md
+    byte   f1 stat=215598        f2 wc-c=215598        CONCORDI
+    righe  f1 wc-l=485        f2 awkNR=485       CONCORDI
+    CR     f1 tr-cd=0       f2 python=0      CONCORDI
+
+[V] REPERTO, riportato e NON riparato: working tree e blob DIVERGONO in byte.
+    working tree 216083 B  -  blob 215598 B  =  differenza 485 byte.
+    CR nel working tree: 485. La differenza in byte e il numero di CR sono
+    lo stesso numero: SI, coincidono.
+    Le righe sono 485 su tutte e tre le facce. La stampa su E: sta sulla
+    faccia LF, non su quella del disco di lavoro.
+
+[V] Configurazione EOL, output grezzo.
+    git config core.autocrlf -> true
+    --- cat .gitattributes ---
+HANDOFF/** -text
+DESIGN/** -text
+BOX3_QBEATS.md -text
+BOX5_QBEATS.md -text
+    --- git ls-files --eol LIBRO_MASTRO_QBEATS.md ---
+i/lf    w/crlf  attr/                 	LIBRO_MASTRO_QBEATS.md
+    Nota di lettura, non conclusione: .gitattributes elenca quattro voci.
+    LIBRO_MASTRO_QBEATS.md e BUGS_QBEATS.md non vi compaiono; ls-files --eol
+    rende attr/ vuoto per il LIBRO.
+
+--------------------------------------------------------------------------
+M3 - FAMIGLIA DI DISPOSITIVO
+--------------------------------------------------------------------------
+[V] comando: git cat-file blob HEAD:BOX5_QBEATS.md | sed -n '60,70p'
+--- INIZIO VERBATIM BOX5 60-70 ---
+| Voce | Valore |
+|---|---|
+| Bundle ID | `com.bullfrog.qbeats` |
+| Team ID | `X42CX3ZP3T` |
+| iCloud Container | `iCloud.com.bullfrog.qbeats` |
+| iOS deployment target | 16.0 |
+| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+| **Orientation v1** | **Portrait obbligato su tutti i device. Landscape iPad ("Vista Bella v2") rimandato a v2 reale** |
+| **Layout strategy v1** | **Stesso layout componenti per tutti i device (Strada A — scaling proporzionale). Font/spacing ≥ 20pt tramite `pt_originale * scaleFactor` con `scaleFactor = geo.size.width / 390` (V23). Strada B (layout iPad dedicato multipanel) rimandata a v2 reale** |
+| Repository | `github.com/19Bullfrog78/Q-BEATS` |
+
+--- FINE VERBATIM BOX5 60-70 ---
+
+[V] comando: git cat-file blob HEAD:BOX5_QBEATS.md | sed -n '80,90p'
+--- INIZIO VERBATIM BOX5 80-90 ---
+
+| Device | Ruolo | Connettore | `geo.size.width` portrait |
+|---|---|---|---|
+| iPhone 13 | Sviluppo e test (baseline scaling — `scaleFactor = 1.0`) | Lightning | **390pt** (misurato empiricamente 18/05/2026) |
+| iPhone 15+ | Produzione | USB-C — HDMI + audio interface simultanei via adattatore | ~393pt o 430pt secondo modello |
+| iPad mini / iPad pre-2018 | Target leggio piccolo | Lightning/USB-C | **768pt** (`scaleFactor ≈ 1.97`) |
+| iPad mini 8.3" (2021+) | Target leggio piccolo | USB-C | **744pt** (`scaleFactor ≈ 1.91`) |
+| iPad Pro 11" | Target leggio | USB-C | **834pt** (`scaleFactor ≈ 2.14`) |
+| iPad Pro 12.9" | Target leggio fisso | USB-C | **1024pt** (`scaleFactor ≈ 2.63`) |
+
+**Hardware validato:** Behringer UMC404HD (4 uscite, class-compliant) · Adattatore Ticenpe MFi Lightning→USB-A · Akai MPK Mini 3 (validato con tap tempo MIDI Learn 17/05/2026)
+--- FINE VERBATIM BOX5 80-90 ---
+
+[V] comando: ... | grep -nF 'Decisione esplicita V55'
+--- OUTPUT GREZZO ---
+66:| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+--- FINE OUTPUT ---
+
+[V] L'ANCORA V55 - TROVATA, ed e' BOX3, non BOX5.
+    comando: git log --oneline --all -S 'TARGETED_DEVICE_FAMILY' -- . | head -20
+--- OUTPUT GREZZO ---
+8822598 LIBRO v47: rettifica della distanza d'uso, S4R chiuso, due buchi dichiarati
+710b384 canonici: BOX3 V97, BOX5 V26 e due prove citate tracciati in git (cambio di regime, contenuto invariato)
+825ec48 Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+--- FINE OUTPUT ---
+
+    comando: git grep -n 'TARGETED_DEVICE_FAMILY' HEAD -- .
+--- OUTPUT GREZZO ---
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:42:Disallineamento riemerso 12/05/2026 sera tardi durante verifica tecnica `TARGETED_DEVICE_FAMILY` in `project.yml` (non impostato → default Xcode universal `1,2` → l'app si installa già su iPad). Mauro ha esplicitato l'esigenza: Vista LIVE va letta a distanza dal palco, iPad mini sul leggio è preferibile a iPhone perché lo vedi anche con un secondo di sguardo. Target effettivi: iPhone (sviluppo + uso portable), iPad Mini (leggio piccolo), iPad Pro 12.9" (leggio fisso).
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:51:Strada C (`TARGETED_DEVICE_FAMILY: "1"` iPhone-only) — chiude porta a iPad. Costo zero ma scarta caso d'uso vero (leggio).
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:61:- `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml`. Default Xcode `1,2` (universal). L'app si installa su iPhone + iPad senza modifiche al `project.yml`. Decisione esplicita V55.
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:72:- BOX3 V55 chiude tech debt #24 implicito (TARGETED_DEVICE_FAMILY decisione): non si aggiunge `"1"`, default universal è la decisione esplicita post-V55
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:241:24. ~~`TARGETED_DEVICE_FAMILY` non impostato — decisione pendente~~
+HEAD:ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md:9:- **Device family decisione esplicita:** `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml` → default Xcode `1,2` (universal). Decisione esplicita V55: lasciare il default, NON aggiungere `"1"` (chiuderebbe porta a iPad).
+HEAD:ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md:31:| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+HEAD:ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md:613:| **TARGETED_DEVICE_FAMILY** | Non impostare in `project.yml`. Default Xcode `1,2` (universal) è la decisione esplicita |
+HEAD:BOX5_QBEATS.md:51:Tutto il resto invariato da V22: identità progetto (iPhone + iPad universal portrait v1), modello dati, token visivi, contratti Layer 3 esistenti, specifica vincolante L1.b "Fade scatta SOLO a fine vera", Task D (chiuso V53), Limite v1 Modalità Direttore, struttura file, backlog, decisioni UX 09/05, decisioni V22 (Strada A scaling proporzionale, TARGETED_DEVICE_FAMILY universal, API vietate Dynamic Type).
+HEAD:BOX5_QBEATS.md:66:| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+HEAD:LIBRO_MASTRO_QBEATS.md:333:| 2026-07-31 | **DUE BUCHI DALLA STESSA TABELLA — dichiarati, non risolti.** Il §3 del briefing di aprile porta altre due affermazioni mai ratificate. **(a) TIPOGRAFIA:** quella tabella prescrive «SF Pro Apple-native», mentre il Design System oggi prescrive **Inter + JetBrains Mono e VIETA SF Pro**. Quale delle due sia in vigore **non è agli atti**, e `DESIGN_SYSTEM_QBEATS.md` non è fra i canonici di R-γ — buco già aperto dalla riga `2026-07-20` **CONTRASTO**. **(b) FAMIGLIA DI DISPOSITIVO:** la voce «Portrait v1 — iPhone + iPad Mini + iPad» è **l'unico punto in cui il perimetro sia dichiarato esplicitamente**. Il progetto lo **presuppone e non lo dichiara**: `TARGETED_DEVICE_FAMILY` e `UIDeviceFamily` **risultavano assenti**, alla misura del 31/07, sia da `project.yml` sia dall'`Info.plist` tracciato; il perimetro è solo **implicato** dalla variante `~ipad` e da `UIRequiresFullScreen: true`. Su un prodotto che si vende, il perimetro **non ha una casa ratificata**. ⛔ Da disporre in un giro proprio, NON qui: serve una decisione, non una marcatura. | referee (rilievo) | `QBEATS_CC_Allineamento_29_04_2026.md` §3 · `ios_app/project.yml:37-41 @ bfc92285d165852a9c5618786a7e95f7166025e7` · `DESIGN_SYSTEM_QBEATS.md` | attiva | — |
+--- FINE OUTPUT ---
+
+[V] Commit che istituisce il documento dell'ancora:
+825ec48ca41d67fc93775e9713634ef991595f54 | 2026-05-12 22:44:34 +0200 | Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+    File: ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md - TRACCIATO a HEAD.
+    Testo che istituisce la decisione, verbatim dalle righe 61, 72 e 242:
+--- INIZIO VERBATIM ---
+- `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml`. Default Xcode `1,2` (universal). L'app si installa su iPhone + iPad senza modifiche al `project.yml`. Decisione esplicita V55.
+- BOX3 V55 chiude tech debt #24 implicito (TARGETED_DEVICE_FAMILY decisione): non si aggiunge `"1"`, default universal è la decisione esplicita post-V55
+24. ~~`TARGETED_DEVICE_FAMILY` non impostato — decisione pendente~~
+✅ **CHIUSO V55 con decisione esplicita**: lasciare default universal. App si installa su iPhone + iPad senza modifiche `project.yml`. NON aggiungere `"1"` (chiuderebbe porta a iPad, contrario alla Strada A ratificata).
+| **Decisione architetturale Strada A — universal iPhone + iPad portrait** | ✅ **RATIFICATA V55** (BOX5 V22 invariante) |
+--- FINE VERBATIM ---
+
+[V] Bersaglio della rettifica annunciata dal referee - LIBRO riga 333, verbatim:
+--- INIZIO VERBATIM LIBRO:333 ---
+| 2026-07-31 | **DUE BUCHI DALLA STESSA TABELLA — dichiarati, non risolti.** Il §3 del briefing di aprile porta altre due affermazioni mai ratificate. **(a) TIPOGRAFIA:** quella tabella prescrive «SF Pro Apple-native», mentre il Design System oggi prescrive **Inter + JetBrains Mono e VIETA SF Pro**. Quale delle due sia in vigore **non è agli atti**, e `DESIGN_SYSTEM_QBEATS.md` non è fra i canonici di R-γ — buco già aperto dalla riga `2026-07-20` **CONTRASTO**. **(b) FAMIGLIA DI DISPOSITIVO:** la voce «Portrait v1 — iPhone + iPad Mini + iPad» è **l'unico punto in cui il perimetro sia dichiarato esplicitamente**. Il progetto lo **presuppone e non lo dichiara**: `TARGETED_DEVICE_FAMILY` e `UIDeviceFamily` **risultavano assenti**, alla misura del 31/07, sia da `project.yml` sia dall'`Info.plist` tracciato; il perimetro è solo **implicato** dalla variante `~ipad` e da `UIRequiresFullScreen: true`. Su un prodotto che si vende, il perimetro **non ha una casa ratificata**. ⛔ Da disporre in un giro proprio, NON qui: serve una decisione, non una marcatura. | referee (rilievo) | `QBEATS_CC_Allineamento_29_04_2026.md` §3 · `ios_app/project.yml:37-41 @ bfc92285d165852a9c5618786a7e95f7166025e7` · `DESIGN_SYSTEM_QBEATS.md` | attiva | — |
+--- FINE VERBATIM LIBRO:333 ---
+
+[V] Accertamento sui file di build, con controllo positivo della forma:
+    project.yml, occorrenze TARGETED_DEVICE_FAMILY : 0
+    project.yml, occorrenze UIDeviceFamily         : 0
+    project.yml, controllo positivo deploymentTarget: 2
+    ios_app/QBeats/Info.plist, UIDeviceFamily      : 0
+    Lo zero su project.yml e Info.plist e' sostenuto dal fatto che la STESSA
+    forma di ricerca rende invece occorrenze in tre altri file, elencati sopra:
+    non e' un vuoto da notazione.
+
+--------------------------------------------------------------------------
+M4 - PERIMETRO REALE DEL GIRO BUGS
+--------------------------------------------------------------------------
+[V] comando: git cat-file blob HEAD:BUGS_QBEATS.md | grep -niF 'rerouting'
+--- OUTPUT GREZZO ---
+120:  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+121:  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+125:- **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista una data con la band prima di S6, la priorità del rerouting S6 va rivalutata.
+128:- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Stop Sync utente attivo. Nessun fix applicato — bloccato sul freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+129:- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+999:| 39 | 2026-07-18 | Mauro + CC + referee | **Nuovo ticket §1.1 `TD-qlive-exit-unconfirmed-stop` (doc-only) — uscita-stanza col click attivo = stop non confermato (evento-banda).** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO (conseguenza catastrofica innescabile dal percorso di uscita ORDINARIO). Due metà distinte: PRE-ESISTENTE (oggi Q-Live apre dritta nel metronomo, back `LiveHeaderView.swift:30`→`onExit`→`AppRootView.swift:43,61-68`→stop→`link_engine_stop`; UNA sola porta viva oggi, nessuna RoomSwitchBar ancora in Q-Live, verificato a fonte — la chiude il rerouting S6, non l'overlay) e NUOVA (uscite lista/dettaglio dopo S4b/S5, coperta dall'overlay STOP-con-conferma, opzione (iii) CD, freeze atteso). **CANCEL WaitingForDirector ESCLUSO dai band-stop (ESITO A, verificato a fonte):** `.waitingForDirector` raggiungibile solo con `isPlaying==false` (`TransportView.swift:36,58`), click non gira → `stop()` colpisce la guardia `AudioEngine.swift:1638` = no propagazione; resta solo questione nav R7. Causa `:1638→:1645`, propagazione per-peer condizionata a Start/Stop Sync utente (`ABLLink.h:75-82`). Mitigazione operativa fino a S6: non uscire col click attivo, fermarlo prima. Dipendenza: freeze disegno CD (LIBRO v36), da chiudere prima di S6. Bump header 38→39. Doc-only, nessun fix codice. |
+--- FINE OUTPUT ---
+
+[V] conteggio, forma 2 (grep -ciF): 6
+[V] conteggio, forma 3 (grep -niF | wc -l): 6
+[V] controllo positivo a RADICE DIVERSA, grep -ciE 'ricabl|cabla': 23
+    righe agganciate dal controllo positivo: 103 120 129 254 261 280 283 308 317 353 357 535 536 576 590 591 597 706 971 978 991 1001 1005 
+
+[V] RIGHE 116-131 VERBATIM E COMPLETE, nessuna numerazione aggiunta:
+    la prima riga sotto e' la 116, l'ultima e' la 131.
+--- INIZIO VERBATIM BUGS 116-131 ---
+
+### TD-qlive-exit-unconfirmed-stop — Uscita-stanza col click attivo = stop non confermato (evento-banda)
+- **Sintomo:** col click ATTIVO, uscire da `.qLive` verso la Home fa scattare il canonico `AppRootView.swift:61-68` → `audioEngine.stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/Stop Sync attivo sui peer coinvolti, **la band si ferma**. Nessuna conferma richiesta all'utente. È l'uscita ORDINARIA (non un tasto sfiorato per sbaglio) ad avere questo costo nascosto.
+- **Natura — DUE METÀ che si chiudono in modo DIVERSO (non dichiararlo chiuso a metà):**
+  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+  - ⚠️ **MARCATURA v46 — le DUE metà sopra portano lo stesso difetto SPECCHIATO, misurato a HEAD `897d458e0777c2edbce349e4b0001c7c2c50c9b9`. Le righe restano come scritte: si marca, non si riscrive.** `r.120` dice «**attiva OGGI**» e «**oggi la porta viva è UNA sola**» al **presente** dentro un'ancora congelata a `f8276f6`, e le sue due affermazioni fattuali sono **FALSE a HEAD**: la **RoomSwitchBar È montata dentro Q-Live** (`ios_app/QBeats/UI/QLive/QLiveShowsView.swift:70`, costruttore; controllo positivo stessa forma `ios_app/QBeats/UI/QStage/ShowsListView.swift:82` per Q-Stage, 2 costruttori in tutto) e **`QLiveRootView` rende `QLiveShowsView`** (`ios_app/QBeats/UI/QLive/QLiveRootView.swift:61`), **non** `LiveRootView`→`LiveView` diretto. `r.121` dice «**non ancora spedita**» di ⟦S4b⟧, che **È spedito** — commit `6ded4ab`, gate device 20/07, inciso in `LIBRO_MASTRO_QBEATS.md:290`. ⛔ **LA SEVERITÀ NON CAMBIA**, e va detto qui esplicitamente perché il prossimo lettore non la riapra: **a HEAD il runner non nasce mai** — un solo sito di nascita (`= SetlistRunner(` → **1**, `ios_app/QBeats/UI/LiveRootView.swift:12`), `LiveRootView` a **ZERO call-site** (⚠️ il grep grezzo di `LiveRootView(` rende **1**, ma è `QLiveRootView(` ad `AppRootView.swift:51` — **sottostringa**; filtrato → **0**; controllo positivo stessa forma `QLiveShowsView(` → **1**), `LiveView` irraggiungibile di conseguenza (`LiveRootView.swift:18`), e funnel `navigate(to:)` a **ZERO chiamanti** (2 righe = **1 commento** a `:14` + **1 definizione** a `:54`; `page = ` compare **1** volta, a `:55`, dentro il funnel stesso). **Il pericolo non morde ancora.** ⚠️ Misurata la **struttura di montaggio**, non ogni percorso a runtime: il ramo `#if DEBUG` di `HomeRootView` non è stato misurato.
+  - **CANCEL di `WaitingForDirectorView` — nel percorso ORDINARIO non è una porta di band-stop, ma con una CLAUSOLA-LIMITE precisa (verificato a fonte 18/07, rafforzato 19/07 — `VERIFICA_V-ISP_2026-07-19`, sha `9918c379…0350aa`; ESITO A):** `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector` (`LiveView.swift:165-166`); quello stato è assegnato SOLO a `TransportView.swift:58`, raggiungibile SOLO nel ramo `else if` di `if audioEngine.isPlaying` (`TransportView.swift:36`) → cioè SOLO con `isPlaying == false`; l'ingresso in waiting (`:58`) NON avvia l'audio. **Il ponte della prova NON è `isPlaying ⟹ isRunning`** — sono campi DISTINTI (`AudioEngine.swift:56` `@Published`/main vs `:273` `private`/audioQueue) e la loro sincronia è FALSIFICATA: `handleAppWakeUp` (`:3053` `guard self.isPlaying, !self.isRunning`) esiste APPOSTA per lo stato discorde `isPlaying==true && isRunning==false`. **Il ponte reale è «nessuno `start()` ha girato mentre la view è montata»**: `isRunning` diventa true SOLO in `start()` (`:886`, audioQueue), e le uscite che avviano l'audio (Director→`runner.startSetlist`; START LOCAL `LiveView.swift:172`) transitano a `.playing` smontando la view. Per il percorso ORDINARIO il ponte regge → il CANCEL→`onExit()`→`stop()` colpisce `guard self.isRunning` (`:1638`, `isRunning==false`) e ritorna PRIMA di `:1645` = nessuno stop propagato. **CLAUSOLA-LIMITE (ex-parentetico «boundary sub-frame», PROMOSSA da nota a confine del claim):** il ponte ha UN buco REALE, non teorico — `LiveView.swift:406-407` (observer `linkStartedSubject`) NON ha guard su `.waitingForDirector` (guarda solo `!= .playing`) → quando il Direttore preme Play, il Follower fa `start()` → `isRunning=true` (`:886`) MENTRE `session.playbackState` è ANCORA `.waitingForDirector` (lo smontaggio arriva dopo gli hop su main) → WaitingForDirectorView ancora montata, CANCEL ancora vivo, guard `:1638` PASSA → `:1645` propaga (con Start/Stop Sync attivo). Percorso a bassa probabilità, NON nullo, e di durata NON MISURATA: la finestra non è la sola latenza di dispatch, va da `:886` fino all'esecuzione della closure main `:1024-1025` — quindi include tutto il resto di `start()` su audioQueue (midi_engine_*, link_engine_*, metronome_*, scheduleNextBuffer, os_log, UserDefaults) — e lo smontaggio della view arriva ancora dopo (observer `:254` → session=.playing). Nessuna misura a runtime esiste (nessun Xcode lato CC) — quindi NON «impossibile per costruzione». La sola altra questione aperta sul CANCEL è la sua DESTINAZIONE di navigazione (R7, domanda CD). **Collegamento:** se `TD-follower-stop-propaga` (§1.2) viene risolto — lo stop del Follower reso locale — questo buco si chiude ALLA RADICE, senza toccare il CANCEL né la transizione waiting→playing.
+- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata e lo stop propaga ai Follower. Propagazione = per-peer, condizionata a Start/Stop Sync ATTIVO nelle impostazioni Link dell'utente sui device coinvolti (`ABLLink.h:75-82`, «only controllable by the user via the Link settings dialog»); `project.yml:19 ABLLinkStartStopSyncSupported: true` PERMETTE l'attivazione, non la impone (BOX3 V97 (b)).
+- **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista una data con la band prima di S6, la priorità del rerouting S6 va rivalutata.
+- **Dipendenza:** decisione CD (iii) ratificata 18/07 (LIBRO v36) — direzione FERMA, **freeze del disegno ATTESO da CD**, deve coprire ENTRAMBE le uscite (Home + Switch) e tutti i contesti di sfondo. **Nessuna implementazione prima del freeze.** Da chiudere PRIMA di S6.
+- **Fuori scope, registrato non implementato (NOTA referee 18/07, per quando arriva il freeze):** l'overlay richiederà peer-count + stato Start/Stop Sync = **dati L2**; §6 è dichiarato RT-neutro → la deroga va DICHIARATA esplicitamente nel disegno S6, non scoperta in corsa. Ruling referee (a CD 18/07): l'apparato d'allarme ambra può COMPARIRE in diretta se le condizioni diventano vere, ma NON deve SPARIRE finché il modale è aperto (il conteggio peer non è affidabile finché **TD#17** resta OPEN — un avviso agganciato a quel dato lampeggerebbe nel momento peggiore; aggiungere un avviso è sempre sicuro, toglierlo fa premere il tasto rosso convinti che non faccia male). Supersede la richiesta CD di ricalcolo live simmetrico.
+- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Stop Sync utente attivo. Nessun fix applicato — bloccato sul freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+
+### TD-injecttestdata-sovrascrive-dati-reali — I dati di test possono finire su disco al posto di quelli veri (🔴 OPEN ALTA / perdita-dati innescabile a due tocchi)
+--- FINE VERBATIM BUGS 116-131 ---
+
+--------------------------------------------------------------------------
+M5 - VOCI 25 E 26 DEL REGISTRO LIBRO
+--------------------------------------------------------------------------
+[V] comando: git cat-file blob HEAD:LIBRO_MASTRO_QBEATS.md | grep -nE '^| *2[4-7] | 20'
+--- OUTPUT GREZZO ---
+459:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisione di prodotto* (Mauro 28/06) — app portrait-only su tutti i device, landscape=v2. *(Il mezzo su iPad — config `~ipad`/`UIRequiresFullScreen` — è implementazione CC, fuori dalla ratifica.)* iPhone già solo-portrait (`Info.plist:20`); iPad da bloccare via config (chiave `~ipad` mancante → `BUGS_QBEATS.md` v22 §1.2 `TD-ipad-home`). Promuove una direzione finora solo in archivi (BOX5 V22-V24 + HANDOFF 25/06), mai cross-team. Header bump 23→24. **Single-purpose** (solo LIBRO). Doc-only, nessun fix codice. |
+460:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag SHOWS = HYBRID (09/07, 5 condizioni; fixture nuova family Setlist-hybrid, distinta da A5b/Song); (B) Navigazione Q-Live §6 = freeze CD + Nodo A (10/07; 4 condizioni + gate device A/B/C; piano `HANDOFF/NODO_A_PIANO_2026-07-10.md` ratifica-piena referee sha `77d081f6…`; DND neutro → mini-TD). Header 26→27. ⚠️ **Buco storico pre-esistente:** righe changelog v25/v26 mancanti da questa Sez.6 (header era già a v26); NON backfillate a memoria (verify-at-source) → tracciate come debito nel mini-TD `LIBRO-sez6-buco-v25-v26` (BUGS §1.3). Doc-only. |
+--- FINE OUTPUT ---
+
+[V] Stessa misura su cinque rev storiche prese dal log del file, ciascuna con
+    due controlli indipendenti. Righe tagliate a 110 caratteri: taglio
+    DICHIARATO, non silenzioso.
+--- OUTPUT GREZZO ---
+----- rev 2b5cdd3 : 2b5cdd3 LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only
+362:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** 
+  controllo positivo, righe di registro totali: 24
+  seconda forma, righe che aprono con | 25 | o | 26 |: 0
+----- rev 8ca04a4 : 8ca04a4 LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio Link role-gated (ratifica Mauro 01/07)
+363:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** 
+  controllo positivo, righe di registro totali: 24
+  seconda forma, righe che aprono con | 25 | o | 26 |: 0
+----- rev 0dc2189 : 0dc2189 LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onesto); motore A2-A7 sbloccato
+364:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** 
+  controllo positivo, righe di registro totali: 24
+  seconda forma, righe che aprono con | 25 | o | 26 |: 0
+----- rev 82d743e : 82d743e LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello tag) + §6 nav (Nodo A) + famiglia swallow (TD-persist-silent-fail)
+366:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** 
+367:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag
+  controllo positivo, righe di registro totali: 25
+  seconda forma, righe che aprono con | 25 | o | 26 |: 0
+----- rev 42c2bce : 42c2bce docs(libro): v28 — S1/S2F + 2 domande aperte CD (CD-Q7, CD-Q8)
+378:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** 
+379:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag
+  controllo positivo, righe di registro totali: 26
+  seconda forma, righe che aprono con | 25 | o | 26 |: 0
+--- FINE OUTPUT ---
+
+[V] NESSUNA CONCLUSIONE TRATTA DA CC SU M5, come da istruzione: solo numeri.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Non ho cercato il documento del referee fuori da repo e da E:. Se vive nel
+    Progetto Claude, in una chat o su un altro supporto, non l'ho misurato.
+[V] Non ho aperto le sottocartelle di E:/HANDOFF una per una: la ricerca per
+    contenuto e' ricorsiva e le copre, ma non ne ho fatto l'inventario.
+[V] Non ho letto per intero nessuno dei canonici: solo intervalli e pattern.
+[V] Nessuna misura su device. Nessuna run CI interrogata in questo giro.
+[V] Non ho letto io le copie del Progetto Claude: l'identita' di M1 vale fra i
+    blob a HEAD e i valori che il referee mi ha passato.
+[R] I file:riga citati DENTRO le righe 116-131 di BUGS non sono stati
+    riverificati in questo giro.
+
+================================================================================
+FINE REFERTO M0-M5.
+================================================================================

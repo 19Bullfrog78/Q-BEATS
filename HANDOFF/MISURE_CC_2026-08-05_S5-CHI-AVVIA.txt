@@ -1,0 +1,200 @@
+QB-2026-08-05-A44 · MISURA SECCA — CHI CHIAMA startSetlist · SOLA LETTURA
+CC → Referee · segue A43
+
+ID: A44. Riconfermato A43 come ultimo reale con la stessa procedura di ieri (forma stretta su
+nomi-file e contenuti di HANDOFF/, esclusa CONGEDO_REFEREE, controllo positivo integrato) — A43
+è il mio stesso file di ieri notte, nessun A44+ preesistente. Consegna
+`MISURE_CC_2026-08-05_S5-CHI-AVVIA.txt` non esisteva prima di questa scrittura (`ls | grep`).
+Orologio: 2026-08-05T08:17:33Z (`date -u`).
+
+Preso nota della tua correzione su A43/Drive — nessun ticket aperto in questo giro, come chiesto.
+
+Mandato: sola lettura, nessuna soluzione proposta.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+1 — Chi chiama `startSetlist`? Censimento ios_app/, tutti i siti
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Non zero — 3 siti reali di chiamata (esclusa la `func` a SetlistRunner.swift:109 e i commenti):
+
+    ios_app/QBeats/UI/Live/LiveView.swift:172
+        runner.startSetlist(audioEngine: audioEngine, session: session)
+    ios_app/QBeats/UI/Live/LiveView.swift:415
+        runner.startSetlist(audioEngine: audioEngine, session: session)
+    ios_app/QBeats/UI/Live/TransportView.swift:62
+        runner.startSetlist(audioEngine: audioEngine, session: session)
+
+Contesto di ciascuno (letto dal file, non dedotto):
+  - `:172` — dentro `WaitingForDirectorView(...) { ... }` (closure `onStartLocal`, righe 166-173):
+    tap utente "START LOCAL".
+  - `:415` — dentro `.onReceive(audioEngine.linkStartedSubject)` (righe 406-417), ramo `else`
+    quando `session.playbackState` NON è `.standby` — cioè il callback Director-remoto.
+  - `TransportView.swift:62` — riga verbatim dal grep, contesto non letto oltre la riga stessa
+    (non richiesto dal mandato: il mandato chiede riga verbatim + riga letta, non il file intero).
+
+Mancate (commenti, non chiamate — escluse dal conteggio sopra, elencate per non lasciarle
+implicite): AudioEngine.swift:172, LiveView.swift:387, WaitingForDirectorView.swift:11 e :13.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+2 — `primeDisplay` (SetlistRunner.swift:271) e `startCurrentSong` (:124): chi li chiama
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+`primeDisplay` — 1 sito, censimento ios_app/:
+    ios_app/QBeats/UI/Live/LiveView.swift:213
+        runner.primeDisplay(session: session)
+    Contesto: dentro `.onAppear` (blocco 193-222) di `LiveView`.
+
+`startCurrentSong` — 2 siti, censimento ios_app/:
+    ios_app/QBeats/UI/Live/LiveView.swift:136
+        runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        Contesto: `.onTapGesture` su `StandbyOverlayView` (righe 132-138) — tap utente su standby.
+    ios_app/QBeats/UI/Live/LiveView.swift:413
+        runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        Contesto: stesso `.onReceive(audioEngine.linkStartedSubject)` del punto 1, ramo
+        `if case .standby` (righe 412-413) — callback Director-remoto mentre si è in standby.
+
+Mancate (commenti): SetlistRunner.swift:362, LiveView.swift:386.
+
+⚠️ Misura che lega i tre ingressi: TUTTI e SEI i siti di chiamata reali (startSetlist ×3,
+primeDisplay ×1, startCurrentSong ×2) passano `session: session` — cioè la `LiveSession` LOCALE
+di `LiveView` (riga 11), MAI un valore che provenga da `QLiveSession`. Nessuna eccezione nei sei.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+3 — ios_app/QBeats/UI/Live/LiveView.swift
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+449 righe totali — SUPERA la soglia di 250. Non incollato integrale, per regola dichiarata.
+(File letto per intero comunque, necessario per rispondere con contesto corretto ai punti sotto —
+non dedotto dal solo grep.)
+
+(a) `.onAppear` / `.task` / `.onChange` — 1 solo hit, `.onAppear`:
+    riga 193: `.onAppear {`
+    `.task`: ZERO. `.onChange`: ZERO. Dichiarato esplicitamente, non lasciato implicito.
+    (Non richiesto: il file usa `.onReceive` — 9 volte, righe 224, 266, 269, 286, 294, 302, 354,
+    371, 406 — meccanismo diverso da `.onChange` ma stessa famiglia funzionale "reagisce a un
+    publisher". Segnalato per rilevanza, non incollato: fuori dal perimetro letterale chiesto.)
+
+(b) Ogni riga che nomina `runner` — 17 righe, verbatim, riga letta (grep sul file, non a mano:
+    il mio primo scorrimento visivo ne aveva perse due, corretto rileggendo con lo strumento):
+
+    6    @EnvironmentObject var runner: SetlistRunner
+    136                              runner.startCurrentSong(audioEngine: audioEngine, session: session)
+    153      //      → observer più sotto → runner.startSetlist →
+    154      //      session.playbackState = .playing (via runner →
+    158      //      → runner.startSetlist standalone;
+    172                          runner.startSetlist(audioEngine: audioEngine, session: session)
+    213      runner.primeDisplay(session: session)
+    214      // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
+    218      if let section = runner.currentSection {
+    227      // L1.b: il runner gestisce .standby e .fineSetlist impostando
+    230      // NON sovrascrivere stati già impostati dal runner.
+    354      .onReceive(runner.$currentSectionIdx) { _ in
+    386      // la sezione corrente: in `.standby` `runner.startCurrentSong(...)`
+    387      // (preserva `currentSongIdx`), altrimenti `runner.startSetlist(...)` che
+    400      // doppio reset indici runner (ramo `else`: `startSetlist` resetta
+    413                  runner.startCurrentSong(audioEngine: audioEngine, session: session)
+    415                  runner.startSetlist(audioEngine: audioEngine, session: session)
+
+    ⚠️ Riga 354 è una misura che nessun punto precedente aveva ancora riportato: `LiveView`
+    osserva `runner.$currentSectionIdx` DIRETTAMENTE via `.onReceive` — un secondo canale di
+    osservazione del runner, oltre all'`@EnvironmentObject` di riga 6, non menzionato nella
+    dottrina "i figli osservano il runner" di `QLiveSession.swift` (che parla di
+    `@ObservedObject`/`@EnvironmentObject`, non di `.onReceive` su un `@Published` specifico).
+    Misura, non giudizio: la dottrina non è violata (`.onReceive` osserva comunque il runner,
+    non la sessione), ma è una terza forma non ancora catalogata nei round precedenti.
+
+(c) Ogni riga che nomina `session` — 45 righe, verbatim, riga letta:
+
+    11   @StateObject private var session = LiveSession()
+    92                       if case .standby = session.playbackState { return true }
+    97                       LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
+    99                       MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
+    101                      BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
+    103                      MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
+    106                          TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
+    108                          MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+    110                          POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+    120                                      session.showMixer = true
+    124                      TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+    132                  if case .standby(let nextSong) = session.playbackState {
+    136                              runner.startCurrentSong(audioEngine: audioEngine, session: session)
+    140                  if case .overlayStop(let sec, let song) = session.playbackState {
+    144                  if case .fineSetlist = session.playbackState {
+    154      //      session.playbackState = .playing (via runner →
+    165                  if case .waitingForDirector = session.playbackState {
+    172                          runner.startSetlist(audioEngine: audioEngine, session: session)
+    178                      if session.showMixer {
+    183                                  session.showMixer = false
+    185                          MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+    189                  .allowsHitTesting(session.showMixer)
+    213      runner.primeDisplay(session: session)
+    228      // session.playbackState PRIMA di chiamare audioEngine.stop().
+    231                  switch session.playbackState {
+    237                  session.playbackState = .stopped
+    250                      session.beatActive = 0
+    253                  session.playbackState = .countIn(countdown: 4)
+    255                  session.playbackState = .playing
+    261                  session.playbackState = .overlayStop(sectionName: sec, songName: song)
+    262                  session.beatActive = 0
+    267      session.currentBPM = bpm
+    283                  session.currentTimeSig = timeSigString(for: beats)
+    299                  session.totalBarsInSection = reps
+    330                  session.currentTimeSig = timeSigString(for: bpb)
+    338                  session.totalBarsInSection = reps
+    344      session.beatActive = ((relativeTick - 1) % bpb) + 1
+    345      session.currentBar = ((relativeTick - 1) / bpb) + 1
+    358      session.isProMode = mode == .pro
+    375                  if case .stopped = session.playbackState {
+    377                      session.beatActive = 0
+    397      // riga ~165 mirrora su session), o perché Q-B è sorgente Direttore
+    407      guard session.playbackState != .playing else { return }
+    412                  if case .standby = session.playbackState {
+    413                  runner.startCurrentSong(audioEngine: audioEngine, session: session)
+    415                  runner.startSetlist(audioEngine: audioEngine, session: session)
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+4 — Esiste in tutto il repo un punto che costruisce `SetlistRunner(`? Riverificato oggi a HEAD.
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+[V, oggi, HEAD 5183758d8b80b0d1f975fb0e6074d146cec3e3ae] Perimetro `ios_app/` (dove vive tutto il
+codice Swift — dichiarato, non esteso oltre): `grep 'SetlistRunner\(' ios_app/` → **ZERO**.
+
+⚠️ CONTROLLO POSITIVO obbligatorio su questo zero: la forma bare `SetlistRunner` (senza parentesi),
+stesso perimetro, stesso comando — rende 10+ righe (le dichiarazioni `: SetlistRunner` già censite
+in A43 punto 4, più la dichiarazione della classe stessa e due commenti). Il meccanismo di ricerca
+morde su questo identificatore in questa cartella; lo zero specifico è sulla PARENTESI aperta
+(costruzione/chiamata), non un falso-zero da filtro.
+
+Ho anche cercato "in tutto il repo" come dice la domanda (non solo ios_app/): fuori da ios_app/
+`SetlistRunner(` compare SOLO dentro HANDOFF/*.txt, HANDOFF/*.md, BUGS_QBEATS.md e
+LIBRO_MASTRO_QBEATS.md — tutte citazioni storiche o correnti IN PROSA, mai codice Swift eseguibile.
+Elencarle tutte non è verbatim utile qui; le due canoniche (non scratch) le riporto sotto perché
+rispondono alla stessa domanda con un fondamento più solido del mio grep di oggi.
+
+[R, canonico, ratificato — non una mia misura di oggi, ma letto ora, in questa sessione, alle
+righe indicate]:
+
+--- LIBRO_MASTRO_QBEATS.md:330 (riga "2026-07-31", "⟦S4R⟧ CHIUSO") ---
+«`LiveRootView` cancellato insieme al phantom `first ?? makeDefault()`.»
+Commit: `bfc92285d165852a9c5618786a7e95f7166025e7`, fast-forward da
+`40f099bb28ad87627e3c6df926993a3df297df90`.
+
+--- BUGS_QBEATS.md:132 (marcatura, HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`) ---
+«(1) "`= SetlistRunner(` un solo sito, `LiveRootView.swift:12`" — FALSIFICATA NELLA FORMA: a HEAD
+i siti di costruzione sono ZERO e quel file non esiste più; il movimento è da uno a nessuno, cioè
+verso il sicuro.»
+«SERRATURA B — il runner. Lo slot è `@Published private(set) var runner: SetlistRunner? = nil`
+(`ios_app/QBeats/UI/QLive/QLiveSession.swift:35`), senza mutatore in nessun punto del repo, e
+`= SetlistRunner(` ha zero siti ⇒ `if let runner` (`:98`) non lega mai.»
+
+Questi due canonici misurano zero a un HEAD storico (`ddd5716…`), precedente a oggi. NON ho
+ricostruito la catena di commit fra `ddd5716…` e l'HEAD odierno per dichiarare continuità
+garantita — sarebbe un'inferenza, non una misura. Quello che tengo per MISURATO oggi è solo il
+mio grep a HEAD `5183758…`: zero, indipendentemente da questa storia. Le due fonti [R] convergono
+con la mia [V] di oggi, ma le dichiaro come due cose distinte: MISURATO (oggi, mio) e
+VERO-PER-COSTRUZIONE-STORICA (allora, canonico, non riverificato da me lungo tutta la catena).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine misure. Nessun file toccato fuori da questa consegna, nessun commit, nessun push, nessuna
+soluzione proposta.
+════════════════════════════════════════════════════════════════════════════════════════════════

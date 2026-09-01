@@ -1,0 +1,342 @@
+VERIFICA V-ISP — isPlaying vs isRunning · anello ESITO A (BUGS v39) · RoomSwitchBar/uscite player
+HEAD fe6d34b18f2fa666e1cb3fcac050c94374a1cca9 · READ-ONLY · 0 file tracciati toccati · 0 commit · 0 staging
+Autore: CC · 2026-07-19 · Ogni file:riga è ANCORATO A QUESTO HEAD e RI-TROVATO in questa sessione (non riusato dal handoff).
+
+Nota metodo: `git status` mostra SOLO untracked (nessun tracked ` M`) → per ogni file tracciato letto,
+il contenuto su disco == blob a HEAD. Le citazioni qui sotto sono quindi a fe6d34b per costruzione.
+Verbatim = riga incollata dal file. "[R]" = riscontro di codice; "[V]" = affermato-verificato-a-fonte in questo giro.
+
+════════════════════════════════════════════════════════════════════════
+0 — ANCORAGGIO (dichiarato verbatim)
+════════════════════════════════════════════════════════════════════════
+working directory reale (pwd, Git-Bash):   /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+
+git log -1 --format=%H%n%an <%ae>%n%s :
+  fe6d34b18f2fa666e1cb3fcac050c94374a1cca9
+  Mauro Martintoni <di_tutto@icloud.com>
+  HANDOFF: SCALETTA_ATOMI_S6 tracciata in git (cambio di regime, contenuto invariato)
+
+git status --short  →  16 righe, TUTTE untracked (`??`), ZERO tracked modificati:
+  ?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+  ?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+  ?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+  ?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+  ?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+  ?? HANDOFF/DIFF_S4a_2026-07-18.txt
+  ?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+  ?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+  ?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+  ?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+  ?? HANDOFF/PIANO_S4_2026-07-18.txt
+  ?? HANDOFF/PIANO_S4b_REV_2026-07-18.txt
+  ?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+  ?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+  ?? QBEATS_A5C_PIANO_2026-07-04.md
+  ?? QBEATS_ATOMC_PIANO_2026-07-06.md
+  (questo file — VERIFICA_V-ISP_2026-07-19.txt — sarà la 17ª voce untracked, deliverable richiesto dal referee.)
+
+RI-TROVAMENTO dei riferimenti del handoff precedente (erano da RI-TROVARE, non da riusare):
+  handoff diceva AudioEngine.swift:56  →  RI-TROVATO a :56  (esatto)
+  handoff diceva AudioEngine.swift:273 →  RI-TROVATO a :273 (esatto)
+  Entrambi reggono a questo HEAD; li ho comunque ri-ancorati leggendoli, non copiati.
+
+════════════════════════════════════════════════════════════════════════
+1 — isPlaying vs isRunning — IL MECCANISMO INTERO
+════════════════════════════════════════════════════════════════════════
+
+--- 1a. DICHIARAZIONI (verbatim, con modificatore) ---
+
+ios_app/QBeats/AudioEngine.swift:56  →  @Published, accesso mirror-UI:
+  56    @Published var isPlaying   : Bool    = false
+  (Contesto d'intestazione del file, righe 7-14, VERBATIM parziale:
+     7  // 1. isRunning, clickPlayhead, accentPlayhead, bufferCount, beatTotal,
+    10  // 2. clickStatus, isPlaying, beatsPerBar sono @Published:
+    11  //    ogni write avviene su DispatchQueue.main.async.        )
+  → isPlaying è @Published; il file dichiara che OGNI sua scrittura avviene su DispatchQueue.main.async.
+
+ios_app/QBeats/AudioEngine.swift:273  →  private, accesso audio-queue:
+  269    // --- Stato audio: accesso SOLO su audioQueue ---
+  273    private var isRunning            = false
+  → isRunning è private, sotto l'intestazione esplicita "accesso SOLO su audioQueue".
+
+FATTO STRUTTURALE (dalle due dichiarazioni): isPlaying e isRunning vivono su DUE CODE DIVERSE per
+progetto — isPlaying scritto SOLO su main; isRunning scritto SOLO su audioQueue. Nessuna loro coppia
+di scritture può essere atomica: ogni transizione "gira ↔ non gira" sono DUE dispatch su due thread.
+Entrambe le proprietà sono scritte ESCLUSIVAMENTE dentro AudioEngine.swift (grep repo-wide: nessun
+altro file scrive nessuna delle due; gli altri file solo LEGGONO audioEngine.isPlaying).
+
+--- 1b. OGNI SITO DI SCRITTURA (repo-wide), verbatim + contesto ---
+
+Metodo: grep repo-wide `isPlaying` e `isRunning` su *.swift, poi classificate lettura/scrittura leggendo
+ogni sito. Le SCRITTURE (assegnazioni alla proprietà) sono, in tutto il repo, SOLO queste:
+
+isPlaying — 3 scritture, tutte in AudioEngine.swift, tutte su main.async:
+
+ [W-P1] :1025  self.isPlaying = true   — dentro start(), in un DispatchQueue.main.async (:1024) annidato
+                nel blocco audioQueue.async di start() (:857).
+   1022                let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
+   1023                let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
+   1024                DispatchQueue.main.async {
+   1025                    self.isPlaying            = true
+   1026                    self.playbackState        = .playing
+   1027                    self.clickStatus          = statusStr
+
+ [W-P2] :1710  self.isPlaying = false  — dentro stopSync(), in un DispatchQueue.main.async (:1709) DOPO
+                la chiusura del blocco audioQueue.sync e dopo engine.stop().
+   1707        let statusStr = "stopped buf:\(bc) beats:\(bt)"
+   1708        (…)
+   1709        DispatchQueue.main.async {
+   1710            self.isPlaying   = false
+   1711            self.clickStatus = statusStr
+
+ [W-P3] :2694  self.isPlaying = false  — dentro handleInterruption(.began), in un DispatchQueue.main.async
+                (:2693) DOPO il blocco audioQueue.sync e dopo engine.stop().
+   2691            playerNode.stop()
+   2692            engine.stop()
+   2693            DispatchQueue.main.async {
+   2694                self.isPlaying   = false
+   2695                self.clickStatus = "audio muted — clock running"
+
+isRunning — 5 scritture, tutte in AudioEngine.swift, tutte su audioQueue:
+
+ [W-R1] :886   self.isRunning = true   — dentro start(), nel blocco audioQueue.async (:857), subito dopo
+                try engine.start()/playerNode.play().
+    883                try self.engine.start()
+    884                self.playerNode.reset()
+    885                self.playerNode.play()
+    886                self.isRunning = true
+
+ [W-R2] :1639  self.isRunning = false  — dentro stopSync(), nel blocco audioQueue.sync (:1629), dopo la
+                guardia :1638.
+   1637            wasRunning = self.isRunning
+   1638            guard self.isRunning else { return }
+   1639            self.isRunning = false
+
+ [W-R3] :2687  self.isRunning = false  — dentro handleInterruption(.began), nel blocco audioQueue.sync (:2669).
+   2686                self.isAudioInterrupted = true
+   2687                self.isRunning          = false
+   2688                shouldStop              = true
+
+ [W-R4] :2904  self.isRunning = false  — dentro handleRouteChange(), ramo `else if modeChanged` (:2900),
+                nel blocco audioQueue.async (:2834).
+   2903                let wasRunning = self.isRunning
+   2904                self.isRunning = false
+   2905                self.playerNode.stop()
+   2906                self.engine.stop()
+
+ [W-R5] :3020  self.isRunning = false  — dentro handleEngineConfigChange(), nel blocco audioQueue.async
+                (:2980), dopo la guardia :2983.
+   3019            (…) "Config change detected — rebuilding graph and restarting" (…)
+   3020            self.isRunning = false
+   3021            self.playerNode.stop()
+
+Coperti esplicitamente i percorsi richiesti dal referee:
+ · init:               nessuna scrittura (solo i default `= false` alle dichiarazioni :56 e :273).
+ · start:              [W-R1] isRunning=true @:886 ; [W-P1] isPlaying=true @:1025.
+ · stop:               stop() (:1078) chiama stopSync() → [W-R2] @:1639 ; [W-P2] @:1710.
+ · pause:              NON ESISTE una funzione pause che scriva questi flag (grep negativo). NON TROVATO
+                       (cercato: `func pause`, `paused`, scritture isRunning/isPlaying in funzioni di pausa).
+                       Lo stato `.pausedAwaitingChoice` è di session.playbackState, non di questi due flag.
+ · interruzione iOS:   handleInterruption(.began) → [W-R3] @:2687 ; [W-P3] @:2694 (le righe 2676-2677 citate
+                       dal referee sono commenti CRITICO "NON chiamare midi_engine_stop", non scritture).
+ · mediaServicesReset: handleMediaReset() (:2959) NON scrive direttamente i flag; legge wasRunning (:2960)
+                       e chiama stopSync() (:2961) → passa da [W-R2]/[W-P2]. (Nessun `mediaServicesWereReset`
+                       come simbolo: l'handler si chiama handleMediaReset.)
+ · route change:       [W-R4] @:2904 (ramo modeChanged). NESSUNA scrittura di isPlaying nell'intera funzione.
+ · engine config:      [W-R5] @:3020. NESSUNA scrittura di isPlaying nell'intera funzione.
+ · error path (start): il blocco do{} di start() ha UN SOLO `try` che può lanciare, `try self.engine.start()`
+                       a :883 — PRIMA di [W-R1] :886. Le chiamate fra :886 e :1024 (midi_engine_*, link_engine_*,
+                       metronome_*, scheduleNextBuffer, os_log, UserDefaults) NON sono throwing. Quindi il
+                       `catch` (:1069) è raggiungibile SOLO con isRunning ancora false → NON lascia stati
+                       incoerenti. (Correzione onesta: avevo ipotizzato una divergenza persistente via catch;
+                       la lettura di :883-:1024 la ESCLUDE.)
+ · deinit:             nessuna scrittura di questi flag in un deinit (grep negativo). NON TROVATO alcun deinit
+                       che tocchi isRunning/isPlaying.
+
+--- 1c. ATOMICITÀ per sito ---
+Per costruzione (1a): isPlaying(main) e isRunning(audioQueue) NON sono MAI scritti nello stesso blocco atomico.
+ · start:  [W-R1] su audioQueue @:886, POI [W-P1] su main.async @:1025 → INDIPENDENTI, isRunning PRIMA.
+ · stop:   [W-R2] su audioQueue.sync @:1639, POI [W-P2] su main.async @:1710 → INDIPENDENTI, isRunning PRIMA.
+ · interr: [W-R3] su audioQueue.sync @:2687, POI [W-P3] su main.async @:2694 → INDIPENDENTI, isRunning PRIMA.
+ · route/config: [W-R4]/[W-R5] scrivono SOLO isRunning; isPlaying NON è toccato in quelle funzioni → la
+   coppia non è nemmeno co-presente; isPlaying resta al valore precedente per tutta la ricostruzione.
+
+--- 1d. DOMANDA SECCA: esiste uno stato raggiungibile con isPlaying≠isRunning? ---
+RISPOSTA: SÌ. Entrambe le disuguaglianze sono raggiungibili. NON esiste invariante che le escluda; al
+contrario, il design a due code le RENDE possibili e il codice le GESTISCE esplicitamente.
+
+(A) isPlaying==true && isRunning==false — RAGGIUNGIBILE e GESTITO come stato di prima classe.
+    Prova decisiva (non una finestra, uno stato NOMINATO nel codice):
+      3053    guard self.isPlaying, !self.isRunning else { return }
+    handleAppWakeUp() (:3050) ha come CONDIZIONE D'INGRESSO esattamente isPlaying==true && isRunning==false:
+    è la routine di recovery per "la UI si crede in play (isPlaying) ma l'audio non gira (isRunning)". Se i
+    due campi fossero sempre uguali quel guard non passerebbe mai e la funzione sarebbe codice morto — invece
+    è un percorso vivo (risveglio app dopo che il motore audio è morto in background).
+    Percorsi che producono lo stato: stopSync (fra :1639 e :1710), interruzione (fra :2687 e :2694), e — più
+    a lungo — i rami route-change modeChanged (:2904) ed engine-config (:3020) che azzerano isRunning e
+    lasciano isPlaying==true per tutta la durata di rebuild+activateSessionAndStart.
+
+(B) isPlaying==false && isRunning==true — RAGGIUNGIBILE come finestra di start().
+    In start(): [W-R1] isRunning=true su audioQueue @:886, mentre [W-P1] isPlaying=true è dispatchato su
+    main.async @:1025 (più tardi, dopo ≥ gli hop di dispatch descritti nei commenti :131-137 e :518-519).
+    Fra l'esecuzione di :886 e l'esecuzione effettiva della closure main di :1024, isRunning==true &&
+    isPlaying==false. Durata = latenza audioQueue→main sotto contesa (sub-frame ÷ pochi ms).
+
+Invariante che le allineerebbe: NON esiste. Il file dichiara code diverse per i due campi (:11 vs :269) e
+altrove ALLINEA a mano lo stato di contorno (es. commento :1084-1089 "P1+P3 fix: allinea playbackState
+all'isPlaying su ogni percorso di stop" — necessario proprio perché non c'è allineamento automatico).
+
+Terze proprietà che partecipano allo stesso meccanismo (segnalate come richiesto):
+ · session.playbackState (LiveSession, Layer-3 UI) — è un TERZO stato, distinto da entrambi; è quello che
+   monta/smonta la WaitingForDirectorView e quindi il CANCEL (rilevante per §2).
+ · engine.isRunning / self.engine.isRunning — è AVAudioEngine.isRunning (flag di Apple), DIVERSO dal
+   isRunning privato della classe; letto nei guard :429 (`engine.isRunning`) e :2983
+   (`guard self.isRunning, !self.engine.isRunning`). Non confondere i due "isRunning".
+ · isAudioInterrupted (:2686) / pendingResume — stato di contorno dell'interruzione, co-scritto con isRunning
+   su audioQueue; non è un mirror di isPlaying ma governa i recovery che poi riallineano i due flag.
+
+════════════════════════════════════════════════════════════════════════
+2 — L'ANELLO DEL TICKET BUGS v39 (TD-qlive-exit-unconfirmed-stop)
+════════════════════════════════════════════════════════════════════════
+
+--- 2a. ESITO A verbatim (BUGS_QBEATS.md:118, riga unica lunga — incollata integrale) ---
+  «- **CANCEL di `WaitingForDirectorView` — NON è una porta di band-stop (verificato a fonte 18/07, ESITO A):**
+   `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector`
+   (`LiveView.swift:165`); quello stato è assegnato SOLO a `TransportView.swift:58`, raggiungibile SOLO nel
+   ramo `else if` di `if audioEngine.isPlaying` (`TransportView.swift:36`) → cioè SOLO con `isPlaying == false`
+   (se l'audio suonasse, il tap Play lo fermerebbe a `:37`, non entrerebbe in waiting); l'ingresso in waiting
+   (`:58`) NON avvia l'audio; le uscite che lo avviano (Director→`runner.startSetlist`; START LOCAL
+   `LiveView.swift:172`) transitano a `.playing`, smontando la view. Quindi nello stato waiting il click NON
+   gira → il CANCEL→`onExit()`→`stop()` colpisce la guardia `AudioEngine.swift:1638` (`guard self.isRunning`,
+   `isRunning==false`) e ritorna PRIMA di `:1645` = **nessuno stop propagato alla band**, impossibile per
+   costruzione. La sola questione aperta sul CANCEL è la sua DESTINAZIONE di navigazione (R7, domanda CD) —
+   NON un rischio evento-banda. *(Boundary teorico sub-frame nella transizione waiting→playing: ortogonale a
+   questo ticket, non il percorso ordinario del CANCEL.)*»
+
+Clausole "SOLO" del ticket, RI-VERIFICATE a fonte (grep repo-wide + lettura):
+  [V] "renderizzata SOLO in .waitingForDirector (LiveView.swift:165)":
+      LiveView.swift:165  if case .waitingForDirector = session.playbackState {
+      LiveView.swift:166      WaitingForDirectorView(scaleFactor: scaleFactor, onExit: onExit) {
+      È l'UNICO sito di render di WaitingForDirectorView nel repo. CONFERMATO. (Il render è :166 sotto la
+      guardia :165 — il ticket cita :165, cioè la guardia; scarto di 1 riga, semanticamente corretto.)
+  [V] "assegnato SOLO a TransportView.swift:58":
+      TransportView.swift:58  session.playbackState = .waitingForDirector
+      Grep repo-wide di `.waitingForDirector`: unico ASSEGNAMENTO è :58 (gli altri hit sono la `case
+      waitingForDirector` in LivePlaybackState.swift:18 e commenti). CONFERMATO.
+  [V] "raggiungibile SOLO nel ramo else-if di if isPlaying (TransportView.swift:36) → SOLO con isPlaying==false":
+      TransportView.swift:36  if audioEngine.isPlaying {
+      TransportView.swift:37      audioEngine.stop()
+      TransportView.swift:38  } else if audioEngine.currentLinkMode == .collaborativa {
+      TransportView.swift:58      session.playbackState = .waitingForDirector
+      CONFERMATO: l'ingresso in waiting è nel ramo `else if`, quindi isPlaying==false al momento del tap.
+  [V] "START LOCAL LiveView.swift:172":
+      LiveView.swift:172  runner.startSetlist(audioEngine: audioEngine, session: session)  (closure di START LOCAL). CONFERMATO.
+
+--- 2b. La guardia, ri-ancorata a HEAD (AudioEngine.swift:1637-1645, verbatim) ---
+   1637            wasRunning = self.isRunning
+   1638            guard self.isRunning else { return }
+   1639            self.isRunning = false
+   1640            bc = self.bufferCount
+   1641            bt = self.beatTotal
+   1642
+   1643            // Build #309: notifica Link che la riproduzione è ferma — API semantica.
+   1644            if let lh = linkEngineHandle {
+   1645                link_engine_stop(lh, mach_absolute_time())
+  → La guardia :1638 gira su `isRunning` (campo audioQueue). Se isRunning==false ritorna PRIMA di :1645
+    (link_engine_stop) → nessuna propagazione ai peer. Il ticket cita :1638 e :1645 correttamente.
+
+--- 2c. Quale proprietà DIMOSTRA, quale INVOCA, e se il passaggio regge ---
+
+PROPRIETÀ CHE LA DIMOSTRAZIONE STABILISCE:
+  · isPlaying==false all'INGRESSO in waiting (TransportView:36) — verificato;
+  · e che l'ingresso in waiting (:58) di per sé NON chiama start()/startSetlist — verificato.
+  In sostanza la prova lavora su isPlaying (guardia d'ingresso) e su session.playbackState (le uscite che
+  avviano l'audio smontano la view).
+
+PROPRIETÀ CHE LA CONCLUSIONE INVOCA:
+  · isRunning==false alla guardia :1638, al momento del tap CANCEL.
+
+BRIDGE IMPLICITO fra le due: "finché la WaitingForDirectorView è montata (CANCEL disponibile), isRunning==false".
+Questo bridge NON è isPlaying⟹isRunning (che §1d falsifica in generale), ma "nessuno start() ha girato mentre
+la view è montata". isRunning diventa true SOLO in start() [W-R1 :886, audioQueue]; lo smontaggio della view
+avviene quando session.playbackState→.playing, che passa da audioEngine.start→isPlaying=true(:1025,main)→
+observer $playbackState(:254)→session=.playing. Cioè: isRunning=true (audioQueue, :886) accade PRIMA;
+lo smontaggio (main, catena di hop) accade DOPO.
+
+VERDETTO (alla luce di §1d):
+  · REGGE per il percorso ORDINARIO/steady: se nessuno start() è in volo, in waiting isRunning==false
+    DIRETTAMENTE (non via isPlaying) → CANCEL→stop colpisce guard false → nessun band-stop. Corretto.
+  · È FALSIFICATO come "impossibile per costruzione" ASSOLUTO. Percorso concreto che lo rompe (proprio lo
+    scenario del ticket, collaborativa Follower): il Director preme Play → l'observer linkStartedSubject
+    (LiveView:406) NON ha guard contro .waitingForDirector (guarda solo `!= .playing`, :407) → chiama
+    runner.startSetlist → audioEngine.start → [W-R1] isRunning=true @:886. In quel sub-frame session è
+    ANCORA .waitingForDirector (lo smontaggio arriva solo dopo gli hop main), quindi la WaitingForDirectorView
+    è ANCORA montata e il CANCEL è ANCORA vivo con isRunning==true → guard :1638 PASSA → :1645 propaga (con
+    Start/Stop Sync attivo). Il PERCORSO ESISTE; NON c'è invariante che lo escluda; la sua probabilità è
+    bassa (tap CANCEL entro la finestra di pochi ms audioQueue→main), NON nulla.
+  · Questo è ESATTAMENTE il parentetico del ticket ("Boundary teorico sub-frame nella transizione
+    waiting→playing"). Conclusione operativa: quel parentetico è PORTANTE, non decorativo — è il confine
+    preciso del claim. Citare ESITO A senza di esso ("CANCEL non è band-stop, impossibile per costruzione")
+    SOVRA-dichiara. La preoccupazione del handoff ("prova e conclusione su campi distinti, sincronia mai
+    provata") è CONFERMATA alla radice: la conclusione sopravvive per il percorso ordinario SOLO grazie alla
+    gamba indipendente "nessuno start() ha girato", NON perché isPlaying e isRunning siano sincronizzati
+    (non lo sono, §1d).
+
+════════════════════════════════════════════════════════════════════════
+3 — RoomSwitchBar e le uscite-stanza dal player
+════════════════════════════════════════════════════════════════════════
+
+--- 3a. TUTTE le viste che istanziano RoomSwitchBar (per simbolo, file:riga) ---
+Grep repo-wide `RoomSwitchBar` su *.swift → in codice Swift:
+  DEFINIZIONE:      ios_app/QBeats/UI/Components/RoomSwitchBar.swift:23   struct RoomSwitchBar: View {
+  ISTANZA 1:        ios_app/QBeats/UI/QStage/ShowsListView.swift:79       RoomSwitchBar(
+  ISTANZA 2:        ios_app/QBeats/UI/QLive/QLiveShowsView.swift:65       RoomSwitchBar(
+Sono le UNICHE due istanziazioni. (ShowsListView = lista Shows di Q-STAGE. QLiveShowsView = frame ② di
+Q-Live, ma è DEAD CODE di S4a: nessun file lo referenzia, non è montato a HEAD — S4b non mergiato.)
+
+--- 3b. Il player (LiveView) istanzia RoomSwitchBar? ---
+NO. Assenza dichiarata: nessun `RoomSwitchBar(` in ios_app/QBeats/UI/Live/*.swift (grep negativo; lettura
+integrale di LiveView.swift confermata). L'header del player è LiveHeaderView (LiveView.swift:97), non
+RoomSwitchBar.
+
+--- 3c. DOMANDA SEMANTICA: dal player esiste una qualunque uscita FUORI da Q-Live? ---
+Catena host: AppRootView(.qLive) → QLiveRootView(onExit) → LiveRootView(onExit) → LiveView(onExit).
+`onExit` == closure `{ screen = .home }` dichiarata SOLO in AppRootView:43. Non c'è NavigationStack/
+NavigationLink/.sheet/fullScreenCover/swipe-dismiss nella catena (grep negativo su UI/Live; AppRootView e
+i due root sono ZStack/plain view, montaggio via `switch screen`, non modale).
+
+USCITE REALI del player = 2, ENTRAMBE verso HOME, ZERO verso Q-Stage:
+  [U1] Back button — LiveHeaderView.swift:30   Button { onExit() } label: { … chevron.left … }
+       chiamato da LiveView:97 (LiveHeaderView(… onExit: onExit …)). → onExit() → screen=.home.
+  [U2] CANCEL — WaitingForDirectorView.swift:72   onExit()
+       montata SOLO in .waitingForDirector (LiveView:166, onExit: onExit). → onExit() → screen=.home.
+Entrambe → AppRootView.onChange(of: screen) (:61-68) → previousScreen==.qLive → audioEngine.stop() (:65) =
+stop CANONICO. Nessuna delle due va a Q-Stage.
+
+Altri elementi interattivi del player che NON sono uscite (restano dentro Q-Live):
+  · TransportView: prev/play-stop/next/loop/KILL BASE; e `emerg` (⚠) = NO-OP placeholder
+    (TransportView.swift:92  { /* navigazione Vista LISTA — Fase successiva */ }) — NON un'uscita oggi.
+  · LiveHeaderView: bottone mute-click (:124) — toggle, non uscita.
+  · Gesti drag / handle → session.showMixer (overlay interno).
+  · StandbyOverlay tap → startCurrentSong; overlay Stop/FineSetlist — tutti interni.
+
+CONCLUSIONE 3: al player NON è montata alcuna RoomSwitchBar; le sue uniche uscite dalla stanza Q-Live sono
+[U1] back e [U2] CANCEL, entrambe verso Home via onExit()→stop canonico. Nessuna porta verso Q-Stage dal
+player. Il fatto su cui poggia il freeze CD 18/07 ("la barra-stanze è assente nel player; il player ha DUE
+sfondi/uscite verso Home, non un terzo contesto con room-bar") è CONFERMATO A SIMBOLO per il player a HEAD
+fe6d34b. Caveat di scope: questo è il PLAYER (LiveView). La "metà nuova" del ticket (RoomSwitchBar in
+lista/dettaglio Shows con due porte) vive in QLiveShowsView, oggi dead-code: NON è player e NON è montata.
+
+════════════════════════════════════════════════════════════════════════
+VINCOLI — conformità
+════════════════════════════════════════════════════════════════════════
+· Verbatim: ogni citazione di codice è incollata dal file, con numero di riga a HEAD fe6d34b.
+· NON TROVATO usato dove pertinente: funzione `pause` sui flag (§1b), deinit sui flag (§1b) — con il come.
+· Zero modifiche al working tree tracciato: nessun file .swift/.md tracciato toccato, nessuno staging,
+  nessun commit, HEAD invariato fe6d34b. Unico file creato = QUESTO deliverable (untracked, HANDOFF/),
+  come richiesto dal referee ("UN file .txt allegato in chat"); + suo mirror E:.
+· Terza proprietà emersa in 1b: segnalata (session.playbackState, engine.isRunning di AVAudioEngine,
+  isAudioInterrupted/pendingResume).
+· Una riga onesta: ho letto integralmente start() (:851-1076), stopSync() (:1625-1713), i 5 handler di
+  sistema e i file del player citati. NON ho eseguito il codice (nessun Xcode lato CC): le "finestre" di
+  §1d/§2c sono dedotte dall'ordine dei dispatch nel sorgente, non osservate a runtime su device.

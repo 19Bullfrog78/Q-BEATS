@@ -1,0 +1,752 @@
+================================================================================
+MISURE CC - 2026-08-01 - giro N1-N5 richiesto dal referee.
+SOLA LETTURA. Zero scritture sui file misurati. Zero commit.
+================================================================================
+REGOLA DEL GIRO: ogni numero con DUE forme indipendenti, o non entra.
+  byte = stat + wc -c, oppure cat-file -s + wc -c sui blob.
+  righe = wc -l + awk NR. CR = tr -cd + python sui byte.
+  OID git = rev-parse + ls-tree. Ogni coppia porta un verdetto CONCORDI o
+  *** DISCORDI *** stampato dal confronto, non dichiarato da CC.
+  Output GREZZI, rediretti dal comando. Il file non contiene il proprio sha256.
+
+AVVISO DI PROCESSO, non una misura: N1, N3, N4 e N5 erano gia' state eseguite e
+  consegnate nel referto HANDOFF/MISURE_CC_2026-08-01_M0-M5.txt (sha256
+  b304387ac4c9d50f025213b4997fb541d8aca1e72d4b4acaac5b9a481860a53c, 60478 B,
+  712 righe), presente anche sul mirror E:. Il prompt di questo giro le chiede
+  di nuovo, due delle quali dichiarandole 'mai eseguita' e 'non eseguita ieri':
+  quel referto NON e' arrivato al referee. Il guasto e' di TRASPORTO, non di
+  misura. Qui le rifaccio da capo: se i numeri coincidono con quelli del
+  referto precedente, e' una conferma; se divergessero, sarebbe un reperto.
+
+[V] Orologio macchina: 2026-08-01 10:30:35 +0200
+[V] HEAD: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+
+--------------------------------------------------------------------------
+N1 - SCALETTA: QUALE PATH PORTA LA v4
+--------------------------------------------------------------------------
+[V] comando: git rev-parse HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+    OID   f1 rev-parse = d4306337ffccc0beec3fba595da61f67f1076fb4
+    OID   f2 ls-tree   = d4306337ffccc0beec3fba595da61f67f1076fb4   CONCORDI
+    byte  f1 cat-file-s= 36070   f2 wc-c = 36070   CONCORDI
+    righe f1 wc-l      = 337   f2 awkNR= 337   CONCORDI
+    CR blob  f1 tr=0  f2 python=0   CONCORDI
+    CR disco f1 tr=0  f2 python=0   CONCORDI
+
+    atteso referee: d4306337ffccc0beec3fba595da61f67f1076fb4  36070 B  337 righe  0 CR
+    ESITO: COINCIDE su OID, byte, righe e CR. La v4 e' IN GIT, a questo path.
+
+[V] PRIME 6 RIGHE VERBATIM:
+--- INIZIO VERBATIM ---
+# Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
+
+**Versione:** 4 (30/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4)
+> Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
+> nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
+> 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
+--- FINE VERBATIM ---
+    Il file dichiara da se' che la data nel nome e' piu' vecchia del contenuto
+    e che la fonte di verita' e' il campo Versione, non il nome-file.
+
+--------------------------------------------------------------------------
+N2 - I CINQUE PUNTATORI AD AppRootView.swift, ACCOSTATI AL BERSAGLIO
+--------------------------------------------------------------------------
+[V] righe del file  f1 wc-l = 79
+                    f2 awkNR= 79
+[V] byte del file   f1 cat-file-s = 3979
+                    f2 wc-c       = 3979
+
+[V] IL FILE PER INTERO a HEAD, numerazione reale (79 righe, sotto la soglia 90):
+--- INIZIO AppRootView.swift ---
+     1	import SwiftUI
+     2	import os
+     3	
+     4	struct AppRootView: View {
+     5	    @EnvironmentObject var audioEngine: AudioEngine
+     6	    @Environment(\.scenePhase) private var scenePhase
+     7	    @State private var showSplash = true
+     8	    @State private var screen: Screen = .home
+     9	    /// Nodo A N1a — valore precedente di `screen` per il handler `.onChange`
+    10	    /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+    11	    /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+    12	    @State private var previousScreen: Screen = .home
+    13	
+    14	    /// Routing top-level della Home: commutazione di schermata (NON push).
+    15	    /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
+    16	    /// della Home fa `screen = .qLive` (entry-point canonico unico); la
+    17	    /// modale UIKit è stata ritirata.
+    18	    private enum Screen { case home, qStage, qLive }
+    19	
+    20	    var body: some View {
+    21	        ZStack {
+    22	            if showSplash {
+    23	                SplashView()
+    24	                    .onAppear {
+    25	                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+    26	                            withAnimation(.easeOut(duration: 0.4)) {
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+    34	                    HomeRootView(onOpenQStage: { screen = .qStage },
+    35	                                 onOpenQLive: { screen = .qLive })
+    36	                case .qStage:
+    37	                    // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
+    38	                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+    39	                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+    40	                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+    41	                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+    42	                    // lo stop vive al bordo-stanza, non sulla navigazione.
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+    45	                        .environmentObject(audioEngine)
+    46	                case .qLive:
+    47	                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+    48	                    // onExit e lo inoltra alla gerarchia Q-Live; le closure
+    49	                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+    50	                    // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+    51	                    QLiveRootView(onExit: { screen = .home },
+    52	                                  onSwitchToStage: { screen = .qStage })
+    53	                        .environmentObject(audioEngine)
+    54	                }
+    55	            }
+    56	        }
+    57	        .onAppear {
+    58	            UIApplication.shared.isIdleTimerDisabled = true
+    59	        }
+    60	        .onChange(of: scenePhase) { newPhase in
+    61	            UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+    62	        }
+    63	        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+    64	        // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+    65	        // (non-deterministico su view riusata/cachata; il vecchio
+    66	        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+    67	        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+    68	        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+    69	        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+    70	        .onChange(of: screen) { newScreen in
+    71	            if newScreen == .qLive {
+    72	                audioEngine.triggerDNDReminderIfNeeded()
+    73	            } else if previousScreen == .qLive {
+    74	                audioEngine.stop()
+    75	            }
+    76	            previousScreen = newScreen
+    77	        }
+    78	    }
+    79	}
+--- FINE AppRootView.swift ---
+
+[V] GLI INTERVALLI CHIESTI, isolati:
+  BERSAGLIO 10-13 - righe 10-13 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    10	    /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+    11	    /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+    12	    @State private var previousScreen: Screen = .home
+    13	
+
+  BERSAGLIO 27-33 - righe 27-33 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+
+  BERSAGLIO 43-44 - righe 43-44 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+
+[V] ACCOSTAMENTO SITO <-> BERSAGLIO. NESSUN VERDETTO DI CC: sotto ci sono i due
+    testi, uno accanto all'altro. Decide il referee.
+
+=== (1) BUGS:289 - dichiara i bersagli :8, :13, :27-33 e il commento :10-12
+  SITO BUGS:289 - testo VERBATIM della riga 289 di BUGS_QBEATS.md:
+- **Cos'è:** la radice dell'app commuta tra due schermate (`AppRootView.swift:8,13,27-33`: enum `Screen{home,qStage}`, `HomeRootView`↔`QStageRootView`). **Q-Live NON è in questo enum:** è montata come **modale UIKit** — `UIHostingController(LiveRootView)` + `modalPresentationStyle=.overFullScreen` + `.present()` sul `rootViewController` della window (`HomeRootView.swift:77-88`, func `presentLive()`). Lo dichiara il codice stesso: commento `AppRootView.swift:10-12` "Q-Live resta una modale UIKit … riconciliazione top-level = Nodo A (a verbale)".
+
+  BERSAGLIO :8 -
+     8	    @State private var screen: Screen = .home
+  BERSAGLIO 10-13 - righe 10-13 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    10	    /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+    11	    /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+    12	    @State private var previousScreen: Screen = .home
+    13	
+  BERSAGLIO 27-33 - righe 27-33 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+  Per riferimento, dove sta l'enum Screen nel file a HEAD:
+18:    private enum Screen { case home, qStage, qLive }
+
+=== (2) BUGS:319 - dichiara il bersaglio :27-33
+  SITO BUGS:319 - testo VERBATIM della riga 319 di BUGS_QBEATS.md:
+- **De-risk (sourced S3+S4):** (a) modello **unico, già esistente** — `struct Setlist` (`Models/Setlist.swift:3`); CRUD store pronto (`QBeatsStore.swift:72-89` + `resolve` `:95`, `setlists.json`); stesso `Setlist` per palco (`SetlistRunner.swift:59`) e backup (`QBeatsBackupManager.swift:27-29`) → niente "due verità". (b) mount **pulito** — tab dentro il `TabView` (`QStageRootView.swift:17`) via commutazione (`AppRootView.swift:27-33`), **NON** eredita Nodo A (modale Q-Live, `HomeRootView.swift:76-88`); monterebbe come Songs (proprio `NavigationStack`, `SongListView.swift:19`).
+
+  BERSAGLIO 27-33 - righe 27-33 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+
+=== (3) BUGS:704 - dichiara il bersaglio :43-44
+  SITO BUGS:704 - testo VERBATIM della riga 704 di BUGS_QBEATS.md:
+- **Sweep di compilabilità PRIMA del commit** (nessuna toolchain Swift in locale → prima prova possibile = CI): due call-site in codice, entrambi aggiornati (`AppRootView.swift:43-44`, `QStageRootView.swift:27`); sweep inverso dal parametro ai suoi usi → 6 occorrenze, tutte dentro i 3 file modificati, zero orfani; unico `PreviewProvider` del repo (`UI/QLive/QLiveEmptyStates.swift:238`) non istanzia nessuno dei due tipi; zero `.swift` fra gli untracked.
+
+  BERSAGLIO 43-44 - righe 43-44 di ios_app/QBeats/UI/AppRootView.swift a HEAD, numerazione reale:
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+
+=== (4) SCALETTA - dichiara il bersaglio :13
+  SITO - tutte le righe della SCALETTA che citano AppRootView, verbatim:
+29:**RoomSwitchBar `.roomseg`:** 0 in codice (confermato). Componente condiviso, switch = dominio CC. Container `rgba(255,255,255,.05)`+bordo `.10`; attivo tint blu `rgba(42,107,214,.24)`/arancio `rgba(212,63,0,.24)`; inattivo `.30`; pill 34pt, hit 54pt. Switch reale = commutare `AppRootView.screen` `.qStage↔.qLive` → dipende da Nodo A.
+49:- **File:** `UI/Components/RoomSwitchBar.swift` (NUOVO). `enum Room { case qStage, qLive }` (NON `AppRootView.Screen`). Props: `active: Room` (highlight stateless, no `@State`), `onSwitch` (no-op default), `onHome` (**RICHIESTA**, non-defaulted), `variant full/segMini`. Colori = token esistenti `QStageTheme.blue`/`.orange`/`.text3`; solo container `.05`+bordo `.10` nuovi. ⚠️ FATTO (`87a8280`): la 10/07 elencava anche `showsPlus`/`onAdd?` — CD-Q7 li ha UCCISI e il componente committato NON li ha (props reali a `@ 6fca624` = `active`/`onHome`/`variant`/`onSwitch`).
+94:  `save()`/`load()` → zero disco (Q16), zero passaggio da `AppRootView`. Q-Live lo EREDITA in
+126:- **File:** `AppRootView.swift:13` (add `.qLive`) · `QLiveRootView.swift` NUOVO (onExit unico hookpoint; audio-stop su transizione) · `LiveHeaderView.swift:6,:26` (`dismiss()`→`onExit()`) · `WaitingForDirectorView.swift:27,:67` (CANCEL→`onExit()`) · `HomeRootView.swift:77-88` (modale→`screen=.qLive`).
+133:- **File:** `UI/QLive/QLiveShowsView.swift` NUOVO (righe read-only; search no-sort; il sort è EREDITATO da Q-Stage in sola lettura — Q15, nessun `.sortbtn` qui, riletto da `QBeatsStore.shared`; MetroFAB coda [S2F, solo piazzato]; pick cosmetico `QLiveTheme.pick`, no stato/modello; `RoomSwitchBar[active:.qLive, onHome:QLiveRootView.onExit (Cond A), onSwitch:→screen=.qStage]`) · `QLiveRootView.swift` EDIT (root→QLiveShowsView) · **`AppRootView.swift` EDIT** (inietta `onSwitchToStage:{ screen=.qStage }`; `screen` private; è `.qStage`, non toggle). ⚠️ La 10/07 diceva `showsPlus:false`: la prop NON esiste (RoomSwitchBar reale = `active`/`onHome`/`variant`/`onSwitch`).
+134:- **Reversibilità:** RISCHIO/accoppiata (revert = del view + root a LiveView + revert edit AppRootView; toglie push-target S5).
+236:- **Modello raccomandato alla costruzione:** Opus 4.8 · effort `xhigh` (tocca launcher/AppRootView e
+317:1. "+" create → ⚠️ **SUPERATO da CD-Q7 (LIBRO v31):** «+» OMESSO finché §8 non arriva, NIENTE bottone morto. La 10/07 diceva «bottone presente, azione off»: ora è VIETATO. 2. Badge FILE MISSING → DIFFERIRE (esistenza cache al load, no fileExists a scroll). 3. QLiveTheme = enum separato (file: scelta CC). 4. Switch-closure AppRootView → in S4, non Nodo A. 5. onHome non-defaulted → SÌ (Cond A enforced-by-compiler). 6. S6 separato. 7. S4/S4L coppia stretta; device gate S4 = no-crash tap-riga pre-S5. ⚠️ **PARZIALMENTE SUPERATA dallo sdoppiamento 28/07:** il device gate S4 resta invariato; «S4L» qui indicava il **launcher**, oggi ⟦S4R⟧, e fra i due si è inserito ⟦S4K⟧ — la contiguità non è più garantita (pendenza nella scheda ⟦S4R⟧). 8. Cross-ref AudioEngine → confluisce in Prereq 1.
+333:`AppRootView.Screen{home,qStage}` · `QStageRootView` · `HomeRootView` presentLive modale ·
+
+  BERSAGLIO :13 -
+    13	
+  (riga 13 isolata: sopra e' stampata; se appare vuota, e' una riga vuota)
+  byte della sola riga 13: 1
+
+[V] CENSIMENTO - tutti i puntatori 'AppRootView.swift:' nei canonici a HEAD,
+    con controllo positivo della stessa forma.
+--- OUTPUT GREZZO ---
+-- BUGS_QBEATS.md, numeri di riga dei siti citanti --
+118 120 122 289 319 704 981 999 
+-- BUGS, conteggio f1 (grep -c): 8
+-- BUGS, conteggio f2 (grep -n | wc -l): 8
+-- LIBRO, conteggio: 0
+-- controllo positivo stessa forma, BUGS 'AudioEngine.swift:': 26
+--- FINE OUTPUT ---
+
+--------------------------------------------------------------------------
+N3 - ANCORA V55
+--------------------------------------------------------------------------
+[V] comando: git log --oneline --all -S 'Decisione esplicita V55' | head
+--- OUTPUT GREZZO ---
+710b384 canonici: BOX3 V97, BOX5 V26 e due prove citate tracciati in git (cambio di regime, contenuto invariato)
+825ec48 Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+--- FINE OUTPUT ---
+
+[V] comando: git log --oneline --all -S 'TARGETED_DEVICE_FAMILY' | head -20
+--- OUTPUT GREZZO ---
+8822598 LIBRO v47: rettifica della distanza d'uso, S4R chiuso, due buchi dichiarati
+710b384 canonici: BOX3 V97, BOX5 V26 e due prove citate tracciati in git (cambio di regime, contenuto invariato)
+825ec48 Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+--- FINE OUTPUT ---
+
+[V] I due commit con data, dal piu' recente al piu' vecchio:
+--- OUTPUT GREZZO ---
+710b384b07db114bf25080f0efcba2c70fe2fb96 | 2026-07-21 10:55:08 +0200 | canonici: BOX3 V97, BOX5 V26 e due prove citate tracciati in git (cambio di regime, contenuto invariato)
+825ec48ca41d67fc93775e9713634ef991595f54 | 2026-05-12 22:44:34 +0200 | Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+--- FINE OUTPUT ---
+
+[V] DOVE VIVE OGGI la stringa, su tutti i file tracciati a HEAD:
+--- OUTPUT GREZZO ---
+HEAD:ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md:61:- `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml`. Default Xcode `1,2` (universal). L'app si installa su iPhone + iPad senza modifiche al `project.yml`. Decisione esplicita V55.
+HEAD:ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md:9:- **Device family decisione esplicita:** `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml` → default Xcode `1,2` (universal). Decisione esplicita V55: lasciare il default, NON aggiungere `"1"` (chiuderebbe porta a iPad).
+HEAD:ARCHIVIO.MD/12_05_2026/BOX5_V22_12_05_2026.md:31:| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+HEAD:BOX5_QBEATS.md:66:| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+--- FINE OUTPUT ---
+
+[V] IL DOCUMENTO DELL'ANCORA e' tracciato? git ls-files --error-unmatch:
+ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md
+    ultimo commit del file:
+825ec48ca41d67fc93775e9713634ef991595f54 | 2026-05-12 22:44:34 +0200 | Add ARCHIVIO 12/05/2026 — BOX3 V52-V55, BOX5 V22, HANDOFF TaskD
+
+[V] IL TESTO CHE ISTITUISCE LA DECISIONE, verbatim da BOX3 V55 - righe 61, 72,
+    242 e 251:
+--- INIZIO VERBATIM ---
+- `TARGETED_DEVICE_FAMILY` resta non specificato in `project.yml`. Default Xcode `1,2` (universal). L'app si installa su iPhone + iPad senza modifiche al `project.yml`. Decisione esplicita V55.
+- BOX3 V55 chiude tech debt #24 implicito (TARGETED_DEVICE_FAMILY decisione): non si aggiunge `"1"`, default universal è la decisione esplicita post-V55
+✅ **CHIUSO V55 con decisione esplicita**: lasciare default universal. App si installa su iPhone + iPad senza modifiche `project.yml`. NON aggiungere `"1"` (chiuderebbe porta a iPad, contrario alla Strada A ratificata).
+| **Decisione architetturale Strada A — universal iPhone + iPad portrait** | ✅ **RATIFICATA V55** (BOX5 V22 invariante) |
+--- FINE VERBATIM ---
+
+[V] IL SITO CHE LA CITA - BOX5 riga 66, verbatim, e la versione di BOX5:
+--- INIZIO VERBATIM ---
+| **Device family v22** | **Universal — `TARGETED_DEVICE_FAMILY` non impostato in `project.yml`, default Xcode `1,2` (iPhone + iPad). Decisione esplicita V55** |
+**Versione:** V28 — 28/07/2026
+--- FINE VERBATIM ---
+[V] Versione corrente di BOX3, per collocare il numero 55 nella sua serie: V99
+
+[V] RISPOSTA ALLA DOMANDA POSTA: l'ancora ESISTE, non e' un [R] scoperto.
+    Documento: ARCHIVIO.MD/12_05_2026/BOX3_V55_12_05_2026.md, tracciato a HEAD.
+    Commit che lo istituisce: 825ec48ca41d67fc93775e9713634ef991595f54,
+    2026-05-12 22:44:34 +0200. Il numero 55 appartiene alla serie di BOX3,
+    non a quella di BOX5: e' questo che spiega perche' BOX5 a V28 citi un V55.
+
+--------------------------------------------------------------------------
+N4 - LE TRE FACCE DEL LIBRO
+--------------------------------------------------------------------------
+(a) WORKING TREE  C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/LIBRO_MASTRO_QBEATS.md
+    byte   f1 stat=216083   f2 wc-c=216083   CONCORDI
+    righe  f1 wc-l=485   f2 awkNR=485  CONCORDI
+    CR     f1 tr=485     f2 python=485 CONCORDI
+
+(b) BLOB A HEAD   HEAD:LIBRO_MASTRO_QBEATS.md
+    byte   f1 cat-file-s=215598  f2 wc-c=215598  CONCORDI
+    righe  f1 wc-l=485        f2 awkNR=485 CONCORDI
+    CR     f1 tr=0          f2 python=0 CONCORDI
+
+(c) STAMPA SU E:  LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md
+    byte   f1 stat=215598   f2 wc-c=215598   CONCORDI
+    righe  f1 wc-l=485   f2 awkNR=485  CONCORDI
+    CR     f1 tr=0     f2 python=0 CONCORDI
+
+[V] IL REPERTO, riportato e NON riparato:
+    working tree 216083 B  meno  blob 215598 B  =  485 byte di differenza.
+    CR contati nel working tree: 485.
+    I due numeri coincidono? SI.
+    Le righe sono 485 su tutte e tre le facce.
+
+[V] Configurazione EOL, output grezzo:
+    git config core.autocrlf -> true
+    --- cat .gitattributes ---
+HANDOFF/** -text
+DESIGN/** -text
+BOX3_QBEATS.md -text
+BOX5_QBEATS.md -text
+    --- git ls-files --eol LIBRO_MASTRO_QBEATS.md ---
+i/lf    w/crlf  attr/                 	LIBRO_MASTRO_QBEATS.md
+
+--------------------------------------------------------------------------
+N5 - QUALE FILE SERALE
+--------------------------------------------------------------------------
+[V] candidati del 31/07 in HANDOFF, forma 1 (ls|grep|wc): 17
+[V] candidati del 31/07 in HANDOFF, forma 2 (find|wc):    17
+
+[V] Per OGNI candidato: sha256 con due forme, byte, righe, CR, i due grep
+    discriminanti e le prime 12 righe verbatim.
+--- OUTPUT GREZZO ---
+=== DIFF_LIBRO-v46_2026-07-31.txt
+  sha256 f1 sha256sum = 62fbeca8952b1b404f623f940e15f17930b176e33d609163b21040718d0a9013
+  sha256 f2 hashlib   = 62fbeca8952b1b404f623f940e15f17930b176e33d609163b21040718d0a9013  CONCORDI
+  byte   f1 stat=31103   f2 wc-c=31103   CONCORDI
+  righe  f1 wc-l=36   f2 awkNR=36  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 786c231..2453aed 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,9 +2,9 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 45 (30/07/2026)
+-**Ultima modifica:** 2026-07-30 (v45 — **Sez.2 +1 riga**: la colonna data di Sez.2 e del registro ratificata come **componente dell'indirizzo di riga**, congelata una volta scritta, corretta o sbagliata che sia; più la regola gemella sulla **scrittura** della data — dall'orologio della macchina che committa, mai dal contesto di sessione, e verificata dopo il commit contro `%cI`. ⛔ **Nessuna riga storica corretta:** le otto chiavi `2026-07-30` di v44 (Sez.2 ×7 + registro ×1) e i quattro rimandi interni che le indirizzano restano intatti. Nata dal rilievo, misurato a fonte, che **v44 copre una sola giornata reale, il 29/07/2026** — i tre commit fra v43 `c3caa58` e `4d1f974` sono tutti del 29 — e che questa stessa intestazione, in v44, era avanti di un giorno. Header bump 44→45. Doc-only, nessun fix codice.)
+-**Edit author:** CC chat principale 30/07/2026
++**Versione:** 46 (31/07/2026)
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v46_2026-07-31_rev2.txt
+  sha256 f1 sha256sum = b222fefc127d2ac31c134823a526983f3e932cd9279d98aee58b6aa57eae6d8f
+  sha256 f2 hashlib   = b222fefc127d2ac31c134823a526983f3e932cd9279d98aee58b6aa57eae6d8f  CONCORDI
+  byte   f1 stat=31103   f2 wc-c=31103   CONCORDI
+  righe  f1 wc-l=36   f2 awkNR=36  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 786c231..26e5560 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,9 +2,9 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 45 (30/07/2026)
+-**Ultima modifica:** 2026-07-30 (v45 — **Sez.2 +1 riga**: la colonna data di Sez.2 e del registro ratificata come **componente dell'indirizzo di riga**, congelata una volta scritta, corretta o sbagliata che sia; più la regola gemella sulla **scrittura** della data — dall'orologio della macchina che committa, mai dal contesto di sessione, e verificata dopo il commit contro `%cI`. ⛔ **Nessuna riga storica corretta:** le otto chiavi `2026-07-30` di v44 (Sez.2 ×7 + registro ×1) e i quattro rimandi interni che le indirizzano restano intatti. Nata dal rilievo, misurato a fonte, che **v44 copre una sola giornata reale, il 29/07/2026** — i tre commit fra v43 `c3caa58` e `4d1f974` sono tutti del 29 — e che questa stessa intestazione, in v44, era avanti di un giorno. Header bump 44→45. Doc-only, nessun fix codice.)
+-**Edit author:** CC chat principale 30/07/2026
++**Versione:** 46 (31/07/2026)
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31.txt
+  sha256 f1 sha256sum = 294899d320b2473cf1162d1cca53901c17aa689140d4911abe75a4f39b4faa4d
+  sha256 f2 hashlib   = 294899d320b2473cf1162d1cca53901c17aa689140d4911abe75a4f39b4faa4d  CONCORDI
+  byte   f1 stat=45920   f2 wc-c=45920   CONCORDI
+  righe  f1 wc-l=67   f2 awkNR=67  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 3
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47. NON COMMESSO.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Le righe +/- sono invarianti rispetto al
+contesto: verificato a -U0, -U3 e -U10, stessi conteggi.
+================================================================================
+
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 26e5560..73a6d26 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31_rev2.txt
+  sha256 f1 sha256sum = d24fb8188b325368747181d2110ce959065b244e27e13a8dd2aa3a467099dec1
+  sha256 f2 hashlib   = d24fb8188b325368747181d2110ce959065b244e27e13a8dd2aa3a467099dec1  CONCORDI
+  byte   f1 stat=46417   f2 wc-c=46417   CONCORDI
+  righe  f1 wc-l=70   f2 awkNR=70  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 3
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47 — rev2. NON COMMESSO.
+Sostituisce DIFF_LIBRO-v47_2026-07-31.txt (rev1), che si CONSERVA come traccia.
+Delta rev1 -> rev2: enfasi annidata sciolta sui tre marcatori (un solo livello di
+grassetto) + marcatore di :249 riscritto (cade l'inquadratura sulla distanza, non
+l'argomento) + riferimento temporale fluttuante «oggi» ancorato al 31/07/2026.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Righe +/- invarianti: verificato a -U0, -U3, -U10.
+================================================================================
+
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v47_2026-07-31_rev3.txt
+  sha256 f1 sha256sum = 52f38fc7e31b555f58081a43e1e328d4e897d6c42c48aacef0a5e73becab58c5
+  sha256 f2 hashlib   = 52f38fc7e31b555f58081a43e1e328d4e897d6c42c48aacef0a5e73becab58c5  CONCORDI
+  byte   f1 stat=46424   f2 wc-c=46424   CONCORDI
+  righe  f1 wc-l=71   f2 awkNR=71  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 3
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md v46 -> v47 — rev3. NON COMMESSO.
+Conserva rev1 e rev2 come traccia di cio' che e' stato respinto.
+Delta rev2 -> rev3: UNA PAROLA. In :292 l'articolo era doppiato,
+  «SUPERATA dalla la riga» -> «SUPERATA dalla riga».
+  Nasce dalla normalizzazione sulla forma «la riga»: :249 e :252 la portano
+  correttamente perche' li' la preposizione e' nuda; su :292 non ci va.
+Albero di partenza: bfc92285d165852a9c5618786a7e95f7166025e7 (= origin/master)
+Un solo file toccato. Nulla in staging.
+Contesto: git diff predefinito (-U3). Righe +/- invarianti: verificato a -U0/-U3/-U10.
+================================================================================
+
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v48_2026-07-31.txt
+  sha256 f1 sha256sum = 58f1317c8bba74934f0c679f7b7f37e808faa3256a395daed9679b95a140103e
+  sha256 f2 hashlib   = 58f1317c8bba74934f0c679f7b7f37e808faa3256a395daed9679b95a140103e  CONCORDI
+  byte   f1 stat=28994   f2 wc-c=28994   CONCORDI
+  righe  f1 wc-l=265   f2 awkNR=265  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48 (RISTRETTA): diff pronto, NON committato
+==============================================================================
+
+UN SOLO FILE toccato: LIBRO_MASTRO_QBEATS.md. Nessun commit, nessun push,
+nessun branch. BUGS, SCALETTA, BOX3 e BOX5 NON sono stati toccati.
+Due cancelli davanti: ratifica referee, poi OK di Mauro. Nessuno dei due
+è assolto da questa consegna.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git status --porcelain --untracked-files=no
+  --- fine prime 12 righe ---
+=== DIFF_LIBRO-v48_2026-07-31_rev2.txt
+  sha256 f1 sha256sum = 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406
+  sha256 f2 hashlib   = 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406  CONCORDI
+  byte   f1 stat=29720   f2 wc-c=29720   CONCORDI
+  righe  f1 wc-l=277   f2 awkNR=277  CONCORDI
+  CR     f1 tr=7     f2 python=7 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 1
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48 rev2: RETTIFICA DI UNA CLAUSOLA
+==============================================================================
+
+UN SOLO FILE toccato: LIBRO_MASTRO_QBEATS.md. Nessun commit, nessun push,
+nessun branch. BUGS, SCALETTA, BOX3 e BOX5 NON toccati.
+Due cancelli davanti: ratifica referee, poi OK di Mauro.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git status --porcelain --untracked-files=no
+ M LIBRO_MASTRO_QBEATS.md
+  --- fine prime 12 righe ---
+=== DIFF_S4R-fase2_2026-07-31.txt
+  sha256 f1 sha256sum = 5929ee3f6cb1f40b6cbe052f64d4518b5952832ca7298208b9f77ca378ba5aed
+  sha256 f2 hashlib   = 5929ee3f6cb1f40b6cbe052f64d4518b5952832ca7298208b9f77ca378ba5aed  CONCORDI
+  byte   f1 stat=10354   f2 wc-c=10354   CONCORDI
+  righe  f1 wc-l=190   f2 awkNR=190  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF ⟦S4R⟧ FASE 2 — COSTRUZIONE. NON COMMESSO.
+Albero di partenza: 40f099bb28ad87627e3c6df926993a3df297df90 (= origin/master)
+Nulla in staging: git diff --cached --name-only = 0 righe.
+================================================================================
+
+PARTE 1 — git diff (3 file TRACCIATI)
+--------------------------------------------------------------------------------
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e88a40e..1e60d7d 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+  --- fine prime 12 righe ---
+=== DIFF_S4R-fase2b_2026-07-31.txt
+  sha256 f1 sha256sum = b47783880a5dc1c22a45c065be969ba905697a2a2fb0bfe0254e6e61449d9938
+  sha256 f2 hashlib   = b47783880a5dc1c22a45c065be969ba905697a2a2fb0bfe0254e6e61449d9938  CONCORDI
+  byte   f1 stat=12987   f2 wc-c=12987   CONCORDI
+  righe  f1 wc-l=224   f2 awkNR=224  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+DIFF ⟦S4R⟧ FASE 2b — COSTRUZIONE CORRETTA. NON COMMESSO.
+Albero di partenza: 40f099bb28ad87627e3c6df926993a3df297df90 (= origin/master)
+Sostituisce DIFF_S4R-fase2_2026-07-31.txt (NON ratificato), che si CONSERVA
+come traccia di cio' che il referee ha respinto.
+Nulla in staging: git diff --cached --name-only = 0 righe.
+================================================================================
+
+PARTE 1 — git diff (3 file TRACCIATI)
+--------------------------------------------------------------------------------
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e88a40e..1e60d7d 100644
+  --- fine prime 12 righe ---
+=== ESITO_COMMIT_LIBRO-v48_2026-07-31.txt
+  sha256 f1 sha256sum = cbf67eb2710c4e6202566bc1c9a641987a5176fc3740041a9f634896fe329094
+  sha256 f2 hashlib   = cbf67eb2710c4e6202566bc1c9a641987a5176fc3740041a9f634896fe329094  CONCORDI
+  byte   f1 stat=8913   f2 wc-c=8913   CONCORDI
+  righe  f1 wc-l=172   f2 awkNR=172  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — COMMIT + PROPAGAZIONE LIBRO v48
+==============================================================================
+
+Autorizzazione dichiarata dal prompt: ratifica referee sul referto rev2
+(sha256 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406)
++ OK di Mauro del 2026-07-31, verbatim «do l'ok». Entrambi i cancelli chiusi
+PRIMA di ogni azione di questo referto.
+Comandi e output verbatim. Nessuna conclusione: le trae il referee.
+
+==============================================================================
+F0 — CANCELLO DI ABORT: superato, tre valori verbatim
+  --- fine prime 12 righe ---
+=== HANDOFF_CC_2026-07-31.txt
+  sha256 f1 sha256sum = 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f
+  sha256 f2 hashlib   = 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f  CONCORDI
+  byte   f1 stat=36239   f2 wc-c=36239   CONCORDI
+  righe  f1 wc-l=555   f2 awkNR=555  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 4
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+HANDOFF CC — 2026-07-31, chiusura sessione.
+================================================================================
+[V] Scritto da CC. File untracked in HANDOFF/. In questo giro nessun canonico è
+    stato toccato, nessun commit è stato creato, nessun push è stato fatto.
+    comando: git status --porcelain ; git log -1 --format=%H
+
+CONVENZIONE DI QUESTO FILE — non è un'affermazione sul mondo, è come si legge:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto. Porta la misura, non la
+      conclusione.
+  [R] ricordato, ereditato o letto da un artefatto, NON rimisurato oggi.
+  Un tag apre l'affermazione e vale fino alla riga vuota successiva; le righe di
+  --- fine prime 12 righe ---
+=== HANDOFF_CC_2026-07-31_sera.txt
+  sha256 f1 sha256sum = 4d209703ca322c514fac60643a4228f121eaf4413a0ea3a2c2959e475618aa63
+  sha256 f2 hashlib   = 4d209703ca322c514fac60643a4228f121eaf4413a0ea3a2c2959e475618aa63  CONCORDI
+  byte   f1 stat=27172   f2 wc-c=27172   CONCORDI
+  righe  f1 wc-l=410   f2 awkNR=410  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 8
+  grep -cF 'Dominio'    = 1
+  --- prime 12 righe verbatim ---
+================================================================================
+HANDOFF CC — 2026-07-31 SERA, chiusura della seconda parte di giornata.
+================================================================================
+[V] Scritto da CC. File untracked NUOVO in HANDOFF/. Copre la giornata DOPO la
+    consegna di HANDOFF_CC_2026-07-31.txt del mattino, che NON è stato riscritto
+    né sovrascritto: le correzioni che ha ricevuto nel giro P1-P4 sono agli atti
+    nel referto di quel giro e nel §3 qui sotto.
+    comando: ls HANDOFF/HANDOFF_CC_2026-07-31*.txt
+
+CONVENZIONE — identica a quella del file del mattino, non la ripeto per esteso:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto · [R] ricordato, ereditato
+  o letto senza rimisurare · il tag apre il blocco e vale fino alla riga vuota ·
+  --- fine prime 12 righe ---
+=== MISURE_CC_2026-07-31_M0-M4.txt
+  sha256 f1 sha256sum = ad3af9e3d9d91602c460ace65a73743463f4edb935ae8e3a3be835ad8c24f81b
+  sha256 f2 hashlib   = ad3af9e3d9d91602c460ace65a73743463f4edb935ae8e3a3be835ad8c24f81b  CONCORDI
+  byte   f1 stat=51231   f2 wc-c=51231   CONCORDI
+  righe  f1 wc-l=734   f2 awkNR=734  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 4
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+==============================================================================
+MISURE CC — 2026-07-31 — M0..M4 — SOLA LETTURA
+==============================================================================
+Nessuna scrittura sul repo, nessun commit, nessun branch, nessun push.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessun ABORT: i quattro punti sono tutti stati eseguiti.
+Comandi eseguiti da: /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+Ogni output sotto e' output di comando, non trascrizione.
+
+VARIABILI USATE NEI COMANDI RIPORTATI — dichiarate perche' senza di esse i
+comandi sotto non sarebbero riproducibili:
+  $SW     = ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_P1-P4.txt
+  sha256 f1 sha256sum = b17624f930abfb8ec0bc2a3930b1bf4770de22bf1e277f517ea17741c37880e9
+  sha256 f2 hashlib   = b17624f930abfb8ec0bc2a3930b1bf4770de22bf1e277f517ea17741c37880e9  CONCORDI
+  byte   f1 stat=28706   f2 wc-c=28706   CONCORDI
+  righe  f1 wc-l=458   f2 awkNR=458  CONCORDI
+  CR     f1 tr=54     f2 python=54 CONCORDI
+  grep -c '§1'          = 1
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — CHIUSURA GIRO HANDOFF (P1..P4)
+==============================================================================
+Un solo file toccato: HANDOFF/HANDOFF_CC_2026-07-31.txt  (untracked).
+ZERO canonici, ZERO commit, ZERO push, ZERO branch.
+Ogni output sotto e' output di comando, non trascrizione.
+Nessuna conclusione: le trae il referee.
+
+⚠️ SUPERFICIE DI QUESTO REFERTO — dichiarata perche' non e' uniforme: il file
+e' a terminazione LF TRANNE le righe che provengono dall'output di Python, che
+su Windows emette CRLF. NON le ho normalizzate: normalizzarle avrebbe alterato
+un output che il prompt chiede verbatim. Il conteggio dei ritorni-carrello e'
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_V1-V3.txt
+  sha256 f1 sha256sum = bd462385f63ce5462ee864ad1b3a3ef124b92ffa356bbddd7a8bcf573387f71b
+  sha256 f2 hashlib   = bd462385f63ce5462ee864ad1b3a3ef124b92ffa356bbddd7a8bcf573387f71b  CONCORDI
+  byte   f1 stat=25118   f2 wc-c=25118   CONCORDI
+  righe  f1 wc-l=331   f2 awkNR=331  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 1
+  grep -cF 'Dominio'    = 9
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — TRE VERIFICHE CORTE (V1 · V2 · V3)
+==============================================================================
+ZERO scritture sul repo, ZERO commit, ZERO push, ZERO branch.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessuna conclusione: le trae il referee.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat        # tracciati modificati
+[VUOTO]
+$ git diff --cached --stat
+  --- fine prime 12 righe ---
+=== REFERTO_CC_2026-07-31_v48-ABORT.txt
+  sha256 f1 sha256sum = d53ea1b8db2dd164efc752d674817f658459ffba411e59756c2716d245ac05e8
+  sha256 f2 hashlib   = d53ea1b8db2dd164efc752d674817f658459ffba411e59756c2716d245ac05e8  CONCORDI
+  byte   f1 stat=18865   f2 wc-c=18865   CONCORDI
+  righe  f1 wc-l=334   f2 awkNR=334  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 2
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48: ABORT PRIMA DELLA SCRITTURA
+==============================================================================
+
+⛔ IL LIBRO NON È STATO TOCCATO. Nessun diff da mostrare, e il motivo è che
+   il diff avrebbe inciso in un canonico un'affermazione che ho MISURATO falsa.
+   Zero canonici, zero commit, zero push, zero branch.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat
+[VUOTO — nessun tracciato modificato]
+  --- fine prime 12 righe ---
+=== STATO_FINALE_2026-07-31_40f099b.txt
+  sha256 f1 sha256sum = 69c31c856eae42d0244323ac23e66dc482d0f3b73887d21b8cfcd2e426d44231
+  sha256 f2 hashlib   = 69c31c856eae42d0244323ac23e66dc482d0f3b73887d21b8cfcd2e426d44231  CONCORDI
+  byte   f1 stat=20590   f2 wc-c=20590   CONCORDI
+  righe  f1 wc-l=286   f2 awkNR=286  CONCORDI
+  CR     f1 tr=0     f2 python=0 CONCORDI
+  grep -c '§1'          = 0
+  grep -cF 'Dominio'    = 0
+  --- prime 12 righe verbatim ---
+================================================================================
+STATO FINALE — 2026-07-31, chiusura sessione. Cambio chat.
+================================================================================
+Scritto da CC. Per l'apertura della sessione nuova (R1: ricalcolare a fonte, non
+ereditare questi numeri).
+
+Marcatura obbligatoria: [V] = misurato in questa sessione, col comando accanto.
+                        [R] = riportato da altri, non verificabile da CC.
+
+REGOLA DI CONTENUTO DI QUESTO FILE: qui sta SOLO ciò che non si ricava dai file.
+Ciò che vive in LIBRO/BUGS/BOX3/BOX5/SCALETTA viene INDIRIZZATO, mai copiato e
+mai dichiarato di stato (LIBRO_MASTRO_QBEATS.md, Sez.2, riga 2026-07-30
+  --- fine prime 12 righe ---
+--- FINE OUTPUT ---
+
+[V] RICERCA PER CONTENUTO delle sezioni descritte dal referee, su TUTTO il repo
+    e TUTTO l'albero E:, con controllo positivo della stessa forma.
+--- OUTPUT GREZZO ---
+repo, file con 'DECISIONI PENDENTI' : 2
+E:,   file con 'DECISIONI PENDENTI' : 1
+repo, file con 'GIUDIZI'            : 7
+E:,   file con 'GIUDIZI'            : 9
+  -- controlli positivi, forma identica --
+repo, file con 'DECISIONI' : 99
+E:,   file con 'DECISIONI' : 235
+repo, file con 'Q-BEATS'   : 417
+E:,   file con 'Q-BEATS'   : 655
+--- FINE OUTPUT ---
+
+[V] VERDETTO N5 - NESSUN CANDIDATO CORRISPONDE. Sono due documenti diversi.
+    'DECISIONI PENDENTI' rende ZERO su entrambi gli alberi, mentre i controlli
+    positivi della stessa forma rendono centinaia di file: e' un'assenza
+    misurata, non un falso-zero da notazione.
+    Il documento che ho misurato io e' HANDOFF_CC_2026-07-31_sera.txt: porta
+    §1..§8 piu' CODA, dichiara TRE commit di giornata - numero gia' falsificato,
+    sono quattro - e contiene 'Dominio' una volta.
+    FERMATO QUI: nessuna correzione al file serale, nessuna riconciliazione,
+    nessuna ipotesi su quale sia il documento in mano al referee.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Non ho cercato il documento del referee fuori da repo e da E:. Se vive nel
+    Progetto Claude, in una chat o su altro supporto, non l'ho misurato.
+[V] Non ho dato alcun verdetto su N2: ho accostato i testi, come chiesto.
+[V] Non ho letto per intero nessun canonico: solo intervalli, righe e pattern.
+    Fa eccezione AppRootView.swift, stampato per intero perche' sotto le 90
+    righe.
+[V] Nessuna misura su device. Nessuna run CI interrogata in questo giro.
+[V] Non ho letto io le copie del Progetto Claude: l'identita' di N1 vale fra il
+    blob a HEAD e i valori che il referee mi ha passato.
+[R] I file:riga citati DENTRO i siti BUGS:289, :319, :704 e dentro le righe
+    della SCALETTA - diversi da AppRootView - non sono stati riverificati.
+
+================================================================================
+FINE REFERTO N1-N5.
+================================================================================

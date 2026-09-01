@@ -1,0 +1,108 @@
+================================================================================
+ESITO COMMIT — LIBRO v50
+Prompt della correzione finale: ratifica referee su rev2 + OK esplicito di Mauro
+================================================================================
+Catena degli ID del giro:
+  QB-2026-08-01-D1-LIBRO-GEOMETRIA-E-RDELTA   stesura, 7 righe Sez.2
+  QB-2026-08-01-D1b-CORREZIONI                voce 50 registro, L3, subordinata
+  ratifica referee su rev2 + correzione       colonna Chi: L1-L2 -> L1-L3
+  OK esplicito di Mauro                       ricevuto
+
+DUE CANCELLI PASSATI, entrambi dichiarati:
+  1) ratifica del referee sul diff rev2 verbatim, PASSATA con una correzione
+  2) OK esplicito di Mauro
+Nessuno dei due ha sostituito l'altro.
+
+--------------------------------------------------------------------------
+1 · LA CORREZIONE DI RATIFICA
+--------------------------------------------------------------------------
+Riga R-δ, colonna «Chi»:  referee (limiti L1-L2)  ->  referee (limiti L1-L3)
+[V] ancora unica prima della sostituzione (1 occorrenza), forma nuova assente
+    (0 occorrenze) — verificato prima di scrivere.
+[V] sostituzione 1:1, lunghezza del file INVARIATA (236084 B prima e dopo):
+    e' la controprova che non e' entrato altro.
+[V] forma preservata: Sez.2 tutte a 7 pipe, Sez.6 48 voci tutte a 5 pipe,
+    astrali invariati (2 occorrenze di U+1F7E2), UTF-8 pulito.
+
+  grandezza        rev2 (D1b)                                 rev3 (ratificato)
+  OID              eb41f8283874cc6bd4a572f6a76df4d2cea6c7d7   82d17fcaef8947efc239985cb50e813f98a2c838
+  sha256 disco     b3e5a962…c183c3                            7d6f37b1d2b8cebde4e50708759200f7d68f5050baa909b0ca4b0da19ccd305b
+  byte disco       236084                                     236084 (invariati)
+
+[V] CONTROPROVA che rev3 differisce da rev2 SOLO per la correzione: diff dei
+    due file con la riga `index` neutralizzata -> 2 sole righe divergenti,
+    e l'unica differenza testuale e' «limiti L1-L2» -> «limiti L1-L3».
+
+--------------------------------------------------------------------------
+2 · IL COMMIT
+--------------------------------------------------------------------------
+  HEAD        7ec6c1b86a7acb869c1f927fa4833374ffabb0cc
+  soggetto    LIBRO v50: R-δ tre destinazioni, geometria del design,
+              contratto S5 (doc-only)
+  autore      Mauro Martintoni <di_tutto@icloud.com>
+  committer   Mauro Martintoni <di_tutto@icloud.com>
+  data        2026-08-01T23:31:24+02:00
+  file        1 solo — LIBRO_MASTRO_QBEATS.md
+  numstat     11 aggiunte, 3 rimozioni
+  OID nel commit  82d17fcaef8947efc239985cb50e813f98a2c838
+
+[V] Co-Authored-By nel corpo: 0 — convenzione di casa rispettata.
+[V] Staging fatto FILE PER FILE (`git add LIBRO_MASTRO_QBEATS.md`), MAI -A:
+    108 file untracked in HANDOFF NON sono stati toccati, e il repo e' PUBLIC.
+[V] Nessun --no-verify. Hook attivi in .git/hooks: nessuno (solo .sample).
+[V] PRIMA di committare: il diff in staging e' stato confrontato con `cmp`
+    contro HANDOFF/DIFF_LIBRO-v50_2026-08-01_rev3.txt -> exit 0. Cio' che e'
+    entrato nel commit e' ESATTAMENTE cio' che il referee ha ratificato,
+    provato byte a byte e non asserito.
+[V] Albero dopo il commit: 0 tracciati modificati, 0 in staging.
+
+⛔ NON PUSHATO. `git status -sb` -> `## master...origin/master [ahead 1]`.
+   Il push e' una pubblicazione su un repo PUBLIC e non e' stato chiesto:
+   aspetta una decisione esplicita. E «push ≠ chiuso» resta la regola.
+
+--------------------------------------------------------------------------
+3 · SNAPSHOT PER-VERSIONE
+--------------------------------------------------------------------------
+  E:\...\FILE X CLAUDE.MD\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS_V50_2026-08-01_7ec6c1b.md
+  235589 byte · 0 CR · 495 LF
+  sha256 142c0c8b31241c430638f43106ddbceafd95b885c89b07ef9a77038af1f213b3
+
+[V] Estratto con `git show HEAD:LIBRO_MASTRO_QBEATS.md`, cioe' dalla FACCIA
+    BLOB, mai dal disco — come impone la riga R-δ appena ratificata.
+[V] Convenzione verificata e non assunta: il V49 su E: misura 218352 B con 0 CR,
+    identico al blob di v49 a 0ee9543 — quindi la serie e' a faccia blob.
+[V] CONTROPROVA DI IDENTITA' DI OGGETTO: `git hash-object` sullo snapshot rende
+    82d17fcaef8947efc239985cb50e813f98a2c838, lo STESSO OID che il commit
+    dichiara per il file. Non e' un digest coincidente: e' lo stesso oggetto.
+
+--------------------------------------------------------------------------
+4 · R-δ APPLICATA A QUESTA STESSA CONSEGNA
+--------------------------------------------------------------------------
+  C:  repo (commit) + HANDOFF/ per diff e referti          [V]
+  E:  mirror HANDOFF con cmp exit 0 su ogni file           [V]
+      + snapshot per-versione in LIBRO_MASTRO/             [V]
+  Drive: raggiunto dalla SINCRONIZZAZIONE, non da me. Nel giro precedente il
+      canale automatico ha consegnato rev2 (31022 B) e il referto D1b
+      (11366 B) byte-esatti senza che io trasportassi nulla.
+      ⚠️ Verifica per DIMENSIONE, non per impronta: e' il limite L1, che
+      questa stessa versione incide.
+
+--------------------------------------------------------------------------
+5 · IL DEBITO CHE RESTA, e non e' di questa versione
+--------------------------------------------------------------------------
+⚠️ RIPARAZIONE DEI PUNTATORI IN BUGS — rinviata da tre versioni, e questa
+   versione l'ha allargata di sette righe:
+     BUGS_QBEATS.md cita LIBRO:467 in NOVE occorrenze su QUATTRO righe
+     (360, 361, 1023, 1024). Il bersaglio, la voce 43 del registro, sta oggi
+     a :484 dopo questo commit. Deriva: 17 righe.
+   Il referee ha segnalato che un giro D2 la allargherebbe ancora.
+   ⇒ Raccomandazione di CC: il giro BUGS viene PRIMA di D2.
+⚠️ Voci 25 e 26 assenti dal registro Sez.6: stato preesistente, dichiarato in
+   D1b, non riparato. Le righe storiche non si riscrivono.
+⚠️ Almeno tre cartelle `HANDOFF` su Drive (due dalla sincronizzazione, una
+   caricata a mano) + una copia difettosa da 21304 B del diff v50 originario.
+   Censimento NON chiuso (risposta paginata). Nessuna cancellazione: per L3
+   una cancellazione su un albero sincronizzato si propaga, ed e' di Mauro.
+================================================================================
+FINE VERBALE COMMIT v50.
+================================================================================

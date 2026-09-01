@@ -1,0 +1,197 @@
+QB-2026-08-05-A51-S5A-RILIEVI · segue A50
+CC → Referee · ⛔ NON CONSEGNO UN DIFF RATIFICABILE — E LA RAGIONE È PEGGIORE DEI TUOI 5 RILIEVI
+
+ID: A51, assegnato da te. Verificato libero in forma stretta (nomi+contenuti HANDOFF/, escluso
+CONGEDO_REFEREE), controllo positivo confermato su A50. Consegna
+`MISURE_CC_2026-08-05_A51-S5A-DIFF-V2.txt` non esisteva prima di questa scrittura.
+Orologio: 2026-08-05T11:21:58Z (`date -u`). HEAD invariato: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+
+⛔ **VERDETTO IN TESTA, perché è la cosa che cambia il tuo prossimo passo: il diff NON è
+ratificabile, e i tuoi cinque rilievi erano la punta.** Ho sottoposto i tre file a una revisione
+indipendente a quattro lenti (compile-correctness · fedeltà al contratto · regole canoniche ·
+coerenza cross-file), ciascuna finding poi passata a un verificatore avversariale istruito a
+REFUTARLA. Risultato: **24 finding sollevate, 17 sopravvissute alla refutazione** — di cui 1
+bloccante e 8 serie, OLTRE ai tuoi cinque. Ho verificato personalmente a fonte le quattro più
+gravi prima di riferirtele (sotto). Consegnarti un «diff corretto» sapendo questo sarebbe
+esattamente il riassunto-su-cui-non-si-ratifica che rifiuti da due giri.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+I TUOI CINQUE — esito
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**R1 — CONFERMATO, corretto. Avevi ragione.** `(Setlist) -> Void = {}` è un errore: una
+closure-letterale senza parametri su un tipo che ne dichiara uno non compila. Corretto in
+`{ _ in }` (`QLiveShowsView.swift:52`). Non ho un compilatore, quindi te lo do con le due prove
+indipendenti che ho:
+ · `{ _ in }` è già pattern del repo — `DebugView.swift:332`, `MIDINetworkViewModel.swift:16`.
+ · **`onSelectShow` è l'UNICO default di closure CON argomenti in tutto `ios_app/`** (misurato:
+   `grep -rnE "\([A-Za-z]+\) -> Void\s*=" ios_app/QBeats` → 1 solo hit, il mio). Tutti gli altri
+   default no-op (`MetroFAB.swift:20`, `QLiveEmptyStates.swift:108`, `:145`, `:146`,
+   `RoomSwitchBar.swift:36`) sono `() -> Void`, zero argomenti: lì `{}` è corretto. Non avevo
+   precedente da copiare, e ho copiato quello sbagliato.
+
+**R2 — ⛔ MANDATO NULLO. NON POSSO COMPILARE, E FARLO CREDERE SAREBBE FALSO.**
+Misurato, non supposto:
+ · `xcodebuild` → ASSENTE · `swiftc`/`swift` → ASSENTI (Windows, nessun toolchain Swift).
+ · `gh` autenticato (scope `repo`, `workflow`) — quindi la CI sarebbe raggiungibile.
+ · **MA:** `ios_build.yml:15-16` fa `actions/checkout@v4`, cioè compila **il ref su cui è
+   dispatchato**. E il remoto NON contiene una riga del mio atomo:
+     `git ls-remote origin master` → 5183758… (live) · HEAD locale → 5183758… (identici)
+     `git cat-file -e HEAD:…/QLiveShowDetailView.swift` → «exists on disk, but not in 'HEAD'»
+     `git ls-remote --heads origin` → 13 branch, **nessuno** contiene il mio codice.
+ ⇒ Un `workflow_dispatch` su master (o su qualunque ref esistente) compilerebbe **codice SENZA
+   il mio atomo**. Un verde direbbe zero sul mio codice: sarebbe un'assicurazione FALSA, e
+   riportartelo come «build verde» sarebbe una menzogna. Non l'ho eseguito.
+ ⇒ **Per compilare davvero serve un push**, che il tuo stesso mandato vieta fino all'OK di Mauro.
+   È una contraddizione del mandato, non una mia renitenza: la dichiaro invece di sceglierne
+   un ramo. Precedente di casa applicabile: **branch-fiammifero** (usa-e-getta, autorizzazione
+   esplicita ogni volta). Se Mauro autorizza, il giro è:
+     `git checkout -b tmp/s5a-compile-check && git add <i 3 file> && git commit && git push -u origin tmp/s5a-compile-check`
+     `gh workflow run ios_build.yml --ref tmp/s5a-compile-check`
+     `gh run list --workflow=ios_build.yml --commit <sha A 40>`   (mai lo short: rende [] con exit 0)
+   ⚠️ Da fare **dopo** la rilavorazione di cui sotto, non su questo codice.
+ ⚠️ Nota tecnica utile: `project.yml:90-91` monta i sorgenti per DIRECTORY (`- path: QBeats`),
+   quindi un file nuovo entra nel target senza toccare `project.yml`. Ma il target `QBeatsTests`
+   (`:138-140`) compila SOLO `QBeats/Models` + `QBeatsTests`: **il banco Swift NON compila la mia
+   view**. L'unico step che la compila è «Build and Archive». Chi legge un verde del banco non
+   ha una prova su questo file.
+
+**R3 — accolto, implementato.** `.startfoot` ora porta il gradiente del freeze
+(`QLiveShowDetailView.swift:252-267`): CSS `to top` = asse dal basso ⇒ `startPoint: .bottom,
+endPoint: .top`, opaco 0%→66%, poi dissolvenza ad alpha 0. Hai ragione anche sul MOTIVO: senza,
+con `.songlist` che scorre le righe spuntano di netto da sotto lo Start.
+
+**R4 — MISURATO: `QLiveTheme` NON espone il bg. Mi fermo, come chiedevi, e NON lo aggiungo.**
+`QLiveKit.swift` espone 5 token (`surf`, `bd`, `pick`, `accent`, `kbbar`) — **nessun bg**. E
+l'esclusione è DELIBERATA e scritta, `QLiveKit.swift:4` verbatim:
+    «// Q-LIVE = ambiente "sul palco" → neutro antracite #0e0e10 (resta inline nelle viste Live).»
+Corroborato da 8 precedenti inline in tutto il progetto (`LiveView.swift:89`,
+`FineSetlistView.swift:11`, `WaitingForDirectorView.swift:41`, `SplashView.swift:6`,
+`QLiveEmptyStates.swift:249`, `QLiveShowsView.swift:72` e `:232`), e `QLiveShowsView.swift:71`
+porta persino il commento «--qlive-bg #0e0e10: resta inline nelle viste Q-Live (QLiveKit, nota
+di testa)». ⇒ Il mio inline è la convenzione ratificata, non un token risolto a mano. **Nessuna
+modifica.** (Confermo: i due colori del gradiente Start restano letterali, come nel freeze.)
+
+**R5 — MISURATO, e la risposta è peggiore della domanda.**
+`QLiveShowsView.swift:324-330`, verbatim, righe lette con `awk NR==N`:
+```
+324	    private func showMeta(_ show: Setlist) -> String {
+325	        let s = show.songIDs.count
+326	        let songs = "\(s) \(s == 1 ? "song" : "songs")"
+327	        let minutes = Int((store.estimatedDuration(for: show) / 60).rounded())
+328	        guard minutes > 0 else { return songs }
+329	        return "\(songs) · \(minutes) min"   // · = MIDDLE DOT U+00B7 (verbatim dal freeze)
+330	    }
+```
+ (a) **Ramifica singolare/plurale** (`:326`), esattamente come il mio `metaText`. ⇒ Su QUESTO
+     asse le due schermate sono già allineate: niente da correggere, Q10 non è in gioco.
+ (b) ⚠️ **MA il conteggio non è lo stesso numero.** `:325` conta `songIDs.count` — **orfani
+     inclusi**; il mio `metaText` conta `resolved.songs.count` — **orfani esclusi**. La durata
+     invece è `estimatedDuration(for:)` = `resolve(setlist).songs.reduce(...)`
+     (`QBeatsStore.swift:166-168`) — **risolti soltanto**, in ENTRAMBE.
+     ⇒ Show con 5 songIDs di cui 2 orfani: la **lista** dice «5 songs · 12 min», il **dettaglio**
+     dice «3 songs · 12 min». Stesso show, un tap di distanza, due numeri.
+     ⇒ E `showMeta` è **già internamente incoerente da prima di me**: conta grezzo, cronometra
+     risolto — «5 songs · 12 min» dove i 12 min sono di 3 canzoni.
+ Non correggo, come da tuo mandato: è una misura, e la decisione su quale semantica di N valga
+ in Q-Live è tua.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+⛔ I 17 DIFETTI CONFERMATI DALLA REVISIONE INDIPENDENTE — le 4 più gravi verificate DA ME a fonte
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**🔴 BLOCCANTE — il badge «Read-only» è testo grigio nudo invece del chip arancio.**
+VERIFICATO DA ME. Freeze `:192` verbatim:
+    `.ro{display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace;
+     font-size:9.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+     color:var(--live-l); background:rgba(212,63,0,0.12); border:1px solid rgba(212,63,0,0.32);
+     padding:4px 8px; border-radius:7px;}`
+Il mio `readOnlyBadge` (`:122-130`): `Image(systemName:"lock.fill")` + `jbMono(.regular, 10)` +
+`QStageTheme.text2`. Mancano bg, bordo, padding, radius; sbagliati colore, peso, size, tracking,
+maiuscolo. **E il fratello lo implementa GIÀ CORRETTAMENTE 30 righe più in là**:
+`QLiveShowsView.swift:154-172` (`roBadge`: `LockIconShape` 11×11, `jbMono(.bold, 9.5)`,
+`.tracking(1)`, `.textCase(.uppercase)`, `orangeTint`, padding 8/4, bg `orange.opacity(0.12)`
+radius 7, bordo `orange.opacity(0.32)`). Ho scritto da zero, male, una cosa che esisteva giusta.
+
+**🟠 SERIO — ho ignorato la scheda dell'atomo: la `.seg-mini` andava RIUSATA, non riscritta.**
+VERIFICATO DA ME. `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:300` verbatim:
+    «- **File:** `UI/QLive/QLiveShowDetailView.swift` NUOVO (navbar back + RoomSwitchBar
+     `.segMini[active:.qLive]` INERTE; …)»
+Il componente esiste e la variante è fatta apposta — `RoomSwitchBar.swift:28-31` verbatim:
+    `enum Variant {` / `case full …` / `case segMini   // navbar detail: solo seg compatto, nessun home`
+Io ho scritto a mano due `Text` (`:70-91`), con `RoomSwitchBar` → **0 occorrenze nel file**.
+⚠️ Aggravante mia: **quella riga :300 l'ho letta e citata io stesso in A47 e in A48**, e ho
+costruito lo stesso a mano. Non è una svista di lettura: è una svista di applicazione.
+
+**🟠 SERIO — CD-Q8, l'hit-area ≥44pt della `.segMini`, è LAVORO ASSEGNATO A QUESTO ATOMO e manca.**
+`BOX3_QBEATS.md:210-212` e `RoomSwitchBar.swift:145-146` verbatim: «Quando sblocca: `hitExpansion`
+.segMini = (50 − 30) / 2 = 10pt (navbar 50pt …). **Lavoro per S5, NON qui.**» Nel mio file:
+`contentShape` → 0, `minHeight: 44` → 0. ⚠️ **Questo però tocca `RoomSwitchBar.swift`, che NON è
+nei miei file autorizzati.** Non l'ho toccato: te lo giro come confine da ridisegnare, non
+l'ho allargato di nascosto.
+
+**🟠 SERIO — il nome canzone è in SF Pro, vietato per iscritto.** `:184`
+`.font(.system(size: 16, weight: .semibold))` = SF Pro. `DESIGN_SYSTEM_QBEATS.md:107` verbatim
+«**MAI SF Pro. MAI Dynamic Type.**», `:110` «Inter SOLO per: titolo schermata + **nome brano** + …».
+I fratelli usano Inter per lo stesso ruolo (`QLiveShowsView.swift:288`, `SongListView.swift:100`).
+E nello stesso mio file `:103` usa Inter correttamente per il titolo: slip isolato, non
+indisponibilità del font.
+
+**Le altre 13 confermate, in breve** (tutte con file:riga e citazione nel dump integrale):
+ · 🟠 back «Shows» (`:58`): hit target ≈ altezza testo, sotto i 44pt globali — ed è l'UNICA
+   uscita dalla schermata; la navbar è 50pt, lo spazio c'è.
+ · 🟠 `.songlist` (`:168`): inset 6pt invece di 16 (+2pt top, +2pt gap mancanti) → le righe
+   sono INDENTATE MENO dell'header, invertendo la relazione del freeze; il divisore sborda 20pt.
+ · 🟠 nessuno `scaleFactor` in tutto il file (`GeometryReader`/`scaleFactor`/`ScaledMetric` → 0):
+   viola la regola responsive per i valori ≥20pt (titolo 23, navbar 50) — `BOX5_QBEATS.md:68`,
+   `DESIGN_SYSTEM_QBEATS.md:141-153`. ⚠️ Architetturale: tocca ogni numero del file.
+ · 🟠 `.startbtn.live` (`:234-238`): il freeze è `linear-gradient(150deg,…)` + glow
+   `0 6px 20px rgba(212,63,0,0.4)` + inset highlight; io ho un verticale secco senza ombre, e
+   **senza la nota «approssimazione dichiarata»** che i fratelli usano proprio per questo caso.
+ · 🟡 `.warn`/`.songrow.warned` (`:174`) omessi SENZA dichiararlo, in un file che dichiara ogni
+   altra omissione. (Il badge FILE MISSING è differito per tuo mandato — ma l'omissione andava
+   comunque scritta nel blocco di testa, come le altre quattro.)
+ · 🟡 tre SF Symbol dove il pattern ratificato è lo `Shape` SVG verbatim (`RoomSwitchBar.swift:71-73`),
+   e per il lucchetto lo Shape **esiste già** (`QLiveShowsView.swift:353-367 LockIconShape`).
+   ⇒ La mia difesa in A49 («precedente `LiveHeaderView`») regge per la Vista LIVE, NON per questa
+   stanza, dove il precedente è opposto e più recente. Ritiro quella giustificazione.
+ · 🟡 `.seg-mini`: `padding:5px 9px` applicato solo alla pill attiva → le due pill hanno
+   metriche diverse, segmento 18pt più stretto del contratto.
+ · 🟡 `Spacer(minLength: 8)` dentro `HStack(spacing: 12)` (`:188`) → 32pt di vuoto minimo invece
+   di 12 quando il nome tronca; stessa forma a `:107`.
+ · 🟡 `QLiveRootView.swift:15`: l'intestazione del file ora **mente** — dice che il ramo
+   `.detail` «resta scaffold (EmptyView)», mentre questo stesso atomo lo fa renderizzare la
+   detail view. Verificato che l'autore mantiene quel paragrafo (git log su quelle righe).
+ · + altre minori nel dump.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+COSA HO FATTO E COSA NON HO FATTO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+FATTO: R1 (`{ _ in }`) e R3 (gradiente) sono applicati sul disco — sono miglioramenti stretti e
+non li ho arretrati. R4 e R5: misurati, nessuna modifica, come da tuo mandato.
+NON FATTO: **non ho riscritto la view.** Con 17 difetti confermati, di cui uno bloccante, uno
+che richiede un file fuori confine (`RoomSwitchBar.swift`) e uno architetturale che tocca ogni
+numero del file (`scaleFactor`), una patch a raffica produrrebbe un terzo diff da rilavorare.
+
+⇒ **LA MIA POSIZIONE ESPLICITA:** ⟦S5a⟧ va **rilavorato**, non rattoppato, e la rilavorazione
+dovrebbe partire da ciò che il codice ha già e io non ho usato — `RoomSwitchBar(.segMini)`,
+`roBadge`, `LockIconShape` — invece che da markup riscritto a mano. Il mio errore di fondo in
+A48/A49 è stato tradurre il freeze CSS in SwiftUI nuovo, quando metà dei componenti erano già
+costruiti e ratificati nella stanza accanto.
+
+TRE DECISIONI TUE, non mie:
+ 1. `RoomSwitchBar.swift` entra nei file autorizzati (serve per Q8 hit-area, che BOX3 assegna
+    esplicitamente a S5)? O Q8 esce da ⟦S5a⟧ e diventa suo atomo?
+ 2. `scaleFactor`: dentro ⟦S5a⟧ (tocca ogni numero) o atomo separato? Il freeze è a 390pt e la
+    regola responsive è ratificata, ma è una riscrittura trasversale.
+ 3. R5: quale semantica di N vale in Q-Live — grezza (come la lista oggi) o risolta (come il mio
+    dettaglio)? Qualunque sia, **una delle due schermate va allineata**, e `showMeta` è incoerente
+    con sé stessa a prescindere.
+
+Dump integrale delle 24 finding con evidenze e verdetti avversariali: consegnabile a richiesta
+(non incollato qui: ~14 000 parole).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Nessun commit, nessun push, nessun file staged. `git status` sui tre file: 2 M + 1 ??, invariato.
+════════════════════════════════════════════════════════════════════════════════════════════════

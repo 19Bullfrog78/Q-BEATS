@@ -1,0 +1,316 @@
+REFERTO QB-2026-08-07-A79 — MISURE PER CD + PREPARAZIONE RIGA LIBRO
+====================================================================
+
+Orologio: 2026-08-07T16:46:08Z, locale 2026-08-07 18:46:08 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ RILIEVO IN TESTA E DA SOLO — IL CANCELLO DI A5 È SCATTATO: FASE B FERMATA
+================================================================================
+
+[M] A5 rivela che la faccia disco e la faccia blob di LIBRO_MASTRO_QBEATS.md DIVERGONO:
+      CR nel BLOB  = 0        sha256 blob  = 9d8a6c647be12bee…51bd0d89   (259953 B)
+      CR sul DISCO = 509      sha256 disco = b286a024e210b005…57814244   (260462 B)
+      attributo    = text: unspecified  (LIBRO non è in .gitattributes; core.autocrlf=true)
+
+    Il mandato prescrive: «Se A5 rivela che la faccia disco e la faccia blob divergono,
+    FERMATI e dichiaralo PRIMA di scrivere il diff. Non lavorare intorno al problema.»
+    ⇒ MI FERMO. Il diff di B1/B4 NON è stato scritto. La riga NON è stata composta.
+
+[M] MISURA DIRIMENTE, aggiunta oltre le tre chieste da A5, perché il referee possa
+    sciogliere il cancello con UNA riga:
+      blob  privato dei CR → sha256 = 9d8a6c647be12bee…51bd0d89
+      disco privato dei CR → sha256 = 9d8a6c647be12bee…51bd0d89   → IDENTICI.
+    La divergenza è ESCLUSIVAMENTE di fine-riga: è la coppia canonica autocrlf
+    (CRLF disco / LF blob), lo stato in cui LIBRO vive da sempre e in cui OGNI sua
+    versione (v40…v54) è stata scritta. NESSUNA anomalia classe-BUGS: il contenuto è
+    UNO, le vesti sono due.
+
+[I] PERCHÉ MI FERMO LO STESSO, dichiarato e non aggirato. Con i soli strumenti che A5
+    prescrive (CR blob, CR disco, attributo) la condizione «divergono» è VERA — e in
+    questo progetto FERMATI ha sempre significato fermarsi, non «dichiara e prosegui».
+    Dopo il caso BUGS di ieri (faccia cambiata in silenzio da uno strumento esterno),
+    rimisurare OGGI le facce prima di un diff ha senso proprio perché ieri ha provato
+    che possono cambiare: non do per scontato quale esito il referee si aspettasse.
+    Se il cancello mirava all'anomalia classe-BUGS: la misura dirimente sopra dice che
+    NON c'è → basta una riga («la coppia è quella canonica: procedi, base = faccia
+    blob») e consegno il diff in un giro secco — TUTTI gli ingredienti sono già in
+    questo referto (Fase B eseguita fino al punto di lettura, vedi sotto).
+    Se il cancello voleva che la SCELTA DELLA BASE del diff (blob o disco) resti al
+    referee: è esattamente ciò che questo stop preserva.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A79 ═══». INTEGRO. Eseguito per intero
+    (Fase B fino al cancello).
+
+0.2 [M] A79 LIBERO. Due supporti × due casse × due forme.
+      forma NOME FILE, sensibile   : A79 repo=0 mirror=0
+      forma NOME FILE, INsensibile : a79 repo=0 mirror=0
+      forma CONTENUTO, INsensibile : A79 repo=31 mirror=36
+    ⚠️ Le 31/36 per contenuto sono state IDENTIFICATE una per una: sono TUTTE la
+      sottostringa esadecimale `a79` dentro sha40/sha256 — in massima parte l'ancora
+      `c1556e57b1a81fafa7973…` (che contiene `fa7973` → «a79»), più `…8a79…`/`…ea79…`
+      in altre impronte. NESSUNA è un identificativo di referto.
+    CONTROLLI POSITIVI, stessa forma, non-zero come richiesto:
+      A77 contenuto = 29/34 (⚠️ forma NOME = 0/0 su A77 perché il congedo si chiama
+      `CONGEDO_CC_2026-08-07.md`, senza ID nel nome — per A77 il controllo valido è il
+      contenuto, dichiarato) · A78 nome = 1/1, contenuto = 11/14.
+
+0.3 [M] HEAD = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+
+0.4 [M] Preso atto: A78 resta valido, non rifatto. Questo referto lo ESTENDE — e in un
+    punto lo USA: la catena di montaggio letta lì (LiveView 466 righe) è il substrato
+    di A1, integrata OGGI dalla lettura INTEGRALE di tre file che A78 dichiarava non
+    letti (elenco in §2).
+
+
+================================================================================
+1 — REGIME E PERCORSI
+================================================================================
+
+[M] Zero modifiche sotto ios_app/. Zero commit/push/branch. Zero salvataggi sui canonici
+    (nessun canonico ha ricevuto un byte: la Fase B si è fermata prima della
+    composizione). Le cartelle dei referti, LETTE A FONTE cercando dove vivono A75-A78:
+      repo   : `HANDOFF/`                                        (A78 presente = 1)
+      mirror : `E:\…\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\`          (A78 presente = 1)
+    Verifica di propagazione di questo referto: in coda, due forme (sha256 + cmp).
+
+
+================================================================================
+2 — DICHIARAZIONE DI LETTURA INTEGRALE (regola 1.4)
+================================================================================
+
+Letti PER INTERO in questo giro, dal blob a HEAD:
+  `UI/QLive/QLiveRootView.swift`   177 righe · 11104 B   -> LETTO INTERO (A78 non l'aveva)
+  `UI/AppRootView.swift`            79 righe ·  3979 B   -> LETTO INTERO
+  `UI/HomeRootView.swift`          214 righe ·  9145 B   -> LETTO INTERO
+  `QBeatsApp.swift`                 86 righe             -> LETTO INTERO
+  ticket TD #43 in BUGS (`:841-842`, confini verificati: `###` successivo a `:844`)
+  scheda: righe di forma di LIBRO per B2 (header `:5-7`, Sez.2 `:349-355`, coda `:507-509`)
+Ereditati da A78 (già letti interi lì): LiveView, FineSetlistView, SetlistRunner,
+LiveSession, QLiveSession.
+NON letti per intero, dichiarato: TransportView (letti i siti dei gesti `:95-115` e i
+censimenti), MixerOverlayView (`:33-34`), LiveHeaderView / MetSlotStrip / BarCounter /
+MicroSegBar / Teleprompter / MacroBar / POI (censimento gesti = zero occorrenze, non
+letti riga per riga), QLiveShowsView (`:319` e censimenti).
+
+
+================================================================================
+FASE A — LE MISURE
+================================================================================
+
+A1 — USCITE NON DICHIARATE DA END SHOW  [M]+[I]
+------------------------------------------------
+CATENA MONTATA in `.fineSetlist`, stabilita leggendo i tre root PER INTERO:
+  QBeatsApp → AppRootView (ZStack + `switch screen`, caso `.qLive` a `:46-53`)
+    → QLiveRootView (`switch page`, caso `.metronome` a `:108`, gate runner `:110`)
+      → LiveView (ZStack) → overlay `FineSetlistView` (`:144-164`).
+  HomeRootView NON è montata in `.qLive` (lo switch la sostituisce). Nessun
+  NavigationStack, nessun TabView, nessuna sheet in TUTTA la catena montata.
+
+CENSIMENTO ESAUSTIVO gesti/navigazione, blob a HEAD, case-insensitive, tutti i file
+tracciati (controllo positivo: la forma trova il DragGesture noto di LiveView:116-117):
+  `swipe`                → 1 occorrenza in tutto il repo UI: QLiveShowsView:271, ed è un
+                           COMMENTO sul congedo tastiera Q20. QLiveShowsView NON è
+                           montata in `.fineSetlist` (pagina `.shows`). → ZERO nel
+                           sottoalbero montato.
+  `NavigationStack`      → solo file Q-Stage/Debug/Settings/Import (8 file), NESSUNO
+                           nella catena montata.
+  `TabView`              → solo QStageRootView e ShowsListView (Q-Stage). ZERO in catena.
+  `navigationDestination`→ solo SongEditorView/SongListView (Q-Stage). ZERO in catena.
+  `fullScreenCover`      → 1: HomeRootView:46, `#if DEBUG`, e HomeRootView NON è montata.
+  `.sheet(`              → 1 rilevante: QBeatsApp:26 (import `.qbeats` via onOpenURL).
+  `gesture` nella catena → QUATTRO siti reali, tutti censiti e letti:
+     (g1) LiveView:116-123  DragGesture(minimumDistance:10), scatta su
+          `value.translation.height > 15` → `session.showMixer = true`. VERTICALE giù.
+     (g2) TransportView:104-108  DragGesture(minimumDistance:20), scatta su
+          `val.translation.height < -30` → `session.showMixer = true`. VERTICALE su.
+     (g3) TransportView:100  tap sulla capsula → `showMixer = true`.
+     (g4) LiveView:200-201 + MixerOverlayView:33-34  tap → `showMixer = false`
+          (strato mixer, `.allowsHitTesting(session.showMixer)` a LiveView:207).
+  Gli overlay `StandbyOverlayView` (tap, `:135`) e `OverlayStopView` /
+  `WaitingForDirectorView` sono su stati MUTUAMENTE ESCLUSIVI con `.fineSetlist`
+  (`if case` su `session.playbackState`): NON montati.
+
+>>> RISPOSTA SECCA: NESSUNO SWIPE ORIZZONTALE ESISTE, né in FineSetlistView né in
+    tutto il sottoalbero montato, né a livello di sistema (niente NavigationStack →
+    niente back-swipe dal bordo; niente TabView → niente paging). I due drag esistenti
+    sono VERTICALI, aprono il mixer, e stanno SOTTO l'overlay opaco di END SHOW.
+    [I] «Sotto» = occlusi: FineSetlistView è disegnata DOPO nel ZStack e il suo
+    `Color…ignoresSafeArea()` è hit-testable e assorbe i tocchi fuori dai due bottoni.
+    È comportamento SwiftUI a runtime, non testo: marcato inferenza, non misura.
+
+⚠️ [M] PERÒ — UN VARCO REALE, e per CD va detto OGGI. Lo strato mixer di LiveView
+    (`:194-205`) sta DOPO il blocco `.fineSetlist` nel ZStack → più IN ALTO di END SHOW.
+    È gated da `if session.showMixer`, e lo sweep PER EFFETTO su chi scrive `showMixer`
+    (9 occorrenze, tutte lette) mostra che NESSUNO lo azzera al cambio di stato: lo
+    scrivono solo i gesti (g1-g4). ⇒ Se la setlist finisce NATURALMENTE mentre il
+    mixer è aperto — batterista che ritocca i volumi durante l'ultima sezione — END
+    SHOW appare CON il mixer sopra, interattivo, che COPRE i due bottoni. Non è
+    un'uscita (chiuderlo riporta a END SHOW, lo stato non cambia mai): è un SECONDO
+    strato interattivo sopra quello che il disegno vuole a bersaglio unico.
+    → Il «un solo bersaglio» di CD è VERO per le USCITE (nessun'altra via lascia la
+    schermata) e FALSO come «un solo strato interattivo possibile» finché `showMixer`
+    non viene azzerato entrando in `.fineSetlist`.
+⚠️ [M] Nota di sistema, minore: la sheet di import (QBeatsApp:26) può comparire sopra
+    QUALUNQUE schermata se l'utente apre un file `.qbeats` dall'esterno — END SHOW
+    inclusa. Si dismette con swipe giù e si torna a END SHOW. Evento esterno, non
+    parte del disegno della schermata; registrato per completezza.
+
+A2 — TD #43 A HEAD  [M]
+------------------------
+Ticket letto PER INTERO — è nell'archivio 🟢 (chiusi), due righe, confini verificati
+(`###` precedente a `:836`, successivo a `:844`):
+  841: ### TD #43 — FineSetlistView sfondo opaco
+  842: - **Fix:** commit `7e1e4de` 18/05/2026 (rimosso `.opacity(0.95)` da
+       `FineSetlistView.swift:11`, sfondo `#0e0e10` ora copre 100% Vista LIVE sottostante).
+
+VERIFICA A HEAD — la riga che decide, verbatim dal blob:
+  FineSetlistView.swift:21    `Color(hex: "#0e0e10").ignoresSafeArea()`
+  `opacity` nell'intero file (due casse) = 0 · controllo positivo stessa forma su
+  LiveView = 2 (`:129-130`). Nessun modificatore di trasparenza sul fondo.
+>>> IL FIX È IN PIEDI: lo sfondo è OPACO al 100%. Sotto END SHOW la pulsantiera del
+    player c'è ma NON si vede. Nessuna violazione CD-Q7 da questo lato.
+⚠️ Deriva d'indirizzo, solo da sapere: il ticket cita `:11` (geometria pre-⟦S5x⟧);
+    a HEAD la riga è `:21`. Ticket d'archivio: si registra qui, non si riscrive.
+
+A3 — RAGGIUNGIBILITÀ DI ⟦S5a⟧  [M]
+------------------------------------
+Percorso INTERO, verbatim dai blob:
+  AppRootView:51-53      caso `.qLive` → `QLiveRootView(onExit:…, onSwitchToStage:…)`
+  QLiveRootView:46       `@State private var page: QLivePage = .shows`   ← DEFAULT
+  QLiveShowsView:319     `.onTapGesture { onSelectShow(show) }`          ← tap-riga
+  QLiveRootView:95-98    `onSelectShow: { show in selectedSetlist = show;
+                          navigate(to: .detail) }`
+  QLiveRootView:103-104  `if let show = selectedSetlist {
+                          QLiveShowDetailView(setlist: show, onBack: { navigate(to: .shows) }) }`
+Il gate del runner vive SOLO sul ramo `.metronome` (`:110`); il ramo `.detail` non ha
+alcun gate.
+>>> ⟦S5a⟧ È RAGGIUNGIBILE su device a HEAD: Home → Q-LIVE → lista Shows (pagina di
+    default) → tap su una riga → dettaglio. NON è dietro il muro di END SHOW.
+    ⇒ [I] Conseguenza d'ordine, che rafforza il mio disaccordo 7.2 di A78: il gate
+    device di ⟦S5a⟧ si può fare SUBITO, PRIMA di ⟦S5b⟧ — non c'è dipendenza tecnica
+    che obblighi ad aspettare.
+
+A4 — IL FILE DI CD  [M]
+-------------------------
+>>> NON ESISTE. ⚠️
+  `E:\…\FILE X CLAUDE.MD\DA_CD_PER_CC\07_08_2026\` → ASSENTE (la cartella datata più
+  recente è `06_08_2026\`, che contiene SOLO i due HTML del freeze consolidato).
+  Controprova ESAUSTIVA su tutto `E:\…\Q-BEATS\`, nessun limite di profondità:
+  `*endshow*` (case-insensitive) rende TRE file, tutti in `HANDOFF\` e tutti REFERTI
+  CC del 03/08 (`DIFF_SCALETTA-v7…CANCELLO-ENDSHOW.txt` A19/A25/A26) — nessuno è un
+  deliverable CD. Controllo positivo, forma identica: `*FREEZE-CONSOLIDATO*` rende i
+  due HTML noti. → La dichiarazione di CD «la risposta vive in
+  DA_CD_PER_CC/07_08_2026/DESIGN/QLive_EndShow/» NON è riscontrata sul disco ADESSO.
+  Impronte: NON MISURABILI su un file assente. Nessuna scelta fatta, nulla copiato.
+  [I] Lettura probabile: il deposito/sync non è ancora avvenuto. Da riverificare
+  quando Mauro conferma il deposito; per il Progetto, ad oggi, NULLA del 07/08 di CD
+  è byte-verificabile.
+
+A5 — LE DUE FACCE DI LIBRO  [M]
+---------------------------------
+  Riportate nel RILIEVO IN TESTA, dove il mandato ha voluto che vivessero. In sintesi:
+  CR blob 0 · CR disco 509 · attr `text: unspecified` · contenuto modulo fine-riga
+  IDENTICO (coppia canonica autocrlf, nessuna anomalia classe-BUGS).
+
+
+================================================================================
+FASE B — FERMATA AL CANCELLO DI A5
+================================================================================
+
+Eseguita FINO AL PUNTO DI LETTURA (B2 è un'istruzione di lettura); la COMPOSIZIONE
+(B1) e la CONSEGNA (B4) NON sono state eseguite. Niente in questo referto è un diff.
+
+B2 — LA FORMA, letta a fonte perché il prossimo giro sia secco  [M]
+  · Righe di Sez.2 lette per intero: le TRE più recenti (`:349`, `:350`, `:351` —
+    tutte `2026-08-06`) più `:352` (il falso-positivo da filtro). Forma: UNA riga di
+    tabella `| YYYY-MM-DD | **TITOLO IN MAIUSCOLE.** corpo con ancore |`, ancore per
+    commit a 40 e/o per simbolo, grassetti sul dispositivo della decisione, ⚠️/⛔ per
+    le clausole. La tabella chiude a `:353` (riga vuota) — l'inserzione naturale di
+    una riga `2026-08-07` è DOPO `:352`, prima della chiusura.
+  · Header (`:5-7`): `**Versione:** 54 (06/08/2026)` · `**Ultima modifica:** 2026-08-06
+    (v54 — **Sez.2 +N righe**: sommario…)` · `**Edit author:** CC chat principale …
+    (diff <ID>)`. Il bump previsto dalla forma: 54→55, data 07/08, sommario «Sez.2 +1
+    riga», edit author col riferimento a QUESTO giro.
+  · Coda Sez.6 (`:507-509`): il registro chiude con `---` + `**Fine documento.**` —
+    la voce nuova `| 55 | 2026-08-07 | Mauro + CC + referee | … |` andrebbe in coda
+    alla tabella di Sez.6, PRIMA di quella chiusura (stessa forma della voce `| 51 |`
+    a `:502`).
+B3 — ANCORE DISPONIBILI, nessuna fabbricata  [M]
+  · `LIBRO_MASTRO_QBEATS.md:153 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` (RESTART
+    SETLIST «proposto (CD-3)») e `:154 @ c1556e57…` (BACK TO SHOWS attivo) — ancore
+    GIÀ IN USO nel ticket di BUGS e nella scheda ⟦S5⟧, immuni perché a commit.
+  · Il cancello di ⟦S5⟧ si indirizza PER SIMBOLO (bullet «CANCELLO» della scheda ⟦S5⟧
+    della SCALETTA) — è nello stesso repo e cambierà col giro doc: niente riga nuda.
+  · L'ancora che NON ho e NON fabbrico: il deliverable CD del 07/08 (A4: assente dal
+    disco). La riga può registrare la DECISIONE (il canale è il referee, come per
+    altre ratifiche verbali in Sez.2); non può ancorare il DISEGNO — che B1 stesso
+    esclude («non è passato per un canale byte-fedele»).
+B1 / B4 — NON ESEGUITI. Il testo della riga non è stato composto, il diff non esiste.
+  Alla rimozione del cancello: un giro solo, tutti gli ingredienti sono sopra.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho scritto il diff né composto la riga B1 (cancello A5).
+  · NON ho toccato SCALETTA, BUGS, BOX3, BOX5; il LIBRO è stato solo LETTO.
+  · NON ho riscritto il cancello di ⟦S5⟧ (esplicitamente fuori mandato).
+  · NON ho proposto soluzioni per ⟦S5b⟧.
+  · NON ho copiato/depositato nulla di CD (A4: non c'era nulla da impronte).
+  · NON ho verificato il comportamento a runtime dell'occlusione (A1): l'assorbimento
+    dei tocchi da parte dell'overlay è [I] su semantica SwiftUI, non misura su device.
+  · NON ho letto riga per riga i leaf senza gesti (elenco in §2).
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — IL CANCELLO DI A5, COME STRUMENTATO, SCATTA SULLO STATO NORMALE DI LIBRO.
+  Le tre misure prescritte (CR blob, CR disco, attributo) non distinguono la coppia
+  canonica autocrlf dall'anomalia classe-BUGS: rendono «divergono» anche per il LIBRO
+  sano — lo stato in cui OGNI versione da v40 a v54 è stata scritta e committata.
+  Se l'intenzione era il tripwire sull'anomalia di ieri, lo strumento che discrimina è
+  il confronto dei contenuti PRIVATI dei CR (l'ho eseguito: identici → nessuna
+  anomalia). Se l'intenzione era riservarti la scelta della base del diff, lo stop la
+  preserva. In entrambi i casi il cancello si scioglie con una riga; ma come è scritto
+  oggi, fermerebbe OGNI futuro diff sul LIBRO, per sempre — e questo non può essere il
+  disegno. Da riscrivere prima del prossimo giro sul LIBRO.
+
+D2 — NELLA RIGA DETTATA IN B1 MANCA MAURO. Il testo dice «Decisione CD del 07/08
+  (opzione Ⓐ), ratificata dal referee lo stesso giorno». Per la gerarchia dei ruoli il
+  decisore è Mauro: il referee ha l'ultima parola TECNICA, CD il dominio UX — ma
+  togliere un pulsante da una schermata di palco è una scelta di prodotto. So che il
+  gate di Mauro arriva comunque al commit (R4/R5: il diff si consegna e Mauro
+  committa); registro però che la riga, come dettata, scolpirebbe una ratifica in cui
+  il decisore non compare. Se Mauro ha già detto sì a voce, la riga dovrebbe dirlo;
+  se non l'ha ancora detto, la riga è in anticipo. Non è un veto: è la segnalazione
+  che l'ordine delle firme, in quella frase, non rispecchia l'ordine della casa.
+
+D3 — A4 A VALLE DI B1: OGGI NULLA DEL 07/08 DI CD È BYTE-VERIFICABILE. La decisione
+  può entrare in Sez.2 sul canale verbale (ci sono precedenti, es. «Mauro: “si ho
+  scelto io…”»), ma il file che CD dichiara depositato NON è sul disco (A4). Il
+  cancello A5, qualunque fosse l'intenzione, ha comprato anche questo: quando il diff
+  si scriverà, forse il deposito CD sarà arrivato e la riga potrà dirlo con
+  un'impronta invece che con una promessa.
+
+D4 — CONFERMA NEL MERITO, per non lasciare solo dissensi: la decisione Ⓐ, alla luce
+  di A1/A2, è SOLIDA. [M] Non esiste alcuno swipe orizzontale da intercettare; l'unica
+  uscita è il pulsante; lo sfondo è opaco davvero. L'asimmetria del rischio invocata
+  da CD è coerente con ciò che il codice fa: RESTART a `FineSetlistView:31` è ancora
+  una closure vuota, quindi toglierlo non toglie una funzione — toglie una promessa
+  mai mantenuta. E il varco VERO trovato oggi (il mixer sopra END SHOW, A1) esiste
+  comunque, con o senza secondo pulsante: è materia per il disegno di CD, non un
+  argomento contro Ⓐ.
+
+FINE REFERTO A79.

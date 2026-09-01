@@ -1,0 +1,286 @@
+================================================================================
+STATO FINALE — 2026-07-31, chiusura sessione. Cambio chat.
+================================================================================
+Scritto da CC. Per l'apertura della sessione nuova (R1: ricalcolare a fonte, non
+ereditare questi numeri).
+
+Marcatura obbligatoria: [V] = misurato in questa sessione, col comando accanto.
+                        [R] = riportato da altri, non verificabile da CC.
+
+REGOLA DI CONTENUTO DI QUESTO FILE: qui sta SOLO ciò che non si ricava dai file.
+Ciò che vive in LIBRO/BUGS/BOX3/BOX5/SCALETTA viene INDIRIZZATO, mai copiato e
+mai dichiarato di stato (LIBRO_MASTRO_QBEATS.md, Sez.2, riga 2026-07-30
+«INDIRIZZO, NON COPIA»). Un handoff che duplica i canonici è un canonico ombra
+che invecchia da solo.
+
+────────────────────────────────────────────────────────────────────────────
+1. STATO — come indirizzo, non come racconto
+────────────────────────────────────────────────────────────────────────────
+[V] HEAD = origin/master = 40f099bb28ad87627e3c6df926993a3df297df90
+    comando: git fetch origin master ; git rev-parse HEAD ; git rev-parse origin/master
+[V] CI di quel commit: run 30622403634, conclusion success, headSha coincidente
+    comando: gh run list --commit 40f099bb28ad87627e3c6df926993a3df297df90 --json databaseId,conclusion,headSha
+    (mai lo sha corto: rende [] con exit 0 — BOX3_QBEATS.md, punto (d) di V99)
+[V] Versioni dei cinque canonici, lette dagli header a fonte il 2026-07-31:
+    LIBRO 46 · BUGS 46 · BOX3 V99 · BOX5 V28 · SCALETTA 4
+    comando: for f in LIBRO_MASTRO_QBEATS.md BUGS_QBEATS.md BOX3_QBEATS.md \
+             BOX5_QBEATS.md HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md ; do \
+             git show HEAD:"$f" | head -6 | grep -m1 -iE 'versione|BOX3 V' ; done
+
+Il contenuto di questa sessione è inciso in LIBRO v46, Sez.2, quattro righe con
+chiave 2026-07-31. Non lo riassumo: si legge lì.
+
+────────────────────────────────────────────────────────────────────────────
+2. COSA ESISTE SOLO SU DISCO E MORIREBBE SENZA QUESTO FILE
+────────────────────────────────────────────────────────────────────────────
+Tutti untracked. Nessuno entra in git in questa sessione.
+
+[V] tools/lint_canonici.py — 12076 B · 242 righe
+    sha256 25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206
+    È lo strumento che applica le tre clausole di scrittura di LIBRO v46. Porta in
+    testa la dichiarazione di NON-NORMATIVITÀ ai sensi di R-γ e, per ogni controllo,
+    il difetto reale che lo ha prodotto. Se lo script e la riga di LIBRO divergono,
+    vince la riga.
+    Mirror: E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\tools\
+    cmp fra le due superfici: exit 0.
+    ⚠️ File untracked: NON ha blob, quindi la regola «stampa dal blob» non gli si
+    applica — non esiste un git show da cui estrarlo. La copia è da disco per
+    necessità, e la prova sono il cmp e i due sha256 coincidenti.
+
+[V] HANDOFF/DIFF_LIBRO-v46_2026-07-31.txt — 31103 B
+    sha256 62fbeca8952b1b404f623f940e15f17930b176e33d609163b21040718d0a9013
+    È il diff ratificato nella SOSTANZA dal referee, prima della normalizzazione
+    tipografica. Conservato apposta: è la traccia di ciò che è stato ratificato.
+
+[V] HANDOFF/DIFF_LIBRO-v46_2026-07-31_rev2.txt — 31103 B
+    sha256 b222fefc127d2ac31c134823a526983f3e932cd9279d98aee58b6aa57eae6d8f
+    È il diff di ciò che è stato effettivamente commesso in 40f099bb.
+    [V] Fra rev1 e rev2 differiscono 4 righe: la riga «index» e la coppia +/- della
+        sola riga ⟦ORDINE DEGLI ATOMI⟧. Header, le altre tre righe e la riga di
+        registro sono byte-identici.
+        comando: diff HANDOFF/DIFF_LIBRO-v46_2026-07-31.txt HANDOFF/DIFF_LIBRO-v46_2026-07-31_rev2.txt
+
+[V] Nessun altro file è stato prodotto oggi. Un tools/__pycache__/ generato da
+    py_compile è stato rimosso su entrambe le superfici prima di scrivere questo file.
+    comando: git status --porcelain | grep '^??' + find -newermt '2026-07-31'
+
+CONTEGGIO UNTRACKED — e il fenomeno da aspettarsi
+[V] 69 all'apertura della sessione · 72 prima della scrittura di questo file
+    (+2 artefatti del diff, +1 la cartella tools/) · 73 subito dopo.
+    comando: git status --porcelain | grep -c '^??'
+⚠️ Questo file INCREMENTA il numero che dichiara: al momento in cui il 72 è stato
+   misurato, il file non esisteva ancora. È lo stesso fenomeno che l'handoff del
+   2026-07-30 descriveva su sé stesso. Non è una discrepanza: è il nudo che si
+   muove mentre lo si scrive. Chi apre domani deve aspettarselo e non trattarlo
+   come un errore.
+
+────────────────────────────────────────────────────────────────────────────
+3. CATALOGO DEI FALSI-NEGATIVI — e dove vive ciascuno
+────────────────────────────────────────────────────────────────────────────
+GIÀ INCISI IN CANONICO — qui solo l'indirizzo, non la copia:
+  · grep -c con il carattere CR: falso-negativo n.1, LIBRO_MASTRO_QBEATS.md, Sez.2,
+    riga 2026-07-30 (si misura con tr -cd, mai con grep).
+  · l'operatore && che tronca il controllo positivo: LIBRO, Sez.2, riga 2026-07-30
+    «SESTA FORMA DI FALSO-NEGATIVO».
+  · gh ... --commit con lo sha corto: BOX3_QBEATS.md, punto (d) di V99.
+
+NON ANCORA IN NESSUN CANONICO — scritti per esteso, perché altrimenti non
+esistono operativamente (BOX3_QBEATS.md:49):
+
+(a) HERE-STRING DI POWERSHELL DENTRO LA SHELL BASH
+    forma che FALLISCE:  git commit -m @'...testo multiriga...'@
+    errore verbatim:     error: pathspec 'di' did not match any file(s) known to git
+                         /usr/bin/bash: eval: line 12: syntax error near unexpected token `('
+    perché inganna:      la sintassi @'...'@ è legittima in PowerShell, e in questo
+                         progetto si lavora con due shell. Bash la spezza in pathspec.
+    forma che FUNZIONA:  git commit -F - <<'MSG'  …  MSG
+    controllo positivo:  il commit 40f099bb è stato creato con la forma heredoc,
+                         exit 0, mentre la forma @'…'@ era uscita 2 senza creare nulla
+                         (verificato: git log -1 mostrava ancora e61efd0).
+
+(b) $'\r' ANNIDATO DENTRO $( ) SULLA STESSA RIGA
+    forma che FALLISCE:  echo "... $(tr -cd '\r' < f | wc -c) ... $(grep -c $'\r' f)"
+    errore verbatim:     /usr/bin/bash: eval: line 21: unexpected EOF while looking
+                         for matching `)'
+    perché inganna:      non è il conteggio a essere sbagliato — è il PARSER che si
+                         rompe prima di eseguire, e l'errore parla di parentesi, non
+                         di CR. Si perde tempo a cercare una parentesi mancante.
+    forma che FUNZIONA:  un comando per riga, separati da ';', mai annidati in $( ).
+    controllo positivo:  printf 'a\r\nb\r\n' > f ; tr -cd '\r' < f | wc -c  → 2
+                         (e grep -c $'\r' f sullo stesso input → 0, che è il
+                         falso-negativo n.1 già inciso in LIBRO).
+
+(c) IL BUCO DELLA FORMA ⟦…⟧ — un censimento che cercava solo le parentesi
+    forma che FALLISCE:  cercare gli atomi solo come "⟦S4R⟧"
+    misura:              sulle cinque righe nuove di v46, 50 occorrenze con parentesi
+                         e 11 menzioni NUDE che il pattern con parentesi non vedeva.
+    perché inganna:      il censimento rende un numero, sembra completo, e il numero
+                         è vero — ma della sola forma cercata.
+    forma che FUNZIONA:  cercare anche la forma nuda con lookaround che escluda le
+                         parentesi:  (?<![⟦\w])S4R(?![⟧\w-])
+    controllo positivo:  sull'input di prova «prima di S4R e dopo S5, ma non ⟦S4R⟧»
+                         il pattern rende ['S4R', 'S5'] — aggancia le due nude ed
+                         esclude quella fra parentesi.
+    stato:               ora coperto dal controllo C4 di tools/lint_canonici.py.
+
+(d) L'EDIT CHE NON AGGANCIA QUANDO IL SORGENTE PORTA ESCAPE \uXXXX
+    forma che FALLISCE:  passare allo strumento di edit il testo con i caratteri
+                         reali (⚠️, ⟦, ⟧) quando nel sorgente sono scritti come
+                         \u26a0\ufe0f, \u27e6, \u27e7.
+    sintomo:             "String to replace not found in file", pur essendo il testo
+                         visivamente identico. Si è portati a credere che il file sia
+                         cambiato sotto i piedi.
+    forma che FUNZIONA:  patch via Python confrontando per ORDINALI, non per stringa
+                         letterale; oppure riscrivere l'intera assegnazione con repr().
+    controllo positivo:  token trovato [96, 92, 92, 124, 96, 32] == token atteso, e la
+                         sostituzione è passata; il confronto per stringa letterale
+                         sullo STESSO token aveva reso 0 occorrenze.
+
+────────────────────────────────────────────────────────────────────────────
+4. FORME DI MISURA CHE RENDONO NUMERI DIVERSI SULLO STESSO OGGETTO
+────────────────────────────────────────────────────────────────────────────
+Caso reale: la parola «runner» su HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md al
+commit e61efd0e9bc2f9174b755e5a25e02a611c795cea. Quattro forme, quattro numeri,
+tutti veri.
+
+  forma                                          comando                      rende
+  righe, sensibile alle maiuscole                grep -c 'runner'               15
+  occorrenze, sensibile alle maiuscole           grep -o 'runner' | wc -l       16
+  righe, insensibile alle maiuscole              grep -ci 'runner'              25
+  occorrenze, insensibile alle maiuscole         grep -oi 'runner' | wc -l      28
+
+[V] Il censimento CHIUDE: runner 16 + Runner 10 + RUNNER 2 = 28 = la misura
+    insensibile alle maiuscole.
+    comando: for f in runner Runner RUNNER ; do git show HEAD:<file> | grep -o "$f" | wc -l ; done
+    (le due occorrenze di RUNNER tutto maiuscolo sono la ragione per cui 16+10 non
+     tornava a 28: senza cercarle, il conto non chiudeva e sembrava un errore.)
+
+QUALE FORMA PER QUALE SCOPO
+  · «quante volte compare» in un testo in prosa → occorrenze, non righe: una riga
+    lunga può contenerne più di una.
+  · «quante righe ne parlano» per stimare la superficie di una modifica → righe.
+  · controllo positivo di uno zero → la STESSA forma con cui si è misurato lo zero,
+    sullo STESSO oggetto. Cambiare forma fra misura e controllo invalida entrambi.
+  · qualunque numero consegnato → si dichiara la FORMA accanto al numero. Un
+    controllo positivo senza la forma dichiarata non è verificabile da chi legge.
+
+────────────────────────────────────────────────────────────────────────────
+5. TRAPPOLE DI SCRITTURA SU CANONICO CHE LO SCRIPT NON COPRE
+────────────────────────────────────────────────────────────────────────────
+(1) RISCRIVERE UN FILE GIÀ SCRITTO. Se una riga va corretta dopo che il file è
+    stato scritto ma prima del commit, le ancore che verificano lo stato di
+    partenza (per esempio «Versione: 45») falliscono, perché quello stato non
+    c'è più. La via è ripristinare con git checkout -- <file> e verificare IN
+    POSITIVO che il ripristino sia avvenuto (sha256 tornato a quello di partenza)
+    prima di rilanciare lo script. Non si patcha una scrittura sopra un'altra:
+    diventa impossibile provare cosa è cambiato.
+
+(2) BYTE E CARATTERI MISURANO COSE DIVERSE. La normalizzazione tipografica di una
+    riga ha reso delta byte = 0 e delta caratteri = −23. Un controllo che guarda
+    solo i byte non vede la differenza; uno che guarda solo i caratteri non prova
+    che nulla sia stato aggiunto. Servono entrambi, dichiarati separatamente.
+
+(3) LE RIGHE +/- DI UN DIFF SONO INVARIANTI RISPETTO AL CONTESTO, il diff no. Se
+    il diff completo eccede lo spazio di consegna, si riduce il contesto — ma
+    prima si PROVA che le righe +/- non cambiano, contandole ai vari livelli.
+    Ridurre senza quella prova significa consegnare un estratto spacciandolo per
+    il diff.
+
+(4) UN DIFF RATIFICATO CHE POI CAMBIA VA VERSIONATO, non sovrascritto. Si conserva
+    rev1 come traccia di ciò che è stato ratificato e si crea rev2 per ciò che si
+    commette. La convenzione _rev2 è già in uso in HANDOFF/.
+
+(5) UN ABORT NON DEVE LASCIARE SCRITTURE PARZIALI. Le patch allo script che
+    prepara la scrittura devono uscire PRIMA della write, non a metà: altrimenti
+    un ABORT lascia un sorgente in stato intermedio e la volta dopo le ancore
+    misurano una cosa che nessuno ha deciso.
+
+(6) UNO STRUMENTO CHE AGGANCIA NON HA SEMPRE RAGIONE — e il rimedio va scelto,
+    non subìto. Girato sul PRIMO handoff, il controllo C5 ha agganciato tre volte:
+    error: pathspec 'di' ... · grep -i '^\*\*Versione' · grep -n 'GATE DI'. Tutte e
+    tre erano apostrofi che CHIUDONO una stringa quotata — output verbatim e
+    comandi di shell — non sostitutivi tipografici. Correggere il TESTO avrebbe
+    storpiato un messaggio d'errore verbatim e due comandi: il difetto era nello
+    strumento, e lì è stato corretto (filtro sulle virgolette di chiusura, con due
+    controlli positivi nuovi: le virgolette di chiusura non agganciano più, i
+    sostitutivi veri restano visti). Girato di nuovo, il controllo C3 ha agganciato
+    «un messaggio», leggendolo come «un mes-e»: la forma a prefisso mes\w* prende
+    messaggio, e ann\w* avrebbe preso annuncio. Anche lì il difetto era nello
+    strumento — unità di tempo agganciate come PAROLA INTERA, non come prefisso —
+    con il suo controllo positivo nuovo. Regola generale: quando un lint aggancia,
+    si guarda PRIMA se è un falso positivo, e si corregge dove sta il difetto, non
+    dove è più comodo. Un controllo che spara su parole comuni viene spento dal
+    primo che ha fretta, e allora non protegge più da niente.
+    ⚠️ Corollario, pagato due volte in questo file: se lo strumento cambia dopo che
+    ne hai scritto l'impronta, l'impronta è già falsa. L'impronta di uno strumento
+    si scrive per ULTIMA, quando lo strumento ha smesso di cambiare.
+
+(7) IL CENSIMENTO DELLA NORMA DI CASA VA FATTO PRIMA DI IMPORRE UNA NORMA. Prima
+    di allineare una citazione a una forma «corretta», si misura come il file
+    tratta quel caso altrove. Se la pratica è mista, non si tocca niente e si
+    dichiara: non si impone al file una regola che il file non ha.
+
+────────────────────────────────────────────────────────────────────────────
+6. MISURATO MA NON CONCLUSO — e va letto come tale
+────────────────────────────────────────────────────────────────────────────
+[V] In E:\...\FILE X CLAUDE.MD\, nelle cartelle CC MEMORIA e DESIGN_E_BRIEFING,
+    esistono tre file il cui nome contiene «LIBRO». Gli header letti il 2026-07-31
+    dichiarano: LIBRO_MASTRO_QBEATS1v8.md → Versione 18 · LIBRO_MASTRO_QBEATS2.md
+    → Versione 17 · LIBRO_MASTRO_QBEATSv15.md → Versione 17. Due dei tre nomi non
+    corrispondono al contenuto.
+    comando: find "<dir>" -maxdepth 1 -iname '*LIBRO*' ; grep -m1 -i '^\*\*Versione' <file>
+
+[R] Il referee ha BLOCCATO la conclusione che CC aveva tratto da questa misura —
+    cioè che essa falsifichi la nota «due mirror vivi del LIBRO portati a v39 il
+    2026-07-22». Motivo del blocco: potrebbero essere insiemi di file diversi, il
+    censimento NON chiude, e finché non chiude non si conclude e non si archivia.
+
+⚠️ Quindi: qui sta la MISURA e sta il BLOCCO. Non sta una diagnosi. Chi riprende
+   non tratti questi tre file come «obsoleti da archiviare» né come «prova che la
+   nota è falsa»: entrambe le letture sono al di là di ciò che è stato misurato.
+   Serve prima un censimento che chiuda: quali file compongono i «due mirror vivi»,
+   dove stanno, e a quale versione sono.
+
+────────────────────────────────────────────────────────────────────────────
+7. PROSSIMO PASSO
+────────────────────────────────────────────────────────────────────────────
+[R] Fronte codice: ⟦S4R⟧, in DUE fasi. La fase 1 è una proposta di FORMA a zero
+    codice.
+⚠️ IL PROMPT DELLA FASE 1 È GIÀ SCRITTO ED È AUTOPORTANTE: ce l'ha Mauro. NON va
+   riscritto e NON va riassunto — chi ne fabbricasse uno nuovo ne farebbe uno
+   peggiore. La sessione nuova lo chieda e basta.
+
+[V] La ragione del routing è incisa in LIBRO v46, Sez.2, riga 2026-07-31 «GATE DI
+    ⟦S4R⟧ RI-DICHIARATO»: sotto quell'atomo non esiste rete a runtime, quindi il
+    cancello primario è la lettura del diff, non il device. Si legge lì, non qui.
+    comando: git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -n 'GATE DI'
+
+[V] L'ordine degli atomi e la sospensione di ⟦S4L⟧ stanno nella riga 2026-07-31
+    «ORDINE DEGLI ATOMI §6 EMENDATO» dello stesso commit. Anche quelli si leggono
+    lì: questo file non ne dichiara lo stato.
+
+PENDENZE — dichiarate secondo la regola dei due passi (chi apre le rilegga così):
+[V] SCALETTA_ATOMI_S6_2026-07-10.md:144 dichiarava, al commit e61efd0e, che la
+    ratifica dello sdoppiamento non era atterrata in LIBRO. CERCATA una riga
+    successiva che la chiuda: TROVATA — LIBRO_MASTRO_QBEATS.md:317, riga
+    2026-07-28. Quindi la pendenza è SCIOLTA nella sostanza, e resta solo la
+    MARCATURA di r.144, che LIBRO v46 riga «TRE CLAUSOLE DI SCRITTURA» elenca fra
+    le istanze vive da marcare nel giro immediatamente successivo.
+    comando: git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -c 'S4K' (rende 8, non 0)
+
+[V] BUGS_QBEATS.md:126 e :128 portavano, al commit e61efd0e, una dipendenza dal
+    freeze CD e la dichiarazione di ticket bloccato. CERCATA una riga successiva
+    in BUGS che le chiuda: NON TROVATA — BUGS non è stato toccato in questa
+    sessione, quindi quelle due righe sono ancora quelle. La loro marcatura è
+    elencata fra le istanze vive nella riga «TRE CLAUSOLE DI SCRITTURA» di v46.
+    comando: git log --oneline -1 -- BUGS_QBEATS.md (rende e61efd0, non 40f099b)
+
+[  ] Debiti nominati in sessioni precedenti e NON verificati oggi — si scrivono
+     come non verificati, non come aperti: riclassificazione commerciale TD#17 ·
+     build Distribution mai tentata · TD-qlive-exit-unconfirmed-stop, metà
+     pre-esistente. Su nessuno dei tre è stata fatta la ricerca di una riga che li
+     chiuda, quindi CC non ne dichiara lo stato.
+
+================================================================================
+FINE STATO.
+================================================================================

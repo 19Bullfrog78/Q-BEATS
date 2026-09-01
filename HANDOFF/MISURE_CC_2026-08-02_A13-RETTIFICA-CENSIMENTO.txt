@@ -1,0 +1,132 @@
+================================================================================
+REFERTO CC — ID ESEGUITO: QB-2026-08-02-A13-RETTIFICA-CENSIMENTO
+================================================================================
+Sostituisce QB-2026-08-02-A12-CHIUSURA-RDELTA, mai recapitato (zero referti sotto
+quell'ID: sostituito prima di consegnare qualunque cosa). Aggancio verificato: l'ultimo
+referto consegnato prima di questo è «A11 · PASSO 5 + impronte finali»
+(`MISURE_CC_2026-08-02_A11-IMPRONTE-FINALI.txt`) — confermato, nessun arresto necessario.
+
+RUOLO: censimento + correzione per aggiunta. ⛔ Zero commit: tutto fuori dal repo.
+⛔ Zero cancellazioni, zero rinomine: censimento puro.
+
+================================================================================
+1 — CORREZIONE AL REFERTO A11 (dettaglio; la nota breve vive nel file stesso)
+================================================================================
+Vedi `MISURE_CC_2026-08-02_A11-IMPRONTE-FINALI.txt`, sezione aggiunta in coda: la frase
+del PASSO 4 «nessuno dei tre file aveva una copia mirror lì» è un FALSO NEGATIVO — cercavo
+il nome-file del repo, l'archivio versiona con nome snapshot. Il file corretto è stato
+propagato sulle tre destinazioni R-δ (verifica in fondo a questo referto).
+
+================================================================================
+2 — CENSIMENTO PER PREFISSO VERSIONATO, SU E:
+================================================================================
+Metodo: `find` per prefisso `<NOME>_V` (maiuscolo per LIBRO/BUGS/BOX3/BOX5) o `<NOME>_v`
+(minuscolo, SCALETTA — forma osservata, non scelta da me). Ogni file: byte + faccia (CR
+contato byte-per-byte con `od`, non con `grep -c $'\r'` — quella forma mi ha già dato un
+falso risultato in questo stesso giro, vedi nota in fondo).
+
+-- LIBRO_MASTRO_QBEATS_V* — cartella LIBRO_MASTRO/ — 14 file, V39..V52, NESSUN BUCO --
+V39_2026-07-21_9784294  121680B  V40_2026-07-22_131a511  126510B  V41_2026-07-27_8fa5018  141762B
+V42_2026-07-28_8926c2a  157751B  V43_2026-07-28_c3caa58  162712B  V44_2026-07-30_4d1f974  181234B
+V45_2026-07-30_3164564  185189B  V46_2026-07-31_40f099b  201123B  V47_2026-07-31_8822598  208683B
+V48_2026-07-31_ddd5716  215598B  V49_2026-08-01_0ee9543  218352B  V50_2026-08-01_7ec6c1b  235589B
+V51_2026-08-02_07e0926  240691B  V52_2026-08-02_c1556e5  242346B  ← mio, creato in A11
+TUTTE CR=0 (faccia blob). Controllo positivo stessa cartella: 3 file NON versionati
+presenti (LIBRO_MASTRO_QBEATS36.md, 37.md, 38.md, pre-numerazione — la ricerca sa distinguere).
+
+-- BUGS_QBEATS_V* — cartella BUGS_QBEATS/ — 5 file, V44..V48, NESSUN BUCO --
+V44_2026-07-28_4b55686  207903B  V45_2026-07-30_897d458  250081B  V46_2026-07-30_e61efd0  256406B
+V47_2026-08-01_0ee9543  272339B  V48_2026-08-02_ebbb864  273043B  ← mio, creato in A11
+TUTTE CR=0 (faccia blob).
+
+-- SCALETTA_v* — cartella HANDOFF/ — 5 file --
+v3_2026-07-28_8289944  35661B  v4-non-bumpata_2026-08-02_07e0926  36673B  v4_2026-07-30_a393466  36070B
+v5_2026-08-02_c00feb4  37691B  v6_2026-08-02_e386264  39354B  ← mio, creato in A11
+TUTTE CR=0 (faccia blob). ⚠️ Manca un v1/v2 espliciti in questa forma: coerente con la
+storia già agli atti (SCALETTA numerata da v3/sdoppiamento in poi; v1/v2 vivono solo nel
+campo Versione interno del documento, non come snapshot separati — non è un buco di questo
+censimento, è la storia nota del file).
+
+-- CONTROLLO POSITIVO INCROCIATO, stessa forma, due canonici NON oggetto di questo giro --
+BOX3_V*  58 file (BOX3_Codice/, V43..V99 + 1 duplicato in HANDOFF/REFEREE_SYNC_2026-07-13/)
+BOX5_V*  14 file (BOX5_Test/, V18..V28 + 1 duplicato in HANDOFF/REFEREE_SYNC_2026-07-13/ +
+                   1 duplicato in DA_CD_PER_CC/11_07_2026/1Q-BEATS/)
+⇒ La forma di ricerca rende NON-ZERO su tutti e cinque i canonici: nessuno zero residuo di
+   metodo in questo censimento.
+
+================================================================================
+3 — CENSIMENTO PER PREFISSO VERSIONATO, SU DRIVE
+================================================================================
+⚠️ SCOPE DICHIARATO: TRE ricerche per prefisso (una per canonico: `LIBRO_MASTRO_QBEATS_V`,
+`BUGS_QBEATS_V`, `SCALETTA_v`), non una query per singola versione. Ogni chiamata rende fino
+a 5 risultati con altri disponibili oltre (nextPageToken non seguito): quanto sotto è ciò
+che le tre chiamate hanno restituito, non un'esaustione delle 24 versioni presenti su E:.
+Copre comunque, per coincidenza dell'ordinamento API, tutte e tre le versioni che il referee
+aveva citato (V47/V51/v5) più le tre nuove (V48/V52/v6).
+
+  LIBRO_MASTRO_QBEATS_V51_2026-08-02_07e0926.md   240691B  parentId 1UnXU0T8Sy…  ✅ faccia blob
+  LIBRO_MASTRO_QBEATS_V52_2026-08-02_c1556e5.md   242346B  stesso parentId       ✅ faccia blob (mio)
+  LIBRO_MASTRO_QBEATS_V50_2026-08-01_7ec6c1b.md   235589B  stesso parentId       ✅ faccia blob
+  LIBRO_MASTRO_QBEATS_V49_2026-08-01_0ee9543.md   218352B  DUE parentId diversi  ✅ faccia blob (doppia copia)
+  BUGS_QBEATS_V47_2026-08-01_0ee9543.md           272339B  DUE parentId diversi  ✅ faccia blob (doppia copia)
+  BUGS_QBEATS_V48_2026-08-02_ebbb864.md           273043B  uno dei due sopra     ✅ faccia blob (mio)
+  BUGS_QBEATS_V46_2026-07-30_e61efd0.md           256406B                       ✅ faccia blob
+  BUGS_QBEATS_V45_2026-07-30_897d458.md           250081B                       ✅ faccia blob
+  SCALETTA_v5_2026-08-02_c00feb4.md                37691B  parentId 1lVJaqtT…   ✅ faccia blob
+  SCALETTA_v6_2026-08-02_e386264.md                39354B  stesso parentId      ✅ faccia blob (mio)
+  SCALETTA_v4-non-bumpata_2026-08-02_07e0926.md    36673B                       ✅ faccia blob
+  SCALETTA_v4_2026-07-30_a393466.md                36070B  DUE parentId diversi ✅ faccia blob (doppia copia)
+
+⇒ Confermato punto per punto quanto misurato dal referee, incluse le «due copie» di V47/V49/v4:
+   la doppiatura non è un errore mio di oggi, è preesistente e strutturale (due alberi
+   paralleli, già catalogato in memoria di progetto).
+
+================================================================================
+4 — CENSITI, NON TOCCATI: I FILE A NOME NUDO (creati in A11) E LE COPIE GIUDICATE STALE
+================================================================================
+⛔ Nessuna cancellazione, nessuna rinomina eseguita o proposta qui. Solo mappa.
+
+-- Su E:, nomi nudi (creati da me in A11, oggi 19:09) --
+  BUGS_QBEATS.md                                273043B  LF (faccia blob)     2026-08-02 19:09
+  LIBRO_MASTRO_QBEATS.md                         242346B  LF (faccia blob)     2026-08-02 19:09
+  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md         39354B  LF (faccia blob)     2026-08-02 19:09
+  Rimisurato ORA (byte + sha256): identici a quando li ho creati in A11. Nessun cambiamento.
+  ⚠️ Autocorrezione presa in questo stesso giro: una prima stesura di questa riga riportava
+  274071B/242846B in faccia disco per i primi due, presa per confusione con i numeri delle
+  copie Drive stale scritte poco sopra nello stesso file — MAI verificata al momento di
+  scriverla. Ricontrollata prima di consegnare, corretta qui, non lasciata passare.
+
+-- Su Drive, albero-radice nomi nudi (NUOVO, creato in A11) — parentId 1BSsFiju0nt1… --
+  LIBRO_MASTRO_QBEATS.md   242346B   createdTime 2026-08-02T17:09:27Z   faccia blob (per byte)
+  BUGS_QBEATS.md           273043B   createdTime 2026-08-02T17:09:27Z   faccia blob (per byte)
+
+-- Su Drive, copie preesistenti giudicate stale in A11 (NON create da me oggi) --
+  parentId 1Q5OqXBNDKuziGm8SCy7i6L_JG73eCS5k:
+  BUGS_QBEATS.md           274071B   modifiedTime 2026-08-02T16:27:53Z   faccia disco (per byte)
+  LIBRO_MASTRO_QBEATS.md   242846B   modifiedTime 2026-08-02T16:22:22Z   faccia disco (per byte)
+
+⇒ Convivono oggi, per BUGS e LIBRO, QUATTRO oggetti a nome nudo su Drive (due alberi ×
+   due facce), più i rispettivi omologhi su E:. Nessuno cancellato. Decisione di
+   consolidamento: di Mauro.
+
+================================================================================
+5 — VERIFICA D'IDENTITÀ DI OGGETTO SUL LIBRO (chiude il terzo file)
+================================================================================
+`HANDOFF/DIFF_LIBRO-v52_2026-08-02_A9-ADDENDUM-SLITTAMENTO.txt`, riga `index`:
+   index 06caa75..526dcd6 100644
+Lato «new»: `526dcd6`. OID reale del blob committato (`git rev-parse HEAD:LIBRO_MASTRO_QBEATS.md`):
+   526dcd608e10e2b73a0e52b912368302153df310
+COINCIDONO. Stesso controllo, per completezza, sugli altri due (il referee li aveva già fatti):
+   SCALETTA: index 4bacc52..1e0003b  — reale 1e0003be94c74446b2235945ae0e80968a946292  COINCIDE
+   BUGS:     index c896f91..a675834 — reale a67583425f74866d5f54a53d64ecebfbce8d4e03  COINCIDE
+⇒ I tre diff ratificati in A9 sono, per identità di oggetto, esattamente ciò che è stato
+   committato. Chiuso su tutti e tre.
+
+================================================================================
+CONSEGNA A MAURO — file da caricare nel Progetto (invariata da A11)
+================================================================================
+   1) HANDOFF/SCALETTA_v6_2026-08-02_e386264.md
+   2) BUGS_QBEATS/BUGS_QBEATS_V48_2026-08-02_ebbb864.md
+   3) LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V52_2026-08-02_c1556e5.md
+
+*Fine referto.*

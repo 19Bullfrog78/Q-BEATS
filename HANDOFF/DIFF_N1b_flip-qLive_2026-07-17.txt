@@ -1,0 +1,215 @@
+ATOMO N1b — FLIP: porta Q-Live -> screen-swap .qLive + ritiro modale UIKit + E1 (rimozione LiveView.onDisappear stop) — NESSUN COMMIT
+BASE: HEAD beb9e084fefcfb7f9dbb31971147dc59929fc737 (master = origin/master, post-N1a)
+FILES: 7 (2 codice: HomeRootView, LiveView · 5 soli-commenti: AppRootView, WaitingForDirectorView, LiveHeaderView, LiveRootView, QLiveRootView) · +31 · -60
+
+diff --git a/ios_app/QBeats/UI/AppRootView.swift b/ios_app/QBeats/UI/AppRootView.swift
+index bf37f9f..34cbf7b 100644
+--- a/ios_app/QBeats/UI/AppRootView.swift
++++ b/ios_app/QBeats/UI/AppRootView.swift
+@@ -12,9 +12,9 @@ struct AppRootView: View {
+     @State private var previousScreen: Screen = .home
+ 
+     /// Routing top-level della Home: commutazione di schermata (NON push).
+-    /// Nodo A N1a: `.qLive` aggiunto all'enum come DEAD CODE — la porta Q-Live
+-    /// resta su `presentLive()` (modale UIKit) fino a N1b, quindi il path
+-    /// `.qLive` è irraggiungibile finché nessuno setta `screen = .qLive`.
++    /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
++    /// della Home fa `screen = .qLive` (entry-point canonico unico); la
++    /// modale UIKit è stata ritirata.
+     private enum Screen { case home, qStage, qLive }
+ 
+     var body: some View {
+@@ -37,9 +37,9 @@ struct AppRootView: View {
+                     QStageRootView(onExit: { screen = .home })
+                         .environmentObject(audioEngine)
+                 case .qLive:
+-                    // Nodo A N1a — arm DEAD CODE (specchio di `.qStage`). QLiveRootView
+-                    // possiede il seam onExit e lo inoltra a LiveRootView; la closure
+-                    // `{ screen = .home }` vive SOLO qui (E2, `Screen` private enum).
++                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
++                    // onExit e lo inoltra a LiveRootView; la closure `{ screen = .home }`
++                    // vive SOLO qui (E2, `Screen` private enum).
+                     QLiveRootView(onExit: { screen = .home })
+                         .environmentObject(audioEngine)
+                 }
+@@ -51,15 +51,13 @@ struct AppRootView: View {
+         .onChange(of: scenePhase) { newPhase in
+             UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+         }
+-        // Nodo A N1a — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
++        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+         // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+-        // (non-deterministico su view riusata/cachata). iOS 16: `onChange` dà solo
+-        // il valore NUOVO → `previousScreen` fornisce il precedente.
+-        // INERTE in N1a (`.qLive` irraggiungibile, nessuna transizione lo tocca);
+-        // si attiva da N1b; copre lo step-3 RoomSwitchBar automaticamente.
+-        // La `triggerDNDReminderIfNeeded()` qui è la copia PRE-PIAZZATA: coesiste
+-        // con quella viva in `HomeRootView.presentLive()` finché N1b non rimuove
+-        // `presentLive()` (una viva, una inerte — voluto).
++        // (non-deterministico su view riusata/cachata; il vecchio
++        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
++        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
++        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
++        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+         .onChange(of: screen) { newScreen in
+             if newScreen == .qLive {
+                 audioEngine.triggerDNDReminderIfNeeded()
+diff --git a/ios_app/QBeats/UI/HomeRootView.swift b/ios_app/QBeats/UI/HomeRootView.swift
+index 0db30e5..32997c2 100644
+--- a/ios_app/QBeats/UI/HomeRootView.swift
++++ b/ios_app/QBeats/UI/HomeRootView.swift
+@@ -5,12 +5,11 @@ import os
+ /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
+ /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
+ /// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
+-/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit fino a N1b (Nodo A: seam N0 applicato).
++/// Q-Studio = porta COMING SOON (non interattiva). Q-Live = in-tree via screen-swap (Nodo A completo, N1b).
+ struct HomeRootView: View {
+     let onOpenQStage: () -> Void
+-    /// Nodo A N1a — plumbing DEAD CODE: `onOpenQLive` è fornito da AppRootView
+-    /// (`{ screen = .qLive }`, specchio di `onOpenQStage`) ma la porta Q-Live
+-    /// resta su `presentLive()` fino a N1b → per ora non usato dalla UI.
++    /// Nodo A N1b — porta Q-Live: fornito da AppRootView (`{ screen = .qLive }`),
++    /// specchio di `onOpenQStage`. Entry-point canonico unico verso `.qLive`.
+     let onOpenQLive: () -> Void
+     @EnvironmentObject var audioEngine: AudioEngine
+     #if DEBUG
+@@ -73,33 +72,10 @@ struct HomeRootView: View {
+                          subtitle: "Choose a Show and take the stage",
+                          accent: QStageTheme.orange, accentTint: QStageTheme.orangeTint,
+                          state: .active, sf: sf,
+-                         action: { presentLive() })
++                         action: { os_log("Home: Q-LIVE selezionato"); onOpenQLive() })
+         }
+     }
+ 
+-    // Q-Live = modale UIKit .overFullScreen sul rootViewController — resta fino a N1b.
+-    // N0: l'uscita dei leaf non è più @Environment(\.dismiss) ma il seam onExit
+-    // fornito QUI dal presenter, che dismissa lo UIHostingController.
+-    // Rigore-1: la closure NON deve catturare `vc` forte (vc → rootView →
+-    // closure → vc = retain cycle → leak del hosting controller). Holder
+-    // debole `weakVC` dichiarato PRIMA della closure, assegnato DOPO.
+-    private func presentLive() {
+-        os_log("Home: Q-LIVE selezionato")
+-        audioEngine.triggerDNDReminderIfNeeded()
+-        weak var weakVC: UIViewController?
+-        let vc = UIHostingController(rootView:
+-            LiveRootView(onExit: { weakVC?.dismiss(animated: false) })
+-                .environmentObject(audioEngine))
+-        weakVC = vc
+-        vc.modalPresentationStyle = .overFullScreen
+-        vc.view.backgroundColor = .clear
+-        UIApplication.shared.connectedScenes
+-            .compactMap { $0 as? UIWindowScene }
+-            .first?.windows.first?
+-            .rootViewController?
+-            .present(vc, animated: false)
+-    }
+-
+     #if DEBUG
+     // Ingresso DEBUG → ContentView → ⚙ Settings (UNICO ingresso Settings, solo DEBUG; ticket v21).
+     private func debugEntry(_ sf: CGFloat) -> some View {
+diff --git a/ios_app/QBeats/UI/Live/LiveHeaderView.swift b/ios_app/QBeats/UI/Live/LiveHeaderView.swift
+index 2bb531b..ee3884c 100644
+--- a/ios_app/QBeats/UI/Live/LiveHeaderView.swift
++++ b/ios_app/QBeats/UI/Live/LiveHeaderView.swift
+@@ -4,10 +4,9 @@ struct LiveHeaderView: View {
+     @ObservedObject var session: LiveSession
+     @EnvironmentObject var audioEngine: AudioEngine
+ 
+-    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
+-    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende più dal
+-    /// contesto di presentazione (oggi modale UIKit dismissata dal presenter
+-    /// in HomeRootView.presentLive; da N1b commutazione screen in AppRootView).
++    /// Nodo A — seam d'uscita fornito dal presenter (via LiveView).
++    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende dal
++    /// contesto di presentazione — AppRootView commuta `screen = .home`.
+     let onExit: () -> Void
+ 
+     /// TD #23 (17/05/2026) — fattore di scala per font responsive iPad v1.
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index b59c019..1f18be7 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -4,8 +4,8 @@ import os
+ struct LiveView: View {
+     @EnvironmentObject var audioEngine: AudioEngine
+     @EnvironmentObject var runner: SetlistRunner
+-    /// Nodo A N0 — seam d'uscita fornito dal presenter (LiveRootView ←
+-    /// HomeRootView.presentLive). Inoltrato ai 2 leaf d'uscita reali:
++    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView →
++    /// QLiveRootView → LiveRootView). Inoltrato ai 2 leaf d'uscita reali:
+     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+     let onExit: () -> Void
+     @StateObject private var session = LiveSession()
+@@ -157,8 +157,8 @@ struct LiveView: View {
+                 //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
+                 //      → runner.startSetlist standalone;
+                 //  (c) tap CANCEL → `onExit()` in WaitingForDirectorView
+-                //      (seam N0, fornito dal presenter) → il presenter
+-                //      dismissa lo UIHostingController → ritorno a Home
++                //      (seam Nodo A, fornito dal presenter) → AppRootView
++                //      commuta `screen = .home` → ritorno a Home
+                 //      (deviazione esplicita da CD-Q2=B "→ Select Setlist"
+                 //      — Select Setlist non esiste ancora, F2.3 aperto;
+                 //      ratificata 28/05/2026).
+@@ -190,7 +190,6 @@ struct LiveView: View {
+ 
+             }
+         }
+-        .onDisappear { audioEngine.stop() }
+         .onAppear {
+             // Sincronizzazione iniziale mirror UI con stato corrente AudioEngine.
+             // Necessario quando l'utente entra in Vista LIVE dopo aver modificato
+diff --git a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+index df0bae1..25a4505 100644
+--- a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
++++ b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+@@ -12,9 +12,9 @@ import SwiftUI
+ ///    seamless a `.playing` (questa vista scompare automaticamente).
+ ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
+ ///    standalone, ignora l'attesa Director.
+-///  - `CANCEL` → `onExit()` (seam N0, callback fornito dal presenter via
+-///    LiveView) → il presenter dismissa lo UIHostingController → ritorno
+-///    a Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
++///  - `CANCEL` → `onExit()` (seam Nodo A, callback fornito dal presenter
++///    via LiveView) → AppRootView commuta `screen = .home` → ritorno a
++///    Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
+ ///    ratificata da Mauro 28/05/2026 con nota "→ Select Setlist quando
+ ///    F2.3 pronto" (libro mastro v15).
+ ///
+diff --git a/ios_app/QBeats/UI/LiveRootView.swift b/ios_app/QBeats/UI/LiveRootView.swift
+index cba0514..c4ba784 100644
+--- a/ios_app/QBeats/UI/LiveRootView.swift
++++ b/ios_app/QBeats/UI/LiveRootView.swift
+@@ -1,9 +1,8 @@
+ import SwiftUI
+ 
+ struct LiveRootView: View {
+-    /// Nodo A N0 — seam d'uscita fornito dal presenter (oggi
+-    /// HomeRootView.presentLive → dismiss della modale; da N1b AppRootView
+-    /// → { screen = .home }). Firma STABILE per N1a/N1b: cambia il
++    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView via
++    /// QLiveRootView: `{ screen = .home }`). Firma STABILE: cambia il
+     /// chiamante, non LiveRootView.
+     let onExit: () -> Void
+ 
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index fa05f0d..d2cfd18 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -4,11 +4,11 @@ import SwiftUI
+ /// È la RADICE in-tree di Q-Live: raggiunta per commutazione di schermata da
+ /// `AppRootView` (`switch screen` → `.qLive`), NON come modale UIKit.
+ ///
+-/// Nodo A N1a: `QLiveRootView` POSSIEDE il seam `onExit` (hookpoint unico,
++/// Nodo A: `QLiveRootView` POSSIEDE il seam `onExit` (hookpoint unico,
+ /// riusato dallo step S4) e lo INOLTRA a `LiveRootView`. NON costruisce mai
+ /// `{ screen = .home }` — quella closure vive solo in `AppRootView` (`Screen`
+-/// è `private enum` del file). In N1a il path `.qLive` è DEAD CODE: la porta
+-/// Q-Live della Home resta su `presentLive()` fino a N1b.
++/// è `private enum` del file). Da N1b il path `.qLive` è VIVO: la porta
++/// Q-Live della Home fa `screen = .qLive` (entry-point canonico unico).
+ ///
+ /// INVARIANTI (gate Nodo A — non derogabili):
+ ///  - renderizza `LiveRootView`, MAI `LiveView` diretto → `audioEngine`

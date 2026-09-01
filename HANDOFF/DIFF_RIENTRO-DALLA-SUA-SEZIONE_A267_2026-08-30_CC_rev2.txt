@@ -1,0 +1,100 @@
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index 4d95bef..6517279 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+@@ -136,6 +136,13 @@ final class SetlistRunner: ObservableObject {
+     // fra due canzoni (dove azzerare la sezione è corretto per costruzione), non
+     // per una decisione presa sul rientro. Misura completa: `HANDOFF/
+     // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
++    // ⚠️ MARCATURA A267 (30/08) — il caso rientro descritto qui sopra è RISOLTO
++    //    A MONTE: il tap sul velo (LiveView, overlay standby) instrada su
++    //    `startCurrentSection` quando la sezione conservata è >0, e arriva qui
++    //    solo con sezione 0 (ratifica Mauro 30/08). L'asimmetria di QUESTA
++    //    funzione — canzone conservata / sezione azzerata — resta, ed è
++    //    corretta per costruzione nel ramo standby fra due canzoni, che azzera
++    //    la sezione prima di armare. Testo sopra invariato.
+     func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
+         // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
+         pendingDisplayUpdate = false
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 0d4f5ac..7a2b868 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -190,7 +190,28 @@ struct LiveView: View {
+                     StandbyOverlayView(nextSongName: nextSong, scaleFactor: scaleFactor)
+                         .contentShape(Rectangle())
+                         .onTapGesture {
+-                            runner.startCurrentSong(audioEngine: audioEngine, session: session)
++                            // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
++                            // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
++                            // riparte da sezione 8 battito 1» (= opzione B di A240;
++                            // foglio CD 27/08 «alla sezione, non alla battuta»).
++                            // Uno standby con sezione conservata >0 esiste SOLO al
++                            // rientro dopo uno STOP a metà canzone: `primeDisplay`
++                            // arma da .stopped SENZA toccare gli indici. L'ingresso
++                            // fresco (runner appena installato, indici 0/0) e lo
++                            // standby fra due canzoni (il ramo standby di
++                            // `makeSectionEndedClosure` azzera la sezione PRIMA di
++                            // armare) hanno sempre sezione 0 e restano sul ramo che
++                            // azzera — comportamento invariato per costruzione.
++                            // L'observer `linkStartedSubject` più sotto segue la
++                            // STESSA regola dal 30/08 (decisione Mauro: Direttore
++                            // e Follower INSIEME, A267-rev2) — il limite
++                            // strutturale dell'allineamento è dichiarato nel
++                            // cartello lì.
++                            if runner.currentSectionIdx > 0 {
++                                runner.startCurrentSection(audioEngine: audioEngine, session: session)
++                            } else {
++                                runner.startCurrentSong(audioEngine: audioEngine, session: session)
++                            }
+                         }
+                 }
+ 
+@@ -687,7 +708,30 @@ struct LiveView: View {
+             // startCurrentSong preserva la canzone corrente; startSetlist
+             // la resetterebbe a songIdx 0 (Song A). Vedi BUGS_QBEATS.md.
+             if case .standby = session.playbackState {
+-                runner.startCurrentSong(audioEngine: audioEngine, session: session)
++                // ⚠️ A267-rev2 (30/08/2026) — STESSA REGOLA DEL TAP SUL VELO
++                // (cartello A267 sopra): sezione conservata >0 = rientro dopo
++                // STOP a metà canzone → si riprende da lì; sezione 0 = standby
++                // fra due canzoni o ingresso fresco → dalla canzone, come oggi.
++                // Decisione Mauro 30/08: Direttore e Follower INSIEME.
++                // 🚨 QUESTA CORREZIONE ALLINEA I DUE APPARECCHI PERCHÉ FANNO LO
++                // STESSO CONTO, NON PERCHÉ SI PARLINO: nessuna API Link
++                // trasporta l'indice di sezione — i runner contano i beat
++                // ciascuno per sé, e coincidono solo se partiti insieme sulla
++                // stessa struttura e fermati insieme dallo stop di banda.
++                // NON regge se un apparecchio si aggancia in ritardo o rientra
++                // dopo una caduta di rete. Riparazione strutturale: Soluzione C
++                // — protocollo proprietario master/client (LIBRO:212,
++                // 20/05/2026, attiva).
++                // ⛔ I due rami di questo observer NON collassano in uno: con
++                // sezione 0 e `currentSection` irrisolvibile le due partenze
++                // divergono (`startCurrentSong` → fineSetlist immediato ·
++                // `startCurrentSection` → fallback 0/0 e riparte dalla prima
++                // canzone). Non unificare senza decisione.
++                if runner.currentSectionIdx > 0 {
++                    runner.startCurrentSection(audioEngine: audioEngine, session: session)
++                } else {
++                    runner.startCurrentSong(audioEngine: audioEngine, session: session)
++                }
+             } else {
+                 // ⚠️ A240 — era `startSetlist` (il commento qui sopra e il blocco
+                 //    Q-D3 più su lo descrivono ancora così — testo invariato): il
+diff --git a/ios_app/QBeats/UI/Live/TransportView.swift b/ios_app/QBeats/UI/Live/TransportView.swift
+index 24dbc66..cedff66 100644
+--- a/ios_app/QBeats/UI/Live/TransportView.swift
++++ b/ios_app/QBeats/UI/Live/TransportView.swift
+@@ -43,6 +43,11 @@ struct TransportView: View {
+                 //    SetlistRunner). L'asimmetria dei due gesti descritta sopra
+                 //    resta ma cambia faccia: velo → sezione azzerata · Play →
+                 //    tutto conservato. Testo sopra invariato.
++                // ⚠️ MARCATURA A267 (30/08) — «velo → sezione azzerata» non è più
++                //    sempre vero: con sezione conservata >0 il velo instrada su
++                //    `startCurrentSection` e CONSERVA anche lui (ratifica Mauro
++                //    30/08, cartello A267 in LiveView). Con sezione 0 azzera come
++                //    prima. Testo sopra invariato.
+                 RubberBtnView(
+                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
+                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),

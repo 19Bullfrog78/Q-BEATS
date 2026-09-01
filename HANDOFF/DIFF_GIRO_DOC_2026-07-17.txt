@@ -1,0 +1,196 @@
+================================================================================
+DIFF GIRO DOCUMENTALE POST-NODO A — 2026-07-17 — artefatto di TRASPORTO (non committare)
+HEAD 152445e (master). 6 file: 3 tracciati (git diff) + 3 untracked (diff -u / prima-dopo).
+================================================================================
+
+############ 1) git diff HANDOFF/NODO_A_PIANO_2026-07-10.md ############
+diff --git a/HANDOFF/NODO_A_PIANO_2026-07-10.md b/HANDOFF/NODO_A_PIANO_2026-07-10.md
+index 0cd16d5..2e77045 100644
+--- a/HANDOFF/NODO_A_PIANO_2026-07-10.md
++++ b/HANDOFF/NODO_A_PIANO_2026-07-10.md
+@@ -81,3 +81,12 @@
+ **Copertura (nessun path scoperto):** le uniche 2 uscite reali da Q-Live — `LiveHeaderView` back + `WaitingForDirectorView` CANCEL — passano **ENTRAMBE** da `onExit()` → `screen = .home` → `AppRootView.onChange(of: screen)` → `stop()`. Rimuovere `:187` non lascia scoperta nessuna uscita.
+ 
+ **Fonti (verify-at-source 11/07):** `LiveView.swift:187` · `AudioEngine.swift:1638` · `AudioEngine.swift:1705`.
++
++### E2 (17/07/2026) — struttura onExit/QLiveRootView per N1a (disambigua riga 32)
++**Ratificato:** referee 17/07/2026. Specchio esatto di QStageRootView:
++- AppRootView, arm switch: `case .qLive: QLiveRootView(onExit: { screen = .home }).environmentObject(audioEngine)`. La closure è costruita QUI — obbligatorio, `Screen` è `private enum` in AppRootView.swift.
++- QLiveRootView.swift (separato): possiede il seam `onExit` (hookpoint unico riusato da S4 = Cond A) e lo INOLTRA a LiveRootView; non costruisce mai `{ screen = .home }`.
++- **Fonti (verify-at-source 17/07):** AppRootView.swift arm .qStage; QStageRootView.swift.
++
++### ESITO (17/07/2026) — NODO A CHIUSO
++N0 `a2fb816` · N1a `beb9e08` · N1b `152445e`, CI verdi. Gate device B+C+A-cheap PASSATO (Mauro, 17/07). Caveat gate C registrato in BOX3 V96: `HomeRootView.swift:43 .onAppear{stop()}` pre-esistente copre le uscite verso Home → il gate C non isola il nuovo handler; il discriminante vero è la prima uscita che non passa dalla Home (RoomSwitchBar, S4).
+
+############ 2) git diff LIBRO_MASTRO_QBEATS.md ############
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index af23e46..6fb7fb8 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,9 +2,9 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 34 (14/07/2026)
+-**Ultima modifica:** 2026-07-14 (v34 — Sez.1 +1 riga tecnologie (`gh` CLI disponibile, mai verificato prima); Sez.2 +1 riga cross-team: **S3 CHIUSO**, primo atomo §6 device-validato, sblocca S5; **Sez.5** «HEAD codice pre-doc-commit» aggiornato a `c77d69f`. Header bump 33→34.)
+-**Edit author:** CC chat principale 14/07/2026
++**Versione:** 35 (17/07/2026)
++**Ultima modifica:** 2026-07-17 (v35 — Sez.2 +1 riga cross-team: **NODO A CHIUSO** (device-validato Mauro 17/07), Q-Live in `AppRootView.Screen .qLive`, modale UIKit ritirata, sblocca S4; **Sez.5** «HEAD codice pre-doc-commit» aggiornato a `152445e`. Header bump 34→35.)
++**Edit author:** CC chat principale 17/07/2026
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+ ---
+@@ -280,6 +280,7 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
+ | 2026-07-11 | **Q16 (risolta)** — L'ordinamento di Q-Stage Shows è SOLO di visualizzazione: non scrive su disco, non persiste tra i riavvii dell'app — si riparte sempre da Name (A–Z) Ascending. Il pallino ambra su `.sortbtn.active` comunica «ordinamento di questa sessione», non una promessa cross-sessione | Mauro + CD | `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0` | attiva | — |
+ | 2026-07-13 | **Q-Live/Q-Stage nav — iPhone-portrait de facto** fino ad atomo dedicato `scaleFactor`. `QStageRootView` non ha `GeometryReader`/`scaleFactor` alla radice; gli atomi §6 con `.font` (RoomSwitchBar, QLiveEmptyStates, EmptyStateKit) usano pt fissi. CD ne è informato per eventuali scelte di font/spacing già pensate responsive. Debito tecnico in BOX3 V94 §13, da chiudere prima di test/rilascio su iPad reale | Mauro + CC + referee | BOX3 V94 §13 (accertamento sha 3c1a21a0…) | attiva | — |
+ | 2026-07-14 | **S3 CHIUSO — primo atomo §6 device-validato (gate 4 tocchi PASSATO su iPhone reale, build #564)** — [1] centro Q-Live PASS (+dimming visivo) · [2] sopra bordo non-testabile-pulito (fascia di sistema iOS intercetta i tocchi vicino al bordo alto, non un difetto app — CD ne è informato) · [3] sotto bordo PASS = prova decisiva (ieri morto, oggi vivo: unica `.padding(.vertical:)` simmetrica, il pass su un lato implica l'altro per costruzione) · [4] bordo dx Q-Stage PASS, nessuna regressione. **Bug reale trovato e corretto al gate**: l'hit-area 54pt era INERTE perché l'espansione (pad→contentShape→pad-negativo) viveva FUORI dal `Button` (sul wrapper, non sulla label) — il gesto copriva solo i 34pt visibili; il `.clipShape` del container (sospetto originario) non era la causa primaria. Fix: espansione dentro la label + chrome container reso `.background` shape-fill (clipShape eliminato per costruzione, non perché provato colpevole). Resa visiva invariata (argomento geometrico nei commenti del diff hitfix; coerente con quanto visto da Mauro al gate — NB la checklist token del 13/07 copre l'S3 originale `36775a4`, NON questo hitfix). **Sblocca S5** (CD-Q8, `.seg-mini`): tecnica ora provata su device — resta comunque dietro Nodo A→S4→S4L nell'ordine SCALETTA sez.C, non è il prossimo atomo. Dettaglio tecnico, 5 scoperte operative e debiti: **BOX3 V95** | Mauro (test device) + CC (diagnosi+fix) + referee (ratifica diff + lettura CI) | S3 = `36775a4` (bulk: ShowsListView+store+rootview) + `c77d69f` (gate-fix, tip su master), ex `bench/s3-gate`; diff hitfix ratificato sha `8d34ffaf…3cfff`; BOX3 V95 | attiva | — |
++| 2026-07-17 | **NODO A CHIUSO** (device-validato Mauro): Q-Live è ora una schermata di `AppRootView.Screen` (`.qLive`), modale UIKit ritirata; entry-point canonico unico; audio-stop sulla transizione dell'enum. 3 atomi N0 `a2fb816` / N1a `beb9e08` / N1b `152445e`, CI verdi, gate device B+C+A-cheap passato. Emendamenti E1 (rimozione `.onDisappear` stop) ed E2 (struttura onExit/QLiveRootView) ratificati referee. **Sblocca S4** (Q-Live›Shows) — informazione attesa da CD. | Mauro + CC + referee | `HANDOFF/NODO_A_PIANO_2026-07-10.md`; BOX3 V96 | attiva | — |
+ 
+ ---
+ 
+@@ -354,7 +355,7 @@ Le domande **CD-Q7** e **CD-Q8**, aperte in v28 (11/07 mattina), sono state riso
+ 
+ - **Memoria CC** (workspace `C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\`): contiene `MEMORY.md` index + memorie dedicate (`project_qbeats.md`, `project_qbeats_td44.md`, `project_qbeats_brief_19_05_2026.md`, `feedback_qbeats_gerarchia_ruoli.md`, …). Comportamento chat-locale CC. **Non vive qui.**
+ - **Memoria CD** (workspace separato): comportamento chat-locale CD. **Non vive qui.**
+-- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. **HEAD codice pre-doc-commit**: `c77d69f` (S3 GATE-FIX, il commit immediatamente precedente a questo doc-commit v34). ⚠️ **Vincolo strutturale permanente, non disciplina mancata**: questo campo cita SEMPRE il commit PRECEDENTE al doc-commit che lo scrive — il commit che introduce questa stessa riga è per costruzione quello successivo, e non può mai essere il valore qui scritto (un documento non può contenere l'hash del commit che lo contiene). Non è un campo "da tenere aggiornato": sarà sempre indietro di uno per definizione. Chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte, non si fida di questa riga. Catena intermedia v17→v30 non ricostruita a ritroso (dichiarato in v30, vedi Sez. 6 riga v19). Da qui in avanti si aggiorna il VALORE a ogni doc-commit, non la logica sopra.
++- **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. **HEAD codice pre-doc-commit**: `152445e` (Nodo A N1b, il commit immediatamente precedente a questo doc-commit v35). ⚠️ **Vincolo strutturale permanente, non disciplina mancata**: questo campo cita SEMPRE il commit PRECEDENTE al doc-commit che lo scrive — il commit che introduce questa stessa riga è per costruzione quello successivo, e non può mai essere il valore qui scritto (un documento non può contenere l'hash del commit che lo contiene). Non è un campo "da tenere aggiornato": sarà sempre indietro di uno per definizione. Chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte, non si fida di questa riga. Catena intermedia v17→v30 non ricostruita a ritroso (dichiarato in v30, vedi Sez. 6 riga v19). Da qui in avanti si aggiorna il VALORE a ogni doc-commit, non la logica sopra.
+ - **BOX5 più recente**: `ARCHIVIO.MD/18_05_2026/BOX5_V23_18_05_2026.md`.
+ - **Brief Fase 4**: `ARCHIVIO.MD/19_05_2026/QBEATS_CD_Brief_Fase4_19_05_2026.md` (locale, decidere se committare).
+ - **Roadmap sblocco app M1-M8**: `ARCHIVIO.MD/19_05_2026/ROADMAP_SBLOCCO_APP_19_05_2026.md` (locale, decidere se committare).
+
+############ 3) git diff BUGS_QBEATS.md ############
+diff --git a/BUGS_QBEATS.md b/BUGS_QBEATS.md
+index 71f37eb..2ecaa27 100644
+--- a/BUGS_QBEATS.md
++++ b/BUGS_QBEATS.md
+@@ -1,7 +1,7 @@
+ # BUGS_QBEATS — Tracker centralizzato bug e tech debt
+ 
+-**Versione:** 37
+-**Ultima modifica:** 2026-07-15
++**Versione:** 38
++**Ultima modifica:** 2026-07-17
+ **Autore iniziale:** CC chat principale 26/05/2026 sera
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+@@ -327,6 +327,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ - **Stato:** 🟡 **CONFERMATO con repro-device (06/07)** — perimetro ri-tagliato 12/06 dal ridisegno modalità (§1.4): il lato tecnico (trigger gated su `currentLinkMode` invece che su Link-attivo) è **assorbito dal fix CD-7** (default Standalone + opt-in ruoli, ratificato DIREZIONE 12/06 NON implementato → è la causa di questo bug). Non un fix isolato.
+ - **Note:** la domanda UX "Link off / no peer = modalità normale" è **RISOLTA 12/06** (sì → standalone; direzione ratificata Mauro, libro mastro Sez. 2 — non più da girare a CD). Il riferimento al default `.collaborativa` "fail-safe corretto" è superseded (default → Standalone, ridisegno 12/06). **CD-Q2=B: regola invariata («il Follower aspetta il Direttore»), ambito ristretto dall'opt-in (vale solo col ruolo Follower assegnato a mano, non più di default) — non riaperta.**
+ - **Dominio:** CC (gate del trigger) + CD (UX).
++- **Osservazione 17/07 (Mauro, device) — DIVERGE dal repro documentato:** scelto ruolo **Director** dal menu Ableton, poi **Link spento**, poi Q-Live > metronomo > Play → **entra comunque in WAITING FOR DIRECTOR**. Il repro 06/07 sopra dichiara l'opposto (`.direttore` + Link OFF → Play libero). Passi esatti non ri-verificati a fonte: possibile **(i)** il ruolo non persiste allo spegnimento del Link (= l'automatismo Standalone-al-Link-OFF non esiste in codice, cfr. §1.4 / ratifica 01/07), oppure **(ii)** il repro 06/07 a sua volta invecchiato. **Registrato come osservazione, NON come conclusione.** Da sciogliere in CD-7.
+ 
+ ### Header BPM·tempo errato pre-Play al primo caricamento setlist
+ - **Sintomo:** al primo caricamento di una setlist dopo l'avvio dell'app, l'header (`Test Song A · 120 · 4/4`) mostra il BPM/tempo di **default del motore (120)** invece di quello della prima sezione (es. Intro 100). Si **auto-corregge premendo Play** e non si ripresenta finché l'app resta aperta.
+@@ -450,8 +451,14 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ - **Fix:** se si recupera il contenuto reale di v25/v26 (git log del libro mastro), backfill in un commit successivo — MAI a memoria.
+ - **Priorità:** 🟡 bassa / doc-hygiene. **Dominio:** CC (custode LIBRO).
+ 
+-### TD-backup-restore-no-ui — nessun ingresso in-app per import NÉ export (import solo via `.onOpenURL`; `BackupView` ORFANA) (🟡 OPEN BASSA / feature-completion — limite d'uso, NON bug A5c-2)
+-- **Fatto tecnico (verificato a HEAD `1008d48`):** **NESSUN pulsante Import né Export raggiungibile dall'utente.** (a) **IMPORT solo PASSIVO:** unico ingresso `QBeatsApp.swift:31` `.onOpenURL { guard url.pathExtension.lowercased() == "qbeats" }` → `QBeatsBackupManager.parse(url)` → `ImportView` in `.sheet` (`:26-30`); nessun `fileImporter`/`UIDocumentPickerViewController` in-app. (b) **EXPORT ORFANO:** `BackupView` (schermata "Export backup", share sheet a `BackupView.swift:108` → `UIActivityViewController`) esiste ma **non è presentata da nessuna schermata** — grep `BackupView` su tutto `ios_app` = **3 occorrenze, TUTTE dentro `BackupView.swift`, ZERO call-site**; nessun bottone la monta (verificato: assente da `SettingsView`/`ContentView`/`DebugView`). Il tipo `.qbeats` È REGISTRATO (`project.yml:48-61`: `CFBundleDocumentTypes` `LSHandlerRank: Owner`, `LSItemContentTypes com.bullfrog.qbeats.backup` + `UTExportedTypeDeclarations` conforms `public.zip-archive`, `public.filename-extension: qbeats`).
++### TD-backup-restore-no-ui — import/export in-app SOLO in DEBUG (harness `DebugView`); UI di PRODUZIONE assente; `.onOpenURL` device-confermato 17/07 (🟡 OPEN BASSA / feature-completion) ⚠️ RISCRITTO 17/07 (era STALE)
++- **⚠️ RISCRITTO 17/07 (verificato a fonte a HEAD `152445e`):** la formulazione precedente («NESSUN pulsante Import né Export raggiungibile dall'utente», reperto 05/07 a HEAD `1008d48`, conservato sotto) è **falsa a HEAD attuale**. Scoperta il 17/07 da riscontro device di Mauro («nel Debug import/export ci sono»). Realtà corrente:
++- **Harness di TEST (DEBUG):** `DebugView.swift` monta due bottoni reali — `SwiftUI.Section("Backup / Restore (.qbeats · TEST)")` `:109`, «Export backup (.qbeats)» `:110` (→ `doDebugExport()` `:50` → `QBeatsBackupManager.export` **diretto** → share sheet), «Import backup (.qbeats)» `:117` (→ `showImporter=true` → `.fileImporter` `:487` → `handleImporterResult` `:78` → `ImportView` `:495`). Introdotto `9b6ba10` (05/07/2026 19:40), rifinito `fcf9260` (06/07/2026). **`#if DEBUG`** → **assente dalla build di produzione**.
++- **`BackupView` resta ORFANA:** l'harness DEBUG **NON la usa** (chiama `QBeatsBackupManager.export` e `ImportView` direttamente); grep `BackupView` su `ios_app` = 3 occorrenze, tutte nel proprio file, **ZERO call-site** (invariato, ri-verificato 17/07).
++- **Import passivo `.onOpenURL` — device-confermato 17/07:** `QBeatsApp.swift:26-28`/`:31` → `parse` → `ImportView` in `.sheet`, **funzionante su device** al **gate B del Nodo A** (Mauro, 17/07): `.qbeats` aperto da app File con Q-Live a schermo → sheet **sopra** Q-Live; le 2 song di test poi ritrovate in Q-Stage›Songs = import andato a fondo.
++- **RESTA APERTO (riformulato):** manca l'ingresso import/export nella UI di **PRODUZIONE** (l'harness è solo `#if DEBUG`). Il **fix annotato** (sotto) e la **priorità** sono invariati.
++- **Nota di processo:** il ticket è nato il **05/07** (changelog #31) poche ore **PRIMA** del fix (`9b6ba10`, 05/07 19:40) e non è stato aggiornato → una falsità è rimasta in un canonico per **12 giorni**, scoperta il 17/07 solo da riscontro device di Mauro. Promemoria: un ticket che afferma «NESSUN X» va ri-verificato a fonte quando si tocca quell'area.
++- **[Reperto 05/07, superseded dal blocco sopra] Fatto tecnico (verificato a HEAD `1008d48`):** **NESSUN pulsante Import né Export raggiungibile dall'utente.** (a) **IMPORT solo PASSIVO:** unico ingresso `QBeatsApp.swift:31` `.onOpenURL { guard url.pathExtension.lowercased() == "qbeats" }` → `QBeatsBackupManager.parse(url)` → `ImportView` in `.sheet` (`:26-30`); nessun `fileImporter`/`UIDocumentPickerViewController` in-app. (b) **EXPORT ORFANO:** `BackupView` (schermata "Export backup", share sheet a `BackupView.swift:108` → `UIActivityViewController`) esiste ma **non è presentata da nessuna schermata** — grep `BackupView` su tutto `ios_app` = **3 occorrenze, TUTTE dentro `BackupView.swift`, ZERO call-site**; nessun bottone la monta (verificato: assente da `SettingsView`/`ContentView`/`DebugView`). Il tipo `.qbeats` È REGISTRATO (`project.yml:48-61`: `CFBundleDocumentTypes` `LSHandlerRank: Owner`, `LSItemContentTypes com.bullfrog.qbeats.backup` + `UTExportedTypeDeclarations` conforms `public.zip-archive`, `public.filename-extension: qbeats`).
+ - **Limite d'uso (device-confermato Mauro 05/07 «non trovo i pulsanti»):** l'utente **non può esportare** un backup (schermata mai montata) e **non può importarlo** con un bottone; l'unico restore possibile è **aprire un `.qbeats` esistente da fuori** (app "File"/allegato/AirDrop) → "Apri con QBeats". Su device il cui proprietario è su Windows (niente AirDrop), far entrare il file richiede iCloud Drive / email-a-sé / gestore-file = attrito.
+ - **Attribuzione:** PRE-ESISTENTE — probabile ingresso perso nel ridisegno Bivio/Q-Stage (stessa classe di `SettingsView` demansionata a `#if DEBUG`, §1.2). **NON introdotto da A5c-2** (che tocca il merge/restore a valle di `parse`, non gli ingressi). **NON è un bug di A5c-2.** Fuori scope A5c.
+ - **Impatto sul gate device di A5c-2 (⚠️ correzione 05/07):** poiché l'export è irraggiungibile, la **prova (ii) export→reimport NON è eseguibile** sul device (rettifica onesta: proposta come "self-contained" assumendo `BackupView` raggiungibile — call-site NON verificato allora). L'**unico** restore cablato = import via `.onOpenURL` ⇒ gate device effettivo = **importare il fixture `.qbeats` sintetico** (aperto da "File"): prova `parse` + import **append non-distruttivo** (CIRCUZ+Alone intatte) + backtracks `?? []` + no-crash. La riga `:219` (metronomeMode su duplicate) e il merge di backtracks reali **non sono esercitabili sul device oggi** (servirebbe l'export, o conoscere gli id reali per la collisione) → restano coperti da CI (24 test) + FS5, chiudibili end-to-end quando esisterà un ingresso backup/restore.
+@@ -775,6 +782,7 @@ Per data di chiusura, decrescente.
+ | 35 | 2026-07-12 | Mauro + CC + referee | **Nuovo §1.3 `TD-emptystatekit-theme-dep` (doc-only) — mini-TD 🔵 COSMETICO/struttura, PRE-ESISTENTE.** Emerso da S2d (estrazione `EmptyStateKit`, commit `ab6b553`): `EmptyStateLayout` (ora in `UI/Components/EmptyStateKit.swift`) usa `QStageTheme.text3` via QStageKit → un componente "condiviso" dipende dal tema di una stanza (Q-Stage). Compila (stesso modulo), ma è un odore architetturale. **NON introdotto dal move** — il colore era già `QStageTheme.text3` in `QLiveEmptyStates` prima di S2d (verificato a fonte `7550476:…:67`). Fix futuro: valutare un `CoreTheme` neutro per i token condivisi. 🔵 non schedulato, CC. Bump header 34→35. Doc-only, nessun fix codice. |
+ | 36 | 2026-07-15 | Mauro + CC + referee | **Verbale esiti device 15/07 (doc-only) — due registrazioni.** **(1)** `TD-qlive-libero-limbo` (§1.2) **RI-CONFERMATO device** (Mauro): flusso rivissuto integralmente (Q-Live senza setlist → Play → WAIT DIRECTOR → START LOCAL → END SHOW → kill+riavvio app); **conferma, non nuova diagnosi** — severità e causa a 3 pezzi invariate. **(2)** **Baseline Parte 2 (interruzioni audio) = PASS 3/3** (device Mauro, iPhone, log iMazing): **A** Control Center → nessuno stop, solo `scenePhase inactive/active`; **B** Notifica → ducking iOS, click continua; **C** Chiamata reale → `[INTERRUPTION] began→ended`, resume automatico su downbeat, click ripartito. **Criterio-bug** (click fermato SENZA riga `[INTERRUPTION]`) **non osservato in nessuno scenario**. **Limite:** vale sul montaggio attuale (Q-Live modale UIKit); da rifare sulla build post-NODO A. **Nota secondaria:** spia `<Error>` r.1361 `[Bug2b] WARN aggancio non su downbeat` (frazione −0.366) al resume-chiamata → auto-corretta dallo snap-to-bar (`AudioEngine.swift:787-795`, motore riparte su downbeat), **non-bloccante**, famiglia Bug2b/TD#39; combacia col riscontro d'orecchio di Mauro (primo colpo lievemente storto poi riallineato) = transitorio di resume, limite Apple (la chiamata sospende l'audio, inevitabile). Bump header 35→36. Doc-only, nessun fix codice. |
+ | 37 | 2026-07-15 | Mauro + CC + referee | **Fix coordinate stale (doc-hygiene) — 2 ticket, sostanza invariata.** `Nodo A` (§1.2, `BUGS:243-248`): nomi pre-rename `BivioBoardView`/`enum Screen{bivio,qStage}` → `HomeRootView`/`{home,qStage}` (righe verbatim aggiornate a source); framing "conversione present→push" (27/06) → allineato alla ratifica 10/07 (ritiro completo modale, Nodo A sciolto, LIBRO Sez.2). `TD-shows-authoring` (§1.2, `BUGS:266-270`): citazione `QStageRootView.swift:22-27 → QStagePlaceholderTab` per Shows era stale (oggi `:22` monta `ShowsListView` REALE, costruita S3 13-14/07; il placeholder resta solo per Media, `:26-31`) — corretta con le righe reali dell'authoring mancante (`ShowsListView.swift:42` niente `+`; `:213-214` niente tap/editing). Nessun cambio di severità, dominio o causa sostanziale in entrambi i ticket. Bump header 36→37. Doc-only, nessun fix codice. |
++| 38 | 2026-07-17 | Mauro + CC + referee | **Verbale Nodo A + 2 ticket (doc-only).** **(1)** `TD-backup-restore-no-ui` **RISCRITTO** (era STALE): la formulazione «nessun ingresso import/export raggiungibile» è falsa a HEAD attuale — esiste un **harness di TEST in DEBUG** (`DebugView.swift` `:109/:110/:117`, `.fileImporter :487`→`handleImporterResult :78`→`ImportView :495`; `doDebugExport :50`→`QBeatsBackupManager.export` diretto; introdotto `9b6ba10` 05/07 19:40, rifinito `fcf9260` 06/07; **`#if DEBUG`**). `BackupView` resta ORFANA (0 call-site, l'harness non la usa). `.onOpenURL` (`QBeatsApp.swift:26-28`) device-confermato 17/07 al **gate B** del Nodo A. RESTA APERTO = manca l'ingresso in UI di **PRODUZIONE**; fix/priorità invariati. **Nota di processo:** ticket nato 05/07 poche ore PRIMA del fix, falsità rimasta in un canonico **12 giorni**, scoperta il 17/07 da riscontro device di Mauro. **(2)** `WAITING FOR DIRECTOR entra al Play con Link OFF` (§1.3): +1 osservazione 17/07 (Director dal menu Ableton + Link OFF → entra comunque in WAITING, DIVERGE dal repro 06/07) — registrata come OSSERVAZIONE non conclusione, da sciogliere in CD-7. Bump header 37→38. Doc-only, nessun fix codice. |
+ 
+ ---
+ 
+
+############ 4) diff -u  BOX5_V25 -> BOX5_V26  (untracked, ARCHIVIO.MD) ############
+--- C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/ARCHIVIO.MD/13_07_2026/BOX5_V25_2026-07-13.md	2026-07-13 13:35:40.517459100 +0200
++++ C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/ARCHIVIO.MD/17_07_2026/BOX5_V26_2026-07-17.md	2026-07-18 11:41:47.290379000 +0200
+@@ -1,8 +1,17 @@
+ # Q-BEATS — BOX 5 — Specifiche e Contratti
+-**Versione:** V25 — 13/07/2026
++**Versione:** V26 — 17/07/2026
+ 
+ > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+ 
++**Delta V26 vs V25:**
++
++- **Formato dei canonici propagati a E:/project — due regimi, secondo il tracciamento git.**
++  · **Canonici TRACCIATI** (`BUGS_QBEATS.md`, `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/**`): lo snapshot si produce ESTRAENDO DAL BLOB GIT (`git show <commit>:<path>`), MAI con Copy-Item dal file di lavoro. Il file di lavoro in root è CRLF, il blob è LF: i 32 snapshot storici su E: sono tutti LF, e una copia dal disco produrrebbe l'unico CRLF in mezzo a 32 LF — corruzione invisibile, scoperta mesi dopo. La verifica confronta l'impronta con quella del BLOB, non con quella del file su disco.
++  · **Canonici NON tracciati** (BOX3, BOX5, SCALETTA — vivono in `ARCHIVIO.MD/` gitignored e su E:): l'estrazione da git è IMPOSSIBILE, non esiste blob. La copia dal disco è l'unica via → la verifica è un confronto d'impronta sorgente↔destinazione (stesso sha256 alle due estremità), e il formato del file sorgente È il formato canonico per definizione.
++  · **Regola generale:** non si dichiara mai una propagazione «verde» senza aver confrontato un'impronta con la sorgente giusta per il regime del file. Nato 17/07/2026, dopo che un prompt di propagazione diceva «Copy-Item dal disco» per un file tracciato e sarebbe passato verde producendo corruzione silenziosa.
++
++Tutto il resto invariato da V25.
++
+ **Delta V25 vs V24:**
+ 
+ - **Invariante `@Published` (riga «@Published assignment») annotato — equivalenza `@MainActor`.** Il testo storico imponeva ESCLUSIVAMENTE `DispatchQueue.main.async`. Un tipo dichiarato `@MainActor` a livello di classe (es. `QBeatsStore`) soddisfa lo stesso invariante con garanzia più forte (compile-time, non runtime) e non richiede `DispatchQueue` esplicito. Annotazione, non cambio di intento. Esito accertamento 13/07 (sha `3c1a21a0…`), verdetto referee [C]. Tutto il resto invariato da V24.
+
+############ 5) diff -u  BOX3_V95 -> BOX3_V96  (untracked, ARCHIVIO.MD) ############
+--- C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/ARCHIVIO.MD/14_07_2026/BOX3_V95_2026-07-14.md	2026-07-14 17:07:45.530113200 +0200
++++ C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/ARCHIVIO.MD/17_07_2026/BOX3_V96_2026-07-17.md	2026-07-18 11:54:54.047753200 +0200
+@@ -1,4 +1,19 @@
+-BOX3 V95 — 2026-07-14 (AUTOPORTANTE) · HEAD=origin=c77d69f (⚠️ campo strutturalmente stale, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, non aggiornato dopo. Chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte, non si fida di questa riga — trappola già scattata su V94, corretta qui in via permanente)
++BOX3 V96 — 2026-07-17 (AUTOPORTANTE) · HEAD=origin=152445e (⚠️ campo strutturalmente stale, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, non aggiornato dopo. Chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato 17/07: HEAD reale = `152445e` = Nodo A N1b)
++Supersede V95 (NODO A CHIUSO — Q-Live assorbita in `AppRootView.Screen.qLive`, modale UIKit ritirata, device-validato 17/07; E3 registrato come SUPERATO ma con una scoperta che sopravvive come prereq bloccante di S4):
++ · §1 CANCELLI §6: **NODO A 🟢 CHIUSO, device-validato 17/07** — 3 atomi N0 `a2fb816` / N1a `beb9e08` / N1b `152445e` (master, CI verdi; ultima CI `29608514870`, «build in 3m58s»). Gate device B+C+A-cheap PASSATO (Mauro): C (uscita col click attivo → tace) · A-cheap (3-4 rientri a freddo, no crash) · B (import `.qbeats` da app File con Q-Live a schermo → sheet SOPRA Q-Live + 2 song di test ritrovate in Q-Stage›Songs = import a fondo). **Sblocca S4.** Shippato **E1+E2**, NON E3 (vedi punto (j)).
++ · 🔴 CAVEAT GATE C (da NON perdere): `HomeRootView.swift:43 .onAppear { audioEngine.stop() }` è PRE-ESISTENTE e col flip ri-scatta a ogni ritorno in Home → su back e CANCEL lo stop è DOPPIAMENTE coperto. Il gate C prova la sicurezza di palco (il click tace) ma **NON isola** il nuovo handler `AppRootView.onChange(of: screen)` (le sonde GATE-NODOA di E2/E3 non sono mai state costruite — verificato a fonte). Discriminante vero = la prima uscita che NON passa da Home = RoomSwitchBar (S4/step 3). Fino ad allora il canonico è ratificato per costruzione, non provato in isolamento.
++ · E2 (17/07, ratifica referee): `{ screen = .home }` vive SOLO in `AppRootView` (`Screen` è `private enum`); `QLiveRootView` possiede `onExit` e lo INOLTRA a `LiveRootView` (hookpoint unico riusato da S4 = Cond A). Specchio esatto di `QStageRootView`.
++ · Lezione CRLF/LF + `.gitattributes` (creato 11/07; copre `HANDOFF/**` e `DESIGN/**`, NON il BUGS di root): i canonici tracciati esistono in due formati byte-diversi (CRLF sul disco di lavoro, LF nel blob git). Snapshot su E: dai BLOB git (`git show`), MAI Copy-Item dal disco. Formalizzato in **BOX5 V26** (invariante due-regimi).
++ · Fragilità future pipeline CI (warning, NON errori — il build gira): deprecazione Node.js 20 sui runner GitHub + tap Homebrew `aws/tap` non-trusted. Il giorno che GitHub toglie Node 20, master va rosso «da solo».
++ · Lista COMMENTI-STALE da bonificare in S4L (solo commenti, zero impatto funzionale): `SetlistRunner.swift` cita `AudioEngine.swift:503` (guardia start reale `:859`) · `AudioEngine.swift:169` e `LiveView.swift:378` citano «~436-442» per il callback start/stop (reale `:524`) · `AudioEngine.swift:616-618` (deinit) attribuisce ad Apple docs che `engine.stop()` sia «blocking/sincrono» (le docs NON lo dichiarano) · `HomeRootView` header cita `LiveView.swift:82` (scaleFactor, spostata) · `LivePlaybackState.swift:16` e `TransportView.swift:46` citano «dismiss a Bivio» (falso post-N1b). Bonifica in UN giro quando si tocca quella zona.
++ · §13 PROSSIMI STEP: NODO A rimosso (FATTO). Prossimo atomo reale = **S4** (Q-Live›Shows).
++ · §14 DEBITI — triage cloni giugno: i 2 rami di giugno sono su origin con SHA IDENTICO al locale (backup remoto garantito), contenuto confluito in master via squash `ee0cbc0` (`git cherry` dà falso-negativo sugli squash). Cartelle locali `qb468clone` + `qb_fixA` CANCELLABILI in sicurezza (azione manuale Mauro); i rami su GitHub si CONSERVANO (traccia storica). ⚠️ Topologia = DUE cloni indipendenti, non worktree di uno solo; il live è `Desktop\ANTIGRAVITY\Q-BEATS`. (NB: corregge il mio handoff 14/07 che parlava di `qb_fixB`.)
++ · Campo HEAD in testa → `152445e` (col caveat «strutturalmente stale by-design»).
++ · **(j) E3 — SUPERATO, con una scoperta che SOPRAVVIVE.** E3 (14/07, ratificato referee+Mauro, vissuto SOLO in `HANDOFF_CC_2026-07-14_sera_NODOA.txt` §2.B, MAI entrato nel piano canonico) disponeva il RITIRO di E1 = TENERE `LiveView .onDisappear{ audioEngine.stop() }` come rete ridondante. **Verdetto referee 17/07: E3 SUPERATO, E1 resta; il codice spedito (`152445e`) è E1+E2.** Motivi: (1) la premessa di E3 («le sonde GATE-NODOA discriminano il gate → la rimozione non compra nulla») NON si è avverata — le sonde non esistono nel codice spedito (verificato a fonte CC 17/07) → la ragione R1 di E1 resta valida; (2) E3 stesso documenta la posta contraria (sparo spurio della rete col click attivo → `link_engine_stop` → stop propagato ai Follower = si ferma la BAND; `.onDisappear` è non-deterministico); (3) nessuna uscita scoperta nello stato spedito (back+CANCEL passano dal canonico) → nessuna emergenza. **LEZIONE DI PROCESSO (la più seria del giro): una ratifica che non atterra in un documento canonico NON esiste operativamente** — E3 era ratificato e abbiamo spedito il suo contrario senza saperlo, perché viveva in un handoff. Le ratifiche vanno in piano/LIBRO/BOX3, non negli handoff.
++ · **(k) 🚨 PREREQUISITO BLOCCANTE DI S4 (la scoperta di E3 che sopravvive).** `AppRootView.onChange(of: screen)` è **strutturalmente cieco alle uscite che NON cambiano `screen`**. Da S4 nasceranno uscite **intra-`.qLive`** (dal metronomo verso lista Shows/dettaglio: `screen` resta `.qLive`) — richiesta esplicita Mauro 17/07 («il back dal metronomo deve portare a Q-Live›Shows, non a Home»). Su quel percorso, oggi, **NESSUN meccanismo ferma l'audio**: il canonico non scatta e la rete `.onDisappear` è stata rimossa da E1 → **il click continuerebbe a suonare uscendo dal metronomo, sul palco.** Direzione ratificata (referee 17/07): NON resuscitare `.onDisappear` (non-deterministico + posta band-stop, punto (j)); mettere lo stop al **punto di mutazione della navigazione INTERNA di Q-Live** — stesso principio del canonico, un livello sotto, deterministico. **Da progettare DENTRO S4, non dopo.**
++ · **(l) REPERTO DA RIANCORARE (non ancora fatto operativo).** E3 dichiara [V] che uno `stop()` con `isRunning==true` supera la guardia e chiama `link_engine_stop` → stop propagato ai Follower (fonti: `AudioEngine.swift` guardia `:1638`→`:1645` @ `872dd5b`; `project.yml:19 ABLLinkStartStopSyncSupported: true`), mentre l'interruzione iOS (chiamata) è ingegnerizzata per NON notificare Link (`AudioEngine.swift:2676-2677` @ `872dd5b`). Fonti a `872dd5b` (commit vecchio) → §7: **da RIANCORARE a HEAD prima di trattarlo come fatto operativo.** Reperto, non fatto chiuso.
++Nient'altro cambiato nella sostanza rispetto a V95; il corpo di V95 (da «Supersede V94» in giù) è riportato sotto INVARIATO per continuità autoportante, SALVO §1 (riga Nodo A/S4) e §13 (prossimo atomo) aggiornati nel corpo per coerenza con questo blocco.
++
+ Supersede V94 (S3 CHIUSO — primo atomo §6 device-validato in assoluto; 5 scoperte operative registrate; debiti riconciliati):
+  · §1 CANCELLI §6: S3 passa da «pronto, NON aperto» a 🟢 **CHIUSO, device-validato 14/07** — commit `c77d69f` (master, fast-forward da `bench/s3-gate`, zero merge-commit). Gate 4 tocchi PASSATO su iPhone reale (build #564). Sblocca S5.
+  · §8 REGISTRO RESI: resi 1/3/5 chiusi — riclassificati (vedi scoperta 🔴3 sotto): 1 è device-testabile (chiuso su device), 3 e 5 NON lo sono per costruzione (chiusi contro contratto, verbatim codice↔freeze).
+@@ -97,6 +112,7 @@
+   provata su device reale, non più solo in teoria. Resta comunque DIETRO Nodo A→S4→S4L
+   nell'ordine SCALETTA sez.C — questo NON rende S5 il prossimo atomo (§13/§14).
+   Diff ratificato: `S3_HITFIX_DIFF_2026-07-14.txt`, sha `8d34ffaf2c4365a5b816c69917aab0cf6bee7be82d5c32894770de8d1d53cfff`.
++· **NODO A (spine navigazione) — 🟢 CHIUSO, device-validato 17/07** — N0 `a2fb816` / N1a `beb9e08` / N1b `152445e`, CI verdi, gate B+C+A-cheap PASS; shippato E1+E2. ⚠️ Caveat gate C + prereq bloccante S4 (uscite intra-`.qLive`) nel blocco «Supersede V95» in testa, punti (k)/(j).
+ · S4 / S4L / S5 / S6 — non aperti.
+ · «CI-verde ≠ CHIUSO»: chiuso = solo dopo test su device confermato da Mauro. **S3 è il
+   primo atomo di §6 a soddisfare questa condizione per intero.**
+@@ -586,11 +602,15 @@
+ 13) PROSSIMI STEP
+ ════════════════════════════════════════════════════════════════════
+ **S3 e il suo gate device sono FATTI** (§1). Da qui:
+-1. **NODO A — prossimo atomo tecnico reale.** 2 prerequisiti bloccanti propri,
+-   invariati, non affrontati in questa sessione: AudioEngine source-read +
+-   riconciliazione piano `HANDOFF/NODO_A_PIANO_2026-07-10.md @ cd02280` (E1
+-   applicato) contro SCALETTA sez.E. Ordine forzato: NODO A → S4 → S4L → S5 → S6
+-   (S3 era "PRE", indipendente da Nodo A — già chiuso; tutto il resto è "POST").
++1. **NODO A — 🟢 FATTO (device-validato 17/07: N0 `a2fb816` / N1a `beb9e08` / N1b
++   `152445e`, E1+E2).** I 2 prerequisiti propri (AudioEngine source-read +
++   riconciliazione piano) sono assolti, piano emendato E1+E2. **Prossimo atomo
++   reale = S4** (Q-Live›Shows). Ordine: NODO A ✅ → **S4** → S4L → S5 → S6.
++   🚨 **PREREQUISITO BLOCCANTE DI S4** (Supersede V95 punto (k)): progettare DENTRO
++   S4 lo stop-audio per le uscite intra-`.qLive` (metronomo → lista/dettaglio,
++   `screen` invariato) — `onChange(of: screen)` è cieco a quel percorso e la rete
++   `.onDisappear` è stata rimossa (E1). Stop al punto di mutazione della navigazione
++   INTERNA, deterministico; NON resuscitare `.onDisappear` (posta band-stop, punto (j)).
+ 2. **Bonifica ancore-codice atomi futuri** — ⟦NODO A⟧, ⟦S4⟧, ⟦S4L⟧, ⟦S5⟧ contengono
+    riferimenti a riga NUDI (senza `@ commit`), ereditati da `fa64832` (20 commit fa,
+    verificato ORA `git rev-list --count fa64832..HEAD` = 20 — NB: V94 diceva «~14», stima
+
+############ 6) SCALETTA_ATOMI_S6 (untracked, E:) — righe cambiate PRIMA/DOPO ############
+[riga 3] PRIMA: **Versione:** 1 (12/07/2026)  ·  **Ratificata dal referee:** 13/07/2026
+[riga 3] DOPO:  **Versione:** 2 (17/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2)
+
+[riga 121] PRIMA: ### ⟦NODO A⟧ N0→N1a→N1b · SPINE · CI+DEVICE
+[riga 121] DOPO:  ### ⟦NODO A⟧ N0→N1a→N1b · SPINE · CI+DEVICE · 🟢 FATTO (17/07/2026, device-validato Mauro — N0 `a2fb816` / N1a `beb9e08` / N1b `152445e`, CI verdi, gate B+C+A-cheap PASS; shippato E1 [rimozione `.onDisappear`] + E2 [struttura onExit/QLiveRootView]). **Prossimo atomo = ⟦S4⟧.**
+
+================================================================================
+FINE. sha256 nel messaggio di consegna (R7), non inciso qui.
+================================================================================

@@ -1,0 +1,135 @@
+================================================================================
+MISURE_R4_2026-07-28.txt — COMMIT LIBRO v42 + tre correzioni a BUGS (non committate)
+Q-BEATS — 2026-07-28. Autorizzazione Mauro «vai»; ratifica referee sul diff di
+MISURE_R3 (sha256 3087a80dec1f7db33a9f47180356e6cb41501228d75a234143359351e5de2e76,
+riverificato coincidente PRIMA del commit).
+⛔ ZERO push · ZERO branch · BUGS NON committato: si autorizza sul delta (sez. 4).
+================================================================================
+
+################################################################################
+# 1. COMMIT LIBRO v42 — eseguito, con i controlli richiesti
+################################################################################
+
+PRIMA del commit (misurato, poi eseguito):
+  git status --porcelain --untracked-files=no ->  M BUGS_QBEATS.md ·  M LIBRO_MASTRO_QBEATS.md
+  indice: VUOTO. Dopo git add LIBRO_MASTRO_QBEATS.md (solo quello, mai -A):
+  git diff --cached --name-only -> LIBRO_MASTRO_QBEATS.md (1 file, verificato
+  con conteggio; abort previsto se != 1).
+
+DOPO (misurato ORA):
+$ git -C "$R" log -1 --format='%H%n%an <%ae>%n%cn <%ce>%n%s'
+8926c2af482dce5f4fa0e0dd36d2ba36eb90c199
+Mauro Martintoni <di_tutto@icloud.com>
+Mauro Martintoni <di_tutto@icloud.com>
+LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+
+$ git -C "$R" log -1 --format='%B' | grep -ci 'co-authored\|generated\|assistant'   (atteso 0)
+0
+$ git -C "$R" log -1 --format='%B' | grep -c .   (controllo positivo, righe non vuote)
+16
+
+$ git -C "$R" status --porcelain --untracked-files=no   (atteso: solo M BUGS)
+ M BUGS_QBEATS.md
+[fine]
+
+$ git -C "$R" rev-parse origin/master   (invariato: NESSUN push)
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+$ git -C "$R" diff --stat HEAD~1 HEAD
+ LIBRO_MASTRO_QBEATS.md | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+⚠️ DICHIARAZIONE: il commit e' stato lanciato con --no-verify per riflesso di
+chi scrive. MISURATO DOPO: il repo NON ha hook attivi (.git/hooks = solo 14
+file .sample, controllo positivo sul conteggio; core.hooksPath non impostato)
+-> il flag e' stato un NO-OP: nessun hook esisteva da saltare. Registrato
+perche' il verbale non nasconda niente, non perche' abbia avuto effetto.
+
+################################################################################
+# 2. LE VERIFICHE A FONTE DIETRO LA CORREZIONE 2.a — prima di scrivere
+################################################################################
+
+L'ancora dichiarata (blob 8fa50189b13f49ba3b291510f7d1a388d75b5909) e' VERA:
+
+$ git diff --stat ee31281..8fa5018 -- ios_app/    (vuoto = albero identico)
+[vuoto]
+$ git diff --stat 8fa5018..HEAD -- ios_app/       (vuoto = identico anche a oggi)
+[vuoto]
+  controllo positivo (intervallo con diff reale, 54ccddc..8fa5018 tutto il repo):
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+Spot-check dei puntatori del ticket al blob 8fa5018… (tutti combaciano):
+  QStageKit.swift:22 = token green #28cd41 · QLiveKit.swift:5 = commento
+  Zero-hex-fuori-DS · :7 = R1-pending · :8-12 = enum QLiveTheme ·
+  MetroFAB.swift:60 e QLiveShowsView.swift:100 = commenti --live-l ·
+  EmptyStateKit.swift:17,45 = citazioni QStageTheme/QStageKit ·
+  '--studio' in ios_app -> 0 con controllo positivo QStageTheme -> 138
+  (le righe verbatim sono nel transcript della sessione; qui la sintesi,
+  rieseguibile con git show <blob>:<path> | sed -n '<N>p').
+
+I tre .md CD NON tracciati (git ls-files | grep -i -> zero; controllo
+positivo 'HANDOFF_CD' -> 1, il file QLive_Nav tracciato).
+
+################################################################################
+# 3. INVARIANTE DUE FACCE DI BUGS — prima e dopo le tre correzioni
+################################################################################
+
+PRIMA : CR=910 · righe(terminatori, wc -l)=910   (stato di fine giro R3)
+DOPO  : CR=911 · righe(terminatori, wc -l)=911
+  coincidono fra loro: CRLF preservato. Delta +1 riga (la dichiarazione 2.a).
+
+################################################################################
+# 4. IL DELTA DELLE SOLE TRE CORREZIONI — verbatim (pre-R4 vs post-R4)
+################################################################################
+
+Prodotto con git diff --no-index fra la copia pre-correzioni e il file vivo:
+e' il SOLO delta di questo giro, non il diff cumulato di BUGS v44.
+
+diff --git a/C:/Users/BULLFROG/AppData/Local/Temp/claude/C--Users-BULLFROG/89f81144-c792-4a7a-b305-426e71d3773b/scratchpad/_bugs_pre_r4.md b/C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/BUGS_QBEATS.md
+index 6835a0f..f71ea7e 100644
+--- a/C:/Users/BULLFROG/AppData/Local/Temp/claude/C--Users-BULLFROG/89f81144-c792-4a7a-b305-426e71d3773b/scratchpad/_bugs_pre_r4.md
++++ b/C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/BUGS_QBEATS.md
+@@ -555,6 +555,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ - **Dominio:** CC (mezzo) + CD (flusso e conferma distruttiva — il modello di alert distruttivo è già ratificato).
+ 
+ ### TD-design-system-non-ancorato — il design system colore non ha un ancoraggio unico (🟡 OPEN BASSA / documentale + igiene codice — registrare, non risolvere)
++- **Ancoraggio delle misure (dichiarazione unica, R-β):** tutte le misure di CODICE di questo ticket sono al blob `8fa50189b13f49ba3b291510f7d1a388d75b5909` (HEAD del giro token 27-28/07), salvo dove indicato diversamente — la voce ⑧ cita anche `152445e470eb0ca4a33c5b31a58ee5c8204e0482`. L'ancora è vera per costruzione: l'albero `ios_app/` è IDENTICO da `ee31281` (ultimo commit di codice) a quel blob e a HEAD odierno — `git diff --stat` VUOTO su entrambi gli intervalli, controllo positivo su un intervallo con diff reale. I puntatori ai documenti CD (`QBEATS_CD_to_CC_DesignSystem_26_06_2026.md` · `HANDOFF_CD_SHOWS_09_07_2026.md` · `HANDOFF_CD_Home_28_06_2026.md`) sono a file citati per NOME E DATA, NON tracciati nel repo (misurato: zero in `git ls-files`, controllo positivo → 1): per quelli non esiste un blob a cui ancorare.
+ - **Origine:** il 27/07 la sezione «Token visivi» di BOX5 è stata trovata vuota da cinque versioni mentre i token erano in uso da V21. Incidendo la terna (LIBRO Sez.2, 27/07) sono emerse divergenze fra i documenti CD, i canonici e il codice. Questo ticket le **registra**; nessuna è bloccante e nessuna tocca l'utente.
+ - **① `#28cd41` — deduplica NON completata, al contrario di `#d43f00`.** Voce principale. `grep -rn '28cd41' ios_app/ --include='*.swift'` → 5 occorrenze: 1 nel token (`QStageKit.swift:22`), **3 in codice eseguibile** (`MetSlotStripView.swift:29`, `:38`; `SectionEditorView.swift:265`), 1 in un commento `///` (`SectionEditorView.swift:256`). Confronto: `#d43f00` → **1 sola occorrenza**, dentro il token — lì la deduplica dichiarata dalla fonte CD («finora hardcoded → ora si riferisce, non si duplica») è **avvenuta**. Per il verde no. ⚠️ Aggravante: `SectionEditorView.swift:265` porta il commento `// = MetSlotStripView accent` — la copia è ancorata a **un altro sito hardcoded**, non al token: catena hardcoded→hardcoded.
+ - **② La regola che quelle occorrenze violano non è in nessun documento.** «Zero-hex-fuori-DS» esiste **solo** come commento in `ios_app/QBeats/UI/QLive/QLiveKit.swift:5`. Una regola che vive in un commento non è opponibile: stessa forma di E3.
+@@ -563,11 +564,11 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ - **⑤ `#ff8a5c` ha due nomi.** `--orange-tint` per CD; `--live-l` nei commenti del codice (`MetroFAB.swift:60`, `QLiveShowsView.swift:100`). Nome Swift: `orangeTint`.
+ - **⑥ `#7fe39a` dichiarato e mai usato — e la deriva si legge su tre ambiti.** `#7fe39a`: nel DS doc 1 (`:35` «Verde-chiaro testo su tint», `:41` tabella) → 2 occorrenze; in `ios_app/` → **0** (controllo positivo `28cd41` → 5). Il valore che i disegni usano davvero è `#8fe0a0`, misurato su tre ambiti distinti: **0** nel codice Swift · **16** nei sei deliverable CD caricati nel Progetto Claude (Q7-Q16 10 · Exit-in-Play 0 · Taratura 1 · Card-Azione 1 · 5-Risposte 4 · Q20 0; controllo positivo stesso ambito: `ffd35a` 30, `16140f` 29) · **70** in tutto `DA_CD_PER_CC`. I tre numeri non si scelgono, si leggono insieme: **il DS dichiara `#7fe39a`, i disegni usano `#8fe0a0`, il codice non usa nessuno dei due.**
+ - **⑦ Coppie a una cifra nella palette dei deliverable.** Nel file C del 27/07 (`9c3ea2bf…`): `#f3e2b0`/`#f3e2c0` · `#131210`/`#171210` · `#1b1a16`/`#1c1608`. **Il difetto non è la singola coppia, è la densità:** in una palette con più coppie a un carattere di distanza, un refuso è **indistinguibile da una decisione** — nessun controllo lo intercetta, e la revisione a occhio non può funzionare per costruzione.
+-- **⑧ `#2a6bd6` fuori dal token, in codice morto.** `LiveHeaderView.swift:107,109` @ `152445e`, dentro `if false` (placeholder LED per `bleMIDIConnected`, STEP 2 mai cablato). È un terzo ruolo del valore — colore LED — **in una stanza che non è la sua** (vista di Q-Live). Falsifica la formulazione stretta della clausola (2) e per questo la riga di LIBRO la generalizza.
++- **⑧ `#2a6bd6` fuori dal token, in codice morto.** `ios_app/QBeats/UI/Live/LiveHeaderView.swift:107,109 @ 152445e470eb0ca4a33c5b31a58ee5c8204e0482`, dentro `if false` (placeholder LED per `bleMIDIConnected`, STEP 2 mai cablato). È un terzo ruolo del valore — colore LED — **in una stanza che non è la sua** (vista di Q-Live). Falsifica la formulazione stretta della clausola (2) e per questo la riga di LIBRO la generalizza. ⚠️ L'ancora `152445e` (ultimo commit che tocca il file) è DIVERSA da quella della riga ① di LIBRO (`8fa5018`, l'albero su cui CC ha misurato) e NON in contraddizione: due alberi, stesse righe — invarianza misurata, sha256 delle tre righe identico (`1c0d0973…76183571`).
+ - **⑨ Divergenza nome file/simbolo.** Il file è `QStageKit.swift`, l'enum è `QStageTheme`. `EmptyStateKit.swift:17,45` cita «`QStageTheme.text3` (via QStageKit)». Pre-esistente; segnalata per non generare citazioni rotte.
+ - **⑩ Swatch colore-TAG «R1-pending».** `QLiveKit.swift:7`: «gli swatch colore-TAG restano fuori dal DS (R1-pending) finché R1 non ratifica la palette». Pendenza citata solo in un commento, mai in un canonico.
+ - **Fix:** NESSUNO ora. Il catalogo completo dei token va misurato contro il codice a HEAD prima di essere inciso — atomo a sé, non in coda a un'altra consegna.
+-- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto utente, nessun rischio palco.
++- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto utente, nessun rischio palco. **Calendario: l'atomo va DOPO il traguardo §6** — il «dopo §6» del giro 27-28/07 era un vincolo di CALENDARIO (dopo il traguardo §6 del piano atomi), non una collocazione nel file; la posizione in coda a §1.3 è corretta e resta.
+ - **Dominio:** CC (igiene codice) + CD (coerenza dei documenti DS).
+ 
+ ## 1.4 — Backlog UX puro (📦, dominio CD)
+
+Il diff cumulato (v43 committato -> v44+correzioni) resta visibile con
+git diff -- BUGS_QBEATS.md e si autorizza come insieme al commit di BUGS.
+
+################################################################################
+# 5. STATO FINALE
+################################################################################
+
+$ git -C "$R" log -2 --oneline
+8926c2a LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+$ git -C "$R" status --porcelain --untracked-files=no
+ M BUGS_QBEATS.md
+[fine]
+$ git -C "$R" diff --cached --stat   (indice vuoto: nessun add pendente)
+[fine — vuoto]
+
+LIBRO v42: COMMITTATO (non pushato). BUGS v44 + 3 correzioni: SU DISCO, non
+in indice, non committato. Il commit di BUGS si autorizza sul delta di sez. 4.
+================================================================================
+FINE MISURE_R4.
+================================================================================

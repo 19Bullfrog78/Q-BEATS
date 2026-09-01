@@ -1,0 +1,88 @@
+QB-2026-08-02-P11-DIFF-v51-rev2-E-CONTROLLO-CD — PARTE 3, CONTROLLO SU CD
+Mandato: verificare a fonte l'affermazione di CD. Sola lettura, zero modifiche.
+
+HEAD a 40: 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc (repo invariato per tutto il turno)
+
+Il controllo NON è mal posto: confronta esattamente ciò che serve — se il file da cui CD è
+ripartito porta lo stesso contenuto CSS del file che LIBRO:342 dichiara normativo. È lo stesso
+tipo di controllo già fatto sul referee in questo stesso turno, applicato a un'altra fonte. Eseguito
+per intero, nessuna contestazione di merito.
+
+====================================================================================================
+PRIMO SCARTO: il nome che CD cita non esiste
+====================================================================================================
+
+`DESIGN/QLive_Nav/QLIVE_NAV_FROZEN_e141295_+Q7-Q16_11_07_2026.html` — verificato assente in due
+forme indipendenti:
+  find (case-insensitive, tutto il repo, non solo DESIGN/)     -> zero risultati
+  git ls-files | grep -i (tracciati)                            -> zero risultati
+
+Non è un file rinominato di recente né mai esistito con quel nome esatto. È quasi certamente un
+nome DESCRITTIVO che CD usa a voce per `2026-07-11_Q7-Q16.html` — "e141295" è la base da cui quel
+file discende (`2026-07-09_base_e141295.html`), "+Q7-Q16" e "11_07_2026" combaciano esattamente
+col nome e la data del file reale. Ho proceduto sul file reale, non su un'illazione: se questa
+equivalenza è sbagliata, il controllo sotto va rifatto sul file giusto.
+
+====================================================================================================
+DOMANDA 1 — I sei file portano ENTRAMBI i selettori?
+====================================================================================================
+
+NO — cinque su sei. Misurato per occorrenza (non per riga), su tutti e sei i file:
+
+  file                                              .songlist   .startfoot
+  2026-07-09_base_e141295.html                          x1          x1
+  2026-07-09_standalone_b23dfc78.html                   x1          x1
+  2026-07-11_Q7-Q10.html                                x1          x1
+  2026-07-11_Q7-Q13.html                                x1          x1
+  2026-07-11_Q7-Q16.html                                x1          x1
+  2026-07-18_QLive-Exit-in-Play.html                    x1          x0
+
+Tutti e sei portano `.songlist`. Solo cinque portano anche `.startfoot`; il sesto (18/07) è
+l'eccezione — e CD lo dichiara separatamente come tale (vedi Domanda 3), quindi la sostanza di
+CD regge; è la cornice «sei file con .songlist + .startfoot INSIEME» a essere imprecisa: sono
+cinque, non sei, con la sesta eccezione nominata a parte nello stesso messaggio di CD.
+
+====================================================================================================
+DOMANDA 2 — I blocchi CSS sono byte-identici fra 09/07 standalone e 11/07 Q7-Q16?
+====================================================================================================
+
+SÌ — e non solo fra questi due: byte-identici su TUTTI E CINQUE i file che portano entrambi i
+selettori. Blocchi estratti per intero (dalla graffa di apertura a quella di chiusura,
+bilanciamento verificato), confrontati byte-per-byte in tutte le 5 coppie, non solo contro il
+primo.
+
+--- .songlist, verbatim, identico nei 5 file (101 byte, sha256 0c78e091ce68958e4b4c2e5229b5eed4cf75d6e675e14f77ec1344527bb7634c) ---
+.songlist{padding:2px 16px 0; display:flex; flex-direction:column; gap:2px; flex:1; overflow:hidden;}
+
+--- .startfoot, verbatim, identico nei 5 file (125 byte, sha256 e62655773323ac3baf5df415d36af4d9d997b18b3256b53c8ec611aaf4ba26e9) ---
+.startfoot{flex:0 0 auto; padding:14px 18px 20px; background:linear-gradient(to top, var(--qlive-bg) 66%, rgba(14,14,16,0));}
+
+File verificati: 2026-07-09_base_e141295.html · 2026-07-09_standalone_b23dfc78.html ·
+2026-07-11_Q7-Q10.html · 2026-07-11_Q7-Q13.html · 2026-07-11_Q7-Q16.html.
+
+====================================================================================================
+DOMANDA 3 — Se divergono, il file da cui parte la riemissione
+====================================================================================================
+
+Non si applica: NON divergono. Nessuna misura di "file diverso da quello che autorizza" da
+registrare — il file da cui CD è ripartito (2026-07-11_Q7-Q16.html, sotto il nome descrittivo
+citato) porta la STESSA firma CSS, byte per byte, del file che LIBRO:342 dichiara normativo
+(2026-07-09_standalone_b23dfc78.html) e che io stesso avevo indicato al punto 6 del referto P3.
+La riemissione di CD non introduce uno scarto su questa materia.
+
+====================================================================================================
+DOMANDA 4 — Il 18/07 ha .songlist ma ZERO .startfoot?
+====================================================================================================
+
+CONFERMATO esattamente: 1 occorrenza di `.songlist`, 0 di `.startfoot`, misurato sopra (Domanda 1).
+
+====================================================================================================
+ESITO
+====================================================================================================
+
+Il ponte che CD descrive regge sulla sostanza: stessa CSS, stesso contenuto, da 09/07 a 11/07,
+su tutti i file che portano entrambi i selettori. Un'imprecisione di cornice (sei vs cinque),
+non di contenuto, e CD l'aveva già in parte coperta dichiarando il 18/07 come eccezione a parte.
+Nessuna correzione proposta oltre questa misura — non è mandato di questo controllo.
+
+Fine controllo. Zero modifiche, zero file toccati.

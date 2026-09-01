@@ -1,0 +1,172 @@
+==============================================================================
+REFERTO CC — 2026-07-31 — COMMIT + PROPAGAZIONE LIBRO v48
+==============================================================================
+
+Autorizzazione dichiarata dal prompt: ratifica referee sul referto rev2
+(sha256 7dd4f74e806fde4bee109588385e9cfea7bd6f103d34f667e741684f26b90406)
++ OK di Mauro del 2026-07-31, verbatim «do l'ok». Entrambi i cancelli chiusi
+PRIMA di ogni azione di questo referto.
+Comandi e output verbatim. Nessuna conclusione: le trae il referee.
+
+==============================================================================
+F0 — CANCELLO DI ABORT: superato, tre valori verbatim
+==============================================================================
+
+Misurati PRIMA del commit (la sessione li ha eseguiti in quell'ordine; qui
+sotto i valori di allora, riportati, e la prova d'epoca sta nella chat):
+  OID LIBRO su disco : 13ea0c311d116c6abe5633941285f8723215e516  (= atteso)
+  HEAD               : 8822598801ecbf9ca1be5adbf005f904c0b45f39  (= atteso)
+  porcelain tracciati:  M LIBRO_MASTRO_QBEATS.md   (una voce sola)
+⚠️ LETTURA DICHIARATA: il porcelain INTERO portava anche le voci '??' —
+   untracked, presenti già al momento della ratifica (il referto rev2 è
+   una di esse). La condizione è stata misurata sui TRACCIATI:
+   git status --porcelain --untracked-files=no -> una voce.
+
+==============================================================================
+F1+F2 — COMMIT, VERIFICATO PRIMA DEL PUSH
+==============================================================================
+
+Staging file per file (git add LIBRO_MASTRO_QBEATS.md), niente add -A.
+Messaggio misurato ASCII puro: 0 byte fuori dal range stampabile su 83.
+
+$ git show --stat --format='commit %H%nAuthor:    %an <%ae>%nCommitter: %cn <%ce>%n%n    %s%n' ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+commit ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+Author:    Mauro Martintoni <di_tutto@icloud.com>
+Committer: Mauro Martintoni <di_tutto@icloud.com>
+
+    LIBRO v48: S6F istituito per la fascia Q-LIVE PLAYING, collocato dopo S5 (doc-only)
+
+
+ LIBRO_MASTRO_QBEATS.md | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+sha a 40 caratteri, contati:
+  ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8  len=40
+
+TRAILER = ZERO, con la forma che lo prova e il controllo positivo:
+$ git log -1 --format=%B ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8 | git interpret-trailers --parse | wc -l
+0
+  controllo positivo, stessa forma, input CON un trailer:
+$ printf 'msg\n\nCo-Authored-By: X <x@y>\n' | git interpret-trailers --parse | wc -l
+1
+  (0 sul commit, 1 sull'input col trailer: la forma MORDE e il commit è pulito)
+
+==============================================================================
+F3 — PUSH E CI, LETTI NEL CONTENUTO
+==============================================================================
+
+push: eseguito, output verbatim d'epoca: «8822598..ddd5716  master -> master».
+$ git rev-parse HEAD origin/master   (ADESSO)
+ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+
+$ gh run list --commit ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8 --json databaseId,name,status,conclusion,headSha
+[{"conclusion":"success","databaseId":30661592440,"headSha":"ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8","name":"iOS Signed Build","status":"completed"}]
+
+⚠️ Il primo list, lanciato pochi secondi dopo il push, rendeva [] CON LO SHA
+   A 40: vuoto da tempismo di registrazione, non da notazione. Rimisurato
+   fino a completamento invece di fidarsi del vuoto.
+
+--- gh run view di CIASCUNA run, contenuto verbatim ---
+$ gh run view 30661592440 --json databaseId,name,conclusion,status,headSha,headBranch
+{"conclusion":"success","databaseId":30661592440,"headBranch":"master","headSha":"ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8","name":"iOS Signed Build","status":"completed"}
+
+⚠️ Run ID citato perché univoco: il workflow si chiama «iOS Signed Build»
+   per gh e «ios_build.yml» per il file — il nome da solo inganna.
+
+--- F1 «Build Check» per QUESTO commit? ---
+run con nome che inizia per «F1» su questo commit: 0
+Nessuna run F1 per questo commit: il confronto warning-vs-baseline del
+debito D-F1-ROSSO-PER-COSTRUZIONE non è applicabile qui. Il debito resta
+aperto, registrato in HANDOFF/HANDOFF_CC_2026-07-31.txt, coda DEBITO.
+
+==============================================================================
+F4a — STAMPA SU E:, VERIFICATA STAMPA-VS-BLOB
+==============================================================================
+
+Destinazione (nome per-versione ancorato al commit INTRODUTTIVO):
+  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\LIBRO_MASTRO\
+  LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md
+Estratta dal BLOB (git show $SHA:LIBRO_MASTRO_QBEATS.md), non dal disco.
+
+$ git show ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8:LIBRO_MASTRO_QBEATS.md | sha256sum      # BLOB
+39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5
+$ sha256sum <stampa>                                     # STAMPA
+39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5
+byte blob / stampa : 215598
+215598
+righe stampa       : 485
+CR stampa          : 0
+
+I due sha256 sono IDENTICI: stampa = blob al byte. Il confronto con il
+DISCO sarebbe stato impossibile per costruzione (disco CRLF, sha256
+532928dc…, 485 CR di distanza) — è il punto cieco del 2026-07-22.
+
+⛔ La stampa V47 NON è stata toccata:
+-rw-r--r-- 1 BULLFROG 197609 208683 Jul 31 18:37 .../LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V47_2026-07-31_8822598.md
+
+==============================================================================
+F4b — PROGETTO CLAUDE: ISTRUZIONI PER MAURO, IN CHIARO
+==============================================================================
+
+Io non ho accesso al Progetto Claude. Tre istruzioni, esplicite:
+
+  1. CARICARE il file:
+       LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md
+     (sta in E:\...\FILE X CLAUDE.MD\LIBRO_MASTRO\, appena stampato)
+
+  2. RIMUOVERE dal Progetto il file:
+       LIBRO_MASTRO_QBEATS_V47_2026-07-31_8822598.md
+     Motivo: due versioni dello stesso canonico non convivono nel Progetto,
+     e col nome per-versione non si sovrascrivono a vicenda — senza la
+     rimozione resterebbero entrambe.
+
+  3. I TRE NUMERI per la verifica del referee sulla copia caricata:
+       sha256 : 39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5
+       byte   : 215598
+       righe  : 485
+     Se l'impronta calcolata dal referee sulla copia del Progetto coincide,
+     la propagazione è PROVATA e non asserita.
+
+==============================================================================
+F5 — CHIUSURA PER ENUMERAZIONE, NON PER IMPRONTA
+==============================================================================
+
+Bersagli di propagazione dichiarati: TRE. Uno per uno:
+
+  1. repo/git (commit + push su origin/master) ........ FATTO
+     commit ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8, push verificato HEAD=origin/master.
+  2. stampa per-versione su E:\...\LIBRO_MASTRO\ ....... FATTO
+     sha256 stampa = sha256 blob, dichiarati sopra.
+  3. copia nel Progetto Claude ........................ IN ATTESA DI MAURO
+     istruzioni al punto F4b; verifica finale del referee sull'impronta.
+
+  Il conto chiude: 2 fatti + 1 in attesa = 3 dichiarati.
+
+⚠️ ALTRI DEPOSITI CHE CONOSCO E CHE NON SONO IN LISTA — dichiarati invece
+   che ignorati, con la misura fatta ADESSO in sola lettura:
+   · I due mirror A NOME FISSO che la memoria di CC portava («CC MEMORIA\» e
+     «DESIGN_E_BRIEFING\LIBRO_MASTRO_QBEATS.md») NON ESISTONO PIÙ:
+     misurato con test -f, entrambi ASSENTI. La nota di memoria è stale e
+     va corretta nel giro memoria, non qui.
+   · Fuori da LIBRO_MASTRO\ esistono SOLO copie storiche a versione vecchia
+     (v8, v2, v15 in DESIGN_E_BRIEFING\; 31 e 33 in REFEREE_SYNC del 12-13/07;
+     una in DA_CD_PER_CC dell'11/07). Sono ARCHIVIO, non mirror correnti:
+     nessuna pretende di essere la v48, nessuna è stata toccata.
+   · Il censimento organico dei mirror del LIBRO resta la pendenza BLOCCATA
+     dal referee (HANDOFF/STATO_FINALE_2026-07-31_40f099b.txt, §6): questo
+     elenco NON la sostituisce e non la chiude.
+
+==============================================================================
+CODA — PERIMETRO
+==============================================================================
+
+· Un solo file committato, un solo commit, un solo push.
+· BUGS non toccato: il giro di riparazione del puntatore LIBRO:467 -> 476
+  resta IN CODA nella stessa seduta, come già disposto.
+· Le impronte di QUESTO referto stanno nel messaggio di consegna (un file
+  non può contenere il proprio sha256).
+
+==============================================================================
+FINE REFERTO.
+==============================================================================

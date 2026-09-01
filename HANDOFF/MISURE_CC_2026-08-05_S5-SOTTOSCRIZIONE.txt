@@ -1,0 +1,269 @@
+QB-2026-08-05-A45 · MISURA SECCA — LA SOTTOSCRIZIONE A $beatActive · SOLA LETTURA
+CC → Referee · segue A44
+
+ID: A45. Ultimo reale = A44 (mio, giro precedente), forma stretta su nomi-file e contenuti di
+HANDOFF/ escluso CONGEDO_REFEREE, controllo positivo integrato. Nessun A45+ preesistente.
+Consegna `MISURE_CC_2026-08-05_S5-SOTTOSCRIZIONE.txt` non esisteva prima di questa scrittura
+(`ls | grep`, non Glob). Orologio: 2026-08-05T08:42:53Z (`date -u`).
+HEAD invariato dal giro A44: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+
+Annotato per il prossimo congedo: il ticket BUGS sulla terza destinazione R-δ (ridiscarico Drive
+non byte-fedele). Non aperto in questo giro, come disposto.
+
+Mandato: sola lettura, nessuna soluzione proposta.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+1 — Dove finisce il Cancellable del `.sink` di :179-185 — blocco :175-200 verbatim
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+    175          // intermedio. Codice più pulito e zero ambiguità di timing.
+    176          //
+    177          // Guard esplicito `beatTickSubscribed` (NON `cancellables.isEmpty`).
+    178          if !beatTickSubscribed {
+    179              session.$beatActive
+    180                  .filter { $0 == 1 }
+    181                  .sink { [weak self, weak session] _ in
+    182                      guard let self,
+    183                            let session,
+    184                            self.pendingDisplayUpdate else { return }
+    185                      self.updateSessionDisplay(session: session)
+    186                      self.pendingDisplayUpdate = false
+    187                  }
+    188                  .store(in: &cancellables)
+    189              beatTickSubscribed = true
+    190          }
+    191
+    192          // Lazy build closure end-of-section (autopropagante, costruita una
+    193          // sola volta per la vita del runner).
+    194          if sectionEndedClosure == nil {
+    195              sectionEndedClosure = makeSectionEndedClosure(audioEngine: audioEngine, session: session)
+    196          }
+    197          guard let closure = sectionEndedClosure else { return }
+    198
+    199          // 1-4: ordine ratificato setup audio.
+    200          audioEngine.setBeatsPerBar(section.beatsPerBar)
+
+RISPOSTA: il Cancellable finisce in `cancellables` (`SetlistRunner.swift:43`,
+`private var cancellables = Set<AnyCancellable>()`) via `.store(in: &cancellables)` alla riga 188.
+L'intero blocco di sottoscrizione è dentro `if !beatTickSubscribed` (:178) e la guardia si arma a
+:189. MISURATO, non dedotto: righe lette.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+2 — Censimento in SetlistRunner.swift
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+`cancellables` — 3 siti:
+    43      private var cancellables = Set<AnyCancellable>()
+    46      /// `cancellables.isEmpty` come guard: è fragile se altre subscription
+            (COMMENTO, non codice — dichiarato per non lasciarlo implicito)
+    177         // Guard esplicito `beatTickSubscribed` (NON `cancellables.isEmpty`).
+            (COMMENTO)
+    188                 .store(in: &cancellables)
+    ⇒ codice reale: 2 (:43 dichiarazione, :188 uso). Commenti: 2 (:46, :177).
+
+`AnyCancellable` — 1 sito (codice):
+    43      private var cancellables = Set<AnyCancellable>()
+
+`Set<AnyCancellable>` — 1 sito (codice):
+    43      private var cancellables = Set<AnyCancellable>()
+
+`store(in:` — 1 sito (codice):
+    188                 .store(in: &cancellables)
+
+`.cancel()` — ZERO.
+    ⚠️ CONTROLLO POSITIVO, stessa identica forma (`grep -n "\.cancel()"`), stesso perimetro
+    ios_app/: morde altrove — `AudioEngine.swift:1630` `pendingLinkStart?.cancel()`,
+    `MIDINetworkViewModel.swift:26` `browser?.cancel()`, più `AudioEngine.swift:722` (commento).
+    Il meccanismo di ricerca funziona; lo zero in SetlistRunner.swift è VERO.
+
+`removeAll` — ZERO.
+    ⚠️ CONTROLLO POSITIVO, stessa identica forma, stesso perimetro: morde altrove —
+    `Store/QBeatsStore.swift:93`, `:116`, `:142`, `TapTempoEngine.swift:30`, `:66`.
+    Lo zero in SetlistRunner.swift è VERO.
+
+⇒ MISURA COMPLESSIVA: in tutto `SetlistRunner.swift` NON esiste nessun punto che ritiri,
+cancelli o svuoti una sottoscrizione. Il set `cancellables` viene solo POPOLATO (:188), mai
+svuotato. L'unico meccanismo che impedisce una seconda sottoscrizione è il flag booleano
+`beatTickSubscribed` (:48 dichiarazione, :178 guardia, :189 assegnazione).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+3 — `startSetlist` è idempotente per costruzione? — :109-125 verbatim
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+    109      func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+    110          // Reset esplicito pendingDisplayUpdate: se l'utente ha fatto Stop
+    111          // durante una transizione SEAMLESS (flag true) e ora replay, evita
+    112          // updateSessionDisplay spurio al primo tick post-replay (TD #41).
+    113          pendingDisplayUpdate = false
+    114          currentSongIdx = 0
+    115          currentSectionIdx = 0
+    116          os_log("[Q-BEATS][L1.b] startSetlist — reset a songIdx:0 sectionIdx:0",
+    117                 log: .default, type: .default)
+    118          prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
+    119      }
+    120
+    121      /// Avvio canzone corrente dopo standby — presuppone `currentSongIdx`
+    122      /// già avanzato dal ramo standby della closure end-of-section.
+    123      /// Chiamato dal tap su `StandbyOverlayView`.
+    124      func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
+    125          // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
+
+RISPOSTA, per parti, perché la domanda ne contiene tre distinte:
+
+  · **Reset di stato:** SÌ, tre campi — `pendingDisplayUpdate = false` (:113),
+    `currentSongIdx = 0` (:114), `currentSectionIdx = 0` (:115).
+  · **Cancel di sottoscrizioni precedenti:** ⛔ **NON C'È.** Dichiarato esplicitamente come
+    misura, non lasciato implicito: nelle righe :109-119 non esiste nessuna chiamata a
+    `.cancel()`, nessun `removeAll`, nessun azzeramento di `cancellables`, e nessun reset del
+    flag `beatTickSubscribed`. Coerente col censimento del punto 2, dove quei simboli sono zero
+    nell'INTERO file.
+  · **Guardia su «già partito»:** ⛔ **NON C'È.** Nessun `guard`, nessun early-return, nessuna
+    condizione di stato in tutto il corpo del metodo (:109-119, sette righe di cui due di
+    `os_log` e una di chiamata). Il metodo esegue sempre, per intero, ad ogni chiamata.
+
+⇒ MISURATO: `startSetlist` NON è idempotente rispetto alla sottoscrizione — ma la protezione non
+sta qui: sta nel flag `beatTickSubscribed` interno a `prepareAndStartCurrentSection` (:178),
+che `startSetlist` NON tocca. Riporto il fatto, non la sua valutazione.
+
+⚠️ MISURA DI CONFINE, non richiesta ma dovuta perché il mandato la sfiora: il flag
+`beatTickSubscribed` è dichiarato `private var beatTickSubscribed = false` (:48) e assegnato
+`true` in un solo punto (:189). Non torna mai a `false` in nessun punto del file — misurato per
+sweep del simbolo su tutto SetlistRunner.swift: 3 occorrenze totali (:48 dichiarazione,
+:178 lettura nella guardia, :189 scrittura), zero riassegnazioni a false. VERO-PER-COSTRUZIONE
+sul perimetro del file: il flag è monotono, quindi la sottoscrizione avviene **una sola volta per
+la vita dell'oggetto runner**, quali che siano le chiamate successive a `startSetlist`.
+⛔ Perimetro dichiarato: questa è una proprietà del SetlistRunner come oggetto. NON dice nulla su
+cosa accada se venisse costruito un runner NUOVO (oggi zero siti di costruzione — A44 punto 4).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+4 — `sectionEndedClosure` (:195): riassegnata? chi la consuma? sostituisce o accumula?
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**(a) Viene riassegnata a ogni chiamata?** NO. Righe :194-196 lette (verbatim al punto 1):
+`if sectionEndedClosure == nil { sectionEndedClosure = makeSectionEndedClosure(...) }`.
+È una costruzione LAZY, gated su nil: alla seconda chiamata di `prepareAndStartCurrentSection`
+la closure esiste già e il ramo non viene eseguito. Dichiarazione a `SetlistRunner.swift:35`
+(`private var sectionEndedClosure: (() -> Void)?`), commento :33-34: «Costruita lazy al primo
+`prepareAndStartCurrentSection`. Riusata identica per tutta la vita del runner (autopropagante).»
+
+**(b) Chi la consuma e dove.** Passata ad AudioEngine come parametro `onEnd:` in DUE punti:
+    SetlistRunner.swift:209-211   audioEngine.loadSection(beatsPerBar:repetitions:onEnd: closure)
+    SetlistRunner.swift:218-225   audioEngine.preloadNextSection(... onEnd: closure)
+    (più, dentro la closure stessa, il ri-preload a :330-337 — stesso `closure` catturato)
+
+**(c) LA DOMANDA CHE CAMBIA LA CLASSE DEL PROBLEMA — sostituisce o accumula?**
+⇒ **SOSTITUISCE. Non accumula.** MISURATO leggendo i siti di registrazione lato motore:
+
+--- ios_app/QBeats/AudioEngine.swift:1140-1158 (loadSection) ---
+    func loadSection(beatsPerBar: UInt32,
+                     repetitions: Int,
+                     onEnd: @escaping () -> Void) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            if repetitions > 0 {
+                self._sectionTotalBeats = repetitions * Int(beatsPerBar)
+                self._sectionBeatCounter = 0
+                self._onSectionEnd = onEnd
+            } else {
+                self._sectionTotalBeats = 0
+                self._sectionBeatCounter = 0
+                self._onSectionEnd = nil
+            }
+        }
+
+--- ios_app/QBeats/AudioEngine.swift:1180-1187 (preloadNextSection, estratto) ---
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self._pendingNextBPM = bpm
+            ...
+            self._pendingNextOnSectionEnd = onEnd
+
+Entrambe le destinazioni sono VARIABILI SCALARI OPZIONALI, non collezioni:
+--- ios_app/QBeats/AudioEngine.swift:290 ---
+    private var _onSectionEnd: (() -> Void)? = nil
+--- ios_app/QBeats/AudioEngine.swift:310 ---
+    private var _pendingNextOnSectionEnd: (() -> Void)? = nil
+
+L'operatore in entrambi i siti di registrazione è `=` (assegnazione), mai `append`/`insert`/
+`+=`. Una seconda registrazione SOVRASCRIVE la prima; la precedente viene rilasciata. Non esiste
+nessuna struttura che possa contenere due closure di fine-sezione contemporaneamente.
+
+**(d) IL MECCANISMO INTERO — tracciato oltre la prima assegnazione, come disposto.**
+
+Censimento COMPLETO delle assegnazioni a `_onSectionEnd` in tutto AudioEngine.swift
+(`grep -n "_onSectionEnd\s*="`) — **3 siti, tutti letti**:
+    1148                self._onSectionEnd = onEnd          (registrazione, in loadSection)
+    1152                self._onSectionEnd = nil            (solo se repetitions <= 0)
+    2536                self._onSectionEnd = pendingOnSectionEnd   (ramo SEAMLESS)
+
+**RAMO SEAMLESS** (`scheduleNextBuffer`, :2501-2604) — transizione intra-canzone:
+    2507      let closureToDispatch    = self._onSectionEnd        (cattura locale)
+    2512      let pendingOnSectionEnd  = self._pendingNextOnSectionEnd
+    2524      self._pendingNextOnSectionEnd = nil                  (reset dello slot preload)
+    2536      self._onSectionEnd = pendingOnSectionEnd             (SOSTITUZIONE, non append)
+    2602-2604 DispatchQueue.main.async {
+                  closureToDispatch?()
+              }
+⇒ Lo slot corrente viene **sovrascritto** con quello preloadato; la vecchia closure sopravvive
+solo come locale `closureToDispatch` e viene invocata **una volta**, su main. Nessun accumulo.
+
+**RAMO DRAIN** (:2606-2621) — standby / fineSetlist:
+    2619      self._pendingEndClosure = self._onSectionEnd         (copia in un secondo scalare)
+    2620      self._sectionEndPending = true
+    2621      self._sectionBeatCounter = 0
+poi, al completamento del drain (:2210-2237):
+    2217      self._sectionEndPending = false
+    2218      let endClosure = self._pendingEndClosure
+    2219      self._pendingEndClosure = nil                        (consumo single-shot REALE)
+    2235-2237 DispatchQueue.main.async { [weak self] in
+                  endClosure?()
+              }
+⇒ Anche qui scalare, `= `, consumo per azzeramento. Nessun accumulo.
+
+⚠️ **DISCORDANZA MISURATA FRA DUE COMMENTI DELLO STESSO FILE — la riporto come misura, non la
+giudico e non propongo nulla.** Il commento di dichiarazione del campo dice:
+--- ios_app/QBeats/AudioEngine.swift:287 ---
+    // _onSectionEnd è single-shot: consumata (settata nil) sull'ultimo beat per evitare double-fire.
+Ma il censimento sopra mostra che `_onSectionEnd` **NON viene mai settata a nil sull'ultimo
+beat**: gli unici azzeramenti sono `:1152` (dentro `loadSection`, e solo se `repetitions <= 0`).
+Nel ramo SEAMLESS viene **sostituita** (`:2536`), nel ramo DRAIN viene **lasciata registrata** —
+e quest'ultimo comportamento è dichiarato esplicitamente da un ALTRO commento dello stesso file,
+che contraddice il primo:
+--- ios_app/QBeats/AudioEngine.swift:2612-2615 ---
+    // _sectionTotalBeats e _onSectionEnd RESTANO registrati:
+    // la sezione caricata persiste tra play/replay (utente
+    // ascolta sezione 4 battute → stop automatico → ripreme
+    // Play → si aspetta che la stessa sezione ricominci).
+Il **codice segue `:2612-2615`**, non `:287`. Il single-shot per azzeramento esiste davvero, ma
+su `_pendingEndClosure` (`:2219`), non su `_onSectionEnd`. ⛔ Nessuna conseguenza dichiarata da
+me: chi progetta ⟦S5⟧ valuti se conta.
+
+**(e) IL CONFINE COL C++ — dichiarato, non inferito.**
+La catena della closure **NON esce da Swift**, e questo è misurato non supposto: la closure è
+registrata in campi Swift (`_onSectionEnd`, `_pendingNextOnSectionEnd`, `_pendingEndClosure`,
+tutti `private var … (() -> Void)?` in AudioEngine.swift) e invocata da `DispatchQueue.main.async`
+(`:2603`, `:2236`). In nessun punto del percorso tracciato una closure viene passata a una C-API.
+Ciò che attraversa il confine verso il DSP sono **parametri scalari** (bpm, beatsPerBar, accent
+pattern, subdivision, swing) via le `metronome_schedule_*`, non il callback di fine sezione.
+⛔ **DOVE MI FERMO, e cosa resta oltre:** non ho aperto `metronome_processBuffer` né gli header
+del motore C++. Quindi NON dichiaro nulla su quante volte il lato C++ possa far scattare il beat
+hook per buffer, né sulla sua idempotenza interna. Il commento `:2617-2618` afferma «Niente
+double-fire durante il drain: metronome_processBuffer skippato → beatCount=0 → hook non scatta»:
+**è un'affermazione del lato Swift su un comportamento del lato C++, e la lascio NON VERIFICATA**
+— sarebbe esattamente l'inferenza-da-nome-plausibile che il mandato vieta. Se serve, è una misura
+separata sul C++.
+
+⇒ **CONCLUSIONE SUL PUNTO 4: la classe del problema NON cambia — sul confine RT non c'è
+accumulo,** in nessuno dei due rami, per tre slot scalari misurati uno per uno. Il rischio di
+doppio-aggiornamento del display, se esiste, **non vive qui**: vive nel `Set<AnyCancellable>` del
+punto 2, che è l'unica struttura del percorso capace di contenere due sottoscrizioni insieme.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+NON RICHIESTO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Nessun fix proposto. Dichiarato esplicitamente invece di lasciarlo implicito.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine misure. Nessun file toccato fuori da questa consegna, nessun commit, nessun push.
+════════════════════════════════════════════════════════════════════════════════════════════════

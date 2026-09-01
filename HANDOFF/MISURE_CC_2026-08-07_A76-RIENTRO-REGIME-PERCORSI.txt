@@ -1,0 +1,230 @@
+REFERTO QB-2026-08-07-A76-RIENTRO NEL REGIME DEI PERCORSI + CHIUSURA R-δ DEL 06-07/08
+======================================================================================
+
+Orologio: 2026-08-07T11:14:01Z, locale 2026-08-07 13:14:01 +0200. MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+CONTROLLO DI INTEGRITA' DEL MANDATO: il testo ricevuto termina con la riga
+«═══ FINE MANDATO A76 ═══» — presente. Eseguito per intero.
+
+AGGANCIO: già verificato libero nel giro precedente (stessa sessione), non rifatto,
+come istruito.
+
+IDEMPOTENZA — RISPETTATA
+  Zero modifiche sotto ios_app/. Zero commit, zero push, zero `git add`. HEAD invariato:
+  2960f089225b3c80cf56cb839fde871cf9738b3d. `git status --porcelain` nel repo resta a 190
+  righe tutte `??` (era 189 prima di A75, +1 = il referto A75; A76 non tocca il repo, solo
+  E:). Le tre scritture autorizzate sono state eseguite, e SOLO quelle.
+
+
+================================================================================
+PARTE 1 — DECISIONI DEL REFEREE SUI DUE CASI SOLLEVATI
+================================================================================
+
+1.1 -- BOX5
+-----------
+  Confermato: duplicato bit-identico, trattato in (b). Nessuna azione di regime.
+
+1.2 -- SCALETTA — riga «Depositato in», VERBATIM dal blob a HEAD
+-----------------------------------------------------------------
+  Riga 3 (Versione): **Versione:** 8 (06/08/2026) · ...          => e' v8, confermato.
+
+  Righe 12-15, VERBATIM:
+    12: - **Depositato in:** `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\`
+        (untracked, NON repo).
+    13:   ⚠️ **MARCATURA v4** — «untracked» era vero alla stesura e NON lo è più: il file è
+        **tracciato** nel
+    14:   repo (blob OID presente, `git ls-files --eol` lo rende `i/lf w/lf`). La riga resta
+        come scritta, si
+    15:   marca e non si riscrive.
+
+  => v8 porta ANCORA la riga «untracked, NON repo» (riga 12), MA porta anche, da v4, la
+     marcatura che quel claim e' falso (righe 13-15) — il documento stesso dichiara la
+     convenzione «si marca e non si riscrive». Nessuna delle due righe e' stata toccata da
+     me: e' un difetto GIA' marcato dal documento, non uno che dovessi scoprire.
+  DESTINAZIONE APPLICATA: HANDOFF\, per autodichiarazione del documento (riga 12), come
+  da istruzione. Non e' stata trattata come decisione di regime: la pendenza BOX3:36
+  («regime da decidere») resta APERTA, non toccata.
+
+1.3 -- Corroborazione indipendente
+------------------------------------
+  Confermato con ricerca ESAUSTIVA (nessun -maxdepth) su tutto E:\...\Q-BEATS\: SEI stampe
+  per-versione della SCALETTA esistono fisicamente in FILE X CLAUDE.MD\HANDOFF\ prima di
+  questo giro — v3 (`8289944`), v4-non-bumpata (`07e0926`), v4 (`a393466`), v5 (`c00feb4`),
+  v6 (`e386264`), v7 (`ea3f94a`) — piu' due doc SCALETTA non versionati (S3_REVIEW, rename
+  DIFF) e il file a nome fisso `SCALETTA_ATOMI_S6_2026-07-10.md`. L'autodichiarazione
+  REGGE: la corroborazione fisica la conferma, non la smentisce.
+
+  /!\ REPERTO NON CHIESTO, TROVATO MISURANDO 1.3 — il file a NOME FISSO in E:\HANDOFF\
+      («SCALETTA_ATOMI_S6_2026-07-10.md», quello che la riga 12 indica come deposito) e'
+      STALE: sha256 identico byte-per-byte alla stampa v7 (`91e42123d2ef…`), NON al blob
+      v8 a HEAD (`23665ddfa7a3…`). mtime 2026-08-04 15:16:13 — precede il commit che ha
+      introdotto v8 (2026-08-07). Non e' uno dei tre scritture autorizzate di questo
+      mandato: NON l'ho toccato. Lo segnalo perche' la riga 12, letta alla lettera,
+      descrive un deposito che oggi non e' aggiornato.
+
+
+================================================================================
+PARTE 2 — LA CONVENZIONE DEL NOME: VERIFICATO, NESSUN ERRORE SUL RISULTATO
+================================================================================
+
+  Walk cronologico dei commit che toccano ciascun file, versione dichiarata ad ogni tappa:
+
+  LIBRO_MASTRO_QBEATS.md:
+    5183758  2026-08-04 23:21:38  | Versione: 53
+    2960f08  2026-08-07 10:51:43  | Versione: 54          <-- transizione 53->54 QUI
+
+  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:
+    ea3f94a  2026-08-04 15:15:23  | Versione: 7
+    2960f08  2026-08-07 10:51:43  | Versione: 8           <-- transizione 7->8 QUI
+
+  => `2960f089` E' il commit INTRODUTTIVO per ENTRAMBI, non solo l'ultimo che li tocca:
+     coincidono. Lo stesso commit ha bumpato entrambi i canonici nello stesso atto.
+     I nomi prodotti in A75 («ultimo commit») e quelli richiesti dalla regola («commit
+     introduttivo») sono IDENTICI in questo caso specifico. Nessuna rigenerazione
+     necessaria. L'errore di metodo segnalato dal referee era reale (i due concetti
+     sono distinti e in generale possono divergere) ma non ha prodotto un nome sbagliato
+     qui — verificato, non assunto.
+
+
+================================================================================
+PARTE 3 — COLLOCAZIONE DEI DUE NUOVI (chiusura R-δ)
+================================================================================
+
+  REPERTO CONFERMATO: LIBRO v54 e SCALETTA v8 non avevano omonimi su E: prima di questo
+  giro — la propagazione R-δ della consegna 06-07/08 NON era completata. Confermato e
+  ora in parte risolto (vedi 5.3 per il bilancio completo, non tutto risolvibile da qui).
+
+3.1 -- LIBRO v54 — LISTA-TARGET BOX3:397-401 applicata per intero, con un ALT su una gamba
+--------------------------------------------------------------------------------------------
+  La regola (BOX3:399-400, verbatim già citato in A75): «LIBRO = 2 mirror (`CC MEMORIA\`,
+  `LIBRO_MASTRO\`) + snapshot referee.»
+
+  Verificato a fonte `CC MEMORIA\` (unico disco che esiste: E:):
+    E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\
+    contiene UN SOLO file: `MEMORY.md`, 27570 byte, mtime 2026-06-19 09:48.
+    Incipit letto: è un «Memory Index» — struttura e cronologia DI UN ALTRO SISTEMA
+    (memoria propria di CC su TD#17, non correlato a LIBRO_MASTRO), che cita persino
+    un organigramma di squadra superato («Lavoro a 3: Mauro · CD · CC (codice +
+    referee, = io in questa chat)» — precede il modello attuale a 3+1 con referee
+    separato). NON è, né è mai stato, un mirror per-versione di LIBRO_MASTRO_QBEATS.md:
+    non contiene nessuna delle 54 versioni, nessun nome che richiami LIBRO.
+
+  ⛔ FERMATO su questa gamba, come istruito («Se CC MEMORIA non esiste o la regola è
+  ambigua... FERMATI e riportala verbatim»). CC MEMORIA\ ESISTE ma il suo contenuto è
+  incompatibile con l'essere un mirror LIBRO: scriverci dentro la copia di LIBRO v54
+  significherebbe introdurre un file estraneo in una cartella che serve (o serviva)
+  a tutt'altro. NON l'ho fatto. La regola BOX3:399 è probabilmente essa stessa stale —
+  la stessa frase usa `CC MEMORIA\` anche come mirror dichiarato per BUGS, e neppure
+  lì il contenuto corrisponde. Decisione per Mauro/referee, non per me.
+
+  «snapshot referee»: terza gamba della regola, canale che non è raggiungibile da questa
+  sessione (non ho visibilità su un deposito separato per il referee). NON FATTO, dichiarato
+  come NON FATTO — non inferito né simulato.
+
+  SCRITTO: LIBRO_MASTRO\LIBRO_MASTRO_QBEATS_V54_2026-08-06_2960f08.md
+  Nessuna collisione di nome verificata PRIMA dello spostamento (assente a destinazione).
+
+3.2 -- SCALETTA v8 — per l'esito di 1.2
+------------------------------------------
+  SCRITTO: HANDOFF\SCALETTA_v8_2026-08-06_2960f08.md
+  Nessuna collisione di nome verificata PRIMA dello spostamento (assente a destinazione).
+  Nessuna seconda gamba dichiarata per SCALETTA nella LISTA-TARGET (che copre solo BUGS/
+  LIBRO/BOX3): un solo deposito, ora presente.
+
+3.3 -- MOVE (non copy), verifica post-spostamento contro il blob a HEAD
+---------------------------------------------------------------------------
+  Comando: `mv` dallo staging alla destinazione (stesso filesystem E:, atomico).
+
+  LIBRO_MASTRO_QBEATS_V54_2026-08-06_2960f08.md
+    sha256  blob = 9d8a6c647be12bee63dfd1f8060ef75234d1bd432e789b4870cd0e5351bd0d89
+    sha256  file = 9d8a6c647be12bee63dfd1f8060ef75234d1bd432e789b4870cd0e5351bd0d89   OK
+    byte    blob = 259953   file = 259953   OK
+    CR      blob = 0        file = 0        OK
+
+  SCALETTA_v8_2026-08-06_2960f08.md
+    sha256  blob = 23665ddfa7a3bbcfacb7aa60f1e7ff006ecc1ea8fa3ef1ce344b61f3f8bdbe37
+    sha256  file = 23665ddfa7a3bbcfacb7aa60f1e7ff006ecc1ea8fa3ef1ce344b61f3f8bdbe37   OK
+    byte    blob = 44101    file = 44101    OK
+    CR      blob = 0        file = 0        OK
+
+3.4 -- Collisioni a destinazione
+------------------------------------
+  Verificate PRIMA di ogni move: ZERO collisioni sui due nomi, su entrambe le destinazioni.
+  Nessun caso da applicare (nessun file da NON sovrascrivere, perché nessuno preesisteva
+  con lo stesso nome).
+
+
+================================================================================
+PARTE 4 — RIMOZIONE DEI TRE DUPLICATI
+================================================================================
+
+  Rimisurato il sha256 del gemello a destinazione IMMEDIATAMENTE PRIMA di ogni rimozione
+  (non riusata la misura del giro precedente):
+
+  BOX3_V99_2026-07-22_7c804c1.md
+    staging      sha256 = c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c
+    destinazione sha256 = c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c
+    IDENTICI -> RIMOSSO da PROGETTO_CLAUDE_2026-08-07\
+
+  BOX5_V28_2026-07-28_0a6ebaf.md
+    staging      sha256 = cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b
+    destinazione sha256 = cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b
+    IDENTICI -> RIMOSSO da PROGETTO_CLAUDE_2026-08-07\
+
+  BUGS_QBEATS_V50_2026-08-04_5cd6397.md
+    staging      sha256 = 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+    destinazione sha256 = 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+    IDENTICI -> RIMOSSO da PROGETTO_CLAUDE_2026-08-07\
+
+  Tutti e tre identici: tutti e tre rimossi. Nessuna divergenza da gestire.
+
+
+================================================================================
+PARTE 5 — CHIUSURA
+================================================================================
+
+5.1 -- Residuo di PROGETTO_CLAUDE_2026-08-07\
+------------------------------------------------
+  `ls -la` ricorsivo: cartella VUOTA (solo `.` e `..`). Come atteso. Cartella NON
+  cancellata (rimane come contenitore fuori regime, decisione di rimozione lasciata
+  a Mauro, come da vincolo esplicito del mandato).
+
+5.2 -- Prova che nessun file preesistente è stato sovrascritto o cancellato
+--------------------------------------------------------------------------------
+  Manifest sha256 di LIBRO_MASTRO\ e di HANDOFF\ (livello 1) presi PRIMA dei due `mv`,
+  ricalcolati DOPO, confrontati con `diff`:
+    LIBRO_MASTRO\ : righe rimosse/cambiate rispetto al PRIMA = ZERO
+                    riga aggiunta = esattamente 1, il file nuovo (sha 9d8a6c64…)
+                    conteggio: 19 -> 20
+    HANDOFF\      : righe rimosse/cambiate rispetto al PRIMA = ZERO
+                    riga aggiunta = esattamente 1, il file nuovo (sha 23665ddf…)
+                    conteggio: 274 -> 275
+  => nessun file preesistente toccato in nessuna delle due cartelle, in nessuna delle due
+     direzioni (né contenuto alterato, né file scomparso).
+
+5.3 -- La consegna R-δ del 06-07/08 è completa su tutte e tre le destinazioni?
+------------------------------------------------------------------------------------
+  ** NO, non su tutte. Bilancio per documento: **
+
+  SCALETTA v8  -> COMPLETA. Unica destinazione dichiarata (HANDOFF\, autodichiarazione),
+                  ora presente e verificata byte-esatta.
+
+  LIBRO v54    -> PARZIALE. Due destinazioni su tre della LISTA-TARGET BOX3:399-400:
+                  (1) LIBRO_MASTRO\  -> FATTA, verificata byte-esatta.
+                  (2) CC MEMORIA\    -> NON FATTA. Contenuto della cartella incompatibile
+                      con un mirror LIBRO; decisione rinviata a Mauro/referee (§3.1).
+                  (3) snapshot referee -> NON FATTA, canale non raggiungibile da questa
+                      sessione; dichiarato NON FATTO, non inferito.
+
+  BOX3 V99 / BOX5 V28 / BUGS V50 -> non pertinenti a questo bilancio: erano già in regime
+                  prima di A75 (per questo erano duplicati); nessuna propagazione nuova
+                  dovuta.
+
+  In sintesi: la parte GIA' ESEGUIBILE da questa sessione è chiusa. Restano due gambe
+  aperte sulla sola LIBRO v54, entrambe fuori dal perimetro delle tre scritture
+  autorizzate di questo mandato, e la prima delle due (CC MEMORIA\) espone probabilmente
+  un difetto nella regola scritta stessa, non solo un'esecuzione mancata.
+
+
+FINE REFERTO A76.

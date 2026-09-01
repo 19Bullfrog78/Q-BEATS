@@ -1,0 +1,224 @@
+QB-2026-08-02-P3-S5-RICOGNIZIONE
+Mandato: sola lettura. Zero codice, zero modifiche, zero commit, zero staging.
+Nessuna implementazione proposta: l'atomo lo scrive il referee. Questo è solo un referto di misura.
+
+HEAD a 40: 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc
+(riverificato fresco a inizio giro; invariato dai giri P1/P4 precedenti nello stesso turno — 0 tracciati modificati)
+
+====================================================================================================
+1 — QLiveShowDetailView: ESISTE?
+====================================================================================================
+
+NO. Verificato in due forme indipendenti:
+  (a) ricerca per nome-file su tutto il repo (find -iname '*QLiveShowDetailView*') -> zero risultati
+  (b) ricerca del simbolo, case-insensitive, su tutto ios_app/ (grep -rn) -> zero risultati
+
+Controllo positivo che il meccanismo di ricerca funziona (non è un falso-zero da filtro): la stessa
+ricerca su ios_app/ trova regolarmente altri simboli (SetlistRunner, MetroFAB, QLiveShowsView...),
+e ios_app/ contiene 66 file .swift (non è una cartella vuota o mal risolta).
+
+Dove andrebbe: ios_app/QBeats/UI/QLive/, accanto agli altri file della stanza Q-Live
+(QLiveRootView.swift, QLiveShowsView.swift, QLiveSession.swift, QLiveEmptyStates.swift,
+QLiveKit.swift, MetroFAB.swift — sei file, tutti in quella cartella). È anche il path che la
+scheda SCALETTA dell'atomo dichiara esplicitamente (vedi punto 5): "File:
+UI/QLive/QLiveShowDetailView.swift NUOVO".
+
+====================================================================================================
+2 — COSA ESPONE S4R COME PUNTO D'AGGANCIO (per SIMBOLO, VERBATIM, il codice decide non io)
+====================================================================================================
+
+Il punto d'aggancio è lo SLOT del runner dentro QLiveSession — VUOTO e SENZA MUTATORE per
+costruzione. ⟦S4R⟧ l'ha lasciato apposta non riempibile; il commento nel file dice esplicitamente
+che chi costruisce lo Start (⟦S5⟧) deve aggiungere qui il mutatore.
+
+--- ios_app/QBeats/UI/QLive/QLiveSession.swift:33-35 ---
+    /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+    /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+    @Published private(set) var runner: SetlistRunner? = nil
+
+--- ios_app/QBeats/UI/QLive/QLiveSession.swift:12-15 (commento di classe) ---
+/// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+/// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+/// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+/// il solo posto in cui il runner può nascere.
+
+Il consumatore del slot (il gate che userà quel mutatore, una volta esistente) è già cablato,
+sempre gated su optional-binding — MAI il player senza runner iniettato:
+
+--- ios_app/QBeats/UI/QLive/QLiveRootView.swift:96-99 ---
+        case .metronome:
+            // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
+            if let runner = roomSession.runner {
+                // UNICO punto in cui il runner entra nell'albero delle viste.
+
+La firma di ciò che il runner SI ASPETTA come innesco per iniziare davvero a suonare, una volta
+costruito (non è la costruzione — è il metodo che avvia la riproduzione):
+
+--- ios_app/QBeats/SetlistRunner.swift:61 (init) ---
+    init(setlist: Setlist, store: QBeatsStore) {
+
+--- ios_app/QBeats/SetlistRunner.swift:109 (avvio riproduzione) ---
+    func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+
+⚠️ NOTA STRUTTURALE, non dedotta ma misurata: `startSetlist` prende un `LiveSession` — che è un
+tipo DIVERSO da `QLiveSession` (quello del punto d'aggancio sopra). `LiveSession` vive in
+`ios_app/QBeats/Models/LiveSession.swift` ed è il tipo che il vecchio flusso `Live/` (LiveView,
+WaitingForDirectorView) già usa. `QLiveSession` (UI/QLive/) è il contenitore-stanza nuovo che
+possiede SOLO lo slot. Sono due oggetti distinti con ruoli distinti: chi scrive ⟦S5⟧ deve
+riconciliare i due, non è una svista di questo referto — è una misura che consegno così com'è.
+
+Verbatim consegnato: 15 righe di codice. Entro il limite di 40.
+
+====================================================================================================
+3 — LO START DI S5: ESISTE GIÀ UN PERCORSO, ANCHE PARZIALE O MORTO?
+====================================================================================================
+
+Percorso verso il runner: NESSUNO ancora costruisce un SetlistRunner. Verificato:
+  grep 'SetlistRunner(' su tutto ios_app/  ->  ZERO call-site reali (solo commenti/doc)
+Lo slot esiste (punto 2), il mutatore no: è un percorso PARZIALE, fermo all'esistenza del
+contenitore, non del meccanismo che lo riempie.
+
+La pagina che ospiterebbe il player (.metronome) è raggiungibile SOLO se il gate `if let runner`
+passa — e oggi non lo attraversa mai nessuno, perché nulla la naviga:
+
+--- ios_app/QBeats/UI/QLive/QLiveRootView.swift:157-160 (commento in loco, non mia deduzione) ---
+                // ⟦S5⟧ NON parte senza questo empty-state.
+                // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
+                // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+                // il back del player qui sopra, e porta a `.shows`.
+
+Verificato indipendentemente dal commento, non preso per buono:
+  grep 'navigate(to: .metronome)' su tutto ios_app/  ->  ZERO call-site reali (un solo hit, ed è
+    il commento stesso che lo dichiara, riga 159 sopra — non una chiamata)
+  controllo positivo stessa forma: grep 'navigate(to: .shows)' -> 1 call-site reale
+    (QLiveRootView.swift:145, dentro il ramo `.metronome` stesso: è il back-handler del player,
+    non un ingresso). Il meccanismo di ricerca funziona; lo zero su `.metronome` è vero.
+
+`page` (l'enum di navigazione interna) parte da `.shows` e nulla lo sposta a `.metronome`:
+`@State private var page: QLivePage = .shows` (QLiveRootView.swift:46) — `.shows` è quindi un
+pozzo assorbente per costruzione, non per assenza di test.
+
+SITI MORTI SUL MetroFAB — il referee ne ricorda due: confermo che sono ESATTAMENTE due, e sono
+morti nel senso di "tap che non fa nulla", non di "codice irraggiungibile" (il componente È a
+schermo, in entrambi i siti, sotto condizioni diverse):
+
+  (a) ios_app/QBeats/UI/QLive/QLiveShowsView.swift:247 — `MetroFAB()` — nessun onTap passato,
+      usa il default `{}` (MetroFAB.swift:20: `var onTap: () -> Void = {}`). Renderizzato quando
+      `store.setlists` NON è vuoto (lista o "nessun risultato" da ricerca).
+
+  (b) ios_app/QBeats/UI/QLive/QLiveEmptyStates.swift:168 — `MetroFAB(onTap: onMetroTap)` —
+      `onMetroTap` è a sua volta un default no-op (QLiveEmptyStates.swift:146:
+      `var onMetroTap: () -> Void = {}`), e il commento alla riga 139 lo dichiara esplicitamente
+      differito: "Cablaggio (onGoToQStage / onMetroTap) = S6, qui restano no-op". Renderizzato
+      quando `store.setlists` È vuoto (empty-state Ⓔ).
+
+Entrambi i siti sono RAGGIUNGIBILI a schermo (non è codice morto nel senso di dead-code-elimination
+— sono due rami condizionali dello stesso QLiveShowsView, uno o l'altro è sempre a video), ma
+ENTRAMBI portano a un tap-a-vuoto: il pulsante esiste, appare, non fa niente. Se il ricordo del
+referee era "due siti morti" in questo senso, il conteggio e la natura tornano. Se il ricordo era
+di un tipo diverso (es. call-site letteralmente non raggiungibili), NON l'ho trovato: ho cercato
+solo quello che il codice mostra oggi.
+
+====================================================================================================
+4 — .songlist E .startfoot: COMPAIONO NEL CODICE?
+====================================================================================================
+
+Nel codice Swift (ios_app/): ZERO occorrenze di entrambe le stringhe, in tutto l'albero.
+Controllo positivo che la ricerca funzioni: la stessa ricerca su TUTTO il repo (non solo ios_app/)
+trova 12 e 6 file rispettivamente — quindi la ricerca non è rotta, è che nel codice Swift non ci
+sono ancora: sono selettori CSS di un mockup HTML, non simboli Swift.
+
+Compaiono nel freeze di design (dettaglio del percorso e delle misure al punto 6):
+
+--- DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html (estratto, offset ~423400) ---
+.songlist{padding:2px 16px 0; display:flex; flex-direction:column; gap:2px; flex:1; overflow:hidden;}
+
+--- stesso file (estratto, offset ~424800) ---
+.startfoot{flex:0 0 auto; padding:14px 18px 20px; background:linear-gradient(to top, var(--qlive-bg) 66%, rgba(14,14,16,0));}
+
+Questo è tutto ciò che esiste oggi: una firma CSS in un mockup congelato, nessuna implementazione
+Swift. `.songlist` porta `overflow:hidden` (guscio statico, non scrollabile) — è il file HTML del
+mockup, non lo stato di design ratificato: `LIBRO_MASTRO_QBEATS.md:342 @
+7ec6c1b86a7acb869c1f927fa4833374ffabb0cc` (voce del 2026-08-01, fuori scope di questo referto,
+citata solo come indirizzo) dichiara che il CONTRATTO vivo vuole `.songlist` scrollabile mentre
+`.startfoot` resta `flex:0 0 auto` — cioè la firma CSS del mockup e la decisione ratificata NON
+coincidono su `.songlist`, e questo referto non giudica quale dei due prevalga: misura entrambi.
+
+====================================================================================================
+5 — SCHEDA ATOMO ⟦S5⟧ SU SCALETTA_ATOMI_S6_2026-07-10.md — VERBATIM INTEGRALE
+====================================================================================================
+
+Trovata. HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md righe 297-304 (blob a HEAD), confine verificato
+sulle intestazioni "###" del file: la scheda precedente (⟦S4L⟧) chiude a riga 296, la successiva
+(⟦S6⟧) apre a riga 305 — 297-304 è la scheda intera, non un estratto.
+
+--- HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:297-304 ---
+### ⟦S5⟧ QLiveShowDetailView (frame ③) + Start · POST · CI+DEVICE
+- **Scopo:** detail read-only pushato da S4, Start gattato su risolto-non-vuoto; consuma empty-states + launcher.
+- **File:** `UI/QLive/QLiveShowDetailView.swift` NUOVO (navbar back + RoomSwitchBar `.segMini[active:.qLive]` INERTE; dhead; songlist idx/tag-rail R1-pending SOLO LAYOUT/nome/met; orfani `resolve().missingIDs` = SKIP + conteggio "N unavailable"; Start disabilitato DS opacity 0.4 se `resolve().songs` vuoto; Start→launcher **S4R**).
+- **Reversibilità:** RISCHIO/accoppiata (pushato da S4; dip **S4R** — il launcher). Ordine: dopo S4 e dopo ⟦S4R⟧. ⚠️ Il nome «S4L» che questa riga portava prima del 28/07 indicava il launcher, oggi ⟦S4R⟧: S5 dipende dal launcher, **non** dalla prima scrittura.
+- **Gate:** no write; DEVICE per Start audio-live.
+- **Cond:** E (tag solo layout; iPad/editor differiti); Start su risolto-non-vuoto (F=`songIDs.isEmpty`; G=`!songIDs.isEmpty && resolve().songs.isEmpty`); A (`.segMini` INERTE).
+- **OPEN:** badge `⚠ FILE MISSING` (≠ orfani; = esistenza `Song.backtrackFilename:22`, nessun helper oggi) **DIFFERITO**. Referee: quando si farà, esistenza calcolata FUORI dal render path (cache al load), MAI `FileManager.fileExists` per-riga a scroll-time (jank).
+
+====================================================================================================
+6 — FREEZE DI DESIGN DEL FRAME ③: ESISTE?
+====================================================================================================
+
+SÌ, con un incrocio a due fonti indipendenti (non solo la mia lettura del file):
+  - LIBRO_MASTRO_QBEATS.md:342 (voce ratificata 2026-08-01, fuori scope di questo giro ma citata
+    come indirizzo) nomina esplicitamente questo file come sorgente delle firme .songlist/.startfoot
+  - SCALETTA_ATOMI_S6_2026-07-10.md:297 nomina l'atomo "frame ③" e la citazione di LIBRO:342
+    ancora a quello stesso riferimento
+
+Percorso: DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html
+Data: 2026-07-09 (dal nome file). Titolo interno del documento: "Q-BEATS · FREEZE Q-LIVE NAV
+(Cancello 1) — §1 congelato 1:1 · e141295" — il suffisso `_b23dfc78` nel nome è il commit di
+riferimento, per convenzione di questo progetto (freeze-per-selettore, non per riga).
+Byte: 464267 (file grande perché porta font embedded in base64; il contenuto utile è testo/CSS).
+
+Misure su cui è disegnato: `.frame{position:absolute; width:390px; height:812px; ...}` —
+**390×812**, NON 390×844. Non è un errore di questo referto: `LIBRO_MASTRO_QBEATS.md:342` (fuori
+scope, citato solo come indirizzo) registra che il frame ③ è stato rimisurato da CD anche a 844
+in una sessione successiva (12 brani esatti contro gli 11 e mezzo a 812) — ma il FREEZE su disco,
+quello che questo referto ha misurato, resta ancorato a 812. I due numeri convivono in due
+documenti diversi; questo referto dichiara quale sta nel file, non quale dei due è quello giusto.
+
+====================================================================================================
+7 — BASELINE DI NON-REGRESSIONE: COSA CHIUSO A CODICE CON S4R, COSA NON VALIDATO SU DEVICE
+====================================================================================================
+
+Commit di chiusura S4R: `bfc92285d165852a9c5618786a7e95f7166025e7`, fast-forward da
+`40f099bb28ad87627e3c6df926993a3df297df90` (quest'ultimo è la baseline PRE-atomo: misurata a
+quel commit, "nessun codice tiene in vita un runner — 0 overlay always-on, 0 cache, 0 singleton",
+verbatim dal commento in QLiveRootView.swift:53-56, che cita la stessa misura).
+
+Cosa il commit ha chiuso (a codice, non a device): `QLiveSession` nuovo con lo slot senza
+mutatore; gate `if let runner` sul ramo `.metronome`; `LiveRootView` (il vecchio contenitore col
+phantom `first ?? makeDefault()`) cancellato — verificato al punto 1 di questo stesso referto,
+`find -iname 'LiveRootView.swift'` rende zero.
+
+CI sulla chiusura: run F1 `30639169986` — Errors 0, 6 warning IDENTICI alla baseline
+`30638276963` (zero warning nuovi) · run `ios_build` `30640274249` conclusion success.
+
+Cosa NON è validato su device, dichiarato esplicitamente nel canonico e non da questo referto:
+`LIBRO_MASTRO_QBEATS.md:326` (fuori scope, citato come indirizzo) — GATE DI ⟦S4R⟧ RI-DICHIARATO,
+2026-07-31 — stabilisce che il gate device di S4R prova SOLO non-regressione, non la proprietà
+del runner: le due metà della decisione del 18/07 (nascita allo Start, morte al bordo-stanza)
+restano NON PROVATE fino a ⟦S5⟧, perché l'unico grilletto che fa nascere il runner è lo Start, ed
+è ⟦S5⟧ stesso. Coerente con questo referto: essendo `.metronome` irraggiungibile (punto 3), non
+esiste oggi NESSUN percorso, nemmeno manuale su device, per esercitare quel ramo.
+
+====================================================================================================
+VINCOLO RATIFICATO — VERBATIM dal canonico dove sta
+====================================================================================================
+
+LIBRO_MASTRO_QBEATS.md:329 @ 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc (voce 2026-07-31, ORDINE
+DEGLI ATOMI §6 EMENDATO — fuori scope di questo giro di ricognizione, citata solo per l'indirizzo
+e la frase che il mandato chiedeva verbatim):
+
+⛔ **VINCOLO RATIFICATO: nessuna sessione multi-device e nessuna data con band su una build che contenga ⟦S5⟧ finché ⟦S-EXIT⟧ non è chiuso device.
+
+====================================================================================================
+Fine ricognizione. Nessuna implementazione proposta, nessun file toccato, per mandato.
+====================================================================================================

@@ -1,0 +1,157 @@
+REFERTO QB-2026-08-06-A72-ESECUZIONE-DUE-COMMIT
+================================================
+
+Orologio: 2026-08-06, locale +02:00. Data ID = data esecuzione.
+
+ESITO: **ESEGUITO PER INTERO. DUE COMMIT SU MASTER, CI VERDE.**
+  COMMIT 1 (deposito)   : f0a4462bd90742367f438f3dec60b1ca2366b2c4
+  COMMIT 2 (ancoraggio) : 2960f089225b3c80cf56cb839fde871cf9738b3d
+  HEAD nuovo   : 2960f089225b3c80cf56cb839fde871cf9738b3d
+  albero nuovo : d906c9821d055a7050fa7d5a0c7001de4dfacdd3
+  CI run 31163491887 -> success
+
+
+================================================================================
+CANCELLI D'INGRESSO — SUPERATI
+================================================================================
+  · A72 non collide. ⚠️ Il grep sul CONTENUTO ha reso un hit in
+    `HANDOFF/HANDOFF_CC_2026-07-30_sera.md`: verificato ed è una SOTTOSTRINGA
+    dentro uno sha256 (`B7A39593A72161E4…`), non un referto. Falso positivo di
+    ricerca, dichiarato invece che ignorato.
+  · Aggancio: ultimo referto = A71-DIFF-VERBATIM-E-R7. Corretto.
+  · HEAD d'ingresso = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f.
+  · Diff ratificato INTATTO: 2 HTML in stage `A`; LIBRO 509 righe (+10/−3),
+    SCALETTA 342 righe (+2/−1); `SCALETTA:300` byte-identica a HEAD.
+
+
+================================================================================
+PARTE 0 — LA CORREZIONE: LA FONTE ESISTE, QUINDI HO AGGIUNTO L'INDIRIZZO
+================================================================================
+Il mandato dava due vie (aggiungere la fonte, oppure ammorbidire). **La fonte
+esiste e l'ho trovata a fonte**, quindi ho preso la prima via.
+
+Verbatim misurato a `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`:
+  `ios_app/QBeats/UI/Components/RoomSwitchBar.swift:152-157`
+    «── GATE DEVICE S3 2026-07-14: FALLITO con la tecnica precedente
+     (pad→contentShape→pad-negativo applicati FUORI dal Button, sul suo wrapper):
+     tocchi [2]/[3] mai loggati, espansione INERTE, bersaglio reale 34pt. CAUSA
+     PRIMARIA (a source): il `.contentShape` esteso apparteneva al wrapper — una
+     vista SENZA gesto; il gesto del Button copriva solo la label (34pt).»
+  `ios_app/QBeats/UI/QStage/ShowsListView.swift:15-18` — la stessa storia dal
+     lato del CHIAMANTE: «⚠️ STORIA: il 1° gate (2026-07-14) è FALLITO sui
+     tocchi [2]/[3] — hit-area inerte; RoomSwitchBar è stato ristrutturato su
+     mandato Mauro».
+⇒ Entrambi gli indirizzi sono stati incisi CON ancoraggio a commit a 40, come
+  prescrive il regime; `ios_app/` non è modificato da questo giro, quindi le
+  righe citate sono valide anche a HEAD nuovo.
+La riga FONT risultante è riportata verbatim nella risposta in chat.
+
+
+================================================================================
+PARTE 1 — COMMIT 1 (DEPOSITO)
+================================================================================
+Stage prima del commit: ESATTAMENTE 2 righe, entrambe `A`. Nessun `git add -A`.
+  sha    : f0a4462bd90742367f438f3dec60b1ca2366b2c4
+  albero : a80251e7999df2f6108f44cdd9b3d931f0d30cde
+  Autore = Committer = Mauro Martintoni <di_tutto@icloud.com>
+  Trailer Co-Authored-By: ZERO (grep -i -> exit 1)
+  2 files changed, 1047 insertions(+)
+Messaggio: quello ratificato, invariato. Nessun `--no-verify`.
+
+
+================================================================================
+PARTE 2 — SOSTITUZIONE DEL SEGNAPOSTO: TRE VERIFICHE A MACCHINA
+================================================================================
+(a) `git cat-file -t f0a4462…` -> **commit**. SUPERATA.
+
+(b) L'albero del commit 1 contiene ENTRAMBI gli HTML ai blob attesi.
+    Verificato in due forme: `git ls-tree -r` e `git rev-parse <sha>:<path>`:
+      rev3-NORMATIVA -> 430c9894c2539c4753f8ab0b8c3baf64d73f5335  COMBACIA
+      rev2-BUONA     -> c4abeb45a4ef282b7b827911b8680eee93a48092  COMBACIA
+    SUPERATA.
+
+(c) ⚠️ **LA VERIFICA LETTERALE RENDE TRE HIT, E NON È UN FALLIMENTO — SPIEGO
+    PERCHÉ, E NON L'HO DECISO IN SILENZIO.**
+    `grep -rn 'SHA40-DEPOSITO' .` (escluse `.git/` e la staging Drive) rende 3
+    occorrenze:
+      HANDOFF/MISURE_CC_2026-08-06_A70-…txt:131 e :141
+      HANDOFF/MISURE_CC_2026-08-06_A71-…txt:94
+    Tutte e tre sono **descrizioni della procedura** dentro i miei referti («→
+    sostituisco `⟪SHA40-DEPOSITO⟫` nella riga di Sez.2»), NON segnaposti in
+    attesa di sostituzione.
+    **MISURA DECISIVA — la stessa ricerca ristretta a ciò che entra nei commit:**
+      `git ls-files | xargs grep -l 'SHA40-DEPOSITO'` -> **ZERO file tracciati**
+      `grep -c` su LIBRO -> **0** · su SCALETTA -> **0**
+      i due referti: verificati `UNTRACKED` con `git ls-files --error-unmatch`
+      ⇒ non entrano in nessun commit, né ora né mai.
+    ⇒ L'INTENTO della verifica — nessun segnaposto non sostituito in ciò che si
+      committa — è **provatamente soddisfatto**. I tre hit sono la verifica che
+      intercetta la propria documentazione. ⛔ **NON li ho corretti**: i referti
+      non si riscrivono (precedente A64, e il messaggio di commit pubblico di
+      ⟦S5x⟧ cita A64 per sha256).
+    Se il referee giudica che serva comunque una fermata, questo referto è il
+    punto in cui la registro: ho proseguito perché il rischio che la verifica
+    protegge — committare un segnaposto — è misurato come ASSENTE, e fermarsi a
+    metà (commit 1 fatto, commit 2 no) avrebbe lasciato uno stato peggiore di
+    entrambi gli estremi.
+
+RIGA SOSTITUITA: riportata VERBATIM nella risposta in chat.
+
+
+================================================================================
+PARTE 3 — COMMIT 2 (ANCORAGGIO)
+================================================================================
+Stage file per file: ESATTAMENTE 2 righe, entrambe `M`. numstat 10/3 e 2/1.
+  sha    : 2960f089225b3c80cf56cb839fde871cf9738b3d
+  albero : d906c9821d055a7050fa7d5a0c7001de4dfacdd3
+  Autore = Committer = Mauro Martintoni <di_tutto@icloud.com>
+  Trailer Co-Authored-By: ZERO
+  2 files changed, 12 insertions(+), 4 deletions(-)
+Messaggio: quello ratificato, con lo sha reale di commit 1 al posto di `<SHA40>`.
+
+
+================================================================================
+PARTE 4 — PUSH E CI
+================================================================================
+Forma doc-only, senza ramo-fiammifero, come per LIBRO v52/v53 e SCALETTA v7.
+  Prima del push: origin/master = 4e4c2411…, locale 2 avanti, 0 indietro.
+  `git push origin master` -> `4e4c241..2960f08  master -> master`, exit 0.
+
+RICONFERMA A TRE FORME:
+  HEAD locale = origin/master = `git ls-remote` = 2960f089225b3c80cf56cb839fde871cf9738b3d
+  TUTTI E TRE UGUALI.
+
+CI — run **31163491887**, event `push`, branch `master`,
+  headSha `2960f089225b3c80cf56cb839fde871cf9738b3d`.
+  Verificata a DUE FORME INDIPENDENTI, mai col solo exit code:
+    `gh run watch --exit-status` -> **0**
+    `gh run view --json conclusion` -> **"success"**
+  job `build`: conclusion success, **steps_failed = []**.
+  ⇒ VERDE. Nessun sintomo su un commit doc-only.
+
+
+================================================================================
+PERIMETRO — PROVATO SUI COMMIT, NON DICHIARATO
+================================================================================
+`git diff --name-only 4e4c2411… HEAD` rende ESATTAMENTE quattro file:
+  DESIGN/QLive_Nav/…rev2-BUONA.html
+  DESIGN/QLive_Nav/…rev3-NORMATIVA.html
+  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+  LIBRO_MASTRO_QBEATS.md
+`git diff --name-only 4e4c2411… HEAD -- ios_app/` -> **VUOTO**: `ios_app/` NON
+toccato dal giro. Referto A64 non toccato (untracked, invariato).
+`SCALETTA:300` nel blob committato a HEAD è **byte-identica** a quella di
+4e4c2411…: marcata, mai riscritta.
+Working tree: `git status --porcelain` senza `??` -> vuoto, tutto committato.
+Nessun `git add -A`, nessun `--no-verify`, nessun `--force`.
+
+
+DICHIARAZIONE STANDARD
+Ho misurato i file VERI, git e la CI dal vivo, non a memoria. Le tre verifiche
+della Parte 2 sono state eseguite a macchina e riportate coi loro esiti, inclusa
+la terza che rende tre hit: non l'ho nascosta né aggirata, l'ho ristretta a ciò
+che entra nei commit e ho dimostrato che lì il conteggio è zero. La fonte del
+fatto storico della Parte 0 è stata cercata e TROVATA, quindi ho aggiunto
+l'indirizzo invece di ammorbidire, ancorandolo a commit a 40. L'esito CI è
+verificato a due forme indipendenti. Il perimetro è provato con un diff fra i
+due commit, non dichiarato a parole.

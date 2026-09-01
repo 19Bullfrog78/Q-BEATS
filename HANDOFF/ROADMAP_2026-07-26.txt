@@ -1,0 +1,230 @@
+ROADMAP Q-BEATS — riconciliata (base 26/07/2026 — pull E: VERIFICATA)
+Stato derivato A FONTE il 2026-07-26. Se diverge dai file, VINCONO I FILE.
+La prossima sessione riverifica, non eredita. [R] = riferito, non verificato a fonte.
+Supersede ROADMAP_2026-07-24.txt (gia' rinominata _SUPERATO__). Materiale di lavoro: si supersede
+da se', NON si propaga a E: ne' al Progetto.
+
+=====================================================================
+DOVE SIAMO (as-of 26/07 — HEAD/CI/versioni si rileggono con `git log -1` e header dei file, non si copiano)
+=====================================================================
+- Git: HEAD = origin = remote 54ccddc · CI 30015719424 verde · tree pulito (solo untracked).
+  Nessun commit dall'apertura sessione. [rileggere a fonte: git log -1]
+- Canonici (as-of): BOX3 V99 · LIBRO v40 · BUGS v43 · BOX5 V27 · SCALETTA v2.
+- FIX-PILL ee31281 CHIUSO su device (Mauro 4/4).
+- S4b = 6ded4ab (19/07) — DEVICE-VALIDATO 20/07 (LIBRO Sez.2 riga 2026-07-20 / v38: gate PIANO_S4b_REV
+  §5d, tocchi [2][3][4][5] PASS), 2 debiti di copertura (durata-0, riga singola). => NON e' gate aperto.
+
+- Contratti CD Q-Live>Shows su E: — PULL MANUALE DI MAURO, verificata a fonte il 26/07 (impronte coincidono):
+    freeze 24/07                    45161 B  a97a4f54   (contenuto ratificato)
+    5-Risposte ORIGINALE 26/07      35635 B  1d370bf6   (la vera prima versione, ancora presente)
+    5-Risposte rev2 26/07           38185 B  f1b362f0   (CANONICO = PAYLOAD per BOX5 V28)
+    5-Risposte "superato" 26/07     37774 B  2a3f2f38   (copia progetto post-Errata, etichettata A TORTO
+                                                         "originale"; su E: gia' con prefisso _SUPERATO__
+                                                         per mano di Mauro — NON toccare)
+    Q20-RIEMISSIONE 26/07           37430 B  5dcfbbfb   (contratto Q20; SUPERSEDE la 36736/eabf28c7 di ieri,
+                                                         aggiunto il vincolo iOS)
+  ⚠️ TRE versioni del 5-Risposte esistono: 35635/1d370bf6 (originale vero) · 37774/2a3f2f38 (copia progetto,
+     etichetta "originale" SBAGLIATA) · 38185/f1b362f0 (rev2, il canonico). Da tenere diritte.
+
+=====================================================================
+ORDINE CRITICO (non invertire)
+=====================================================================
+DOC prima, CODICE poi. Dentro il doc: LIBRO PRIMA (R-gamma: "e' in LIBRO_MASTRO -> e' ratificato; altrimenti no").
+Sede dei contratti = BOX5, NON BUGS. L'atomo vive in UNA sede (SCALETTA), non duplicato (dual-homing = stampo E3).
+INCISIONE SEGUE LA RATIFICA DEL REFEREE, non la copia del doc CD: il payload rev2 su E' NON contiene le due
+rettifiche del referee (QL-SHOWS-02/08) e non doveva contenerle — vanno aggiunte in fase di incisione.
+
+=====================================================================
+FASE A · CD — CHIUSA lato CD. Stato ratifiche MAURO per-voce (26/07):
+=====================================================================
+A1. Le 3 POSTILLE al freeze 24/07 (copy popup "— turn it back on from there" · "···" non costruito pre-S4L
+    · Remove inerte con sessione armata/in play) — RATIFICATE Mauro 26/07 (R1-R3, parole verbatim nella
+    sezione RATIFICHE sotto). La postilla 1 porta anche un INCARICO CD sul testo (Sez.3; non blocca il giro).
+A2. Contratto Q20 — 2026-07-26_...Q20-RIEMISSIONE.html, sha256 5dcfbbfb...d408 (NON eabf28c7: superata dal
+    vincolo iOS) — RATIFICATO Mauro 26/07. Esiste solo in chat finche' non e' inciso in LIBRO v41 (R-gamma).
+A3. Riga tab-reset ("Q-Stage apre sempre su Songs") — RATIFICATA Mauro 26/07. Idem (solo chat finche' non incisa).
+⚠️ Ratifiche per-voce 26/07 (sezione RATIFICHE sotto): postille R1-R3 + Q20 R4 + tab-reset R5 +
+   emendamento invariante R6 (RATIFICATO 26/07, vedi R6 sotto). Il "si' a tutte e tre" iniziale era
+   un parere referee inoltrato, non una ratifica (REPERTO 12); valgono le sei ratifiche enumerate,
+   non quella frase.
+=> FASE A CHIUSA: sei ratifiche su sei (R1-R6). [Nota CC: il prompt di chiusura diceva "sette
+   ratifiche su sette (R1-R7)" — in questa sezione ne risultano enumerate sei (R1-R6); nessuna
+   settima voce trovata ne' in ROADMAP ne' in HANDOFF. Scritto a sei finche' non si indica quale
+   sia la settima.]
+   Pendenza 4 dell'HANDOFF (attribuzione emendamento dedotta) → SBLOCCATA: R6 sotto e' la ratifica
+   esplicita richiesta. La riga della faccia + in HUNK 2 dell'HANDOFF va corretta da "Mauro (ratifica
+   ​§4 Remove)" a "Mauro (ratifica esplicita R6, 26/07)" alla prossima scrittura del diff — l'HANDOFF
+   non e' stato toccato oggi (fuori scope di questa scrittura).
+
+PAYLOAD per BOX5 V28 = rev2 (f1b362f0) PIU' due rettifiche del referee, che in rev2 NON ci sono e non
+dovevano esserci:
+- QL-SHOWS-02 (sync): "viaggia col sync: stessa lista su tutti i device" va RIFORMULATA. Il campo per-show
+  e' fattibile (forma tecnica a CC); la propagazione cross-device e' CONDIZIONATA al ticket "iCloud Opzione B"
+  (entitlement icloud-container/icloud-services RIMOSSI dal commit 4e9d12f; a HEAD resolveBaseURL cade sul
+  Documents LOCALE). NON si riapre iCloud per una card. Incisione: campo per-show SI'; "stessa lista su
+  tutti i device" solo CONDIZIONATO a iCloud riattivato.
+- QL-SHOWS-08 (dettaglio): "resta la sede della scelta modalita'" -> "SARA' la sede". Oggi NON esiste
+  (nessuna QLiveShowDetailView, nessun selettore Q-Live/LIST/per-song; si parte da LiveRootView:12-13,
+  runner eager su setlists.first). Atterra in S5, NON S4L. Cambia "oggi", cambia l'atomo.
+- QL-SHOWS-10 (Q20): la VECCHIA riga CADE (citava un file mai depositato: 2026-07-23_...Keyboard-Dismiss.html,
+  inesistente). Entra la riga di rev2, che punta alla RIEMISSIONE (5dcfbbfb). "FONTE-O-NIENTE".
+
+=====================================================================
+RATIFICHE MAURO 26/07 — non ancora incise, destinazione LIBRO v41 (VERBATIM)
+=====================================================================
+Le parole di Mauro accanto a ciascuna: sono la PROVA, non si parafrasano.
+Fonti per IMPRONTA, mai per percorso: card 4 decisioni -> freeze
+a97a4f54a8fafaefc7c68cb03cb6117a214d600fc31e3b35f117628d0ee62764 ; 3 postille ->
+rev2 f1b362f0202470bb1fa041a719e29cf48d853f9e2871c7c31ef5feeffc6ee1ea (38185 B)
+— NON rev3 805e86c9, NON fd62da58 (e' la versione contro cui Mauro ha ratificato).
+
+R1 · POSTILLA 1 (popup Remove, via di ritorno) — Mauro:
+     «Va bene procediamo anche se secondo me ci stiamo arrovellando il cervello per
+      niente. Ma forse sono io troppo superficiale. Migliorariamo la comunicazione
+      del messaggio rendendlo più completo.»
+     => postilla RATIFICATA + INCARICO CD sul testo del messaggio (va in Sez.3
+        «Deliverable in volo», NON in Sez.2; non blocca il giro doc).
+R2 · POSTILLA 2 («···» non costruito pre-S4L) — Mauro: «ok va bene!»
+R3 · POSTILLA 3 (Remove inerte con sessione armata/in play) — Mauro: «si d'accordo»
+R4 · CONTRATTO Q20 (congedo tastiera) — Mauro: «ok va bene».
+     Fonte: RIEMISSIONE sha256 5dcfbbfbfefe7607cfdac58b73fb2ddb2898012788d75f9827203e1c5ab9d408.
+R5 · TAB-RESET («Q-Stage apre sempre su Songs») — Mauro: «si»
+R6 · EMENDAMENTO ALL'INVARIANTE — RATIFICATO da Mauro 26/07.
+     L'invariante «Q-Live è di sola lettura» è emendato: la prima scrittura sui
+     dati utente entra con ⟦S4L⟧, LIMITATA allo stato di appartenenza dello show
+     a Q-Live. Ogni altra scrittura resta VIETATA in §6.
+     Parole di Mauro: «Quindi sì, la condizione cambia in Q-Live».
+     Motivazione data da Mauro: «non possiamo continuare a caricare setlist,
+     avremo centinaia e centinaia di setlist caricate in Q-Live e questo non va
+     bene… con il passare del tempo si possano cancellare».
+     ⚠️ La riga è incisa STRETTA come sopra. La motivazione di Mauro è più larga
+     (parla di cancellare), ma «togliere da Q-Live» ≠ «cancellare»: la semantica
+     (a) del freeze 24/07 lascia la setlist intatta in Q-Stage, e la (b)
+     (cancellazione vera) è stata SCARTATA per TD-setlist-id-orfani. Il referee
+     non allarga la riga oltre ciò che è stato chiesto.
+     Chi: CC (rilievo B1) + referee (verdetto «REGGE») + Mauro (ratifica
+     esplicita 26/07). Non più «implicito», non più «ratifica §4 Remove».
+
+=====================================================================
+FASE B · GIRO DOC (zero codice; un commit single-purpose; ordine INVARIATO; file a due facce -> xhigh)
+=====================================================================
+B0. [CHIUSO] Set impronte ratificato (REPERTI 3). Conteggio righe col set 3c, NON Measure-Object.
+B1. [FATTO] Lettura BOX5: spec vista sotto "## Vista LIVE — Spec complete" (## + ### per zona); invarianti L3
+    in tabella "## Invarianti tecnici Layer 3 — INVIOLABILI"; contratti in BOX5 (regola d'aggiornamento :4).
+    Nessuna sezione riga-di-lista-con-azione pronta -> creare "## Vista Q-Live > Shows — Spec complete".
+B2. LIBRO v41 — ratifica cross-team: decisioni card 24/07 + Q20 + tab-reset (dopo OK Mauro). [PRIMO per R-gamma]
+B3. BOX5 V28 — SPEC card Q-Live>Shows: QL-SHOWS-01..10 (payload rev2 + 02/08/10 riformulate) + spec Q20 + invariante.
+B4. SCALETTA v3 — RISCRITTURA S4L + split S4 -> S4a/S4b (gia' a master f8276f6/6ded4ab):
+     · runner che SALE, muore solo all'uscita stanza -> S4L (BOX3 V99, blocco Supersede-V97, punto a)
+     · vincolo ObservableObject ANNIDATO -> figli osservano IL RUNNER (stesso blocco, punto e)
+     · emendamento invariante Nodo A "renderizza LiveRootView, MAI LiveView diretto"
+     · bonifica 5 commenti-stale (BOX3 V95)
+     · regime del file (tracciato in HANDOFF/ con nome per-data, fuori dal regime root+in-place)
+B5. BUGS v44 — chiusura tab-reset se sourced · rimessa "Fase 6-7" nel ticket TD#17 (BOX3 V99, Supersede-V98, punto b).
+B6. BOX3 V100 — chiusura del giro + REPERTI (sezione sotto).
+Cancello per ognuno: impronte precalcolate -> diff verbatim -> ratifica referee -> OK Mauro (due cancelli).
+
+=====================================================================
+FASE C · CODICE (aggiornata)
+=====================================================================
+PRE-S4L — due atomi SENZA scrittura:
+- forma ③ riga compatta (solo layout, sostituisce la riga di oggi) — gate CI.
+- congedo tastiera Q20 (contratto RIEMISSIONE 5dcfbbfb) — gate DEVICE (la tastiera NON si prova in CI).
+  Bug fix, indipendente da S4L, e S4L e' bloccato da lui. API tutte disponibili a iOS 16.0 (REPERTI 8).
+S4L — BLOCCO UNICO:
+- pillola ▶ accesa (arma + standby) · Remove from Q-Live · campo di persistenza (permanente, default visibile,
+  retrocompat JSON: campo assente => visibile) · lato Q-Stage: toggle "Show in Q-Live" + chip "Not in Q-Live"
+  + terzo stato vuoto ("No shows in Q-Live · N shows are in Q-Stage").
+- kill phantom makeDefault (LiveRootView:7-8,:13) + proprieta' runner che sale. Opus 4.8 xhigh, chat dedicata,
+  branch fiammifero SOLO con autorizzazione esplicita Mauro.
+⚠️ QUESTIONE APERTA CON CD (NON risolta qui — registrata): QL-SHOWS-06 mette "···" + action sheet dentro S4L,
+   ma lo sheet ha 3 voci e DUE aprono cose che NON esistono a S4L: "View songs" (dettaglio = S5) e
+   "Start options..." (selettore modalita' = S5). Due voci su tre nel vuoto. O lo sheet SLITTA a S5, o
+   S5 si ANTICIPA. DECIDE CD.
+S5 (detail + Start + selettore modalita' Q-Live/LIST/per-song) -> S6 (cablaggio MetroFAB).
+
+=====================================================================
+FASE D · GATE DEVICE
+=====================================================================
+- S4L: gate device obbligatorio (percorso audio-live).
+- congedo tastiera Q20: gate device (non si prova in CI).
+- ⚠️ S4b NON e' un arretrato: gia' device-validato 20/07. Restano solo i 2 debiti di copertura (durata-0, riga singola).
+- ⚠️ Durante QUALSIASI gate: NON premere "Carica dati test" del ⚙ DEBUG. injectTestData (QBeatsStore.swift:198-202)
+  SOSTITUISCE songs+setlists in RAM; un CRUD successivo -> save() (:65-77) scrive i dati di test AL POSTO dei veri.
+
+=====================================================================
+CODA · non bloccanti
+=====================================================================
+- TD#17 🟠 OPEN MEDIA: chiusura (A) run palco 2-3h VR2800 banda singola senza perdita peer OPPURE (B) Soluzione C.
+- Igiene Progetto Claude.ai: upload col nome per-versione, togliere i doppioni (Taratura Q17-Q22 base vs rev2). [R, referee]
+- iCloud Opzione B (BUGS): reverse 4e9d12f + Developer Portal — SOLO quando serve il sync cross-device, NON per la card.
+- **Cancellazione setlist in Q-Stage: NON DISPONIBILE oggi.** Verificato a fonte HEAD `54ccddc`, 2026-07-26.
+  `deleteSetlist(id:)` esiste (`QBeatsStore.swift:115-118`) ma ha ZERO call site in tutto il target (grep
+  esaustivo). Le tre viste che elencano setlist (`LiveRootView.swift` · `QLiveShowsView.swift` ·
+  `ShowsListView.swift`) non hanno `onDelete`/`swipeActions`/`EditButton`/`.destructive`/`deleteSetlist`;
+  `ShowsListView.swift:37-39` dichiara per contratto «CARD senza chevron, NON interattive» (editing show
+  differito a §8). Per contrasto `deleteSong` È cablato: `SongListView.swift:122` `.onDelete(perform:
+  deleteSongs)` → `:149` → `:152` `store.deleteSong(id:)`. Nessun limite/soglia/avviso/archiviazione
+  trovato sul conteggio setlist (solo logging in `QBeatsStore.swift`, `ImportView.swift`,
+  `QBeatsBackupManager.swift`). Nata dalla motivazione di Mauro su R6 («centinaia di setlist... possano
+  cancellare»): il referee osserva che Remove non risolve l'accumulo — nasconde lo show da Q-Live, la
+  setlist resta in Q-Stage per sempre. Lacuna A SÉ: NON allarga Remove. Nessuna progettazione qui.
+
+=====================================================================
+REPERTI DA INCIDERE IN B6 (BOX3 V100) — CATTURA, non ratifica (lezione E3: non vivano solo in chat)
+=====================================================================
+ 1. `Measure-Object -Line` NON conta le righe vuote -> BOX5 rende 474 vs 345; delta su TUTTI i canonici
+    (BUGS 142 · LIBRO 77 · BOX3 58 · SCALETTA 27, misurati). Terza occorrenza della famiglia
+    "exit 0 con valore plausibile e sbagliato" (sibling noto: gh --commit con sha corto -> [] exit 0).
+ 2. BOX3 E' STRATIFICATO: strati "Supersede", ognuno riparte da (a). A fonte: V98@2 · V97@12 · V96@28 ·
+    V95@39 · V94@56 · V93@65 · V92@70 · V91@80 (+ altri sotto). Una citazione DEVE nominare lo strato:
+    "BOX3 V99 (g)", MAI "BOX3 (g)". (Errore reale sciolto: (g)=GUASTO TRASPORTO e' V97:19; (g)=METODO
+    SCRITTURA e' V99:9.)
+ 3. SET IMPRONTE ratificato (3c): OID blob (git hash-object) = garanzia PRIMARIA (byte-esatta); conteggio
+    righe con comandi NON condivisi fra i due lati (CC: (Get-Content).Count · referee: git show|wc -l);
+    auto-check righe = byte_CRLF - byte_LF (file a due facce); byte length su ENTRAMBE le facce.
+ 4. Il conteggio righe ha retto per ABITUDINE, non per prescrizione: BUGS v42 registrava il valore VERO
+    (875 = .Count, non 734 di Measure); per LIBRO v40 e BOX3 V98 i valori registrati "non verificato".
+    La prescrizione (3) chiude il buco (misura indipendente sui due lati — BOX3 V99 m).
+ 5. SCRITTURA != DEPOSITO: CD scrive NEL PROGETTO; la pull su E: e' azione MANUALE di Mauro e puo' ritardare
+    di giorni. Un deliverable non conta finche' non e' verificato su E:. Chi dichiara una scrittura la RILEGGE
+    dal file e ne da' l'impronta. (Oggi la pull rev2+Q20 e' stata verificata a fonte: impronte coincidono.)
+ 6. Una ratifica che cita un PERCORSO DI DEPOSITO verifica il percorso NEL MOMENTO della ratifica. Contenuto
+    e deposito sono DUE prove separate. Caso: freeze 24/07, contenuto genuino (a97a4f54 coincide), ma comparso
+    su E: il 26/07 08:50 in cartella 24_07_2026 CREATA quel mattino dalla pull (CreationTime = 26/07, non 24/07).
+ 7. Q20: caso (b) confessato da CD — NESSUNA decisione del 23/07. Contratto riemesso 26/07, datato oggi, mai
+    retrodatato. [R] La bozza esisterebbe solo nel progetto CD (30153 B, 516830dc...) e la sua data NON e'
+    certificabile — dichiarato da CD, che ha RIFIUTATO di riempire la lacuna: comportamento §7 corretto.
+    (La bozza 30153/516830dc NON e' su E:, quindi da CC "non verificato".)
+ 8. Deployment target iOS 16.0, unica sede project.yml:14 e :132. scrollDismissesKeyboard(.interactively)
+    e' AL PAVIMENTO ESATTO (iOS 16.0): nessun margine — se il minimo scendesse, e' la prima cosa che cade.
+    Annotato nel contratto Q20. Le altre API (toolbar .keyboard · @FocusState · .submitLabel(.search) ·
+    .onSubmit) = iOS 15, hanno margine.
+ 9. Q-Live OGGI: tap riga INERTE (nessun NavigationLink/Button/gesture; commento in codice QLiveShowsView:196);
+    nessun dettaglio show (QLiveShowDetailView non esiste); nessun selettore modalita'; nessun sync documenti.
+10. MEMORIA: forma-puntatore ratificata; feedback-memory "stato-corrente = puntatore, mai copia" scritta
+    (copre HEAD/versioni/CI/gate/atomo/build; clausola: voce datata OK se l'as-of e' leggibile).
+11. CONVENZIONE "si marca, non si cancella" CORROMPE i nomi lunghi. Due file arrivati su E: con estensione
+    TAGLIATA (.ht e .h), nome lungo ESATTAMENTE 64 car, contenuto intatto (2a3f2f38... e aa7599fe...). Il
+    filesystem regge 69 car -> il taglio viene da uno strumento nella catena di PULL, NON identificato
+    ("non verificato", e resta tale). Test secco: nome_len + 11 > 64 -> tutti e quattro i deliverable CD
+    (55-61 car) verrebbero troncati dal prefisso _SUPERATO__. CONVENZIONE SOSTITUITA: archiviazione per
+    POSIZIONE, sottocartella _SUPERATI\ dentro la cartella-data (nessuna rinomina = nessun punto dove perdere
+    caratteri); nomi deliverable sotto i 60 car. QUINTA occorrenza della famiglia "operazione che riesce, non
+    protesta, produce un risultato plausibile e rotto" (gh --commit corto · Measure-Object -Line · conteggio
+    righe per abitudine · troncamento nomi).
+12. IL TRAMITE RIBALTA L'ATTRIBUZIONE. La governance passa da Mauro come TRAMITE fra referee, CC e CD. Un
+    parere scritto dal referee in PRIMA PERSONA, inoltrato al destinatario, arriva come se fosse del DECISORE.
+    Accaduto il 26/07 con "il mio parere e' si' a tutte e tre", che ha QUASI prodotto l'incisione in LIBRO v41
+    di una ratifica MAI DATA. Stessa forma d'errore di Q20, rovesciata di lato. DUE CONTROMISURE:
+    (a) il referee non scrive piu' pareri in prima persona: "parere referee: favorevole", NON "il mio parere
+        e' si'". L'etichetta viaggia col testo e sopravvive all'inoltro.
+    (b) una ratifica deve essere ENUMERATA: nomina la voce e la sua impronta. "Si' a tutte e tre" NON e' una
+        ratifica — non dice quali tre.
+
+=====================================================================
+DUE TRAPPOLE
+=====================================================================
+(i)  gh --commit: SEMPRE sha a 40 (il corto rende [] exit 0, falso-zero).
+(ii) CONSEGNA != RATIFICA / SCRITTURA != DEPOSITO: un artefatto consegnato o dichiarato scritto non e'
+     ratificato ne' verificato finche' non lo rileggi dal file e ne dai l'impronta.

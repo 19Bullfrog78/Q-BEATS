@@ -1,0 +1,182 @@
+================================================================================
+MISURE CC — REFERTO PER IL PROMPT ID: QB-2026-08-01-D1b-CORREZIONI
+LIBRO v50 CORRETTO. Diff rev2 prodotto, NON committato.
+================================================================================
+Supersede le impronte del referto D1: quelle del LIBRO e del diff sono MORTE.
+Il referto D1 resta agli atti come record del giro D1 e porta in testa un
+marcatore di superamento: si marca, non si riscrive.
+
+Due cancelli davanti, nessuno assolto: ratifica del referee sul diff rev2
+verbatim, poi OK esplicito di Mauro.
+
+--------------------------------------------------------------------------
+0 · STATO DEL FILE — PRIMA (v50 di D1) / DOPO (v50 di D1b)
+--------------------------------------------------------------------------
+  grandezza          PRIMA (D1)                                   DOPO (D1b)
+  OID                1c2e5c205287edc038bd868a500ad4ca937aaf90     eb41f8283874cc6bd4a572f6a76df4d2cea6c7d7
+  byte disco (CRLF)  230900                                       236084
+  byte blob  (LF)    230406                                       235589
+  righe = CR = LF    494                                          495
+  sha256 disco       97f9a0dc…d9f14d                              b3e5a9629880efc2086319a6ac22c294981fcaeaa7563b2cd16435a630c183c3
+  sha256 blob                                                     8b084b30038b842483778f3a98b2e777de5c04079ea6065bdc994d374b61d7d3
+
+  numstat: 11 aggiunte, 3 rimozioni (era 10/3: +1 = la voce 50 del registro).
+  Tre hunk, non più due: @@ -2,9 +2,9 @@ · @@ -333,6 +333,13 @@ · @@ -481,6 +488,7 @@
+  Il terzo è quello che mancava, ed è il registro.
+  Metodo identico a D1: script sui byte grezzi, ancore con ABORT (fra cui
+  l'OID di partenza), backup pre-D1b nello scratchpad, impronte precalcolate
+  in memoria col disco intatto, scrittura, rilettura, confronto; poi verifica
+  a fonte con git hash-object / sha256sum / stat / tr — tutte coincidenti.
+  Diff generato NELLO SCRATCHPAD e poi collocato (trappola 4.5).
+  git status --porcelain --untracked-files=no: una sola voce, il LIBRO.
+  staging: 0 file.
+
+--------------------------------------------------------------------------
+1 · VOCE 50 DEL REGISTRO (intervento ①)
+--------------------------------------------------------------------------
+[V] Struttura Sez.6 misurata PRIMA: header r.442, separatore r.443, voci da
+    r.444 a r.490 = 47 voci. Il conteggio del referee è confermato.
+[V] I numeri di versione presenti sono 47 e distinti, ma NON contigui:
+    1..24 poi 27..49. Le versioni 25 e 26 non hanno voce. È uno stato
+    preesistente, NON toccato in questo giro: le righe storiche non si
+    riscrivono. Lo segnalo perché "47 voci" e "ultima 49" possono far
+    credere a una numerazione piena, e non lo è.
+[V] Norma di casa verificata prima di scrivere, non assunta:
+      Sez.6  — 47 voci su 47 a 5 pipe (header 5, separatore 5)
+      Sez.2  — 145 righe datate su 145 a 7 pipe
+[V] DOPO l'inserimento: 48 voci, tutte a 5 pipe; Sez.2 invariata a 7 pipe su
+    tutte. Controlli automatici nello script, non a occhio (lezione v46).
+[V] La voce 50 non contiene alcun pipe letterale.
+
+--------------------------------------------------------------------------
+2 · MOJIBAKE SU U+1F7E2 (intervento ②) — MISURATO ASSENTE
+--------------------------------------------------------------------------
+Misura sui byte del file preparato, in Python, mai con grep/sed.
+
+    F0 9F 9F A2                (sequenza corretta)  : 2 occorrenze
+    C3 B0 C2 9F C2 9F C2 A2    (mojibake Latin-1)   : 0 occorrenze
+    decodifica UTF-8 del file intero                : PULITA, 0 byte invalidi
+
+  I due siti, con contesto byte:
+    riga 338 off 157423  …tesso commit \xe2\x80\x94 TD-ipad-home \xf0\x9f\x9f\xa2 CHIUSO 30/06/20…
+    riga 339 off 159510  …7d22a9`), dentro TD-ipad-home \xf0\x9f\x9f\xa2 CHIUSO 30/06/20…
+
+=> IL FILE È INTEGRO. Nessuna correzione applicata, e nessuna era dovuta.
+   Ciò che il referee vede è un artefatto del connettore in lettura, non un
+   difetto del file. Il dubbio è chiuso, ed è un risultato.
+
+CENSIMENTO ESTESO, perché il prompt lo chiedeva "non solo questi due" —
+tutti i codepoint astrali del documento, SETTE distinti, 24 occorrenze:
+    U+1F534  7 occ  righe 304, 312, 313, 328, 482, 483
+    U+1F527  4 occ  righe 48, 214, 263, 463
+    U+1F4A1  4 occ  righe 49, 214, 263, 463
+    U+1F7E0  3 occ  righe 297, 461, 481
+    U+1F6A9  2 occ  righe 265, 465
+    U+1F6A8  2 occ  righe 328, 461
+    U+1F7E2  2 occ  righe 338, 339
+  Tutti integri (il file decodifica pulito: un solo astrale rotto lo
+  spezzerebbe). ⚠️ PRECISAZIONE ALLA PREMESSA DEL PROMPT, a favore del
+  referee: «è l'unico carattere astrale del testo» è FALSO sul documento
+  intero (sette), ma VERO sul perimetro che conta — dentro le sette righe
+  NUOVE (336-342) U+1F7E2 è davvero l'unico astrale, ed è alle sole righe
+  338 e 339. Le tre righe di header toccate non ne contengono nessuno.
+
+⚠️ UN ABORT PRESO DAL MIO STESSO CONTROLLO, e vale più della correzione:
+  la prima stesura della voce 50 incollava il glifo due volte, così
+  l'ancora "attese 3 occorrenze" è scattata trovandone 4. L'errore era nel
+  MIO conteggio, non nel file, e il file non è stato toccato: l'ABORT
+  precede la scrittura. Rimedio adottato: in una riga che RIPORTA UNA
+  MISURA SUI BYTE il codepoint si NOMINA (U+1F7E2), non si incolla — così
+  la voce 50 non aggiunge superficie astrale al documento e il totale resta
+  2. È la stessa lezione di v46: il rimedio non è l'attenzione, è il
+  controllo automatico.
+
+--------------------------------------------------------------------------
+3 · L3 NELLA RIGA R-δ (intervento ③)
+--------------------------------------------------------------------------
+[R] Fatto dichiarato da Mauro il 01/08/2026: attivata la sincronizzazione
+    locale (Google Drive per desktop) sulla cartella di E:. Nessuna fonte
+    documentale, e non gliene ho inventata una: nella riga è marcato [R].
+Inciso DENTRO la regola, come L1 e L2, non in nota:
+  · la causa dei 46 è ora CAUSA STORICA: l'etichetta nel corpo della riga è
+    stata cambiata da «Causa misurata, non aneddotica» a «Causa STORICA
+    misurata, non aneddotica — e superata da L3». Il testo era già al
+    passato; ora lo dichiara.
+  · una destinazione SINCRONIZZATA non è una copia indipendente: è un
+    riflesso e propaga le cancellazioni. Protegge dal guasto del supporto,
+    non dall'errore umano.
+  · le copie indipendenti si contano al netto delle sincronizzazioni:
+    E: e Drive valgono UNA protezione, non due; restano indipendenti C:
+    (che ha in più la storia git) e la chiavetta, che da complemento
+    periodico diventa l'unica difesa contro una cancellazione propagata.
+
+--------------------------------------------------------------------------
+4 · RILIEVO SUL PERIMETRO DEL CENSIMENTO (intervento ④) — ACCOLTO
+--------------------------------------------------------------------------
+Lo accolgo, ed è fondato. Misurato in questo giro sulle copie E:
+    2026-07-24_QLive-Shows-Card-Azione-Overflow-FREEZE.html
+        45161 B · height:812px 1 · height:844 0 · sonda width:390px 3
+    2026-07-26_QLive-Shows-Keyboard-Dismiss__Q20-RIEMISSIONE.html
+        37430 B · height:812px 1 · height:844 0 · sonda width:390px 2
+[V] Nessuno dei due è tracciato: `git ls-files` non li contiene, e
+    `git log --all --name-only` sui due nomi rende VUOTO — non solo assenti
+    a HEAD, mai entrati nella storia.
+[V] Corroborazione interna: la riga `2026-07-30` ARTEFATTI NORMATIVI FUORI
+    DAL CONTROLLO DI VERSIONE di questa stessa tabella nomina il secondo con
+    sha256 e 37430 byte — la dimensione coincide con la mia misura di oggi.
+Forma dell'accoglimento: una subordinata alla riga 390×844, che dichiara il
+    censimento REPO-SCOPED, nomina i due file misurati, e rimanda a CD
+    l'enumerazione dell'insieme da riemettere. NON ho scritto un totale:
+    sotto DA_CD_PER_CC i file che contengono `height:812px` sono 45, ma
+    quel 45 include copie annidate, `_SUPERATO__` e duplicati, e NON è un
+    censimento di freeze normativi. Un numero che non somma non si scrive.
+
+--------------------------------------------------------------------------
+5 · SCOPERTA SU DRIVE — E RETTIFICA DEL POSCRITTO DI D1
+--------------------------------------------------------------------------
+Il prompt dice che il referee ha letto su Drive una copia da 21316 B con gli
+U+2019 intatti. Il mio referto D1 dichiarava che su Drive stava solo la
+copia difettosa da 21304 B. Ho misurato, e la rettifica è a mio carico.
+
+[V] Su Drive esistono TRE file `DIFF_LIBRO-v50_2026-08-01.txt`:
+      21316 B  id 1_LrPQB5aABTmDq5PMRlr_IZ3VB5pbENL  creato 15:52:38  cart. A
+      21316 B  id 1pnWSQjJkX3M6zRfQ353gq20_LMrdVvqt  creato 15:52:38  cart. B
+      21304 B  id 1MgtBUN_CdZjs2Fs-Uzz78eGXwf3VkFaD  creato 15:55:30  cart. C
+[V] Le cartelle A e B sono due `HANDOFF` distinte, create dalla
+    sincronizzazione alle 15:47:17 e 15:47:45. La C è la `HANDOFF` creata da
+    CC il 01/08 alle 13:25:36 — quella in cui ho caricato a mano.
+
+=> DUE CONSEGUENZE, e la prima è contro di me:
+   (a) la sincronizzazione aveva già consegnato i byte ESATTI alle 15:52:38,
+       TRE MINUTI PRIMA del mio upload manuale delle 15:55:30. Il mio
+       trasporto in linea non è stato solo difettoso: è stato RIDONDANTE.
+       Il poscritto di D1 («Drive: presente con difetto dichiarato») era
+       vero sulla copia che avevo caricato io e FALSO sullo stato di Drive.
+       Lo rettifico qui: su Drive la copia buona c'era già.
+   (b) è la conferma sperimentale di L3 dal lato positivo, lo stesso giorno:
+       il canale automatico è byte-fedele, quello che passa da me no.
+
+⚠️ EFFETTO COLLATERALE DA DICHIARARE, non da riparare: la sincronizzazione
+   crea ALBERI PARALLELI accanto a quello caricato a mano. Su Drive esistono
+   almeno TRE cartelle chiamate `HANDOFF` (le due della sincronizzazione più
+   quella di CC). ⚠️ «Almeno»: la risposta dell'interrogazione è PAGINATA e
+   non l'ho esaurita — il censimento NON è chiuso, e non scrivo un totale
+   che non ho misurato. Nessuna cancellazione: le cancellazioni sono di
+   Mauro, e per L3 una cancellazione su un albero sincronizzato si propaga.
+
+--------------------------------------------------------------------------
+6 · CIÒ CHE NON HO FATTO
+--------------------------------------------------------------------------
+[V] Nessun commit, nessun `git add`, nessun push, nessun branch.
+[V] Non ho corretto nessun mojibake: non ce n'erano.
+[V] Non ho toccato BUGS, BOX3, BOX5, SCALETTA, sorgenti, workflow.
+[V] Non ho toccato le righe storiche del registro né le versioni 25/26
+    mancanti: dichiarate, non riparate.
+[V] Non ho caricato nulla a mano su Drive in questo giro: la propagazione
+    passa dalla sincronizzazione. La copia su E: è stata fatta con cmp.
+[V] Non ho enumerato l'insieme dei freeze da riemettere: è di CD.
+[V] Non ho chiuso il censimento delle cartelle `HANDOFF` su Drive.
+[V] Non ho cancellato la copia difettosa da 21304 B su Drive.
+================================================================================
+FINE REFERTO D1b.
+================================================================================

@@ -1,0 +1,148 @@
+diff --git a/ios_app/QBeats/AudioEngine.swift b/ios_app/QBeats/AudioEngine.swift
+index 11bdaf4..dcf4593 100644
+--- a/ios_app/QBeats/AudioEngine.swift
++++ b/ios_app/QBeats/AudioEngine.swift
+@@ -166,7 +166,7 @@ class AudioEngine: ObservableObject {
+     let sectionEndedSubject = PassthroughSubject<Void, Never>()
+ 
+     // CD-6 / Bug 4 fix (28/05/2026) — Opzione C orchestrazione cross-device.
+-    // Emesso dal callback Link `set_start_stop_callback` (righe ~436-442)
++    // Emesso dal callback Link `set_start_stop_callback` (chiamata a `link_engine_set_start_stop_callback`)
+     // quando `engine.isPlaying` flippa false→true a causa di un Director
+     // peer che ha premuto Play. LiveView observer chiama
+     // `runner.startSetlist(...)` per orchestrare la sezione corrente sul
+@@ -616,6 +616,10 @@ class AudioEngine: ObservableObject {
+         // === Task D refactor #18c — Correzione 1 referee adattata a installTap ===
+         // 1. stopSync() — sopra
+         // 2. engine.stop() — ferma render thread (blocking, sincrono per Apple docs)
++        //    ⚠️ MARCATURA 23/08 — «per Apple docs» NON È SORGENTATO: la
++        //    documentazione Apple non dichiara `stop()` bloccante/sincrono. Il
++        //    comportamento resta quello osservato, l'attribuzione no. Non
++        //    cambiare l'ordine dei passi su questa base.
+         // 3. mainMixerNode.removeTap(onBus: 0) — release del tap block ref
+         // 4. destroy degli handle C (incluso qbeats_link_pending_destroy)
+         // Senza questo ordine, free(linkPending) potrebbe race col render
+diff --git a/ios_app/QBeats/Models/LivePlaybackState.swift b/ios_app/QBeats/Models/LivePlaybackState.swift
+index 7e45112..38a56fa 100644
+--- a/ios_app/QBeats/Models/LivePlaybackState.swift
++++ b/ios_app/QBeats/Models/LivePlaybackState.swift
+@@ -15,5 +15,7 @@ enum LivePlaybackState: Equatable {
+     // via runner.startSetlist; (b) tap START LOCAL nella WaitingForDirectorView
+     // → runner.startSetlist locale; (c) tap CANCEL → dismiss UIHostingController
+     // a Bivio. CD-Q2=B ratificato libro mastro v14.
++    // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ dopo N1b: l'uscita del
++    //    player torna alla lista Shows della stanza. Testo sopra invariato.
+     case waitingForDirector
+ }
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index cce8654..22bcdad 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+@@ -395,7 +395,7 @@ final class SetlistRunner: ObservableObject {
+                 // NESSUN loadSection/setBPM — il prossimo setup arriva al tap
+                 // StandbyOverlay tramite runner.startCurrentSong(...).
+                 // Stop pulisce stato audio (isRunning=false) — necessario perché
+-                // audioEngine.start() ha guard `!isRunning` (AudioEngine.swift:503).
++                // audioEngine.start() ha guard `!isRunning` (AudioEngine.swift, in `start(resumeAtBeat:)` — per SIMBOLO).
+                 // Senza questo, startCurrentSong sarebbe no-op silenzioso e la
+                 // canzone successiva non partirebbe mai.
+                 // NB: audioEngine.stop() dispatcha playbackState=.stopped su main,
+diff --git a/ios_app/QBeats/UI/HomeRootView.swift b/ios_app/QBeats/UI/HomeRootView.swift
+index 32997c2..8f04f7f 100644
+--- a/ios_app/QBeats/UI/HomeRootView.swift
++++ b/ios_app/QBeats/UI/HomeRootView.swift
+@@ -4,7 +4,7 @@ import os
+ /// Home (ex Bivio) — trivio top-level Q-STUDIO · Q-STAGE · Q-LIVE.
+ /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
+ /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
+-/// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
++/// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift, blocco `scaleFactor` TD #23 — per SIMBOLO).
+ /// Q-Studio = porta COMING SOON (non interattiva). Q-Live = in-tree via screen-swap (Nodo A completo, N1b).
+ struct HomeRootView: View {
+     let onOpenQStage: () -> Void
+diff --git a/ios_app/QBeats/UI/Live/FineSetlistView.swift b/ios_app/QBeats/UI/Live/FineSetlistView.swift
+index 7abb5b5..ea0ac83 100644
+--- a/ios_app/QBeats/UI/Live/FineSetlistView.swift
++++ b/ios_app/QBeats/UI/Live/FineSetlistView.swift
+@@ -14,6 +14,14 @@ struct FineSetlistView: View {
+     /// ⛔ RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
+     /// (CD-3)» (`LIBRO:153`), mai ratificato — cablarlo, disabilitarlo o
+     /// nasconderlo è decisione CD, non di questo atomo.
++    /// ⚠️ MARCATURA 23/08 — LA DECISIONE C'È: NON È PIÙ MATERIA DA DECIDERE.
++    /// `LIBRO_MASTRO_QBEATS.md:353` (07/08/2026) dispone che RESTART SETLIST
++    /// **si toglie** da END SHOW — opzione Ⓐ di CD, con due cancelli distinti
++    /// passati entrambi: ratifica tecnica del referee e OK di Mauro.
++    /// ⛔ Chi apre questo file per eseguire la rimozione NON deve tornare da CD
++    /// per la decisione: è presa. Resta aperto il solo DISEGNO del piede con un
++    /// pulsante unico, che la stessa riga dichiara non ratificato.
++    /// ⚠️ Il testo sopra resta come fu scritto: era vero fino al 07/08.
+     let onBackToShows: () -> Void
+ 
+     var body: some View {
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 5e30b15..01942b5 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -429,7 +429,7 @@ struct LiveView: View {
+         }
+         // CD-6 / Bug 4 fix (28/05/2026) — Observer Opzione C orchestrazione
+         // cross-device. AudioEngine emette `linkStartedSubject` dal callback
+-        // Link `set_start_stop_callback` (righe ~436-442 di AudioEngine.swift)
++        // Link `set_start_stop_callback` (chiamata a `link_engine_set_start_stop_callback` in AudioEngine.swift)
+         // DOPO `engine.start()` quando un Director peer ha premuto Play e
+         // il nostro engine flippa da non-playing a starting. Qui orchestriamo
+         // la sezione corrente: in `.standby` `runner.startCurrentSong(...)`
+diff --git a/ios_app/QBeats/UI/Live/TransportView.swift b/ios_app/QBeats/UI/Live/TransportView.swift
+index 8d227fb..9d62c26 100644
+--- a/ios_app/QBeats/UI/Live/TransportView.swift
++++ b/ios_app/QBeats/UI/Live/TransportView.swift
+@@ -44,6 +44,9 @@ struct TransportView: View {
+                             // LiveView observer chiama runner.startSetlist;
+                             // (b) tap START LOCAL nella WaitingForDirectorView;
+                             // (c) tap CANCEL → dismiss a Bivio.
++                            // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ
++                            //    dopo N1b: si torna alla lista Shows.
++                            //    Testo sopra invariato.
+                             //
+                             // Correzione AI esterna #1 (Fase C): condizione SENZA
+                             // `&& !audioEngine.linkIsConnected` — anche con Link
+diff --git a/ios_app/QBeats/UI/QLive/QLiveSession.swift b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+index f61a9d7..75d676c 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveSession.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+@@ -14,6 +14,15 @@ import Combine
+ /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+ /// il solo posto in cui il runner può nascere.
+ ///
++/// ⚠️ MARCATURA 23/08 — LA CONDIZIONE QUI SOPRA SI È AVVERATA IL 19/08/2026.
++/// Il mutatore c'è: `install(_:)`, più sotto in questo stesso file,
++/// introdotto dal commit `7c04bea` («S5b: Start del dettaglio show»).
++/// ⛔ NON leggere al presente «il mutatore MANCA APPOSTA»: descrive perché lo
++/// slot NACQUE senza mutatore, ed è ancora la ragione per cui `install(_:)` è
++/// il solo posto in cui il runner può nascere.
++/// ⚠️ Chi arriva qui per ⟦S-EXIT⟧ — «lo stato dello show appartiene allo show,
++/// non alla schermata» — legga: la stanza PUÒ tenere lo stato. Lo tiene già.
++///
+ /// VINCOLO DI PROPAGAZIONE — verbatim da
+ /// `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:
+ /// «Un `ObservableObject` ANNIDATO dentro un altro NON propaga:
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index febca64..7f57d27 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -58,6 +58,15 @@ import SwiftUI
+ // (`QLiveSession.swift:12-15`). Lo stato VISIVO abilitato/disabilitato (token DS opacity 0.4)
+ // è invece cablato oggi, gattato sul RISOLTO-non-vuoto, non sul numero di righe.
+ //
++// ⚠️ MARCATURA 23/08 — «START INERTE» NON È PIÙ VERO DAL 19/08/2026.
++// Lo Start costruisce e consegna il runner: cerca `onStart(SetlistRunner(` più
++// sotto in questo file. Commit `7c04bea`. Collaudo su device di Mauro il 23/08:
++// da questo pulsante si entra nel player in standby.
++// Il testo sopra resta come fu scritto — dichiarava la propria scadenza
++// («a vita brevissima») e la scadenza è arrivata.
++// ⚠️ Vale anche per il rimando a `QLiveSession.swift:12-15`: quel commento è
++// scaduto per lo stesso motivo, ed è marcato in loco.
++//
+ // ⚠️ `scaleFactor` (D2) — APPLICATO, ma la copertura è PARZIALE PER COSTRUZIONE e va saputo.
+ // Applicato dove la regola arriva: `BOX5_QBEATS.md:68` scala «font/spacing ≥ 20pt», e in questo
+ // file l'unico valore ≥20 è il titolo `.dhead .nm` (29pt — A129, era 23pt). Tutto il resto è

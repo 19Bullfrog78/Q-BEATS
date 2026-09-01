@@ -1,0 +1,191 @@
+================================================================================
+HANDOFF CC — 2026-07-27 — chiusura sessione
+================================================================================
+Ogni riga porta [V] = misurata da CC ORA, col comando accanto, oppure
+[R] = riportata da altri e NON verificata. Nessuna terza categoria.
+Riferimenti per SIMBOLO; dove serve una riga, e' ancorata a un commit.
+
+================================================================================
+a) STATO MISURATO ORA
+================================================================================
+[V] HEAD = 8fa50189b13f49ba3b291510f7d1a388d75b5909      git log -1 --format=%H
+[V] subject = "LIBRO_MASTRO_QBEATS.md: v41 - 10 ratifiche cross-team 24-27/07
+    + Sez.5 -> ee31281"                                  git log -1 --format=%s
+[V] origin/master = HEAD, stesso sha                     git rev-parse origin/master
+[V] working tree PULITO: nessuna riga tracked            git status --porcelain
+[V] working directory = C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS    pwd
+[V] worktree (R8), due:                                  git worktree list
+    - C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS  8fa5018 [master]
+    - C:/Users/BULLFROG/qb_fixB  add556f [test/bug2b-test7-fixtures]
+[V] blob LIBRO a HEAD = d8a2b7d07f72cf8de49879d62c67a07522506c9e
+                                  git rev-parse HEAD:LIBRO_MASTRO_QBEATS.md
+
+Header dei canonici, letti dal file (sed -n), VERBATIM:
+[V] LIBRO    : **Versione:** 41 (27/07/2026)
+[V] BOX3     : BOX3 V99 - 2026-07-22 (AUTOPORTANTE)
+[V] BOX5     : **Versione:** V27 - 21/07/2026
+[V] BUGS     : **Versione:** 43
+[V] SCALETTA : **Versione:** 2 (17/07/2026)
+
+[V] HANDOFF\ contiene 33 file untracked    git status --porcelain -- HANDOFF/
+    Rilevanti operativamente: PAYLOAD_LIBRO_v41_2026-07-27_rev2.txt (vedi c),
+    ROADMAP_2026-07-26.txt, HANDOFF_CC_2026-07-26.txt, questo file.
+    Gli altri 29 sono diff/verifiche/handoff storici, inerti.
+
+================================================================================
+b) CHIUSO OGGI — LIBRO v41
+================================================================================
+[V] commit 8fa50189b13f49ba3b291510f7d1a388d75b5909, un solo file toccato,
+    +16/-4                                               git show --stat HEAD
+[V] autore = committer = Mauro Martintoni <di_tutto@icloud.com>
+[V] zero trailer: nessun Co-Authored-By / Signed-off-by nel messaggio
+[V] CI run 30266162467, conclusion=success, status=completed,
+    headSha=8fa50189b13f49ba3b291510f7d1a388d75b5909 (coincide con HEAD)
+                                  gh run view 30266162467 --json conclusion,headSha
+[V] CANCELLO REFEREE PASSATO 8/8. I bersagli erano precalcolati dal referee su
+    copia indipendente; CC ha misurato con comandi propri e tutti e otto
+    coincidono: righe 445 - byte LF 141762 - byte CRLF 142206 - autocheck 444 -
+    OID blob d8a2b7d07f72cf8de49879d62c67a07522506c9e - OID disco
+    6acfc2e2dac4bf1c403dce4303432898cea6bd24 - sha256 LF
+    e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 -
+    sha256 CRLF 689df25539c118e3f43d76349f6f07776246594285cb010072c93df89d5e0c89
+[V] Il v41 costruito da CC applicando il payload alla copia del REPO e' risultato
+    BYTE-IDENTICO al v41 che il referee aveva costruito per via indipendente
+    sulla propria copia di v40. Due strade separate, stesso blob.
+[V] Controlli di coerenza: 6ded4ab da 9 a 7 occorrenze, distribuzione riga per
+    riga come attesa; ee31281 da 0 a 3; ultima riga non vuota
+    "**Fine documento.**"; BOM assente.
+[V] PROPAGAZIONE in quattro sedi, tutte con sha256
+    e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 (faccia LF):
+    - repo (blob a HEAD)
+    - E:\...\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS_V41_2026-07-27_8fa5018.md
+    - E:\...\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS.md          (mirror a nome fisso)
+    - E:\...\CC MEMORIA\LIBRO_MASTRO_QBEATS.md            (mirror a nome fisso)
+[V] Le tre copie su E: sono state estratte DAL BLOB (git cat-file blob), mai dal
+    file di lavoro; verificate 141762 byte, CR=0, e git hash-object --no-filters
+    = d8a2b7d07f72cf8de49879d62c67a07522506c9e su ciascuna.
+
+================================================================================
+c) ATTENZIONE — PAYLOAD CONSUMATO, NON RIAPPLICARE
+================================================================================
+[V] HANDOFF\PAYLOAD_LIBRO_v41_2026-07-27_rev2.txt e' stato APPLICATO oggi ed e'
+    ora un foglio di lavoro esaurito.
+[V] Integrita' di trasporto verificata al momento dell'uso: 21418 byte,
+    113 righe, CR=0, sha256
+    a90c750a3fd89bc8da603d0b187609109ebc2a753f3d3693b752bec7861a1758
+[R] Una SECONDA applicazione duplicherebbe le dieci righe di Sez.2, e i bersagli
+    NON la intercettano: descrivono il risultato atteso, non quante volte ci si
+    arriva. Non provato sul campo - dedotto dalla forma dei bersagli.
+[V] PRIMA di applicarlo, chiunque lo trovi deve verificare che LIBRO sia GIA' a
+    v41 e FERMARSI. Due controlli: header "**Versione:** 41 (27/07/2026)" e
+    git hash-object LIBRO_MASTRO_QBEATS.md = d8a2b7d07f72cf8de49879d62c67a07522506c9e
+[V] CONSIGLIO A MAURO: rimuoverlo da HANDOFF\. E' un foglio di lavoro, non un
+    documento; il suo contenuto vive gia' nel commit 8fa5018 e nella storia git.
+
+================================================================================
+d) NIENTE IN VOLO
+================================================================================
+[V] Nessuna modifica non committata: git status --porcelain non rende righe
+    tracked.
+[V] Nessun branch nuovo: i soli riferimenti sono master e il worktree
+    preesistente test/bug2b-test7-fixtures.
+[V] Nessuna scrittura a meta': l'unica scrittura su canonico di oggi (LIBRO v41)
+    e' committata, pushata, CI-verde e propagata.
+[V] BOX5, SCALETTA, BUGS, BOX3 NON toccati oggi: header invariati (vedi a).
+
+================================================================================
+e) PROSSIMO LAVORO — giro doc
+================================================================================
+[V] Ordine: B3 BOX5 V28 -> SCALETTA v3 -> BUGS v44 -> BOX3 V100.
+[V] B3 NON e' "riformulare due righe". In BOX5 V27 le stringhe QL-SHOWS, Q-Live,
+    Remove, Q20, alert rendono ZERO occorrenze tutte e cinque, zero righe.
+    Misurato da CC il 27/07 su BOX5_QBEATS.md in root, con notazione
+    controprovata ("Vista LIVE" rende 13 righe nello stesso filtro).
+    E' un CAPITOLO NUOVO da incidere, non un emendamento.
+[V] La copia di BOX5 in mano al referee NON e' stale: coincide al byte con
+    quella su disco (stessa sha256, 34541 byte, 475 righe).
+
+================================================================================
+f) DEBITI APERTI, con la fonte
+================================================================================
+[V] RETTIFICA DOVUTA SU LIBRO v41 - una claim e' falsa a fonte. La riga
+    "opzione A-bis" (Sez.2, data 2026-07-27) dichiara il mockup di confronto
+    "non depositato su E:, vive nel progetto CD". FALSO: il file
+    2026-07-27_QLive-Shows-Remove-a-S4L-confronto.html E' su E: in
+    DA_CD_PER_CC\27_07_2026\, 40367 byte, sha256
+    6455c8a98976fcb78a79c2f06822b8f02a152ffdcc9158e4b6d2a4091d2e19fc,
+    CreationTime 2026-07-27 13:41:19. L'IMPRONTA e i byte sono giusti; e'
+    sbagliata la sola affermazione di non-deposito - la pull e' avvenuta dopo
+    la stesura del payload. Stessa forma del reperto 6 (un deposito si verifica
+    NEL MOMENTO in cui lo si cita). Da rettificare in un giro doc futuro, come
+    v40 fece con le proprie due rettifiche di registro. NON invalida la
+    scrittura: il v41 e' byte-esatto rispetto al payload ratificato.
+[V] ACCUMULO SETLIST - voce SEPARATA da TD-setlist-id-orfani, non un suo
+    sottocaso. deleteSetlist (simbolo in Store/QBeatsStore.swift) ha ZERO
+    call-site in tutto ios_app; LiveRootView, QLiveShowsView e ShowsListView
+    non hanno onDelete, swipeActions, EditButton, .destructive, contextMenu.
+    Notazione controprovata su deleteSong, che rende il cablaggio completo.
+    TD-setlist-id-orfani riguarda gli UUID orfani lasciati DA una cancellazione;
+    questo riguarda l'assenza della cancellazione stessa. Fronti disgiunti.
+[V] Vincolo di architettura collegato: lo Store non conosce lo stato di
+    riproduzione (isPlaying rende ZERO occorrenze in tutto Store/), quindi la
+    guardia "non si cancella in sessione" non puo' stare nello Store.
+[V] ANGOLO DEL RIORDINO, si aggancia a TD-qlive-libero-limbo causa (i).
+    La causa (i) e' il DEV fallback setlists.first ?? Setlist.makeDefault().
+    Angolo nuovo: non serve una cancellazione per cambiare quale show Q-Live
+    caricherebbe - basta un RIORDINO. moveSetlists esiste come simbolo in
+    Store/QBeatsStore.swift. Finche' non esiste selezione, l'ordine della lista
+    determina il contenuto della sessione.
+[V] Nota di manutenzione sullo stesso ticket: la causa (i) cita
+    LiveRootView.swift:8, ma a HEAD 8fa5018 il fallback e' alle righe 12-13.
+    Riferimento di riga invecchiato - da riancorare al simbolo.
+[V] IGIENE E: - doppione byte-identico. DESIGN_E_BRIEFING\LIBRO_MASTRO_QBEATS2.md
+    e LIBRO_MASTRO_QBEATSv15.md hanno la stessa sha256
+    5268500979e86355786824ff275d20b21d3cd8e1eaa503227cc4c9adce35a176 (64575 B):
+    un contenuto, due nomi.
+[V] IGIENE E: - tre copie pre-convenzione in LIBRO_MASTRO\ accanto a quelle
+    per-versione: LIBRO_MASTRO_QBEATS36.md, ...37.md, ...38.md.
+[R] TRE COSE IN MANO A CD, nessuna misurata da CC:
+    (1) riemissione del freeze 24/07 con TRE frammenti da marcare
+        (coda §4 - fascia-cancello - frame 2);
+    (2) riemissione QL-SHOWS;
+    (3) chip "Read-only" in testa alla lista Q-Live, da decidere PRIMA di S4L:
+        dal giorno in cui Remove esiste, quella scritta non e' piu' vera.
+
+================================================================================
+g) REPERTI DI OGGI — per BOX3 V100
+================================================================================
+[V] NUOVO - "gh run watch ... | tail" restituisce l'exit code di TAIL, non del
+    watch. Un comando che fallisce puo' rendere 0 perche' l'ultimo elemento
+    della pipe e' riuscito: falso-verde in potenza. La conclusione di una CI si
+    legge da "gh run view --json conclusion,headSha", MAI da un exit code in
+    fondo a una pipe. Osservato oggi sulla run 30266162467.
+[V] RIPRODOTTO DAL VIVO - sha CORTO in "gh ... --commit" rende vuoto con exit 0,
+    mentre lo sha a 40 rende la run. Verificato oggi sullo stesso commit:
+    8fa5018 -> vuoto; 8fa50189b13f49ba3b291510f7d1a388d75b5909 -> la run.
+    Terza conferma indipendente della regola BOX3 V99 (d).
+[V] CONTARE LE RIGHE CHE CONTENGONO X NON E' CONTARE LE X. In LIBRO v40 la
+    stringa 6ded4ab compare 9 volte su 6 righe. Dopo v41 scende a 7, non a 8:
+    spariscono due occorrenze, l'ancora di Sez.5 e quella nella riga 6
+    dell'header riscritta per intero. Chi contasse le righe vedrebbe un delta
+    diverso e concluderebbe male. Famiglia dei conteggi plausibili e sbagliati.
+[V] DUE Q9 E DUE Q10 IN LIBRO - problema STRUTTURALE, non risolto. Serie 21/05
+    (CD-5): Q8=A, Q9=A, Q10=A sullo swipe della Vista LIVE. Serie 11/07 (freeze
+    Q7-Q16): un altro Q9 e un altro Q10, contenuto tutt'altro. Una citazione
+    "Q9" senza data e senza serie e' ambigua esattamente come "BOX3 (g)" senza
+    lo strato. v41 disambigua le proprie citazioni, ma le occorrenze storiche
+    restano ambigue e nessuno le ha bonificate.
+[V] RIFERIMENTO EREDITATO E MAI VERIFICATO - "BUGS righe 344-346" per
+    TD-qlive-search-keyboard-trap veniva da un documento CD e ha attraversato
+    piu' passaggi senza che nessuno lo misurasse. A fonte il ticket va da 341 a
+    348; le 344-346 sono tre bullet interni. Corretto in v41 citando il SIMBOLO.
+[V] METODO CHE HA RETTO, due volte. (1) Copiare DAL BLOB (git cat-file blob) e
+    mai dal file di lavoro: su file a due facce e' cio' che impedisce di
+    propagare la faccia CRLF al posto di quella LF. (2) Verificare che il
+    contenuto sopravviva ALTROVE prima di sovrascrivere: fatto prima di
+    allineare i due mirror a nome fisso, il v40 era preservato nello snapshot
+    per-versione e nel blob a 131a511.
+
+================================================================================
+FINE HANDOFF.
+================================================================================

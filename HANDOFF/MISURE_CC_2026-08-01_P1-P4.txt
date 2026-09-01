@@ -1,0 +1,580 @@
+================================================================================
+MISURE CC - 2026-08-01 - giro P1-P4 richiesto dal referee.
+SOLA LETTURA. Zero scritture sui file misurati. Zero commit. Zero correzioni.
+================================================================================
+REGOLA DEL GIRO: ogni numero con DUE forme indipendenti.
+  byte = stat + wc -c, oppure cat-file -s + wc -c sui blob.
+  righe = wc -l + awk NR. CR = tr -cd + python sui byte.
+  Il file non contiene il proprio sha256: impronte nel messaggio di consegna.
+
+AVVISO DI PROCESSO, non una misura: P1 era gia' stata eseguita e consegnata nel
+  referto HANDOFF/MISURE_CC_2026-08-01_N1-N5.txt (sha256
+  3988a121d300af1bd5a42bfc928b95197d70b04f61ad0899cf1c68b79c5455d7, 46406 B,
+  752 righe), repo e mirror E:. E' il TERZO referto che non raggiunge il
+  referee. Guasto di TRASPORTO, non di misura. Qui la rifaccio da capo.
+
+[V] Orologio macchina: 2026-08-01 10:38:31 +0200
+[V] HEAD: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+
+--------------------------------------------------------------------------
+P1 - I CINQUE PUNTATORI AD AppRootView.swift
+--------------------------------------------------------------------------
+[V] righe del file  f1 wc-l = 79
+                    f2 awkNR= 79
+[V] byte del file   f1 cat-file-s = 3979
+                    f2 wc-c       = 3979
+
+[V] IL FILE INTERO E VERBATIM a HEAD, con numeri di riga:
+--- INIZIO AppRootView.swift ---
+     1	import SwiftUI
+     2	import os
+     3	
+     4	struct AppRootView: View {
+     5	    @EnvironmentObject var audioEngine: AudioEngine
+     6	    @Environment(\.scenePhase) private var scenePhase
+     7	    @State private var showSplash = true
+     8	    @State private var screen: Screen = .home
+     9	    /// Nodo A N1a — valore precedente di `screen` per il handler `.onChange`
+    10	    /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+    11	    /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+    12	    @State private var previousScreen: Screen = .home
+    13	
+    14	    /// Routing top-level della Home: commutazione di schermata (NON push).
+    15	    /// Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta
+    16	    /// della Home fa `screen = .qLive` (entry-point canonico unico); la
+    17	    /// modale UIKit è stata ritirata.
+    18	    private enum Screen { case home, qStage, qLive }
+    19	
+    20	    var body: some View {
+    21	        ZStack {
+    22	            if showSplash {
+    23	                SplashView()
+    24	                    .onAppear {
+    25	                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+    26	                            withAnimation(.easeOut(duration: 0.4)) {
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+    34	                    HomeRootView(onOpenQStage: { screen = .qStage },
+    35	                                 onOpenQLive: { screen = .qLive })
+    36	                case .qStage:
+    37	                    // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
+    38	                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+    39	                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+    40	                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+    41	                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+    42	                    // lo stop vive al bordo-stanza, non sulla navigazione.
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+    45	                        .environmentObject(audioEngine)
+    46	                case .qLive:
+    47	                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+    48	                    // onExit e lo inoltra alla gerarchia Q-Live; le closure
+    49	                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+    50	                    // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+    51	                    QLiveRootView(onExit: { screen = .home },
+    52	                                  onSwitchToStage: { screen = .qStage })
+    53	                        .environmentObject(audioEngine)
+    54	                }
+    55	            }
+    56	        }
+    57	        .onAppear {
+    58	            UIApplication.shared.isIdleTimerDisabled = true
+    59	        }
+    60	        .onChange(of: scenePhase) { newPhase in
+    61	            UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+    62	        }
+    63	        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+    64	        // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+    65	        // (non-deterministico su view riusata/cachata; il vecchio
+    66	        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+    67	        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+    68	        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+    69	        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+    70	        .onChange(of: screen) { newScreen in
+    71	            if newScreen == .qLive {
+    72	                audioEngine.triggerDNDReminderIfNeeded()
+    73	            } else if previousScreen == .qLive {
+    74	                audioEngine.stop()
+    75	            }
+    76	            previousScreen = newScreen
+    77	        }
+    78	    }
+    79	}
+--- FINE AppRootView.swift ---
+
+[V] ACCOSTAMENTI. Colonna 1 = cosa DICHIARA il sito. Colonna 2 = cosa C'E'
+    alla riga puntata, a HEAD. NESSUN VERDETTO DI CC.
+
+=== (1) BUGS:289 -> AppRootView.swift:10-12
+  DICHIARA (riga 289 di BUGS_QBEATS.md, verbatim):
+- **Cos'è:** la radice dell'app commuta tra due schermate (`AppRootView.swift:8,13,27-33`: enum `Screen{home,qStage}`, `HomeRootView`↔`QStageRootView`). **Q-Live NON è in questo enum:** è montata come **modale UIKit** — `UIHostingController(LiveRootView)` + `modalPresentationStyle=.overFullScreen` + `.present()` sul `rootViewController` della window (`HomeRootView.swift:77-88`, func `presentLive()`). Lo dichiara il codice stesso: commento `AppRootView.swift:10-12` "Q-Live resta una modale UIKit … riconciliazione top-level = Nodo A (a verbale)".
+
+  C'E' alle righe 10-12 di ios_app/QBeats/UI/AppRootView.swift:
+    10	    /// (iOS 16 dà solo il valore NUOVO). Serve a sapere DA DOVE si viene, così
+    11	    /// il handler può fermare l'audio quando la transizione LASCIA `.qLive`.
+    12	    @State private var previousScreen: Screen = .home
+
+  (il sito nomina anche :8, :13 e :27-33 nello stesso puntatore; eccoli)
+     8	    @State private var screen: Screen = .home
+    13	
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+  (dove sta l'enum Screen nel file a HEAD:)
+18:    private enum Screen { case home, qStage, qLive }
+
+=== (2) BUGS:319 -> AppRootView.swift:27-33
+  DICHIARA (riga 319 di BUGS_QBEATS.md, verbatim):
+- **De-risk (sourced S3+S4):** (a) modello **unico, già esistente** — `struct Setlist` (`Models/Setlist.swift:3`); CRUD store pronto (`QBeatsStore.swift:72-89` + `resolve` `:95`, `setlists.json`); stesso `Setlist` per palco (`SetlistRunner.swift:59`) e backup (`QBeatsBackupManager.swift:27-29`) → niente "due verità". (b) mount **pulito** — tab dentro il `TabView` (`QStageRootView.swift:17`) via commutazione (`AppRootView.swift:27-33`), **NON** eredita Nodo A (modale Q-Live, `HomeRootView.swift:76-88`); monterebbe come Songs (proprio `NavigationStack`, `SongListView.swift:19`).
+
+  C'E' alle righe 27-33 di ios_app/QBeats/UI/AppRootView.swift:
+    27	                                showSplash = false
+    28	                            }
+    29	                        }
+    30	                    }
+    31	            } else {
+    32	                switch screen {
+    33	                case .home:
+
+=== (3) BUGS:704 -> AppRootView.swift:43-44
+  DICHIARA (riga 704 di BUGS_QBEATS.md, verbatim):
+- **Sweep di compilabilità PRIMA del commit** (nessuna toolchain Swift in locale → prima prova possibile = CI): due call-site in codice, entrambi aggiornati (`AppRootView.swift:43-44`, `QStageRootView.swift:27`); sweep inverso dal parametro ai suoi usi → 6 occorrenze, tutte dentro i 3 file modificati, zero orfani; unico `PreviewProvider` del repo (`UI/QLive/QLiveEmptyStates.swift:238`) non istanzia nessuno dei due tipi; zero `.swift` fra gli untracked.
+
+  C'E' alle righe 43-44 di ios_app/QBeats/UI/AppRootView.swift:
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+
+=== (4) SCALETTA:126 -> AppRootView.swift:13
+  DICHIARA (riga 126 della SCALETTA, verbatim):
+- **File:** `AppRootView.swift:13` (add `.qLive`) · `QLiveRootView.swift` NUOVO (onExit unico hookpoint; audio-stop su transizione) · `LiveHeaderView.swift:6,:26` (`dismiss()`→`onExit()`) · `WaitingForDirectorView.swift:27,:67` (CANCEL→`onExit()`) · `HomeRootView.swift:77-88` (modale→`screen=.qLive`).
+
+  C'E' alla riga 13 di ios_app/QBeats/UI/AppRootView.swift:
+    13	
+  byte della sola riga 13 (a capo incluso): 1
+
+[V] CENSIMENTO di tutti i siti che citano AppRootView.swift: nei canonici.
+    BUGS, righe: 118 120 122 289 319 704 981 999 
+    BUGS, conteggio f1 grep -c = 8
+    BUGS, conteggio f2 grep -n|wc -l = 8
+    LIBRO, conteggio = 0
+    controllo positivo stessa forma, BUGS 'AudioEngine.swift:' = 26
+
+--------------------------------------------------------------------------
+P2 - LA FINESTRA COMPLETA v24..v27
+--------------------------------------------------------------------------
+[V] git log --oneline --follow -- LIBRO_MASTRO_QBEATS.md : elenco completo,
+    non troncato, numerato.
+--- OUTPUT GREZZO ---
+     1	ddd5716 LIBRO v48: S6F istituito per la fascia Q-LIVE PLAYING, collocato dopo S5 (doc-only)
+     2	8822598 LIBRO v47: rettifica della distanza d'uso, S4R chiuso, due buchi dichiarati
+     3	40f099b LIBRO v46: Sez.2 +4 righe (doc-only, zero codice) - gate S4R ri-dichiarato, atomo nuovo S-EXIT, tre clausole di scrittura, ordine atomi emendato con S4L sospeso
+     4	3164564 LIBRO v45: colonna data di Sez.2 e registro = INDIRIZZO non data - 2 regole ratificate, zero righe storiche corrette
+     5	4d1f974 LIBRO v44: giornate 29-30/07 - S4K e DARK-DECL chiusi device, identita Apple, fatto commerciale, 2 regole di processo, artefatti fuori dal controllo di versione
+     6	c3caa58 LIBRO v43 — ratifica sdoppiamento S4L in tre atomi
+     7	8926c2a LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+     8	8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+     9	131a511 LIBRO_MASTRO_QBEATS.md: v40 - condizione di chiusura TD#17 agli atti + rettifica della premessa SCALETTA nella riga 2026-07-21
+    10	9784294 LIBRO_MASTRO_QBEATS.md: v39 — regime canonici BOX3/BOX5 ratificato (Sez.2) + Sez.5 senza puntatore per-versione
+    11	c288e86 LIBRO_MASTRO_QBEATS.md: v38 — 6 righe cross-team 20/07 + R-beta/R-gamma
+    12	a61647b LIBRO_MASTRO_QBEATS.md: v37 — Sez.2 +1 riga cross-team «Follower gregario» (Mauro, ratificata referee) + sanata la descrizione Sez.5 (doc-only)
+    13	2d36784 LIBRO_MASTRO v36 — Sez.2 +5 righe cross-team 18/07 (nav≠transport, runner-sale, uscita-stanza, CTA, allarme asimmetrico) + Sez.5 HEAD f8276f6 + changelog v35 ricostruito
+    14	ed5425c Verbale NODO A CHIUSO: LIBRO v35 + piano (E2, ESITO)
+    15	872dd5b LIBRO_MASTRO_QBEATS.md: v34 — S3 CHIUSO (primo atomo §6 device-validato, gate 4 tocchi PASS) + Sez.1 gh CLI disponibile + Sez.5 HEAD c77d69f
+    16	ff3f25e LIBRO_MASTRO_QBEATS.md: v33 — Sez.2 debito scaleFactor nav (cross-team CD) + Sez.5 HEAD 9cc3d17
+    17	9cc3d17 LIBRO_MASTRO_QBEATS.md: v32 — R8 working-directory/worktree + Sez.5 HEAD pre-doc-commit
+    18	e9d7754 LIBRO v31: R7 anti-cascata + Sez.5 HEAD pre-doc-commit (fix strutturale)
+    19	04df53a LIBRO v30: ratifiche CD Q7/Q9-Q16 (nav Q-Stage Shows) + pulizia sha incisi
+    20	cd02280 docs(nodo-a): E1 — N1b rimuove LiveView:187 .onDisappear{stop()} + 2 marcatori piano; LIBRO v29 (sha vivo 18cf6264, storico 77d081f6)
+    21	42c2bce docs(libro): v28 — S1/S2F + 2 domande aperte CD (CD-Q7, CD-Q8)
+    22	82d743e LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello tag) + §6 nav (Nodo A) + famiglia swallow (TD-persist-silent-fail)
+    23	0dc2189 LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onesto); motore A2-A7 sbloccato
+    24	8ca04a4 LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio Link role-gated (ratifica Mauro 01/07)
+    25	2b5cdd3 LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only
+    26	6758aea LIBRO_MASTRO_QBEATS.md: v23 — Media = Tracks + Video (sez.1 naming + sez.2 decisione 26/06: Song base+video sincronizzati, v1 solo Tracks, Video Fase 7); doc-only
+    27	3f57358 LIBRO_MASTRO_QBEATS.md: v22 — risoluzione bandiere modello dati CD (backtrack una/Song, MIDI globale non per-Song, Q-Studio parcheggiato, No-Standby); doc-only, nessun cambio modello
+    28	0aa8990 LIBRO_MASTRO_QBEATS.md: v20+v21 proposta→RATIFICATA (26/06); status only, no bump; doc-only
+    29	2d9caf8 LIBRO_MASTRO_QBEATS.md: v21 - Schema 3 container UI (Q-Studio) + rename tecnico Studio->QStage (sez.1 mappa nomi + sez.2 ratifica); doc-only
+    30	a001d0a LIBRO_MASTRO_QBEATS.md: v20 - Modello operativo a 4 ruoli (consolida+supersede Q6=A + Gerarchia 3 ruoli 20/05); doc-only
+    31	6f7f11f LIBRO_MASTRO_QBEATS.md: v19 — Rete peer: single-band = configurazione supportata + reti pubbliche/non personali fuori scope + qualifica «pulito»=statico (sez. 2); doc-only
+    32	84f9dc4 LIBRO_MASTRO_QBEATS.md: v18 - TD#17 root cause router-specifico + raccomandazione rete palco single-band + Soluzione C fix definitivo (ratificata 22/06)
+    33	97386dd LIBRO_MASTRO_QBEATS.md: v17 — ridisegno modalita collaborativa (default Standalone, CD-7, CD-Q6) + caveat chiusura Bug 2.b (faccia visiva aperta)
+    34	3af4c97 LIBRO_MASTRO_QBEATS.md: v16 — Bug 2.b (Ferita A+B) chiuso, merge ee0cbc0; CD-Q5 END SHOW; HEAD ff530b7->ee0cbc0
+    35	bbdd06a LIBRO_MASTRO_QBEATS.md: v15 — chiusure Fase 6-7 (Problema B/Bug 5/Bug 5-BPM/1.j/CD-6/badge HEAD) + apertura Fase 6-7-bis + caveat CANCEL→Bivio
+    36	c7fc44d LIBRO_MASTRO_QBEATS.md: v14 — risposte CD a CD-Q1...Q4 (counter + badge HEAD / Vista WAITING FOR DIRECTOR + CD-6 / switch secco / ratifica Problema A)
+    37	944f01f LIBRO_MASTRO_QBEATS.md: v13 — 3 chiusure cross-team + Bug 2 UX + 4 domande CD
+    38	e582970 LIBRO_MASTRO_QBEATS.md: v12 — R1 aggiornata con riferimento memorie workspace
+    39	4acb741 rename STATO_QBEATS.md → LIBRO_MASTRO_QBEATS.md (v11) + cascading
+    40	c20f9d9 STATO_QBEATS.md: v10 — fix display Peers validato device + scope iOS-only confermato
+    41	863bc99 STATO_QBEATS.md: v9 — vincolo strutturale LinkKit 4.0 + display Settings binario
+    42	e384a2f STATO_QBEATS.md: v8 — TD #44 causa in codice QB + Soluzione C ripostizionata
+    43	106764c STATO_QBEATS.md: v7 — rollback A su errore v6 (rimosse righe operative CD interne mescolate, mantenuta sola Semantica Layout congelato cross-team)
+    44	cd5dc3b STATO_QBEATS.md: v6 — roadmap batch CD 21/05
+    45	90c8e96 STATO_QBEATS.md: v5 — Q12=A risolta (cascading rename Swift cf3f0b5, 30 strings) + EMERGENZA -> EMERGENCY + feedback memory regola affinata
+    46	9cd31c7 STATO_QBEATS.md: v4 — Q11=A (PROSSIMA -> NEXT) + Q12 aperta (cascading rename R-CD5-10 completo, 14 stringhe italiane scoperte via Grep generico)
+    47	eeb725d STATO_QBEATS.md: v3 — ratifica batch Mauro + 8 R-CD5 + EMERGENZA + cascading rename (21/05)
+    48	8ce1282 STATO_QBEATS.md: v2 — naming UI completato + Q7-Q10 aperte (review CD 21/05)
+--- FINE OUTPUT ---
+
+[V] La finestra, con DUE forme.
+    forma 1 - commit fra v24 e v27 che TOCCANO il LIBRO: 3
+      82d743e  LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello 
+      0dc2189  LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onest
+      8ca04a4  LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio L
+    forma 2 - commit TOTALI nella finestra, qualunque file: 41
+
+[V] CONTEGGIO DELLE RIGHE DI REGISTRO A OGNI COMMIT DELLA FINESTRA, tutti.
+    Colonna REGISTRO = grep -cE '^| *[0-9]+ | 20'.
+    Colonna 25/26    = grep -cE '^| *2[56] |' (seconda forma, non usa la data).
+--- OUTPUT GREZZO ---
+COMMIT    REGISTRO  25/26  SOGGETTO
+2b5cdd3   24        0      LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only  <-- v24, estremo inferiore
+5839e4f   24        0      editor-polish: default Section vuoto + Add Section auto-en
+87d22a9   24        0      TD-ipad-home: scaleFactor cap solo-iPad (Home overflow por
+4b3e91d   24        0      TD-ipad-home: blocco landscape portrait-only iPad (project
+b1c50ab   24        0      BUGS_QBEATS.md: v23 — editor-polish committato (5839e4f)
+920a506   24        0      BUGS_QBEATS.md: v24 — collaudo b1c50ab
+9d047e0   24        0      editor: campo BPM digitabile (TextField + commit-on-exit)
+0d3282a   24        0      BUGS_QBEATS.md: v25 — TD-editor-back-discard
+726246f   24        0      editor: decouple campo BPM dai +/- (fix +/- esclusi col ca
+51dabab   24        0      editor: BPM +/- commit-first + ri-clamp (fix combinazione 
+3b43627   24        0      BUGS_QBEATS.md: v26 — TD-editor-bpm-typeable chiuso + sp
+d7bdc81   24        0      TD-ipad-editor-fontsize: SectionEditorView scaleFactor res
+d650ccd   24        0      TD-ipad-editor-fontsize: SongEditorView scaleFactor respon
+99cc0ce   24        0      TD-ipad-editor-fontsize: SectionEditorView tipografia DS r
+4ba7f42   24        0      TD-ipad-editor-fontsize: SongEditorView tipografia DS resp
+033f192   24        0      TD-ipad-editor-fontsize: header sezione uniformi (SectionE
+47906cd   24        0      TD-ipad-editor-fontsize: header Sections uniforme (SongEdi
+11e5017   24        0      TD-ipad-editor-fontsize: Subdivision 1× → ×1 (convenzi
+081e923   24        0      BUGS_QBEATS.md: v27 — TD-ipad-editor-fontsize CHIUSO dev
+8ca04a4   24        0      LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / inga
+e55806d   24        0      SettingsView: label modalità «Collaborative» → «Foll
+0dc2189   24        0      LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1
+2851bac   24        0      core_engine: B7-A1 — TempoMap/TempoPoint + serializzazio
+60ba935   24        0      core_engine: registra metronome_dsp_tests in ctest (housek
+e80e7d3   24        0      core_engine: B7-A2 — ITempoAnalyzer (presa pluggable) + 
+efd09a1   24        0      core_engine: B7-A3 — follower adattivo in MetronomeDSP (
+4dfa2f8   24        0      core_engine: B7-A4 — test anti-drift 121±2 con oracolo 
+6eddd5b   24        0      BUGS_QBEATS.md: v28 — TD vector<BeatEvent>-heap render p
+b4d3596   24        0      ci+test: B7-A5-pre — banco Swift (target QBeatsTests sta
+568887e   24        0      BUGS_QBEATS.md: v29 — TD store decode-swallow (catalogo 
+b107871   24        0      ios_app: B7-A5a — tipi modello TempoPoint/MetronomeMode/
+a34e86a   24        0      ios_app: B7-A5b — Song.metronomeMode + decoder retro-com
+ba271ca   24        0      ios_app: B7-A5c-1 — terzo catalogo backtracks + manifest
+633bfac   24        0      BUGS_QBEATS.md: v30 — TD backtracks load-isolato riscriv
+1008d48   24        0      ios_app: B7-A5c-2 — restore backtracks (selezione + merg
+9b6ba10   24        0      ios_app: DebugView — pulsanti test Export/Import .qbeats
+fcf9260   24        0      ios_app: DebugView — fix presentazione fogli export/impo
+430f7fa   24        0      ios_app: W1 — wiring subdivision/swing a Live (SetlistRu
+06b17b6   24        0      ios_app+core: ATOM C — subdivision schedulata al downbea
+80c7efc   24        0      BUGS_QBEATS.md: v31 — TD-backup-restore-no-ui (nessun in
+e141295   24        0      BUGS_QBEATS.md: v32 — promozione WAIT-DIRECTOR con Link 
+82d743e   25        0      LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (mo
+--- FINE OUTPUT ---
+
+[V] Le voci 25 e 26 del registro non compaiono in NESSUNO dei commit della
+    finestra: la colonna 25/26 rende 0 su tutte le righe sopra. Il conteggio
+    del registro passa da 24 a 25 solo all'estremo superiore, il commit di v27.
+    Interpretazione e decisione sulla chiusura di BUGS:519: al referee.
+
+--------------------------------------------------------------------------
+P3 - .gitattributes, PERIMETRO REALE, E LE TRE FACCE DEI CINQUE CANONICI
+--------------------------------------------------------------------------
+[V] cat .gitattributes - output grezzo:
+--- INIZIO ---
+HANDOFF/** -text
+DESIGN/** -text
+BOX3_QBEATS.md -text
+BOX5_QBEATS.md -text
+--- FINE ---
+
+[V] git check-attr -a sui cinque - output grezzo.
+    ATTENZIONE ALLA LETTURA: check-attr stampa UNA RIGA SOLO per i file che
+    HANNO un attributo. I file assenti dall'output sono quelli SENZA attributi.
+--- INIZIO ---
+BOX3_QBEATS.md: text: unset
+BOX5_QBEATS.md: text: unset
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md: text: unset
+--- FINE ---
+
+[V] git ls-files --eol sui cinque - output grezzo:
+--- INIZIO ---
+i/lf    w/lf    attr/-text            	BOX3_QBEATS.md
+i/lf    w/lf    attr/-text            	BOX5_QBEATS.md
+i/lf    w/crlf  attr/                 	BUGS_QBEATS.md
+i/lf    w/lf    attr/-text            	HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+i/lf    w/crlf  attr/                 	LIBRO_MASTRO_QBEATS.md
+--- FINE ---
+
+[V] LE TRE FACCE, canonico per canonico.
+
+=== LIBRO_MASTRO_QBEATS.md
+  (a) WORKING TREE   byte 216083 / 216083 ok | righe 485 / 485 ok | CR 485 / 485 ok
+  (b) BLOB A HEAD    byte 215598 / 215598 ok | righe 485 / 485 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 215598 / 215598 ok | righe 485 / 485 ok | CR 0 / 0 ok
+      file E: = LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V48_2026-07-31_ddd5716.md
+  DELTA working-tree meno blob = 485 byte.  CR nel working tree = 485.
+  FACCE: DUE (la differenza in byte e' esattamente il numero di CR).
+
+=== BUGS_QBEATS.md
+  (a) WORKING TREE   byte 257416 / 257416 ok | righe 1010 / 1010 ok | CR 1010 / 1010 ok
+  (b) BLOB A HEAD    byte 256406 / 256406 ok | righe 1010 / 1010 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 256406 / 256406 ok | righe 1010 / 1010 ok | CR 0 / 0 ok
+      file E: = BUGS_QBEATS/BUGS_QBEATS_V46_2026-07-30_e61efd0.md
+  DELTA working-tree meno blob = 1010 byte.  CR nel working tree = 1010.
+  FACCE: DUE (la differenza in byte e' esattamente il numero di CR).
+
+=== BOX3_QBEATS.md
+  (a) WORKING TREE   byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+      file E: = BOX3_Codice/BOX3_V99_2026-07-22_7c804c1.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+=== BOX5_QBEATS.md
+  (a) WORKING TREE   byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+      file E: = BOX5_Test/LUGLIO/BOX5_V28_2026-07-28_0a6ebaf.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+=== HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+  (a) WORKING TREE   byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+      file E: = HANDOFF/SCALETTA_v4_2026-07-30_a393466.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+[V] REPERTO COLLATERALE - BOX5 V28 ha DUE stampe su E:, non una:
+-rw-r--r-- 1 BULLFROG 197609 57158 Jul 28 18:02 BOX5_V28_2026-07-28.md
+-rw-r--r-- 1 BULLFROG 197609 57158 Jul 28 18:50 BOX5_V28_2026-07-28_0a6ebaf.md
+    Una porta il commit in coda al nome, come vuole la convenzione ratificata
+    il 21/07; l'altra no. Impronte delle due, per stabilire se il contenuto e'
+    lo stesso:
+cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b
+cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b
+    cmp fra le due: exit 0, sono byte-identiche.
+
+--------------------------------------------------------------------------
+P4 - E:/HANDOFF RICORSIVO E DIREZIONE DELL'INCLUSIONE
+--------------------------------------------------------------------------
+[V] Conteggi con due forme:
+    file diretti in E:/HANDOFF  f1 find = 123
+                                f2 ls   = 123
+    file nelle sottocartelle            = 16
+    file ricorsivi                      = 139
+    sottocartelle                       = 9
+    file diretti nel repo HANDOFF/      = 92
+
+[V] LE NOVE SOTTOCARTELLE E I LORO FILE - elenco completo, non troncato:
+--- INIZIO ---
+--- REFEREE_SYNC_2026-07-12   (3 file)
+      2026-07-11_Q7-Q16.html
+      BUGS_QBEATS35.md
+      LIBRO_MASTRO_QBEATS31.md
+--- REFEREE_SYNC_2026-07-13   (3 file)
+      BOX3_V94_2026-07-13.md
+      BOX5_V25_2026-07-13.md
+      LIBRO_MASTRO_QBEATS33.md
+--- S3_BACKUP_2026-07-13   (0 file)
+--- S3_BACKUP_2026-07-13/Store   (1 file)
+      QBeatsStore.swift
+--- S3_BACKUP_2026-07-13/UI   (1 file)
+      QStageRootView.swift
+--- S3_BACKUP_2026-07-13/UI/QStage   (1 file)
+      ShowsListView.swift
+--- S3_HITFIX_BACKUP_2026-07-14   (2 file)
+      RoomSwitchBar.swift
+      ShowsListView.swift
+--- _superseded_by_v2   (4 file)
+      E1_MARCATORI_LIBRO_DIFF_2026-07-11.txt
+      EMENDAMENTO_187_DIFF_2026-07-11.txt
+      S2_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+      S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+--- _superseded_by_v3   (1 file)
+      S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+--- FINE ---
+
+[V] DIREZIONE DELL'INCLUSIONE - due liste, non due conteggi.
+    Confronto sui NOMI dei file al primo livello di ciascuna area.
+
+  (A) NEL REPO E NON SU E: - elenco completo
+--- INIZIO ---
+BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+DIFF_B3_BOX5-V28_2026-07-28.txt
+DIFF_B3bis_BOX5-V28_2026-07-28.txt
+DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt
+DIFF_BUGS-v45_2026-07-30.txt
+DIFF_BUGS-v45_2026-07-30_rev2.txt
+DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+DIFF_DARK-DECL_2026-07-29.txt
+DIFF_FIX-PILL_2026-07-22.txt
+DIFF_GIRO_DOC_2026-07-17.txt
+DIFF_LIBRO-v44_2026-07-30.txt
+DIFF_LIBRO-v44_2026-07-30_rev2.txt
+DIFF_LIBRO-v44_2026-07-30_rev3.txt
+DIFF_LIBRO-v45_2026-07-30.txt
+DIFF_N0_seam-onExit_2026-07-17.txt
+DIFF_N1a_scaffold-qLive_2026-07-17.txt
+DIFF_N1b_flip-qLive_2026-07-17.txt
+DIFF_S4K_congedo-tastiera_2026-07-29.txt
+DIFF_S4K_congedo-tastiera_rev2_2026-07-29.txt
+HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+HANDOFF_CC_2026-07-26.txt
+HANDOFF_CC_2026-07-27.txt
+HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt
+HANDOFF_CC_2026-07-28_sera_chiusura-sdoppiamento-S4L.txt
+HANDOFF_CC_2026-07-29_sera.md
+HANDOFF_CC_2026-07-30_sera.md
+HANDOFF_CC_2026-07-30_sera_chiusura-v45.md
+HANDOFF_REFEREE_2026-07-27.md
+HANDOFF_REFEREE_2026-07-27_sera.md
+HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md
+INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt
+MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+MISURE_CC_2026-08-01_P1-P4.txt
+MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+MISURE_M1_IDENTITA-S4L_2026-07-28.txt
+MISURE_R1_2026-07-28.txt
+MISURE_R1b_2026-07-28.txt
+MISURE_R2_2026-07-28.txt
+MISURE_R3_2026-07-28.txt
+MISURE_R4_2026-07-28.txt
+MISURE_R5_2026-07-28.txt
+MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+ROADMAP_2026-07-26.txt
+SCALETTA_ATOMI_S6_2026-07-10.md
+_SUPERATO__ROADMAP_2026-07-24.txt
+--- FINE ---
+      quanti: 49
+
+  (B) SU E: E NON NEL REPO - elenco completo
+--- INIZIO ---
+2026-04-29_QBEATS_Handoff_VolumiClick_Mute.md
+2026-05-02_QBeats-Handoff_CD_a_CC.md
+ACCERTAMENTO_LETTURA_ABC_2026-07-13.txt
+BOX3v93-SCALETTAv1-LIBROv32_DIFF_2026-07-13.txt
+BOX3v94-LIBROv33-BOX5v25_DIFF_2026-07-13.txt
+BUGS_v35_DIFF_2026-07-12.txt
+CC_REVIEW_SHOWS_HANDOFF_2026-07-09.md
+CD_FREEZE_QLIVE_NAV_2026-07-09.md
+CD_FREEZE_QLIVE_NAV_CONSEGNA_2026-07-09.md
+DIFF_BUGS-v41_2026-07-20_rev1.txt
+DIFF_BUGS-v41_2026-07-20_rev2.txt
+DIFF_LIBRO-v38_2026-07-20_rev1.txt
+DIFF_LIBRO-v38_2026-07-20_rev2.txt
+DIFF_S4b_2026-07-19.txt
+DIFF_S4b_2026-07-19_rev2_QLiveRootView.txt
+EMENDAMENTO_187_DIFF_2026-07-11_v2.txt
+ESITO_COMMIT_BUGS-v41_2026-07-20_rev1.txt
+ESITO_COMMIT_LIBRO-v38_2026-07-20_rev1.txt
+ESITO_COMMIT_RETE-GIT_2026-07-21_rev1.txt
+ESITO_COMMIT_S4b_2026-07-19.txt
+HANDOFF_BUG2B_BORN_04_06_2026.md
+HANDOFF_CC_2026-07-13_notte.txt
+HANDOFF_CC_2026-07-13_sera.txt
+HANDOFF_CC_2026-07-14_sera_NODOA.txt
+HANDOFF_CC_2026-07-15_sera.txt
+HANDOFF_CC_2026-07-17.md
+HANDOFF_CC_2026-07-18_nodoa-chiuso-giro-doc.txt
+HANDOFF_CC_2026-07-19_SERA_chiusura-S4b.txt
+HANDOFF_CC_2026-07-20_rev1.txt
+HANDOFF_CC_2026-07-21_notte_V27-v39-CHIUSURA.txt
+HANDOFF_CC_2026-07-21_rev1.txt
+HANDOFF_CC_2026-07-21_sera_REGIME-CANONICI.txt
+HANDOFF_CHIUSURA_2026-07-13.txt
+HANDOFF_REFEREE_2026-07-18_nodoa-chiuso.txt
+HANDOFF_STUDIO_PER_CD_25_06_2026.md
+IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt
+INDAGINE_C-TER_STORE-MODELLO_2026-07-19.txt
+INDAGINE_TASTO-MORTO-QSTAGE_2026-07-19.txt
+INVENTARIO_CANONICI-VS-GIT_2026-07-20_rev1.txt
+INVENTARIO_DOCREF-FUORI-GIT_2026-07-20_rev1.txt
+INVENTARIO_GIRO-DOC_2026-07-20_rev1.txt
+LIBRO_V30_DIFF_2026-07-12_v2.txt
+LIBRO_V31_DIFF_2026-07-12.txt
+PROPOSTA_RETE-GIT-CANONICI_2026-07-21_rev1.txt
+QBEATS_FONTI_PER_REFEREE_PIVOT_2026-07-08.txt
+QBEATS_S0_DIFF_2026-07-10.txt
+QBEATS_S0_STATUS_2026-07-10.txt
+QBEATS_S1_S2F_DIFF_2026-07-11.txt
+QBEATS_S1_S2F_DIFF_v2_2026-07-11.txt
+QBEATS_S1_S2F_DIFF_v3_2026-07-11.txt
+QUADRA_TD17_2026-07-21_rev1.txt
+R1-REF-01_B3_CTA_verbatim_2026-07-11.txt
+R1-REF-02_RoomSwitchBar_intero_piu_ancore_S3_2026-07-11.txt
+R1_VERIFICA_SOLA_LETTURA_2026-07-12.txt
+ROADMAP_2026-07-24.txt
+ROADMAP_PRE_CD_16_05_2026.md
+S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v3.txt
+S2b_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+S2d_DIFF_2026-07-12.txt
+S2e_DIFF_2026-07-12.txt
+S3_BOZZA_PROMPT_2026-07-13.txt
+S3_CHECKLIST_TOKEN_2026-07-13.txt
+S3_DIFF_2026-07-13.txt
+S3_DOCCOMMIT_DIFF_2026-07-14.txt
+S3_GATE_ACCERTAMENTO_2026-07-13.txt
+S3_HITFIX_DIFF_2026-07-14.txt
+S4B_FASE0_PIANO_2026-07-19.txt
+SCALETTA-rename_BOX3v95_DIFF_2026-07-13.txt
+SCALETTA_S3_REVIEW_2026-07-12.txt
+SCALETTA_v3_2026-07-28_8289944.md
+SCALETTA_v4_2026-07-30_a393466.md
+VERIFICA_4TOCCHI-BARRA_2026-07-20_rev1.txt
+VERIFICA_CLAUDE-MD_2026-07-20_rev1.txt
+VERIFICA_FREEZE-DESIGN_2026-07-20_rev1.txt
+VERIFICA_GATE-S4b_SCALETTA_2026-07-20.txt
+VERIFICA_REMOTE_CI_2026-07-19.txt
+VERIFICA_STATO_GIT_2026-07-19.txt
+VERIFICA_STATO_GIT_2026-07-20.txt
+roadmap_sezione6_stato_18_luglio.svg
+--- FINE ---
+      quanti: 80
+
+  (C) IN ENTRAMBI, per nome: 43
+      quadratura: A + C deve dare i file del repo, B + C quelli di E:.
+      A+C = 92
+      B+C = 123
+
+[V] ⚠️ LIMITE DICHIARATO DI QUESTE DUE LISTE: sono confronti per NOME, non per
+    contenuto. Un file presente in entrambe le aree con lo stesso nome ma con
+    byte diversi compare in (C) e NON in (A) ne' in (B). La parita' di
+    contenuto e' stata verificata con cmp solo sui referti consegnati oggi e
+    ieri, non sull'intera cartella.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Nessun verdetto su P1: ho accostato i testi, come chiesto.
+[V] Nessuna conclusione su P2: la decisione di chiudere BUGS:519 per
+    accertamento e' del referee, non mia.
+[V] Le stampe su E: dei cinque canonici sono quelle piu' recenti trovate per
+    nome. Non ho verificato che siano le UNICHE: per BOX5 V28 ne ho trovate
+    due e le ho misurate entrambe, per gli altri quattro non ho fatto la
+    stessa ricerca esaustiva.
+[V] Il confronto di inclusione e' al PRIMO LIVELLO di ciascuna area. I 16 file
+    nelle nove sottocartelle di E: non entrano nelle due liste.
+[V] Nessuna misura su device. Nessuna run CI interrogata.
+[R] I file:riga citati DENTRO i siti BUGS:289, :319, :704 e SCALETTA:126,
+    diversi da AppRootView, non sono stati riverificati.
+
+================================================================================
+FINE REFERTO P1-P4.
+================================================================================

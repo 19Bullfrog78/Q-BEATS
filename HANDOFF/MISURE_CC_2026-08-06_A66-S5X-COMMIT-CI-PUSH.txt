@@ -1,0 +1,251 @@
+REFERTO QB-2026-08-06-A66-S5X-COMMIT-CI-PUSH
+=============================================
+
+Orologio: 2026-08-06T13:33:08Z, locale +02:00. Data ID = data esecuzione.
+
+⛔⛔ ESITO DEL GIRO: **FERMATO PRIMA DEL COMMIT.**
+    NESSUN COMMIT CREATO. NESSUN RAMO. NESSUNA CI. NESSUN PUSH.
+    Motivo: DUE CITAZIONI PER RIGA, DENTRO IL DIFF RATIFICATO, SONO FALSE
+    ALL'ALBERO CHE IL COMMIT STESSO CREEREBBE.
+    Il diff NON e' stato modificato: la ratifica vale su quel diff, e correggerlo
+    da solo lo trasformerebbe in una variante non ratificata.
+    Serve una RI-RATIFICA su due righe. Proposta esatta piu' sotto.
+
+
+================================================================================
+CANCELLI D'INGRESSO — TUTTI SUPERATI
+================================================================================
+
+VERIFICA ID — A66 NON COLLIDE.
+  · repo : `ls HANDOFF/ | grep -i 'A66'` -> exit 1 · `grep -rl 'A66' HANDOFF/` -> nessun file
+  · controllo positivo: A64 presente.
+
+AGGANCIO — CONFERMATO.
+  Ultimo referto per mtime: MISURE_CC_2026-08-06_A64-S5X-BACK-TO-SHOWS.txt (15:19).
+
+HEAD — INVARIATO.
+  HEAD   = 25056b66eda40ad76d91a886ace442b7064ca900
+  albero = 63c793a8d0ec122cdfc9657992c309568f83821e
+  branch = master
+  soggetto di HEAD = «S5a: QLiveShowDetailView (frame 3, read-only) + tap-riga da Shows»
+
+IDEMPOTENZA — IL COMMIT NON ESISTE.
+  Il soggetto di HEAD e' ancora quello di ⟦S5a⟧: nessun commit ⟦S5x⟧ e' stato creato,
+  ne' in questo giro ne' prima. Si sarebbe potuto procedere.
+
+IL DIFF E' QUELLO RATIFICATO — PROVATO SUI BYTE, non sul conteggio.
+  `git status --porcelain -- ios_app/` -> ESATTAMENTE 2 righe, entrambe ` M`:
+      M ios_app/QBeats/UI/Live/FineSetlistView.swift
+      M ios_app/QBeats/UI/Live/LiveView.swift
+  `git diff --numstat` -> 11  1  FineSetlistView.swift  ·  19  1  LiveView.swift   (atteso)
+  `git diff --stat`    -> 2 files changed, 30 insertions(+), 2 deletions(-)         (atteso)
+  `git status --porcelain | grep -v '^??'` -> le stesse 2 righe e nient'altro:
+      nessun altro file TRACCIATO e' stato toccato in tutto il repo.
+  BLOB POST-IMAGE (la prova che conta — sono calcolati DOPO i filtri, quindi
+  inchiodano i byte esatti che entrerebbero nel commit):
+      index b4efb0b..4602937 100644   (FineSetlistView.swift)
+      index 46961e1..b436fa0 100644   (LiveView.swift)
+  Coincidono con quelli riportati in A64. Il diff e' byte-identico al ratificato.
+
+IDENTITA' PER IL COMMIT — MISURATA, NON ASSUNTA.
+  `git config user.name`  = Mauro Martintoni
+  `git config user.email` = di_tutto@icloud.com
+  Ultimi 12 commit di master: Autore E Committer = Mauro Martintoni
+  <di_tutto@icloud.com> su TUTTI. Trailer Co-Authored-By negli ultimi 5: ZERO.
+  `commit.gpgsign` non impostato. `.git/hooks/` non contiene hook attivi (solo i
+  .sample di default, esclusi dall'elenco).
+  => L'identita' di default E' gia' quella richiesta: nessun `--author` necessario,
+     nessun bypass necessario, `--no-verify` non serviva comunque (nessun hook).
+
+
+================================================================================
+IL REPERTO CHE FERMA IL GIRO — DUE CITAZIONI PER RIGA CHE IL DIFF STESSO INVALIDA
+================================================================================
+
+Il diff aggiunge 18 righe di commento SOPRA la costruzione di FineSetlistView, e 10
+righe SOPRA il corpo di FineSetlistView. Entrambe le inserzioni FANNO SLITTARE le
+righe che i commenti appena aggiunti CITANO. Il risultato e' che, all'albero che
+questo commit creerebbe, due indirizzi puntano al posto sbagliato.
+
+Non e' un'ipotesi: e' misurato sul working tree, cioe' esattamente sul contenuto che
+entrerebbe nel commit.
+
+--- DIFETTO 1 — FineSetlistView.swift:12 ---
+  TESTO ATTUALE (verbatim, riga 12 del working tree):
+      /// la composizione delle azioni vive nel presentatore (`LiveView.swift:145`),
+  MISURA: `grep -n 'FineSetlistView(scaleFactor' LiveView.swift` -> **160**
+  A HEAD la costruzione stava a :145. Dopo il diff sta a :160. Deriva +15.
+  ⇒ Chi apre LiveView.swift:145 all'albero di questo commit NON trova la
+    costruzione: trova il mezzo del blocco di commento.
+
+--- DIFETTO 2 — LiveView.swift:153 ---
+  TESTO ATTUALE (verbatim, riga 153 del working tree):
+      //      (LiveSession.swift:35); la guardia :231-233 qui sotto NON
+  MISURA: `grep -n 'case .standby, .fineSetlist:' LiveView.swift` -> **250**
+  A HEAD la guardia stava a :231-233. Dopo il diff sta a :249-251. Deriva +18.
+  ⇒ E' l'indirizzo piu' delicato dell'intero atomo: e' la riga che DIMOSTRA che la
+    guardia non sta sul percorso del cablaggio. Chi la verifica seguendo il numero
+    atterra 18 righe sopra, su tutt'altro, e non puo' confermare l'affermazione.
+
+PERCHE' MI FERMO INVECE DI CORREGGERE E PROCEDERE:
+  · Il mandato e' esplicito: «Se il diff nel working tree differisce anche di un byte
+    da quello ratificato, FERMATI: la ratifica vale su QUEL diff, non su una sua
+    variante.» Correggere da solo produrrebbe una variante non ratificata.
+  · Il mandato e' altrettanto esplicito sul fatto che cio' che finisce sul repo
+    PUBBLICO e non si corregge piu' va fermato prima: la clausola e' scritta per il
+    messaggio di commit, ma vale con la stessa forza per un commento di codice, che
+    e' altrettanto pubblico e altrettanto immutabile.
+  · E questo progetto ha gia' messo per iscritto ESATTAMENTE questa forma di difetto:
+    la regola INDIRIZZO DI CONTENUTO (LIBRO v44, riga 2026-07-30), «indirizzi per
+    SIMBOLO, riga solo con `@ commit` a 40» (giro indirizzi 01/08), e il precedente in
+    casa `BUGS_QBEATS.md:315-316` che ha riancorato per staleness proprio delle
+    citazioni per riga. Pubblicare due indirizzi falsi sarebbe commettere in un atomo
+    nuovo il difetto che i canonici stanno bonificando negli atomi vecchi.
+
+⚠️ RESPONSABILITA': i due difetti sono MIEI, introdotti in A64 e non visti ne' da me
+   ne' in ratifica. Li ho trovati oggi solo perche' il messaggio di commit mi ha
+   obbligato a rimisurare le righe, e la rimisura ha mostrato la deriva. E' la
+   dimostrazione operativa della regola «riga per aritmetica != riga misurata».
+
+
+================================================================================
+CORREZIONE PROPOSTA — 2 righe, ZERO cambiamenti di comportamento
+================================================================================
+
+Forma scelta: indirizzo PER SIMBOLO, che e' la forma che i canonici prescrivono ed e'
+immune a ogni deriva futura (l'alternativa, ancorare con `@ 25056b66…`, lascerebbe un
+numero che il lettore deve risolvere contro un ALTRO albero: piu' fragile).
+
+PROPOSTA 1 — FineSetlistView.swift, riga 12. Una riga sostituisce una riga.
+  DA:
+      /// la composizione delle azioni vive nel presentatore (`LiveView.swift:145`),
+  A:
+      /// la composizione delle azioni vive nel presentatore (`LiveView`, unico callsite),
+
+PROPOSTA 2 — LiveView.swift, righe 153-155. Tre righe sostituiscono tre righe.
+  DA:
+      //      (LiveSession.swift:35); la guardia :231-233 qui sotto NON
+      //      è su questo percorso — ascolta il MOTORE
+      //      (audioEngine.$playbackState), non la sessione.
+  A:
+      //      (LiveSession.swift:35); la guardia `case .standby, .fineSetlist:
+      //      return` più sotto NON è su questo percorso — ascolta il MOTORE
+      //      (audioEngine.$playbackState), non la sessione.
+
+EFFETTO SUL DIFF: il conteggio resta +30/−2 (sostituzioni una-a-una, nessuna riga
+aggiunta o tolta). Cambierebbero i due blob post-image; il diffstat no.
+⛔ NON APPLICATE. Il working tree porta ancora il diff ratificato, intatto.
+
+
+================================================================================
+IL MESSAGGIO DI COMMIT — REDATTO, VERBATIM, NON ESEGUITO
+================================================================================
+
+Riportato come prescritto PRIMA di eseguire (e il commit non e' stato eseguito).
+Verificato riga per riga: ogni affermazione ha una misura alle spalle, nessuna
+dichiara l'atomo chiuso, nessuna cita la CI (che a quel punto non esisterebbe:
+citarla sarebbe falso, e amendare dopo per aggiungerla toccherebbe il contenuto
+ratificato — deviazione dichiarata rispetto a ⟦S5a⟧, che la cita perche' fu amendato
+DOPO il verde).
+
+------------------------------ INIZIO MESSAGGIO ------------------------------
+S5x: cablaggio di BACK TO SHOWS in FineSetlistView
+
+Il bottone BACK TO SHOWS aveva una closure vuota dal 21/05 (899be2ce, lo
+stesso commit che gli ha dato questo nome). Da qui esegue il comportamento
+gia' ratificato in LIBRO_MASTRO_QBEATS.md:154 (R-CD5-10, 21/05): «torna
+alla libreria SHOWS».
+
+Nessun percorso nuovo: la via d'uscita esisteva gia'. LiveView riceve
+onExit dal presentatore, che lo costruisce come navigate(to: .shows), e lo
+inoltrava a due foglie, LiveHeaderView e WaitingForDirectorView. Questo e'
+il terzo inoltro dello stesso seam. Nessuno stato nuovo, nessuna
+navigazione nuova, nessun tipo nuovo.
+
+FineSetlistView riceve una closure opaca e non conosce ne' la sessione ne'
+la navigazione: la composizione delle due azioni sta in LiveView, che
+possiede la sessione. Il parametro non ha default, perche' un default
+no-op avrebbe ricreato il bottone morto in silenzio a ogni futuro callsite.
+
+L'azione fa due cose in quest'ordine: riporta session.playbackState a
+.stopped, poi invoca onExit. Il reset non e' ridondante: se il sottoalbero
+non venisse rilasciato al cambio di page — comportamento SwiftUI dichiarato
+NON SORGENTATO in QLiveRootView.swift:64-67 — senza di esso il prossimo
+ingresso al player si aprirebbe direttamente su END SHOW. E' corretto sotto
+entrambe le ipotesi.
+
+La scrittura di .stopped e' inerte: il motore e' gia' fermo quando si entra
+in fineSetlist, e playbackState e' un @Published nudo senza didSet. La
+guardia dell'onReceive su audioEngine.$playbackState non sta su questo
+percorso, perche' ascolta il motore e non la sessione: non e' stata
+toccata. Censimento degli osservatori in HANDOFF/MISURE_CC_2026-08-06_A64.
+
+RESTART SETLIST resta invariato, closure vuota compresa: il suo
+comportamento e' «proposto (CD-3)» in LIBRO_MASTRO_QBEATS.md:153, mai
+ratificato. Cablarlo, disabilitarlo o nasconderlo e' decisione CD.
+
+NON VALIDATO SU DEVICE, e oggi non e' validabile: alla schermata END SHOW
+non si arriva ancora — page non diventa mai .metronome, lo slot del runner
+non ha mutatore, START SHOW e' inerte. Validazione differita a S5b.
+------------------------------- FINE MESSAGGIO -------------------------------
+
+VERIFICA A FONTE DI OGNI AFFERMAZIONE DEL MESSAGGIO:
+  · «closure vuota dal 21/05 (899be2ce)» — VERIFICATO DA ME, non ripreso da BUGS:
+    `git blame -L 19,19 HEAD -- FineSetlistView.swift` -> 899be2ce, 2026-05-21.
+    ⚠️ Prima misura sbagliata e corretta in corsa: avevo interrogato il WORKING TREE
+    (dove la riga 19 non e' piu' quella, per via delle mie +10 righe) e ottenuto
+    6ee8fb8b. Rifatta su HEAD: 899be2ce. Il numero pubblicato e' quello giusto.
+  · «lo stesso commit che gli ha dato questo nome» — VERIFICATO: soggetto di 899be2ce
+    = «app: rename UI labels FineSetlistView FINE SHOW -> END SHOW, TORNA AGLI SHOWS
+    -> BACK TO SHOWS, RICOMINCIA -> RESTART SETLIST (post-ratifica R-CD5-10 21/05)».
+    Label e ratifica R-CD5-10 sono entrate insieme.
+  · «LIBRO_MASTRO_QBEATS.md:154» — riletta oggi: «| BACK TO SHOWS | Bottone fine
+    setlist (FineSetlistView): to…». Indirizzo VALIDO (file non toccato dal diff).
+  · «LIBRO_MASTRO_QBEATS.md:153» — riletta oggi: «| Restart Setlist | Bottone CD-3
+    in `.fineSetlist`: ricominc…». VALIDO.
+  · «QLiveRootView.swift:64-67» — riletta oggi: «⚠️ NON SORGENTATO (§7): la tesi…».
+    VALIDO (file non toccato dal diff).
+  · onExit / navigate(to: .shows) / le due foglie — citati PER SIMBOLO, senza numeri
+    di riga, apposta: sono in un file che questo commit modifica o che potrebbe
+    slittare in futuro.
+  · «Censimento … in HANDOFF/MISURE_CC_2026-08-06_A64» — il file esiste, verificato.
+  · NESSUNA menzione di CI. NESSUNA parola «chiuso».
+
+
+================================================================================
+PARTI 2, 3, 4, 5 — NON ESEGUITE
+================================================================================
+PARTE 2 (ramo-fiammifero + CI) : NON ESEGUITA — dipende dal commit, che non esiste.
+PARTE 3 (verifica pre-push)    : NON ESEGUITA — stessa ragione.
+PARTE 4 (push su master)       : NON ESEGUITA — stessa ragione.
+PARTE 5 (stato da dichiarare)  : ⟦S5x⟧ resta **PROPOSTO**. Non «chiuso a codice»:
+                                 quella formula presuppone commit + CI verde, e non
+                                 c'e' ne' l'uno ne' l'altra. E in nessun punto di
+                                 questo referto compare la parola «chiuso» riferita
+                                 all'atomo.
+
+STATO DEL WORKING TREE ALLA CHIUSURA DEL GIRO — INVARIATO RISPETTO AD A64:
+  HEAD 25056b66eda40ad76d91a886ace442b7064ca900
+   M ios_app/QBeats/UI/Live/FineSetlistView.swift
+   M ios_app/QBeats/UI/Live/LiveView.swift
+  numstat 11/1 e 19/1. Il diff ratificato e' li', intatto, non toccato da me.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+Nessun commit, nessun ramo, nessuna CI, nessun push. Nessuna modifica ad alcun file
+sotto ios_app/ in questo giro: il diff presente e' quello di A64, invariato.
+Nessun tocco ai canonici. Unica scrittura: questo referto in HANDOFF\ + mirror E:.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI a HEAD 25056b66eda40ad76d91a886ace442b7064ca900 e misurato il
+working tree dal vivo, non a memoria. Le due derive (+15 e +18) sono MISURATE con
+`grep -n` sul contenuto che entrerebbe nel commit, non dedotte per aritmetica dal
+diff. Il blame e' stato rifatto su HEAD dopo che la prima interrogazione, sbagliata
+perche' rivolta al working tree modificato, aveva reso un commit diverso: il valore
+pubblicabile e' 899be2ce, e la correzione e' dichiarata qui invece che nascosta.
+Non ho corretto il diff da solo: la ratifica vale su quel diff, e la variante va
+ri-ratificata. Non ho committato: due indirizzi falsi su un repo pubblico non si
+correggono piu'.

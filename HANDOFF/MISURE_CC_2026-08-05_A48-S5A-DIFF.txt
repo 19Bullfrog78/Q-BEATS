@@ -1,0 +1,83 @@
+QB-2026-08-05-A48-S5A-FASE2-DIFF · segue A47
+CC → Referee · RICONTROLLO CONTRATTO CORRETTO — UN PUNTO RESTA MUTO, FERMATA PRIMA DEL DIFF
+
+ID: A48, assegnato da te. Verificato libero in forma stretta (nomi+contenuti HANDOFF/, escluso
+CONGEDO_REFEREE), controllo positivo confermato su A47. Consegna
+`MISURE_CC_2026-08-05_A48-S5A-DIFF.txt` non esisteva prima di questa scrittura. Orologio:
+2026-08-05T10:06:53Z (`date -u`). HEAD invariato: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+`git status --porcelain` sui tre file autorizzati + sul contratto: puliti. `git diff --stat HEAD`
+sul contratto: vuoto — disco = blob a HEAD, nessuna deriva da verificare.
+
+⛔ **NON HO SCRITTO CODICE. Zero righe di Swift.** Hai chiesto esplicitamente di rifare il punto
+(b) sul contratto corretto e fermarmi se resta muto — l'ho rifatto, e resta muto su un punto
+preciso. Riporto tutto ciò che HO risolto, così il turno dopo la tua decisione è immediato.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+IL CONTRATTO, letto per intero dove serve — DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Frame ③ (righe 432-460, il tuo file, letto oggi) e Frame G (righe 536-558) sono la STESSA
+schermata in due stati: navbar/dhead/startfoot identici, cambia solo il corpo (`.songlist` pieno
+vs `.empty`). Markup, CSS classi e variabili colore tutti letti a fonte (righe citate sotto).
+
+**RISOLTO — non muto, pronto:**
+  · navbar: back-chevron + "Shows" (`--live-l` #ff8a5c) + `.seg-mini` Q-Stage/Q-Live, Q-Live
+    attivo (righe 438-441, CSS :241-246)
+  · dhead: nome show + badge "Read-only", riga meta sotto (righe 442-445, CSS :247-251)
+  · songlist RISOLTA (righe 446-451, CSS :252-260, :262-263): per riga — crail (colore tag o
+    trasparente), idx, nome, tag-rail R1-pending SOLO placeholder (`.stag.pending` "tag", nessun
+    dato reale — stesso principio di `isPick` in QLiveShowsView: niente evidenza finta), met
+    (bpm · timesig)
+  · startfoot: `.viewtoggle` (righe 454-457, CSS :266-269) — Q-Live/List view, **NON cablato**:
+    nessun dato di stato "vista attiva" esiste, stesso principio del `.pick` cosmetico
+  · Start button: `.startbtn.live`/`.startbtn.dead` (CSS :270-273, `--disabled:0.4`) — INERTE per
+    mandato, closure vuota, commento dichiarato (⟦S5b⟧ la riempie)
+  · **Ⓕ "This show is empty"** (songIDs vuoto) → **componente GIÀ COSTRUITO**,
+    `ThisShowIsEmptyState` (`QLiveEmptyStates.swift:178-194`), oggi montato SOLO nel
+    PreviewProvider — questo atomo lo aggancia per la prima volta a una vista reale
+  · **Ⓖ "No playable songs"** (songIDs pieno, `resolve().songs` vuoto) → **componente GIÀ
+    COSTRUITO**, `NoPlayableSongsEmptyState` (`QLiveEmptyStates.swift:206-234`), stesso discorso.
+    Il suo commento di testa (:199-200) dichiara ESPLICITAMENTE: «Nessuno startfoot/conteggio
+    "0 playable · N unavailable": quello è `.dhead .mt.a` (§CSS), S5» — cioè QUESTO atomo, non un
+    atomo futuro. Il meta-testo amber per il caso TUTTO orfano è quindi: **"0 playable · N
+    unavailable"**, `.dhead .mt.a` (CSS :251, colore `var(--amber)` #f5b820) — RISOLTO.
+  · Skip dei singoli orfani nella lista mista: RISOLTO nel comportamento (righe skippate,
+    `resolve().songs` è già la lista senza orfani) — vedi però sotto per il conteggio.
+  · Vocabolario dati: "show" = `Setlist` (`Models/Setlist.swift:3-8`: id/name/date/songIDs);
+    risoluzione = `QBeatsStore.resolve(_ setlist: Setlist) -> (songs: [Song], missingIDs:
+    [UUID])` (`Store/QBeatsStore.swift:152`); `Song` (`Models/Song.swift:17-23`) porta `name`,
+    niente campo bpm/timeSig diretto — quei due vivono su `SongSection` (dentro `sections:
+    [SongSection]`), non letti oggi perché non necessari a chiudere questo punto.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+⛔ IL PUNTO CHE RESTA MUTO — cercato anche fuori dal contratto, genuinamente non trovato
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Il contratto mostra **solo due stati** della riga meta di `.dhead`:
+  · tutto risolto: **"5 songs · 21 min"** (Frame ③:444, nessuna menzione di "unavailable")
+  · tutto orfano: **"0 playable · 4 unavailable"** (Frame G:548, `.mt.a`, amber)
+
+⚠️ **Non mostra il caso MISTO** — alcune canzoni risolte, altre orfane (es. 3 su 5) — che è
+proprio il caso per cui la tua istruzione originale chiede "conteggio 'N unavailable'" oltre allo
+skip. Le due wording note non sono la stessa frase con un numero diverso: "N songs · durata"
+(sostantivo "songs") contro "N playable · M unavailable" (sostantivo "playable", niente durata)
+— non posso interpolare in sicurezza quale delle due forme, o una terza, si applichi al caso
+misto, né se la riga resti neutra o diventi amber quando SOLO alcune sono indisponibili.
+
+Cercato anche fuori dal file di contratto, non solo dentro: `BUGS_QBEATS.md`, `LIBRO_MASTRO_
+QBEATS.md`, `BOX3_QBEATS.md`, `BOX5_QBEATS.md` (grep case-insensitive "unavailable|playable") e
+`SCALETTA_ATOMI_S6_2026-07-10.md` — tutti i risultati riguardano SOLO Ⓖ (caso tutto-orfano, già
+risolto sopra) o la scheda dell'atomo stessa (cita "SKIP + conteggio", non la sua forma). Nessuna
+fonte specifica il caso misto.
+
+**Non riempio col plausibile. Ti giro tre candidati, nessuno scelto:**
+  (1) Estendere la riga esistente: `"3 songs · 12 min · 2 unavailable"` — stesso stile di Frame
+      ③, append neutro.
+  (2) Passare alla forma di Ⓖ anche nel misto: `"3 playable · 2 unavailable"` (senza durata).
+  (3) Due righe distinte: meta invariata + una seconda riga solo per gli unavailable.
+Nessuna delle tre è nel contratto. Se ne scegli una — o ne dai una quarta — il resto è pronto e
+il prossimo turno consegna il diff completo.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fermata qui, come da mandato. Nessun file Swift toccato, nessun commit, nessun push.
+════════════════════════════════════════════════════════════════════════════════════════════════

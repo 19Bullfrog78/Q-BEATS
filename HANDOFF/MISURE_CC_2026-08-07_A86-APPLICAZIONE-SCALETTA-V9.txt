@@ -1,0 +1,185 @@
+REFERTO QB-2026-08-07-A86 — APPLICAZIONE DEL DIFF SCALETTA v9 (un commit, nessun push)
+=======================================================================================
+
+Orologio: 2026-08-07T19:42:58Z, locale 2026-08-07 21:42:58 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+NESSUN RILIEVO CHE FERMA. `git apply` è passato pulito sul file consegnato, senza alcun
+aggiustamento e senza GNU `patch`: nessuna delle condizioni di §2.5 si è verificata. Le due
+cose che avevano richiesto la testa del referto in A84 — la divergenza sulla prova e la
+faccia riscritta — **non si sono ripetute**, ed è la correzione di forma a essere andata a
+segno. Lo registro sotto, in §4, invece che in testa: qui non ferma niente, conferma.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, IMPRONTA DI PARTENZA
+================================================================================
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A86 ═══». INTEGRO. Eseguito per intero.
+0.2 [M] A86 LIBERO. NOME sensibile 0/0 · NOME INsensibile 0/0 · CONTENUTO INsens. 4/9,
+    IDENTIFICATE una per una: tutte sottostringhe esadecimali dentro impronte
+    (`dfd4f28c7a867fa5…`, `088d79a86fe2eede…`, `00c44b8423a86…`, `13f8dc2c87a86d3a…`,
+    `31dc3f5682a86e31…`, `4529f6e046a86418…`). NESSUNA è un identificativo di referto.
+    CONTROLLI POSITIVI non-zero: A84 nome=1/1 contenuto=9/16 · A85 nome=2/2 contenuto=21/25.
+0.3 [M] HEAD = **779172e6353d6e51dcee542953725000f48dd05a**. COINCIDE con l'atteso.
+
+3 — IMPRONTA DI PARTENZA, fotografata prima di toccare qualsiasi cosa  [M]
+    `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`
+      blob OID      = 580e8f3bebc76a2cace02d8e8505aa2ff028fe23
+      righe blob    = 342 · byte 44101 · CR blob = 0
+      sha256 blob   = 23665ddfa7a3bbcfacb7aa60f1e7ff006ecc1ea8fa3ef1ce344b61f3f8bdbe37
+      versione      = `**Versione:** 8 (06/08/2026) · …`
+      faccia disco  = 342 righe · CR 0 · 44101 byte  ⇒ **una faccia sola** (`-text`)
+    `git status`: 204 righe, NON-`??` = **ZERO** · `origin/master` = 2960f089…
+    [M] Il diff da applicare è ancora quello ratificato, rimisurato prima dell'uso:
+      sha256 `1d4e69c98c537bfea5d46a2c9e3971b36dd134f0f58e31ce5f309b467e9481bc`,
+      identico a quanto dichiarato in A85.
+
+
+================================================================================
+IL METRO DELLA PROVA — costruito PRIMA di toccare il repo
+================================================================================
+[M] Come in A84, il risultato atteso è stato costruito **fuori dal repo**, per non giudicare
+    l'esito con lo stesso strumento che lo produce: copia del blob in una cartella di
+    simulazione, con dentro il `.gitattributes` del repo e `core.autocrlf=false` — cioè un
+    ambiente che riproduce quello vero, non uno approssimato.
+      ATTESO: **348 righe · 54558 byte · CR 0**
+              sha256 `5a3c1e47d73647ca2870750384b44087f7db80a3c29b042eabcb560b968dcf39`
+              riga 3 = `**Versione:** 9 (07/08/2026) · …`
+    ⚠️ Il dettaglio del `.gitattributes` non è pedanteria: in A85 una prima simulazione fatta
+      **senza** aveva reso CR = 348 invece di 0, perché là il file cade sotto `autocrlf`
+      mentre nel repo è `-text`. Un ambiente di prova che non riproduce il vero mente in
+      silenzio, e questa volta l'ho riprodotto dal principio.
+
+
+================================================================================
+4 — APPLICAZIONE E COMMIT
+================================================================================
+[M] `git apply --check` sul file **come consegnato** → exit 0. Nessun aggiustamento
+    dell'intestazione, nessuna copia a header pulito, **nessun GNU `patch`**.
+    ⇒ È la conferma della correzione di forma prescritta da A85 §1 e nata dal guasto di A84:
+      con la decorazione di versione nel **preambolo** invece che dentro le righe `---`/`+++`,
+      git legge il patch. Due conseguenze, entrambe misurate:
+        · la prova del referee e la mia coincidono sull'OGGETTO CONSEGNATO — in A84 non
+          coincidevano, e quella divergenza aveva richiesto la testa del referto;
+        · **le fini-riga NON sono state toccate**: CR resta **0** prima e dopo. In A84 GNU
+          `patch` aveva riscritto l'intero LIBRO da CRLF a LF. Qui non succede, perché lo
+          strumento è un altro e perché il file è `-text`.
+[M] `git apply` (senza `--check`) → exit 0, nessun residuo `.orig`/`.rej` (verificato).
+[M] VERIFICHE PRESCRITTE DA §4, tutte positive:
+      righe = **348** ✓ · versione = `**Versione:** 9 (07/08/2026)` ✓ · CR = **0** ✓
+      sha256 del disco = `5a3c1e47…b968dcf39` = ATTESO ✓
+      i quattro bullet originali INTATTI e leggibili, contati uno per uno:
+        riga d'ordine «SEDE UNICA DELL'ORDINE DEGLI ATOMI §6» = 1
+        bullet «OPEN — tipo del runner»                        = 1
+        bullet «CANCELLO — ⟦S5⟧ non chiude device…»            = 1
+        intestazione «## F · Anchor a source»                  = 1
+      marcature `MARCATURA 07/08` aggiunte = **6** (attese 6)
+[M] STAGING: `git add HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` — un solo file, esplicito.
+    **Nessun `git add -A`.** Conteggio file in stage = 1. `numstat` = **7 aggiunte / 1 rimozione**
+    (6 marcature + la riga 3 nuova; la sola rimozione è la riga 3 vecchia, il bump R7).
+    Blob in stage = `73f9f323c0414fa7e31a06a4ee9c0beb139f4031`, contenuto sha256
+    `5a3c1e47…b968dcf39` = ATTESO — **verificato PRIMA di committare**, 348 righe, CR 0.
+[M] COMMIT — single-purpose, **nessun `--no-verify`**:
+    **321293e18094d9d4f1c167bfc921be1ad216e3ac**
+      «SCALETTA v9: sez.C ⟦S5⟧ spezzata in tre + ⟦S-EXIT⟧ senza scheda + reperto tipi runner
+       separato + cancello END SHOW al singolare + sez.F marcata stale (doc-only, zero codice)»
+      autore = committer = **Mauro Martintoni <di_tutto@icloud.com>** · 2026-08-07 21:42:18 +0200
+      trailer `Co-Authored-By` = **0** · file toccati = **1**.
+
+
+================================================================================
+5 — LA PROVA DOPO, POSITIVA
+================================================================================
+5.1 [M] blob NUOVO = `73f9f323c0414fa7e31a06a4ee9c0beb139f4031` · **348 righe** · CR 0.
+    `git status` sul resto: NON-`??` = **ZERO**; gli altri quattro canonici vuoti;
+    `ios_app/` vuoto.
+5.2 [M] COINCIDENZA CON CIÒ CHE È STATO RATIFICATO:
+      sha256 del blob COMMITTATO = 5a3c1e47d73647ca2870750384b44087f7db80a3c29b042eabcb560b968dcf39
+      sha256 ATTESO (diff sulla base, calcolato FUORI dal repo)
+                                 = 5a3c1e47d73647ca2870750384b44087f7db80a3c29b042eabcb560b968dcf39
+      → COINCIDONO. Il commit rappresenta ESATTAMENTE ciò che è stato ratificato.
+5.3 [M] SHA DI COMMIT, per esteso: **321293e18094d9d4f1c167bfc921be1ad216e3ac**
+    ⛔ [M] NESSUN PUSH: `origin/master` è ancora `2960f089225b3c80cf56cb839fde871cf9738b3d`.
+      **Commit locali non pushati = TRE**: `81740e48…` (LIBRO v55) · `779172e6…` (BUGS v51)
+      · `321293e1…` (SCALETTA v9). Il cancello del push resta chiuso e non l'ho sfiorato.
+
+
+================================================================================
+6 — R-δ, LE TRE DESTINAZIONI
+================================================================================
+[M] REGOLA RILETTA A FONTE (`BOX3_QBEATS.md:794-796`): «Propagazione a E: = una **STAMPA**
+    col nome per-versione ancorato al commit **INTRODUTTIVO** …, estratta con `git show` dal
+    blob e verificabile contro di esso.» Applicata alla lettera: l'estrazione è
+    `git show HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`, **mai** una copia dal disco.
+[M] CARTELLE LETTE A FONTE, non dettate: le stampe della SCALETTA vivono in `HANDOFF/`, e la
+    convenzione di nome è stata ricavata dalle sei stampe già presenti su E: —
+    `SCALETTA_v3…v8_<data>_<sha7>.md`, con `v` minuscola. Nome prodotto:
+    **`SCALETTA_v9_2026-08-07_321293e.md`** (versione dichiarata nel file · data dichiarata
+    nel file · sha7 del commit introduttivo, che qui è anche l'unico che tocca il file).
+    Nessuna collisione: il nome era libero su entrambe le destinazioni, verificato prima.
+[M] VERIFICA DI OGNI GAMBA, due forme, contro il **BLOB**:
+    ┌──────────┬──────────────────────────────────┬────────┬───────┬────┬─────────┐
+    │ gamba    │ dove                             │ sha256 │ byte  │ CR │ cmp     │
+    ├──────────┼──────────────────────────────────┼────────┼───────┼────┼─────────┤
+    │ C: repo  │ commit 321293e1…, blob 73f9f323… │ = blob │ 54558 │  0 │ n/a     │
+    │ E:       │ …\FILE X CLAUDE.MD\HANDOFF\      │  OK    │ 54558 │  0 │ exit 0  │
+    │ Drive I: │ …\Il mio Drive\Qbeats\HANDOFF\   │  OK    │ 54558 │  0 │ exit 0  │
+    └──────────┴──────────────────────────────────┴────────┴───────┴────┴─────────┘
+    sha256 atteso su tutte e tre: `5a3c1e47d73647ca2870750384b44087f7db80a3c29b042eabcb560b968dcf39`.
+    ⇒ **TRE SU TRE: CONSEGNATO, non solo scritto.**
+[M] ⚠️ GAMBA DRIVE — VERIFICATA CHE SIA ARRIVATA DAVVERO, come chiedevi, e non «per
+    costruzione»: dopo la scrittura ho **riletto** il file dal mount e ricalcolato l'impronta
+    (`5a3c1e47…b968dcf39`, 54558 byte) e ho verificato che compaia nell'elenco della cartella
+    (`ls | grep` → 1). ⚠️ Resta vero, e lo dichiaro, che per la ratifica del 05/08 un
+    ri-scaricamento **remoto** da Drive non sarebbe un canale di verifica valido: questa è
+    una rilettura dal mount locale, che prova la scrittura, non la fedeltà della copia in cloud.
+[M] ⚠️ L'ARRETRATO DRIVE, misurato e NON toccato: su Drive le stampe della SCALETTA erano
+    ferme a **v3 e v4**; su E: erano già a v8. ⇒ **v5, v6, v7, v8 non sono mai arrivate su
+    Drive** — quattro versioni, un buco più profondo di quello misurato in A84 per LIBRO
+    (cinque) e BUGS (tre). Ho propagato **solo la v9**, come da tua istruzione esplicita:
+    l'arretrato è materia di un giro suo e non l'ho aperto.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho pushato: `origin/master` invariato, tre commit locali in attesa del tuo cancello.
+  · NON ho usato `git add -A`, `--no-verify`, `--3way`, GNU `patch`, `--force`, `--reject`.
+  · NON ho toccato LIBRO, BUGS, BOX3, BOX5, `ios_app/`.
+  · NON ho fatto il §5.2 di A85 (le tre `.segMini`): resta fuori, come prescritto.
+  · NON ho recuperato l'arretrato Drive (SCALETTA v5-v8, e quello di LIBRO/BUGS da A84).
+  · NON ho riletto le sei marcature per giudicarne il merito: erano già ratificate; qui le
+    ho solo verificate presenti e contate.
+  · NON ho verificato nulla su device.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — NESSUN DISACCORDO SU QUESTO GIRO, ed è la prima volta da parecchi mandati che posso
+  scriverlo senza riserve. La correzione di forma che avevi prescritto in A85 §1 ha fatto
+  esattamente ciò che dicevi: un problema solo, due sintomi spenti. Lo registro perché
+  quando una contromisura funziona conviene saperlo con la stessa precisione con cui si
+  registra un guasto — **la decorazione nel preambolo è ora la forma giusta per tutti i
+  diff futuri sui canonici**, e la conseguenza operativa è che non si usa più GNU `patch`.
+
+D2 — SULL'ARRETRATO DRIVE, che ho lasciato dove sta ma che peggiora a ogni giro. Misure
+  cumulative delle ultime due sessioni: LIBRO fermo a V49 (mancano cinque stampe), BUGS a
+  V47 (tre), SCALETTA a v4 (quattro). ⇒ **Dodici stampe non consegnate**, e per la lettera
+  di R-δ («due su tre = scritto, non consegnato») altrettante consegne risultano incomplete.
+  Ogni giro che chiudiamo ne aggiunge una alla lista se la gamba non viene fatta contestualmente.
+  Non chiedo di recuperarlo qui — hai già detto che è un giro suo — ma segnalo che il conto
+  cresce, e che il giro di recupero dovrà anche capire **perché** si è fermata: nessuno ha
+  mai misurato se sia stata una scelta o una dimenticanza.
+
+D3 — INVARIATO, e ora inciso anche nel canonico. Con la marcatura di §4.1 di A85, ora
+  committata, la SCALETTA dichiara essa stessa che ⟦S5a⟧ è **consegnata, CI-verde, NON
+  validata su device e RAGGIUNGIBILE OGGI** col percorso misurato. Il gate device non è più
+  una mia nota a margine: è nel documento che governa l'ordine degli atomi. Resta che nessuno
+  l'ha ancora fatto, e che oggi abbiamo committato tre canonici che descrivono quella stanza.
+
+FINE REFERTO A86.

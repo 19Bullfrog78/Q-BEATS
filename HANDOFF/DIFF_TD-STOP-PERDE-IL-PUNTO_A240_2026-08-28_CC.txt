@@ -1,0 +1,197 @@
+diff --git a/ios_app/QBeats/AudioEngine.swift b/ios_app/QBeats/AudioEngine.swift
+index dcf4593..117f219 100644
+--- a/ios_app/QBeats/AudioEngine.swift
++++ b/ios_app/QBeats/AudioEngine.swift
+@@ -174,6 +174,9 @@ class AudioEngine: ObservableObject {
+     // `engine.start()` ignorando il runner → `_sectionTotalBeats=0` su
+     // Follower → check `_sectionTotalBeats > 0` non passava → counter
+     // macrobar all'infinito + nome canzone non mostrato (Problema B / Bug 4).
++    // ⚠️ MARCATURA A240 (28/08) — l'observer oggi sceglie `startCurrentSong`
++    //    (standby) o `startCurrentSection` (conserva il punto): `startSetlist`
++    //    non è più su questo percorso. Testo sopra invariato.
+     // Gate anti double-emit: `_linkStartEmitInFlight` (vedi callback).
+     // Gate idempotenza observer: `guard session.playbackState != .playing`
+     // in LiveView (Q-D3 ratificato). NB: in modalità Direttore (linkMode ==
+@@ -511,6 +514,9 @@ class AudioEngine: ObservableObject {
+         // far orchestrare LiveView (→ runner.startSetlist). Senza emit il
+         // Follower partirebbe audio ma con `_sectionTotalBeats=0` → counter
+         // all'infinito + nome canzone non mostrato (Bug 4 / Problema B).
++        // ⚠️ MARCATURA A240 (28/08) — oggi l'orchestrazione va a
++        //    `startCurrentSong`/`startCurrentSection` (conserva il punto):
++        //    `startSetlist` non è più su questo percorso. Testo sopra invariato.
+         //
+         // Doppia protezione anti race:
+         //  (1) Gate `_linkStartEmitInFlight` lato AudioEngine (qui sotto):
+diff --git a/ios_app/QBeats/Models/LivePlaybackState.swift b/ios_app/QBeats/Models/LivePlaybackState.swift
+index 38a56fa..2bcf591 100644
+--- a/ios_app/QBeats/Models/LivePlaybackState.swift
++++ b/ios_app/QBeats/Models/LivePlaybackState.swift
+@@ -17,5 +17,9 @@ enum LivePlaybackState: Equatable {
+     // a Bivio. CD-Q2=B ratificato libro mastro v14.
+     // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ dopo N1b: l'uscita del
+     //    player torna alla lista Shows della stanza. Testo sopra invariato.
++    // ⚠️ MARCATURA A240 (28/08) — (a) e (b) NON passano più da `startSetlist`:
++    //    l'observer sceglie `startCurrentSong` (standby) o `startCurrentSection`
++    //    (conserva il punto); START LOCAL chiama `startCurrentSection`.
++    //    Testo sopra invariato.
+     case waitingForDirector
+ }
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e84e06b..4d95bef 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+@@ -51,7 +51,8 @@ final class SetlistRunner: ObservableObject {
+     /// il display non è ancora stato aggiornato. Il subscriber a
+     /// `beatTickSubject` applica `updateSessionDisplay` al primo tick
+     /// post-transition (= primo beat nuova sezione audio Strada A).
+-    /// Reset esplicito ai entry points (`startSetlist`, `startCurrentSong`)
++    /// Reset esplicito ai entry points (`startSetlist`, `startCurrentSong`,
++    /// `startCurrentSection` — ⚠️ A240)
+     /// per evitare update spurio al replay dopo Stop manuale durante
+     /// transizione SEAMLESS (TD #41 lifecycle).
+     @Published private(set) var pendingDisplayUpdate: Bool = false
+@@ -106,6 +107,10 @@ final class SetlistRunner: ObservableObject {
+ 
+     /// Primo Play della setlist — resetta indici a 0 e carica la prima sezione.
+     /// Chiamato dal pulsante Play del transport quando da `.stopped`.
++    /// ⚠️ A240 (28/08) — NON PIÙ: il Play del transport chiama ora
++    /// `startCurrentSection`, che conserva il punto. Questa partenza resta come
++    /// reset esplicito e al 28/08 ha ZERO chiamanti nel prodotto (misura A240):
++    /// chi la richiama sappia che azzera ENTRAMBI gli indici.
+     func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+         // Reset esplicito pendingDisplayUpdate: se l'utente ha fatto Stop
+         // durante una transizione SEAMLESS (flag true) e ora replay, evita
+@@ -140,6 +145,45 @@ final class SetlistRunner: ObservableObject {
+         prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
+     }
+ 
++    /// ⚠️ CARTELLO A240 (28/08/2026) — DECISIONE IN CHAT, NON ANCORA NEI CANONICI.
++    /// Mauro ha scelto l'opzione (B) del bivio posto dal referee: dopo uno STOP,
++    /// il play riparte dalla CANZONE dove si era E dalla SEZIONE dove si era.
++    /// La (A) — canzone giusta, sezione dall'inizio — è SCARTATA come rimedio
++    /// parziale. ⛔ BOX5 (V35, capitolo MODELLO DI SESSIONE, blocco 3) dice solo
++    /// «si riparte da dov'eri», SENZA scomporre in canzone e sezione: l'incisione
++    /// nei canonici è un atomo doc successivo, e finché non atterra questo
++    /// cartello è la sede provvisoria della decisione. Ticket:
++    /// `TD-stop-perde-il-punto` (BUGS v67). Misura: referto A239 (chat, 28/08).
++    ///
++    /// Terza partenza — CONSERVA `currentSongIdx` E `currentSectionIdx`.
++    /// Le altre due restano: `startSetlist` azzera tutto; `startCurrentSong`
++    /// conserva la canzone e azzera la sezione (ramo standby fra due canzoni).
++    /// Chiamanti — i tre siti che RIPRENDONO, dal censimento A239: Play del
++    /// transport da `.stopped` · START LOCAL dall'attesa Direttore · segnale
++    /// Link ramo else. ⚠️ Per START LOCAL e ramo else la conservazione è RULING
++    /// del referee («si riparte da dov'eri» non cambia a seconda di chi preme),
++    /// non decisione esplicita di Mauro.
++    func startCurrentSection(audioEngine: AudioEngine, session: LiveSession) {
++        // Reset esplicito coerente con startSetlist/startCurrentSong (TD #41
++        // lifecycle).
++        pendingDisplayUpdate = false
++        // 🚨 GUARDIA A240, obbligatoria da mandato — da A239: se `currentSection`
++        // non si risolve, `prepareAndStartCurrentSection` degenera e nessun campo
++        // display si rinfresca. Con la conservazione l'indice non è più garantito
++        // a 0 per costruzione: se non si risolve, fallback ESPLICITO a 0/0 —
++        // mai fallire in silenzio.
++        if currentSection == nil {
++            os_log("[Q-BEATS][L1.b] startCurrentSection — indici non validi (songIdx:%d sectionIdx:%d songs:%d) → fallback 0/0",
++                   log: .default, type: .error,
++                   currentSongIdx, currentSectionIdx, catalog.count)
++            currentSongIdx = 0
++            currentSectionIdx = 0
++        }
++        os_log("[Q-BEATS][L1.b] startCurrentSection — songIdx:%d sectionIdx:%d",
++               log: .default, type: .default, currentSongIdx, currentSectionIdx)
++        prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
++    }
++
+     // MARK: - Core orchestration
+ 
+     /// Setup audio engine per la sezione corrente, aggiorna session, parte audio.
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 01942b5..a2e99da 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -187,7 +187,13 @@ struct LiveView: View {
+                         // esplicito: WaitingForDirectorView è renderizzata
+                         // SOLO in `.waitingForDirector`, quindi questa
+                         // closure scatta solo in quello stato.
+-                        runner.startSetlist(audioEngine: audioEngine, session: session)
++                        // ⚠️ A240 — era `startSetlist`: azzerava il punto anche
++                        //    quando l'attesa seguiva uno STOP a metà show (A239,
++                        //    sito 3). RULING del referee: «si riparte da dov'eri»
++                        //    non cambia a seconda di chi preme. Il blocco CD-6 qui
++                        //    sopra descrive ancora le partenze vecchie — testo
++                        //    invariato, vale questa marcatura.
++                        runner.startCurrentSection(audioEngine: audioEngine, session: session)
+                     }
+                 }
+ 
+@@ -461,7 +467,13 @@ struct LiveView: View {
+             if case .standby = session.playbackState {
+                 runner.startCurrentSong(audioEngine: audioEngine, session: session)
+             } else {
+-                runner.startSetlist(audioEngine: audioEngine, session: session)
++                // ⚠️ A240 — era `startSetlist` (il commento qui sopra e il blocco
++                //    Q-D3 più su lo descrivono ancora così — testo invariato): il
++                //    Follower fermo a metà show perdeva il punto SENZA toccare
++                //    nulla quando il Direttore premeva Play (A239, sito 5). RULING
++                //    del referee: conserva canzone e sezione; fallback 0/0 dentro
++                //    `startCurrentSection` se l'indice non si risolve.
++                runner.startCurrentSection(audioEngine: audioEngine, session: session)
+             }
+         }
+     }
+diff --git a/ios_app/QBeats/UI/Live/TransportView.swift b/ios_app/QBeats/UI/Live/TransportView.swift
+index eceaa6c..24dbc66 100644
+--- a/ios_app/QBeats/UI/Live/TransportView.swift
++++ b/ios_app/QBeats/UI/Live/TransportView.swift
+@@ -37,6 +37,12 @@ struct TransportView: View {
+                 // Chi toglie `isStandby` da qui deve decidere quale dei due esiti vuole,
+                 // non ereditarlo per caso. Misura completa: `HANDOFF/
+                 // MISURE_CC_2026-08-27_A228-VELO-STANDBY.md`.
++                // ⚠️ MARCATURA A240 (28/08) — il Play qui sotto NON chiama più
++                //    `startSetlist`: chiama `startCurrentSection`, che CONSERVA
++                //    canzone e sezione (TD-stop-perde-il-punto; cartello A240 in
++                //    SetlistRunner). L'asimmetria dei due gesti descritta sopra
++                //    resta ma cambia faccia: velo → sezione azzerata · Play →
++                //    tutto conservato. Testo sopra invariato.
+                 RubberBtnView(
+                     label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
+                     glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
+@@ -57,6 +63,10 @@ struct TransportView: View {
+                             // ⚠️ MARCATURA 23/08 — «Bivio» NON ESISTE PIÙ
+                             //    dopo N1b: si torna alla lista Shows.
+                             //    Testo sopra invariato.
++                            // ⚠️ MARCATURA A240 (28/08) — le uscite (a) e (b) NON
++                            //    passano più da `startSetlist`: l'observer sceglie
++                            //    `startCurrentSong` (standby) o `startCurrentSection`
++                            //    (conserva il punto). Testo sopra invariato.
+                             //
+                             // Correzione AI esterna #1 (Fase C): condizione SENZA
+                             // `&& !audioEngine.linkIsConnected` — anche con Link
+@@ -72,7 +82,9 @@ struct TransportView: View {
+                         } else {
+                             // Modalità Direttore: Q-BEATS è sorgente, parte
+                             // standalone immediatamente.
+-                            runner.startSetlist(audioEngine: audioEngine, session: session)
++                            // ⚠️ A240 — era `startSetlist`: azzerava canzone e
++                            //    sezione, e il punto si perdeva QUI (A239, sito 1).
++                            runner.startCurrentSection(audioEngine: audioEngine, session: session)
+                         }
+                 }
+ 
+diff --git a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+index 25a4505..cab7af0 100644
+--- a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
++++ b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+@@ -12,6 +12,10 @@ import SwiftUI
+ ///    seamless a `.playing` (questa vista scompare automaticamente).
+ ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
+ ///    standalone, ignora l'attesa Director.
++///  ⚠️ MARCATURA A240 (28/08) — le due uscite qui sopra NON passano più da
++///  `startSetlist`: l'observer sceglie `startCurrentSong` (standby) o
++///  `startCurrentSection` (conserva canzone e sezione); START LOCAL chiama
++///  `startCurrentSection`. Testo sopra invariato.
+ ///  - `CANCEL` → `onExit()` (seam Nodo A, callback fornito dal presenter
+ ///    via LiveView) → AppRootView commuta `screen = .home` → ritorno a
+ ///    Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"

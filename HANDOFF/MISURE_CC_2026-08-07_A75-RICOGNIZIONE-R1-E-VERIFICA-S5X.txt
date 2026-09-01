@@ -1,0 +1,409 @@
+REFERTO QB-2026-08-07-A75-RICOGNIZIONE-R1 + VERIFICA VERBATIM CABLAGGIO S5x + ESTRAZIONE CANONICI
+=================================================================================================
+
+Orologio: 2026-08-07T10:43:09Z, locale 2026-08-07 12:43:09 +0200. MISURATO con `date -u`,
+non dedotto dal nome del file. Data ID = data esecuzione = 2026-08-07.
+
+/!\ NOTA D'APERTURA SULL'ID. Il mandato chiede A75 e dichiara come ASSUNZIONE del referee
+    (non letta dal repo) che «ieri si e' arrivati ad A73, forse A74». L'assunzione e'
+    SMENTITA: A73 e A74 NON ESISTONO su nessuno dei due supporti. L'ultimo ID emesso e' A72.
+    A75 e' comunque libero e viene usato come chiesto. Fra A72 e A75 restano liberi A73 e A74.
+
+
+VERIFICA ID -- A75 NON COLLIDE. Due supporti, DUE forme di ricerca, controllo positivo.
+--------------------------------------------------------------------------------------
+  supporto 1 (repo)   : /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF
+  supporto 2 (mirror) : /e/HOBBY/MUSICA - BATTERIA -SISTA/Q-BEATS/FILE X CLAUDE.MD/HANDOFF
+  /!\ Il mirror HANDOFF sta sotto `FILE X CLAUDE.MD/`, NON alla radice di Q-BEATS su E:.
+      Cercarlo alla radice rende un falso «assente».
+
+  forma 1 -- NOME FILE : `ls <dir> | grep -ic "_<ID>-"`
+      A73=0/0  A74=0/0  A75=0/0  A76=0/0        (repo/mirror)
+      controllo positivo A66 = 1/1              => la forma DISCRIMINA
+
+  forma 2 -- CONTENUTO : `grep -rl "<ID>" <dir> | wc -l`
+      A73=0/0  A74=0/0  A75=1/1  A76=0/0
+      controllo positivo A66 = 4/4              => la forma DISCRIMINA
+
+  /!\ L'1/1 su A75 in forma 2 e' un FALSO POSITIVO, identificato e non assunto:
+      HANDOFF_CC_2026-07-30_sera.md:105 contiene lo sha256
+      `18B6BC2B7EE053B14F0E211E5C080775F7A47F07886AAE4E804CFFFA75340FEF`
+      -- la sottostringa `A75` cade dentro l'impronta. Nessun ID A75 esiste.
+
+  ID realmente presenti, coda della sequenza:
+      ... A59 A61 A62 A64 A65 A66 A67 A68 A69 A70 A71 A72   (A60, A63 assenti; A73/A74 assenti)
+
+
+IDEMPOTENZA -- RISPETTATA
+-------------------------
+  Zero modifiche sotto ios_app/. Zero commit, zero push, zero `git add`, zero checkout,
+  zero modifiche in-place ai canonici. Solo le due scritture autorizzate:
+  (a) questo referto in HANDOFF/ + mirror E:   (b) i cinque file estratti in staging PARTE 3.
+  `git status --porcelain=v1` resta interamente `??` (nessuna riga non-`??`) prima e dopo.
+
+
+================================================================================
+PARTE 1 -- DOVE SIAMO
+================================================================================
+
+1.1 -- HEAD E ALBERO DI LAVORO
+------------------------------
+  git log -1:
+      2960f089225b3c80cf56cb839fde871cf9738b3d
+      2026-08-07 10:51:43 +0200
+      author    Mauro Martintoni <di_tutto@icloud.com>
+      committer Mauro Martintoni <di_tutto@icloud.com>          (autore = committer, zero trailer)
+
+  git rev-parse HEAD origin/master:
+      HEAD          = 2960f089225b3c80cf56cb839fde871cf9738b3d
+      origin/master = 2960f089225b3c80cf56cb839fde871cf9738b3d      => COINCIDONO
+  Misura aggiuntiva NON chiesta, perche' `origin/master` e' un ref locale che puo' essere stale:
+      git ls-remote origin master -> 2960f089225b3c80cf56cb839fde871cf9738b3d refs/heads/master
+      => coincidono anche col REMOTO VERO. Nulla di non pushato.
+
+  git status --porcelain=v1:
+      righe totali    = 189
+      di cui `??`     = 189
+      di cui NON `??` = 0        => albero di lavoro pulito rispetto ai file tracciati
+      prime 30 righe: .tmp.driveupload/ + 29 file sciolti in HANDOFF/ (tutti untracked storici)
+
+
+1.2 -- I CINQUE CANONICI A HEAD
+-------------------------------
+LIBRO_MASTRO_QBEATS.md
+  Versione VERBATIM (riga 5) : **Versione:** 54 (06/08/2026)
+  blob OID    : f7cd8085023ef0382e8c26e81b802d2a6e3b3274
+  sha256 blob : 9d8a6c647be12bee63dfd1f8060ef75234d1bd432e789b4870cd0e5351bd0d89
+  byte blob   : 259953        righe blob : 509
+  CR BLOB     : 0             CR DISCO   : 509        byte disco : 260462  (delta 509 = 1 CR/riga)
+  check-attr  : LIBRO_MASTRO_QBEATS.md: text: unspecified
+  ultimo commit sul file : 2960f08 2026-08-07 10:51:43 +0200
+  sha256 disco: b286a024e210b0052d7cb306d3a5e24b77c6d886e621d327057038f057814244
+  => DUE FACCE (disco != blob)
+
+BUGS_QBEATS.md
+  Versione VERBATIM (righe 3-4) : **Versione:** 50
+                                  **Ultima modifica:** 2026-08-04
+  blob OID    : 2598ae0288aefc29ac3d29c8b2e3b33e4057bb82
+  sha256 blob : 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+  byte blob   : 283858        righe blob : 1039
+  CR BLOB     : 0             CR DISCO   : 0          byte disco : 283858
+  check-attr  : BUGS_QBEATS.md: text: unspecified
+  ultimo commit sul file : 5cd6397 2026-08-04 15:14:25 +0200
+  sha256 disco: 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+  => UNA FACCIA SOLA (disco == blob)
+
+BOX3_QBEATS.md
+  Versione VERBATIM (riga 1, incipit) : BOX3 V99 - 2026-07-22 (AUTOPORTANTE) - HEAD=origin=bfa07eb ...
+  blob OID    : 490d6d9b38c355dc53ddc9b31431f9a858f2b342
+  sha256 blob : c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c
+  byte blob   : 89457         righe blob : 803
+  CR BLOB     : 0             CR DISCO   : 0          byte disco : 89457
+  check-attr  : BOX3_QBEATS.md: text: unset
+  ultimo commit sul file : 7c804c1 2026-07-22 19:48:13 +0200
+  => UNA FACCIA SOLA (disco == blob)
+
+BOX5_QBEATS.md
+  Versione VERBATIM (riga 2) : **Versione:** V28 - 28/07/2026
+  blob OID    : 21b23d621ac224c759b53d813196058483e3b056
+  sha256 blob : cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b
+  byte blob   : 57158         righe blob : 596
+  CR BLOB     : 0             CR DISCO   : 0          byte disco : 57158
+  check-attr  : BOX5_QBEATS.md: text: unset
+  ultimo commit sul file : 0a6ebaf 2026-07-28 18:27:28 +0200
+  => UNA FACCIA SOLA (disco == blob)
+
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+  Versione VERBATIM (riga 3, incipit) : **Versione:** 8 (06/08/2026)  -  **Ratificata dal referee:** 13/07/2026 (v1) ...
+  blob OID    : 580e8f3bebc76a2cace02d8e8505aa2ff028fe23
+  sha256 blob : 23665ddfa7a3bbcfacb7aa60f1e7ff006ecc1ea8fa3ef1ce344b61f3f8bdbe37
+  byte blob   : 44101         righe blob : 342
+  CR BLOB     : 0             CR DISCO   : 0          byte disco : 44101
+  check-attr  : HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md: text: unset
+  ultimo commit sul file : 2960f08 2026-08-07 10:51:43 +0200
+  => UNA FACCIA SOLA (disco == blob)
+
+
+>>> VERDETTO SUL CLAIM DA FALSIFICARE (BOX3 V99 punto (a), 22/07) <<<
+    Claim: «LIBRO e BUGS hanno due facce (CRLF disco / LF blob); la SCALETTA no, per attr/-text».
+
+      LIBRO    -> CONFERMATO.  Due facce. `text: unspecified`, quindi soggetto a
+                  core.autocrlf=true -> CRLF in checkout. 509 CR su 509 righe.
+      BUGS     -> ** SMENTITO. ** UNA FACCIA SOLA. CR disco = 0, disco == blob al byte.
+      SCALETTA -> CONFERMATO nel merito E nella causa. Una faccia, per `-text`.
+
+    MECCANISMO, misurato e non inferito:
+      core.autocrlf = true ; core.eol = (non impostato)
+      .gitattributes a HEAD, VERBATIM:
+          HANDOFF/** -text
+          DESIGN/** -text
+          BOX3_QBEATS.md -text
+          BOX5_QBEATS.md -text
+      => BOX3, BOX5 e tutto HANDOFF/ (quindi la SCALETTA) sono `-text`: nessuna conversione,
+         una faccia. Questa meta' del claim e' spiegata dal meccanismo che il claim invoca.
+      => LIBRO e BUGS NON sono in .gitattributes: entrambi `text: unspecified`, entrambi
+         soggetti allo stesso autocrlf. Hanno pero' facce DIVERSE.
+
+    /!\ RILIEVO. Il claim non e' semplicemente «meta' sbagliato»: e' sbagliato NELLA CAUSA.
+        La faccia unica di BUGS NON deriva da `-text` -- BUGS ha esattamente lo stesso stato
+        di attributo di LIBRO, che invece ha due facce. La copia di lavoro di BUGS e' stata
+        scritta da qualcosa che NON e' un checkout git (uno strumento che emette LF), dopo
+        l'ultimo checkout. Non e' un difetto del repo: `git diff` e' VUOTO su tutti e cinque,
+        perche' git normalizza in lettura e non vede la differenza. Ed e' proprio per questo
+        che l'asimmetria e' invisibile a `git status`/`git diff` e si vede solo sui byte grezzi.
+        CONSEGUENZA OPERATIVA: la regola BOX3 V99 (g)(1) -- «su file a due facce non si usa un
+        editor» -- oggi si applica a LIBRO ma NON a BUGS. Chi scrivesse su BUGS assumendo CRLF
+        introdurrebbe CR dove ora non ce ne sono. Va deciso se riallineare BUGS o incidere la
+        differenza; non lo faccio io, non e' nel mandato.
+
+
+1.3 -- OCCORRENZE (non righe) NEI CINQUE CANONICI A HEAD
+--------------------------------------------------------
+  comando per ogni cella: git cat-file blob <oid> | grep -o '<pattern>' | wc -l
+
+  FILE                                      S5a   S5b   S5x   FREEZE-CONSOLIDATO   4e4c2411   2960f089 | S5 (ctrl+)
+  LIBRO_MASTRO_QBEATS.md                      0     0     2                    2          5          0 |  49
+  BUGS_QBEATS.md                              0     0     0                    0          0          0 |  16
+  BOX3_QBEATS.md                              0     0     0                    0          0          0 |  21
+  BOX5_QBEATS.md                              0     0     0                    0          0          0 |   0  <-- CONTROLLO FALLITO
+  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md     0     0     0                    1          0          0 |  24
+
+  /!\ Il controllo positivo prescritto dal mandato (`S5`) rende ZERO su BOX5: su quella riga
+      NON valida gli zeri. Rifatto con stringhe realmente presenti, forma IDENTICA:
+          BOX5=15 - Q-Live=39 - QL-SHOWS=26 - Versione=1 - Token=4
+      => la forma di ricerca funziona su BOX5; gli zeri di quella riga sono fatti negativi validi.
+      Lo zero su `S5` e' spiegato dal file stesso, BOX5 riga 12: «Nessun nome d'atomo nel
+      capitolo. [...] nessuna etichetta d'atomo compare». Coerente, non anomalo.
+
+  Letture non richieste ma che discendono dai numeri:
+    - `2960f089` = 0 in LIBRO e' atteso: LIBRO v54 e' stato scritto DENTRO quel commit, non puo'
+      citare il proprio sha.
+    - BUGS e' l'unico canonico con ZERO tracce di S5a/S5b/S5x/freeze/commit. Il tracker non
+      registra nulla di questo giro.
+
+
+================================================================================
+PARTE 2 -- VERIFICA VERBATIM DEL CABLAGGIO S5x
+================================================================================
+
+2.1 -- DISCENDENZA
+------------------
+  git merge-base --is-ancestor 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f \
+      2960f089225b3c80cf56cb839fde871cf9738b3d      -> exit=0   (E' antenato)
+  stesso test contro HEAD                            -> exit=0   (E' antenato)
+  controllo NEGATIVO (verso invertito, 2960f089 antenato di 4e4c2411) -> exit=1
+  => la forma discrimina; la discendenza e' REALE, non un exit 0 di comodo.
+
+2.2 -- CONTENUTO DI 4e4c2411
+----------------------------
+  4e4c24113b21fed53b55c2a6d38a1903e52ecd1f
+  2026-08-06 17:14:11 +0200
+  «S5x: cablaggio di BACK TO SHOWS in FineSetlistView»
+
+   ios_app/QBeats/UI/Live/FineSetlistView.swift | 12 +++++++++++-
+   ios_app/QBeats/UI/Live/LiveView.swift        | 20 +++++++++++++++++++-
+   2 files changed, 30 insertions(+), 2 deletions(-)
+
+  numstat (aggiunte/rimozioni per file):
+   11  1  ios_app/QBeats/UI/Live/FineSetlistView.swift
+   19  1  ios_app/QBeats/UI/Live/LiveView.swift
+
+  >>> Claim «+30/-2 su FineSetlistView.swift e LiveView.swift»: ** CONFERMATO. **
+      30 = 11+19, 2 = 1+1. L'elenco dei file toccati e' esattamente quei due, nessun altro.
+
+2.3 -- VERBATIM DAL FILE A HEAD
+-------------------------------
+  PRE-REQUISITO MISURATO, non assunto -- la faccia da cui leggo e' quella di HEAD:
+    FineSetlistView.swift : sha256 disco == sha256 blob
+                            (500a0ec2ed54e361e57e5290d969f407ff5dd5666c847be156ee5abaa6fe865c)
+                            38 righe, 1795 byte, CR=0.  => leggo dal disco: E' HEAD.
+    LiveView.swift        : sha256 disco != sha256 blob
+                            disco=519ba037bfee4fe0...  blob=ed02e2af9225277...
+                            466 righe, CR disco=466, byte disco 26377 vs blob 25911, delta=466.
+                            /!\ Provato che la differenza e' SOLO di fine-riga:
+                                blob|tr -d '\r' e disco|tr -d '\r' rendono lo STESSO sha256
+                                (ed02e2af922527719e5de871a23ca18a73c28f0cd2e36c6e92dec214a049b08c).
+                            => il CONTENUTO a HEAD e' il blob; il verbatim sotto e' letto DAL BLOB.
+    (Stessa asimmetria di 1.2 anche dentro ios_app/: un file a due facce, uno a una faccia.)
+
+  (a) DICHIARAZIONE DEL TIPO -- FineSetlistView.swift, VERBATIM, con numero di riga.
+      Il tipo ha ESATTAMENTE DUE proprieta':
+
+         3	struct FineSetlistView: View {
+         4	    /// TD #23 (17/05/2026) - fattore di scala responsive iPad v1.
+         5	    /// Propagato a `OverlayStopButtonStyle` con lo stesso valore ricevuto
+         6	    /// da `LiveView` (denominatore 390pt unico in tutta la Vista LIVE).
+         7	    let scaleFactor: CGFloat
+         8	    /// S5x (A64) - tap su BACK TO SHOWS. Comportamento ratificato
+         9	    /// `LIBRO_MASTRO_QBEATS.md:154` (R-CD5-10, 21/05): «torna alla libreria SHOWS».
+        10	    /// Closure OPACA e OBBLIGATORIA (niente default no-op: un default rifarebbe il
+        11	    /// bottone morto): questa vista non sa nulla di sessione ne' di navigazione -
+        12	    /// la composizione delle azioni vive nel presentatore (`LiveView`, unico callsite),
+        13	    /// che possiede la sessione.
+        14	    /// RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
+        15	    /// (CD-3)» (`LIBRO:153`), mai ratificato - cablarlo, disabilitarlo o
+        16	    /// nasconderlo e' decisione CD, non di questo atomo.
+        17	    let onBackToShows: () -> Void
+
+      >>> C'E' UN VALORE DI DEFAULT SULLA CLOSURE DI USCITA?  ** NO. **
+          Riga 17 verbatim: `    let onBackToShows: () -> Void`
+          Nessun `= {}`, nessun `=` di alcun tipo sulla riga. La closure e' OBBLIGATORIA:
+          ometterla al callsite e' errore di compilazione, non un bottone morto silenzioso.
+          Il commento alle righe 10-11 dichiara esplicitamente l'intenzione.
+
+  (b) I DUE BOTTONI -- VERBATIM, con numero di riga:
+
+        29	                    Button("BACK TO SHOWS") { onBackToShows() }
+        30	                        .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
+        31	                    Button("RESTART SETLIST") { /* restart setlist - Fase successiva */ }
+        32	                        .buttonStyle(OverlayStopButtonStyle(primary: false, scaleFactor: scaleFactor))
+
+  (c) COSTRUZIONE DENTRO LiveView -- VERBATIM dal blob, con contesto:
+
+       157	                    //      `navigate(to: .shows)`): stesso identico canale gia' usato
+       158	                    //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+       159	                    //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
+       160	                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
+       161	                        session.playbackState = .stopped
+       162	                        onExit()
+       163	                    })
+       164	                }
+       165
+       166	                // CD-6 (libro mastro v14, 27/05/2026) - Vista WAITING FOR
+
+      >>> ORDINE LETTO (dichiarato come letto, non come atteso):
+          riga 161 -> `session.playbackState = .stopped`     PRIMA
+          riga 162 -> `onExit()`                             DOPO
+          => l'ordine prescritto e' RISPETTATO.
+          Unica occorrenza di `FineSetlistView` in tutto LiveView.swift (riga 160): callsite unico,
+          coerente con il commento «(`LiveView`, unico callsite)» a FineSetlistView.swift:12.
+
+  (d) RESTART SETLIST E' ANCORA MORTO?  ** SI', CONFERMATO. **
+      Riga 31: il corpo della closure contiene SOLO un commento
+      (`/* restart setlist - Fase successiva */`). Nessuna chiamata, nessun binding, nessun
+      `disabled`, nessun `opacity`. Zero occorrenze di un simbolo di restart altrove nel tipo.
+      Coerente col commento normativo alle righe 14-16: «proposto (CD-3)», mai ratificato.
+
+2.4 -- COSTRUTTORI VIVI DEL RUNNER
+----------------------------------
+  `grep -ro 'SetlistRunner(' ios_app/ | wc -l`   =  0
+  controllo positivo, stessa forma:
+  `grep -ro 'SetlistRunner'  ios_app/ | wc -l`   = 18     => la forma DISCRIMINA; lo 0 e' valido.
+
+  Ripartizione delle 18 occorrenze nude:
+      AudioEngine.swift 5 - LiveSession.swift 2 - SetlistRunner.swift 3 - LiveView.swift 3
+      TeleprompterCapsuleView.swift 1 - TransportView.swift 1 - QLiveSession.swift 1
+      QLiveShowDetailView.swift 2
+  Nessuna delle 18 e' una costruzione: sono 1 dichiarazione di tipo
+  (`SetlistRunner.swift:25  final class SetlistRunner: ObservableObject`), 2 iniezioni
+  (`@EnvironmentObject var runner: SetlistRunner` a LiveView.swift:6 e TransportView.swift:6),
+  1 slot (`QLiveSession.swift:35  @Published private(set) var runner: SetlistRunner? = nil`),
+  e 14 citazioni in commenti.
+  => A HEAD il runner NON viene mai costruito sotto ios_app/. Lo slot e' `private(set)`:
+     la serratura d'ingresso di S5b regge. (QLiveShowDetailView.swift:290 dichiara in commento
+     che «S5b cablera' qui l'avvio reale (SetlistRunner.startSetlist). Vuota apposta».)
+
+2.5 -- CI DEI TRE COMMIT (sha a 40 caratteri)
+---------------------------------------------
+  4e4c24113b21fed53b55c2a6d38a1903e52ecd1f  -> TRE run, tutte `success`:
+      31115280518  push               master              iOS Signed Build  6m38s  2026-08-06T15:19:32Z
+      31114985567  workflow_dispatch  ci-fiammifero/s5x   iOS Signed Build  2m20s  2026-08-06T15:15:49Z
+      31114970791  workflow_dispatch  ci-fiammifero/s5x   iOS Signed Build  2m50s  2026-08-06T15:15:38Z
+  f0a4462bd90742367f438f3dec60b1ca2366b2c4  -> ** VUOTO: NESSUNA RUN. **
+  2960f089225b3c80cf56cb839fde871cf9738b3d  -> UNA run, `success`:
+      31163491887  push               master              iOS Signed Build  2m8s   2026-08-07T08:52:11Z
+
+  Il vuoto su f0a4462b e' un FATTO NEGATIVO VALIDO, non un falso-zero da notazione:
+  lo stesso comando, nella forma IDENTICA e con sha a 40, rende NON vuoto sugli altri due.
+  Lettura: i due commit sono stati pushati insieme, quindi solo la punta ha innescato la build.
+  Il commit di deposito del freeze (doc-only, due .html, +1047 righe) non e' MAI stato
+  compilato da solo. Innocuo nel merito -- ma va detto, non dedotto da un silenzio.
+
+
+================================================================================
+PARTE 3 -- ESTRAZIONE CANONICI PER IL PROGETTO CLAUDE
+================================================================================
+
+3.1 -- STAGING
+--------------
+  Percorso base CHIESTO dal mandato: E:\...\Q-BEATS\FILE X CLAUDE.MD\
+  Percorso base TROVATO            : identico, esiste esattamente cosi'. Nessuna invenzione.
+  Creata: E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\PROGETTO_CLAUDE_2026-08-07\
+  Era vuota alla creazione (0 elementi pre-esistenti).
+
+  /!\ REPERTO SULLA CONVENZIONE. Il mandato dice di ricavare il nome «meccanicamente dalle
+      copie gia' nel Progetto». Non esiste alcuna cartella `PROGETTO_CLAUDE*`: le cinque
+      copie-modello vivono in CINQUE sottocartelle tematiche distinte, trovate a fonte:
+        FILE X CLAUDE.MD/LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V53_2026-08-04_5183758.md
+        FILE X CLAUDE.MD/BUGS_QBEATS/BUGS_QBEATS_V50_2026-08-04_5cd6397.md
+        FILE X CLAUDE.MD/HANDOFF/SCALETTA_v7_2026-08-04_ea3f94a.md
+        FILE X CLAUDE.MD/BOX3_Codice/BOX3_V99_2026-07-22_7c804c1.md
+        FILE X CLAUDE.MD/BOX5_Test/LUGLIO/BOX5_V28_2026-07-28_0a6ebaf.md
+
+  /!\ DUE DIVERGENZE FRA LA REGOLA SCRITTA E I MODELLI. Dichiarate, non ricostruite.
+
+    (i) «BASENAME». La regola dice BASENAME, ma i modelli NON usano il basename del file
+        di repo per tre canonici su cinque: `SCALETTA_ATOMI_S6_2026-07-10` -> `SCALETTA`
+        (con `v` minuscola), `BOX3_QBEATS` -> `BOX3`, `BOX5_QBEATS` -> `BOX5`.
+        Ho seguito i MODELLI (che il mandato indica come derivazione meccanica), non la
+        parola «BASENAME».
+
+    (ii) LA DATA -- e questa e' la divergenza che conta.
+        La regola dice «data dichiarata NEL FILE». Tutti e cinque i modelli hanno data
+        dichiarata == data del commit, quindi NON possono arbitrare fra le due letture:
+            SCALETTA v7 : dichiara «7 (04/08/2026)» ; commit ea3f94a = 2026-08-04
+            LIBRO   V53 : dichiara «53 (04/08/2026)»; commit 5183758 = 2026-08-04
+            BUGS    V50 : dichiara «2026-08-04»     ; commit 5cd6397 = 2026-08-04
+        OGGI le due letture DIVERGONO per la prima volta, su due file:
+            LIBRO    v54 : dichiara 06/08/2026 ; ultimo commit 2960f08 = 2026-08-07
+            SCALETTA v8  : dichiara 06/08/2026 ; ultimo commit 2960f08 = 2026-08-07
+        Causa: la sessione del 06/08 ha attraversato la mezzanotte; i due commit portano
+        2026-08-07 mentre i documenti dichiarano 06/08.
+        SCELTA: ho applicato la LETTERA della regola -- data DICHIARATA nel file, 2026-08-06.
+        Non ho ricostruito l'intenzione: la segnalo qui perche' il referee decida. Se la
+        convenzione voleva la data del commit, i due nomi vanno letti come
+        `..._2026-08-07_2960f08.md` e i file rigenerati (l'operazione e' idempotente).
+
+3.2 / 3.3 -- ESTRAZIONE DAL BLOB E VERIFICA
+-------------------------------------------
+  Metodo: `git show HEAD:<path> > <staging>/<nome>`  (mai dal disco).
+  Verificato empiricamente che `git show` NON applica conversione eol: CR = 0 su tutti e
+  cinque i file prodotti, identico al CR del blob.
+
+  NOME PRODOTTO                                    sha256 file == sha256 blob   byte   CR
+  LIBRO_MASTRO_QBEATS_V54_2026-08-06_2960f08.md    OK  9d8a6c64...51bd0d89      259953  0==0
+  BUGS_QBEATS_V50_2026-08-04_5cd6397.md            OK  04de830d...412e1778      283858  0==0
+  BOX3_V99_2026-07-22_7c804c1.md                   OK  c728bacc...4d29fb3c       89457  0==0
+  BOX5_V28_2026-07-28_0a6ebaf.md                   OK  cf425ff0...ed184ff5b      57158  0==0
+  SCALETTA_v8_2026-08-06_2960f08.md                OK  23665ddf...f8bdbe37       44101  0==0
+
+  Tutte e tre le coppie (sha256, byte, CR) coincidono su tutti e cinque i file.
+  Cinque file prodotti, nessun altro elemento nella cartella.
+
+3.4 -- ARTEFATTI DI TRANSITO
+----------------------------
+  Nessuna propagazione a tre destinazioni. Nessuna copia d'archivio esistente toccata:
+  i tre nomi che coincidono con copie gia' presenti (BUGS V50, BOX3 V99, BOX5 V28) sono
+  stati scritti in una cartella DIVERSA, quindi nessun sovrascrittura. Verificato che la
+  cartella di staging era vuota prima della scrittura.
+
+
+================================================================================
+COSA NON HO FATTO -- dichiarato, non inferito
+================================================================================
+  - Non ho verificato le TRE decisioni di CD contro i due .html del freeze consolidato:
+    fuori mandato, e i due file non sono mai stati aperti (restano [R] dal congedo 06/08).
+  - Non ho riallineato la faccia di BUGS_QBEATS.md: e' una decisione, non una misura.
+  - Non ho aperto ne' modificato alcun ticket in BUGS (1.3 mostra che il tracker non
+    registra nulla di questo giro).
+  - Non ho toccato ios_app/, non ho committato, non ho pushato.
+
+RILIEVO MINORE FUORI MANDATO (misurato mentre leggevo LiveView, lo riporto per completezza)
+  Il congedo 06/08 riga 106 scrive: «`LiveView.swift:390` lo alza; l'`asyncAfter` a `:393`
+  lo riabbasserebbe». Misurato a HEAD: `sectionHold = true` e' a :390 (esatto);
+  l'`asyncAfter` e' a :392; la guardia `if case .stopped = session.playbackState` e' a :393;
+  `sectionHold = false` e' a :394. Quindi `:393` indirizza correttamente LA GUARDIA -- che e'
+  il punto della diagnosi, e la diagnosi REGGE -- ma la prosa la chiama «l'asyncAfter», che
+  sta a :392. Etichetta imprecisa su indirizzo giusto; il merito del debito e' confermato.
+
+FINE REFERTO A75.

@@ -1,0 +1,201 @@
+REFERTO QB-2026-08-06-A65-VERIFICA-NAS
+=======================================
+
+Orologio: 2026-08-06T13:06:58Z, locale +02:00. Data ID = data esecuzione.
+
+VERIFICA ID — A65 NON COLLIDE.
+  · repo : `ls HANDOFF/ | grep -i 'A65'` -> exit 1 · `grep -rl 'A65' HANDOFF/` -> nessun file
+  · E:   : stessi comandi -> nessun match
+  · controllo positivo: `ls HANDOFF/ | grep -i 'A62'` -> presente su entrambi i supporti.
+  Nota dal mandato: A60/A63/A64 emessi in chat e annullati/sospesi dal referee, mai
+  eseguiti — non cercati, come istruito.
+
+AGGANCIO — CONFERMATO.
+  L'ultimo referto per mtime e' MISURE_CC_2026-08-06_A62-VERIFICA-POST-DISTACCO.txt
+  (2026-08-06 13:20), precede A61 (12:48) e A59 (12:32). Corretto.
+
+Convenzione: [V] = misurato da me su copia o a fonte diretta.
+
+
+================================================================================
+PARTE 1 — Z: E' MONTATA?
+================================================================================
+
+SI. [V]
+
+  Tipo di risorsa   : Disco di rete (SMB), NON un volume Windows locale —
+                       `Get-Volume -DriveLetter Z` non la trova (e' un mapped drive,
+                       non un volume del sistema); `Get-PSDrive` e `net use` si'.
+  Path UNC           : \\192.168.1.2\alpinabus
+  Nome remoto         : alpinabus   (fonte: `net use Z:`)
+  Stato               : OK, 1 connessione
+  Etichetta volume    : nessuna etichetta riportata da `net use` (campo non applicabile
+                        a una share SMB nella forma interrogata)
+  Capacita' totale    : 1.829,12 GB   (= usato + libero, vedi sotto)
+  Usato               : 316,73 GB  (340.089.614.336 byte)
+  Libero              : 1.512,39 GB (1.623.913.246.720 byte)
+  fonte: `Get-PSDrive -Name Z` (Used/Free) + `net use Z:` (path UNC, stato, tipo)
+
+
+================================================================================
+PARTE 2 — DOVE STA LA COPIA DI C:?
+================================================================================
+
+TROVATA. Non assunta: cercata per esplorazione del primo e secondo livello di Z:\.
+Sotto Z:\ esiste una cartella "Q-BEATS" con DUE sottocartelle dal nome esplicito
+"Q-BEATS DA DISCO C" e "Q-BEATS DA DISCO E" — nessuna necessita' di inferenza sul nome.
+
+  PATH COMPLETO : Z:\Q-BEATS\Q-BEATS DA DISCO C
+                  (= /z/Q-BEATS/Q-BEATS DA DISCO C in forma POSIX)
+
+  Verificata per struttura: al primo livello porta .git/ (nascosta), .github/,
+  ARCHIVIO.MD/, core_engine/, HANDOFF/, ios_app/, tools/, Vendors/, .gitignore,
+  BOX3_QBEATS.md, BOX5_QBEATS.md, BUGS_QBEATS.md, LIBRO_MASTRO_QBEATS.md — stessa
+  ossatura della radice del repo C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS.
+  /!\ Porta ANCHE .tmp.driveupload/ e .tmp.drivedownload/ (nascoste): sono residui
+      del periodo in cui la radice era sincronizzata da Drive, congelati nella copia.
+
+  Numero di file (tutto incluso, ricorsivo)      : 2401
+  Byte totali                                    : 132.678.393  (≈ 126,5 MiB)
+  Data di modifica PIU' RECENTE al suo interno   : 2026-08-04 15:24:41 +02:00
+      file: HANDOFF/MISURE_CC_2026-08-04_A28-NOTAZIONE-ANCORE.txt
+  fonte: `find ... -type f -printf '%T@ %p\n' | sort -rn | head -1`, timestamp
+         convertito con `date -d @<epoch>`.
+
+  => LA COPIA E' VECCHIA DI CIRCA DUE GIORNI rispetto a oggi (06/08): non contiene
+     nulla di posteriore ad A28 (04/08). Fatto misurato, nessuna valutazione.
+
+
+================================================================================
+PARTE 3 — DOVE STA LA COPIA DI E:?
+================================================================================
+
+TROVATA, con una precisazione di struttura misurata e non assunta.
+
+  "Q-BEATS DA DISCO E" NON e' il mirror della sola cartella "FILE X CLAUDE.MD": e'
+  la copia dell'INTERA cartella E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\, che
+  contiene FILE X CLAUDE.MD come SOTTOCARTELLA insieme a LOG, IPA, LinkKit, SUONI,
+  DESIGN, DOCUMENTI, FASE 3, CERTIFICATI, APP QBEATS UI E DOC, ios_app — l'elenco
+  combacia esattamente con la struttura di E:\...\Q-BEATS\ misurata in A59.
+
+  PATH COMPLETO del corrispondente ESATTO richiesto dal mandato
+  (E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD):
+
+      Z:\Q-BEATS\Q-BEATS DA DISCO E\FILE X CLAUDE.MD
+      (= /z/Q-BEATS/Q-BEATS DA DISCO E/FILE X CLAUDE.MD in forma POSIX)
+
+  Numero di file (tutto incluso, ricorsivo)      : 773
+  Byte totali                                    : 49.491.701  (≈ 47,2 MiB)
+  Data di modifica PIU' RECENTE al suo interno   : 2026-08-04 15:24:41 +02:00
+      file: HANDOFF/MISURE_CC_2026-08-04_A28-NOTAZIONE-ANCORE.txt
+      (LO STESSO file e LO STESSO istante della copia di C: — coerente: HANDOFF/
+       e' mirrorato su entrambi i lati, quindi condivide il punto di cutoff del
+       backup NAS)
+  fonte: stessa forma di misura della Parte 2.
+
+
+================================================================================
+PARTE 4 — IL CONTROLLO CHE CONTA: GLI 81 FILE
+================================================================================
+
+ARCHIVIO.MD/ ESISTE sul NAS (dentro la copia di C:). [V]
+  path: Z:\Q-BEATS\Q-BEATS DA DISCO C\ARCHIVIO.MD
+
+CONTEGGIO FILE:
+  repo (C:\...\Q-BEATS\ARCHIVIO.MD\)  : 196 file  (192 nomi distinti — misura A61)
+  NAS  (Z:\...\ARCHIVIO.MD\)          : 196 file  (192 nomi distinti)
+  => STESSO CONTEGGIO, sia per file totali sia per nomi distinti.
+
+RIGENERAZIONE DELL'ELENCO DEGLI 81 (necessaria: non era stato salvato da A61),
+stessa procedura: indice di tutti i nomi-file distinti su TUTTO E: (38.154 nomi
+oggi, contro i 38.152 di A61 — la differenza di 2 e' i due referti A61/A62 scritti
+nel frattempo su E:) confrontato coi 192 nomi distinti di ARCHIVIO.MD/.
+  => Rigenerato: 81 nomi SOLO nel repo, assenti da tutto E:. STESSO NUMERO di A61:
+     la rigenerazione e' una controprova indipendente, non una copia del dato.
+
+IL CONTROLLO CHE CONTA — degli 81, quanti sono ANCHE sul NAS?
+
+      TUTTI E 81. 0 mancanti.
+
+  fonte: confronto insiemistico fra l'elenco degli 81 (repo-meno-E:) e l'elenco dei
+  192 nomi distinti presenti in Z:\...\ARCHIVIO.MD\ (`comm -12` per l'intersezione,
+  `comm -23` per verificare gli assenti — quest'ultimo rende 0 righe).
+
+  => Prima di questo giro gli 81 file esistevano in una sola copia (repo, C:).
+     Con la copia NAS confermata, oggi esistono in ALMENO due copie indipendenti
+     (repo + NAS) per tutti e 81. Nessuno risulta ancora a copia singola.
+
+
+================================================================================
+PARTE 5 — CONTROPROVA DI INTEGRITA' A CAMPIONE (8 file)
+================================================================================
+
+  #  FILE                                                          ESITO
+  -  ------------------------------------------------------------  --------
+  1  LIBRO_MASTRO_QBEATS.md                                        DIVERSO
+  2  BUGS_QBEATS.md                                                identico
+  3  BOX3_QBEATS.md                                                identico
+  4  BOX5_QBEATS.md                                                identico
+  5  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md                       identico
+  6  ARCHIVIO.MD/Maggio/02_05_2026/# Q-Beats-Handoff CD 02_05_2026. CC.md   identico  (dagli 81)
+  7  ARCHIVIO.MD/17_07_2026/BOX3_V96_2026-07-17.md                 identico
+  8  ARCHIVIO.MD/Aprile/17_04_2026/BOX3_V18_17_04_2026.md          identico  (dagli 81)
+
+  7 su 8 IDENTICI (sha256 uguale su entrambi i lati, verificato byte-per-hash).
+
+  /!\ #1 LIBRO_MASTRO_QBEATS.md — L'UNICA DIFFERENZA. Riporto i fatti, non decido.
+      repo : sha256 ca6b2603ad3802e049bba1604c2ee038a85fd4010024402f21ced7fed2e6883e
+             248.364 byte · mtime 2026-08-04 23:20:44 +02:00
+      NAS  : sha256 5ab35fa35b8faed0f5ccbb806f87bc9fcab4d1970497122f1904c37eba1f40a8
+             242.846 byte · mtime 2026-08-02 18:22:22 +02:00
+
+      La copia NAS del LIBRO e' piu' vecchia di circa due giorni e piu' corta di
+      5.518 byte rispetto al repo. E' coerente con la data-limite di backup gia'
+      misurata nelle Parti 2-3 (cutoff al 04/08 15:24, e questo file specifico e'
+      fermo al 02/08): NON e' un'anomalia isolata, e' lo stesso limite del backup
+      applicato a un file che nel frattempo e' stato aggiornato piu' volte nel repo.
+      Non ho verificato SE il contenuto della versione NAS sia un prefisso esatto
+      di quello odierno (nessun diff testuale eseguito: fuori mandato di questo giro).
+
+
+================================================================================
+PARTE 6 — Z: E' DENTRO UNA RADICE DI SINCRONIZZAZIONE DRIVE?
+================================================================================
+
+NO. [V]
+
+  Fonte: %LOCALAPPDATA%\Google\DriveFS\root_preference_sqlite.db (+ -wal/-shm),
+  COPIATI nello scratchpad (rp65.db) e letti sulla copia. Originale mai aperto.
+
+  Tabella `roots`: UNA sola riga, INVARIATA rispetto ad A62 —
+      root_id=2 | title='FILE X CLAUDE.MD' | path=E:\...\FILE X CLAUDE.MD | is_my_drive=0
+  Query mirata `WHERE last_seen_absolute_path LIKE 'Z:%'` -> 0 righe.
+
+  /!\ Z: NON E' PERO' SCONOSCIUTA A DRIVE. Compare nella tabella `media` (il
+      catalogo dei dispositivi visti dal client, distinto dalla tabella `roots`
+      che elenca le radici SINCRONIZZATE):
+        media_id='NAS-2072495902', name='Z:\\', last_mount_point='Z:\\',
+        fs_type=7, device_type=3
+      Questa e' la STESSA riga gia' presente in A59: Drive sa che l'unita' esiste
+      (l'ha vista montata), ma non la sincronizza. "Conosciuta" e "sincronizzata"
+      sono due fatti distinti, e qui valgono il primo ma non il secondo.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+SOLA LETTURA su Z: per l'intero giro. NESSUNA scrittura, copia, spostamento o
+cancellazione su Z:. NESSUNA modifica sotto ios_app/, in .git/, alle impostazioni
+di sistema o di Drive. Il database di Drive e' stato COPIATO nello scratchpad e
+letto sulla copia; l'originale non e' mai stato aperto.
+Unica scrittura di questo giro: questo referto, in HANDOFF\ + mirror E:.
+
+Nessuna raccomandazione: la valutazione dei fatti riportati e' di Mauro.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI a HEAD 25056b66eda40ad76d91a886ace442b7064ca900 e misurato
+Z: dal vivo, non a memoria. Ogni affermazione porta il comando o il file da cui
+viene. L'unica differenza trovata (LIBRO_MASTRO_QBEATS.md) e' riportata con
+entrambe le impronte, entrambe le dimensioni ed entrambe le date, senza decidere
+quale versione sia "giusta": la valutazione e' del referee.

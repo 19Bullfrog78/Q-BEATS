@@ -1,0 +1,63 @@
+TRASPORTO DOC — LIBRO_MASTRO v35 → v36 — testo nuovo/modificato VERBATIM (per referee)
+Data: 2026-07-18 · Autore: CC · FILE 2 di 3 del giro doc ridotto.
+Canonico: LIBRO_MASTRO_QBEATS.md (TRACCIATO in git → dopo ratifica + OK Mauro va COMMITTATO,
+staging file-per-file, autore Mauro, zero Co-Authored-By; + propagazione ai 2 mirror + sha256).
+Metodo: sotto è la formulazione ratificata, trascritta integrale (non riassunta). Applico il
+canonico + commit SOLO dopo ratifica verbatim + OK Mauro (due cancelli).
+
+─────────────────────────────────────────────────────────────────────────
+A · HEADER (righe 5-7) — SOSTITUZIONI
+─────────────────────────────────────────────────────────────────────────
+VECCHIO riga 5:  **Versione:** 35 (17/07/2026)
+NUOVO   riga 5:  **Versione:** 36 (18/07/2026)
+
+VECCHIO riga 6:  **Ultima modifica:** 2026-07-17 (v35 — Sez.2 +1 riga cross-team: **NODO A
+  CHIUSO** …)
+NUOVO   riga 6:  **Ultima modifica:** 2026-07-18 (v36 — Sez.2 +4 righe cross-team 18/07:
+  navigazione ≠ transport (CD); proprietà `SetlistRunner` sale alla stanza (Mauro);
+  uscita-stanza = STOP-con-conferma (CD, freeze atteso); CTA «Go to Q-Stage» cablata a S4b.
+  Sez.5 «HEAD codice pre-doc-commit» → `f8276f6` (S4a). Header bump 35→36. Doc-only.)
+
+VECCHIO riga 7:  **Edit author:** CC chat principale 17/07/2026
+NUOVO   riga 7:  **Edit author:** CC chat principale 18/07/2026
+
+─────────────────────────────────────────────────────────────────────────
+B · SEZIONE 2 — 4 RIGHE NUOVE (append DOPO la riga 283 «NODO A CHIUSO», in coda alla tabella)
+Formato colonne: | Data | Decisione | Proposta da | Doc ref | Stato | Superseded da |
+Le tre ratifiche 18/07 trascritte integrali + l'anticipo CTA.
+─────────────────────────────────────────────────────────────────────────
+| 2026-07-18 | **Navigazione ≠ transport (CD, opzione c)** — uscendo dal metronomo il click NON si ferma MAI; lo ferma SOLO uno STOP esplicito (bottone nel metronomo, o MIDI Stop da pedaliera). Ragione dirimente: con Link Director uno stop è un evento di BANDA, non può essere il sottoprodotto di un «indietro». → Supersede il prereq BOX3 V96 punto (k) («aggiungi uno stop alla navigazione interna»): quella direzione DECADE. | CD (ratifica) | BOX3 V97 (a); `HANDOFF/DOC_BOX3_V97_2026-07-18.txt` | attiva | — |
+| 2026-07-18 | **Proprietà del `SetlistRunner` sale alla stanza Q-Live (Mauro)** — se l'audio sopravvive alla navigazione, deve sopravvivere anche lo stato che lo governa. Slot RISERVATO e VUOTO all'ingresso (nessuna scaletta ancora scelta); il runner nasce allo **Start** con la setlist SCELTA; sopravvive alla navigazione INTERNA; muore SOLO all'uscita dalla STANZA Q-Live. Motivazione registrata: prodotto musicale professionale, nessuna scorciatoia. Atterra in **S4L** (contenitore-sessione `QLiveSession`, forma B). | Mauro (ratifica) | BOX3 V97 (a)/(e); `PIANO_S4b_REV` 5f | attiva | — |
+| 2026-07-18 | **Uscita-stanza col click attivo = STOP con conferma (CD, opzione iii)** — uscire da Q-Live col click attivo richiede conferma esplicita, e la conferma **È lo STOP** portato sulla porta: Home-col-click-attivo NON è un'uscita, è una richiesta di STOP. Overlay in famiglia visiva con l'Overlay STOP (§12). STATO: direzione RATIFICATA; il **FREEZE del disegno è ATTESO da CD** e deve coprire ENTRAMBE le uscite dalla stanza (Home e Switch→Q-Stage) e tutti i contesti di sfondo. **Nessuna implementazione prima del freeze.** | CD (ratifica direzione; freeze atteso) | BUGS v39 (ticket APERTO, FILE 3 di questo giro); BOX3 V97 (d) | attiva | — |
+| 2026-07-18 | **CTA «Go to Q-Stage» (empty-state Ⓔ) cablata a `onSwitchToStage` già a S4b** — era prevista a S6; anticipata per non lasciare un bottone morto a schermo nella finestra S4b→S6 con store vuoto. Anticipo puntuale di S6 su un singolo punto, ratificato. (In S4a la CTA è no-op per costruzione; il cablaggio reale è S4b.) | Mauro + referee | `PIANO_S4b_REV` 5f-bis (c); DIFF_S4a | attiva | — |
+
+─────────────────────────────────────────────────────────────────────────
+C · SEZIONE 5 — RIFERIMENTI
+─────────────────────────────────────────────────────────────────────────
+(C1) «HEAD codice pre-doc-commit» (riga 358) — SOSTITUZIONE del solo VALORE (la nota-vincolo
+     permanente sotto resta INVARIATA):
+     VECCHIO: **HEAD codice pre-doc-commit**: `152445e` (Nodo A N1b, il commit immediatamente
+              precedente a questo doc-commit v35).
+     NUOVO:   **HEAD codice pre-doc-commit**: `f8276f6` (S4a «QLiveShowsView come dead code»,
+              il commit immediatamente precedente a questo doc-commit v36).
+(C2) «BOX5 più recente» (riga 359) — **NESSUNA MODIFICA**: già puntato a
+     `ARCHIVIO.MD/17_07_2026/BOX5_V26_2026-07-17.md`, che È il BOX5 più recente reale
+     (verificato a fonte: V24 · V25 · **V26** = ultimo). Il puntatore è allineato.
+
+─────────────────────────────────────────────────────────────────────────
+D · SEZIONE 6 — STORICO VERSIONI (+ FLAG di igiene)
+─────────────────────────────────────────────────────────────────────────
+⚠️ FLAG (stop-and-flag, NON risolvo da solo): il changelog Sez.6 si FERMA a **v34** (riga 407).
+   **Manca la riga v35**, benché l'header dichiari Versione 35 e la Sez.2 abbia già la riga
+   NODO A del 17/07. È un buco di igiene pre-esistente (la riga v35 non fu mai aggiunta). Se il
+   referee concorda, la v36 chiude il buco aggiungendo ENTRAMBE le righe (v35 ricostruita dal
+   testo dell'header v35 + v36). Se il referee preferisce lasciare v35 mancante, aggiungo solo
+   v36 e registro il buco altrove. PROPOSTA (append dopo la riga 407 «| 34 …»):
+
+| 35 | 2026-07-17 | Mauro + CC + referee | **Sez.2 +1 riga cross-team: NODO A CHIUSO** (device-validato Mauro 17/07) — Q-Live assorbita in `AppRootView.Screen.qLive`, modale UIKit ritirata, sblocca S4. **Sez.5** «HEAD codice pre-doc-commit» → `152445e`. Header bump 34→35. Doc-only. *(riga ricostruita in v36 dal testo dell'header v35 — buco changelog colmato.)* |
+| 36 | 2026-07-18 | Mauro + CC + referee | **Sez.2 +4 righe cross-team (18/07):** navigazione ≠ transport (CD) · proprietà `SetlistRunner` sale alla stanza (Mauro) · uscita-stanza = STOP-con-conferma (CD, freeze atteso) · CTA «Go to Q-Stage» cablata a S4b. **Sez.5** «HEAD codice pre-doc-commit» → `f8276f6` (S4a). Header bump 35→36. Doc-only, nessun fix codice. |
+
+─────────────────────────────────────────────────────────────────────────
+FINE TRASPORTO FILE 2. Attendo ratifica verbatim del referee + OK di Mauro prima di scrivere il
+canonico LIBRO v36, COMMITTARLO (tracciato) e propagarlo ai mirror. Nessun canonico toccato in
+questo turno. Domanda aperta per il referee: v35 changelog ricostruito (proposta D) sì/no.

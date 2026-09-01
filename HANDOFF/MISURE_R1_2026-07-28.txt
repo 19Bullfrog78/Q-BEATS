@@ -1,0 +1,392 @@
+================================================================================
+MISURE_R1_2026-07-28.txt
+Q-BEATS — misura a fonte, SOLO LETTURA. Eseguito da CC il 2026-07-28.
+Repo: C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS
+================================================================================
+REGOLE APPLICATE:
+ - sha a 40 caratteri in ogni comando git. Espansioni eseguite prima (sez. 0).
+ - CR misurati SOLO con: tr -cd '\r' | wc -c   (mai grep, in nessuna forma)
+ - ogni conteggio di righe e' dichiarato: righe(terminatori, wc -l)
+ - ogni conteggio grep -c e' dichiarato: righe-che-contengono (NON occorrenze)
+ - output verbatim, catturato per redirezione: nessun numero ribattuto a mano
+================================================================================
+
+################################################################################
+# 0. ESPANSIONE DEGLI SHA CORTI CITATI NEL PROMPT (nessuno sha corto entra nei comandi)
+################################################################################
+
+$ git -C "$R" rev-parse 54ccddc^{commit} ee31281^{commit} 131a511^{commit} HEAD
+54ccddc8be2e839e05ac025c156b513d80bb1725
+ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+131a51183ef1cbcac5b08a76ecf1b120a28e40f2
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+corrispondenze usate nel resto del file:
+  54ccddc -> 54ccddc8be2e839e05ac025c156b513d80bb1725
+  ee31281 -> ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+  131a511 -> 131a51183ef1cbcac5b08a76ecf1b120a28e40f2
+  HEAD    -> 8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+$ git -C "$R" ls-tree -r --name-only HEAD | grep 'QStageRootView'
+ios_app/QBeats/UI/QStageRootView.swift
+
+  => path usato: ios_app/QBeats/UI/QStageRootView.swift
+  NOTA DI PERCORSO: il file NON e' sotto UI/QStage/ ma in UI/ diretto.
+
+
+################################################################################
+# 1. HEAD E PULIZIA DELL'ALBERO
+################################################################################
+
+--- 1.a  [gia' fatto oggi — reincollato verbatim]
+$ git -C "$R" log -1 --format=%H
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+--- 1.b  [NON fatto prima con QUESTO comando: oggi avevo usato la variante
+          --porcelain --untracked-files=no, che NON e' lo stesso comando]
+$ git -C "$R" status --porcelain
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19_rev2.txt
+?? HANDOFF/DIFF_BUGS_v42_2026-07-22.txt
+?? HANDOFF/DIFF_BUGS_v43_2026-07-23.txt
+?? HANDOFF/DIFF_FIX-PILL_2026-07-22.txt
+?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+?? HANDOFF/DIFF_LIBRO_v37_2026-07-19.txt
+?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_S4a_2026-07-18.txt
+?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+?? HANDOFF/ESITO_COMMIT_BUGS_v40_2026-07-19.txt
+?? HANDOFF/ESITO_GIRODOC_FOLLOWER-GREGARIO_2026-07-19.txt
+?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_CHIUSURA_definitivo.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt
+?? HANDOFF/HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+?? HANDOFF/HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+?? HANDOFF/HANDOFF_CC_2026-07-26.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27_sera.md
+?? HANDOFF/MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+?? HANDOFF/MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+?? HANDOFF/MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+?? HANDOFF/PIANO_S4_2026-07-18.txt
+?? HANDOFF/ROADMAP_2026-07-26.txt
+?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+?? HANDOFF/VERIFICA_V-DIR_2026-07-19.txt
+?? HANDOFF/VERIFICA_V-ISP_2026-07-19.txt
+?? HANDOFF/_SUPERATO__ROADMAP_2026-07-24.txt
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+[fine output status --porcelain]
+
+$ git -C "$R" status --porcelain | wc -l
+41
+  ^ righe(terminatori, wc -l)
+
+--- 1.c
+$ git -C "$R" log --oneline -6
+8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+54ccddc BUGS_QBEATS.md: v43 - FIX-PILL chiuso device + TD-qstage-tab-reset
+ee31281 FIX-PILL: la pill Q-Live in Q-Stage naviga davvero (TD-qstage-pill-qlive-morta)
+7c804c1 BOX3_QBEATS.md: V99 - chiusura giro doc 22/07 (SCALETTA tracciata dal 18/07, punto (g) di V97 falsificato, catena commit+CI, falso-zero gh --commit, cancello di ratifica saltato su v42)
+bfa07eb BUGS_QBEATS.md: v42 - condizione di chiusura TD#17 agli atti (alternative A/B, roam = caratterizzazione; ratifica a monte LIBRO v40)
+131a511 LIBRO_MASTRO_QBEATS.md: v40 - condizione di chiusura TD#17 agli atti + rettifica della premessa SCALETTA nella riga 2026-07-21
+
+
+################################################################################
+# 2. LE CINQUE RIGHE SONO INCISE IN LIBRO_MASTRO_QBEATS.md SU DISCO?
+################################################################################
+
+File misurato (DISCO, non blob): /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/LIBRO_MASTRO_QBEATS.md
+Comando per ogni stringa: grep -c '<stringa>' "$LD"
+Unita': righe-che-contengono-la-stringa. NON occorrenze.
+
+$ grep -c "PALETTE ANNOTAZIONI CD"  ->  0
+$ grep -c "REGOLA DENTRO/FUORI"  ->  0
+$ grep -c "FORMA POPUP REMOVE"  ->  0
+$ grep -c "RICONFERMATO SUL CONTENUTO"  ->  0
+$ grep -c "b5f40d9e"  ->  0
+
+--- CONTROLLO POSITIVO OBBLIGATORIO (stesso comando, stesso file)
+$ grep -c "COPY POPUP REMOVE"  ->  3
+
+  Atteso dal prompt: 3.
+  ESITO CONTROLLO POSITIVO: RENDE 3 -> il filtro FUNZIONA.
+  => gli zeri qui sopra sono misure valide.
+
+--- corroborazione del solo controllo positivo, per non appoggiarsi a un unico grep
+$ grep -n "COPY POPUP REMOVE" "$LD" | cut -c1-4
+299:
+300:
+301:
+  ^ numeri di riga delle occorrenze del controllo positivo
+
+
+################################################################################
+# 3. IL LIBRO SU DISCO E' QUELLO CHE HAI IN MANO TU?
+################################################################################
+
+--- 3.a  FACCIA DISCO
+$ sha256sum "$LD"
+689df25539c118e3f43d76349f6f07776246594285cb010072c93df89d5e0c89 */c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/LIBRO_MASTRO_QBEATS.md
+
+$ wc -c < "$LD"     (byte)
+142206
+
+$ wc -l < "$LD"     (righe(terminatori, wc -l))
+444
+
+$ tr -cd '\r' < "$LD" | wc -c     (CR — unico metodo ammesso)
+444
+
+--- 3.b  FACCIA BLOB a HEAD (8fa50189b13f49ba3b291510f7d1a388d75b5909)
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | sha256sum
+e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 *-
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | wc -c     (byte)
+141762
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | wc -l     (righe(terminatori, wc -l))
+444
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | tr -cd '\r' | wc -c     (CR)
+0
+
+--- 3.c  DIFFERENZA
+byte_disco - byte_blob = 142206 - 141762 = 444
+controllo strutturale: (byte_disco - byte_blob) == righe(terminatori, wc -l) ?
+  SI: 444 == 444  (un CR per riga, coerente)
+
+--- 3.d  DICHIARAZIONE CONTRO L'ATTESO DEL PROGETTO CLAUDE
+ATTESO dal prompt: sha256 e096cbc6...45e86922 | 141762 byte | 444 righe(terminatori) | CR 0
+
+faccia DISCO   : sha256 689df25539c118e3f43d76349f6f07776246594285cb010072c93df89d5e0c89 | 142206 byte | 444 righe(terminatori, wc -l) | CR 444
+faccia BLOB    : sha256 e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 | 141762 byte | 444 righe(terminatori, wc -l) | CR 0
+
+confronto con l'atteso, campo per campo:
+  DISCO sha256 : NON COINCIDE
+  DISCO byte   : NON COINCIDE (atteso 141762, misurato 142206)
+  DISCO righe  : COINCIDE (444)
+  DISCO CR     : NON COINCIDE (atteso 0, misurato 444)
+
+  BLOB  sha256 : COINCIDE
+  BLOB  byte   : COINCIDE (141762)
+  BLOB  righe  : COINCIDE (444)
+  BLOB  CR     : COINCIDE (0)
+
+--- 3.e  OID git delle due facce (misura indipendente dallo sha256)
+$ git -C "$R" rev-parse 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md        (OID del blob in git)
+d8a2b7d07f72cf8de49879d62c67a07522506c9e
+$ git -C "$R" hash-object "$LD"              (OID che avrebbe il file su disco)
+d8a2b7d07f72cf8de49879d62c67a07522506c9e
+
+
+################################################################################
+# 4. LA DOMANDA CHE DECIDE UNA RETTIFICA — riga 17 di QStageRootView.swift
+################################################################################
+
+--- 4.a  [gia' fatto oggi, ma con sha CORTI: rieseguito con sha a 40 e reincollato]
+path: ios_app/QBeats/UI/QStageRootView.swift
+
+$ git -C "$R" show 54ccddc8be2e839e05ac025c156b513d80bb1725:ios_app/QBeats/UI/QStageRootView.swift | sed -n '17p'
+    @State private var tab: Tab = .songs
+
+$ git -C "$R" show ee31281b03a4898bfbccc29bd558cbb68f5e23e1:ios_app/QBeats/UI/QStageRootView.swift | sed -n '17p'
+    @State private var tab: Tab = .songs
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/QStageRootView.swift | sed -n '17p'
+    @State private var tab: Tab = .songs
+
+le tre righe, una accanto all'altra (verbatim, delimitate da | per rendere visibili gli spazi):
+  54ccddc8be2e839e05ac025c156b513d80bb1725  |    @State private var tab: Tab = .songs|
+  ee31281b03a4898bfbccc29bd558cbb68f5e23e1  |    @State private var tab: Tab = .songs|
+  8fa50189b13f49ba3b291510f7d1a388d75b5909  |    @State private var tab: Tab = .songs|
+
+DICHIARAZIONE:
+  Le tre righe sono IDENTICHE (confronto byte-a-byte delle tre stringhe).
+
+corroborazione per impronta, non a occhio:
+  sha256 riga@54ccddc : 99118c3a1100d9d405e063c89b3cc76b65a61669f6c0e74c1c0f8beba279fbbe
+  sha256 riga@ee31281 : 99118c3a1100d9d405e063c89b3cc76b65a61669f6c0e74c1c0f8beba279fbbe
+  sha256 riga@HEAD    : 99118c3a1100d9d405e063c89b3cc76b65a61669f6c0e74c1c0f8beba279fbbe
+
+--- 4.b  I COMMIT DA 131a511 (escluso) A HEAD, E QUALI TOCCANO .swift
+
+$ git -C "$R" log --format=%H 131a51183ef1cbcac5b08a76ecf1b120a28e40f2..8fa50189b13f49ba3b291510f7d1a388d75b5909
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+54ccddc8be2e839e05ac025c156b513d80bb1725
+ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+7c804c119fe458c99c08ce979dd877a89cc23f13
+bfa07eba05aecb25c334d54fe8a9695f57464d76
+
+$ git -C "$R" log --format=%H 131a51183ef1cbcac5b08a76ecf1b120a28e40f2..8fa50189b13f49ba3b291510f7d1a388d75b5909 | wc -l
+5
+  ^ righe(terminatori, wc -l) = numero di commit nell'intervallo
+
+................................................................................
+$ git -C "$R" show --stat --name-only 8fa50189b13f49ba3b291510f7d1a388d75b5909
+commit 8fa50189b13f49ba3b291510f7d1a388d75b5909
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Mon Jul 27 14:29:53 2026 +0200
+
+    LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+
+LIBRO_MASTRO_QBEATS.md
+
+  [conteggio .swift in questo commit]
+  $ git -C "$R" show --pretty=format: --name-only 8fa50189b13f49ba3b291510f7d1a388d75b5909 | grep -c '\.swift$'
+0
+  ^ righe-che-contengono (= file .swift toccati da questo commit)
+................................................................................
+$ git -C "$R" show --stat --name-only 54ccddc8be2e839e05ac025c156b513d80bb1725
+commit 54ccddc8be2e839e05ac025c156b513d80bb1725
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Thu Jul 23 16:25:04 2026 +0200
+
+    BUGS_QBEATS.md: v43 - FIX-PILL chiuso device + TD-qstage-tab-reset
+    
+    TD-qstage-pill-qlive-morta -> CHIUSO 23/07, spostato in Sez.2: commit ee31281,
+    CI 29994513488 verde, gate device Mauro iPhone+iPad, 4 tocchi hit-area 4/4 PASS.
+    
+    Nuovo in 1.3: TD-qstage-tab-reset - rientrando in Q-Stage la linguetta riparte
+    da Songs. Pre-esistente, provato dalla controprova Home -> Q-Stage; NON e' una
+    regressione di ee31281. Il montaggio condizionale e' invariante Nodo A e non si
+    tocca. Domanda CD aperta. Header 42->43.
+
+BUGS_QBEATS.md
+
+  [conteggio .swift in questo commit]
+  $ git -C "$R" show --pretty=format: --name-only 54ccddc8be2e839e05ac025c156b513d80bb1725 | grep -c '\.swift$'
+0
+  ^ righe-che-contengono (= file .swift toccati da questo commit)
+................................................................................
+$ git -C "$R" show --stat --name-only ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+commit ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Thu Jul 23 11:14:39 2026 +0200
+
+    FIX-PILL: la pill Q-Live in Q-Stage naviga davvero (TD-qstage-pill-qlive-morta)
+    
+    QStageRootView espone onSwitchToLive accanto a onExit, AppRootView lo inietta
+    con { screen = .qLive } esplicito, ShowsListView lo chiama dalla closure onSwitch
+    al posto della sonda [GATE-S3]. Specchio esatto della catena Q-Live -> Q-Stage
+    gia' collaudata su device a S4b. Chiude l'affordance morta segnalata da CD-Q7
+    (LIBRO v30) e viva dal commit 36775a4 del 13/07.
+    
+    Zero contatto con Layer 1/2. L'asimmetria audio fra le due direzioni resta
+    quella ratificata (modello sessione = stanza, BOX3 V96 punto d) ed e' ora
+    difesa da un commento di guardia in AppRootView.
+    
+    Ref: BUGS_QBEATS.md v42 §1.2
+
+ios_app/QBeats/UI/AppRootView.swift
+ios_app/QBeats/UI/QStage/ShowsListView.swift
+ios_app/QBeats/UI/QStageRootView.swift
+
+  [conteggio .swift in questo commit]
+  $ git -C "$R" show --pretty=format: --name-only ee31281b03a4898bfbccc29bd558cbb68f5e23e1 | grep -c '\.swift$'
+3
+  ^ righe-che-contengono (= file .swift toccati da questo commit)
+................................................................................
+$ git -C "$R" show --stat --name-only 7c804c119fe458c99c08ce979dd877a89cc23f13
+commit 7c804c119fe458c99c08ce979dd877a89cc23f13
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Wed Jul 22 19:48:13 2026 +0200
+
+    BOX3_QBEATS.md: V99 - chiusura giro doc 22/07 (SCALETTA tracciata dal 18/07, punto (g) di V97 falsificato, catena commit+CI, falso-zero gh --commit, cancello di ratifica saltato su v42)
+
+BOX3_QBEATS.md
+
+  [conteggio .swift in questo commit]
+  $ git -C "$R" show --pretty=format: --name-only 7c804c119fe458c99c08ce979dd877a89cc23f13 | grep -c '\.swift$'
+0
+  ^ righe-che-contengono (= file .swift toccati da questo commit)
+................................................................................
+$ git -C "$R" show --stat --name-only bfa07eba05aecb25c334d54fe8a9695f57464d76
+commit bfa07eba05aecb25c334d54fe8a9695f57464d76
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Wed Jul 22 12:41:33 2026 +0200
+
+    BUGS_QBEATS.md: v42 - condizione di chiusura TD#17 agli atti (alternative A/B, roam = caratterizzazione; ratifica a monte LIBRO v40)
+
+BUGS_QBEATS.md
+
+  [conteggio .swift in questo commit]
+  $ git -C "$R" show --pretty=format: --name-only bfa07eba05aecb25c334d54fe8a9695f57464d76 | grep -c '\.swift$'
+0
+  ^ righe-che-contengono (= file .swift toccati da questo commit)
+................................................................................
+
+--- 4.c  QUALI FILE TOCCA 54ccddc
+$ git -C "$R" show --stat --name-only 54ccddc8be2e839e05ac025c156b513d80bb1725
+commit 54ccddc8be2e839e05ac025c156b513d80bb1725
+Author: Mauro Martintoni <di_tutto@icloud.com>
+Date:   Thu Jul 23 16:25:04 2026 +0200
+
+    BUGS_QBEATS.md: v43 - FIX-PILL chiuso device + TD-qstage-tab-reset
+    
+    TD-qstage-pill-qlive-morta -> CHIUSO 23/07, spostato in Sez.2: commit ee31281,
+    CI 29994513488 verde, gate device Mauro iPhone+iPad, 4 tocchi hit-area 4/4 PASS.
+    
+    Nuovo in 1.3: TD-qstage-tab-reset - rientrando in Q-Stage la linguetta riparte
+    da Songs. Pre-esistente, provato dalla controprova Home -> Q-Stage; NON e' una
+    regressione di ee31281. Il montaggio condizionale e' invariante Nodo A e non si
+    tocca. Domanda CD aperta. Header 42->43.
+
+BUGS_QBEATS.md
+
+$ git -C "$R" show --pretty=format: --name-only 54ccddc8be2e839e05ac025c156b513d80bb1725
+BUGS_QBEATS.md
+[fine elenco file]
+
+$ git -C "$R" show --pretty=format: --name-only 54ccddc8be2e839e05ac025c156b513d80bb1725 | grep -c '\.swift$'
+0
+  ^ righe-che-contengono (= file .swift toccati da 54ccddc)
+
+--- 4.d  CONTROLLO POSITIVO sul filtro '\.swift$' usato in 4.b e 4.c
+  (uno zero non vale niente se non si dimostra che il filtro sa rendere non-zero)
+$ git -C "$R" show --pretty=format: --name-only ee31281b03a4898bfbccc29bd558cbb68f5e23e1 | grep -c '\.swift$'
+3
+  ^ atteso non-zero (ee31281 e' l'ultimo commit di codice). Se rende 0, il filtro e' rotto.
+
+
+################################################################################
+# 5. IL GEMELLO DI r.305 — tutte le righe di LIBRO che citano 54ccddc
+################################################################################
+
+$ grep -n "54ccddc" "$LD"      (righe intere, verbatim, tutte)
+--------------------------------------------------------------------------------
+305:| 2026-07-26 | **TAB-RESET Q-STAGE** — «Q-Stage apre sempre sulla tab Songs all'ingresso; non persiste l'ultima tab». Songs è la radice del catalogo, quindi punto d'ingresso prevedibile. Chiude `TD-qstage-tab-reset` **by-design, a zero codice**: `@State private var tab: Tab = .songs` è già il default (`QStageRootView.swift:17` @ `54ccddc`, verificato a fonte da CC; ⚠️ non `:11`, che in BUGS v41 indica il buco nel tipo `onExit`, altra cosa). Mauro: «si» | Mauro + CD | Q20-RIEMISSIONE sha256 `5dcfbbfb…5ab9d408` | attiva | — |
+307:| 2026-07-27 | **CONFINE DISTRUTTIVO Q-LIVE / Q-STAGE — regola normativa, non descrizione dello stato attuale.** Quando la cancellazione definitiva di una setlist verrà costruita, **potrà vivere solo in Q-Stage**: Q-Live non contiene, e non conterrà, alcuna azione distruttiva sui dati dell'utente. «Remove from Q-Live» agisce esclusivamente sull'appartenenza dello show alla lista di palco e lascia la setlist **intatta e viva** in Q-Stage. Mauro: «SOLO da Q-stage l'utente avrà la possibilità di eliminare definitivamente la setlist. NON in q-live» ⚠️ **A HEAD `54ccddc` la cancellazione non esiste in NESSUNA delle due stanze**: `deleteSetlist` (`Store/QBeatsStore.swift:115-118`, tre righe: `removeAll` + `try? await save()`) ha **zero call-site**, e `LiveRootView`/`QLiveShowsView`/`ShowsListView` hanno zero `onDelete`, `swipeActions`, `EditButton`, `.destructive`, `contextMenu` (CC a fonte, con controprova su `deleteSong` che rende il cablaggio completo). ⚠️ **Vincolo di architettura da sciogliere PRIMA di costruire la maniglia**: lo Store **non conosce lo stato di riproduzione** (`isPlaying` = zero occorrenze in `Store/`), quindi la guardia «non si cancella in sessione» non può stare nello Store — o sta nel chiamante, o lo Store acquisisce una dipendenza che oggi non ha. Decisione di architettura, non una riga di `if`. | Mauro | questa ratifica; misure CC @ `54ccddc` | attiva | — |
+--------------------------------------------------------------------------------
+
+$ grep -c "54ccddc" "$LD"
+2
+  ^ righe-che-contengono la stringa. NON occorrenze.
+
+--- 5.b  controllo positivo sul filtro di sez. 5 (stesso file, stesso comando)
+$ grep -c "ee31281" "$LD"
+3
+  ^ atteso non-zero (Sez.5 di LIBRO e' stata portata a ee31281 dal commit HEAD).
+    Se rendesse 0, il grep di sez. 5 non sarebbe attendibile.
+
+--- 5.c  solo i numeri di riga, per collazione rapida
+$ grep -n "54ccddc" "$LD" | cut -d: -f1
+305
+307
+
+================================================================================
+FINE MISURE. Nessun file del repo e' stato scritto, nessun commit, nessun branch.
+$ git -C "$R" status --porcelain | wc -l   (ricontrollo a valle)
+41
+  ^ righe(terminatori, wc -l)
+================================================================================

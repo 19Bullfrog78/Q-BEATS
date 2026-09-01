@@ -1,0 +1,125 @@
+QB-2026-08-05-A47-S5A-SHOWDETAIL-SCHERMATA · FASE 1 · SOLA CONSEGNA, NON PROCEDO
+CC → Referee · segue A46
+
+ID: A47, assegnato da te. Verificato in forma stretta prima di scrivere: nessun `A47[-_ ]` né
+`QB-...-A47` in HANDOFF/ (nomi o contenuti, escluso CONGEDO_REFEREE), controllo positivo
+confermato sulla stessa forma applicata ad A46 (morde nel mio file di ieri). A47 è libero.
+Consegna `MISURE_CC_2026-08-05_A47-S5A-FASE1.txt` non esisteva prima di questa scrittura.
+Orologio: 2026-08-05T09:19:55Z (`date -u`). HEAD invariato: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+
+⛔ **NON PROCEDO. Questa è FASE 1. Zero righe di Swift scritte, zero file toccati nel repo oltre
+questa consegna.** Attendo ratifica.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+(a) Indirizzo reale del contratto + ancora di commit
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+⛔ **NON TROVATO. Cercato su quattro perimetri indipendenti, `ls | grep`/`find`, mai Glob:**
+
+1. **Repo tracciato**, `DESIGN/QLive_Nav/`: contiene solo file fino al `2026-07-18`
+   (`2026-07-09_base_e141295.html`, `2026-07-09_standalone_b23dfc78.html`,
+   `2026-07-11_Q7-Q10.html`, `2026-07-11_Q7-Q13.html`, `2026-07-11_Q7-Q16.html`,
+   `2026-07-18_QLive-Exit-in-Play.html`, `HANDOFF_CD_QLIVE_NAV_Q7-Q10_11_07_2026.md`,
+   `README.md`) — niente di agosto. `git log --since="2026-07-31" --diff-filter=A --name-only
+   -- "DESIGN/*"` → **zero file aggiunti**. Sweep repo intero per `*2026-08-02*`, `*ShowDetail*`,
+   `*S5a*` → **zero**.
+2. **E:, il percorso esatto dato** — `DA_CD_PER_CC/02_08_2026/…`: la cartella `02_08_2026` **non
+   esiste** sotto NESSUNA delle 5 cartelle `DA_CD_PER_CC` trovate su E: (`FILE X CLAUDE.MD\`,
+   `FILE X CLAUDE.MD\DA_CD_PER_CC\11_07_2026\1Q-BEATS\`, `…\GIUGNO\28_06_2026\HOME - BIVIO 2\`,
+   `…\GIUGNO\29_06_2026\`, `GRAFICA\SHOWS\Q-BEATS\`). L'unica con date elencabili
+   (`FILE X CLAUDE.MD\DA_CD_PER_CC\`) arriva a `27_07_2026`, poi salta a `GIUGNO`: nessuna
+   cartella di agosto.
+3. **E:, sweep largo**: `find … -iname "*2026-08-02*"` su tutto l'albero Q-BEATS → solo
+   snapshot canonici (BUGS/LIBRO/SCALETTA/HANDOFF), zero `.html`. `*ShowDetail*` → zero.
+   `*S5*.html` → zero. `QLive_Nav` come nome di cartella → **zero in tutto E:** (esiste solo nel
+   repo, path diverso).
+4. **Drive**: `title contains 'ShowDetail'` → **zero risultati**, nessun file di nessun tipo.
+
+⚠️ **Reperto trovato cercando "2026-08-02" + html su Drive (non il file richiesto, ma
+direttamente rilevante):** `2026-08-02_QLive-Metronome-EmptyState_390x844.html` (Drive,
+28721 B, caricato `2026-08-02T18:39:43.975Z`) — un contratto DIVERSO (per l'empty-state «nessun
+runner», atomo A3), che nel proprio commento di testa **presuppone come già esistente proprio il
+file che sto cercando**:
+
+    Chrome = `.navbar` (back «Shows» + `.seg-mini`) COPIATA VERBATIM dal frame ③ e dai
+    frame Ⓕ/Ⓖ del freeze 2026-08-02_QLive-ShowDetail-S5_390x844.html.
+
+⇒ Non è un percorso sbagliato nel tuo prompt: **il file è stato consegnato ad altri (questo
+sibling lo cita come esistente l'02/08) ma non è raggiungibile da nessuno dei quattro perimetri
+che posso interrogare oggi.** Non ho letto oltre l'estratto di testa di questo sibling — conterrà
+forse un frammento verbatim della `.navbar` condivisa, ma usarlo come sostituto del contratto
+mancante sarebbe riempire un silenzio con una fonte plausibile, non è il contratto: mi fermo,
+lo segnalo, non lo uso.
+
+⛔ **Nessuna ancora di commit da riportare: non esiste un file da ancorare.**
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+(b) Punti in cui il contratto è muto
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Con il contratto assente, il muto è totale su tutto ciò che solo un file di design decide —
+non lo elenco come "tanti buchi", lo dichiaro come **un solo buco: il contratto stesso**. I sei
+vincoli che il tuo prompt elenca come "presupposti dal contratto" (scroll di `.songlist`,
+`.startfoot` ancorato, `.segMini` inerte, skip+conteggio orfani, Start disabilitato a opacity
+0.4, badge differito) sono le uniche specifiche che ho in mano: bastano per un contratto di
+COMPORTAMENTO, non per un layout. Restano muti almeno:
+  - markup/copy esatti della schermata (titoli, etichette, ordine dei blocchi oltre lista+footer)
+  - trattamento visivo esatto di idx/tag-rail "R1-pending SOLO LAYOUT" (cosa si vede oggi, anche
+    se inerte)
+  - resa visiva dello skip orfani (riga omessa? grigia? altro?) oltre al conteggio testuale
+  - copy esatto del bottone Start e del suo stato disabilitato oltre "DS opacity 0.4"
+  - chrome esatta della navbar (back + `.segMini`) — un sibling (sopra) ne dichiara una copia
+    verbatim da QUESTO stesso contratto assente, ma non l'ho usata come fonte
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+(c) Firma con cui QLiveRootView raggiungerà la view — e un confine dell'atomo da farti decidere
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**Fatti misurati sul codice esistente (questi non li deve decidere il contratto, sono già
+scritti):**
+
+--- ios_app/QBeats/UI/QLive/QLiveRootView.swift:93-95 (stato attuale, verbatim) ---
+            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+        case .detail:
+            EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+
+--- ios_app/QBeats/UI/QLive/QLiveRootView.swift:42-43 (commento di classe, vincolo esistente) ---
+    /// L'eventuale payload (selected show, S5) vivrà in un `@State` SEPARATO,
+    /// MAI dentro l'enum.
+
+⇒ Il codice stesso dichiara GIÀ, prima di qualunque contratto, che la show selezionata deve
+vivere in un `@State` di `QLiveRootView` separato da `page`. Questo fissa la forma della firma
+che invocherà la nuova view: qualcosa come `QLiveShowDetailView(setlist: <lo @State separato>,
+onExit: onExit, onBack: { navigate(to: .shows) })` — **ma non la scrivo come proposta**, la
+riporto come conseguenza diretta di un vincolo già scritto, in attesa di ratifica sui nomi esatti.
+
+**Non esiste `struct Show`:** `QBeatsStore.resolve(_ setlist: Setlist) -> (songs: [Song],
+missingIDs: [UUID])` (`Store/QBeatsStore.swift:152`) è un metodo dello STORE su un `Setlist`, non
+un metodo su un tipo "Show" — nel vocabolario del contratto e dei commenti CC, "show" = `Setlist`
+(`QLiveShowsView.swift:256`: `ForEach(visibleShows) { show in`, dove `visibleShows: [Setlist]`).
+`resolve().songs`/`resolve().missingIDs` del tuo prompt sono quindi `store.resolve(setlist).songs`
+/`.missingIDs`, non un metodo diretto sulla show.
+
+⚠️ **CONFINE DELL'ATOMO DA FARTI DECIDERE — non lo risolvo da sola, per mandato.**
+`ios_app/QBeats/UI/QLive/QLiveShowsView.swift` **non ha OGGI nessuna wiring di tap-riga**:
+censito (`grep` su tutto il file) — zero `navigate(to:`, zero stato di selezione, zero closure
+di callback oltre `onExit`/`onSwitchToStage` già esistenti (`:41-44`). Il file dichiara però,
+già ratificato, che il tap arriva **a S5**:
+
+--- ios_app/QBeats/UI/QLive/QLiveShowsView.swift:21-24 (commento di classe, verbatim) ---
+    ·  RIGHE INERTI con chevron (§markup frame ②: .showrow CON <svg> chevron — a
+       differenza di Q-Stage/S3 che le ha senza): il tap-riga arriva a S5 (push detail).
+       Finestra S4b→S5 con chevron inerte = ratificata (referee: «device gate S4 conferma
+       no-crash su tap-riga nella finestra pre-S5», SCALETTA ⟦S4⟧).
+
+⇒ **Per "raggiungere" davvero `QLiveShowDetailView` (non solo costruirla in un ramo morto) serve
+anche una modifica in `QLiveShowsView.swift`** — un tap-handler che catturi la show e la passi in
+qualche forma a `QLiveRootView`. Questo file NON è nel tuo elenco ⛔ NON TOCCHI, ma NON è neppure
+nell'elenco di ciò che sono autorizzata a toccare ("un solo file nuovo… più il minimo
+indispensabile in `QLiveRootView.swift`"). **Mi fermo qui, come da mandato: il confine dell'atomo
+tocca un terzo file, e non decido da sola se è dentro o fuori ⟦S5a⟧.**
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine FASE 1. Nessun codice scritto, nessun file toccato oltre questa consegna, nessun commit,
+nessun push. In attesa di ratifica prima di FASE 2.
+════════════════════════════════════════════════════════════════════════════════════════════════

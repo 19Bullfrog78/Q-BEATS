@@ -1,0 +1,160 @@
+VERIFICA S4a — TOKEN + sortedSetlists (blocco 1a/1b/1c) — PER RATIFICA REFEREE
+Data: 2026-07-18 · Autore: CC · Baseline: HEAD ed5425c (riverificato, nessun commit).
+Oggetto verificato: ios_app/QBeats/UI/QLive/QLiveShowsView.swift (diff in
+HANDOFF/DIFF_S4a_2026-07-18.txt, sha256 9ac09308…c9506ed6).
+Freeze: DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0.
+ESITO IN TESTA: 1a ✅ · 1b ✅ (8/8 COMBACIA) · 1c ✅ (i due spacing sono sorgentati, non
+allineamenti arbitrari). → NESSUNA MODIFICA AL CODICE. Il diff originale REGGE, nessun v2.
+Ogni troncamento è marcato […].
+
+
+════════════════════════════════════════════════════════════════════════
+1a — store.sortedSetlists(...) — VERIFICATO A FONTE
+════════════════════════════════════════════════════════════════════════
+File: ios_app/QBeats/Store/QBeatsStore.swift, righe 178-189, verbatim:
+    178	    /// Applica l'ordine corrente a un sottoinsieme arbitrario (es. la lista già filtrata dalla
+    179	    /// search LOCALE della vista). Ordinamento stabile; nome case-insensitive.
+    180	    func sortedSetlists(_ input: [Setlist]) -> [Setlist] {
+    181	        let ascending: [Setlist]
+    182	        switch showsSortKey {
+    183	        case .name:
+    184	            ascending = input.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    185	        case .date:
+    186	            ascending = input.sorted { $0.date < $1.date }
+    187	        }
+    188	        return showsSortAscending ? ascending : ascending.reversed()
+    189	    }
+DICHIARAZIONE:
+ · Firma: `func sortedSetlists(_ input: [Setlist]) -> [Setlist]` (riga 180). Accetta un array
+   ARBITRARIO — la docstring (178-179) dice esplicitamente «un sottoinsieme arbitrario (es. la
+   lista già filtrata dalla search LOCALE della vista)». ✓ = esattamente l'uso di QLiveShowsView
+   (`store.sortedSetlists(filtered)`, filtered = search locale).
+ · READ-ONLY: legge `showsSortKey` (183) e `showsSortAscending` (188); NON scrive nulla su
+   `self`/store. L'ordine è lo STATO CONDIVISO (gli stessi @Published usati da Q-Stage/S3),
+   consumato in sola lettura. ✓ Q15 (Q-Live eredita l'ordine, non lo controlla).
+ · Nessun effetto collaterale, ordinamento stabile (`sorted` di Swift). ✓
+
+
+════════════════════════════════════════════════════════════════════════
+1b — VALORI DIETRO I NOMI — 8/8 COMBACIA (definizione verbatim ↔ freeze)
+════════════════════════════════════════════════════════════════════════
+Aritmetica hex usata sotto (verificabile): #d43f00 = rgb(212,63,0) · #ff8a5c = rgb(255,138,92).
+Fonti freeze :root — verbatim (DESIGN/…/2026-07-11_Q7-Q16.html):
+   117  --text:#ffffff; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.30);
+   120  --qlive-bg:#0e0e10; --qlive-surf:#16161a; --qlive-bd:rgba(255,255,255,0.06);
+   121  --qlive-pick:#1a1614;
+   122  --live:#d43f00; --live-l:#ff8a5c; […]
+
+  NOME (definizione verbatim, file:riga)                                   USATO IN (diff)              FREEZE ATTESO                 VERDETTO
+  ----------------------------------------------------------------------------------------------------------------------------------------------
+  QStageTheme.orange                                                        .ro bg (·0.12), .ro         base rgba(212,63,0,…):
+    QStage/QStageKit.swift:16                                               border (·0.32),             .ro bg rgba(212,63,0,0.12)     COMBACIA
+    static let orange = Color(hex: "#d43f00")   // = rgb(212,63,0)          showrow.pick border (·0.45) .ro bd rgba(212,63,0,0.32)     COMBACIA
+                                                                                                        pick bd rgba(212,63,0,0.45)    COMBACIA
+  QStageTheme.orangeTint                                                     .ro testo + lucchetto,      --live-l #ff8a5c ;             COMBACIA
+    QStage/QStageKit.swift:19                                               pick chevron (·0.85)        pick chevron
+    static let orangeTint = Color(hex: "#ff8a5c") // = rgb(255,138,92)                                  rgba(255,138,92,0.85)          COMBACIA
+  QStageTheme.text                                                          TextField (testo digitato)  §MIRROR S3 (input=bianco;      COMBACIA
+    QStage/QStageKit.swift:12                                                                           il freeze .search color=       (mirror-
+    static let text = Color.white   // = #ffffff                                                        --text3 è il PLACEHOLDER)      dichiarato)
+  QStageTheme.text2                                                          .mt (showMeta)              --text2 rgba(255,255,255,      COMBACIA
+    QStage/QStageKit.swift:13                                                                           0.55)
+    static let text2 = Color.white.opacity(0.55) // = rgba(255,255,255,0.55)
+  QStageTheme.text3                                                          search placeholder +        --text3 rgba(255,255,255,      COMBACIA
+    QStage/QStageKit.swift:14                                               magnifier + no-match hint   0.30)
+    static let text3 = Color.white.opacity(0.30) // = rgba(255,255,255,0.30)
+  QLiveTheme.surf                                                            .search bg, .showrow bg     --qlive-surf #16161a           COMBACIA
+    QLive/QLiveKit.swift:9
+    static let surf = Color(hex: "#16161a")
+  QLiveTheme.bd                                                              .search border,             --qlive-bd rgba(255,255,255,   COMBACIA
+    QLive/QLiveKit.swift:10                                                 .showrow border             0.06)
+    static let bd = Color.white.opacity(0.06)   // = rgba(255,255,255,0.06)
+  QLiveTheme.pick                                                            .showrow.pick bg            --qlive-pick #1a1614           COMBACIA
+    QLive/QLiveKit.swift:11
+    static let pick = Color(hex: "#1a1614")
+
+NOTA onesta su QStageTheme.text (unica riga «mirror-dichiarato», non token-diretto): il freeze
+`.search` fissa `color:--text3` che è il colore del CONTENITORE/placeholder; il testo DIGITATO
+non è mostrato nel mockup (stato placeholder). Uso bianco (QStageTheme.text) per il testo
+digitato = specchio esatto di ShowsListView.swift:149 (S3, già passato dal gate device). Se CD
+preferisce un colore diverso per il testo digitato, è un cosmetico da ratificare — ma è la
+scelta S3 coerente, non un valore inventato.
+Font-weight collaterale del badge .ro: freeze `font-weight:700`; codice `.jbMono(.bold, …)` →
+Extensions/Font+JBMono.swift:7 `case .bold: name = "JetBrainsMono-Bold"` = 700. COMBACIA.
+
+
+════════════════════════════════════════════════════════════════════════
+1c — I DUE SPACING + LO SCROLL INSET — SORGENTATI (righe di checklist aggiunte)
+════════════════════════════════════════════════════════════════════════
+Righe freeze pertinenti, verbatim:
+   192  .ro{display:flex; align-items:center; gap:5px; […] padding:4px 8px; border-radius:7px;}
+   194  .searchrow{display:flex; gap:8px; padding:2px 16px 12px;}
+   195  .search{flex:1; height:40px; border-radius:12px; […] align-items:center; gap:9px; padding:0 12px; […]}
+
+RETTIFICA della segnalazione (fondata come richiamo, ma i valori erano già corretti):
+ · `HStack(spacing: 9)` (search row) NON è il gap di `.searchrow` (che è 8). È il gap di
+   `.search` = **gap:9px** (freeze:195). Nel mio §2e del piano avevo erroneamente scritto
+   «HStack(spacing:8)» conflando `.searchrow` e `.search`: il CODICE è giusto (9 = .search),
+   la riga di checklist del piano era sbagliata. Qui la correggo.
+ · `.searchrow gap:8px` (freeze:194) → **N/A in Q-Live**: la searchrow ha UN SOLO figlio
+   (`.search`), perché NON c'è `.sortbtn` (Q15: sort ereditato read-only). Con figlio unico il
+   gap non ha secondo elemento su cui agire → ho COLLASSATO `.searchrow` nel suo unico figlio,
+   applicando il padding di `.searchrow` (2/16/12) direttamente alla pill `.search`. Struttura
+   identica in resa; è lo stesso schema di ShowsListView (S3), lì con 2 HStack perché ha anche
+   il sortbtn. Decisione strutturale DICHIARATA (non un valore inventato).
+ · `HStack(spacing: 5)` (badge .ro) = gap di `.ro` = **gap:5px** (freeze:192). Sorgentato.
+
+RIGHE DI CHECKLIST TOKEN AGGIUNTE (a completare §2e — zero righe vuote):
+  CLASSE.proprietà (riga freeze)          VALORE (verbatim)        → Swift (verificato nel diff)
+  ----------------------------------------------------------------------------------------------
+  .search gap (195)                       gap:9px                  HStack(spacing: 9)  [search row]
+  .searchrow gap (194)                    gap:8px                  N/A — figlio unico (no sortbtn,
+                                                                   Q15); searchrow collassata, il
+                                                                   suo padding 2/16/12 va sulla pill
+  .ro gap (192)                           gap:5px                  HStack(spacing: 5)  [roBadge]
+  .search padding (195)                   padding:0 12px           .padding(.horizontal, 12)
+  .ro padding (192)                       padding:4px 8px          .padding(.vertical,4).padding(
+                                                                   .horizontal,8)
+  .ro radius (192)                        border-radius:7px        RoundedRectangle(cornerRadius: 7)
+
+DEFAULT DICHIARATI (NON valori freeze — resi espliciti come richiesto, non più impliciti):
+  · `.padding(.bottom, 16)` sul contenuto dello ScrollView = INSET DI SCROLL (bottom greedy),
+    NON un valore del freeze (`.list` ha padding verticale 0). Specchio di ShowsListView.swift:
+    209 (stessa scelta S3, già a gate device). Serve a non incollare l'ultima riga al bordo/
+    MetroFAB durante lo scroll.
+  · Gli altri default CC già dichiarati in testa al file S4a e nel PIANO_S4b_REV 5f-bis
+    (pick spento, caret orange, no-match hint, «Untitled show» fallback) restano validi.
+
+
+════════════════════════════════════════════════════════════════════════
+CONCLUSIONE
+════════════════════════════════════════════════════════════════════════
+Le tre verifiche PASSANO senza smentire il codice:
+  1a ✅ sortedSetlists = array arbitrario → ordine condiviso read-only.
+  1b ✅ 8/8 token COMBACIANO col freeze (1 riga mirror-dichiarata, esplicitata).
+  1c ✅ spacing 9 = .search gap (freeze:195), spacing 5 = .ro gap (freeze:192); searchrow
+        collassata per figlio-unico; scroll-inset dichiarato. Checklist completata.
+→ NESSUNA MODIFICA AL DIFF. HANDOFF/DIFF_S4a_2026-07-18.txt (sha256 9ac09308…c9506ed6) REGGE.
+  Nessun DIFF_S4a_..._v2 prodotto (non serve).
+Restano i due cancelli prima del commit: ratifica referee di QUESTA verifica, poi OK di Mauro.
+
+
+════════════════════════════════════════════════════════════════════════
+APPENDICE — punti 2/3/4 del referee: RECEPITI, loggati, NON attuati in questo turno
+════════════════════════════════════════════════════════════════════════
+(Non toccano il diff S4a; li registro per non perderli, come da istruzione.)
+ · PUNTO 2 (D-a, taglio): a S4b si installa `page` + `switch page` + `navigate(to:)` + commento
+   di guardia CD, MA **NIENTE `previousScreen`/`previousPage`** (unico consumatore era l'handler
+   di stop, ora inesistente = stato morto). Si aggiungerà col suo lettore a S6. `navigate(to:)`
+   assegna solo `page`. → Recepito per la stesura di S4b (bloccato).
+ · PUNTO 3 (D-b, sicurezza): al PROSSIMO GIRO DOC (non ora) apro in BUGS_QBEATS un ticket
+   «uscita-stanza col click attivo = stop non confermato (evento-banda)», stato APERTO,
+   dipendenza = decisione CD prima di S6. Registrato in memoria di progetto perché non evapori.
+ · PUNTO 4 (D-c, S4L): due vincoli da INCIDERE nella scheda S4L alla riscrittura SCALETTA
+   (ratifica referee, non ora): [4a] emendamento esplicito dell'invariante Nodo A «mai LiveView
+   diretto» (scopo preservato, lettera cambiata); [4b] VINCOLO TECNICO — un ObservableObject
+   annidato NON propaga: `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA
+   del runner, non i suoi cambi interni (canzone/sezione/BPM) → i figli devono osservare IL
+   RUNNER (@ObservedObject/@EnvironmentObject sul runner), non la sessione, pena UI metronomo
+   congelata (sembrerebbe bug DSP). Registrato in memoria.
+ · PUNTO 5 (artefatto): archiviazione IPA su E: = azione di Mauro. Nulla da fare da parte mia.

@@ -1,0 +1,381 @@
+================================================================================
+HANDOFF CC — 2026-07-28 sera — chiusura sdoppiamento S4L + triage memoria
+================================================================================
+Scritto da CC a chiusura sessione, per la PROSSIMA sessione CC. Sezioni
+numerate H0-H6 — terza numerazione del giorno, distinta da C0-C6 (handoff
+atomo del mattino) e R0-R5 (handoff referee della sera): tre ruoli, tre
+prefissi, mai mescolati.
+
+NON è materiale da Progetto Claude. Vive SOLO su disco, in HANDOFF/. Si
+carica in chat quando serve e muore con la chat: non archiviarlo altrove,
+non incollarlo in un contesto persistente.
+
+Convenzione di nome: HO VERIFICATO A FONTE che esiste già una serie
+`HANDOFF_CC_<YYYY-MM-DD>[_descrizione].txt` (9 file trovati in HANDOFF/,
+dal 18/06 al 28/07). L'ho adottata. Oggi esisteva già
+`HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt` — è dell'handoff APERTURA
+di questa sessione (letto, non scritto da me): per non collidere ho aggiunto
+`_sera` (stesso schema con cui l'handoff referee di stasera si è distinto
+dal proprio "_chiusura-giro-colore" del mattino) + una descrizione che
+riflette il lavoro di QUESTA sessione, non di quella precedente.
+
+================================================================================
+H0 — CONVENZIONE
+================================================================================
+**[V]** = misurato da CC in QUESTA sessione, ora o durante il lavoro di oggi.
+**[R]** = riferito da altri (Mauro, referee, un prompt) — non verificabile da
+qui finché non lo rimisuri. Un fatto che un prompt mi dà per buono resta [R]
+finché non lo misuro io: è successo quattro volte oggi che un fatto dato per
+buono in un prompt fosse impreciso (dettaglio in H5).
+
+**Notazione dei numeri:** unità + faccia + forma del comando.
+- `byte(disco)` vs `byte(blob)`: per i file a due facce (LIBRO, BUGS: CRLF su
+  disco, LF nel blob) sono DIVERSI, e la differenza è esattamente il numero
+  di CR. Per i file a faccia unica (BOX3, BOX5, SCALETTA, HANDOFF/**,
+  Costituzione — tutti `-text` o comunque nati LF) sono uguali.
+- `righe(terminatori, wc -l)`: mai `grep -c ''`, che su una riga finale senza
+  newline sottoconta di uno.
+- `CR` sempre con `tr -cd '\r' | wc -c`. **Mai `grep -c $'\r'`**: è la prima
+  delle cinque forme di falso-negativo incise in
+  `LIBRO_MASTRO_QBEATS.md` r.316 @ `c3caa58c2b9f84e413c4571ff415e03759d73b0d`
+  (REGOLA INDIRIZZO DI CONTENUTO) — `grep -c` conta RIGHE che contengono
+  almeno un CR, non i CR stessi; su un file con più CR per riga (non capita
+  qui, ma capiterebbe altrove) mentirebbe per difetto.
+- Ogni zero riportato in questo file porta il suo controllo positivo nella
+  STESSA forma del comando che l'ha prodotto: se non lo trovi accanto allo
+  zero, è un errore mio, non un'assenza vera.
+
+================================================================================
+H1 — STATO DELL'ALBERO A CHIUSURA — tutto [V], misurato ora
+================================================================================
+
+**HEAD = origin/master = `c3caa58c2b9f84e413c4571ff415e03759d73b0d`**
+branch = `master`
+
+`git status --porcelain -uno` verbatim:
+```
+```
+*(vuoto: nessun file TRACCIATO modificato. L'albero è pulito nel senso
+stretto — ambito dichiarato, non "pulito" senza qualificazione.)*
+
+**Untracked lasciati in HANDOFF/, e perché.** Il repo non traccia i
+deliverable di consegna (diff, misure, handoff): solo i canonici a nome
+fisso in root e la SCALETTA sono tracciati; tutto il resto in HANDOFF/ è
+verbale di lavoro, deliberatamente untracked (è il regime che regge da
+prima di questa sessione). Nati OGGI, in QUESTA sessione (verificato con
+`find -newermt`, poi filtrato a mano scartando i file di sessioni precedenti
+che il filtro per mtime avrebbe incluso per errore — `HANDOFF_CC_2026-07-28_
+chiusura-giro-colore.txt` e i cinque `MISURE_R*_2026-07-28.txt` sono della
+sessione PRECEDENTE, letti non scritti da me):
+```
+HANDOFF/MISURE_M1_IDENTITA-S4L_2026-07-28.txt
+HANDOFF/DIFF_B3_BOX5-V28_2026-07-28.txt
+HANDOFF/DIFF_B3bis_BOX5-V28_2026-07-28.txt
+HANDOFF/DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+HANDOFF/DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt
+HANDOFF/HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md
+HANDOFF/INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt
+```
+Sette file, tutti verbali di misura o di consegna dei sette atomi lavorati
+oggi da questa sessione (dettaglio H2).
+
+**Cloni e worktree noti — dichiarazione R8**
+(`LIBRO_MASTRO_QBEATS.md` r.94 @ HEAD: «ogni sessione CC dichiara la
+working directory e i worktree attivi», nata da un worktree secondario
+scoperto per caso il 12/07 — la regola esiste apposta perché non ricapiti).
+
+Working directory di questa sessione: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS`
+— **è questo il clone VIVO.**
+
+`git worktree list` (dal repo vivo), verbatim:
+```
+C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS c3caa58 [master]
+C:/Users/BULLFROG/qb_fixB                     add556f [test/bug2b-test7-fixtures]
+```
+`qb_fixB` è un worktree del repo vivo, non un clone separato. Stato:
+`git status --porcelain` = 0 righe (pulito), HEAD `add556f0d14f0f2c1c6d1b1442354aa635a70934`.
+
+⚠️ **Due CLONI INDIPENDENTI esistono fuori da questa lista** — non li avevo
+mai misurati in questa sessione prima di scrivere questo handoff, li ho
+cercati apposta perché BOX3 li nomina (punto (l), §14) senza che nessun
+prompt di oggi li citasse:
+```
+C:\Users\BULLFROG\qb468clone   — CLONE PIENO (.git è una directory)
+  origin = https://github.com/19Bullfrog78/Q-BEATS.git
+  branch = fix/bug-2b-visual-section-sync
+  HEAD   = 63fc3d2c39acc956b019144553271bd802615548
+  ultimo commit: 2026-06-08 — status pulito (0 righe)
+  ⚠️ STALE: fermo al 08/06, oltre 7 settimane indietro da HEAD vivo.
+
+C:\Users\BULLFROG\qb_fixA      — worktree DI qb468clone (.git è un file,
+                                  punta a C:/Users/BULLFROG/qb468clone/.git/worktrees/qb_fixA)
+  branch = fix/bug-2b-ferita-a-join-al-fire
+  HEAD   = b23b40e478f29cf52c22b0f8c4294279bdad279a
+  ultimo commit: 2026-06-10 — status pulito (0 righe)
+  ⚠️ STALE, worktree del clone stale, NON del repo vivo.
+```
+Entrambi puliti (zero modifiche pendenti), quindi innocui per sé stessi —
+ma sono un quinto e un sesto posto dove `Q-BEATS` esiste sul disco, nessuno
+dei due aggiornabile con un semplice `git pull` sul repo vivo. Se qualcuno
+apre una sessione CC dentro l'uno o l'altro per sbaglio, l'HEAD che vede è
+di giugno.
+
+`E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\` **NON è un clone git** —
+verificato: nessuna directory `.git` alla radice. È un mirror di documenti,
+non di codice; trattarlo come un settimo clone sarebbe un errore diverso
+(dettaglio H4).
+
+================================================================================
+H2 — COSA HO FATTO IN QUESTA SESSIONE — tutto [V]
+================================================================================
+
+**Quattro commit, in ordine, tutti autore/committer Mauro Martintoni,
+zero Co-Authored-By, CI verde letta a fonte con sha a 40 (mai da exit code):**
+
+| # | sha40 | subject verbatim | CI (run · conclusion) |
+|---|---|---|---|
+| 1 | `4b55686c04e3bd14ccf06c31b5e89e74a38341ab` | `BUGS_QBEATS.md: v44 — tab-reset chiuso by-design + 2 ticket nuovi + angolo del riordino` | `30355563451` · success |
+| 2 | `0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3` | `BOX5 V28 — capitolo Q-Live > Shows` | `30378358163` · success |
+| 3 | `8289944dd98b3372a422e5c3481831b3fc727ca5` | `SCALETTA v3 — sdoppiamento S4L in tre atomi` | `30385438701` · success |
+| 4 | `c3caa58c2b9f84e413c4571ff415e03759d73b0d` | `LIBRO v43 — ratifica sdoppiamento S4L in tre atomi` | `30389422371` · success |
+
+Il commit 1 (BUGS v44) è precedente all'apertura di questa sessione — l'ho
+ereditato, non prodotto; lo elenco perché è nella catena del giorno e la CI
+l'ho comunque riletta a fonte ora, non ricopiata. I commit 2-4 sono miei.
+`headSha` di tutte e quattro le run coincide col rispettivo sha40 committato
+(verificato per ciascuna, non assunto dalla posizione in lista).
+
+**Propagazioni su E: eseguite, con la prova che il contenuto coincide con
+la sorgente (mai copiato dal file di lavoro, sempre da `git show <sha40>:<path>`):**
+
+| stampa | path | sha256 | prova |
+|---|---|---|---|
+| `BOX5_V28_2026-07-28_0a6ebaf.md` | `E:\…\FILE X CLAUDE.MD\BOX5_Test\LUGLIO\` | `cf425ff0…4ff5b` | identica al blob a `0a6ebaf`, verificata |
+| `LIBRO_MASTRO_QBEATS_V43_2026-07-28_c3caa58.md` | `E:\…\FILE X CLAUDE.MD\LIBRO_MASTRO\` | `17dd0bc4…cea08` | identica al blob a `c3caa58` (= alla faccia LF del disco), verificata |
+
+**Due mandati eseguiti DOPO l'ultimo commit — nessuno dei due ha toccato un
+canonico né prodotto un commit:**
+
+1. `INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt` — sha256
+   `0f4f98d6b51c371252b30cf7f808528d442a573f98f0b6bb607f7102a51699a7`,
+   12418 B(disco). Sopravvivenza dei sei file rimossi dal Progetto Claude
+   (tutti vivi, nessuno perduto) + inventario di `CC MEMORIA` (3 file, uno
+   copia unica) + stato dei due mirror LIBRO a nome fisso.
+2. Messa in salvo di `MEMORY.md` (copia unica trovata dall'inventario):
+   copiato — non spostato — da `E:\…\CC MEMORIA\MEMORY.md` a
+   `E:\…\FILE X CLAUDE.MD\DUPLICATI\2026-06-19_MEMORY__DUP_di_CC-MEMORIA.md`.
+   sha256 `737e68f188db459bf639464ed0bbc2272af6e9e91c0ae8066e66a082395542fa`,
+   27570 B(disco), verificata IDENTICA all'originale (stesso sha256, stesso
+   byte) dopo la copia. Originale lasciato al suo posto.
+
+[R] Entrambi riferiti come «ratificati dal referee» nel prompt che mi ha
+chiesto di riprendere questo handoff — non l'ho visto io, il referee non
+mi parla direttamente: resta [R], coerente con H0.
+
+================================================================================
+H3 — COSA NON HO FATTO
+================================================================================
+
+**Nessun lavoro lasciato a metà.** Ogni prompt ricevuto oggi è stato
+eseguito ed è arrivato a una consegna esplicita: M1 · B3 · B3-bis · B4
+(verifica avversariale + correzioni + commit) · B6 (scrittura + commit) ·
+handoff referee · inventario sopravvivenza · messa in salvo MEMORY.md ·
+questo handoff. Nessuna misura promessa e non consegnata.
+
+**`INVENTARIO_SOPRAVVIVENZA_2026-07-28` è CHIUSO**, non più in coda. Al suo
+posto, la prossima sessione eredita due voci puntuali che quell'inventario
+ha aperto e non chiuso:
+
+**(i) Mirror a nome fisso `E:\…\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS.md`.**
+[V] Fermo a v41 — ridondanza PROVATA due volte in due corse indipendenti
+oggi: sha256 `e096cbc6…45e86922` identico alla stampa dedicata
+`LIBRO_MASTRO_QBEATS_V41_2026-07-27_8fa5018.md` e al blob a quel commit.
+[R] «Cancellazione autorizzata da Mauro, non ancora eseguita» — datomi nel
+prompt di ripresa di questo handoff: non l'ho vista io, non è una misura
+sul disco. Chi riprende verifica prima se il file è ancora lì (se non c'è
+più, l'autorizzazione è stata eseguita; se c'è, resta da fare — o da
+NON fare, se nel frattempo l'autorizzazione è stata ritirata: verificare,
+non assumere che l'ultimo stato noto valga ancora).
+Nota collaterale: esiste un secondo mirror identico in `CC MEMORIA\` — ma
+quella cartella è un discorso a sé (sotto).
+
+**(ii) `E:\…\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS.md` — sospetto NON
+verificato.** [V] byte(disco) = 195668 (rimisurato ora). [V] `BUGS_QBEATS.md`
+blob a HEAD `c3caa58` = byte(blob) = 207903 (rimisurato ora). I due numeri
+sono diversi — **questo è quanto ho misurato, non di più.** [R] Se questo
+sia «lo stesso difetto» del mirror LIBRO (cioè: questo file di BUGS fermo a
+una versione vecchia) è un'ipotesi datami nel prompt di ripresa, **mai
+verificata apposta**: nessuno ha ancora confrontato quel file per CONTENUTO
+contro i blob delle versioni di BUGS, come ho fatto per LIBRO in H4. È il
+lavoro di misura da fare, non un fatto da citare come tale.
+
+**`CC MEMORIA\` esiste ancora sul disco — misurato ORA, alla scrittura di
+questo handoff:**
+```
+E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\
+  BUGS_QBEATS.md         195668 B  (ridondante, confermato due volte oggi)
+  LIBRO_MASTRO_QBEATS.md 141762 B  (ridondante, confermato due volte oggi)
+  MEMORY.md               27570 B  (era copia unica: MESSA IN SALVO oggi, vedi H2)
+```
+Dopo la messa in salvo di `MEMORY.md`, l'inventario di oggi (rifatto una
+volta, file nascosti compresi, metodo verificato con controllo positivo)
+non ha trovato altro di unico dentro. **La cancellazione della cartella
+resta un mandato non ricevuto da questa sessione** — Mauro la farà a mano;
+se al momento in cui la prossima sessione legge questo file la cartella
+non c'è più, è la conferma che è successo, non un'anomalia da indagare.
+
+================================================================================
+H4 — TRAPPOLE SU DISCO
+================================================================================
+
+**① La coppia mirror-a-nome-fisso / stampa-per-versione — trappola di prima
+categoria, ora documentata da DUE corse indipendenti nella stessa sessione
+(l'inventario di stamattina e il ricontrollo richiesto per la messa in
+salvo di stasera, che l'ha riconfermata senza citare la prima).**
+Dove: `E:\…\FILE X CLAUDE.MD\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS.md` e
+`E:\…\FILE X CLAUDE.MD\CC MEMORIA\LIBRO_MASTRO_QBEATS.md` — nome IDENTICO
+al canonico vivo, nessun numero di versione nel nome, quindi a occhio
+sembrano LA fonte corrente.
+Come si riconosce: **mai per nome.** Il nome fisso non porta il segnale
+della propria età. Il confronto che smaschera è per CONTENUTO contro i
+blob: `git show <sha40>:LIBRO_MASTRO_QBEATS.md | sha256sum` per ogni
+versione candidata, confrontato contro `sha256sum` del file su E:. Un
+confronto per dimensione (`wc -c`) NON basta da solo a escludere un match
+casuale su documenti lunghi centinaia di righe, ma è un filtro efficiente
+per restringere i candidati prima del confronto pieno (usato oggi su tutto
+l'albero E:, 620 file, con successo).
+Cosa succede se ci si casca: si cita, si copia o si propaga come «lo stato
+corrente di LIBRO» un contenuto fermo a v41 mentre il canonico è a v43 —
+due versioni indietro, silenziosamente. Nessun errore, nessun crash: il
+file apre, sembra a posto, è vecchio.
+
+**② `BUGS_QBEATS\BUGS_QBEATS.md` su E: potrebbe essere lo stesso tipo di
+trappola — NON confermato, vedi H3 (ii).** Se lo confermi, aggiungilo qui
+come ②, con lo stesso metodo di ①.
+
+**③ `E:\…\FILE X CLAUDE.MD\` non è un albero git.** Verificato oggi: nessun
+`.git` alla radice. È facile trattarlo mentalmente come un settimo clone
+(specie dopo aver misurato i sei repository git di H1) — non lo è: è un
+mirror di documenti aggiornato per copia/estrazione manuale, senza storia,
+senza `git log`, senza modo di sapere «cosa è cambiato dall'ultima volta»
+se non confrontando impronte a mano, file per file.
+
+**④ Le cartelle di E: NON hanno tutte la stessa organizzazione, e cambia
+nel tempo senza preavviso.** Oggi stesso: `BOX5_Test\` è stata riorganizzata
+in sottocartelle mensili (`APRILE`/`MAGGIO`/`GIUGNO`/`LUGLIO`) fra un turno
+e l'altro di questa sessione, mentre `LIBRO_MASTRO\` è rimasta piatta. Chi
+assume che «se una cartella ha sottocartelle per mese, le hanno tutte»
+scrive nel posto sbagliato.
+
+================================================================================
+H5 — FORME DI MISURA CHE HANNO RETTO, E QUELLE CHE HANNO INGANNATO
+================================================================================
+
+**Forme che hanno retto oggi — riusale così come sono:**
+
+- `find <root> -type f -size <N>c` — ricerca per dimensione ESATTA in byte
+  (il suffisso `c` è byte, non blocchi). Usata su tutto l'albero E: (620
+  file) per trovare contenuti spostati o rinominati, quando il nome da solo
+  mente. **Controllo positivo obbligatorio:** prima di fidarsi di uno zero,
+  cercare una dimensione che DEVE avere match (oggi: 141762c, i mirror
+  LIBRO già noti) — se anche quella rende zero, il metodo è rotto, non
+  l'assenza.
+- `git show <sha40>:<path> | sha256sum` — SEMPRE dal blob, mai dal file di
+  lavoro, per confrontare un contenuto contro una versione storica. È
+  l'unico modo corretto di rispondere «a quale versione corrisponde questo
+  file» quando il nome non lo dice.
+- `gh run list --commit <sha40> --json …` — **mai sha corto**: rende `[]`
+  exit 0, falso-zero già agli atti da prima di oggi. **Novità di oggi:** un
+  `[]` può anche essere puro RITARDO di registrazione, non un guasto — nel
+  push di LIBRO v43 la prima interrogazione ha reso `[]` a run appena
+  partita; l'ho isolato con un controllo positivo sulla STESSA notazione
+  applicata al commit precedente (che rispediva la sua run regolarmente),
+  poi ho ri-interrogato ed era comparsa. Non fermarsi al primo `[]`: capire
+  se è il commit sbagliato, lo sha nella forma sbagliata, o solo il tempo.
+- **Verifica dell'OID *prima* di scrivere, per i file a due facce.**
+  Prima del commit di LIBRO v43 ho calcolato a mano l'OID che git avrebbe
+  prodotto dal disco (`git hash-object --path <file> <file>`) e l'ho
+  confrontato con l'OID di una copia LF costruita da me
+  (`disco.replace(b'\r\n', b'\n')`, hashata a parte). Coincidevano: sapevo
+  PRIMA di committare che il blob sarebbe stato LF come i precedenti, non
+  l'ho scoperto dopo. Dopo lo staging, `git ls-files -s` ha confermato lo
+  stesso OID: nessuna sorpresa, perché la sorpresa era già stata esclusa.
+- **Bilancio dei delimitatori accoppiati** (`⟦`/`⟧`, `«`/`»`) contato su
+  tutto il file prima e dopo un edit su un canonico. Ha isolato un mio
+  refuso (`«S4L⟧`, apertura e chiusura da coppie diverse) che nessun grep
+  mirato avrebbe trovato, perché la STRINGA era valida — solo la coppia era
+  sbagliata. Il padre (v42) era bilanciato 0/0 su entrambe le coppie: uno
+  sbilancio dopo il mio edit è un segnale affidabile che l'errore è mio.
+- **Sottostringa esatta per «questo file contiene per intero quest'altro
+  contenuto»** (`contenuto_atteso.strip() in contenuto_contenitore`), usata
+  su OGNI consegna di oggi per provare che il diff scritto nel file non
+  fosse troncato — impronta ≠ completezza, l'impronta prova che il file È
+  quello, non che è INTERO.
+
+**Cosa ha ingannato, o quasi:**
+
+- **Surrogati Unicode spezzati in Python 3.** Ho scritto `\ud83d\udd34` (la
+  forma a coppia surrogata UTF-16 di 🔴) dentro una stringa Python: fallisce
+  a `.encode('utf-8')` con `UnicodeEncodeError`, perché Python 3 non compone
+  automaticamente le coppie surrogate in un codepoint. **Non è arrivato a
+  scrivere nulla** — lo script abortiva PRIMA della `open(...).write()`,
+  quindi zero danno — ma ha costato un giro intero. Forma corretta:
+  `\U0001F534` (codepoint pieno a 8 cifre), mai la coppia a 4+4.
+- **Apostrofi dentro heredoc a virgolette singole in bash.** Un comando
+  con un blocco `<<'PY' … PY` contenente prosa italiana con apostrofi
+  (`l'ordine`, `dell'app`) ha rotto il parsing della shell UNA volta con
+  `unexpected EOF while looking for matching '''`: il comando non è
+  nemmeno partito, quindi anche qui zero danno reale, ma ho dovuto
+  verificare ESPLICITAMENTE che nessun file fosse stato toccato/troncato
+  prima di riprovare (regola «impronta ≠ completezza» applicata al proprio
+  stesso incidente, non solo alle consegne altrui). Da allora: prosa lunga
+  con apostrofi va nello strumento di scrittura file, mai dentro un
+  heredoc bash a quotatura singola.
+- **Un prefisso di sha256 dato in un prompt può essere sbagliato, e se lo
+  ricopi lo propaghi.** Il caso più costoso di oggi: un prompt mi ha dato
+  `d74b4164…b878dcd6c` come impronta di un mio stesso referto; l'ho
+  ricopiata fidandomi (era la MIA impronta, sembrava sicura) in due punti
+  della SCALETTA. Solo la verifica avversariale del diff B4 l'ha isolata:
+  la coda `b878dcd6c` non è un suffisso del digest reale (`…b878dcd6`, un
+  carattere in meno). Lezione: un'impronta citata in un prompt, anche di un
+  proprio artefatto, resta [R] finché non si ricalcola da zero — non basta
+  che «suoni giusta».
+- **Una descrizione di forma («tutte uguali», «forma letterale unica») va
+  verificata sull'insieme intero, non sul primo campione.** Un prompt
+  descriveva sei righe di BOX3 come portanti la stessa forma letterale
+  `S4 → S4L → S5 → S6`; misurate tutte e sei, erano tre forme diverse. Il
+  primo campione controllato avrebbe potuto confermare la descrizione per
+  caso — serviva l'insieme completo.
+
+================================================================================
+H6 — PUNTATORI, NON COPIE — poi la prima mossa
+================================================================================
+
+Decisioni, ratifiche e coda aperta vivono in:
+- `LIBRO_MASTRO_QBEATS.md` Sez.2, ultima riga (`2026-07-28`, SDOPPIAMENTO
+  ⟦S4L⟧ IN TRE ATOMI) — sha256(blob) `17dd0bc4…cea08`.
+- `HANDOFF/HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md` — sha256
+  `a238b180…db82d`. Contiene il prossimo passo dal lato referee (⟦S4K⟧,
+  congedo tastiera, con il nodo dei colori CD da sciogliere prima del
+  prompt) e la coda (a)-(f).
+- `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` sez. B — le tre schede
+  ⟦S4K⟧/⟦S4R⟧/⟦S4L⟧, dettaglio operativo e pendenze proprie.
+Non li duplico qui: un contenuto in due posti diverge, e oggi stesso ne ho
+misurata la prova (H4, ①).
+
+**Prima cosa da fare, prossima sessione:** leggere
+`HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md` sez. R5 («ripartenza:
+cosa leggere per primo») — la scrittura di quel prompt di ⟦S4K⟧ dipende
+dal nodo colori CD lì descritto, non ancora sciolto.
+
+**Misura minima per convincersi che l'albero è quello giusto:**
+```
+git rev-parse HEAD
+```
+atteso: `c3caa58c2b9f84e413c4571ff415e03759d73b0d`. Se diverso, qualcosa è
+stato committato dopo questo handoff: rileggere `git log` da lì, non fidarsi
+di questo file per lo stato vivo — è già [R] nel momento in cui lo leggi.
+
+================================================================================
+FINE HANDOFF.
+================================================================================

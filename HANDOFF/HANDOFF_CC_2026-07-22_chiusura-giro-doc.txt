@@ -1,0 +1,41 @@
+HANDOFF CC — CHIUSURA GIRO DOCUMENTALE 21-22/07 — 2026-07-22 sera
+Autore: CC, per la prossima chat CC. (Copia E: NON propagata in questo giro per
+istruzione esplicita del prompt di chiusura: farla alla prossima consegna, con sha256.)
+
+1 — STATO GIT (verificato a fonte 22/07 sera)
+HEAD = origin/master = 7c804c119fe458c99c08ce979dd877a89cc23f13 (BOX3 V99).
+Tracked pulito, 27 untracked (+ questo file dal prossimo status).
+Worktree: Q-BEATS @ 7c804c1 [master] · qb_fixB @ add556f [test/bug2b-test7-fixtures].
+Catena 21-22/07: edaa80f -> fc06ed5 -> 9784294 -> ccb8151 -> 131a511 -> bfa07eb -> 7c804c1.
+CI tutte success (a fonte, sha PIENO): 29907914508 (ccb8151) · 29911607478 (131a511) ·
+29912886883 (bfa07eb) · 29943926532 (7c804c1).
+
+2 — CANONICI (versioni lette a fonte nelle intestazioni)
+BOX3 V99 (root, -text, disco=blob) · LIBRO v40 (due facce CRLF/LF) · BUGS v42
+(due facce) · BOX5 V27 (root, -text) · SCALETTA v2 (TRACCIATA da fe6d34b del
+18/07, in HANDOFF/, -text; tre copie byte-identiche sha256 D2CDF120...).
+Stampe E: = blob al byte per tutti (BOX3 490d6d9b @V99 · LIBRO efef5320 x3 · BUGS 84df1a1 x3).
+
+3 — DUE TRAPPOLE NUOVE (incise in BOX3 V99 (d)/(f), anche in memoria CC)
+(i) gh run list --commit con sha a 7 caratteri rende [] con EXIT 0. SEMPRE sha a 40.
+    Un vuoto da un filtro non e' un fatto negativo finche' non verifichi la notazione.
+(ii) CONSEGNA != RATIFICA (incidente BUGS v42): "il diff era sul tavolo del referee"
+    non e' una ratifica ricevuta. Serve l'atto esplicito del ratificatore che dichiara
+    di aver LETTO. Se manca: FERMARSI E CHIEDERE.
+
+4 — FRONTE: CODICE — TD-qstage-pill-qlive-morta (PRIMA di S4L)
+Pill Q-Live in Q-Stage logga e non naviga: onSwitch cablato al solo os_log
+(ios_app/QBeats/UI/QStage/ShowsListView.swift:83-87, "[GATE-S3] ... temporaneo").
+Buco nel TIPO: QStageRootView.swift:11 espone SOLO onExit. AppRootView.swift:37
+monta QStageRootView(onExit:) mentre il ramo .qLive (:44-45) ha gia' onExit +
+onSwitchToStage: il fix e' lo specchio -> TRE file, non una riga. NON regressione
+S4b. Opus 4.8 xhigh. Branch fiammifero = autorizzazione ESPLICITA di Mauro.
+NB: i path "QBeats\Views\..." del prompt R1 di oggi NON esistono: ios_app/QBeats/UI/.
+
+5 — APERTI NON BLOCCANTI
+Regime SCALETTA (tracciata ma in HANDOFF/ per-data, fuori dal regime root+in-place;
+R-gamma la enumera fra i canonici) · ancora "Fase 6-7" da rimettere nel ticket TD#17
+di BUGS (V99 (b)) · gate device S4b · TD#17 = 🟠 OPEN MEDIA, NON bloccante (chiusura:
+(A) run palco 2-3h VR2800 banda singola senza perdita peer OPPURE (B) Soluzione C;
+roam = caratterizzazione — LIBRO v40 + BUGS v42).
+FINE — 22/07 sera. Prossima chat: R1 su LIBRO v40 + questo handoff, poi il fronte codice.

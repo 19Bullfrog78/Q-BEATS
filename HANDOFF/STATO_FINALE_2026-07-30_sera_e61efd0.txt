@@ -1,0 +1,98 @@
+================================================================================
+STATO FINALE — 2026-07-30 sera, chiusura giro CAVEAT-SCALETTA + E3-BUGS
+================================================================================
+Scritto da CC a chiusura sessione. Per l'apertura di domani (R1: ricalcolare tutto
+a fonte, non ereditare questi numeri).
+
+Marcatura: [V] = misurato in questa sessione, con la fonte accanto.
+
+────────────────────────────────────────────────────────────────────────────
+[V] HEAD, branch, sync col remoto
+────────────────────────────────────────────────────────────────────────────
+sha40   : e61efd0e9bc2f9174b755e5a25e02a611c795cea
+branch  : master
+origin  : e61efd0e9bc2f9174b755e5a25e02a611c795cea  (dopo `git fetch origin master`,
+          non un rev-parse locale dato per buono) — IN SYNC.
+
+Ultimi due commit di questa sessione, entrambi pushati e CI-verdi:
+  a393466 3d32cb88104027ae93fa04f98f5b2e910  SCALETTA v4: re-instradamento S4R
+           CONFERMATO (LIBRO:317) — 2 caveat sciolti + marcatura r.12 untracked
+           stale. CI run 30572690866, success.
+  e61efd0 e9bc2f9174b755e5a25e02a611c795cea  BUGS v46: marcature falsificazione
+           E3 su r.355/r.1004 + difetto specchiato r.120-121 + referto
+           MISURE_CC_2026-07-30_R1-ACCERTAMENTI in HANDOFF/. CI run 30573105085,
+           success.
+
+────────────────────────────────────────────────────────────────────────────
+[V] git status --porcelain — M e ?? separati
+────────────────────────────────────────────────────────────────────────────
+Modificati (M) : 0
+Untracked (??) : 68
+
+Nudo totale    : 68
+
+(La sessione ha attraversato 67 → 68 → 69 → 68: +1 per questo stesso file di
+chiusura di ieri sera, poi +1/+1 per i due .txt di misura di oggi, -1 per la
+rimozione del trasporto PRE-COMMIT superato, -2 per i due file che sono usciti
+dal nudo diventando commit. Il numero cambia con chi lo misura e quando: non è
+una discrepanza, è il nudo che si muove mentre si scrive.)
+
+────────────────────────────────────────────────────────────────────────────
+[V] CINQUE CANONICI — impronte sul BLOB a HEAD
+────────────────────────────────────────────────────────────────────────────
+Metodo: `git show HEAD:<path> | sha256sum`, MAI la copia su disco.
+CR misurato con `tr -cd '\r' | wc -c` (o Python), MAI `grep -c $'\r'`: sotto
+questa shell quella forma rende SEMPRE 0, anche su un input CRLF genuino —
+verificato ora con un caso di controllo (`printf 'a\r\nb\r\n' | grep -c $'\r'`
+→ 0, atteso 2). È il falso-negativo n.1 di LIBRO:316.
+
+file                                      sha256(blob)                                                      byte     righe  CR
+LIBRO_MASTRO_QBEATS.md                    dd3f440510937e2e97c5a71ce7fc9582bfdfbbcd28cf854691ca164b667e465d  185189   473    0
+BUGS_QBEATS.md                            b24d1b3c9a2c913104f16a8ea3c5adf20f1230cca7e3ef09d874cbca32a2415a  256406   1010   0
+BOX3_QBEATS.md                            c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c  89457    803    0
+BOX5_QBEATS.md                            cf425ff0d576910c9caa2899cad232e0c8447f605d240021262608aed184ff5b  57158    596    0
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md   43bf5784f5ea8971bbaf1fe0f028cd258e8e53990df750cceec1e7ff50d1fd18  36070    337    0
+
+Tutti e cinque CR=0 sulla faccia BLOB — atteso: `git show` restituisce sempre la
+forma nativa LF con cui git salva l'oggetto, indipendentemente dalla faccia su
+disco (CRLF per LIBRO/BUGS via `.gitattributes`, LF per BOX3/BOX5/SCALETTA).
+Chi confronta questa tabella con un'impronta letta dal disco DEVE dichiarare la
+faccia, o il confronto non significa nulla — vale doppio per LIBRO e BUGS.
+
+Versioni dagli header: LIBRO **45** (invariata, non toccata questa sessione) ·
+BUGS **46** · BOX3 **V99 — 22/07** (invariata) · BOX5 **V28 — 28/07** (invariata)
+· SCALETTA **4 (30/07/2026)**, quattro anelli di ratifica.
+
+────────────────────────────────────────────────────────────────────────────
+[V] Pulizia di chiusura eseguita in questo giro
+────────────────────────────────────────────────────────────────────────────
+- Stash `d796cf34…` DROPPATO, dopo verifica in positivo che entrambe le metà
+  fossero interamente rappresentate nei due commit pushati: la metà BUGS era
+  BYTE-IDENTICA al blob di `e61efd0` (stesso sha256); la metà SCALETTA
+  differiva dal blob di `a393466` in UNA sola riga — l'header — e la riga
+  vecchia era prefisso esatto della nuova (solo l'anello [6] aggiunto).
+- `HANDOFF/BUGS_QBEATS_v46_PRE-COMMIT_2026-07-30.txt` RIMOSSO: verificato prima
+  su tre fronti che fosse ancora untracked (`??` in status, zero commit nella
+  storia sul path, zero in staging) — era un file di trasporto, superato dalla
+  stampa vera ancorata a `e61efd0` su E:.
+- Propagazione E: fatta nel giro precedente, verificata di nuovo qui a HEAD:
+  `SCALETTA_v4_2026-07-30_a393466.md` e `BUGS_QBEATS_V46_2026-07-30_e61efd0.md`,
+  entrambe faccia BLOB, `cmp` OK contro `git show`.
+
+────────────────────────────────────────────────────────────────────────────
+[V] Cosa resta aperto, per chi apre domani
+────────────────────────────────────────────────────────────────────────────
+- FRONTE CODICE: ⟦S4R⟧. Ordine ⟦S4K⟧→⟦S4R⟧→⟦S4L⟧ inciso e obbligatorio;
+  ⟦S4K⟧ chiuso device+CI. Nessun prompt visto qui che apra ⟦S4R⟧: l'ordine è
+  legge, il via no.
+- Caricamento delle due stampe E: nel Progetto Claude, e rimozione delle
+  versioni superate là dentro — azione di Mauro, nessun accesso di CC a quel
+  workspace.
+- Debiti già a verbale e non toccati in questo giro: freeze CD overlay
+  uscita-stanza (LIBRO:286, attesa dal 18/07) · `TD-qlive-exit-unconfirmed-stop`
+  metà PRE-ESISTENTE sospetta stale, non misurata · riclassificazione
+  commerciale TD#17 · build Distribution mai tentata.
+
+================================================================================
+FINE STATO.
+================================================================================

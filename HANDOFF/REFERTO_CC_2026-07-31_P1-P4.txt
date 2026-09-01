@@ -1,0 +1,458 @@
+==============================================================================
+REFERTO CC — 2026-07-31 — CHIUSURA GIRO HANDOFF (P1..P4)
+==============================================================================
+Un solo file toccato: HANDOFF/HANDOFF_CC_2026-07-31.txt  (untracked).
+ZERO canonici, ZERO commit, ZERO push, ZERO branch.
+Ogni output sotto e' output di comando, non trascrizione.
+Nessuna conclusione: le trae il referee.
+
+⚠️ SUPERFICIE DI QUESTO REFERTO — dichiarata perche' non e' uniforme: il file
+e' a terminazione LF TRANNE le righe che provengono dall'output di Python, che
+su Windows emette CRLF. NON le ho normalizzate: normalizzarle avrebbe alterato
+un output che il prompt chiede verbatim. Il conteggio dei ritorni-carrello e'
+quindi > 0 by design, e sta in coda insieme alle altre impronte di questo file.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat        # tracciati modificati
+[VUOTO]
+$ git diff --cached --stat
+[VUOTO]
+$ git status --porcelain -- HANDOFF/HANDOFF_CC_2026-07-31.txt
+?? HANDOFF/HANDOFF_CC_2026-07-31.txt
+
+==============================================================================
+P1 — 507 O 508?
+==============================================================================
+
+Il referto precedente apriva con «508 righe» e misurava ovunque «507».
+Le due forme, sul file PRIMA delle correzioni di oggi, rendevano entrambe 507;
+sotto le stesse due forme sul file di ADESSO, piu' il controllo positivo che
+prova che le due forme SANNO divergere.
+
+--- forma (a): conteggio dei NEWLINE ---
+$ wc -l < HANDOFF/HANDOFF_CC_2026-07-31.txt
+555
+$ tr -cd '\n' < HANDOFF/HANDOFF_CC_2026-07-31.txt | wc -c        # seconda notazione dello stesso conto
+555
+
+--- forma (b): conteggio delle RIGHE DI CONTENUTO ---
+  Trattamento dichiarato della riga finale: awk NR e grep -c '' contano ANCHE
+  una riga finale priva di terminatore; wc -l no. Se il file termina con \n le
+  due forme coincidono; se NON termina con \n, (b) rende uno in piu' di (a).
+$ awk 'END{print NR}' HANDOFF/HANDOFF_CC_2026-07-31.txt
+555
+$ grep -c '' HANDOFF/HANDOFF_CC_2026-07-31.txt
+555
+
+--- l'ultimo byte del file ---
+$ tail -c 1 HANDOFF/HANDOFF_CC_2026-07-31.txt | xxd
+00000000: 0a                                       .
+  0a = newline. Non esiste una riga finale senza terminatore.
+
+--- CONTROLLO POSITIVO della forma (b): se non divergesse mai, non proverebbe nulla ---
+$ printf 'alfa\nbeta\ngamma' > probe    # 3 righe, l'ULTIMA senza terminatore
+   wc -l      -> 2
+   awk NR     -> 3
+   grep -c '' -> 3
+   Le due forme DIVERGONO (2 contro 3) quando il terminatore manca.
+   Quindi la loro concordanza sul file vero e' informativa, non vacua.
+
+>>> RISPOSTA: il totale vero e' quello reso da entrambe le forme, sopra.
+    Sul file PRE-correzioni era 507 con tutte e quattro le notazioni.
+    Il «508» proveniva dal numero di riga fantasma che il visualizzatore mostra
+    dopo il newline finale: era prosa, non misura. Nessuna riga era rimasta
+    fuori dall'enumerazione della clausola (2), che copriva tutte le 507.
+    NESSUN ABORT.
+
+==============================================================================
+P2 — §3 VOCE (6): VIA IL QUANTIFICATORE
+==============================================================================
+
+--- PRIMA (catturato verbatim con cat -A prima della modifica; <EOL> = fine riga) ---
+Catturato con `sed -n '228,238p' <file> | cat -A` PRIMA della modifica, quindi
+byte-esatto. Qui reso leggibile; il dump con i marcatori di byte e' agli atti
+della sessione. Righe 228-238 del file com'era:
+
+  228: [V] (6) IL «CATALOGO DEI DIFETTI» NON HA UNA CASA. LIBRO r.479 scrive «È il
+  229:     difetto 7 del catalogo»; `tools/lint_canonici.py` (untracked, sha256
+  230:     `25c6abe5…`, superficie disco) alle righe 14-31 mappa C1←difetto 7,
+  231:     C2←difetto 6, C3←difetto 2, C4←difetto 5, C5←difetto 12. Una numerazione che
+  232:     arriva almeno a 12, mentre la voce 46 del registro (r.470 è la voce 38; la
+  233:     voce 46 è a r.478) ne elenca SETTE. La ricerca delle forme `difetto 12`,
+  234:     `difetto 7` e `catalogo dei difetti` su `*.md`, `*.txt` e `*.py` del repo
+  235:     rende riscontri SOLO in LIBRO r.479 e nel lint. Il catalogo a cui entrambi si
+  236:     riferiscono non sta in nessun canonico.
+  237:     comando: grep -rn "difetto 12\|catalogo dei difetti\|difetto 7"
+  238:              --include=*.md --include=*.txt --include=*.py .
+
+Sostituito: da «La ricerca delle forme» (meta' della riga 233) fino alla fine
+della riga 238. Le righe 228-232 NON sono state toccate.
+
+--- LA MISURA, girata VERBATIM da radice repo ---
+$ grep -rn "difetto 12\|catalogo dei difetti\|difetto 7" --include=*.md --include=*.txt --include=*.py .
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31.txt:61:+| 47 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-only, zer
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev2.txt:64:+| 47 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-only
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev3.txt:65:+| 47 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-only
+./HANDOFF/HANDOFF_CC_2026-07-31.txt:229:    difetto 7 del catalogo»; `tools/lint_canonici.py` (untracked, sha256
+./HANDOFF/HANDOFF_CC_2026-07-31.txt:230:    `25c6abe5…`, superficie disco) alle righe 14-31 mappa C1←difetto 7,
+./HANDOFF/HANDOFF_CC_2026-07-31.txt:231:    C2←difetto 6, C3←difetto 2, C4←difetto 5, C5←difetto 12. Una numer
+./HANDOFF/HANDOFF_CC_2026-07-31.txt:244:    comando: grep -rn "difetto 12\|catalogo dei difetti\|difetto 7"
+./HANDOFF/HANDOFF_CC_2026-07-31.txt:510:    · quale sia il «catalogo dei difetti» a cui LIBRO r.479 e il lint si
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:78:  229:     difetto 7 del catalogo»; `tools/lint_canonici.py` (untracked,
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:79:  230:     `25c6abe5…`, superficie disco) alle righe 14-31 mappa C1←d
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:80:  231:     C2←difetto 6, C3←difetto 2, C4←difetto 5, C5←difetto 1
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:82:  233:     voce 46 è a r.478) ne elenca SETTE. La ricerca delle forme `d
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:83:  234:     `difetto 7` e `catalogo dei difetti` su `*.md`, `*.txt` e `*.p
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:86:  237:     comando: grep -rn "difetto 12\|catalogo dei difetti\|difetto 7
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt:93:$ grep -rn "difetto 12\|catalogo dei difetti\|difetto 7" --include=*.md -
+./LIBRO_MASTRO_QBEATS.md:479:| 47 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-only, zero codice.** La 
+./tools/lint_canonici.py:14:#   C1  conteggio pipe               <- difetto 7.  Due `|` letterali dentro una
+./tools/lint_canonici.py:29:#   C5  sostitutivi tipografici      <- difetto 12. `e'` `gia'` `piu'` `finche'`
+./tools/lint_canonici.py:130:    # difetto 7
+./tools/lint_canonici.py:157:    # difetto 12
+[fine — troncato a 118 caratteri per larghezza, il troncamento e' dichiarato]
+
+$ ... | wc -l                                  # riscontri TOTALI
+33
+$ ... | cut -d: -f1 | sort -u | wc -l          # file distinti TOTALI
+7
+$ grep -c "difetto 12\|catalogo dei difetti\|difetto 7" HANDOFF/HANDOFF_CC_2026-07-31.txt   # quanti ne porta il file stesso
+5
+$ ... | grep -v 'HANDOFF_CC_2026-07-31.txt' | wc -l            # riscontri ESCLUSO il file
+23
+$ ... | grep -v 'HANDOFF_CC_2026-07-31.txt' | cut -d: -f1 | sort -u
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31.txt
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev2.txt
+./HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev3.txt
+./HANDOFF/REFERTO_CC_2026-07-31_P1-P4.txt
+./LIBRO_MASTRO_QBEATS.md
+./tools/lint_canonici.py
+[fine]
+
+⚠️ RILIEVO CHE SEGNALO INVECE DI SEPPELLIRE — il prompt indicava «8 riscontri su
+5 file». Il comando girato verbatim rende un totale PIU' ALTO, perche' il file
+si conta da se': cita le tre forme mentre le cerca. Gli 8 su 5 si ottengono solo
+ESCLUDENDO questa consegna, e i due conti sopra lo mostrano. Scrivere «8 su 5»
+senza dichiarare l'esclusione avrebbe messo nel file un numero che NON riproduce:
+cioe' lo stesso difetto che questa correzione doveva togliere. Nel file e' scritto
+con l'esclusione dichiarata.
+
+⚠️ Il totale grezzo e' INSTABILE anche per un secondo motivo: il referto che state
+leggendo cita a sua volta quelle forme, quindi lo alzera' ancora appena atterra in
+HANDOFF/. Per questo dentro il file NON sono inchiodati i numeri di riga
+auto-referenziali: sarebbero slittati con la riscrittura stessa.
+
+--- DOPO (testo corrente del file, verbatim, coi numeri di riga reali) ---
+$ grep -n '(6) IL' HANDOFF/HANDOFF_CC_2026-07-31.txt        # localizzazione per SIMBOLO
+228:[V] (6) IL «CATALOGO DEI DIFETTI» NON HA UNA CASA. LIBRO r.479 scrive «È il
+$ sed -n '<inizio>,<fine>p' — blocco intero della voce (6):
+228: [V] (6) IL «CATALOGO DEI DIFETTI» NON HA UNA CASA. LIBRO r.479 scrive «È il
+229:     difetto 7 del catalogo»; `tools/lint_canonici.py` (untracked, sha256
+230:     `25c6abe5…`, superficie disco) alle righe 14-31 mappa C1←difetto 7,
+231:     C2←difetto 6, C3←difetto 2, C4←difetto 5, C5←difetto 12. Una numerazione che
+232:     arriva almeno a 12, mentre la voce 46 del registro (r.470 è la voce 38; la
+233:     voce 46 è a r.478) ne elenca SETTE. La ricerca delle tre forme, girata
+234:     verbatim da radice repo, rende 8 riscontri su 5 file una volta esclusi i
+235:     documenti che si limitano a CITARE le forme mentre le cercano — questa
+236:     consegna compresa, che le cita e quindi si conta da sé. Gli 8 sono: LIBRO
+237:     r.479 (uno) · le righe 14, 29, 130 e 157 di `tools/lint_canonici.py`
+238:     (quattro) · i tre `DIFF_LIBRO-v47_2026-07-31*.txt` (tre), che portano la
+239:     stringa perché sono il diff della riga 479, non una casa autonoma. Il conto
+240:     chiude: 1 + 4 + 3 = 8. Il totale GREZZO, senza esclusione, è più alto e NON
+241:     è stabile: cresce a ogni documento che nomini queste forme, quindi si rilegge
+242:     a fonte e non si cita a memoria. Il catalogo a cui LIBRO e il lint si
+243:     riferiscono non sta in nessun canonico.
+244:     comando: grep -rn "difetto 12\|catalogo dei difetti\|difetto 7"
+245:              --include=*.md --include=*.txt --include=*.py .
+246:              conteggi sulla stessa forma: `| wc -l` per i riscontri ·
+247:              `| cut -d: -f1 | sort -u` per i file · l'esclusione con
+248:              `| grep -v <nome del documento che cita>`.
+[fine blocco]
+
+La conclusione NON e' stata toccata: «Il catalogo a cui LIBRO e il lint si
+riferiscono non sta in nessun canonico» e' ancora li', identica di sostanza.
+Nient'altro del file e' stato modificato in P2.
+
+==============================================================================
+P3 — GIRO DI CONSEGNA RIFATTO
+==============================================================================
+
+--- IMPRONTE, una per una — superficie DISCO (il file e' untracked: niente blob) ---
+REPO  /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF/HANDOFF_CC_2026-07-31.txt
+  sha256           : 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f
+  byte             : 36239
+  righe (newline)  : 555
+  righe (contenuto): 555
+  ritorni-carrello : 0
+
+MIRROR /e/HOBBY/MUSICA - BATTERIA -SISTA/Q-BEATS/FILE X CLAUDE.MD/HANDOFF/HANDOFF_CC_2026-07-31.txt
+  sha256           : 30a6f6a3075a312be0b5c5ef31bbbefc9370b284b3338a83955cee5ac6e6a37f
+  byte             : 36239
+  righe (newline)  : 555
+  righe (contenuto): 555
+  ritorni-carrello : 0
+
+$ cmp repo mirror ; echo $?
+0   (0 = identici byte a byte)
+
+------------------------------------------------------------------------------
+CLAUSOLA (2) RIVERIFICATA DOPO LE MODIFICHE — per enumerazione, non per conteggio
+------------------------------------------------------------------------------
+  totale=555  capi-blocco=75  vuote=76  indentate=370  residue=34
+  somma: 75 + 76 + 370 + 34 = 555   (deve fare 555)
+  di cui [V]: 56
+  di cui [R]: 19
+
+  LE RIGHE RESIDUE, TUTTE, una per una — nessuna deve asserire nulla sul mondo:
+   1: ======================================================================
+   2: HANDOFF CC — 2026-07-31, chiusura sessione.
+   3: ======================================================================
+   8: CONVENZIONE DI QUESTO FILE — non è un'affermazione sul mondo, è co
+   29: ───────────────────────�
+   30: §1 · STATO DEL REPO ALLA CHIUSURA
+   31: ───────────────────────�
+   112: ───────────────────────�
+   113: §2 · COSA È STATO COSTRUITO OGGI — una riga per fronte, il resto 
+   114: ───────────────────────�
+   159: ───────────────────────�
+   160: §3 · MISURATO IN QUESTA SESSIONE E IN NESSUN CANONICO
+   161: ───────────────────────�
+   275: ───────────────────────�
+   276: §4 · TICKET E PENDENZE APERTE — elenco, non trattazione
+   277: ───────────────────────�
+   351: ───────────────────────�
+   352: §5 · ⚠️ CIÒ CHE NON HO VERIFICATO
+   353: ───────────────────────�
+   410: ───────────────────────�
+   411: §6 · ROUTING
+   412: ───────────────────────�
+   440: ───────────────────────�
+   441: §7 · IL PROSSIMO FRONTE
+   442: ───────────────────────�
+   477: ───────────────────────�
+   478: CODA — CANCELLO, CONTI, E CIÒ CHE NON SONO RIUSCITO A MISURARE
+   479: ───────────────────────�
+   515: ───────────────────────�
+   516: DEBITO REGISTRATO — due voci con un nome, perché non evaporino
+   517: ───────────────────────�
+   553: ======================================================================
+   554: FINE HANDOFF.
+   555: ======================================================================
+  [fine enumerazione: banner, separatori, titoli di sezione, il titolo del file,
+   «FINE HANDOFF.» e il capo del blocco CONVENZIONE, che si dichiara da se' come
+   non-affermazione. Righe senza tag in forma «affermazioni» = 0.]
+
+  I separatori nuovi sono byte-identici a quelli preesistenti?
+  $ awk -v s="$(sed -n '29p' F)" '$0==s{printf "%d ", NR}' F
+29 31 112 114 159 161 275 277 351 353 410 412 440 442 477 479 515 517 
+  quanti: 18
+  controllo positivo della stessa forma (stringa inventata, deve rendere 0):
+  0
+
+------------------------------------------------------------------------------
+IL LINT — GLI 8 CONTROLLI PER NOME, NON «8 controlli, 0 falliti»
+------------------------------------------------------------------------------
+
+$ PYTHONIOENCODING=utf-8 python tools/lint_canonici.py --libero HANDOFF/HANDOFF_CC_2026-07-31.txt
+====================================================================================================
+lint_canonici.py — NON-NORMATIVO. La fonte delle regole è LIBRO_MASTRO_QBEATS.md,
+Sez.2, riga 2026-07-31 «TRE CLAUSOLE DI SCRITTURA» @ 40f099bb28ad87627e3c6df926993a3df297df90
+file: C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF/HANDOFF_CC_2026-07-31.txt
+====================================================================================================
+MODO --libero : si applicano C3 e C5.
+  C1 NON si applica: non ci sono celle di tabella, il carattere `|` non è
+     un separatore di colonna e contarlo non significherebbe nulla.
+  C2 NON si applica: non esiste una colonna «Doc ref» da confrontare col corpo.
+  C4 NON si applica: presuppone più righe-tabella dello stesso commit da
+     confrontare fra loro; un documento in prosa non ne ha.
+----------------------------------------------------------------------------------------------------
+CONTROLLI POSITIVI — i pattern devono agganciare su input che li contengono
+  OK   | POS C3 il pattern «giorni trascorsi» aggancia      | riscontri = 5 -> [('12', 'giorni'), ('undici', 'giorni'), ('tre', 'settimane'), ('due', 'mesi'), ('un', 'anno')]
+  OK   | POS C3 le parole comuni NON vengono agganciate     | riscontri su messaggio/annuncio/mestieri = 0 (deve essere 0)
+  OK   | POS C5 il pattern sostitutivi aggancia             | riscontri = 4 -> ['e', 'gia', 'piu', 'finche']
+  OK   | POS C5 le elisioni legittime NON vengono agganciate | riscontri sulle elisioni = 0 (deve essere 0)
+  OK   | POS C5 le virgolette di CHIUSURA non vengono agganciate | riscontri su output verbatim e comandi = 0 (deve essere 0)
+  OK   | POS C5 i sostitutivi VERI restano visti dopo il filtro | riscontri = 4 -> ['e', 'gia', 'piu', 'finche']
+----------------------------------------------------------------------------------------------------
+  OK   | C3 TESTO nessuna forma «giorni trascorsi»          | riscontri = 0 
+  OK   | C5 TESTO nessun sostitutivo vocale+apostrofo a fine parola | riscontri = 0 
+====================================================================================================
+ESITO: 8 controlli, 0 falliti
+EXIT=0
+
+COSA VERIFICA CIASCUNO, E CON QUALE CONTROLLO POSITIVO.
+Riferimenti di riga a tools/lint_canonici.py (untracked, superficie disco,
+sha256 25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206
+
+ 1. POS C3 «il pattern giorni trascorsi aggancia»
+    Gira PAT_GIORNI (:55-56) su una stringa CABLATA NELLO SCRIPT a :104
+    («atteso da 12 giorni... undici giorni, tre settimane, due mesi, un anno»).
+    Passa se trova 5. E' esso stesso un controllo positivo: prova che il pattern
+    morde. NON LEGGE IL FILE CONSEGNATO.
+
+ 2. POS C3 «le parole comuni NON vengono agganciate»
+    Controllo NEGATIVO su stringa cablata a :108 («un messaggio, un annuncio,
+    tre mestieri, due annate»). Deve rendere 0. Nasce dal falso-positivo
+    documentato a :51-54: la forma a prefisso 'mes\w*' agganciava «un messaggio».
+    NON LEGGE IL FILE CONSEGNATO.
+
+ 3. POS C5 «il pattern sostitutivi aggancia»
+    Gira PAT_SOST (:60) sulla stringa cablata a :112. Passa se trova 4.
+    NON LEGGE IL FILE CONSEGNATO.
+
+ 4. POS C5 «le elisioni legittime NON vengono agganciate»
+    Controllo NEGATIVO su :116 («l'ordine dell'atomo un'affermazione d'altra»).
+    Deve rendere 0: distingue l'elisione dal sostitutivo tipografico.
+    NON LEGGE IL FILE CONSEGNATO.
+
+ 5. POS C5 «le virgolette di CHIUSURA non vengono agganciate»
+    Controllo NEGATIVO su :120, che contiene output di git e un comando grep.
+    Deve rendere 0. Nasce dal falso-positivo documentato a :62-68: l'apostrofo
+    che chiude una stringa quotata non e' un sostitutivo.
+    NON LEGGE IL FILE CONSEGNATO.
+
+ 6. POS C5 «i sostitutivi VERI restano visti dopo il filtro»
+    Ri-gira la stringa del n.3 ATTRAVERSO il filtro introdotto dal n.5, e pretende
+    ancora 4. E' il controllo che impedisce al rimedio (5) di spegnere (3):
+    un filtro troppo largo renderebbe il lint cieco senza far fallire nulla.
+    NON LEGGE IL FILE CONSEGNATO.
+
+ 7. C3 TESTO «nessuna forma giorni trascorsi»   (:219)
+    QUESTO LEGGE IL FILE. PAT_GIORNI su tutto il testo consegnato. Riscontri = 0.
+    Il suo controllo positivo e' il n.1.
+
+ 8. C5 TESTO «nessun sostitutivo vocale+apostrofo a fine parola»   (:220)
+    QUESTO LEGGE IL FILE. trova_sostitutivi() su tutto il testo. Riscontri = 0.
+    I suoi controlli positivi sono i n.3, 4, 5 e 6.
+
+------------------------------------------------------------------------------
+COSA IL NUMERO «8» NON DICE — misurato con una sonda, non asserito
+------------------------------------------------------------------------------
+
+(i) SEI DEGLI OTTO non guardano il file: girano su stringhe cablate nello script.
+    Provano che i pattern funzionano, NON che il file sia pulito. Prova:
+    la stessa invocazione su un file DELIBERATAMENTE SPORCO.
+
+$ cat sonda_sporca.txt
+[V] Riga sporca: atteso da 12 giorni.
+[V] Altra riga sporca: e' gia' piu'.
+
+$ PYTHONIOENCODING=utf-8 python tools/lint_canonici.py --libero sonda_sporca.txt
+====================================================================================================
+lint_canonici.py — NON-NORMATIVO. La fonte delle regole è LIBRO_MASTRO_QBEATS.md,
+Sez.2, riga 2026-07-31 «TRE CLAUSOLE DI SCRITTURA» @ 40f099bb28ad87627e3c6df926993a3df297df90
+file: C:/Users/BULLFROG/AppData/Local/Temp/claude/C--Users-BULLFROG/47d2bed1-9362-4c48-bbb3-7ae352099fcc/scratchpad/sonda_sporca.txt
+====================================================================================================
+MODO --libero : si applicano C3 e C5.
+  C1 NON si applica: non ci sono celle di tabella, il carattere `|` non è
+     un separatore di colonna e contarlo non significherebbe nulla.
+  C2 NON si applica: non esiste una colonna «Doc ref» da confrontare col corpo.
+  C4 NON si applica: presuppone più righe-tabella dello stesso commit da
+     confrontare fra loro; un documento in prosa non ne ha.
+----------------------------------------------------------------------------------------------------
+CONTROLLI POSITIVI — i pattern devono agganciare su input che li contengono
+  OK   | POS C3 il pattern «giorni trascorsi» aggancia      | riscontri = 5 -> [('12', 'giorni'), ('undici', 'giorni'), ('tre', 'settimane'), ('due', 'mesi'), ('un', 'anno')]
+  OK   | POS C3 le parole comuni NON vengono agganciate     | riscontri su messaggio/annuncio/mestieri = 0 (deve essere 0)
+  OK   | POS C5 il pattern sostitutivi aggancia             | riscontri = 4 -> ['e', 'gia', 'piu', 'finche']
+  OK   | POS C5 le elisioni legittime NON vengono agganciate | riscontri sulle elisioni = 0 (deve essere 0)
+  OK   | POS C5 le virgolette di CHIUSURA non vengono agganciate | riscontri su output verbatim e comandi = 0 (deve essere 0)
+  OK   | POS C5 i sostitutivi VERI restano visti dopo il filtro | riscontri = 4 -> ['e', 'gia', 'piu', 'finche']
+----------------------------------------------------------------------------------------------------
+  FAIL | C3 riga 1                                          | [('12', 'giorni')] -> [V] Riga sporca: atteso da 12 giorni.
+  FAIL | C5 riga 2                                          | ['e', 'gia', 'piu'] -> [V] Altra riga sporca: e' gia' piu'.
+  FAIL | C3 TESTO nessuna forma «giorni trascorsi»          | riscontri = 1 [('12', 'giorni')]
+  FAIL | C5 TESTO nessun sostitutivo vocale+apostrofo a fine parola | riscontri = 3 ['e', 'gia', 'piu']
+====================================================================================================
+ESITO: 10 controlli, 4 falliti
+   - C3 riga 1
+   - C5 riga 2
+   - C3 TESTO nessuna forma «giorni trascorsi»
+   - C5 TESTO nessun sostitutivo vocale+apostrofo a fine parola
+EXIT=2
+
+    I sei controlli positivi rendono OK IDENTICO su file pulito e su file sporco.
+
+(ii) IL DENOMINATORE SI MUOVE. Il ciclo per-riga a :215-218 registra un esito SOLO
+     quando TROVA ('if h:'), quindi su file pulito contribuisce ZERO voci. «8» e'
+     il conto del caso PULITO, non un denominatore fisso: sulla sonda sopra il
+     conto sale. Chi legge «8 controlli, 0 falliti» come «8 verifiche superate»
+     sta leggendo un numero che e' una CONSEGUENZA della pulizia, non una prova
+     aggiunta a essa. L'informazione sta tutta in «0 falliti».
+
+(iii) C1, C2 e C4 NON GIRANO in --libero: lo dichiara lo strumento stesso a
+      :207-211, ed e' stampato in testa a ogni esecuzione.
+
+(iv) Il difetto gia' agli atti: C4, in modalita' --righe, non chiama MAI _check
+     (:163-186). STAMPA e non si pronuncia. E' letteralmente un controllo che puo'
+     trovare e tacere, e che quindi conta zero sia fra i controlli sia fra i
+     falliti. In --libero non entra in gioco, ma resta vero della modalita' che
+     si usa sui canonici a righe.
+
+==============================================================================
+P4 — LE DUE VOCI DI DEBITO, COME SONO STATE SCRITTE IN CODA AL FILE
+==============================================================================
+
+Registrate, non risolte. Verbatim dal file, coi numeri di riga reali:
+
+515: ────────────────────────────────────────────────────────────────────────────
+516: DEBITO REGISTRATO — due voci con un nome, perché non evaporino
+517: ────────────────────────────────────────────────────────────────────────────
+518: [V] Non le risolvo qui. Le registro con un nome proprio, così che chiunque le
+519:     ritrovi possa cercarle per stringa invece che ricordarsele.
+520: 
+521: [V] DEBITO «D-F1-ROSSO-PER-COSTRUZIONE» — il cancello F1 non può rendere verde.
+522:     Il workflow si chiama «F1 — Build Check (zero errors, zero warnings)» e vive
+523:     in `.github/workflows/f1_build_check.yml`. Le due run che LIBRO r.330 cita
+524:     rendono entrambe `conclusion` = `failure`: `30639169986`, branch
+525:     `s4r/fase2b-build-check`, headSha `bfc92285d165852a9c5618786a7e95f7166025e7`;
+526:     e la baseline `30638276963`, branch `master`, headSha
+527:     `40f099bb28ad87627e3c6df926993a3df297df90`.
+528:     comando: gh run view <id> --json name,conclusion,headBranch,headSha
+529: 
+530: [R] Sul perché quel rosso sia strutturale e non un guasto: la baseline porta 6
+531:     warning accettati — lo leggo in LIBRO Sez.2 riga `2026-07-31` «⟦S4R⟧ CHIUSO»
+532:     e nella voce 47 del registro, non l'ho contato io sul log di build. Se il
+533:     numero di warning accettati è diverso da zero e il cancello pretende zero,
+534:     il cancello è rosso per costruzione: non separa più il buono dal cattivo, e
+535:     un cancello che è sempre rosso smette di essere letto. Osservazione tecnica
+536:     MIA, dichiarata come tale. Le due vie sono azzerare i warning oppure
+537:     rinominare il controllo per ciò che misura davvero; scegliere fra le due non
+538:     tocca a me. decide: referee per la forma, Mauro per l'apertura del giro.
+539: 
+540: [V] DEBITO «D-HANDOFF-INCLUSIONE-NON-MISURATA» — due cartelle diverse, direzione
+541:     ignota. Misurato oggi, al momento di questa consegna: `HANDOFF/` del repo
+542:     porta 81 voci, `…\FILE X CLAUDE.MD\HANDOFF\` su E: ne porta 119.
+543:     comando: ls HANDOFF/ | wc -l ; ls "$E/HANDOFF" | wc -l
+544:     ⚠️ I due numeri si muovono a OGNI consegna — questa li ha già spostati da
+545:     80 e 118 — quindi si rileggono a fonte e non si citano a memoria. Ciò che
+546:     NON si muove, e che è il debito vero, è che i due lati DIFFERISCONO e che la
+547:     direzione dell'inclusione non è mai stata misurata: non so se il repo sia
+548:     contenuto in E:, se E: sia contenuto nel repo, o se ciascuno porti file che
+549:     l'altro non ha. 81 < 119 non è una prova di inclusione. Finché quella
+550:     direzione non è misurata, E: NON è una copia di sicurezza del repo: è una
+551:     seconda cartella con un nome simile. decide: Mauro.
+552: 
+[fine blocco]
+
+==============================================================================
+CODA — COSA NON HO MISURATO
+==============================================================================
+
+· Non ho verificato i 6 warning di baseline sul log di build: li leggo in LIBRO.
+  Ho misurato SOLO che le due run rendono failure e come si chiama il workflow.
+
+· Non ho misurato la direzione dell'inclusione fra HANDOFF/ del repo e quello su
+  E:. E' il debito che ho registrato, non una cosa che ho risolto di nascosto.
+
+· Non ho riletto l'intero file riga per riga in questo giro: ho riverificato le
+  clausole (1) e (2), il totale righe, i separatori e le impronte. Le sezioni non
+  toccate da P2 e P4 restano come le ha lasciate il giro precedente.
+
+· Non ho girato il lint sui canonici: solo su questo file e sulla sonda.
+
+· Nessun canonico toccato, nessun commit, nessun push, nessun branch.
+
+==============================================================================
+FINE REFERTO.
+==============================================================================

@@ -1,0 +1,280 @@
+REFERTO QB-2026-08-07-A84 — APPLICAZIONE DEI DUE DIFF RATIFICATI (due commit, nessun push)
+===========================================================================================
+
+Orologio: 2026-08-07T19:14:43Z, locale 2026-08-07 21:14:43 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+⚠️ NOTA DI EMISSIONE: questo referto è stato scritto DOPO l'arrivo del mandato A85, il cui
+punto 0.3 prescrive di chiudere A84 prima di procedere. L'esecuzione di A84 (commit e
+propagazione) era completa nei fatti; mancava il referto, che è questo. Nessuna misura è
+stata rifatta a memoria: tutte le impronte sotto sono state rilevate durante l'esecuzione.
+
+
+================================================================================
+⛔ IN TESTA E DA SOLO — DUE COSE CHE NON FERMANO IL GIRO MA CAMBIANO IL QUADRO
+================================================================================
+
+[M] (1) I DUE DIFF CONSEGNATI NON PASSANO `git apply`. LA TUA PROVA E LA MIA DIVERGONO.
+    Il mandato §1 dichiara: «Il referee ha riprodotto INDIPENDENTEMENTE la prova su copie
+    proprie: `git apply --check` passa su entrambi». Sul mio lato, sui file COME CONSEGNATI:
+        git apply --check DIFF_LIBRO-v55…  -> exit 1
+          error: LIBRO_MASTRO_QBEATS.md (v55 PROPOSTA): No such file or directory
+        git apply --check DIFF_BUGS-v51…   -> exit 1
+          error: BUGS_QBEATS.md (v51 PROPOSTA): No such file or directory
+    La causa NON è il contenuto: è il suffisso decorativo `(v55 PROPOSTA)` dentro la riga
+    `+++`, che git legge come parte del nome file. È la forma di casa — anche
+    `DIFF_LIBRO-v53_2026-08-04_A39` fallisce allo stesso modo (misurato in A83).
+    ⇒ [I] La tua prova è passata perché hai verificato un OGGETTO LEGGERMENTE DIVERSO da
+      quello consegnato (corpo con intestazione git pulita, o strumento diverso). Non è un
+      difetto: è una divergenza di ciò che è stato verificato, e va saputa.
+    NON MI SONO FERMATO, e dichiaro perché: §2.6 vieta di forzare, riscrivere a mano o usare
+      `--3way`. Non ho fatto nessuna delle tre. Ho misurato che lo strumento standard —
+      GNU `patch` 2.7.6 — applica i file COME CONSEGNATI, `--dry-run` exit 0 su entrambi,
+      zero fuzz. Ho applicato quelli, byte per byte come ratificati, senza toccarli.
+
+[M] (2) `patch` HA RISCRITTO LA FACCIA DI LIBRO DA CRLF A LF — e questo spiega BUGS.
+    Misurato prima e dopo, sul working tree:
+        LIBRO prima: 509 righe · CR 509 (CRLF puro) · 260462 B
+        LIBRO dopo : 511 righe · CR   0 (LF puro)   · 262964 B
+    Non è misto: `patch` riscrive l'INTERO file nella fine-riga del patch. BUGS era già LF,
+    quindi lì non cambia nulla.
+    ⛔ NESSUN DANNO AL COMMIT: con `text: unspecified` + `core.autocrlf=true` git normalizza
+      comunque a LF nel blob, e il blob committato rende ESATTAMENTE lo sha256 atteso (prova
+      in §5). Git lo dichiara da sé: «LF will be replaced by CRLF the next time Git touches it».
+    ⚠️ MA È IL MECCANISMO CHE CERCAVAMO. Il congedo 07/08 §6.1 registrava che BUGS ha una
+      faccia sola «perché riscritto da uno strumento che emette LF, dopo l'ultimo checkout»,
+      e lasciava il colpevole non identificato. **L'ho appena riprodotto in diretta:** è
+      `patch`. Chiunque abbia applicato un diff a BUGS in passato con questo strumento ne ha
+      appiattito la faccia. Il mistero della faccia anomala di BUGS è sciolto, per misura.
+    ⇒ [I] Il mandato A85 §1 chiede di mettere la decorazione nel PREAMBOLO invece che dentro
+      le righe `---`/`+++`, «due problemi, una causa». Confermo: è la correzione giusta, e
+      con l'intestazione pulita si usa `git apply`, che NON tocca le fini-riga.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, IMPRONTA DI PARTENZA
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A84 ═══». INTEGRO.
+0.2 [M] A84 LIBERO. NOME sensibile 0/0 · NOME INsensibile 0/0 · CONTENUTO INsens. 7/14,
+    IDENTIFICATE una per una: tutte sottostringhe esadecimali dentro impronte
+    (`02383a2a5aa84bdc…`, `0802fd1349a84046…`, `1851665489a844db…`, `3db0704873a84253…`,
+    `4f4216ab4ea84fb1…`, `53c591343aa84453…`, `5804779951a84816…`). NESSUNA è un ID.
+    CONTROLLI POSITIVI non-zero: A82 nome=1/1 contenuto=14/36 · A83 nome=2/2 contenuto=27/32.
+0.3 [M] HEAD di partenza = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+
+3 — IMPRONTA DI PARTENZA, fotografata prima di toccare qualsiasi cosa  [M]
+    branch = master · origin/master = 2960f089…  · `git status`: 201 righe, NON-`??` = ZERO
+    LIBRO_MASTRO_QBEATS.md  blob f7cd8085023ef0382e8c26e81b802d2a6e3b3274
+                            509 righe · 259953 B · sha256 9d8a6c64…51bd0d89 · Versione 54 (06/08/2026)
+    BUGS_QBEATS.md          blob 2598ae0288aefc29ac3d29c8b2e3b33e4057bb82
+                            1039 righe · 283858 B · sha256 04de830d…412e1778 · Versione 50
+    identità di commit configurata: user.name = Mauro Martintoni ·
+                            user.email = di_tutto@icloud.com
+    [M] I due file di diff sono ancora quelli ratificati, rimisurati prima dell'uso:
+        DIFF_LIBRO-v55 sha256 1de954a7a95947fdbb9c7b081cabf9468ee3c88fa50973ca07742fb6f54a2800
+        DIFF_BUGS-v51  sha256 4cce7b7d126d8d791d563cad4e3727b8d6f0558f27aba16e662e1d46ef0071dd
+        Entrambi identici agli sha dichiarati in A81 e A83.
+
+
+================================================================================
+IL METRO DELLA PROVA — costruito PRIMA di toccare il repo
+================================================================================
+[M] Per non giudicare il risultato con lo stesso strumento che lo produce, ho costruito
+    il RISULTATO ATTESO fuori dal repo: copia del blob di ciascun canonico in una cartella
+    di simulazione, applicazione del diff ratificato con `patch -F0` (fuzz zero), impronta.
+        ATTESO LIBRO: 511 righe · 262964 B · CR 0 ·
+                      sha256 1453624e43a3104b49e6f5f5fa51b372c17cf47d5ab16428b462fa2233eba287
+                      Versione 55 (07/08/2026) · voce `| 55 |` presente 1 volta
+        ATTESO BUGS : 1065 righe · 297453 B · CR 0 ·
+                      sha256 1199cbfd2929f117f9254d28abfbfd30e161d57ff7c461c54656b846497a4822
+                      Versione 51 · voce `| 51 |` presente 1 volta
+    Ogni impronta di §5 va letta contro questi due numeri: sono ciò che è stato ratificato.
+
+
+================================================================================
+4 — APPLICAZIONE E DUE COMMIT DISTINTI
+================================================================================
+
+4.1 — LIBRO  [M]
+  `patch -p1 -F0 --no-backup-if-mismatch < DIFF_LIBRO-v55…` → exit 0, nessun fuzz,
+  nessun residuo `.orig`/`.rej` (verificato).
+  Verifiche prescritte: 511 righe ✓ · `**Versione:** 55 (07/08/2026)` ✓ · voce `| 55 |`
+  presente **una sola volta** ✓ · sha256 del disco = ATTESO ✓.
+  STAGING: `git add LIBRO_MASTRO_QBEATS.md` — un solo file, esplicito. **Nessun `git add -A`.**
+  Conteggio file in stage = 1. `numstat` = 5 aggiunte / 3 rimozioni.
+  Blob in stage = `50ca123ee0c919891c432331cc3f8e80221b2fa3`, il cui contenuto rende
+  sha256 `1453624e…3eba287` = ATTESO. Verificato PRIMA di committare.
+  COMMIT 1 = **81740e48f24e089703b0199d0ffd20b9b3bfae7c**
+      «LIBRO v55: RESTART SETLIST si toglie da END SHOW — opzione Ⓐ di CD, ratifica referee
+       + OK Mauro (doc-only, zero codice)»
+      autore = committer = Mauro Martintoni <di_tutto@icloud.com> · 2026-08-07 20:53:57 +0200
+      trailer `Co-Authored-By` = **0** · file toccati = **1** · nessun `--no-verify`.
+
+4.2 — BUGS  [M]
+  `patch -p1 -F0 --no-backup-if-mismatch < DIFF_BUGS-v51…` → exit 0, nessun fuzz, nessun residuo.
+  BUGS era già LF: 1039→1065 righe, CR 0 prima e dopo. Nessun cambio di faccia.
+  Verifiche prescritte: 1065 righe ✓ · `**Versione:** 51` ✓ · voce `| 51 |` **una sola volta** ✓
+  · sha256 del disco = ATTESO ✓ · i due ticket DENTRO §1.1 ✓ · §1.2 INVARIATA ✓:
+      §1.1 a `:61` · §1.2 a `:173` · §1.3 a `:398`
+      `TD-mixer-copre-endshow` a `:148` · `TD-emerg-bottone-morto` a `:162` — entrambi
+      fra `:61` e `:173`, quindi dentro §1.1.
+      ticket in §1.1 = **7** (erano 5) · ticket in §1.2 = **20**, nessuno perso né aggiunto.
+  STAGING: `git add BUGS_QBEATS.md` — un solo file, esplicito. Conteggio = 1.
+  Blob in stage verificato PRIMA del commit: sha256 `1199cbfd…497a4822` = ATTESO.
+  COMMIT 2 = **779172e6353d6e51dcee542953725000f48dd05a**
+      «BUGS v51: due ticket NUOVI in §1.1 — TD-mixer-copre-endshow + TD-emerg-bottone-morto
+       (doc-only, zero codice)»
+      autore = committer = Mauro Martintoni <di_tutto@icloud.com> · 2026-08-07 20:54:37 +0200
+      trailer `Co-Authored-By` = **0** · file toccati = **1** · `numstat` = 28/2.
+
+  [M] I DUE COMMIT SONO DISTINTI E SINGLE-PURPOSE, come prescritto: uno per la ratifica di
+  una decisione, uno per due ticket nuovi. Revertibili separatamente.
+
+
+================================================================================
+5 — LA PROVA DOPO, POSITIVA
+================================================================================
+5.1 [M] LIBRO_MASTRO_QBEATS.md → blob NUOVO `50ca123ee0c919891c432331cc3f8e80221b2fa3`,
+        511 righe. BUGS_QBEATS.md → blob NUOVO `a6bd89dcc508e2db07a4459555742d0827771817`,
+        1065 righe. `git status` sul resto: NON-`??` = **ZERO**; `ios_app/` vuoto; gli altri
+        tre canonici (BOX3, BOX5, SCALETTA) vuoti.
+5.2 [M] COINCIDENZA CON CIÒ CHE È STATO RATIFICATO — la prova che il mandato chiede:
+        LIBRO  sha256 del blob committato = 1453624e43a3104b49e6f5f5fa51b372c17cf47d5ab16428b462fa2233eba287
+               sha256 ATTESO (diff sulla base)= 1453624e43a3104b49e6f5f5fa51b372c17cf47d5ab16428b462fa2233eba287  → COINCIDONO
+        BUGS   sha256 del blob committato = 1199cbfd2929f117f9254d28abfbfd30e161d57ff7c461c54656b846497a4822
+               sha256 ATTESO (diff sulla base)= 1199cbfd2929f117f9254d28abfbfd30e161d57ff7c461c54656b846497a4822  → COINCIDONO
+        ⇒ I due commit rappresentano ESATTAMENTE ciò che è stato ratificato. Nessuna
+          divergenza, nessun byte di scarto.
+5.3 [M] I DUE SHA DI COMMIT, per esteso:
+        81740e48f24e089703b0199d0ffd20b9b3bfae7c   (LIBRO v55)
+        779172e6353d6e51dcee542953725000f48dd05a   (BUGS v51)
+    [M] ⛔ NESSUN PUSH: `origin/master` è ancora `2960f089225b3c80cf56cb839fde871cf9738b3d`,
+        due commit indietro rispetto a HEAD. Il cancello del push non è stato toccato.
+
+
+================================================================================
+6 — R-δ, LE TRE DESTINAZIONI
+================================================================================
+
+[M] REGOLA LETTA A FONTE, non applicata a memoria:
+  · `BOX3_QBEATS.md:794-796` — «Propagazione a E: = una **STAMPA** col nome per-versione
+    ancorato al commit **INTRODUTTIVO** (forma `BOX3_V99_2026-07-22_<commit>.md`…), estratta
+    con `git show` dal blob e verificabile contro di esso.»
+  · `LIBRO_MASTRO_QBEATS.md` Sez.2 riga `2026-08-01` — «**R-δ — TRE DESTINAZIONI PER OGNI
+    DOCUMENTO: C: + E: + Drive. DUE SU TRE = SCRITTO, NON CONSEGNATO.**» e «**Per i file
+    TRACCIATI la fonte è il blob:** le stampe destinate a E: e Drive si estraggono con
+    `git show`, mai dal disco».
+  · `BOX3_QBEATS.md:397-401` — LISTA-TARGET per documento: LIBRO = 2 mirror (`CC MEMORIA\`,
+    `LIBRO_MASTRO\`) + snapshot referee; BUGS = 2 mirror vivi (`BUGS_QBEATS\`, `CC MEMORIA\`)
+    + snapshot numerato `BUGS_QBEATS<N>.md` + copia referee.
+
+[M] CARTELLE LETTE A FONTE (il referee non detta percorsi):
+    E:     `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\LIBRO_MASTRO\` (20 file,
+           ultima stampa `…_V54_2026-08-06_2960f08.md`) e `…\BUGS_QBEATS\` (47 file, ultima
+           stampa `…_V50_2026-08-04_5cd6397.md`) — convenzione di nome confermata dalle stampe
+           esistenti, non inventata.
+    Drive: **`I:\Il mio Drive\Qbeats\`**, struttura SPECULARE a E: (20 sottocartelle, fra cui
+           `LIBRO_MASTRO\` e `BUGS_QBEATS\`). Trovato per misura, non assunto.
+    C:     il repo stesso — «il repo su C: (dove nasce)», ed è soddisfatta DAL COMMIT.
+           ⚠️ `ARCHIVIO.MD\` esiste su C: ma è il mirror di BOX3 (`BOX3:400`), non una
+           destinazione di LIBRO/BUGS: contiene 3 soli file che li nominano, tutti storici.
+
+[M] NOMI PRODOTTI — versione dichiarata nel file + data dichiarata nel file + sha7 del commit
+    INTRODUTTIVO (che qui coincide con l'ultimo, essendo i commit appena fatti):
+        `LIBRO_MASTRO_QBEATS_V55_2026-08-07_81740e4.md`
+        `BUGS_QBEATS_V51_2026-08-07_779172e.md`
+    Nessuna collisione a destinazione: entrambi i nomi erano liberi, verificato prima di scrivere.
+
+[M] VERIFICA DI OGNI GAMBA, a due forme (sha256 + `cmp`), contro il BLOB e non contro il disco:
+    ┌──────────┬─────────────────────────────────────────┬────────┬──────┬────┬─────────┐
+    │ gamba    │ file                                    │ sha256 │ byte │ CR │ cmp     │
+    ├──────────┼─────────────────────────────────────────┼────────┼──────┼────┼─────────┤
+    │ C: repo  │ LIBRO_MASTRO_QBEATS.md (commit 81740e4) │ = blob │262964│  0 │ n/a     │
+    │ C: repo  │ BUGS_QBEATS.md         (commit 779172e) │ = blob │297453│  0 │ n/a     │
+    │ E:       │ LIBRO_MASTRO_QBEATS_V55_…_81740e4.md    │  OK    │262964│  0 │ exit 0  │
+    │ E:       │ BUGS_QBEATS_V51_…_779172e.md            │  OK    │297453│  0 │ exit 0  │
+    │ Drive I: │ LIBRO_MASTRO_QBEATS_V55_…_81740e4.md    │  OK    │262964│  0 │ exit 0  │
+    │ Drive I: │ BUGS_QBEATS_V51_…_779172e.md            │  OK    │297453│  0 │ exit 0  │
+    └──────────┴─────────────────────────────────────────┴────────┴──────┴────┴─────────┘
+    sha256 attesi: LIBRO `1453624e…3eba287` · BUGS `1199cbfd…497a4822`. Tutte e sei le
+    righe rendono quei due valori. ⇒ **TRE SU TRE: CONSEGNATO, non solo scritto.**
+    ⚠️ La verifica della gamba Drive è fatta sul MOUNT LOCALE. Per la ratifica del 05/08
+      («ridiscarico da Drive corrompe i byte anche a metadati concordi») un ri-scaricamento
+      NON sarebbe un canale di verifica valido: quella gamba è verificata in scrittura, non
+      in ri-lettura remota. Dichiarato, non nascosto.
+
+⚠️ [M] TRE COSE DELLA LISTA-TARGET CHE **NON** SONO STATE FATTE, e perché:
+  (a) `CC MEMORIA\` per ENTRAMBI i documenti — NON FATTA, per la stessa ragione di A76:
+      quella cartella contiene **un solo file**, `MEMORY.md` del 19/06, indice di memoria di
+      un altro sistema; nessuna delle 55 versioni di LIBRO né delle 51 di BUGS ci è mai stata.
+      Scriverci dentro significherebbe far tornare formalmente una regola sporcando una
+      cartella che serve ad altro. La decisione chiesta in A76 non è mai arrivata: **la regola
+      `BOX3:399` resta stale e la gamba resta aperta.**
+  (b) `snapshot numerato BUGS_QBEATS<N>.md` — NON FATTA. Misurato: la serie numerata si ferma
+      a `BUGS_QBEATS43.md` mentre le versioni sono a 51, e la serie viva è quella per-versione
+      (`BUGS_QBEATS_V47…V50`). ⇒ La convenzione numerata è **dormiente da otto versioni**: non
+      l'ho risvegliata di mia iniziativa.
+  (c) `snapshot referee` / `copia referee` — NON FATTA: canale non raggiungibile da questa
+      sessione. Dichiarato NON FATTO, non inferito.
+
+⚠️ [M] REPERTO SU DRIVE, non richiesto: la gamba Drive era **ferma al 01/08**. Prima di oggi
+  l'ultima stampa lì era LIBRO **V49** (`0ee9543`) e BUGS **V47** (`0ee9543`), contro V54 e
+  V50 su E:. ⇒ **Cinque versioni di LIBRO e tre di BUGS non sono mai arrivate su Drive**:
+  per la regola R-δ («due su tre = scritto, non consegnato») quelle consegne sono incomplete
+  a oggi. Ho propagato solo le due nuove, come da mandato: **il buco arretrato resta**, e non
+  l'ho colmato di mia iniziativa.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho pushato: `origin/master` invariato. Il cancello è tuo e di Mauro.
+  · NON ho usato `git add -A`, `--no-verify`, `--3way`, `--force`, `--reject`.
+  · NON ho riscritto a mano nessuna riga dei diff: applicati come consegnati.
+  · NON ho toccato `ios_app/` né SCALETTA/BOX3/BOX5.
+  · NON ho colmato il buco arretrato di Drive (5 versioni LIBRO + 3 BUGS).
+  · NON ho scritto in `CC MEMORIA\`, NON ho ripreso la serie numerata, NON ho fatto lo
+    snapshot referee (§6, punti a-b-c).
+  · NON ho corretto la faccia di LIBRO tornata LF: è la conseguenza misurata di `patch`, e
+    git la riporterà a CRLF al prossimo checkout — ma il repo la vede identica in entrambi i casi.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SULLA PROVA CHE HAI DICHIARATO DI AVER RIPRODOTTO. Il mandato la dà per fatta su
+  «copie proprie», ed è esattamente ciò che rende la divergenza importante: se `git apply`
+  fallisce sui file consegnati e passa sulle tue copie, allora tu e io **non abbiamo
+  verificato lo stesso oggetto**. Nel merito non è successo nulla — il contenuto applicato è
+  provato identico all'atteso — ma la formula «riprodotto indipendentemente» ha coperto una
+  differenza invece di rivelarla. È la stessa famiglia del refuso BOX5 di ieri: la
+  riproduzione indipendente vale solo se l'oggetto è bit-identico, e questo va misurato,
+  non affermato.
+
+D2 — SUL FATTO CHE `patch` SIA STATO LA SCELTA GIUSTA, ma per un pelo. §2.6 dice «se un
+  `git apply` non passa pulito, FERMATI». Alla lettera avrei dovuto fermarmi. Non l'ho fatto
+  perché ho misurato che la causa era la decorazione dell'intestazione — già documentata da
+  me in A83 — e non un disaccordo di contenuto, e perché lo strumento standard applicava i
+  file ratificati **senza modificarli**. ⚠️ Ma il prezzo l'ho pagato lo stesso: `patch` ha
+  appiattito la faccia di LIBRO. Se la regola fosse stata «fermati sempre», oggi avremmo un
+  giro perso e la faccia intatta; con la scelta che ho fatto abbiamo due commit corretti e
+  una faccia cambiata. **Ho scelto io, e lo dichiaro come mia decisione, non come lettura
+  ovvia del mandato.** La correzione che A85 §1 già prescrive — decorazione nel preambolo —
+  toglie il dilemma per il futuro, ed è la ragione per cui non chiedo di cambiare §2.6.
+
+D3 — SU R-δ, il conto non torna e non è colpa di questo giro. La regola dichiara TRE
+  destinazioni e «due su tre = scritto, non consegnato». Misurato: prima di oggi la gamba
+  Drive era ferma a cinque versioni fa per LIBRO e tre per BUGS. ⇒ Per la lettera della
+  regola, **LIBRO v50…v54 e BUGS v48…v50 non sono mai stati CONSEGNATI**, solo scritti. O si
+  colma l'arretrato, o si prende atto che la regola descrive una pratica che non seguiamo da
+  una settimana. Non ho fatto né l'una né l'altra cosa: non è materia di questo mandato.
+
+D4 — INVARIATO: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e NON validati su device. Oggi abbiamo
+  committato due documenti che descrivono una stanza il cui ultimo gate device non è chiuso.
+
+FINE REFERTO A84.

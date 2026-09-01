@@ -1,0 +1,362 @@
+================================================================================
+MISURE CC - 2026-08-01 - giro M1-M4 richiesto dal referee.
+SOLA LETTURA. Zero scritture sui file misurati. Zero commit.
+================================================================================
+CONVENZIONE - [V] misurato in questa sessione col comando accanto - [R] riportato
+  senza rimisurare - gli output sono GREZZI, prodotti dal comando e rediretti in
+  questo file, NON trascritti a mano. Il file non contiene il proprio sha256:
+  le impronte stanno nel messaggio di consegna.
+
+[V] Orologio macchina all'apertura del giro: 2026-08-01 10:13:46 +0200
+    NOTA: la sessione era stata aperta il 2026-07-31 22:48; la giornata e'
+    cambiata DURANTE la sessione. Le misure di questo file sono del 01/08.
+
+[V] HEAD del repo al momento del giro: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+
+--------------------------------------------------------------------------
+M1 - IDENTITA' COPIA-PROGETTO <-> BLOB
+--------------------------------------------------------------------------
+[V] Comando eseguito VERBATIM come richiesto, dalla radice del repo:
+      for p in BUGS_QBEATS.md SCALETTA_ATOMI_S6.md BOX5_QBEATS.md BOX3_QBEATS.md; do
+        echo "$p -> $(git rev-parse HEAD:$p 2>&1)"; done
+      git rev-parse HEAD
+
+--- OUTPUT GREZZO ---
+BUGS_QBEATS.md -> 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1
+SCALETTA_ATOMI_S6.md -> fatal: path 'SCALETTA_ATOMI_S6.md' does not exist in 'HEAD'
+HEAD:SCALETTA_ATOMI_S6.md
+BOX5_QBEATS.md -> 21b23d621ac224c759b53d813196058483e3b056
+BOX3_QBEATS.md -> 490d6d9b38c355dc53ddc9b31431f9a858f2b342
+
+ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+--- FINE OUTPUT ---
+
+[V] CONFRONTO con gli attesi del referee, calcolati sulle copie del Progetto.
+
+    BUGS_QBEATS.md
+      atteso   5bf4713b90e7d1b1bf1790596a349a73e1ed69e1   256406 byte   1010 righe
+      misurato 5bf4713b90e7d1b1bf1790596a349a73e1ed69e1   256406 byte   1010 righe
+      esito    IDENTICO su tutti e tre i campi.
+
+    BOX5_QBEATS.md
+      atteso   21b23d621ac224c759b53d813196058483e3b056   57158 byte   596 righe
+      misurato 21b23d621ac224c759b53d813196058483e3b056   57158 byte   596 righe
+      esito    IDENTICO su tutti e tre i campi.
+
+    BOX3_QBEATS.md
+      atteso   490d6d9b38c355dc53ddc9b31431f9a858f2b342   89457 byte   803 righe
+      misurato 490d6d9b38c355dc53ddc9b31431f9a858f2b342   89457 byte   803 righe
+      esito    IDENTICO su tutti e tre i campi.
+
+[V] QUARTO PATH - MISURA NON ESEGUITA, FERMATO COME DA ISTRUZIONE.
+    Il path SCALETTA_ATOMI_S6.md NON esiste a HEAD: git rev-parse rende
+    fatal: path ... does not exist in HEAD (output grezzo sopra).
+    Istruzione ricevuta: se un path non corrisponde al nome reale nel repo,
+    NON indovinare, riporta git ls-files filtrato e fermati. Eseguito:
+    NESSUN path sostitutivo e' stato misurato.
+
+    comando: git ls-files | grep -i scaletta
+    --- OUTPUT GREZZO ---
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+    --- FINE OUTPUT ---
+    Unico candidato tracciato: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md, che
+    NON e' dichiarato corrispondente. L'attesa del referee (d4306337...,
+    36070 byte, 337 righe) resta NON CONFRONTATA. Il confronto e' a un solo
+    comando di distanza: serve che il referee dichiari quale path intendeva.
+
+--------------------------------------------------------------------------
+M2 - PERIMETRO REALE DEL REROUTING in BUGS_QBEATS.md, sul blob a HEAD
+--------------------------------------------------------------------------
+[V] comando: git cat-file blob HEAD:BUGS_QBEATS.md | grep -niF 'rerouting'
+--- OUTPUT GREZZO ---
+120:  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+121:  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+125:- **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista una data con la band prima di S6, la priorità del rerouting S6 va rivalutata.
+128:- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Stop Sync utente attivo. Nessun fix applicato — bloccato sul freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+129:- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+999:| 39 | 2026-07-18 | Mauro + CC + referee | **Nuovo ticket §1.1 `TD-qlive-exit-unconfirmed-stop` (doc-only) — uscita-stanza col click attivo = stop non confermato (evento-banda).** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO (conseguenza catastrofica innescabile dal percorso di uscita ORDINARIO). Due metà distinte: PRE-ESISTENTE (oggi Q-Live apre dritta nel metronomo, back `LiveHeaderView.swift:30`→`onExit`→`AppRootView.swift:43,61-68`→stop→`link_engine_stop`; UNA sola porta viva oggi, nessuna RoomSwitchBar ancora in Q-Live, verificato a fonte — la chiude il rerouting S6, non l'overlay) e NUOVA (uscite lista/dettaglio dopo S4b/S5, coperta dall'overlay STOP-con-conferma, opzione (iii) CD, freeze atteso). **CANCEL WaitingForDirector ESCLUSO dai band-stop (ESITO A, verificato a fonte):** `.waitingForDirector` raggiungibile solo con `isPlaying==false` (`TransportView.swift:36,58`), click non gira → `stop()` colpisce la guardia `AudioEngine.swift:1638` = no propagazione; resta solo questione nav R7. Causa `:1638→:1645`, propagazione per-peer condizionata a Start/Stop Sync utente (`ABLLink.h:75-82`). Mitigazione operativa fino a S6: non uscire col click attivo, fermarlo prima. Dipendenza: freeze disegno CD (LIBRO v36), da chiudere prima di S6. Bump header 38→39. Doc-only, nessun fix codice. |
+--- FINE OUTPUT ---
+
+[V] comando: git cat-file blob HEAD:BUGS_QBEATS.md | grep -ciF 'rerouting'
+--- OUTPUT GREZZO ---
+6
+--- FINE OUTPUT ---
+
+[V] controllo positivo - comando: ... | grep -ciF 'ticket'
+--- OUTPUT GREZZO ---
+73
+--- FINE OUTPUT ---
+
+[V] Le righe agganciate sono 120, 121, 125, 128, 129, 999 e il conteggio -c
+    rende 6: le due forme concordano. Il controllo positivo rende 73, > 0.
+
+[V] RIGHE 116-131 DEL BLOB, VERBATIM E NON TRONCATE.
+    comando: git cat-file blob HEAD:BUGS_QBEATS.md | sed -n '116,131p'
+    Nessuna numerazione aggiunta: la prima riga sotto e' la 116.
+--- INIZIO VERBATIM 116-131 ---
+
+### TD-qlive-exit-unconfirmed-stop — Uscita-stanza col click attivo = stop non confermato (evento-banda)
+- **Sintomo:** col click ATTIVO, uscire da `.qLive` verso la Home fa scattare il canonico `AppRootView.swift:61-68` → `audioEngine.stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/Stop Sync attivo sui peer coinvolti, **la band si ferma**. Nessuna conferma richiesta all'utente. È l'uscita ORDINARIA (non un tasto sfiorato per sbaglio) ad avere questo costo nascosto.
+- **Natura — DUE METÀ che si chiudono in modo DIVERSO (non dichiararlo chiuso a metà):**
+  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+  - ⚠️ **MARCATURA v46 — le DUE metà sopra portano lo stesso difetto SPECCHIATO, misurato a HEAD `897d458e0777c2edbce349e4b0001c7c2c50c9b9`. Le righe restano come scritte: si marca, non si riscrive.** `r.120` dice «**attiva OGGI**» e «**oggi la porta viva è UNA sola**» al **presente** dentro un'ancora congelata a `f8276f6`, e le sue due affermazioni fattuali sono **FALSE a HEAD**: la **RoomSwitchBar È montata dentro Q-Live** (`ios_app/QBeats/UI/QLive/QLiveShowsView.swift:70`, costruttore; controllo positivo stessa forma `ios_app/QBeats/UI/QStage/ShowsListView.swift:82` per Q-Stage, 2 costruttori in tutto) e **`QLiveRootView` rende `QLiveShowsView`** (`ios_app/QBeats/UI/QLive/QLiveRootView.swift:61`), **non** `LiveRootView`→`LiveView` diretto. `r.121` dice «**non ancora spedita**» di ⟦S4b⟧, che **È spedito** — commit `6ded4ab`, gate device 20/07, inciso in `LIBRO_MASTRO_QBEATS.md:290`. ⛔ **LA SEVERITÀ NON CAMBIA**, e va detto qui esplicitamente perché il prossimo lettore non la riapra: **a HEAD il runner non nasce mai** — un solo sito di nascita (`= SetlistRunner(` → **1**, `ios_app/QBeats/UI/LiveRootView.swift:12`), `LiveRootView` a **ZERO call-site** (⚠️ il grep grezzo di `LiveRootView(` rende **1**, ma è `QLiveRootView(` ad `AppRootView.swift:51` — **sottostringa**; filtrato → **0**; controllo positivo stessa forma `QLiveShowsView(` → **1**), `LiveView` irraggiungibile di conseguenza (`LiveRootView.swift:18`), e funnel `navigate(to:)` a **ZERO chiamanti** (2 righe = **1 commento** a `:14` + **1 definizione** a `:54`; `page = ` compare **1** volta, a `:55`, dentro il funnel stesso). **Il pericolo non morde ancora.** ⚠️ Misurata la **struttura di montaggio**, non ogni percorso a runtime: il ramo `#if DEBUG` di `HomeRootView` non è stato misurato.
+  - **CANCEL di `WaitingForDirectorView` — nel percorso ORDINARIO non è una porta di band-stop, ma con una CLAUSOLA-LIMITE precisa (verificato a fonte 18/07, rafforzato 19/07 — `VERIFICA_V-ISP_2026-07-19`, sha `9918c379…0350aa`; ESITO A):** `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector` (`LiveView.swift:165-166`); quello stato è assegnato SOLO a `TransportView.swift:58`, raggiungibile SOLO nel ramo `else if` di `if audioEngine.isPlaying` (`TransportView.swift:36`) → cioè SOLO con `isPlaying == false`; l'ingresso in waiting (`:58`) NON avvia l'audio. **Il ponte della prova NON è `isPlaying ⟹ isRunning`** — sono campi DISTINTI (`AudioEngine.swift:56` `@Published`/main vs `:273` `private`/audioQueue) e la loro sincronia è FALSIFICATA: `handleAppWakeUp` (`:3053` `guard self.isPlaying, !self.isRunning`) esiste APPOSTA per lo stato discorde `isPlaying==true && isRunning==false`. **Il ponte reale è «nessuno `start()` ha girato mentre la view è montata»**: `isRunning` diventa true SOLO in `start()` (`:886`, audioQueue), e le uscite che avviano l'audio (Director→`runner.startSetlist`; START LOCAL `LiveView.swift:172`) transitano a `.playing` smontando la view. Per il percorso ORDINARIO il ponte regge → il CANCEL→`onExit()`→`stop()` colpisce `guard self.isRunning` (`:1638`, `isRunning==false`) e ritorna PRIMA di `:1645` = nessuno stop propagato. **CLAUSOLA-LIMITE (ex-parentetico «boundary sub-frame», PROMOSSA da nota a confine del claim):** il ponte ha UN buco REALE, non teorico — `LiveView.swift:406-407` (observer `linkStartedSubject`) NON ha guard su `.waitingForDirector` (guarda solo `!= .playing`) → quando il Direttore preme Play, il Follower fa `start()` → `isRunning=true` (`:886`) MENTRE `session.playbackState` è ANCORA `.waitingForDirector` (lo smontaggio arriva dopo gli hop su main) → WaitingForDirectorView ancora montata, CANCEL ancora vivo, guard `:1638` PASSA → `:1645` propaga (con Start/Stop Sync attivo). Percorso a bassa probabilità, NON nullo, e di durata NON MISURATA: la finestra non è la sola latenza di dispatch, va da `:886` fino all'esecuzione della closure main `:1024-1025` — quindi include tutto il resto di `start()` su audioQueue (midi_engine_*, link_engine_*, metronome_*, scheduleNextBuffer, os_log, UserDefaults) — e lo smontaggio della view arriva ancora dopo (observer `:254` → session=.playing). Nessuna misura a runtime esiste (nessun Xcode lato CC) — quindi NON «impossibile per costruzione». La sola altra questione aperta sul CANCEL è la sua DESTINAZIONE di navigazione (R7, domanda CD). **Collegamento:** se `TD-follower-stop-propaga` (§1.2) viene risolto — lo stop del Follower reso locale — questo buco si chiude ALLA RADICE, senza toccare il CANCEL né la transizione waiting→playing.
+- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata e lo stop propaga ai Follower. Propagazione = per-peer, condizionata a Start/Stop Sync ATTIVO nelle impostazioni Link dell'utente sui device coinvolti (`ABLLink.h:75-82`, «only controllable by the user via the Link settings dialog»); `project.yml:19 ABLLinkStartStopSyncSupported: true` PERMETTE l'attivazione, non la impone (BOX3 V97 (b)).
+- **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista una data con la band prima di S6, la priorità del rerouting S6 va rivalutata.
+- **Dipendenza:** decisione CD (iii) ratificata 18/07 (LIBRO v36) — direzione FERMA, **freeze del disegno ATTESO da CD**, deve coprire ENTRAMBE le uscite (Home + Switch) e tutti i contesti di sfondo. **Nessuna implementazione prima del freeze.** Da chiudere PRIMA di S6.
+- **Fuori scope, registrato non implementato (NOTA referee 18/07, per quando arriva il freeze):** l'overlay richiederà peer-count + stato Start/Stop Sync = **dati L2**; §6 è dichiarato RT-neutro → la deroga va DICHIARATA esplicitamente nel disegno S6, non scoperta in corsa. Ruling referee (a CD 18/07): l'apparato d'allarme ambra può COMPARIRE in diretta se le condizioni diventano vere, ma NON deve SPARIRE finché il modale è aperto (il conteggio peer non è affidabile finché **TD#17** resta OPEN — un avviso agganciato a quel dato lampeggerebbe nel momento peggiore; aggiungere un avviso è sempre sicuro, toglierlo fa premere il tasto rosso convinti che non faccia male). Supersede la richiesta CD di ricalcolo live simmetrico.
+- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Stop Sync utente attivo. Nessun fix applicato — bloccato sul freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+
+### TD-injecttestdata-sovrascrive-dati-reali — I dati di test possono finire su disco al posto di quelli veri (🔴 OPEN ALTA / perdita-dati innescabile a due tocchi)
+--- FINE VERBATIM 116-131 ---
+
+--------------------------------------------------------------------------
+M3 - BUGS:120, VERIFICA A FONTE DELL'ATTRIBUZIONE
+--------------------------------------------------------------------------
+[V] Il path NON e' stato ricostruito: risolto con git ls-files.
+    comando: git ls-files | grep -i 'AppRootView'
+    --- OUTPUT GREZZO ---
+ios_app/QBeats/UI/AppRootView.swift
+    --- FINE OUTPUT ---
+
+[V] comando: git cat-file blob HEAD:ios_app/QBeats/UI/AppRootView.swift | sed -n '38,75p'
+--- INIZIO VERBATIM 38-75, senza numerazione aggiunta ---
+                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+                    // lo stop vive al bordo-stanza, non sulla navigazione.
+                    QStageRootView(onExit: { screen = .home },
+                                   onSwitchToLive: { screen = .qLive })
+                        .environmentObject(audioEngine)
+                case .qLive:
+                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+                    // onExit e lo inoltra alla gerarchia Q-Live; le closure
+                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+                    // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+                    QLiveRootView(onExit: { screen = .home },
+                                  onSwitchToStage: { screen = .qStage })
+                        .environmentObject(audioEngine)
+                }
+            }
+        }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+        .onChange(of: scenePhase) { newPhase in
+            UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+        }
+        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+        // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+        // (non-deterministico su view riusata/cachata; il vecchio
+        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+        .onChange(of: screen) { newScreen in
+            if newScreen == .qLive {
+                audioEngine.triggerDNDReminderIfNeeded()
+            } else if previousScreen == .qLive {
+                audioEngine.stop()
+            }
+--- FINE VERBATIM 38-75 ---
+
+[V] Stesso file, righe 38-79 con la numerazione REALE, per le dichiarazioni:
+--- INIZIO 38-79 NUMERATO ---
+    38	                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
+    39	                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
+    40	                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
+    41	                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
+    42	                    // lo stop vive al bordo-stanza, non sulla navigazione.
+    43	                    QStageRootView(onExit: { screen = .home },
+    44	                                   onSwitchToLive: { screen = .qLive })
+    45	                        .environmentObject(audioEngine)
+    46	                case .qLive:
+    47	                    // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+    48	                    // onExit e lo inoltra alla gerarchia Q-Live; le closure
+    49	                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+    50	                    // (E2, `Screen` private enum). `.qStage` ESPLICITO, non un toggle.
+    51	                    QLiveRootView(onExit: { screen = .home },
+    52	                                  onSwitchToStage: { screen = .qStage })
+    53	                        .environmentObject(audioEngine)
+    54	                }
+    55	            }
+    56	        }
+    57	        .onAppear {
+    58	            UIApplication.shared.isIdleTimerDisabled = true
+    59	        }
+    60	        .onChange(of: scenePhase) { newPhase in
+    61	            UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+    62	        }
+    63	        // Nodo A — stop-audio CANONICO su transizione + DND all'ingresso Q-Live.
+    64	        // Al PUNTO-DI-MUTAZIONE dell'enum, DETERMINISTICO — NON `.onDisappear`
+    65	        // (non-deterministico su view riusata/cachata; il vecchio
+    66	        // `LiveView.onDisappear{stop()}` è stato RIMOSSO — E1). iOS 16: `onChange`
+    67	        // dà solo il valore NUOVO → `previousScreen` fornisce il precedente.
+    68	        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+    69	        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+    70	        .onChange(of: screen) { newScreen in
+    71	            if newScreen == .qLive {
+    72	                audioEngine.triggerDNDReminderIfNeeded()
+    73	            } else if previousScreen == .qLive {
+    74	                audioEngine.stop()
+    75	            }
+    76	            previousScreen = newScreen
+    77	        }
+    78	    }
+    79	}
+--- FINE 38-79 NUMERATO ---
+
+[V] Occorrenze nel file INTERO.
+    comando: ... | grep -nF 'screen = .home'
+--- OUTPUT GREZZO ---
+37:                    // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
+43:                    QStageRootView(onExit: { screen = .home },
+49:                    // `{ screen = .home }` / `{ screen = .qStage }` vivono SOLO qui
+51:                    QLiveRootView(onExit: { screen = .home },
+--- FINE OUTPUT ---
+    comando: ... | grep -nF 'audioEngine.stop()'
+--- OUTPUT GREZZO ---
+74:                audioEngine.stop()
+--- FINE OUTPUT ---
+    righe totali del blob: 79
+
+[V] LE TRE DICHIARAZIONI RICHIESTE - numero di riga + testo, nessuna parafrasi.
+
+  (1) screen = .home per Q-STAGE: riga 43.
+      testo: QStageRootView(onExit: { screen = .home },
+      la 44 completa la chiamata: onSwitchToLive: { screen = .qLive })
+      menzione in commento a riga 37.
+
+  (2) screen = .home per Q-LIVE: riga 51.
+      testo: QLiveRootView(onExit: { screen = .home },
+      la 52 completa la chiamata: onSwitchToStage: { screen = .qStage })
+      menzione in commento a riga 49.
+
+  (3) IL CANONICO STOP NON STA A :61-68 a HEAD. Misure:
+      - riga 61: UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)
+        ed e' DENTRO .onChange(of: scenePhase), che apre a 60 e chiude a 62.
+      - righe 63-69: blocco di COMMENTO, sette righe, nessun codice eseguibile.
+      - l'handler dello stop e' .onChange(of: screen), apre a riga 70 e chiude
+        a riga 77; audioEngine.stop() sta a riga 74 ed e' l'UNICA occorrenza
+        nel file, come mostra il grep sopra.
+      - riga 70: .onChange(of: screen) { newScreen in
+      - riga 74: audioEngine.stop()
+
+[V] NESSUNA CONCLUSIONE TRATTA DA CC SU M3, come da istruzione: sopra ci sono
+    solo numeri di riga e testo. Il confronto con cio' che BUGS r.117 e r.120
+    citano e' lasciato al referee.
+
+--------------------------------------------------------------------------
+M4 - VOCI 25 E 26 DEL REGISTRO LIBRO
+--------------------------------------------------------------------------
+[V] comando: git cat-file blob HEAD:LIBRO_MASTRO_QBEATS.md | grep -nE '^\| *2[4-7] \| 20'
+--- OUTPUT GREZZO ---
+459:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisione di prodotto* (Mauro 28/06) — app portrait-only su tutti i device, landscape=v2. *(Il mezzo su iPad — config `~ipad`/`UIRequiresFullScreen` — è implementazione CC, fuori dalla ratifica.)* iPhone già solo-portrait (`Info.plist:20`); iPad da bloccare via config (chiave `~ipad` mancante → `BUGS_QBEATS.md` v22 §1.2 `TD-ipad-home`). Promuove una direzione finora solo in archivi (BOX5 V22-V24 + HANDOFF 25/06), mai cross-team. Header bump 23→24. **Single-purpose** (solo LIBRO). Doc-only, nessun fix codice. |
+460:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag SHOWS = HYBRID (09/07, 5 condizioni; fixture nuova family Setlist-hybrid, distinta da A5b/Song); (B) Navigazione Q-Live §6 = freeze CD + Nodo A (10/07; 4 condizioni + gate device A/B/C; piano `HANDOFF/NODO_A_PIANO_2026-07-10.md` ratifica-piena referee sha `77d081f6…`; DND neutro → mini-TD). Header 26→27. ⚠️ **Buco storico pre-esistente:** righe changelog v25/v26 mancanti da questa Sez.6 (header era già a v26); NON backfillate a memoria (verify-at-source) → tracciate come debito nel mini-TD `LIBRO-sez6-buco-v25-v26` (BUGS §1.3). Doc-only. |
+--- FINE OUTPUT, exit 0 ---
+
+[V] comando: git log --oneline --follow -- LIBRO_MASTRO_QBEATS.md | head -40
+--- OUTPUT GREZZO ---
+ddd5716 LIBRO v48: S6F istituito per la fascia Q-LIVE PLAYING, collocato dopo S5 (doc-only)
+8822598 LIBRO v47: rettifica della distanza d'uso, S4R chiuso, due buchi dichiarati
+40f099b LIBRO v46: Sez.2 +4 righe (doc-only, zero codice) - gate S4R ri-dichiarato, atomo nuovo S-EXIT, tre clausole di scrittura, ordine atomi emendato con S4L sospeso
+3164564 LIBRO v45: colonna data di Sez.2 e registro = INDIRIZZO non data - 2 regole ratificate, zero righe storiche corrette
+4d1f974 LIBRO v44: giornate 29-30/07 - S4K e DARK-DECL chiusi device, identita Apple, fatto commerciale, 2 regole di processo, artefatti fuori dal controllo di versione
+c3caa58 LIBRO v43 — ratifica sdoppiamento S4L in tre atomi
+8926c2a LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+131a511 LIBRO_MASTRO_QBEATS.md: v40 - condizione di chiusura TD#17 agli atti + rettifica della premessa SCALETTA nella riga 2026-07-21
+9784294 LIBRO_MASTRO_QBEATS.md: v39 — regime canonici BOX3/BOX5 ratificato (Sez.2) + Sez.5 senza puntatore per-versione
+c288e86 LIBRO_MASTRO_QBEATS.md: v38 — 6 righe cross-team 20/07 + R-beta/R-gamma
+a61647b LIBRO_MASTRO_QBEATS.md: v37 — Sez.2 +1 riga cross-team «Follower gregario» (Mauro, ratificata referee) + sanata la descrizione Sez.5 (doc-only)
+2d36784 LIBRO_MASTRO v36 — Sez.2 +5 righe cross-team 18/07 (nav≠transport, runner-sale, uscita-stanza, CTA, allarme asimmetrico) + Sez.5 HEAD f8276f6 + changelog v35 ricostruito
+ed5425c Verbale NODO A CHIUSO: LIBRO v35 + piano (E2, ESITO)
+872dd5b LIBRO_MASTRO_QBEATS.md: v34 — S3 CHIUSO (primo atomo §6 device-validato, gate 4 tocchi PASS) + Sez.1 gh CLI disponibile + Sez.5 HEAD c77d69f
+ff3f25e LIBRO_MASTRO_QBEATS.md: v33 — Sez.2 debito scaleFactor nav (cross-team CD) + Sez.5 HEAD 9cc3d17
+9cc3d17 LIBRO_MASTRO_QBEATS.md: v32 — R8 working-directory/worktree + Sez.5 HEAD pre-doc-commit
+e9d7754 LIBRO v31: R7 anti-cascata + Sez.5 HEAD pre-doc-commit (fix strutturale)
+04df53a LIBRO v30: ratifiche CD Q7/Q9-Q16 (nav Q-Stage Shows) + pulizia sha incisi
+cd02280 docs(nodo-a): E1 — N1b rimuove LiveView:187 .onDisappear{stop()} + 2 marcatori piano; LIBRO v29 (sha vivo 18cf6264, storico 77d081f6)
+42c2bce docs(libro): v28 — S1/S2F + 2 domande aperte CD (CD-Q7, CD-Q8)
+82d743e LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello tag) + §6 nav (Nodo A) + famiglia swallow (TD-persist-silent-fail)
+0dc2189 LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onesto); motore A2-A7 sbloccato
+8ca04a4 LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio Link role-gated (ratifica Mauro 01/07)
+2b5cdd3 LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only
+6758aea LIBRO_MASTRO_QBEATS.md: v23 — Media = Tracks + Video (sez.1 naming + sez.2 decisione 26/06: Song base+video sincronizzati, v1 solo Tracks, Video Fase 7); doc-only
+3f57358 LIBRO_MASTRO_QBEATS.md: v22 — risoluzione bandiere modello dati CD (backtrack una/Song, MIDI globale non per-Song, Q-Studio parcheggiato, No-Standby); doc-only, nessun cambio modello
+0aa8990 LIBRO_MASTRO_QBEATS.md: v20+v21 proposta→RATIFICATA (26/06); status only, no bump; doc-only
+2d9caf8 LIBRO_MASTRO_QBEATS.md: v21 - Schema 3 container UI (Q-Studio) + rename tecnico Studio->QStage (sez.1 mappa nomi + sez.2 ratifica); doc-only
+a001d0a LIBRO_MASTRO_QBEATS.md: v20 - Modello operativo a 4 ruoli (consolida+supersede Q6=A + Gerarchia 3 ruoli 20/05); doc-only
+6f7f11f LIBRO_MASTRO_QBEATS.md: v19 — Rete peer: single-band = configurazione supportata + reti pubbliche/non personali fuori scope + qualifica «pulito»=statico (sez. 2); doc-only
+84f9dc4 LIBRO_MASTRO_QBEATS.md: v18 - TD#17 root cause router-specifico + raccomandazione rete palco single-band + Soluzione C fix definitivo (ratificata 22/06)
+97386dd LIBRO_MASTRO_QBEATS.md: v17 — ridisegno modalita collaborativa (default Standalone, CD-7, CD-Q6) + caveat chiusura Bug 2.b (faccia visiva aperta)
+3af4c97 LIBRO_MASTRO_QBEATS.md: v16 — Bug 2.b (Ferita A+B) chiuso, merge ee0cbc0; CD-Q5 END SHOW; HEAD ff530b7->ee0cbc0
+bbdd06a LIBRO_MASTRO_QBEATS.md: v15 — chiusure Fase 6-7 (Problema B/Bug 5/Bug 5-BPM/1.j/CD-6/badge HEAD) + apertura Fase 6-7-bis + caveat CANCEL→Bivio
+c7fc44d LIBRO_MASTRO_QBEATS.md: v14 — risposte CD a CD-Q1...Q4 (counter + badge HEAD / Vista WAITING FOR DIRECTOR + CD-6 / switch secco / ratifica Problema A)
+944f01f LIBRO_MASTRO_QBEATS.md: v13 — 3 chiusure cross-team + Bug 2 UX + 4 domande CD
+e582970 LIBRO_MASTRO_QBEATS.md: v12 — R1 aggiornata con riferimento memorie workspace
+4acb741 rename STATO_QBEATS.md → LIBRO_MASTRO_QBEATS.md (v11) + cascading
+c20f9d9 STATO_QBEATS.md: v10 — fix display Peers validato device + scope iOS-only confermato
+--- FINE OUTPUT ---
+
+[V] STESSO GREP SU CINQUE REV CANDIDATE, ciascuna con DUE controlli
+    indipendenti - righe di registro totali, e una seconda forma che non
+    richiede la data - per non scambiare un vuoto-da-notazione per un
+    vuoto-di-fatto. Le righe lunghe sono tagliate a 120 caratteri per
+    leggibilita': il taglio e' dichiarato, non silenzioso.
+--- OUTPUT GREZZO ---
+----- rev 2b5cdd3 : 2b5cdd3 LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only
+  [grep -nE '^| *2[4-7] | 20']
+362:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisi
+  [controllo positivo, righe di registro totali] 24
+  [seconda forma, righe che aprono con | 25 | o | 26 |] 0
+----- rev 8ca04a4 : 8ca04a4 LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio Link role-gated (ratifica Mauro 01/07)
+  [grep -nE '^| *2[4-7] | 20']
+363:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisi
+  [controllo positivo, righe di registro totali] 24
+  [seconda forma, righe che aprono con | 25 | o | 26 |] 0
+----- rev 0dc2189 : 0dc2189 LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onesto); motore A2-A7 sbloccato
+  [grep -nE '^| *2[4-7] | 20']
+364:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisi
+  [controllo positivo, righe di registro totali] 24
+  [seconda forma, righe che aprono con | 25 | o | 26 |] 0
+----- rev 82d743e : 82d743e LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello tag) + §6 nav (Nodo A) + famiglia swallow (TD-persist-silent-fail)
+  [grep -nE '^| *2[4-7] | 20']
+366:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisi
+367:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag SHOWS = H
+  [controllo positivo, righe di registro totali] 25
+  [seconda forma, righe che aprono con | 25 | o | 26 |] 0
+----- rev 42c2bce : 42c2bce docs(libro): v28 — S1/S2F + 2 domande aperte CD (CD-Q7, CD-Q8)
+  [grep -nE '^| *2[4-7] | 20']
+378:| 24 | 2026-06-28 | CC chat principale 28/06 | **Orientamento portrait-only promosso al LIBRO (sez. 2):** +1 *decisi
+379:| 27 | 2026-07-10 | Mauro + CC + referee | **Doc-commit ratifiche pivot SHOWS (sez. 2 +2 righe):** (A) tag SHOWS = H
+  [controllo positivo, righe di registro totali] 26
+  [seconda forma, righe che aprono con | 25 | o | 26 |] 0
+--- FINE OUTPUT ---
+
+[V] NESSUNA CONCLUSIONE TRATTA DA CC SU M4, come da istruzione. Solo numeri:
+    a HEAD il grep rende DUE righe, voce 24 a riga 459 e voce 27 a riga 460.
+    Sulle cinque rev candidate la seconda forma rende 0 su tutte e cinque,
+    mentre il controllo positivo rende 24, 24, 24, 25, 26 rispettivamente:
+    il registro esiste e cresce in tutte e cinque. Interpretazione: al referee.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Il quarto canonico di M1, la SCALETTA: fermato per path inesistente.
+[V] Non ho letto BUGS, LIBRO, BOX3, BOX5 per intero: solo gli intervalli e i
+    pattern citati sopra.
+[V] Nessuna misura su device. Nessuna run CI interrogata in questo giro.
+[V] Non ho verificato le copie del Progetto Claude. Ho misurato i blob del
+    repo: l'identita' di M1 vale fra il blob a HEAD e i valori CHE IL REFEREE
+    MI HA PASSATO. Le copie del Progetto non le ho lette io.
+[R] Le righe 116-131 di BUGS citano al loro interno file:riga di altri file
+    (LiveHeaderView, AudioEngine, TransportView, LiveView e altri): in questo
+    giro NON sono stati riverificati, salvo AppRootView in M3.
+
+================================================================================
+FINE REFERTO M1-M4.
+================================================================================

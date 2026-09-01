@@ -1,0 +1,330 @@
+================================================================================
+REFERTO CC — ID ESEGUITO: QB-2026-08-02-A1-ORDINE-CANONICI
+================================================================================
+Data di esecuzione: 2026-08-02. L'ID NON è stato corretto: il calendario NON è
+girato, la data nell'ID coincide con la data di esecuzione.
+Serie «A» (nuova sessione referee), non collide con P1–P21 del 02/08.
+
+RUOLO ESEGUITO: SOLA MISURA. Zero edit ai canonici, zero staging, zero commit,
+zero push, zero diff, zero proposte di riparazione. L'unica scrittura di questo
+giro è QUESTO referto e le sue due copie di propagazione.
+
+MARCATURA: [V] = misurata da me in questo turno, a fonte, su HEAD.
+           [R] = riferita da altri, con la fonte nominata.
+⛔ Nessun path, commit, sha o numero di riga a memoria.
+
+AMBIENTE DELLE MISURE: tutte le misure di contenuto sono state fatte sui BLOB
+estratti da HEAD con `git cat-file -p` (faccia LF), NON sui file su disco
+(faccia CRLF) e NON su copie nel Progetto. Lo script di misura è stato eseguito
+con PYTHONIOENCODING=utf-8: la console Windows cp1252 uccide lo script sul primo
+carattere non-latin1 (⟦, ⛔) e il crash si legge male come «misura che non torna».
+
+================================================================================
+M0 — CONTEGGIO UNTRACKED, PRESO PRIMA DI SCRIVERE QUESTO REFERTO  [V]
+================================================================================
+porcelain totale          121   -> untracked 121, tracciati modificati 0
+untracked in HANDOFF/     117
+forma 2 (indipendente):   file in HANDOFF/ = 121, meno tracciati 4 = 117  ✅ concordi
+staging                   VUOTO (0 file)
+stash                     0
+
+⚠️ CON QUESTO REFERTO DIVENTANO 122 e 118. Chi conta dopo aver depositato conta
+   anche sé stesso.
+
+================================================================================
+M1 — REMOTO (interrogato) e HEAD  [V]
+================================================================================
+git ls-remote origin master   c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e refs/heads/master
+git rev-parse HEAD            c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e
+=> ALLINEATI. Il valore del remoto è stato INTERROGATO, non letto da output locale.
+
+================================================================================
+M2 — I CINQUE CANONICI A HEAD: OID BLOB + BYTE  [V]
+================================================================================
+documento   OID blob                                   byte     atteso dal referee
+LIBRO       06caa750d93130d0ff189b5eeaac15f2fd7d712a   240691   COINCIDE ✅
+BUGS        c896f919b1ba93437eff56eee3ab592136203337   272339   COINCIDE ✅
+BOX3        490d6d9b38c355dc53ddc9b31431f9a858f2b342    89457   COINCIDE ✅
+BOX5        21b23d621ac224c759b53d813196058483e3b056    57158   COINCIDE ✅
+SCALETTA    4bacc529e75dc06f5fcefb4d4c80343da305149e    37691   COINCIDE ✅
+
+=> TUTTE E CINQUE COINCIDONO con quelle calcolate dal referee con git hash-object
+   sulle copie nel Progetto. NESSUNO STOP. Le misure sotto poggiano su terreno
+   verificato, e le copie nel Progetto sono byte-identiche a HEAD.
+
+Percorso del quinto canonico, per esteso, perché il nome è una trappola nota:
+   HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+   ⚠️ NON esiste alcun file di nome «SCALETTA_QBEATS.md».
+
+================================================================================
+M3 — SEZ.C DELLA SCALETTA A HEAD: LA RIGA D'ORDINE, VERBATIM INTEGRALE  [V]
+================================================================================
+Sede: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md, riga 316 @ c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e
+Lunghezza della riga: 541 caratteri. Riportata INTEGRALE, non i primi 200.
+(L'intestazione di sez.C sta a riga 315; l'altra riga che nomina una sez.C è la 125.)
+
+>>> INIZIO VERBATIM — SCALETTA riga 316 >>>
+**PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST:** S4 → **S4K** → **S4R** → **S4L** → S5 → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco è **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧.
+<<< FINE VERBATIM — SCALETTA riga 316 <<<
+
+CONFERMA DEL CONTESTO DEL REFEREE, punto per punto:
+ (a) [V] CONFERMATO — la sez.C a HEAD porta ancora l'ordine
+     S4 → S4K → S4R → S4L → S5 → S6, cioè quello PRE-emendamento del 31/07.
+ (b) [V] CONFERMATO — la riga NON nomina ⟦S-EXIT⟧ (vedi M4: zero in tutto il file).
+ (c) [V] CONFERMATO — la sez.C NON è stata emendata, benché LIBRO:329 prescriva
+     che «si emenda con ratifica».
+
+⚠️ SCARTO DI NUMERAZIONE, DICHIARATO E NON UN ERRORE  [V]
+   Il referee la indica a riga 316: a HEAD è ESATTAMENTE 316. ✅
+   LIBRO:329 la indirizza invece come «:314 @ e61efd0e9bc2f9174b755e5a25e02a611c795cea».
+   Verificato al commit citato: a e61efd0e la riga 314 È la riga d'ordine (e la 316
+   è tutt'altro: «## D · Risposte referee alle 8 domande»). => l'indirizzo storico
+   del LIBRO è CORRETTO alla sua data; a HEAD la stessa riga è slittata a 316 (+2).
+
+================================================================================
+M4 — CENSIMENTO SUI CINQUE CANONICI A HEAD — NUMERI, NON CONCLUSIONI  [V]
+================================================================================
+(a) «S-EXIT» provando OGNI separatore, non il solo ASCII.
+    Forme provate: ASCII U+002D · U+2010 HYPHEN · U+2011 NON-BREAKING HYPHEN ·
+    U+2012 FIGURE DASH · U+2013 EN DASH · U+2014 EM DASH · U+2015 HORIZONTAL BAR ·
+    (extra, aggiunto da me e dichiarato) U+2212 MINUS SIGN.
+
+doc        002D  2010  2011  2012  2013  2014  2015  2212   TOTALE
+LIBRO        12     0     0     0     0     0     0     0       12
+BUGS          0     0     0     0     0     0     0     0        0
+BOX3          0     0     0     0     0     0     0     0        0
+BOX5          0     0     0     0     0     0     0     0        0
+SCALETTA      0     0     0     0     0     0     0     0        0
+
+    Controprove nella stessa forma, per escludere che lo zero sia da separatore:
+      «SEXIT» (nessun separatore):  LIBRO 0 · BUGS 0 · BOX3 0 · BOX5 0 · SCALETTA 0
+      «S EXIT» (spazio):            LIBRO 0 · BUGS 0 · BOX3 0 · BOX5 0 · SCALETTA 0
+      case-insensitive, ogni dash:  LIBRO 12 · BUGS 0 · BOX3 0 · BOX5 0 · SCALETTA 0
+
+(b) «S4R», case-sensitive:
+      LIBRO 25 · BUGS 10 · BOX3 0 · BOX5 0 · SCALETTA 26
+
+(c) CONTROLLO POSITIVO, per ciascun file, NELLA STESSA FORMA (stesso conteggio di
+    sottostringa sullo stesso blob). Serve a provare che lo zero non è un guasto
+    del metodo:
+      LIBRO     «LIBRO_MASTRO_QBEATS» = 21 · S4=135 · S4K=17 · S4L=58 · S5=43 · S6=41
+      BUGS      «BUGS_QBEATS» = 3     · S4=46  · S4K=11 · S4L=9  · S5=14 · S6=20
+      BOX3      «BOX3» = 39           · S4=71  · S4K=0  · S4L=20 · S5=21 · S6=16
+      BOX5      «QL-SHOWS» = 23, «Q-Live» = 23, «QL-SHOWS-06» = 3
+                ⚠️ BOX5: S4=0 · S4K=0 · S4L=0 · S5=0 · S6=0. BOX5 NON nomina
+                   affatto gli atomi §6 — lo zero su S-EXIT e su S4R lì è
+                   coerente con un documento che non parla di atomi, e per
+                   questo il suo controllo positivo NON è una sigla di atomo.
+      SCALETTA  «Scaletta atomi» = 1  · S4=94  · S4K=11 · S4L=29 · S5=14 · S6=7
+
+    => Il metodo trova le sigle dove ci sono (fino a 135 occorrenze). Gli zeri
+       sopra sono zeri VERI, non falsi-zero da filtro.
+
+(d) CONFERMA DEL CONTESTO DEL REFEREE:
+      [V] CONFERMATO — «S-EXIT» rende ZERO nella SCALETTA (in ogni forma provata).
+      [V] CONFERMATO — «S4R» rende ZERO in BOX3 (in ogni forma provata).
+      [V] MISURA AGGIUNTIVA, non richiesta ma pertinente: «S-EXIT» rende ZERO
+          anche in BUGS_QBEATS.md. L'atomo esiste in UN SOLO canonico su cinque.
+
+================================================================================
+M5 — OGNI SEDE IN CUI È SCRITTA UNA SEQUENZA DI ATOMI §6  [V]
+================================================================================
+Metodo: ricerca di catene «ATOMO (freccia) ATOMO [(freccia) ATOMO …]» su tutti e
+cinque i blob a HEAD. Frecce accettate: → (U+2192), -> , ⇒ (U+21D2), ⟶ (U+27F6).
+Atomi accettati: S4, S4K, S4R, S4L, S5, S6, S-EXIT (con e senza ⟦⟧, con e senza
+grassetto e spunte ✅, con ogni forma di trattino).
+
+RISULTATO NUMERICO: 13 righe portano almeno una catena, per 19 catene totali,
+distribuite su TRE documenti su cinque.
+   LIBRO     5 righe (282, 317, 329, 477, 486) — 10 catene
+   BOX3      5 righe (60, 151, 212, 647, 662)  —  5 catene
+   SCALETTA  3 righe (157, 163, 316)           —  4 catene
+   BUGS      0 righe
+   BOX5      0 righe
+
+ELENCO COMPLETO — documento, riga, lunghezza della riga, catena estratta:
+
+  LIBRO    riga 282   1642 car.   S4→S4L
+  LIBRO    riga 317   3060 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧
+                                  S4→S4L
+                                  S4** → S4L → S5 → S6
+  LIBRO    riga 329   3986 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧
+                                  S4 → S4K → S4R → S4L → S5 → S6
+                                  S4 ✅ → ⟦S4K⟧ ✅ → ⟦S4R⟧ → ⟦S5⟧ → ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧
+  LIBRO    riga 477    816 car.   S4→S4L
+  LIBRO    riga 486   1525 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧
+                                  ⟦S4K⟧→⟦S4L⟧
+  BOX3     riga  60    218 car.   S4→S4L
+  BOX3     riga 151     86 car.   S4→S4L
+  BOX3     riga 212     76 car.   S4→S4L
+  BOX3     riga 647     74 car.   S4** → S4L → S5 → S6
+  BOX3     riga 662     73 car.   S4→S4L
+  SCALETTA riga 157     95 car.   S4K → S4R → S4L
+  SCALETTA riga 163     47 car.   ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧
+  SCALETTA riga 316    541 car.   S4 → **S4K** → **S4R** → **S4L** → S5 → **S6
+                                  S4K → S4R → S4L
+
+RILIEVO DI FATTO, non conclusione: l'ordine emendato del 31/07 — quello che
+include ⟦S5⟧ prima di ⟦S4L⟧ e ⟦S-EXIT⟧ fra i due — compare in UNA SOLA delle 19
+catene, alla riga LIBRO 329. Le altre 18 portano forme anteriori.
+
+VERBATIM DELLE RIGHE BREVI (≤ 900 caratteri), INTEGRALI:
+
+  >>> BOX3 riga 60 (218 car.) >>>
+ · §13 PROSSIMI STEP: S3/gate rimossi (fatto). S5 tecnicamente sbloccato ma resta dietro Nodo A→S4→S4L nell'ordine SCALETTA sez.C — non è il prossimo atomo. Nodo A resta il prossimo atomo reale, prerequisiti invariati.
+  <<<
+
+  >>> BOX3 riga 151 (86 car.) >>>
+  provata su device reale, non più solo in teoria. Resta comunque DIETRO Nodo A→S4→S4L
+  <<<
+
+  >>> BOX3 riga 212 (76 car.) >>>
+su `.segMini` resta comunque lavoro di S5, dietro Nodo A→S4→S4L nell'ordine.
+  <<<
+
+  >>> BOX3 riga 647 (74 car.) >>>
+   reale = S4** (Q-Live›Shows). Ordine: NODO A ✅ → **S4** → S4L → S5 → S6.
+  <<<
+
+  >>> BOX3 riga 662 (73 car.) >>>
+   resta DIETRO Nodo A→S4→S4L nell'ordine sopra. Non è il prossimo atomo:
+  <<<
+
+  >>> SCALETTA riga 157 (95 car.) >>>
+un'**enumerazione d'ordine** degli atomi §6 (dove «S4L» va espanso in «S4K → S4R → S4L»). Resta
+  <<<
+
+  >>> SCALETTA riga 163 (47 car.) >>>
+**ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧.**
+  <<<
+
+  >>> SCALETTA riga 316 (541 car.) >>>
+  [riportata integrale in M3 qui sopra, non duplicata]
+  <<<
+
+  >>> LIBRO riga 477 (816 car.) >>>
+| 34 | 2026-07-14 | Mauro + CC + referee | **S3 CHIUSO — gate device PASSATO (sez.2 +1 riga; sez.1 +1 riga `gh` CLI):** primo atomo §6 device-validato in assoluto (build #564, commit `c77d69f`). Bug hit-area reale trovato e corretto al gate (l'espansione viveva fuori dal `Button`, non il `.clipShape` sospettato); `RoomSwitchBar` ristrutturato, resa invariata; sblocca S5 (dietro Nodo A→S4→S4L nell'ordine SCALETTA sez.C). Scoperta di processo: `gh` CLI disponibile nell'ambiente CC, mai verificato prima — niente più verifica manuale su GitHub richiesta a Mauro/referee. **Sez.5** HEAD `9cc3d17`→`c77d69f`. Header bump 33→34. Dettaglio tecnico completo, 5 scoperte operative, registro debiti e punti per CD: **BOX3 V95**. Doc-only (il codice era già in `c77d69f`, fast-forward pre-esistente a questo doc-commit). |
+  <<<
+
+VERBATIM DELLE QUATTRO RIGHE-FIUME (LIBRO 282, 317, 329, 486):
+⚠️ Sono state misurate INTEGRALI — nessuna misura è stata fatta su una finestra
+   parziale. Il loro verbatim integrale (1642 + 3060 + 3986 + 1525 = 10213
+   caratteri) è riproducibile a comando su HEAD con:
+      git cat-file -p HEAD:LIBRO_MASTRO_QBEATS.md | sed -n '282p;317p;329p;486p'
+   Qui sotto il passaggio DIRIMENTE della riga 329, verbatim, perché è la sola
+   che porti l'ordine emendato ed è la fonte del vincolo di sicurezza:
+
+  >>> LIBRO riga 329, estratto verbatim (la riga intera è 3986 caratteri) >>>
+| 2026-07-31 | **ORDINE DEGLI ATOMI §6 EMENDATO — ⟦S5⟧ SALE PRIMA DI ⟦S4L⟧, e ⟦S-EXIT⟧ si colloca fra i due. Nessuna ratifica ribaltata.** `LIBRO_MASTRO_QBEATS.md:317` incide «ORDINE OBBLIGATORIO: ⟦S4K⟧ → ⟦S4R⟧ → ⟦S4L⟧»: è l'ordine RECIPROCO dei tre atomi dello sdoppiamento, e resta vero — l'inserimento di altri atomi negli intervalli non lo viola. Cambia la sola sez.C della SCALETTA (`HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:314 @ e61efd0e9bc2f9174b755e5a25e02a611c795cea`: «S4 → S4K → S4R → S4L → S5 → S6»), che si emenda con ratifica. **NUOVO ORDINE: S4 ✅ → ⟦S4K⟧ ✅ → ⟦S4R⟧ → ⟦S5⟧ → ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧.**
+  [… la riga prosegue con MOTIVO 1..4 e le colonne finali …]
+  ⛔ **VINCOLO RATIFICATO: nessuna sessione multi-device e nessuna data con band su una build che contenga ⟦S5⟧ finché ⟦S-EXIT⟧ non è chiuso device.**
+  <<<
+
+E il passaggio della riga 317 che governa la LETTURA delle enumerazioni di BOX3:
+
+  >>> LIBRO riga 317, estratto verbatim (la riga intera è 3060 caratteri) >>>
+✅ **CHIUDE IL RIFERIMENTO INCROCIATO** delle sei enumerazioni d'ordine di `BOX3_QBEATS.md` (`:60`, `:151`, `:212`, `:647`, `:662`, `:676` @ 8289944dd98b3372a422e5c3481831b3fc727ca5), che nominano «S4L» in contesto d'ordine con forme NON uniformi (misurato: «S4→S4L» · «Ordine: NODO A ✅ → **S4** → S4L → S5 → S6» · «⟦S4⟧/⟦S4L⟧/⟦S5⟧»): da questa riga in poi **si leggono con la regola di rilettura, non si aggiornano a mano riga per riga**. Nessuna delle sei è stata toccata.
+  <<<
+
+  [V] VERIFICA DELLE SEI SEDI BOX3 CITATE, a HEAD e non al commit citato:
+      :60 :151 :212 :647 :662  -> tutte e cinque PRESENTI a HEAD con una catena
+                                   a freccia, agli stessi numeri di riga.
+      :676                     -> PRESENTE a HEAD, e NON ha frecce: la sua forma
+                                   è a slash. Verbatim riga 676:
+      «🔴 **BLOCCANTE prima del NODO A:** ancore-codice nude in ⟦NODO A⟧/⟦S4⟧/⟦S4L⟧/⟦S5⟧»
+      => 5 con frecce + 1 a slash = 6. Il censimento delle sei sedi CHIUDE, e
+         spiega perché la mia ricerca per frecce ne rende 5 e non 6.
+
+================================================================================
+M6 — QLiveRootView.swift: IL RAMO ELSE DEL GATE, VERBATIM  [V]
+================================================================================
+File:        ios_app/QBeats/UI/QLive/QLiveRootView.swift
+OID blob:    b956c6582f49897c5b0ea4f8015c2cda7fa9039d      byte: 10437
+righe tot.:  166
+commit (a 40, ultimo che tocca il file):
+             bfc92285d165852a9c5618786a7e95f7166025e7   2026-07-31
+             «S4R fase 2b: la proprieta del runner sale alla stanza Q-Live»
+letto a HEAD c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e (il blob è lo stesso)
+
+Il gate `if let runner` sta a riga 98 (le occorrenze a righe 16 e 27 sono nel
+commento d'intestazione). Il ramo `else` si apre a riga 147 e chiude a 162.
+
+>>> INIZIO VERBATIM — QLiveRootView.swift righe 147-162 >>>
+            } else {
+                // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
+                // futuro lettore cablerebbe per errore.
+                // Qui va l'EMPTY-STATE ONESTO della pagina metronomo.
+                // ⛔ NON messo in ⟦S4R⟧: il disegno è materia CD e NON esiste
+                //    freeze per questa pagina. CC non genera UX.
+                // ⛔ Nessun testo d'interfaccia, nessun componente
+                //    `QLiveEmptyStates`/`EmptyStateKit`, nessun pulsante —
+                //    nemmeno disabilitato: un disabilitato è già una promessa di
+                //    Start, e lo Start è ⟦S5⟧.
+                // ⟦S5⟧ NON parte senza questo empty-state.
+                // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
+                // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
+                // il back del player qui sopra, e porta a `.shows`.
+                EmptyView()
+            }
+<<< FINE VERBATIM — QLiveRootView.swift righe 147-162 <<<
+
+[V] RILIEVO PERTINENTE ALLA RICHIESTA A CD, dallo STESSO file, righe 117-118
+    (dentro il ramo `if`, non nell'else) — perché nomina ⟦S-EXIT⟧ e delimita
+    che cosa NON è materia di questa pagina:
+      «//    ⛔ Quel gate NON si costruisce qui: è ⟦S-EXIT⟧, e nel»
+      «//    freeze vive su lista e dettaglio, non sul player.»
+    e righe 119-126, che dichiarano INFERITA e non decisa la scelta sul CANCEL
+    del Follower, con ratifica rimessa esplicitamente a ⟦S-EXIT⟧.
+
+================================================================================
+M7 — tools/lint_canonici.py  [V]
+================================================================================
+esiste su disco:  SÌ
+byte:             12076
+sha256:           25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206
+                  (impronta della faccia SU DISCO, non del blob: il file non è
+                   in git, quindi un blob non esiste)
+
+tracciato?  NO — tre forme indipendenti e concordi:
+   forma 1  `git ls-files tools/lint_canonici.py`   -> output VUOTO
+   forma 2  `git status --porcelain -- tools/`      -> «?? tools/»
+   forma 3  `git cat-file -e HEAD:tools/...`        -> ASSENTE a HEAD
+   controllo positivo nella stessa forma 1:
+            `git ls-files LIBRO_MASTRO_QBEATS.md`   -> «LIBRO_MASTRO_QBEATS.md»
+            => la forma 1 sa rendere non-vuoto. Lo zero su lint è uno zero vero.
+
+================================================================================
+LIMITI DI QUESTO REFERTO — dichiarati, non taciuti
+================================================================================
+1. Le catene di M5 sono state cercate per FRECCIA. Una sequenza d'ordine scritta
+   in prosa senza frecce, o con un separatore che non ho previsto, NON sarebbe
+   stata trovata. La sesta sede BOX3 (`:676`, forma a slash) è la prova che
+   questa forma di cecità esiste: l'ho trovata solo perché LIBRO:317 la nomina.
+   ⇒ Il numero 13/19 è un MINIMO accertato, non un totale dimostrato.
+2. Non ho misurato le sedi d'ordine FUORI dai cinque canonici (freeze CD, altri
+   file in HANDOFF/, commenti nel codice sorgente): il prompt chiedeva i cinque.
+3. M6 riporta il ramo `else` per intero; del resto del file ho letto e riportato
+   solo i passaggi che nominano ⟦S-EXIT⟧.
+4. Le impronte di propagazione qui sotto sono della faccia SU DISCO.
+
+================================================================================
+PROPAGAZIONE R-δ — TRE DESTINAZIONI
+================================================================================
+⛔ L'IMPRONTA DI QUESTO FILE NON PUÒ STARE DENTRO QUESTO FILE (un file non può
+   contenere il proprio sha256). Sta nel MESSAGGIO di consegna, come prescrive il
+   protocollo CONSEGNA-GATE. Qui stanno solo i tre path.
+
+① repo locale (tracciato? NO, untracked — nessun commit in questo giro):
+     C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\
+     MISURE_CC_2026-08-02_A1-ORDINE-CANONICI.txt
+② mirror E: (copiato esplicitamente: repo -> E: NON è automatico):
+     E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\
+     MISURE_CC_2026-08-02_A1-ORDINE-CANONICI.txt
+③ Drive: DUE copie, sui due alberi paralleli già censiti (parentId
+     1GYF6RuAlcSUth706f1vIWMD7v57gtsWs e 1lVJaqtTT4bGfCpuS884qnhgY12-mC5Y8).
+     [V] Arrivate per SINCRONIZZAZIONE del mirror E:, non caricate in linea da me
+     — quindi il contenuto NON è transitato dal modello, e il difetto noto di
+     transito (U+2019 riscritto in ASCII) non si applica per costruzione.
+
+*Fine referto A1-ORDINE-CANONICI. Sola misura: nessuna riparazione proposta,
+nessun diff, nessuno staging, nessun commit.*

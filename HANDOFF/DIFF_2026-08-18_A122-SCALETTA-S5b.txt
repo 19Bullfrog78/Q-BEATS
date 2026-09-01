@@ -1,0 +1,132 @@
+diff --git a/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md b/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+index 60c1d86..c67e49b 100644
+--- a/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
++++ b/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+@@ -36,6 +36,8 @@
+ ---
+ 
+ ## B · Scaletta 12 atomi (erano 10 fino alla v2 — lo sdoppiamento 28/07 ha portato ⟦S4L⟧ da una scheda a tre)
++⚠️ **MARCATURA 18/08 — GLI ATOMI DI QUESTA SEZIONE SONO TREDICI, NON DODICI. Il titolo qui sopra resta come scritto: si marca, non si riscrive.** L'aggiunta è **⟦S5b⟧**, incisa in questo stesso giro subito dopo ⟦S5⟧, per ratifica del referee + OK di Mauro del 18/08/2026. Il conteggio «12» era esatto fino a questa riga e va letto come **storia**. ⚠️ Chi ricontasse le intestazioni `###` di sezione B e trovasse 13 **non ha trovato un difetto**: ha trovato questa marcatura.
++
+ 
+ Legenda: **flip** PRE (Nodo-A-indipendente) / POST (richiede `.qLive`) / SPINE · **gate** CI / CI+DEVICE / DEVICE. I path write `moveSetlists :105-108` e `addSetlist :89-91` restano deliberatamente NON cablati. ⚠️ **La clausola «nessun atomo scrive dati utente» NON vale più per l'intera scaletta**: cade per il solo ⟦S4L⟧ (prima scrittura, vedi la sua scheda) per ratifica `LIBRO_MASTRO_QBEATS.md:306 @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`. Per **ogni altro atomo** la clausola resta in vigore — ⟦S4K⟧ e ⟦S4R⟧ compresi.
+ 
+@@ -310,6 +312,110 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
+ - **CANCELLO — ⟦S5⟧ non chiude device finché i due bottoni di `FineSetlistView` non fanno qualcosa.** BACK TO SHOWS: quanto `LIBRO_MASTRO_QBEATS.md:154 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` dichiara attivo («torna alla libreria SHOWS»). RESTART SETLIST: quanto `LIBRO_MASTRO_QBEATS.md:153 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` propone (CD-3, «ricomincia la setlist appena suonata») — oggi **proposto**, non ratificato: per questo bottone resta aperta anche la domanda «cosa deve fare», non solo il cablaggio. ⚠️ **Deviazione dal testo dettato in prompt, dichiarata:** una prima forma equiparava i due bottoni come se entrambi avessero ratifica attiva — verificato a fonte che `LIBRO_MASTRO_QBEATS.md:155 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` **non copre l'azione di RESTART SETLIST**; corretto qui prima di scrivere. ⛔ **Che cosa quella riga dichiari, qui NON si qualifica:** vive per INDIRIZZO nel bullet «Contrasto con la ratifica» del ticket `TD-fineshow-bottoni-morti` in `BUGS_QBEATS.md`, dove è riportata in verbatim intero e misurata contro il codice. ⚠️ **SECONDA DEVIAZIONE, dichiarata (giro A25):** il prompt indicava `@ eeb725dd46363d6cdc428a5aa43ede5881389d31` per l'ancora di `:155`; Fase 1-bis dello stesso giro ha verificato che quell'ancora è falsificata anche per `:153` e `:154` (a quei commit il file si chiamava ancora `STATO_QBEATS.md`, per rename confermato con `git log --follow`, e la tabella era ancora `_(da popolare CD)_`) — sostituite tutte e tre le ancore con HEAD, non solo quella nuova. ⚠️ **RETTIFICA A26 (C6), dichiarata:** in A25 la qualifica «`:155` ratifica il titolo/momento «END SHOW»» era stata lasciata scritta com'era, per mandato ristretto di C4. È stata **rimossa qui**: con l'ancora ora corretta a HEAD quella glossa sarebbe stata un'affermazione falsa accanto a un indirizzo verificabile — chi lo apre legge il contrario. Resta il solo punto vero, che `:155` non copre l'azione di RESTART SETLIST; ciò che quella riga dice davvero vive per indirizzo in `BUGS_QBEATS.md`. **Motivo del cancello:** ⟦S5⟧ è ciò che rende raggiungibile END SHOW (`BUGS_QBEATS.md:132 @ 0ee9543d45d638df061c5a48872aaefeb8a88f26` — «⟦S5⟧ apre entrambe le serrature nello stesso atomo»). ⛔ **QUESTO BULLET SPOSTA DI UNA RIGA tutto ciò che lo segue** (340→341 righe totali). Verificato a fonte, stessa forma della verifica sopra: nessuna citazione nuda a questo file con riga ≥307 trovata su cinque canonici più commenti `.swift`; l'unica citazione ≥307 resta la stessa di sopra (`LIBRO:329`→`:314`, ancorata, immune).
+ - ⚠️ **MARCATURA 07/08 — LA CONDIZIONE DEL CANCELLO VA LETTA AL SINGOLARE, E NON È DICHIARATA SODDISFATTA. Il bullet sopra resta come scritto.** RESTART SETLIST **si toglie** da END SHOW: opzione Ⓐ di CD, ratificata in `LIBRO_MASTRO_QBEATS.md:353 @ 81740e48f24e089703b0199d0ffd20b9b3bfae7c` (proposta e disegno di CD; ratifica tecnica del referee e OK di Mauro, due cancelli distinti passati entrambi). ⇒ La condizione «i **DUE** pulsanti di `FineSetlistView` devono fare qualcosa» si legge da qui in avanti **AL SINGOLARE**: resta **un** pulsante, BACK TO SHOWS, ed è **cablato** — `ios_app/QBeats/UI/Live/FineSetlistView.swift:29 @ 779172e6353d6e51dcee542953725000f48dd05a`, `Button("BACK TO SHOWS") { onBackToShows() }`, atomo ⟦S5x⟧, commit `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`. ⛔ **QUESTO NON RENDE IL CANCELLO SODDISFATTO, e la distinzione è il punto:** il pulsante è **chiuso a codice** ma la sua validazione su device è **DIFFERITA**, perché END SHOW oggi è irraggiungibile — nessuno l'ha mai visto funzionare. Il cancello si chiude quando quel tocco è stato fatto su un device, non quando la closure smette di essere vuota. ⚠️ Rilievo di **CD**, accolto: era CD a chiedere che la condizione fosse riscritta al singolare e **non** dichiarata soddisfatta. ⛔ **QUESTA RIGA SPOSTA DI UNA RIGA tutto ciò che la segue** (344→345 righe totali). Verifica a fonte identica a quella delle due righe sopra: zero citazioni **nude** a questo file con riga ≥309; le uniche in quella regione sono ancorate a commit, quindi immuni.
+ 
++### ⟦S5b⟧ Start del dettaglio → player col primo brano ARMATO · POST · CI+DEVICE
++
++- **Scopo:** costruire **una porta sola** — dallo `.startfoot` del dettaglio al player, col primo
++  brano **armato in standby**. ⛔ **Finisce lì: cosa accade dopo il tocco dell'utente non è di
++  questo atomo.** Contratto: `BOX5_QBEATS.md:331` (QL-SHOWS-07 — «l'ingresso in uno show è
++  SEMPRE arma + standby, qualunque sia il flag standby della prima canzone») e
++  `BOX5_QBEATS.md:354` (§3 — «Start = arma + standby sulla prima canzone. Il click parte al
++  **secondo** tap (schermo ovunque) o via MIDI»).
++
++- **File — QUATTRO:**
++  - `UI/QLive/QLiveSession.swift` **EDIT** — il **mutatore dello slot**; è il file stesso ad
++    assegnarlo a questo atomo (`:14-15`).
++  - `UI/QLive/QLiveShowDetailView.swift` **EDIT** — costruire il runner (`setlist` a `:78`,
++    `store` a `:81`; `SetlistRunner.init(setlist:store:)` non chiede altro,
++    `SetlistRunner.swift:61`) e **chiudere il tocco** — `Cond (d)`.
++  - `UI/QLive/QLiveRootView.swift` **EDIT** — closure `() -> Void` iniettata al dettaglio nella
++    forma di `onBack` (`:104`): riempie lo slot, **poi** naviga. La closure non può essere
++    tipizzata sulla pagina: `QLivePage` è `private` (`:44`), `navigate(to:)` è `private` (`:88`).
++  - `SetlistRunner.swift` **EDIT** — accendere lo standby d'ingresso dentro `primeDisplay`
++    (`:271`), che ha **un solo chiamante** in tutto il corpus, già dentro l'`onAppear` del player
++    (`LiveView.swift:231`). ⛔ **Così `LiveView.swift` NON si tocca** e `LiveSession` resta privata.
++
++- **Reversibilità: PULITA.** `store.resolve(_:)` è puro (`QBeatsStore.swift:152-164`), l'`init`
++  del runner legge e logga, il mutatore assegna un `@Published` in RAM, `navigate` assegna uno
++  `@State`. **Zero disco, zero `UserDefaults`, zero iCloud, nessun cambio di formato dati** ⇒ un
++  revert dei quattro file non lascia nulla sul device. Dipendenza dura: ⟦S4R⟧. Ordine: dopo
++  ⟦S5a⟧ e ⟦S5x⟧.
++
++- **🔴 Gate — UNICO ATOMO DELLA SCALETTA CHE CHIUDE TRE CANCELLI DEVICE IN UN COLPO SOLO.**
++  Non è enfasi: è il motivo per cui non si può collaudare a metà.
++  - **il proprio** — lo Start arma e il player si monta fermo;
++  - **quello DIFFERITO di ⟦S5x⟧** — «CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧»
++    (`SCALETTA:324`): END SHOW è irraggiungibile finché lo slot non ha mutatori;
++  - **l'armamento di `TD-mixer-copre-endshow`** — «SI ARMA CON ⟦S5b⟧, NON PRIMA» (`BUGS:158`).
++  - **CI:** verde su `iOS Signed Build`. ⚠️ `F1 — Build Check` non gira dal 31/07 e le ultime due
++    run sono fallite: **non conta come cancello finché Mauro non decide**.
++  - **Passo (1) — e distingue «armato» da «fermo»:** da un dettaglio con brani risolti, tocca
++    **START SHOW**. ✅ Deve comparire il **titolo della PRIMA canzone**, grande e centrato in
++    alto, **che pulsa lentamente**, sopra il player **visibilmente oscurato**; **non deve suonare
++    nulla**. ⛔ Se la videata è piena e nitida, o il titolo manca, o c'è ma **immobile**:
++    **FALLITO** — il player è fermo, non armato.
++    *(Segni misurati, verificabili a occhio senza alcun disegno CD: `LiveView.swift:129`
++    opacità **0,10** sul player · `StandbyOverlayView.swift:18-24` titolo **52 pt** al **27 %**
++    dell'altezza · `:31-35` pulse **0,45↔1,0 in 2,2 s**, all'infinito.)*
++  - **Passo (2):** tocca lo schermo **in un punto qualsiasi** → il click parte **da quella
++    canzone** (`LiveView.swift:134-137`, `.contentShape(Rectangle())` + `onTapGesture` →
++    `runner.startCurrentSong`).
++  - **Passo (3):** fine setlist → END SHOW → **BACK TO SHOWS** torna alla lista (gate di ⟦S5x⟧).
++  - **Passo (4):** esci dalla stanza → l'audio si ferma (`AppRootView.swift:74`).
++  - ⛔ **NON-DIFETTI — da NON segnalare come guasti:** al tocco la musica parte **subito, senza
++    conto**. `startCountIn` è uno **stub** (`AudioEngine.swift:1561-1563`) e fra le canzoni il
++    rinvio è **dichiarato nel codice** (`SetlistRunner.swift:232`). ⇒ È una porta già mancante,
++    **non una regressione di ⟦S5b⟧**.
++  - ⚠️ Col percorso DEBUG vale la procedura sicura di
++    `TD-injecttestdata-sovrascrive-dati-reali` (`BUGS:143`): **non toccare NESSUNA Song** mentre i
++    dati di test sono in RAM.
++
++- **Cond — cinque, tutte necessarie:**
++  - **(a) ORDINE OBBLIGATO: riempi lo slot, POI naviga.** Invertendo si apre un frame con
++    `page == .metronome` e `runner == nil`, e il ramo `else` **si vede**. L'irraggiungibilità di
++    quel ramo è **conseguenza di questa condizione**, non un fatto indipendente.
++  - **(b) STATO D'INGRESSO = arma + standby sulla PRIMA canzone**, non `.stopped`.
++    ⚠️ Il payload esiste già e regge, **misurato**: `nextSongName` è calcolato **dopo**
++    `currentSongIdx += 1` (`SetlistRunner.swift:343-345`), quindi significa «la canzone che
++    partirà al prossimo tap» — all'ingresso, con indice 0, **è la prima**. E l'obiezione storica
++    non si applica: `LiveSession.swift:30-34` tolse lo standby d'ingresso il 17/05 (TD #28)
++    perché mostrava un **em-dash**, cioè uno standby **senza nome vero**; con un runner armato il
++    nome c'è.
++  - **(c) GUARDIA SUL RI-ARMAMENTO.** `primeDisplay` gira a **ogni** `onAppear`, non solo al
++    primo. Senza guardia si potrebbe rimettere in standby uno show **già in esecuzione** a una
++    ricomparsa della vista. ⚠️ **È qui che lo stato armato guadagna il suo posto:** distinguere
++    «armato e mai partito» da «già partito».
++  - **(d) IL TOCCO SI CHIUDE quando `resolve().songs` è VUOTO.** Oggi `isEnabled`
++    (`QLiveShowDetailView.swift:288`) pilota **solo** ombra (`:323`), bordo (`:326-331`) e
++    opacità (`:333`): `.disabled(` nel file rende **0**, mentre il corpus lo usa in **6 file**.
++    Senza questa condizione un tocco su una scaletta orfana costruisce un runner a catalogo vuoto,
++    `primeDisplay` esce al primo `guard` (`SetlistRunner.swift:272`) e **il player si monta bianco**.
++  - **(e) NIENTE STOP AUDIO AGGANCIATO ALLA NAVIGAZIONE MENTRE IL CLICK GIRA**
++    (`QLiveRootView.swift:78-85`, decisione CD 18/07). ✅ Non vieta l'azzeramento di **stato** a
++    END SHOW, dove il playback è già finito (`LiveView.swift:161`): **igiene, non transport**.
++
++- **Modello raccomandato alla costruzione:** Opus — quattro file e due regole (`Cond (a)` ordine,
++  `Cond (c)` guardia) che il compilatore non può verificare.
++
++- **OPEN — fuori da questa porta, nominati perché il cancello non erediti un vuoto:**
++  - **`QL-SHOWS-08` — stato prodotto IDENTICO.** `BOX5:333`: la **pillola ▶** della lista e lo
++    Start del dettaglio devono produrre **la stessa cosa** — «stessa azione, modalità di default,
++    nessuna domanda». ⇒ ⟦S5b⟧ costruisce **un** ingresso; il secondo dovrà **riusarlo**, non
++    replicarlo. ⚠️ E `BOX5:362` tiene la pillola **gated** («tratteggiata, icona spenta,
++    inerte») finché l'avvio non è cablato: ⟦S5b⟧ è ciò che **permette** di togliere quel gate,
++    **ma toglierlo non è in questa porta**.
++  - **Lo stato «sessione armata»** (`BOX5:324`, `BOX5:404`) lo **produce** questo atomo — «nasce
++    insieme all'arma + standby» — e il suo **consumatore** è ⟦S4L⟧ (QL-SHOWS-04, Remove
++    inerte a sessione armata). La **forma tecnica** è scelta CC, per simmetria con `BOX5:401`.
++  - **Il count-in NON entra.** Ratificato con **tre** punti d'attivazione (`LIBRO:166`) e
++    **nessuno dei tre è costruito**. ⛔ Non c'è nulla da spezzare: c'è una funzione da scrivere,
++    che è altro. Ticket proposto in B2.
++  - **⟦S6F⟧ e ⟦S-EXIT⟧ non hanno scheda**, entrambi ratificati (`SCALETTA:325` registra il
++    secondo buco).
++  - **Il ramo `else` resta `EmptyView()`**, guardia difensiva, **nessun lavoro CD** — precedente
++    identico nello stesso `switch` (`QLiveRootView.swift:105-107`). ⚠️ Il commento a `:162-169`
++    chiede ancora un empty-state a ⟦S5⟧: superato dalla cancellazione dell'A3 (`LIBRO:355`),
++    **va marcato, non riscritto**.
++
+ ### ⟦S6⟧ METROFAB — cablaggio porta (dest differita stub) · POST · CI
+ - **Scopo:** legare `onTap` MetroFAB (coda lista + empty E) a stub differito.
+ - **File:** `UI/QLive/QLiveShowsView.swift` (S4) + `UI/QLive/QLiveEmptyStates.swift` (S2) EDIT: bind onTap → stub.
+@@ -322,6 +428,7 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
+ ## C · Ordine (2 corsie)
+ **PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST — ordine ratificato 31/07:** S4 → **S4K** → **S4R** → **S5** → **⟦S-EXIT⟧** → **S4L** → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco resta **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧. ⛔ **⟦S4L⟧ è SOSPESO** fino a chiusura di tre pendenze (atomo della pillola ▶ · forma tecnica del campo di persistenza · procedura di rollback dati), e **⟦S-EXIT⟧ precede ⟦S4L⟧**, per condizione fisica e non per disciplina dell'operatore — `LIBRO_MASTRO_QBEATS.md:329 @ c00feb43361d01d961fd1e97cf4c1a77a5bf7c7e`. **QUESTA RIGA È LA SEDE UNICA DELL'ORDINE DEGLI ATOMI §6: ogni altra catena d'ordine in un canonico è storia — si legge, non si riscrive.**
+ ⚠️ **MARCATURA 07/08 — ⟦S5⟧ SI È SPEZZATA IN TRE, E LA RIGA D'ORDINE SOPRA NON LO SA. La riga resta come scritta: si marca, non si riscrive.** Misurato sul blob a HEAD `779172e6353d6e51dcee542953725000f48dd05a`: `S5a`, `S5b`, `S5x` rendono **ZERO** occorrenze in tutto questo file — in **entrambe le casse**, minuscola e maiuscola — con controllo positivo `S5` = **24** sullo stesso blob; e il commit di ⟦S5a⟧, `25056b66`, rende **ZERO** su tutti e cinque i canonici, con controllo positivo `4e4c2411` = **5** in `LIBRO_MASTRO_QBEATS.md`. La sede unica dell'ordine non registra né i due atomi già consegnati né quello che resta. Si legga così: **(1) ⟦S5a⟧ — `QLiveShowDetailView`, frame ③ read-only. CONSEGNATA su master, commit `25056b66eda40ad76d91a886ace442b7064ca900` (05/08), CI verde. ⛔ NON validata su device.** ⚠️ **È RAGGIUNGIBILE OGGI** e il suo gate device **non dipende da ⟦S5b⟧**: percorso misurato Home → Q-LIVE → pagina `.shows` (che è il default, `ios_app/QBeats/UI/QLive/QLiveRootView.swift:46 @ 779172e6353d6e51dcee542953725000f48dd05a`) → tap-riga → ramo `.detail` (`:103-104`, senza alcun gate). **(2) ⟦S5x⟧ — cablaggio di BACK TO SHOWS in `FineSetlistView`. CONSEGNATO su master, commit `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f` (06/08), CI verde.** ⛔ **Formula esatta, e non se ne usi un'altra: «CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧».** Non «chiuso»: END SHOW è irraggiungibile perché lo slot del runner non ha mutatori, quindi nessuno ha mai visto quel bottone funzionare — ed è **impossibilità**, non indisciplina dell'operatore. **(3) ⟦S5b⟧ — cablaggio dello Start. È IL FRONTE.** UN solo bottone: lo Start diviso vive solo sulla card della lista, il `.startfoot` del dettaglio resta invariato (freeze consolidato del 06/08). **ORDINE RECIPROCO: ⟦S5a⟧ → ⟦S5x⟧ → ⟦S5b⟧, poi ⟦S-EXIT⟧ come già ratificato dalla riga sopra.** ⛔ **QUESTA RIGA E LA SEGUENTE SPOSTANO DI DUE RIGHE tutto ciò che le segue** (345→347 righe totali). Verificato a fonte: zero citazioni **nude** a questo file con riga ≥320; l'unica in quella regione è `SCALETTA_ATOMI_S6_2026-07-10.md:322 @ 2960f089225b3c80cf56cb839fde871cf9738b3d`, in `BUGS_QBEATS.md`, **ancorata a commit e quindi immune**.
++⚠️ **MARCATURA 18/08 — LA CLAUSOLA «ZERO CITAZIONI NUDE CON RIGA ≥320» DELLA RIGA QUI SOPRA È SCADUTA. La riga resta come scritta: si marca, non si riscrive.** Era **VERA al suo commit** — misurato: al blob `779172e6353d6e51dcee542953725000f48dd05a` le citazioni **nude** a questo file con riga ≥320 erano **0**. È **FALSA a HEAD** `44fea3e378414c300ffd50fcac527c683740735b`: ne esiste **1**, in `LIBRO_MASTRO_QBEATS.md:356`, introdotta **dopo** quella misura dalla riga datata `2026-08-18` sui pulsanti visibili e inerti. ⛔ **Chi si fidasse della clausola per concludere «inserire in sezione B è sicuro» sbaglierebbe.** ✅ Quella citazione è stata **ancorata a commit** nello stesso giro (A122), e da allora è immune allo spostamento. ⚠️ **La clausola non è una proprietà permanente del corpus: è una misura, e le misure scadono.** Chi inserisce righe in questo file la **rimisura**, non la rilegge.
+ ⚠️ **MARCATURA 07/08 — ⟦S-EXIT⟧ È NELL'ORDINE RATIFICATO MA NON HA SCHEDA. Buco registrato, NON colmato in questo giro.** Misurato sul blob a HEAD `779172e6353d6e51dcee542953725000f48dd05a`: `S-EXIT` rende **2** occorrenze in tutto il file, ed **entrambe stanno sulla riga d'ordine qui sopra** — cioè in Sezione C. La **Sezione B**, che si intitola «Scaletta 12 atomi», contiene esattamente **12** intestazioni `###`, contate una per una: ⟦S0⟧ · ⟦S1⟧ · ⟦S2F⟧ · ⟦S2⟧ · ⟦S3⟧ · ⟦NODO A⟧ · ⟦S4⟧ · ⟦S4K⟧ · ⟦S4R⟧ · ⟦S4L⟧ · ⟦S5⟧ · ⟦S6⟧. **Nessuna è ⟦S-EXIT⟧.** ⇒ L'atomo su cui poggia il vincolo duro «niente data con la band» esiste in casa come **sola freccia in una riga d'ordine**: nessuno scopo, nessun file, nessuna reversibilità, nessun gate scritti da nessuna parte. ⛔ **La scheda NON si scrive qui:** scriverla sarebbe progettare un atomo dentro un giro di igiene documentale, ed è materia di un mandato suo. Si registra che manca, e da questo momento chi legge l'ordine sa che una delle sue tappe non ha contenuto.
+ - ✅ **MARCATURA 18/08 — ⟦S5a⟧ CHIUSO DEVICE, supera il punto (1) della marcatura 07/08 sopra. La marcatura 07/08 resta come scritta: si marca, non si riscrive.** Collaudo Mauro 18/08 su `Test Setlist L1.b`: apertura dettaglio, dati, ritorno a SHOWS, nessun dato stantio — tutti verdi, ancora dietro porta DEBUG (§8 assente). Dettaglio in `LIBRO_MASTRO_QBEATS.md`, riga `2026-08-18` (⟦S5a⟧ chiuso device). ⛔ **⟦S5x⟧ resta invariato: «CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧»** — il collaudo del 18/08 non lo tocca, END SHOW resta irraggiungibile. **ORDINE RECIPROCO INVARIATO:** ⟦S5a⟧ (ora chiuso) → ⟦S5x⟧ → ⟦S5b⟧, poi ⟦S-EXIT⟧.
+ 

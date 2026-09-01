@@ -1,0 +1,254 @@
+REFERTO QB-2026-08-07-A87 — PUSH, DEPOSITO CONGEDI, CHIUSURA SESSIONE
+======================================================================
+
+Orologio: 2026-08-07T19:59:09Z, locale 2026-08-07 21:59:09 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ IN TESTA E DA SOLO — IL CONGEDO DEL REFEREE NON È STATO CONSEGNATO.
+   LA GAMBA §3 NON È ESEGUITA, E NON PER MIA SCELTA.
+================================================================================
+
+[M] Il §3 dice «Mauro ti consegna `CONGEDO_REFEREE_2026-08-07.md`». Quel file **non esiste**:
+    nessun contenuto è arrivato nel messaggio, e la ricerca ESAUSTIVA — repo, `E:`,
+    Drive `I:`, `Desktop`, `Downloads`, `Documents` — rende ZERO.
+    CONTROLLO POSITIVO, forma identica: i congedi referee esistenti sono
+    `CONGEDO_REFEREE_2026-08-01.md` e `CONGEDO_REFEREE_2026-08-04.md`, trovati su repo ed E:
+    (e uno anche in `Downloads`). La forma di ricerca trova; il file del 07/08 non c'è.
+⇒ **Non si deposita un file che non si ha.** Tutto il resto di A87 è stato eseguito.
+⇒ **È la prima cosa da fare alla ripresa**, e non solo per completezza: senza il congedo del
+  referee **il confronto R1 fra le due voci non è possibile**, e quel confronto è il
+  meccanismo con cui in questa casa si trovano gli errori. Oggi ne ho trovati sette nelle
+  misure del referee (elencati nel mio congedo §7): quel controllo incrociato serve.
+⚠️ **NON HO CHIUSO LA SESSIONE SU QUESTO PUNTO SENZA DIRLO.** La CI è verde (§2.4), quindi
+  la clausola «se è rossa non chiudere» non si applica; ma questa gamba resta aperta e
+  Mauro va in pausa 7-10 giorni.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD
+================================================================================
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A87 ═══». INTEGRO. Eseguito per intero,
+    tranne il §3 per la ragione in testa.
+0.2 [M] A87 LIBERO. NOME sensibile 0/0 · NOME INsensibile 0/0 · CONTENUTO INsens. 6/13,
+    tutte sottostringhe esadecimali dentro impronte. NESSUNA è un identificativo.
+    CONTROLLI POSITIVI non-zero: A85 nome=2/2 contenuto=23/27 · A86 nome=1/1 contenuto=5/10.
+0.3 [M] HEAD di partenza = **321293e18094d9d4f1c167bfc921be1ad216e3ac**. COINCIDE con l'atteso.
+0.4 [M] Preso atto: ultimo mandato della sessione, pausa di 7-10 giorni.
+
+
+================================================================================
+2 — IL PUSH
+================================================================================
+2.1 [M] IMPRONTA PRIMA, con il remoto letto a fonte e non dal ref locale:
+      HEAD                    = 321293e18094d9d4f1c167bfc921be1ad216e3ac
+      `git ls-remote origin master` = 2960f089225b3c80cf56cb839fde871cf9738b3d
+      ref locale `origin/master`    = 2960f089225b3c80cf56cb839fde871cf9738b3d  (concorde)
+      `git status` = 205 righe, NON-`??` = **ZERO**
+      commit da pushare = **3**
+      `git log --oneline -3`: 321293e (SCALETTA v9) · 779172e (BUGS v51) · 81740e4 (LIBRO v55)
+
+2.2 [M] `git push origin master` → exit 0. Output: `2960f08..321293e  master -> master`.
+
+2.3 [M] PROVA POSITIVA, non l'assenza di errore:
+      `git ls-remote origin master` → **321293e18094d9d4f1c167bfc921be1ad216e3ac**
+      = HEAD locale = atteso. Commit ancora da pushare = **0**.
+      E i tre commit verificati **uno per uno** con `git merge-base --is-ancestor <sha> origin/master`:
+        81740e48f24e089703b0199d0ffd20b9b3bfae7c → SUL REMOTO
+        779172e6353d6e51dcee542953725000f48dd05a → SUL REMOTO
+        321293e18094d9d4f1c167bfc921be1ad216e3ac → SUL REMOTO
+
+2.4 [M] CI — **PARTITA, E VERDE.**
+      run **`31213490430`**, workflow `iOS Signed Build`, branch `master`, evento `push`,
+      **`completed  success`**, durata **2m33s**, avviata `2026-08-07T19:54:06Z`.
+      Letta a fonte due volte: la prima rendeva `in_progress`, la seconda l'esito finale.
+    ⚠️ [M] Solo **UNA** run per tre commit: `81740e48…` e `779172e6…` rendono **zero run** con
+      lo sha a 40. È lo stesso schema già registrato per `f0a4462b` in A75 — tre commit
+      pushati insieme, solo la punta innesca la build. **I due commit intermedi non sono mai
+      stati compilati da soli.** Innocuo qui (doc-only, zero codice in tutti e tre), ma detto
+      invece che dedotto da un silenzio.
+    ⚠️ **CI verde ≠ chiuso**, e in questo caso vale doppio: non c'è codice in questi commit,
+      quindi la run non dice nulla sulla stanza Q-Live. Dice solo che il progetto compila.
+
+
+================================================================================
+3 — DEPOSITO DEL CONGEDO REFEREE: NON ESEGUITO
+================================================================================
+Motivo in testa. Nessun surrogato, nessuna ricostruzione, nessun segnaposto creato.
+
+
+================================================================================
+4 — IL MIO CONGEDO
+================================================================================
+[M] Scritto **prima** di qualunque lettura del congedo del referee — che peraltro non esiste.
+[M] ⚠️ NOME: **`CONGEDO_CC_2026-08-07_sera.md`**, e non `CONGEDO_CC_2026-08-07.md`, perché
+    quest'ultimo **esiste già**: è il mio congedo di stamattina (A77, emesso `14:02:42Z`,
+    sha256 `586228ad…2097d7fc`, 24256 B) e copre la sessione fino ad A76. Sovrascriverlo
+    avrebbe distrutto un documento consegnato. Precedente di casa per un secondo documento
+    nello stesso giorno, letto a fonte: `HANDOFF_CC_2026-07-29_sera.md`,
+    `HANDOFF_CC_2026-07-30_sera.md`, `HANDOFF_CC_2026-07-31_sera.txt`,
+    `HANDOFF_REFEREE_2026-07-27_sera.md`. **I due congedi sono complementari, non alternativi:**
+    A75-A77 sta in quello di stamattina, A78-A87 in questo.
+[M] Contenuto, come da §4: stato del repo con impronte · i dieci mandati e cosa ha prodotto
+    ciascuno · **tre fermate** e cosa ha impedito ognuna, più **una fermata NON fatta** (A84)
+    dichiarata come mia decisione contro la lettera del mandato · **quattro miei errori** ·
+    **dieci reperti** non richiesti · i disaccordi, **inclusi i sei non accolti o mai
+    risolti** · e una tabella «di cosa DIFFIDARE» con **sette casi misurati** in cui una
+    misura del referee non ha retto, col pattern comune.
+[M] Impronta: sha256 `2f364a7a278bec1f6f739f744359196a2779f6938066d152ec8003d088a5cf9d`,
+    21060 byte, CR 0.
+
+[M] DESTINAZIONE — letta a fonte, non dettata, e il buco ridichiarato:
+    ⚠️ **NON esiste alcuna regola SCRITTA su dove vada un congedo.** Ri-misurato oggi come in
+    A77: `BOX3_QBEATS.md` rende **0** occorrenze di `congedo` (controllo positivo `HANDOFF`
+    = 26 sullo stesso blob); le occorrenze in LIBRO parlano tutte del **congedo tastiera Q20**.
+    La `LISTA-TARGET` di `BOX3:397-401` copre **solo** BUGS, LIBRO e BOX3. ⇒ La collocazione è
+    **PRASSI OSSERVATA**, e l'ho applicata: `HANDOFF/` nel repo + `…\FILE X CLAUDE.MD\HANDOFF\`
+    su E:. **Il buco documentale resta aperto e lo ridichiaro qui**, come chiedevi.
+
+[M] TRE GAMBE, dichiarate una per una, verifica a due forme contro la copia del repo:
+    ┌──────────┬────────────────────────────────────┬────────┬───────┬────┬────────┐
+    │ gamba    │ dove                               │ sha256 │ byte  │ CR │ cmp    │
+    ├──────────┼────────────────────────────────────┼────────┼───────┼────┼────────┤
+    │ C: repo  │ `HANDOFF/` (untracked, come tutti) │ metro  │ 21060 │  0 │ n/a    │
+    │ E:       │ `…\FILE X CLAUDE.MD\HANDOFF\`      │  OK    │ 21060 │  0 │ exit 0 │
+    │ Drive I: │ `…\Il mio Drive\Qbeats\HANDOFF\`   │  OK    │ 21060 │  0 │ exit 0 │
+    └──────────┴────────────────────────────────────┴────────┴───────┴────┴────────┘
+    sha256 su tutte e tre: `2f364a7a278bec1f6f739f744359196a2779f6938066d152ec8003d088a5cf9d`.
+    ⚠️ GAMBA DRIVE VERIFICATA CHE SIA ARRIVATA DAVVERO, come chiedevi: **riletta** dal mount
+    dopo la scrittura, impronta e byte ricalcolati (identici), presenza confermata in `ls`
+    (1 occorrenza). Resta dichiarato che per la ratifica del 05/08 un ri-scaricamento
+    **remoto** non sarebbe un canale valido: questa prova la scrittura, non la fedeltà in cloud.
+
+⚠️ [M] REPERTO NON RICHIESTO, trovato depositando: **su Drive i congedi erano ZERO.**
+    Prima di stasera, `…\Qbeats\HANDOFF\` non conteneva **nessun** `CONGEDO_*`, mentre repo
+    ed E: ne avevano cinque a testa. ⇒ Per la lettera di R-δ («due su tre = scritto, non
+    consegnato») **nessun congedo mai scritto in questo progetto risulta CONSEGNATO**. Il mio
+    di stasera è il primo che sta su tre gambe. NON ho propagato gli altri cinque: sarebbe
+    recupero d'arretrato, che hai escluso esplicitamente.
+
+
+================================================================================
+5 — FOTOGRAFIA FINALE, per il rientro
+================================================================================
+```
+HEAD          = 321293e18094d9d4f1c167bfc921be1ad216e3ac
+origin/master = 321293e18094d9d4f1c167bfc921be1ad216e3ac   (git ls-remote, remoto vero)
+coincidono    = SÌ · commit non pushati = 0 · branch = master
+git status    = 206 righe, TUTTE «??» — NON-«??» = ZERO
+ios_app/      = intatto, zero righe di codice toccate in dieci mandati
+CI            = run 31213490430, iOS Signed Build, completed SUCCESS, 2m33s
+```
+
+### I cinque canonici a HEAD
+| documento | versione | blob OID | righe | byte | sha256 |
+|---|---|---|---|---|---|
+| LIBRO_MASTRO_QBEATS.md | **55** (07/08/2026) | `50ca123ee0c919891c432331cc3f8e80221b2fa3` | 511 | 262964 | `1453624e…3eba287` |
+| BUGS_QBEATS.md | **51** | `a6bd89dcc508e2db07a4459555742d0827771817` | 1065 | 297453 | `1199cbfd…497a4822` |
+| BOX3_QBEATS.md | V99 (2026-07-22) | `490d6d9b38c355dc53ddc9b31431f9a858f2b342` | 803 | 89457 | `c728bacc…4d29fb3c` |
+| BOX5_QBEATS.md | V28 (28/07/2026) | `21b23d621ac224c759b53d813196058483e3b056` | 596 | 57158 | `cf425ff0…ed184ff5b` |
+| HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md | **9** (07/08/2026) | `73f9f323c0414fa7e31a06a4ee9c0beb139f4031` | 348 | 54558 | `5a3c1e47…b968dcf39` |
+
+⚠️ **[M] LIBRO ha ora CR disco = 0** (stamattina 509). L'ha appiattito GNU `patch` in A84.
+Il blob è LF in entrambi i casi, quindi **zero effetto sul committato**; ma la faccia disco è
+cambiata, e git la riporterà a CRLF al primo checkout che la tocchi. Chi misura impronte su
+disco dopo la pausa deve saperlo prima, non scoprirlo.
+
+### File in HANDOFF/ del 07/08 — quindici, con impronta (sha256 a 16)
+```
+CONGEDO_CC_2026-08-07.md                                        586228ad78c20ceb   24256 B
+CONGEDO_CC_2026-08-07_sera.md                                   2f364a7a278bec1f   21060 B
+DIFF_LIBRO-v55_2026-08-07_A81-RESTART-SETLIST-TOLTO.txt         1de954a7a95947fd   13199 B
+DIFF_BUGS-v51_2026-08-07_A83-DUE-TICKET-MIXER-E-EMERG.txt       4cce7b7d126d8d79   18839 B
+DIFF_SCALETTA-v9_2026-08-07_A85-SEZIONE-C-E-SCHEDA-S5.txt       1d4e69c98c537bfe   19233 B
+MISURE_CC_2026-08-07_A75-RICOGNIZIONE-R1-E-VERIFICA-S5X.txt     26e31fd863b0f76b   24298 B
+MISURE_CC_2026-08-07_A76-RIENTRO-REGIME-PERCORSI.txt            917d20b7d16714ee   12889 B
+MISURE_CC_2026-08-07_A78-RICOGNIZIONE-PERCORSO-DI-AVVIO.txt     3779d1d9bf9b2a3d   26676 B
+MISURE_CC_2026-08-07_A79-MISURE-CD-E-PREP-RIGA-LIBRO.txt        0e80ef639660703a   20499 B
+MISURE_CC_2026-08-07_A80-FILE-CD-MIXER-E-DIFF-RIGA-LIBRO.txt    c68a63148d70eb19   27643 B
+MISURE_CC_2026-08-07_A81-GEOMETRIA-CD-E-ESTRAZIONE-DIFF.txt     f3b194fb1e4600bb   21067 B
+MISURE_CC_2026-08-07_A82-SLIDER-PERSISTENZA-E-APERTURA-MIXER.txt fc5fb9dd91d86eb6  19996 B
+MISURE_CC_2026-08-07_A83-DUE-TICKET-MIXER-E-EMERG.txt           db91fdfe65b9175e   18427 B
+MISURE_CC_2026-08-07_A84-APPLICAZIONE-DUE-DIFF-RATIFICATI.txt   dc269a0046a28d9b   20355 B
+MISURE_CC_2026-08-07_A85-GIRO-DOC-SCALETTA.txt                  46e6abe89430f51e   19595 B
+MISURE_CC_2026-08-07_A86-APPLICAZIONE-SCALETTA-V9.txt           c2670a81a6a8831d   13576 B
+```
+(più questo referto A87, la cui impronta è dichiarata nel messaggio di consegna.)
+⚠️ Manca, e si vede dal buco nella sequenza: **nessun `A77`** — quel mandato ha prodotto il
+congedo, non un referto. E **nessun `CONGEDO_REFEREE_2026-08-07.md`**, per la ragione in testa.
+
+### R-δ — quali gambe sono complete e quali no  [M]
+| documento / versione | C: | E: | Drive | stato |
+|---|---|---|---|---|
+| LIBRO v55 (`81740e4`) | ✅ commit | ✅ stampa | ✅ stampa | **COMPLETA** |
+| BUGS v51 (`779172e`) | ✅ commit | ✅ stampa | ✅ stampa | **COMPLETA** |
+| SCALETTA v9 (`321293e`) | ✅ commit | ✅ stampa | ✅ stampa | **COMPLETA** |
+| CONGEDO_CC 07/08 sera | ✅ | ✅ | ✅ | **COMPLETA** (primo congedo su tre gambe) |
+| CONGEDO_CC 07/08 (mattina) | ✅ | ✅ | ❌ | incompleta |
+| CONGEDO_CC 05/08 · 06/08 · REFEREE 01/08 · 04/08 | ✅ | ✅ | ❌ | incomplete |
+| LIBRO v50…v54 | ✅ | ✅ | ❌ | **incomplete — 5 stampe** |
+| BUGS v48…v50 | ✅ | ✅ | ❌ | **incomplete — 3 stampe** |
+| SCALETTA v5…v8 | ✅ | ✅ | ❌ | **incomplete — 4 stampe** |
+| tutti i referti `MISURE_CC_*` | ✅ | ✅ | ❌ | incomplete |
+⇒ **Le quattro consegne di stasera sono le uniche complete a tre gambe.** L'arretrato Drive
+resta di **dodici stampe** dei canonici più cinque congedi più l'intera serie dei referti.
+NON recuperato, come da tua istruzione esplicita.
+
+### Gambe della LISTA-TARGET mai eseguite, ereditate e non chiuse  [M]
+· `CC MEMORIA\` per LIBRO e per BUGS — la cartella contiene **un solo file**, `MEMORY.md` del
+  19/06, indice di memoria di un altro sistema. **La regola `BOX3:399` è stale** e la decisione
+  chiesta in A76 non è mai arrivata.
+· `snapshot numerato BUGS_QBEATS<N>.md` — serie ferma a **43** contro versione **51**:
+  dormiente da otto versioni.
+· `snapshot referee` / `copia referee` — canale non raggiungibile da questa sessione.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho depositato il congedo del referee: non esiste (testa del referto).
+  · NON ho letto alcun congedo del referee prima di scrivere il mio.
+  · NON ho recuperato l'arretrato Drive (12 stampe + 5 congedi + i referti).
+  · NON ho toccato `ios_app/`, NON ho iniziato ⟦S5b⟧, NON ho toccato il mixer,
+    NON ho scritto la scheda di ⟦S-EXIT⟧, NON ho fatto il §5.2 di A85.
+  · NON ho aggiornato il mio congedo con l'esito della CI, e lo dichiaro: il congedo porta
+    «`in_progress`, da verificare alla ripresa» perché **era vero al suo orologio**
+    (`19:55:38Z`); l'esito è arrivato alle `19:59`. Riscriverlo avrebbe invalidato le tre
+    impronte già verificate e reso il contenuto discorde dal proprio timestamp — lo stesso
+    difetto che ho censito in A75 su A71/A72. **L'esito verde vive qui, in §2.4.**
+  · NON ho verificato nulla su device: **il gate di ⟦S5a⟧ e ⟦S5x⟧ resta aperto e va in pausa
+    così.**
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SUL CONGEDO MANCANTE, che non è un disguido qualsiasi. Il §3 lo dava per consegnato
+  («Mauro ti consegna…»), e non lo era. È la **terza volta oggi** che un mandato dichiara
+  come fatto qualcosa che la misura smentisce — dopo «A73/A74 esistono» (A75) e
+  «`git apply --check` passa su entrambi» (A84). ⚠️ Il punto non è il singolo errore: è che
+  **la formula assertiva viene usata al posto della verifica**, e in due casi su tre a
+  scoprirlo è stato chi doveva solo eseguire. Se il congedo referee esiste da qualche parte,
+  va consegnato; se non è mai stato scritto, va detto — ma «Mauro ti consegna» non doveva
+  essere scritto prima che il file esistesse.
+
+D2 — SULLA CHIUSURA CON UNA GAMBA APERTA. Il mandato prevedeva di non chiudere solo se la CI
+  fosse rossa. È verde, quindi chiudo. ⚠️ Ma segnalo che il criterio era stretto: si va in
+  pausa dieci giorni con il congedo del referee inesistente e **senza che i due congedi siano
+  mai stati confrontati**. Il confronto R1 è il meccanismo che oggi ha prodotto sette
+  correzioni alle misure del referee. Rinunciarci per dieci giorni è una scelta, e va saputa
+  come tale.
+
+D3 — INVARIATO, per la decima volta e l'ultima di questa sessione. ⟦S5x⟧ e ⟦S5a⟧ sono
+  CI-verdi e **NON validati su device**. ⟦S5a⟧ è **raggiungibile subito** — misurato in
+  A79, e da oggi **inciso nella SCALETTA committata e pushata**, col percorso. Oggi abbiamo
+  scritto, committato e pushato tre canonici che descrivono quella stanza, e **nessuno ha
+  ancora premuto un tasto su un device**. Dieci giorni di pausa non lo miglioreranno, e al
+  rientro il primo giro dovrebbe essere quello — non un altro documento.
+
+FINE REFERTO A87. FINE SESSIONE 2026-08-07.

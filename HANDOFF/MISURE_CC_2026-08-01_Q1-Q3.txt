@@ -1,0 +1,427 @@
+================================================================================
+MISURE CC - REFERTO PER IL PROMPT ID: QB-2026-08-01-Q1Q3
+ID dichiarato in apertura, come da regola vincolante introdotta da quel prompt.
+SOLA LETTURA. Zero scritture sui file misurati. Zero commit.
+================================================================================
+REGOLA DEL GIRO: ogni numero con DUE forme indipendenti.
+  byte = stat + wc -c, o cat-file -s + wc -c sui blob. righe = wc -l + awk NR.
+  CR = tr -cd + python sui byte. Il file non contiene il proprio sha256.
+
+SOVRAPPOSIZIONE DICHIARATA, senza diagnosi di causa: Q1, Q2 e Q3 coincidono con
+  P2, P3 e P4 del referto HANDOFF/MISURE_CC_2026-08-01_P1-P4.txt (sha256
+  1970d61f557cef42cfd60bbe1921fc850f525cb67afc8790226afa11a7553254, 33289 B,
+  580 righe), consegnato prima di questo prompt. Le misure sono state RIFATTE
+  da capo qui, non copiate: dove i numeri coincidono e' una conferma.
+  ⚠️ Q3 E' CAMBIATA nel frattempo, e la causa sono le mie stesse consegne: due
+  referti sono stati scritti in repo e su E: fra la misura precedente e questa.
+  Le liste di Q3 qui sotto sono quelle CORRENTI; quelle del referto P1-P4 sono
+  vere alla loro data e ora superate di un file.
+
+[V] Orologio macchina: 2026-08-01 10:43:12 +0200
+[V] HEAD: ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8
+[V] albero tracciato, righe non-untracked in status: 0
+
+--------------------------------------------------------------------------
+Q1 - CHIUSURA BUGS:519 - LA FINESTRA COMPLETA v24..v27
+--------------------------------------------------------------------------
+[V] git log --oneline --follow -- LIBRO_MASTRO_QBEATS.md - completo, numerato:
+--- OUTPUT GREZZO ---
+     1	ddd5716 LIBRO v48: S6F istituito per la fascia Q-LIVE PLAYING, collocato dopo S5 (doc-only)
+     2	8822598 LIBRO v47: rettifica della distanza d'uso, S4R chiuso, due buchi dichiarati
+     3	40f099b LIBRO v46: Sez.2 +4 righe (doc-only, zero codice) - gate S4R ri-dichiarato, atomo nuovo S-EXIT, tre clausole di scrittura, ordine atomi emendato con S4L sospeso
+     4	3164564 LIBRO v45: colonna data di Sez.2 e registro = INDIRIZZO non data - 2 regole ratificate, zero righe storiche corrette
+     5	4d1f974 LIBRO v44: giornate 29-30/07 - S4K e DARK-DECL chiusi device, identita Apple, fatto commerciale, 2 regole di processo, artefatti fuori dal controllo di versione
+     6	c3caa58 LIBRO v43 — ratifica sdoppiamento S4L in tre atomi
+     7	8926c2a LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+     8	8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+     9	131a511 LIBRO_MASTRO_QBEATS.md: v40 - condizione di chiusura TD#17 agli atti + rettifica della premessa SCALETTA nella riga 2026-07-21
+    10	9784294 LIBRO_MASTRO_QBEATS.md: v39 — regime canonici BOX3/BOX5 ratificato (Sez.2) + Sez.5 senza puntatore per-versione
+    11	c288e86 LIBRO_MASTRO_QBEATS.md: v38 — 6 righe cross-team 20/07 + R-beta/R-gamma
+    12	a61647b LIBRO_MASTRO_QBEATS.md: v37 — Sez.2 +1 riga cross-team «Follower gregario» (Mauro, ratificata referee) + sanata la descrizione Sez.5 (doc-only)
+    13	2d36784 LIBRO_MASTRO v36 — Sez.2 +5 righe cross-team 18/07 (nav≠transport, runner-sale, uscita-stanza, CTA, allarme asimmetrico) + Sez.5 HEAD f8276f6 + changelog v35 ricostruito
+    14	ed5425c Verbale NODO A CHIUSO: LIBRO v35 + piano (E2, ESITO)
+    15	872dd5b LIBRO_MASTRO_QBEATS.md: v34 — S3 CHIUSO (primo atomo §6 device-validato, gate 4 tocchi PASS) + Sez.1 gh CLI disponibile + Sez.5 HEAD c77d69f
+    16	ff3f25e LIBRO_MASTRO_QBEATS.md: v33 — Sez.2 debito scaleFactor nav (cross-team CD) + Sez.5 HEAD 9cc3d17
+    17	9cc3d17 LIBRO_MASTRO_QBEATS.md: v32 — R8 working-directory/worktree + Sez.5 HEAD pre-doc-commit
+    18	e9d7754 LIBRO v31: R7 anti-cascata + Sez.5 HEAD pre-doc-commit (fix strutturale)
+    19	04df53a LIBRO v30: ratifiche CD Q7/Q9-Q16 (nav Q-Stage Shows) + pulizia sha incisi
+    20	cd02280 docs(nodo-a): E1 — N1b rimuove LiveView:187 .onDisappear{stop()} + 2 marcatori piano; LIBRO v29 (sha vivo 18cf6264, storico 77d081f6)
+    21	42c2bce docs(libro): v28 — S1/S2F + 2 domande aperte CD (CD-Q7, CD-Q8)
+    22	82d743e LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBRID (modello tag) + §6 nav (Nodo A) + famiglia swallow (TD-persist-silent-fail)
+    23	0dc2189 LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICATO (v1 onesto); motore A2-A7 sbloccato
+    24	8ca04a4 LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE / ingaggio Link role-gated (ratifica Mauro 01/07)
+    25	2b5cdd3 LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrait-only
+    26	6758aea LIBRO_MASTRO_QBEATS.md: v23 — Media = Tracks + Video (sez.1 naming + sez.2 decisione 26/06: Song base+video sincronizzati, v1 solo Tracks, Video Fase 7); doc-only
+    27	3f57358 LIBRO_MASTRO_QBEATS.md: v22 — risoluzione bandiere modello dati CD (backtrack una/Song, MIDI globale non per-Song, Q-Studio parcheggiato, No-Standby); doc-only, nessun cambio modello
+    28	0aa8990 LIBRO_MASTRO_QBEATS.md: v20+v21 proposta→RATIFICATA (26/06); status only, no bump; doc-only
+    29	2d9caf8 LIBRO_MASTRO_QBEATS.md: v21 - Schema 3 container UI (Q-Studio) + rename tecnico Studio->QStage (sez.1 mappa nomi + sez.2 ratifica); doc-only
+    30	a001d0a LIBRO_MASTRO_QBEATS.md: v20 - Modello operativo a 4 ruoli (consolida+supersede Q6=A + Gerarchia 3 ruoli 20/05); doc-only
+    31	6f7f11f LIBRO_MASTRO_QBEATS.md: v19 — Rete peer: single-band = configurazione supportata + reti pubbliche/non personali fuori scope + qualifica «pulito»=statico (sez. 2); doc-only
+    32	84f9dc4 LIBRO_MASTRO_QBEATS.md: v18 - TD#17 root cause router-specifico + raccomandazione rete palco single-band + Soluzione C fix definitivo (ratificata 22/06)
+    33	97386dd LIBRO_MASTRO_QBEATS.md: v17 — ridisegno modalita collaborativa (default Standalone, CD-7, CD-Q6) + caveat chiusura Bug 2.b (faccia visiva aperta)
+    34	3af4c97 LIBRO_MASTRO_QBEATS.md: v16 — Bug 2.b (Ferita A+B) chiuso, merge ee0cbc0; CD-Q5 END SHOW; HEAD ff530b7->ee0cbc0
+    35	bbdd06a LIBRO_MASTRO_QBEATS.md: v15 — chiusure Fase 6-7 (Problema B/Bug 5/Bug 5-BPM/1.j/CD-6/badge HEAD) + apertura Fase 6-7-bis + caveat CANCEL→Bivio
+    36	c7fc44d LIBRO_MASTRO_QBEATS.md: v14 — risposte CD a CD-Q1...Q4 (counter + badge HEAD / Vista WAITING FOR DIRECTOR + CD-6 / switch secco / ratifica Problema A)
+    37	944f01f LIBRO_MASTRO_QBEATS.md: v13 — 3 chiusure cross-team + Bug 2 UX + 4 domande CD
+    38	e582970 LIBRO_MASTRO_QBEATS.md: v12 — R1 aggiornata con riferimento memorie workspace
+    39	4acb741 rename STATO_QBEATS.md → LIBRO_MASTRO_QBEATS.md (v11) + cascading
+    40	c20f9d9 STATO_QBEATS.md: v10 — fix display Peers validato device + scope iOS-only confermato
+    41	863bc99 STATO_QBEATS.md: v9 — vincolo strutturale LinkKit 4.0 + display Settings binario
+    42	e384a2f STATO_QBEATS.md: v8 — TD #44 causa in codice QB + Soluzione C ripostizionata
+    43	106764c STATO_QBEATS.md: v7 — rollback A su errore v6 (rimosse righe operative CD interne mescolate, mantenuta sola Semantica Layout congelato cross-team)
+    44	cd5dc3b STATO_QBEATS.md: v6 — roadmap batch CD 21/05
+    45	90c8e96 STATO_QBEATS.md: v5 — Q12=A risolta (cascading rename Swift cf3f0b5, 30 strings) + EMERGENZA -> EMERGENCY + feedback memory regola affinata
+    46	9cd31c7 STATO_QBEATS.md: v4 — Q11=A (PROSSIMA -> NEXT) + Q12 aperta (cascading rename R-CD5-10 completo, 14 stringhe italiane scoperte via Grep generico)
+    47	eeb725d STATO_QBEATS.md: v3 — ratifica batch Mauro + 8 R-CD5 + EMERGENZA + cascading rename (21/05)
+    48	8ce1282 STATO_QBEATS.md: v2 — naming UI completato + Q7-Q10 aperte (review CD 21/05)
+--- FINE OUTPUT ---
+
+[V] Gli estremi: header v24 = 2b5cdd3, header v27 = 82d743e (dal log sopra).
+    commit nella finestra che TOCCANO il LIBRO, f1 rev-list --   : 3
+    idem, f2 log --oneline --follow filtrato sulla finestra      : 3
+    commit TOTALI nella finestra, qualunque file                 : 41
+
+[V] CONTEGGIO DEL REGISTRO SEZ.6 A OGNI COMMIT DELLA FINESTRA - tutti, inclusi
+    gli intermedi che NON bumpano la versione. Il LIBRO esiste a ogni commit
+    anche quando non e' toccato: il blob si risolve comunque.
+      colonna REGISTRO = grep -cE '^| *[0-9]+ | 20'
+      colonna 25/26    = grep -cE '^| *2[56] |'  (seconda forma, non usa la data)
+      colonna LIBRO?   = SI se quel commit tocca il file, altrimenti .
+--- OUTPUT GREZZO ---
+COMMIT    REGISTRO  25/26  LIBRO?  SOGGETTO
+2b5cdd3   24        0      SI      LIBRO_MASTRO_QBEATS.md: v24 — orientamento portrai  <-- v24
+5839e4f   24        0      SI      editor-polish: default Section vuoto + Add Section a
+87d22a9   24        0      SI      TD-ipad-home: scaleFactor cap solo-iPad (Home overfl
+4b3e91d   24        0      SI      TD-ipad-home: blocco landscape portrait-only iPad (p
+b1c50ab   24        0      SI      BUGS_QBEATS.md: v23 — editor-polish committato (58
+920a506   24        0      SI      BUGS_QBEATS.md: v24 — collaudo b1c50ab
+9d047e0   24        0      SI      editor: campo BPM digitabile (TextField + commit-on-
+0d3282a   24        0      SI      BUGS_QBEATS.md: v25 — TD-editor-back-discard
+726246f   24        0      SI      editor: decouple campo BPM dai +/- (fix +/- esclusi 
+51dabab   24        0      SI      editor: BPM +/- commit-first + ri-clamp (fix combina
+3b43627   24        0      SI      BUGS_QBEATS.md: v26 — TD-editor-bpm-typeable chius
+d7bdc81   24        0      SI      TD-ipad-editor-fontsize: SectionEditorView scaleFact
+d650ccd   24        0      SI      TD-ipad-editor-fontsize: SongEditorView scaleFactor 
+99cc0ce   24        0      SI      TD-ipad-editor-fontsize: SectionEditorView tipografi
+4ba7f42   24        0      SI      TD-ipad-editor-fontsize: SongEditorView tipografia D
+033f192   24        0      SI      TD-ipad-editor-fontsize: header sezione uniformi (Se
+47906cd   24        0      SI      TD-ipad-editor-fontsize: header Sections uniforme (S
+11e5017   24        0      SI      TD-ipad-editor-fontsize: Subdivision 1× → ×1 (co
+081e923   24        0      SI      BUGS_QBEATS.md: v27 — TD-ipad-editor-fontsize CHIU
+8ca04a4   24        0      SI      LIBRO_MASTRO_QBEATS.md: v25 — Standalone = INERTE 
+e55806d   24        0      SI      SettingsView: label modalità «Collaborative» → 
+0dc2189   24        0      SI      LIBRO_MASTRO_QBEATS.md: v26 — CD-7 DESIGN RATIFICA
+2851bac   24        0      SI      core_engine: B7-A1 — TempoMap/TempoPoint + seriali
+60ba935   24        0      SI      core_engine: registra metronome_dsp_tests in ctest (
+e80e7d3   24        0      SI      core_engine: B7-A2 — ITempoAnalyzer (presa pluggab
+efd09a1   24        0      SI      core_engine: B7-A3 — follower adattivo in Metronom
+4dfa2f8   24        0      SI      core_engine: B7-A4 — test anti-drift 121±2 con or
+6eddd5b   24        0      SI      BUGS_QBEATS.md: v28 — TD vector<BeatEvent>-heap re
+b4d3596   24        0      SI      ci+test: B7-A5-pre — banco Swift (target QBeatsTes
+568887e   24        0      SI      BUGS_QBEATS.md: v29 — TD store decode-swallow (cat
+b107871   24        0      SI      ios_app: B7-A5a — tipi modello TempoPoint/Metronom
+a34e86a   24        0      SI      ios_app: B7-A5b — Song.metronomeMode + decoder ret
+ba271ca   24        0      SI      ios_app: B7-A5c-1 — terzo catalogo backtracks + ma
+633bfac   24        0      SI      BUGS_QBEATS.md: v30 — TD backtracks load-isolato r
+1008d48   24        0      SI      ios_app: B7-A5c-2 — restore backtracks (selezione 
+9b6ba10   24        0      SI      ios_app: DebugView — pulsanti test Export/Import .
+fcf9260   24        0      SI      ios_app: DebugView — fix presentazione fogli expor
+430f7fa   24        0      SI      ios_app: W1 — wiring subdivision/swing a Live (Set
+06b17b6   24        0      SI      ios_app+core: ATOM C — subdivision schedulata al d
+80c7efc   24        0      SI      BUGS_QBEATS.md: v31 — TD-backup-restore-no-ui (nes
+e141295   24        0      SI      BUGS_QBEATS.md: v32 — promozione WAIT-DIRECTOR con
+82d743e   25        0      SI      LIBRO v27 + BUGS v33 — ratifiche pivot SHOWS: HYBR
+--- FINE OUTPUT ---
+
+[V] Righe misurate nella finestra, estremo v24 incluso: 42.
+    La colonna 25/26 rende 0 su OGNI riga. Il registro resta a 24 fino
+    all'estremo superiore e passa a 25 solo nel commit di v27.
+    Le voci 25 e 26 non compaiono in NESSUN commit della finestra.
+    La decisione di chiudere BUGS:519 per ACCERTAMENTO e' del referee.
+
+--------------------------------------------------------------------------
+Q2 - .gitattributes SUI CINQUE CANONICI
+--------------------------------------------------------------------------
+[V] cat .gitattributes:
+--- INIZIO ---
+HANDOFF/** -text
+DESIGN/** -text
+BOX3_QBEATS.md -text
+BOX5_QBEATS.md -text
+--- FINE ---
+
+[V] git check-attr -a sui cinque:
+    ⚠️ LETTURA: check-attr stampa una riga SOLO per i file CHE HANNO un
+    attributo. I file assenti dall'output sono quelli SENZA attributi:
+    l'assenza e' la risposta, non un guasto del comando.
+--- INIZIO ---
+BOX3_QBEATS.md: text: unset
+BOX5_QBEATS.md: text: unset
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md: text: unset
+--- FINE ---
+    righe stampate: 3
+    file interrogati: 5
+
+[V] git ls-files --eol sui cinque:
+--- INIZIO ---
+i/lf    w/lf    attr/-text            	BOX3_QBEATS.md
+i/lf    w/lf    attr/-text            	BOX5_QBEATS.md
+i/lf    w/crlf  attr/                 	BUGS_QBEATS.md
+i/lf    w/lf    attr/-text            	HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+i/lf    w/crlf  attr/                 	LIBRO_MASTRO_QBEATS.md
+--- FINE ---
+
+[V] LE TRE FACCE dei QUATTRO che mancavano. Il LIBRO NON e' rifatto, come da
+    istruzione: il suo esito e' [R] dal referto precedente - due facce,
+    216083 contro 215598 byte, 485 CR.
+
+=== BUGS_QBEATS.md
+  (a) WORKING TREE   byte 257416 / 257416 ok | righe 1010 / 1010 ok | CR 1010 / 1010 ok
+  (b) BLOB A HEAD    byte 256406 / 256406 ok | righe 1010 / 1010 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 256406 / 256406 ok | righe 1010 / 1010 ok | CR 0 / 0 ok
+      file E: = BUGS_QBEATS/BUGS_QBEATS_V46_2026-07-30_e61efd0.md
+  DELTA working-tree meno blob = 1010 byte.  CR nel working tree = 1010.
+  FACCE: DUE (il delta in byte e' esattamente il numero di CR).
+
+=== BOX3_QBEATS.md
+  (a) WORKING TREE   byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 89457 / 89457 ok | righe 803 / 803 ok | CR 0 / 0 ok
+      file E: = BOX3_Codice/BOX3_V99_2026-07-22_7c804c1.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+=== BOX5_QBEATS.md
+  (a) WORKING TREE   byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 57158 / 57158 ok | righe 596 / 596 ok | CR 0 / 0 ok
+      file E: = BOX5_Test/LUGLIO/BOX5_V28_2026-07-28_0a6ebaf.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+=== HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+  (a) WORKING TREE   byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+  (b) BLOB A HEAD    byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+  (c) STAMPA SU E:   byte 36070 / 36070 ok | righe 337 / 337 ok | CR 0 / 0 ok
+      file E: = HANDOFF/SCALETTA_v4_2026-07-30_a393466.md
+  DELTA working-tree meno blob = 0 byte.  CR nel working tree = 0.
+  FACCE: UNA SOLA (disco = blob al byte).
+
+[V] QUANTI CANONICI HANNO DUE FACCE, E QUALI:
+    DUE FACCE : LIBRO_MASTRO_QBEATS.md [R] e BUGS_QBEATS.md [V]
+    UNA FACCIA: BOX3_QBEATS.md, BOX5_QBEATS.md, SCALETTA - tutti e tre
+                coperti da una voce -text in .gitattributes.
+    Riportato, non riparato.
+
+--------------------------------------------------------------------------
+Q3 - E:/HANDOFF RICORSIVO E LE DUE LISTE
+--------------------------------------------------------------------------
+[V] Conteggi, due forme ciascuno:
+    E:/HANDOFF file diretti   f1 find = 124
+                              f2 ls   = 124
+    E:/HANDOFF nelle sottocartelle    = 16
+    E:/HANDOFF ricorsivo              = 140
+    sottocartelle                     = 9
+    repo HANDOFF/ file diretti f1     = 93
+                               f2     = 93
+
+    ⚠️ I numeri 121 diretti / 137 ricorsivi citati dal prompt erano veri alla
+    loro misura. Sono cresciuti perche' ho depositato su E: i referti di oggi.
+
+[V] LE NOVE SOTTOCARTELLE E I LORO FILE, elenco completo non troncato:
+--- INIZIO ---
+--- REFEREE_SYNC_2026-07-12   (3 file diretti)
+      2026-07-11_Q7-Q16.html
+      BUGS_QBEATS35.md
+      LIBRO_MASTRO_QBEATS31.md
+--- REFEREE_SYNC_2026-07-13   (3 file diretti)
+      BOX3_V94_2026-07-13.md
+      BOX5_V25_2026-07-13.md
+      LIBRO_MASTRO_QBEATS33.md
+--- S3_BACKUP_2026-07-13   (0 file diretti)
+--- S3_BACKUP_2026-07-13/Store   (1 file diretti)
+      QBeatsStore.swift
+--- S3_BACKUP_2026-07-13/UI   (1 file diretti)
+      QStageRootView.swift
+--- S3_BACKUP_2026-07-13/UI/QStage   (1 file diretti)
+      ShowsListView.swift
+--- S3_HITFIX_BACKUP_2026-07-14   (2 file diretti)
+      RoomSwitchBar.swift
+      ShowsListView.swift
+--- _superseded_by_v2   (4 file diretti)
+      E1_MARCATORI_LIBRO_DIFF_2026-07-11.txt
+      EMENDAMENTO_187_DIFF_2026-07-11.txt
+      S2_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+      S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+--- _superseded_by_v3   (1 file diretti)
+      S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+--- FINE ---
+    quadratura: diretti + sottocartelle = 140
+    ricorsivo misurato                  = 140
+
+[V] (a) FILE NEL REPO E ASSENTI SU E: - elenco completo
+--- INIZIO ---
+BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+DIFF_B3_BOX5-V28_2026-07-28.txt
+DIFF_B3bis_BOX5-V28_2026-07-28.txt
+DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt
+DIFF_BUGS-v45_2026-07-30.txt
+DIFF_BUGS-v45_2026-07-30_rev2.txt
+DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+DIFF_DARK-DECL_2026-07-29.txt
+DIFF_FIX-PILL_2026-07-22.txt
+DIFF_GIRO_DOC_2026-07-17.txt
+DIFF_LIBRO-v44_2026-07-30.txt
+DIFF_LIBRO-v44_2026-07-30_rev2.txt
+DIFF_LIBRO-v44_2026-07-30_rev3.txt
+DIFF_LIBRO-v45_2026-07-30.txt
+DIFF_N0_seam-onExit_2026-07-17.txt
+DIFF_N1a_scaffold-qLive_2026-07-17.txt
+DIFF_N1b_flip-qLive_2026-07-17.txt
+DIFF_S4K_congedo-tastiera_2026-07-29.txt
+DIFF_S4K_congedo-tastiera_rev2_2026-07-29.txt
+HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+HANDOFF_CC_2026-07-26.txt
+HANDOFF_CC_2026-07-27.txt
+HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt
+HANDOFF_CC_2026-07-28_sera_chiusura-sdoppiamento-S4L.txt
+HANDOFF_CC_2026-07-29_sera.md
+HANDOFF_CC_2026-07-30_sera.md
+HANDOFF_CC_2026-07-30_sera_chiusura-v45.md
+HANDOFF_REFEREE_2026-07-27.md
+HANDOFF_REFEREE_2026-07-27_sera.md
+HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md
+INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt
+MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+MISURE_CC_2026-08-01_Q1-Q3.txt
+MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+MISURE_M1_IDENTITA-S4L_2026-07-28.txt
+MISURE_R1_2026-07-28.txt
+MISURE_R1b_2026-07-28.txt
+MISURE_R2_2026-07-28.txt
+MISURE_R3_2026-07-28.txt
+MISURE_R4_2026-07-28.txt
+MISURE_R5_2026-07-28.txt
+MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+ROADMAP_2026-07-26.txt
+SCALETTA_ATOMI_S6_2026-07-10.md
+_SUPERATO__ROADMAP_2026-07-24.txt
+--- FINE ---
+    quanti: 49
+
+[V] (b) FILE SU E: E ASSENTI NEL REPO - elenco completo
+--- INIZIO ---
+2026-04-29_QBEATS_Handoff_VolumiClick_Mute.md
+2026-05-02_QBeats-Handoff_CD_a_CC.md
+ACCERTAMENTO_LETTURA_ABC_2026-07-13.txt
+BOX3v93-SCALETTAv1-LIBROv32_DIFF_2026-07-13.txt
+BOX3v94-LIBROv33-BOX5v25_DIFF_2026-07-13.txt
+BUGS_v35_DIFF_2026-07-12.txt
+CC_REVIEW_SHOWS_HANDOFF_2026-07-09.md
+CD_FREEZE_QLIVE_NAV_2026-07-09.md
+CD_FREEZE_QLIVE_NAV_CONSEGNA_2026-07-09.md
+DIFF_BUGS-v41_2026-07-20_rev1.txt
+DIFF_BUGS-v41_2026-07-20_rev2.txt
+DIFF_LIBRO-v38_2026-07-20_rev1.txt
+DIFF_LIBRO-v38_2026-07-20_rev2.txt
+DIFF_S4b_2026-07-19.txt
+DIFF_S4b_2026-07-19_rev2_QLiveRootView.txt
+EMENDAMENTO_187_DIFF_2026-07-11_v2.txt
+ESITO_COMMIT_BUGS-v41_2026-07-20_rev1.txt
+ESITO_COMMIT_LIBRO-v38_2026-07-20_rev1.txt
+ESITO_COMMIT_RETE-GIT_2026-07-21_rev1.txt
+ESITO_COMMIT_S4b_2026-07-19.txt
+HANDOFF_BUG2B_BORN_04_06_2026.md
+HANDOFF_CC_2026-07-13_notte.txt
+HANDOFF_CC_2026-07-13_sera.txt
+HANDOFF_CC_2026-07-14_sera_NODOA.txt
+HANDOFF_CC_2026-07-15_sera.txt
+HANDOFF_CC_2026-07-17.md
+HANDOFF_CC_2026-07-18_nodoa-chiuso-giro-doc.txt
+HANDOFF_CC_2026-07-19_SERA_chiusura-S4b.txt
+HANDOFF_CC_2026-07-20_rev1.txt
+HANDOFF_CC_2026-07-21_notte_V27-v39-CHIUSURA.txt
+HANDOFF_CC_2026-07-21_rev1.txt
+HANDOFF_CC_2026-07-21_sera_REGIME-CANONICI.txt
+HANDOFF_CHIUSURA_2026-07-13.txt
+HANDOFF_REFEREE_2026-07-18_nodoa-chiuso.txt
+HANDOFF_STUDIO_PER_CD_25_06_2026.md
+IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt
+INDAGINE_C-TER_STORE-MODELLO_2026-07-19.txt
+INDAGINE_TASTO-MORTO-QSTAGE_2026-07-19.txt
+INVENTARIO_CANONICI-VS-GIT_2026-07-20_rev1.txt
+INVENTARIO_DOCREF-FUORI-GIT_2026-07-20_rev1.txt
+INVENTARIO_GIRO-DOC_2026-07-20_rev1.txt
+LIBRO_V30_DIFF_2026-07-12_v2.txt
+LIBRO_V31_DIFF_2026-07-12.txt
+PROPOSTA_RETE-GIT-CANONICI_2026-07-21_rev1.txt
+QBEATS_FONTI_PER_REFEREE_PIVOT_2026-07-08.txt
+QBEATS_S0_DIFF_2026-07-10.txt
+QBEATS_S0_STATUS_2026-07-10.txt
+QBEATS_S1_S2F_DIFF_2026-07-11.txt
+QBEATS_S1_S2F_DIFF_v2_2026-07-11.txt
+QBEATS_S1_S2F_DIFF_v3_2026-07-11.txt
+QUADRA_TD17_2026-07-21_rev1.txt
+R1-REF-01_B3_CTA_verbatim_2026-07-11.txt
+R1-REF-02_RoomSwitchBar_intero_piu_ancore_S3_2026-07-11.txt
+R1_VERIFICA_SOLA_LETTURA_2026-07-12.txt
+ROADMAP_2026-07-24.txt
+ROADMAP_PRE_CD_16_05_2026.md
+S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v3.txt
+S2b_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+S2d_DIFF_2026-07-12.txt
+S2e_DIFF_2026-07-12.txt
+S3_BOZZA_PROMPT_2026-07-13.txt
+S3_CHECKLIST_TOKEN_2026-07-13.txt
+S3_DIFF_2026-07-13.txt
+S3_DOCCOMMIT_DIFF_2026-07-14.txt
+S3_GATE_ACCERTAMENTO_2026-07-13.txt
+S3_HITFIX_DIFF_2026-07-14.txt
+S4B_FASE0_PIANO_2026-07-19.txt
+SCALETTA-rename_BOX3v95_DIFF_2026-07-13.txt
+SCALETTA_S3_REVIEW_2026-07-12.txt
+SCALETTA_v3_2026-07-28_8289944.md
+SCALETTA_v4_2026-07-30_a393466.md
+VERIFICA_4TOCCHI-BARRA_2026-07-20_rev1.txt
+VERIFICA_CLAUDE-MD_2026-07-20_rev1.txt
+VERIFICA_FREEZE-DESIGN_2026-07-20_rev1.txt
+VERIFICA_GATE-S4b_SCALETTA_2026-07-20.txt
+VERIFICA_REMOTE_CI_2026-07-19.txt
+VERIFICA_STATO_GIT_2026-07-19.txt
+VERIFICA_STATO_GIT_2026-07-20.txt
+roadmap_sezione6_stato_18_luglio.svg
+--- FINE ---
+    quanti: 80
+
+[V] (c) presenti in ENTRAMBI per nome: 44
+    quadratura a+c = 93
+    quadratura b+c = 124
+
+[V] ESITO DEL DEBITO D-HANDOFF-INCLUSIONE-NON-MISURATA: NESSUNA delle due aree
+    include l'altra. Entrambe le liste sono non vuote. Non e' un'inclusione in
+    nessuna direzione: sono due insiemi che si intersecano parzialmente.
+    ⚠️ LIMITE: il confronto e' per NOME, non per contenuto. I file presenti in
+    entrambe con lo stesso nome potrebbero avere byte diversi: non misurato.
+    ⚠️ LIMITE: il confronto e' al PRIMO LIVELLO. I file nelle nove sottocartelle
+    di E: non entrano in nessuna delle due liste.
+
+--------------------------------------------------------------------------
+CIO' CHE NON HO MISURATO
+--------------------------------------------------------------------------
+[V] Il LIBRO in Q2: non rifatto, come da istruzione esplicita. Il suo esito e'
+    riportato come [R] dal referto P1-P4.
+[V] Nessuna conclusione su Q1: la chiusura di BUGS:519 e' decisione del referee.
+[V] Le stampe E: dei quattro canonici sono quelle piu' recenti trovate per nome.
+    Per BOX5 V28 ne esistono DUE, byte-identiche (sha256 cf425ff0..., cmp exit
+    0): una porta il commit in coda al nome, l'altra no. Misurata la seconda.
+[V] Nessuna misura su device. Nessuna run CI interrogata.
+[V] Il contenuto dei file nelle sottocartelle di E: non e' stato letto.
+
+================================================================================
+FINE REFERTO QB-2026-08-01-Q1Q3.
+================================================================================

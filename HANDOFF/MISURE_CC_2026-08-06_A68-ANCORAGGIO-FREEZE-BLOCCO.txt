@@ -1,0 +1,138 @@
+REFERTO QB-2026-08-06-A68-ANCORAGGIO-FREEZE-CONSOLIDATO — BLOCCO
+=================================================================
+
+Orologio: 2026-08-06T19:10:30Z, locale +02:00. Data ID = data esecuzione.
+
+⛔⛔ ESITO: **FERMATO PRIMA DI OGNI SCRITTURA SUI CANONICI.**
+    LIBRO_MASTRO_QBEATS.md: NON toccato. SCALETTA: NON toccata. ios_app/: NON toccato.
+    Motivo: L'ARTEFATTO DA ANCORARE NON ESISTE SU NESSUN SUPPORTO CHE IO POSSA
+    LEGGERE. Il path che la riga d'ancoraggio dichiarerebbe e' oggi un puntatore
+    nel vuoto, e NESSUNA delle impronte da incidere e' verificabile o rigenerabile
+    da disco. Unica scrittura di questo giro: questo referto.
+
+
+================================================================================
+CANCELLI D'INGRESSO — SUPERATI (il blocco arriva DOPO, sul materiale)
+================================================================================
+  · A68 non collide (repo + E:, nome e contenuto; controllo positivo A67 presente).
+  · Aggancio: ultimo referto = A67-S5X-CORREZIONE-COMMIT-CI-PUSH (17:28). Corretto.
+  · HEAD = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f (⟦S5x⟧), branch master,
+    status: soli `??`, nessun tracciato modificato.
+  · IDEMPOTENZA: nel LIBRO zero occorrenze di `7154428263` / `FREEZE-CONSOLIDATO` /
+    `rev3-NORMATIVA`; nella SCALETTA zero marcature di superamento su quella riga.
+    Le righe NON esistono gia': il blocco non e' un caso di lavoro gia' fatto.
+
+
+================================================================================
+LA MISURA CHE FERMA — RICERCA A PIU' FORME, TUTTE VUOTE
+================================================================================
+
+Il mandato dichiara il normativo a:
+  DA_CD_PER_CC/06_08_2026/DESIGN/QLive_Nav/
+  2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844__rev3-NORMATIVA.html
+
+1) PATH ESATTO su E: (FILE X CLAUDE.MD/DA_CD_PER_CC/06_08_2026/DESIGN/QLive_Nav)
+     -> «No such file or directory». La cartella 06_08_2026 NON esiste.
+2) NOME, su TUTTO il volume E::  `find /e -name '*FREEZE-CONSOLIDATO*'`  -> ZERO.
+3) DATA, dentro DA_CD_PER_CC:    `find ... -name '*2026-08-06*'`         -> ZERO.
+   Le sottocartelle esistenti di DA_CD_PER_CC: 02_07 · 09_07 · 10_07 · 11_07 ·
+   18_07 · 20_07 · 24_07 · 27_07 · GIUGNO. L'ULTIMA consegna CD su disco e' del 27/07.
+4) NAS (Z:, montata):            `find /z/Q-BEATS -name '*FREEZE-CONSOLIDATO*'` -> ZERO.
+5) REPO: `git ls-files DESIGN/` -> DESIGN/QLive_Nav si ferma al 2026-07-18
+   (2026-07-18_QLive-Exit-in-Play.html e' l'ultimo freeze tracciato).
+
+E LA PREMESSA «SOSTITUISCE i tre file del 02/08, che restano agli atti come storia»:
+6) `find /e -path '*DA_CD_PER_CC*' -name '*2026-08-02*'` -> ZERO. Nessuna cartella
+   02_08. I tre file del 02/08 NON sono su disco NEMMENO LORO.
+
+⇒ L'intera catena dei freeze successivi al 24/07 — i tre del 02/08 E il consolidato
+  del 06/08 (rev2 e rev3) — vive, per quanto io possa misurare, nel SOLO Progetto
+  Claude. Su disco (C:, E:, Z:) e nel repo: zero copie.
+
+Conclusione onesta nei limiti del misurabile: non posso escludere che esista su un
+supporto che non vedo; posso affermare che NON sta dove la riga da incidere dice
+che sta, ne' in alcun altro punto dei tre supporti verificabili.
+
+
+================================================================================
+PERCHE' QUESTO BLOCCA L'INCISIONE — tre ragioni, in ordine di peso
+================================================================================
+
+(1) IL PATH SAREBBE FALSO ALL'ATTO DELL'INCISIONE. La riga d'ancoraggio esiste per
+    dire «contro quale file CC dovra' cablare». Oggi indirizzerebbe una cartella
+    inesistente: chi la segue non trova nulla. Un ancoraggio che nasce cieco non
+    ancora: promette.
+
+(2) NESSUNA IMPRONTA E' VERIFICABILE, NE' OGGI NE' DOPO, SENZA IL FILE. sha256,
+    byte, righe, CR, blob git: senza il file su disco non posso ne' corroborarle
+    ne' — cio' che conta di piu' — potra' farlo chi cabla. E il canale in cui il
+    file oggi vive e' esattamente quello per cui il regime ha gia' misurato che il
+    TRANSITO ALTERA I BYTE (ratifiche del 05/08: upload in-linea = riscrittura;
+    Drive non byte-fedele; U+2019 -> ASCII). Incidere impronte che nessun supporto
+    raggiungibile puo' rigenerare significa incidere numeri di cui il progetto ha
+    gia' dimostrato la deperibilita' in transito. [Le impronte del referee NON sono
+    in dubbio come misura del file NEL Progetto: e' la loro riproducibilita' fuori
+    dal Progetto a non esistere ancora.]
+
+(3) SAREBBE LA TERZA ISTANZA — AGGRAVATA — DEL BUCO GIA' DICHIARATO. Il LIBRO:324
+    dichiara il buco «ARTEFATTI NORMATIVI FUORI DAL CONTROLLO DI VERSIONE» (Q20);
+    A57 §F ne ha contata una seconda istanza (freeze 24/07, copia unica su E:).
+    Questo sarebbe la terza, con un'aggravante nuova: NON una copia unica fuori dal
+    repo — ZERO copie su disco. Il canonico punterebbe a un artefatto che esiste
+    solo dentro una chat.
+
+Precedente di processo: A66, stessa forma — mandato con tutti i cancelli passati,
+fermato perche' un'incisione pubblica sarebbe nata falsa. La' erano due numeri di
+riga; qui e' il fondamento dell'ancoraggio.
+
+
+================================================================================
+COSA SERVE PER SBLOCCARE — tre vie, la decisione non e' mia
+================================================================================
+
+VIA A — DEPOSITO SU E: (il minimo). Mauro copia dal Progetto Claude a
+  E:\...\FILE X CLAUDE.MD\DA_CD_PER_CC\06_08_2026\DESIGN\QLive_Nav\ i DUE file
+  (rev3-NORMATIVA e rev2-ratificata; idealmente anche i tre del 02/08, che la riga
+  dichiara «agli atti»). Io rimisuro sha256/byte/righe/CR/blob:
+    · se COINCIDONO con le impronte del referee -> incido con corroborazione doppia
+      e il giro riparte identico;
+    · se NON coincidono -> il transito ha alterato i byte, e l'avremmo scoperto
+      PRIMA di incidere numeri falsi nel canonico. Esito prezioso quanto il primo.
+
+VIA B — DEPOSITO NEL REPO (chiude il buco invece di allargarlo). I freeze normativi
+  hanno gia' una casa TRACCIATA: DESIGN/QLive_Nav/ (sei freeze fino al 18/07).
+  Deporre il rev3 li' — commit doc, blob verificabile per sempre — renderebbe
+  l'ancoraggio del LIBRO un puntatore a un blob git, la forma piu' forte che questo
+  progetto conosca. E' la stessa direzione dell'ottavo ticket del congedo 05/08
+  (freeze 24/07 da portare sotto controllo di versione). Decisione di regime:
+  Mauro + referee, non mia.
+
+VIA C — INCIDERE COMUNQUE, CON QUALIFICA ESPLICITA («file vivo nel solo Progetto
+  Claude, deposito su disco PENDENTE»). La sconsiglio: il LIBRO registrerebbe
+  a verbale la propria impossibilita' di verifica. Ma se il referee la ratifica
+  in questa forma, e' una riga onesta e la incido.
+
+Il mio parere, esplicito: VIA B, con la A come ripiego immediato. La B trasforma
+questo incidente nella chiusura del buco LIBRO:324 anziche' nella sua terza istanza.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+NESSUNA modifica a LIBRO_MASTRO_QBEATS.md, SCALETTA, o qualunque altro canonico.
+NESSUNA modifica sotto ios_app/. NESSUN commit, NESSUN push.
+Ricerche in sola lettura su E:, Z: e repo. Unica scrittura: questo referto,
+HANDOFF\ + mirror E:.
+
+Le PARTI 1-2-3 del mandato (righe LIBRO, decisioni a/b/c, marcatura SCALETTA)
+restano INTERE e non eseguite: i loro testi sono nel mandato, pronti per il giro
+che ripartira' a materiale depositato. Non ne ho eseguita nessuna a meta'.
+
+
+DICHIARAZIONE STANDARD
+Ho misurato i supporti VERI dal vivo, non a memoria: il path dichiarato, il volume
+E: intero (per nome e per data), il NAS, e l'elenco tracciato del repo. Ogni
+affermazione porta il comando da cui viene. Dove non posso escludere l'esistenza
+altrove, l'ho scritto. Non ho inciso nulla: un ancoraggio che nasce non
+verificabile non e' un ancoraggio, e il precedente A66 dice che fermarsi prima
+della pubblicazione e' il comportamento che questo processo si aspetta da me.

@@ -1,0 +1,182 @@
+================================================================================
+MISURE — giro 3: ri-inventario E: + verifiche per il ticket — 2026-07-27
+================================================================================
+Terzo artefatto della giornata. I due precedenti NON sono stati modificati:
+  MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt  sha256 6bef059c...5f80d55e  20376 B
+  MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt    sha256 56176e4c...f6c93b9c  11146 B
+Le loro impronte restano valide.
+
+Prodotto da CC, misure di prima mano. Nessuna scrittura sui canonici.
+HEAD = 8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+================================================================================
+1) RI-INVENTARIO — E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\
+   DA_CD_PER_CC\27_07_2026\
+================================================================================
+TRE sottocartelle, non due:
+  UPDATE          created 2026-07-27 18:38:44
+  UPDATE2         created 2026-07-27 19:31:48
+  27_07_2026_g3   created 2026-07-27 20:37:35   <- la cartella nuova
+
+--- 27_07_2026_g3 (QUATTRO file, come atteso) ---
+2026-07-27_Alert-Distruttivo-FORMA__3-vie.html
+    byte=43464  sha256=9c3ea2bfce36d43d1018bdc29b6c3b25083895e1b5f202ab043d415ed0dc1edd  created=2026-07-27 20:39:16
+2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md
+    byte=13092  sha256=b5f40d9eadc63571f4570ddd9d83150b4a6ae349b053675a918aba52b46a891e  created=2026-07-27 20:39:26
+2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html
+    byte=58620  sha256=50b34c398f5b738ef85bb27cbc2b45883d4f45807e92c61b3af163d2260dabec  created=2026-07-27 20:39:09
+2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html
+    byte=27803  sha256=83c5c51d12081d5908b506fe7669b9c9746c9ab66a0bb9b2be958a3b8fabdf6c  created=2026-07-27 20:39:20
+
+Le quattro impronte coincidono con quelle dichiarate nel prompt. RIMISURATE da CC,
+non ereditate. Nomi esatti, nessun troncamento (stem max 44 < 59).
+
+--- UPDATE (invariata, QUATTRO file) ---
+Alert-Distruttivo 9917bf75... 39080 B · Card-RIEMISSIONE 068915fe... 56641 B
+Read-only-Chip 646d0aa7... 45484 B · QL-SHOWS-01-10 bd23b010... 26268 B
+=> tutte identiche alle misure del primo artefatto. Copie vecchie INVARIATE.
+
+--- UPDATE2 (CINQUE file) — ⚠️ NON PIU' UNO SNAPSHOT COERENTE ---
+Alert-Distruttivo   9c3ea2bf... 43464 B  created 19:32:59
+Card-RIEMISSIONE    50b34c39... 58620 B  created 19:32:13
+QL-SHOWS-01-10      83c5c51d... 27803 B  created 19:32:52
+Read-only-Chip      646d0aa7... 45484 B  created 19:33:09
+BOX5-V28 PAYLOAD    b5f40d9e... 13092 B  created 20:14:06   <-- SOSTITUITO IN PLACE
+
+================================================================================
+2) DUE RILIEVI DI IGIENE, misurati
+================================================================================
+(a) IL PAYLOAD VECCHIO E' STATO DISTRUTTO, non affiancato.
+    Il payload di UPDATE2 era df55ccdc3a8bcaa01987be7dedbe719ccbb62a5b7dc5c59c149b964bc9489115
+    (7444 B, created 19:33:22). Alle 20:14:06 e' stato sostituito in place da
+    b5f40d9e... (13092 B).
+    CMD: scansione dei 615 file sotto FILE X CLAUDE.MD per lunghezza 7444 byte
+      -> nessun file di 7444 byte
+    CONTROLLO POSITIVO, stessa scansione, lunghezza 13092
+      -> 2 match (g3 e UPDATE2)
+    => Il payload df55ccdc non esiste piu' su alcun supporto. Chi lo citasse
+       citerebbe il nulla — stessa forma di 04ce650a.../4d488900... (LIBRO Sez.3
+       CD-8). E' la ragione per cui le righe 1 e 2 NON erano incidibili: la fonte
+       che avrebbero citato e' stata distrutta prima dell'incisione.
+    => Conseguenza operativa: UPDATE2 e' ora uno snapshot MISTO — quattro file del
+       giro 19:32 + un payload del giro 20:14. Non rappresenta nessun giro. La
+       cartella coerente e' g3.
+
+(b) IL FILE D NON E' IN g3.
+    CMD: Test-Path g3\2026-07-27_QLive-Shows-Read-only-Chip__3-vie.html -> False
+    D vive solo in UPDATE e UPDATE2, impronta 646d0aa71e9ac061a32e9f88738160ef8d337bd8d12ae859749d135ebc0d83ef
+    (45484 B) IDENTICA in entrambe. Invariato, come atteso. Ma chi prendesse g3
+    come "la cartella buona di oggi" non troverebbe la fonte della decisione
+    "chip Read-only RIMOSSO". Da sapere quando si cita.
+
+================================================================================
+3) IL PAYLOAD NUOVO SI E' CORRETTO — verifica della clausola falsa
+================================================================================
+File: ...\27_07_2026\27_07_2026_g3\2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md
+sha256 b5f40d9eadc63571f4570ddd9d83150b4a6ae349b053675a918aba52b46a891e, 13092 B, 127 righe
+
+CMD: grep -c "mai l.app"  -> 1
+Localizzata (r.76), verbatim — e' una CITAZIONE della clausola RITIRATA, non la
+clausola viva:
+  76: "Rettifica 27/07. La versione precedente di questa riga incideva «fondo
+      #16140f». E' il fondo di UNO dei tre contenitori... lo stesso difetto della
+      clausola «mai l'app» corretta sopra."
+CONTROLLO POSITIVO: grep -c -i 'annotazion' -> 7
+
+La rettifica esplicita, r.65 verbatim:
+  "Rettifica 27/07 — la clausola precedente era falsa. Avevo scritto che questa
+   palette «non e' UI, non finisce mai in .swift». Misura del referee sui canonici:
+   #28cd41 sta in BOX5 V27 r.167 come accento dell'app... e BUGS v43 r.719 registra
+   il TD chiuso... #f5b820 sta in BOX5 V27 r.155... Due dei quattro valori SONO
+   l'app. La regola non era sbagliata, era formulata sul VALORE invece che sul
+   RUOLO."
+
+La nuova formulazione, r.86 e r.99 verbatim:
+  86: "La palette e' un elenco di RUOLI, non una riserva di valori. #28cd41 e' il
+      verde di sistema iOS: vive legittimamente dentro la cornice come accento
+      dell'app (slot metronomo) e fuori come `pro`... Le coincidenze di valore fra
+      i due lati sono permesse e attese: un colore non e' proprieta' di un lato."
+  99: "Le coincidenze di valore fra i due lati sono permesse e attese. Lo stesso
+      esadecimale puo' essere accento dell'app dentro e ruolo di annotazione fuori:
+      #28cd41 e' verde di sistema iOS E accento degli slot metronomo E `pro`. Un
+      colore non e' proprieta' di un lato, e un valore condiviso non e' un difetto
+      da bonificare."
+=> La fonte delle righe 1 e 2 e' ora COERENTE con quello che le righe dicono.
+   Sbloccate.
+
+================================================================================
+4) IL REPERTO CHE AVEVO SOTTO GLI OCCHI — #28cd41, scomposto
+================================================================================
+CMD: grep -rn '28cd41' ios_app/ --include='*.swift'   -> 5 occorrenze
+  QStageKit.swift:22            static let green = Color(hex: "#28cd41")   <- IL TOKEN
+  MetSlotStripView.swift:29     ...stato == "accent" ? Color(hex: "#28cd41")...   <- ESEGUIBILE
+  MetSlotStripView.swift:38     .shadow(color: active && stato == "accent" ? Color(hex: "#28cd41").opacity(0.6)...   <- ESEGUIBILE
+  SectionEditorView.swift:265   private let accentColor = Color(hex: "#28cd41")   // = MetSlotStripView accent   <- ESEGUIBILE
+  SectionEditorView.swift:256   /// 2->accent verde #28cd41, 1->beat, 0->subdiv)   <- COMMENTO ///
+
+⚠️ RETTIFICA ALLA FORMULAZIONE DEL PROMPT: le occorrenze fuori dal token sono
+QUATTRO, ma di queste TRE sono codice eseguibile e UNA e' un commento di
+documentazione (r.256, blocco /// che inizia a r.254). "Quattro hardcoded in codice
+vivo" sovrastima di uno. La sostanza del reperto regge intera: la deduplica NON e'
+avvenuta per il verde, al contrario di #d43f00 (1 sola occorrenza, dentro il token).
+
+DETTAGLIO CHE AGGRAVA: SectionEditorView.swift:265 porta il commento
+"// = MetSlotStripView accent" — l'autore SAPEVA di duplicare, e ha ancorato la
+copia a un ALTRO sito hardcoded invece che al token. La catena e' hardcoded->hardcoded,
+non hardcoded->token.
+
+================================================================================
+5) VERIFICHE PER LE VOCI DEL TICKET — misurate da CC, non ereditate
+================================================================================
+--- #7fe39a: dichiarato dal DS, ZERO nel codice ---
+CMD: grep -rni '7fe39a' ios_app/ --include='*.swift'  -> 0
+CONTROLLO POSITIVO: grep -rni '28cd41' ios_app/ --include='*.swift' -> 5
+Nel DS doc 1 (QBEATS_CD_to_CC_DesignSystem_26_06_2026.md) -> 2 occorrenze:
+  35: "Verde-chiaro testo su tint: #7fe39a. Ambra-chiaro / salmone rosso testo: #ff8a7c."
+  41: "| Verde | rgba(40,205,65,0.07->0.18) | rgba(40,205,65,0.25->0.40) | #28cd41 / #7fe39a |"
+CONTROLLO POSITIVO nello stesso file: 28cd41 -> 3
+=> CONFERMATO: dichiarato nel DS, mai usato nel codice.
+
+--- #8fe0a0: NON riproduco il numero "16" ---
+CMD: grep -rni '8fe0a0' ios_app/ --include='*.swift'  -> 0
+CMD: grep -ro '8fe0a0' <tutto DA_CD_PER_CC> | wc -l   -> 70
+CMD: grep -c '8fe0a0' <file C in g3>                  -> 1
+CMD: grep -ro '7fe39a' <tutto DA_CD_PER_CC> | wc -l   -> 22
+=> In nessuno degli ambiti provati il conteggio di 8fe0a0 e' 16. Riporto i miei
+   numeri e NON eredito il 16: se si riferiva a un ambito diverso, va detto quale,
+   altrimenti la voce del ticket va scritta coi numeri qui sopra.
+
+--- coppie a una cifra nel file C (g3, 9c3ea2bf...) ---
+CMD: grep -c "<valore>"
+  f3e2b0 -> 1     f3e2c0 -> 1
+  131210 -> 1     171210 -> 1
+  1b1a16 -> 1     1c1608 -> 2
+  16140f -> 8
+=> CONFERMATE tutte e tre le coppie, ciascuna a distanza di UN carattere.
+
+--- punto 4a del prompt: .gatebox usa #1c1608, non #16140f — CONFERMATO A FONTE ---
+CMD: grep -o '\.gatebox{[^}]*}' <file C>
+  .gatebox{background:#1c1608;border:1px solid rgba(245,184,32,0.5);border-radius:12px;
+  padding:15px 17px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  line-height:1.6;color:#f3e2b0}
+=> Il fondo di .gatebox e' #1c1608. La descrizione "#16140f" era errata; #16140f e'
+   il fondo di .delta .d.axis e .delta .d.q20 (8 occorrenze totali nel file).
+
+--- punto 4c del prompt: .q20b vs .gatebox, un carattere — CONFERMATO A FONTE ---
+CMD: grep -o '\.q20b{[^}]*}' <file C>
+  .q20b{position:absolute;background:#1c1608;border:1px solid rgba(245,184,32,0.5);
+  border-radius:16px;padding:20px 22px;color:#f3e2c0;box-shadow:0 10px 30px rgba(0,0,0,0.34)}
+=> Stesso fondo (#1c1608), stesso bordo. Divergono SOLO nel colore del testo:
+   .gatebox #f3e2b0  vs  .q20b #f3e2c0. Un carattere.
+
+================================================================================
+6) VERIFICA CHE IL PUNTO 6 DELL'ADDENDUM RESTA VALIDO SUL FILE DI g3
+================================================================================
+Il file C in g3 e' byte-identico a quello di UPDATE2 (stessa sha256 9c3ea2bf...),
+quindi le misure del secondo artefatto valgono invariate:
+  0a0e20 -> 0 · 3d80e6 -> 0 · 9cc0f5 -> 0 · 2a6bd6 -> 1 (dichiarazione :root, mai usata)
+CONTROLLO POSITIVO: 16140f -> 8
+
+================================================================================
+FINE ARTEFATTO GIRO 3.
+================================================================================

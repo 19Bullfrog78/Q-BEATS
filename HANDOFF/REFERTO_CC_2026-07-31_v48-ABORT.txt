@@ -1,0 +1,334 @@
+==============================================================================
+REFERTO CC — 2026-07-31 — LIBRO v48: ABORT PRIMA DELLA SCRITTURA
+==============================================================================
+
+⛔ IL LIBRO NON È STATO TOCCATO. Nessun diff da mostrare, e il motivo è che
+   il diff avrebbe inciso in un canonico un'affermazione che ho MISURATO falsa.
+   Zero canonici, zero commit, zero push, zero branch.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat
+[VUOTO — nessun tracciato modificato]
+$ git status --porcelain -- LIBRO_MASTRO_QBEATS.md
+[VUOTO — il LIBRO è identico a HEAD]
+$ git hash-object LIBRO_MASTRO_QBEATS.md   ;   git rev-parse HEAD:LIBRO_MASTRO_QBEATS.md
+3a7087b720cdf173360d1bd879c989af3b117991
+3a7087b720cdf173360d1bd879c989af3b117991
+  (i due OID coincidono: il file non è stato scritto)
+
+==============================================================================
+1 — PERCHÈ MI SONO FERMATO
+==============================================================================
+
+Il punto (1) del prompt chiedeva di incidere che le righe 126 e 128 di BUGS sono
+un RESIDUO perché «la metà pre-esistente che li motivava è chiusa da ⟦S4b⟧ e
+⟦S4R⟧, non da ⟦S6⟧», e prevedeva che la conferma a fonte non fosse ancora fatta.
+
+L'ho fatta. Esce COSÌ:
+  · CADE l'ATTRIBUZIONE del rerouting a ⟦S6⟧ — vero, misurato.
+  · NON CADE IL DIFETTO — la metà pre-esistente NON è chiusa.
+
+Non è una sfumatura: ⟦S4R⟧ porta l'utente, con la sessione viva, ESATTAMENTE
+sulla schermata che monta le due porte di uscita-stanza. La metà pre-esistente
+non è stata chiusa, è stata RIASSORBITA nella metà nuova.
+
+------------------------------------------------------------------------------
+LA CATENA, MISURATA DA ME, ANELLO PER ANELLO
+------------------------------------------------------------------------------
+
+--- (i) il back del metronomo NON esce più dalla stanza. QUESTO È VERO. ---
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift | sed -n '145p'
+                LiveView(onExit: { navigate(to: .shows) })
+
+    e prima di ⟦S4R⟧ fase 2b quel ramo era uno scaffold vuoto:
+$ git show 40f099bb28ad87627e3c6df926993a3df297df90:ios_app/QBeats/UI/QLive/QLiveRootView.swift | sed -n '64,65p'
+        case .metronome:
+            EmptyView()   // scaffold — S4L innesta qui la sessione (`if let runner`)
+
+    foglia unica, quindi l'edge è davvero reciso:
+$ git grep -c -F 'LiveHeaderView(' HEAD -- '*.swift'
+HEAD:ios_app/QBeats/UI/Live/LiveView.swift:1
+    controllo positivo stessa forma:
+$ git grep -c -F 'RoomSwitchBar(' HEAD -- '*.swift'
+HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift:1
+HEAD:ios_app/QBeats/UI/QStage/ShowsListView.swift:1
+
+--- (ii) ma il canonico di stop è INTATTO ---
+$ git show HEAD:ios_app/QBeats/UI/AppRootView.swift | cat -n | sed -n '68,77p'
+    68	        // Da N1b questo handler è l'UNICO trigger: stop all'uscita da `.qLive`,
+    69	        // DND all'ingresso. Copre lo step-3 RoomSwitchBar automaticamente.
+    70	        .onChange(of: screen) { newScreen in
+    71	            if newScreen == .qLive {
+    72	                audioEngine.triggerDNDReminderIfNeeded()
+    73	            } else if previousScreen == .qLive {
+    74	                audioEngine.stop()
+    75	            }
+    76	            previousScreen = newScreen
+    77	        }
+
+    ⚠️ La riga 69 lo dice da sé: «Copre lo step-3 RoomSwitchBar automaticamente».
+
+--- (iii) e le DUE porte che lo innescano sono montate PROPRIO sulla schermata
+         a cui il back ora conduce ---
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift | cat -n | sed -n '70,75p'
+    70	                RoomSwitchBar(
+    71	                    active: .qLive,
+    72	                    onHome: onExit,
+    73	                    variant: .full,
+    74	                    onSwitch: onSwitchToStage
+    75	                )
+
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift | cat -n | sed -n '93p'
+    93	            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
+
+$ git show HEAD:ios_app/QBeats/UI/AppRootView.swift | cat -n | sed -n '51,52p'
+    51	                    QLiveRootView(onExit: { screen = .home },
+    52	                                  onSwitchToStage: { screen = .qStage })
+
+$ git show HEAD:ios_app/QBeats/UI/Components/RoomSwitchBar.swift | cat -n | sed -n '76p'
+    76	        Button(action: onHome) {
+
+    CATENA COMPLETA, due porte:
+      QLiveShowsView:72  onHome: onExit      -> AppRootView:51 { screen = .home }
+      QLiveShowsView:74  onSwitch: onSwitch… -> AppRootView:52 { screen = .qStage }
+      entrambe -> AppRootView:73 previousScreen == .qLive -> :74 audioEngine.stop()
+    Sono DUE, non zero. Il conto delle porte di uscita-stanza a HEAD CHIUDE a due:
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift | grep -c -F 'onExit'
+4
+    controllo positivo stessa forma stesso file:
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift | grep -c -F 'onSwitchToStage'
+3
+
+--- (iv) perché oggi non morde — e NON è merito del ricablaggio ---
+$ git grep -c -F '= SetlistRunner(' HEAD -- '*.swift'
+[nessuna riga: zero siti di costruzione del runner]
+    controllo positivo stessa forma:
+$ git grep -c -F '= QLiveSession(' HEAD -- '*.swift'
+HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift:1
+
+    In .qLive nessun click può essere vivo perché il runner non nasce.
+    ⚠️ È esattamente la condizione che ⟦S5⟧ RIMUOVE PER COSTRUZIONE.
+    La protezione di oggi è «nessun audio avviabile», non «uscite sicure».
+
+==============================================================================
+2 — CHE COSA REGGE E CHE COSA CADE, SEPARATI
+==============================================================================
+
+REGGE (misurato, e va nella riga se la riga si scrive):
+  · Le tre regioni di QLiveShowsView sono DISGIUNTE. Confermato da rimisura
+    indipendente col metodo del bilanciamento delle graffe: content [234,250],
+    showList [252,267], showCard [272,311]; tre coppie su tre a intersezione
+    vuota. ⚠️ E la disgiunzione REGGE SOTTO ENTRAMBE le convenzioni di
+    inclusione (con o senza la riga-attributo 234, con o senza il commento-doc
+    269-271), ma con margine di DUE righe: 269 > 267. Se la riga entra, la
+    convenzione va DICHIARATA, altrimenti chi ricontrolla con la regola opposta
+    ottiene 235-250 oppure 269-311 e grida alla discrepanza.
+  · Il freeze è intatto: sha256 del blob 8d7a3150…c398860, 58463 byte, e
+    l'identità con 57c8b2a è a livello di OGGETTO (stesso OID
+    ce6cb714a9b033d97f08a40cfa0e09a13431c64d), prova più forte del solo digest.
+    ⚠️ Ma è identità PER ASSENZA DI STORIA: git log sul path rende UNA riga
+    (57c8b2a lo ha creato, nessun commit successivo lo tocca). Non è
+    sopravvivenza a modifiche.
+  · Il censimento della fascia: zero in tutte le notazioni sui cinque file.
+  · Zero file con 'ShowDetail' NEL NOME.
+
+CADE, o va riformulato:
+  · ⛔ «la metà pre-esistente è chiusa da ⟦S4b⟧ e ⟦S4R⟧» — FALSO. Vedi §1.
+  · ⚠️ «le due righe di BUGS sono un RESIDUO» — vero SOLO per l'attribuzione
+/c/Users/BULLFROG/AppData/Local/Temp/claude/C--Users-BULLFROG/47d2bed1-9362-4c48-bbb3-7ae352099fcc/scratchpad/gen_abort.sh: line 135: :126: command not found
+    dell'atomo e per lo stato del freeze.  «Da chiudere PRIMA di S6»
+    resta LETTERALMENTE VERO nell'ordine emendato (⟦S-EXIT⟧ < ⟦S4L⟧ < ⟦S6⟧),
+/c/Users/BULLFROG/AppData/Local/Temp/claude/C--Users-BULLFROG/47d2bed1-9362-4c48-bbb3-7ae352099fcc/scratchpad/gen_abort.sh: line 137: :128: command not found
+    e  «Nessun fix applicato / OPEN ALTA / BLOCCANTE PALCO» è vero a
+    HEAD. È sbagliato il PROPRIETARIO, non la scadenza e non la severità.
+  · ⚠️ «zero file ShowDetail» è vero sui NOMI e FALSO sui CONTENUTI: il nome
+    canonico ESISTE già, è QLiveShowDetailView, ed è già specificato per
+    ⟦S5⟧ come file NUOVO da creare:
+$ git grep -n -F -i 'ShowDetail' HEAD
+HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:27:- **③ SHOW DETAIL** read-only: → `QLiveShowDetailView` (navbar back+seg-mini · songlist · Start 
+HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:297:### ⟦S5⟧ QLiveShowDetailView (frame ③) + Start · POST · CI+DEVICE
+HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:299:- **File:** `UI/QLive/QLiveShowDetailView.swift` NUOVO (navbar back + RoomSwitchBar `.segMini[active:
+    controllo positivo stessa forma:
+$ git grep -c -F -i 'QLiveShowsView' HEAD
+HEAD:BOX3_QBEATS.md:1
+HEAD:BOX5_QBEATS.md:1
+HEAD:BUGS_QBEATS.md:12
+    Lo zero è quello di «non ancora scritto», non di «mai concepito».
+
+==============================================================================
+3 — LA FORMULAZIONE CHE I FATTI SOSTENGONO
+==============================================================================
+
+Non la scrivo nel LIBRO. La propongo, e decide il referee.
+
+  A 8822598801ecbf9ca1be5adbf005f904c0b45f39 il back del player non era più
+  un'uscita di stanza: unico sito di costruzione di LiveView a
+  QLiveRootView.swift:145, closure interna { navigate(to: .shows) }, foglia
+  LiveHeaderView( a un solo sito. Il ricablaggio l'ha portato ⟦S4R⟧ (bfc9228),
+  non ⟦S6⟧: cade dunque l'ATTRIBUZIONE del rerouting a ⟦S6⟧ in BUGS:120 e :128.
+
+  ⛔ NON cade il difetto. Il canonico AppRootView.swift:70-74 era intatto e le
+  due porte che lo innescano erano montate sulla stessa schermata a cui il back
+  ora conduce (QLiveShowsView.swift:72 e :74). La metà PRE-ESISTENTE non è
+  chiusa: è RIASSORBITA nella metà NUOVA, il cui gate è ⟦S-EXIT⟧. Il ticket
+  passa da due metà a UNA SOLA, interamente aperta.
+
+  Oggi non morde non per il ricablaggio ma perché il runner non nasce
+  (= SetlistRunner( a zero siti): condizione che ⟦S5⟧ rimuove per costruzione.
+
+  BUGS:126 e :128 sono stale nell'ATTRIBUZIONE e nello STATO DEL FREEZE, e sono
+  già censite come istanze da MARCARE in LIBRO:328 caso (b) — non da
+  riscrivere, non da chiudere. La severità resta.
+
+------------------------------------------------------------------------------
+E UNA DOMANDA CHE NON POSSO SCIOGLIERE IO
+------------------------------------------------------------------------------
+Il prompt fa poggiare la liberazione di ⟦S6⟧ da ⟦S4L⟧ su DUE misure. La prima
+regge. La seconda, come formulata, no. Se ⟦S6⟧ vada liberato lo stesso — sulla
+sola prima misura più l'emendamento d'ordine, che è prerogativa del referee —
+NON LO DECIDO IO. Segnalo solo che l'argomento è arrivato al cancello con una
+gamba sola, e che LIBRO:329 tiene ⟦S4L⟧ immediatamente prima di ⟦S6⟧ con
+LIBRO:317 in stato «attiva».
+
+==============================================================================
+4 — ALTRI DUE REPERTI, PRESI AL CANCELLO E NON RICHIESTI
+==============================================================================
+
+--- (a) IL PUNTATORE LIBRO:467 È MORTO, E LO ERA GIÀ PRIMA DI ME ---
+BUGS r.356 e r.1006 censiscono LIBRO:467 fra gli otto indirizzi come «puntatore
+puro» che nomina la proprietà del runner.
+$ git show HEAD:LIBRO_MASTRO_QBEATS.md | sed -n '467p' | grep -c -F 'proprietà del runner'
+0
+  controllo positivo stessa forma STESSA riga:
+$ git show HEAD:LIBRO_MASTRO_QBEATS.md | sed -n '467p' | grep -c -F 'NODO A'
+1
+$ git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -n -F 'proprietà del runner' | tail -3
+475:| 43 | 2026-07-28 | Mauro + CC + referee | **Sez.2 +1 riga: sdoppi
+478:| 46 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-o
+479:| 47 | 2026-07-31 | Mauro + CC + referee | **Sez.2 +4 righe, doc-o
+
+  Era CORRETTO quando fu scritto. Prova per storia:
+  31645646  voce43@riga=467
+  40f099bb  voce43@riga=471
+  88225988  voce43@riga=475
+  Deriva 475 - 467 = 8 righe, già presente PRIMA di questo giro.
+  ⚠️ La v48, se scritta, la porterebbe a NOVE. La marcatura appartiene a BUGS.
+
+--- (b) UN CITE DI BUGS:120 PUNTA ALLA STANZA SBAGLIATA ---
+r.120 attribuisce a AppRootView.swift:43 il { screen = .home } di Q-Live.
+$ git show HEAD:ios_app/QBeats/UI/AppRootView.swift | sed -n '43p'
+                    QStageRootView(onExit: { screen = .home },
+  Q-Live sta invece a :51. Il cite esiste, sembra giusto, e descrive l'ALTRA
+  stanza: chi verifica «a fonte» trova qualcosa di plausibile e conferma un
+  fatto falso. È la forma peggiore di drift.
+
+--- (c) il registro SALTA le versioni 25 e 26 ---
+$ git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -c -F '| 25 | 2026-'
+0
+$ git show HEAD:LIBRO_MASTRO_QBEATS.md | grep -c -F '| 26 | 2026-'
+0
+  controlli positivi stessa forma:
+$ ... grep -c -F '| 24 | 2026-'   e   '| 27 | 2026-'
+1
+1
+  45 righe di dati ma numerazione fino a 47: 47 - 45 = 2, e i due mancanti sono
+  esattamente 25 e 26. Chi contasse le righe per dedurre il numero della
+  prossima versione sbaglierebbe di due. La prossima resta 48.
+
+==============================================================================
+5 — IL LAVORO GIÀ FATTO E PRONTO, SE LA RIGA SI SCRIVE
+==============================================================================
+
+Lo script di scrittura esiste, opera sui BYTE GREZZI e non è un editor.
+Girato in MODO A SECCO: tutti i cancelli passano, il disco non è toccato.
+
+  Cancelli pre-scrittura superati: nessun BOM · terminatori uniformi
+  CRLF 483/483/483 con zero LF nudi e zero CR nudi · byte 209166 · sha256 disco
+  atteso · quattro ancore ciascuna UNICA (occorrenze = 1).
+  Cancelli sul testo nuovo: riga Sez.2 a 7 pipe esatti (difetto 7 del catalogo)
+  · riga registro a 5 pipe esatti · nessun terminatore dentro i pezzi nuovi.
+  Cancelli post-costruzione, in memoria: CRLF ancora uniformi · 483 -> 485
+  righe · nessun BOM introdotto · tutte le 137 righe-data di Sez.2 a 7 pipe.
+
+IMPRONTE PRECALCOLATE (calcolate PRIMA, disco mai toccato):
+                        PRIMA                                      DOPO
+  OID (disco = blob)    3a7087b720cdf173360d1bd879c989af3b117991   c28e7932fc9ae3bbc10aa198370959f06dae054a
+  byte disco (CRLF)     209166                                     216651
+  byte blob  (LF)       208683                                     216166
+  righe                 483                                        485
+  CR disco / CR blob    483 / 0                                    485 / 0
+
+⚠️ Queste impronte valgono per il testo che ho ABORTITO. Se il referee cambia
+   la formulazione del punto (1), cambiano tutte: si ricalcolano, non si
+   riusano.
+
+==============================================================================
+6 — IL CANCELLO DEL LINT, E CHE COSA COPRE DAVVERO
+==============================================================================
+
+Non c'è un LIBRO nuovo da linteggiare: non l'ho scritto. Giro il lint su questo
+referto, e riporto l'ESITO nella forma che il prompt chiede — separando i
+controlli che LEGGONO IL FILE da quelli che sono auto-test dei pattern.
+
+⚠️ TRAPPOLA TROVATA GIRANDO IL CANCELLO — l'OTTAVA forma, e la registro qui.
+   Alla prima passata questo referto ha FALLITO il proprio lint, e non per la
+   mia prosa: perché CITAVA VERBATIM l'output del lint. Le righe di controllo
+   positivo dello strumento contengono i token sostitutivi come dati — la lista
+   che il pattern C5 deve agganciare — e il lint, ri-letto su un documento che
+   la riporta, li aggancia di nuovo. Un documento che cita il proprio
+   strumento di controllo non può passarne il controllo.
+   Perciò qui NON incollo le sei righe di controllo positivo: le descrivo una
+   per una sotto. La misura di quella prima passata, verbatim:
+     ESITO: 10 controlli, 3 falliti
+        - C5 riga 279   -> agganciava la lista di token che lo strumento
+                           stampa come DATO nel proprio controllo positivo
+        - C5 riga 282   -> stessa causa, seconda occorrenza
+        - C5 TESTO nessun sostitutivo vocale+apostrofo a fine parola
+   Entrambe le righe erano output dello strumento, non testo mio.
+
+Esito del lint su QUESTO referto, senza quelle due citazioni:
+  OK   | C3 TESTO nessuna forma «giorni trascorsi»          | riscontri = 0 
+  OK   | C5 TESTO nessun sostitutivo vocale+apostrofo a fine parola | riscontri = 0 
+ESITO: 8 controlli, 0 falliti
+  codice di uscita del lint (misurato senza pipe, che maschererebbe il vero):
+    EXIT = 0   (0 = nessun controllo fallito, 2 = almeno uno fallito)
+
+------------------------------------------------------------------------------
+ESITO SCOMPOSTO — «8 controlli, 0 falliti» NON è una copertura
+------------------------------------------------------------------------------
+  CONTROLLI CHE LEGGONO DAVVERO IL FILE CONSEGNATO: 2 su 8.
+    7. C3 TESTO «nessuna forma giorni trascorsi»              (lint :219)
+    8. C5 TESTO «nessun sostitutivo vocale+apostrofo»          (lint :220)
+  AUTO-TEST DEI PATTERN, su stringhe CABLATE nello script: 6 su 8.
+    1. POS C3 il pattern aggancia                (stringa cablata a :104)
+    2. POS C3 le parole comuni NON agganciano    (stringa cablata a :108)
+    3. POS C5 il pattern aggancia                (stringa cablata a :112)
+    4. POS C5 le elisioni NON agganciano         (stringa cablata a :116)
+    5. POS C5 le virgolette di chiusura NON agganciano (cablata a :120)
+    6. POS C5 i sostitutivi veri sopravvivono al filtro (ri-gira :112)
+  2 + 6 = 8, il conto chiude.
+  Provato con una sonda, non asserito: su file DELIBERATAMENTE SPORCO i sei
+  auto-test rendono OK IDENTICO, e il totale sale (il ciclo per-riga a :215-218
+  registra un esito solo 'if h:', quindi «8» è il conto del caso PULITO, non un
+  denominatore fisso). C1/C2/C4 non girano in --libero, lo dichiara il tool.
+
+==============================================================================
+CODA — COSA NON HO MISURATO
+==============================================================================
+
+· Nessun gate device. Nulla di quanto sopra è stato esercitato a runtime.
+· Non ho letto i 58463 byte del freeze CD: lo sha256 prova identità, non
+  che il disegno copra entrambe le uscite come BUGS:126 pretende.
+· Non ho interrogato la CI dei commit citati.
+· Non ho censito l'insieme dei «canonici»: ho misurato i CINQUE file nominati.
+· Non ho verificato la finestra della clausola-limite di BUGS:123
+  (LiveView.swift:406-407, observer senza guard su .waitingForDirector):
+  resta non misurata, come il ticket stesso dichiara.
+· La rimisura indipendente e la critica avversariale sono state prodotte da
+  agenti separati; io ho RIVERIFICATO A FONTE, con i comandi riportati sopra,
+  ogni anello della catena del §1. Gli altri reperti li riporto come loro.
+
+==============================================================================
+FINE REFERTO.
+==============================================================================

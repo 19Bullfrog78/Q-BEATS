@@ -1,0 +1,210 @@
+QB-2026-08-05-A46 · MISURA — IL RITORNO DA «SHOW FINITO» · SOLA LETTURA
+CC → Referee · segue A45 (parte B del mandato ampliato, mai eseguita)
+
+ID: A46. Ultimo reale = A45 (mio file precedente, S5-SOTTOSCRIZIONE — nome ereditato dal prompt
+precedente, note tue in apertura recepite). Consegna `MISURE_CC_2026-08-05_S5-RITORNO-FINESHOW.txt`
+non esisteva prima di questa scrittura (`ls | grep`). Orologio: 2026-08-05T09:10:09Z (`date -u`).
+HEAD invariato: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+
+**Sovrapposizione controllata prima di partire:** `HANDOFF/MISURE_CC_2026-08-03_A17-TRE-CAUSE-LIMBO.txt`
+copre materia ADIACENTE, non le stesse misure — dichiarato, non fermo il giro. Trovava già
+(08-03): `FineSetlistView(` ha 1 chiamante, `LiveView.swift:145` [linea confermata identica
+anche a HEAD odierno]; ed entrambi i bottoni di `FineSetlistView.swift` sono closure VUOTE.
+Quella misura NON copriva: censimento `playbackState =`, corpo di `primeDisplay`, censimento
+riferimenti forti al runner — le tre cose che questo giro chiede. Ho riverificato FRESCO oggi
+(non ereditato dall'08-03) il file dei bottoni, perché due commit fra l'08-03 e oggi toccano
+esplicitamente quest'area (`bce6a73` «nuovo ticket TD-fineshow-bottoni-morti», `ea3f94a`
+«cancello END SHOW in scheda S5») — risultato sotto, punto 2: invariato.
+
+Annotato per il congedo, non aperto qui: i due debiti AudioEngine (commenti contraddittori
+:287 vs :2612-2615; claim C++ non verificato :2617-2618) — il secondo il più serio, come dici.
+
+Mandato: sola lettura, nessuna soluzione proposta.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+1 — Censimento `playbackState = `, tutto ios_app/, ogni valore, controllo positivo
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+⚠️ **PRIMA DISTINZIONE MISURATA, non nel mandato ma necessaria per non mentire:** il pattern
+`playbackState = ` colpisce DUE proprietà DISTINTE su DUE tipi diversi, che condividono solo il
+nome. `AudioEngine` ha un proprio `@Published var playbackState` (4 casi: stopped/countIn/
+playing/pausedAwaitingChoice); `LiveSession` ha `@Published var playbackState: LivePlaybackState`
+(7 casi, incluso `.fineSetlist`, che `AudioEngine` non ha). La domanda del PERCHÉ riguarda
+`.fineSetlist`, quindi riguarda SOLO `session.playbackState` — la separo di seguito.
+
+**`self.playbackState =` / `self?.playbackState =` (AudioEngine, tipo diverso) — 6 siti, fuori
+perimetro della domanda ma censiti per completezza:**
+    AudioEngine.swift:1026   self.playbackState        = .playing
+    AudioEngine.swift:1091   self?.playbackState = .stopped
+    AudioEngine.swift:1232   self?.playbackState = .pausedAwaitingChoice(sectionName: sectionName, songName: songName)
+    AudioEngine.swift:1240   self?.playbackState = .stopped
+    AudioEngine.swift:1251   self?.playbackState = .countIn
+    AudioEngine.swift:1261   self?.playbackState = .stopped
+
+**`session.playbackState =` (LiveSession, il tipo che conta) — 8 siti, TUTTI i valori assegnati:**
+    SetlistRunner.swift:148    session.playbackState = .fineSetlist
+    SetlistRunner.swift:348    session.playbackState = .standby(nextSongName: nextSongName)
+    SetlistRunner.swift:377    session.playbackState = .fineSetlist
+    LiveView.swift:237         session.playbackState = .stopped
+    LiveView.swift:253         session.playbackState = .countIn(countdown: 4)
+    LiveView.swift:255         session.playbackState = .playing
+    LiveView.swift:261         session.playbackState = .overlayStop(sectionName: sec, songName: song)
+    TransportView.swift:58     session.playbackState = .waitingForDirector
+
+⚠️ **LA RIGA CHE RISPONDE ALLA DOMANDA — verbatim del blocco intero, righe lette
+(LiveView.swift:224-237), non solo la riga dell'assegnazione:**
+
+    224      .onReceive(audioEngine.$playbackState) { state in
+    225          switch state {
+    226          case .stopped:
+    227              // L1.b: il runner gestisce .standby e .fineSetlist impostando
+    228              // session.playbackState PRIMA di chiamare audioEngine.stop().
+    229              // Lo stop() dispatcha .stopped su main qualche ms dopo —
+    230              // NON sovrascrivere stati già impostati dal runner.
+    231              switch session.playbackState {
+    232              case .standby, .fineSetlist:
+    233                  return
+    234              default:
+    235                  break
+    236              }
+    237              session.playbackState = .stopped
+
+**RISPOSTA MISURATA, dichiarata esplicitamente come tu chiedi — non un vuoto:** l'UNICO sito che
+assegna `.stopped` a `session.playbackState` (:237) è preceduto da una guardia esplicita
+(:231-234) che fa `return` PRIMA dell'assegnazione se lo stato corrente è `.standby` **oppure
+`.fineSetlist`**. ⇒ **`.fineSetlist` è escluso per costruzione, esplicita e commentata, dal solo
+percorso che scrive `.stopped`.** Nessuno degli altri 7 siti assegna `.stopped` (i valori sono
+`.fineSetlist` ×2, `.standby` ×1, `.countIn` ×1, `.playing` ×1, `.overlayStop` ×1,
+`.waitingForDirector` ×1 — zero altre occorrenze di `.stopped`). **Non esiste, in tutto
+`ios_app/`, un solo punto misurato che riporti `session.playbackState` da `.fineSetlist` a
+`.stopped`.** Questo È la misura che ti serve, non un buco di ricerca: il codice lo impedisce
+apposta, un caso alla volta.
+
+⚠️ Le altre tre assegnazioni della `switch` (:252-253 `.countIn`, :254-255 `.playing`, :260-261
+`.overlayStop`, tutte nello stesso `.onReceive` di :224) NON portano una guardia analoga —
+dichiarato, non taciuto: se `audioEngine.$playbackState` emettesse uno di questi tre stati mentre
+`session.playbackState` fosse ancora `.fineSetlist`, l'assegnazione avverrebbe senza controllo.
+⛔ Non dichiaro se questo sia raggiungibile oggi: è materia del punto 2/4, non di questo censimento.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+2 — Come viene mostrata FineSetlistView?
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+RAMO/OVERLAY DENTRO LiveView — non è una destinazione di navigazione. Verbatim, righe lette
+(LiveView.swift:140-146, dallo stesso ZStack che porta anche OverlayStopView):
+
+    140                  if case .overlayStop(let sec, let song) = session.playbackState {
+    141                      OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine, scaleFactor: scaleFactor)
+    142                  }
+    143
+    144                  if case .fineSetlist = session.playbackState {
+    145                      FineSetlistView(scaleFactor: scaleFactor)
+    146                  }
+
+Censimento `FineSetlistView(` in tutto ios_app/: **1 sito**, quello sopra. Confermato oggi, HEAD
+5183758…, identico a quanto già trovato in A17 (08-03) — nessuna deriva in tre giorni.
+
+⇒ **CONSEGUENZA MISURATA, non dedotta: `LiveView` NON viene smontata quando appare
+`FineSetlistView`.** È lo stesso `ZStack` della stessa istanza di `LiveView`; solo il valore di
+`session.playbackState` cambia. `.onAppear` (:193) e la sua chiamata a `primeDisplay` (:213)
+sono legati al ciclo di vita della VISTA, non allo stato: finché `LiveView` resta montata (cioè
+finché la stanza Q-Live non viene lasciata — vedi A43/A44 sulla catena di montaggio), **non
+rifirano da soli al comparire o sparire di `FineSetlistView`.**
+
+⚠️ **Riscontro fresco che precede l'intera domanda:** `FineSetlistView.swift` letto oggi per
+intero — 28 righe, invariate rispetto all'08-03 (stesso contenuto, stessa lunghezza):
+    19      Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }
+    21      Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
+Entrambe le closure sono VUOTE. ⇒ **Oggi non esiste, a UI, nessun modo per l'utente di uscire da
+`.fineSetlist`** — indipendentemente da cosa il codice-stato permetterebbe: il bottone che
+dovrebbe farlo scattare non fa nulla. Misura, non giudizio: la domanda del PERCHÉ presuppone un
+Restart che ri-arma la setlist — quel Restart, oggi, non ha corpo.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+3 — `primeDisplay` (:271-275): tocca `playbackState`?
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Verbatim, riletto oggi (non dal ricordo dei giri precedenti):
+
+    271      func primeDisplay(session: LiveSession) {
+    272          guard let section = currentSection else { return }
+    273          updateSessionDisplay(session: session)
+    274          session.currentBPM         = section.bpm
+    275          session.totalBarsInSection = Int(section.repetitions)
+    276      }
+
+RISPOSTA: NO. Cinque righe, zero occorrenze di `playbackState` — nel metodo stesso e nel metodo
+che chiama (`updateSessionDisplay`, verbatim già consegnato in A43 §3: righe 238-246, tocca
+`currentSongName`/`currentSectionName`/`nextSectionName`/`nextSongName`/`macroBarCurrent`/
+`macroBarTotal` — nemmeno lì compare `playbackState`). Dichiarato esplicitamente: non c'è.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+4 — Chi tiene riferimenti forti al runner
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+**`@EnvironmentObject … runner` — 2 siti** (censimento ios_app/, non solo LiveView.swift):
+    LiveView.swift:6         @EnvironmentObject var runner: SetlistRunner
+    TransportView.swift:6    @EnvironmentObject var runner: SetlistRunner
+
+⚠️ **Non catalogato nei round precedenti:** `TransportView` è un SECONDO consumatore
+indipendente via `@EnvironmentObject`, non solo `LiveView`. Non riceve `runner` come parametro
+esplicito da `LiveView` (che la costruisce a :124 con `TransportView(session: session,
+audioEngine: audioEngine, scaleFactor: scaleFactor)` — nessun `runner:` nell'elenco argomenti):
+lo pesca dall'ambiente, ereditato dalla stessa iniezione di `QLiveRootView.swift:146`.
+
+**`.environmentObject(runner)` — 1 sito** (censimento ios_app/):
+    QLiveRootView.swift:146   .environmentObject(runner)
+(già misurato in A43; riconfermato oggi presente, stessa riga.)
+
+**`@ObservedObject … runner` — ZERO.**
+⚠️ CONTROLLO POSITIVO stessa forma, stesso perimetro: `@ObservedObject` morde 11 volte in
+ios_app/ (BackupView, DebugView ×2, ContentView, ImportView, SettingsView, ShowsListView,
+SongListView, SongEditorView, QLiveShowsView, più le 2 su `session`/`audioEngine` di
+TransportView/MixerOverlayView/LiveHeaderView/TeleprompterCapsuleView) — il meccanismo di
+ricerca funziona; nessuna di queste righe porta `runner`. Lo zero è vero.
+
+**`.onReceive` su publisher del runner — 1 sito:**
+    LiveView.swift:354   .onReceive(runner.$currentSectionIdx) { _ in
+
+**Closure che catturano `runner` — censite dalle righe-codice già isolate in A45 (LiveView) più
+la lettura odierna di TransportView. Per ciascuna: presenza/assenza di lista di cattura esplicita
+`[weak …]`, letta, non assunta:**
+
+    LiveView.swift:132-138    .onTapGesture { runner.startCurrentSong(...) }
+                               Nessuna `[weak …]` — cattura di default.
+    LiveView.swift:166-173    WaitingForDirectorView(...) { … runner.startSetlist(...) }
+                               Nessuna `[weak …]` — cattura di default.
+    LiveView.swift:193-222    .onAppear { … runner.primeDisplay(...) … runner.currentSection … }
+                               Nessuna `[weak …]` — cattura di default.
+    LiveView.swift:406-417    .onReceive(audioEngine.linkStartedSubject) { _ in … runner.startCurrentSong/startSetlist … }
+                               Nessuna `[weak …]` — cattura di default.
+    TransportView.swift:35-64 RubberBtnView(...) { … runner.startSetlist(...) … } (trailing closure bottone play)
+                               Nessuna `[weak …]` — cattura di default.
+
+⇒ **MISURATO: nessuna delle 5 closure che referenziano `runner` porta una lista di cattura
+esplicita `[weak runner]` o `[weak self]`.** ⛔ **DOVE MI FERMO — confine dichiarato, non
+inferito:** se questo costituisca un rischio di ritenzione reale dipende da come SwiftUI gestisce
+internamente la cattura di proprietà `@EnvironmentObject` su `View` di tipo `struct` attraverso
+le closure dei modificatori — comportamento del FRAMEWORK, non misurabile leggendo il codice di
+questo repo. Non lo inferisco dal nome dei meccanismi (stesso principio applicato al confine C++
+in A45): lo dichiaro fuori dalla mia portata di misura da qui.
+
+**Fatto di linguaggio, non inferenza, utile come contesto — VERO-PER-COSTRUZIONE del linguaggio
+Swift/Combine, non misurato su questo runtime:** `AnyCancellable` cancella la propria
+sottoscrizione al proprio `deinit`; un'istanza si dealloca quando il conteggio dei riferimenti
+forti su di essa raggiunge zero. Il censimento sopra è l'inventario completo, per quanto
+misurabile da codice sorgente, di CHI potrebbe tenere un riferimento forte al runner oggi: due
+`@EnvironmentObject`, un'iniezione, un `.onReceive`, cinque closure — tutte senza `weak`
+dichiarato. Non concludo se questo basti a impedire la deallocazione di un ipotetico "vecchio"
+runner in uno scenario Restart: quello scenario non esiste ancora a codice (A44 punto 4: zero
+costruttori di `SetlistRunner`).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+NON RICHIESTO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Nessun fix proposto. Dichiarato esplicitamente.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine misure. Nessun file toccato fuori da questa consegna, nessun commit, nessun push.
+════════════════════════════════════════════════════════════════════════════════════════════════

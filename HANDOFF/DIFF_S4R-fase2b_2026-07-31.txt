@@ -1,0 +1,224 @@
+================================================================================
+DIFF ⟦S4R⟧ FASE 2b — COSTRUZIONE CORRETTA. NON COMMESSO.
+Albero di partenza: 40f099bb28ad87627e3c6df926993a3df297df90 (= origin/master)
+Sostituisce DIFF_S4R-fase2_2026-07-31.txt (NON ratificato), che si CONSERVA
+come traccia di cio' che il referee ha respinto.
+Nulla in staging: git diff --cached --name-only = 0 righe.
+================================================================================
+
+PARTE 1 — git diff (3 file TRACCIATI)
+--------------------------------------------------------------------------------
+diff --git a/ios_app/QBeats/SetlistRunner.swift b/ios_app/QBeats/SetlistRunner.swift
+index e88a40e..1e60d7d 100644
+--- a/ios_app/QBeats/SetlistRunner.swift
++++ b/ios_app/QBeats/SetlistRunner.swift
+@@ -4,7 +4,9 @@ import os
+ 
+ /// Layer 3 orchestrator per navigazione multi-section setlist (L1.b).
+ ///
+-/// Vive in `LiveRootView` come `@StateObject` — vita = durata performance.
++/// Lo SLOT che lo ospita vive in `QLiveSession`, posseduta da `QLiveRootView`
++/// come `@StateObject` (⟦S4R⟧): il runner nasce allo Start (⟦S5⟧) con la
++/// setlist scelta e vive quanto la stanza Q-Live — vita = durata performance.
+ /// AudioEngine ignora il setlist: SetlistRunner è il callsite di
+ /// `loadSection(onEnd:)` e decide tra i 3 rami end-of-section:
+ ///   - `avanza`      — sezione successiva nella stessa canzone
+diff --git a/ios_app/QBeats/UI/LiveRootView.swift b/ios_app/QBeats/UI/LiveRootView.swift
+deleted file mode 100644
+index c4ba784..0000000
+--- a/ios_app/QBeats/UI/LiveRootView.swift
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import SwiftUI
+-
+-struct LiveRootView: View {
+-    /// Nodo A — seam d'uscita fornito dal presenter (AppRootView via
+-    /// QLiveRootView: `{ screen = .home }`). Firma STABILE: cambia il
+-    /// chiamante, non LiveRootView.
+-    let onExit: () -> Void
+-
+-    @EnvironmentObject var audioEngine: AudioEngine
+-
+-    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+-    @StateObject private var runner = SetlistRunner(
+-        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+-        store: .shared
+-    )
+-
+-    var body: some View {
+-        LiveView(onExit: onExit)
+-            .environmentObject(audioEngine)
+-            .environmentObject(runner)
+-    }
+-}
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index a85a397..cb9ca49 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -12,8 +12,8 @@ import SwiftUI
+ ///
+ /// S4b (flip della root): la root interna è `QLiveShowsView` (frame ② Shows);
+ /// la navigazione INTERNA della stanza è `page` + funnel `navigate(to:)`.
+-/// I rami `.detail`/`.metronome` sono scaffold (EmptyView): i mutatori
+-/// arrivano con S5/S6; S4L innesterà la sessione/runner nel ramo `.metronome`.
++/// Il ramo `.detail` resta scaffold (EmptyView): i mutatori arrivano con S5/S6.
++/// Il ramo `.metronome` porta da ⟦S4R⟧ il gate `if let runner` sulla sessione.
+ ///
+ /// INVARIANTI (gate Nodo A — non derogabili):
+ ///  - resta IN-TREE: MAI reintrodurre uno `UIHostingController` qui.
+@@ -23,10 +23,14 @@ import SwiftUI
+ ///    S4L, quando la proprietà del runner sale alla stanza (BOX3 V97 (a)):
+ ///    è proprio lì che la scorciatoia «overlay sempre montato» diventa
+ ///    strutturalmente attraente.
+-///  - «mai il player senza runner iniettato» RESTA IN VIGORE: a S4b il player
+-///    NON è montato affatto (ramo `.metronome` = EmptyView). L'emendamento
+-///    formale della lettera storica («renderizza `LiveRootView`, MAI `LiveView`
+-///    diretto») è ATTESO A S4L (BOX3 V97 (e)) e NON è anticipato qui.
++///  - «mai il player senza runner iniettato» RESTA IN VIGORE, e da ⟦S4R⟧ è
++///    GARANTITO DAL GATE `if let runner` del ramo `.metronome`. L'emendamento
++///    della LETTERA storica («renderizza `LiveRootView`, MAI `LiveView`
++///    diretto») è RATIFICATO in `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:210-213
++///    @ 40f099bb28ad87627e3c6df926993a3df297df90`: questo file lo APPLICA, non
++///    lo dispone. Applicazione: `LiveRootView` non esiste più — esisteva solo
++///    per possedere il runner phantom — e il player si renderizza direttamente,
++///    col runner iniettato DENTRO il gate. Lo SCOPO dell'invariante è intatto.
+ struct QLiveRootView: View {
+     let onExit: () -> Void
+     /// Switch di stanza → Q-Stage. Iniettata da AppRootView
+@@ -41,6 +45,26 @@ struct QLiveRootView: View {
+ 
+     @State private var page: QLivePage = .shows
+ 
++    /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
++    /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
++    ///
++    /// PERCHÉ VIVE QUI, e perché la morte del runner è STRUTTURALE e non
++    /// procedurale: `QLiveRootView` è l'unico nodo che nasce e muore con la
++    /// stanza. Misura a `40f099bb28ad87627e3c6df926993a3df297df90`, prima di
++    /// questo atomo: NESSUN CODICE TIENE IN VITA UN RUNNER — 0 overlay
++    /// always-on, 0 cache, 0 singleton; unico sito di costruzione
++    /// `LiveRootView.swift:12`, con 0 chiamanti. Un azzeramento esplicito su un
++    /// evento d'uscita sarebbe invece cieco a ogni percorso non previsto, e
++    /// l'unico posto dove appenderlo — `AppRootView.onChange(of: screen)` — è
++    /// già dichiarato cieco alle uscite che NON cambiano `screen`
++    /// (`BOX3_QBEATS.md:51`): erediterebbe quella cecità per costruzione.
++    ///
++    /// ⚠️ NON SORGENTATO (§7): la tesi «il ramo di `switch` rilascia la memoria
++    /// del sottoalbero», che il blocco INVARIANTI qui sopra usa, è comportamento
++    /// SwiftUI di cui NON abbiamo fonte. È marcata, non rimossa, e NON è la
++    /// motivazione di questa scelta: la motivazione è la misura qui sopra.
++    @StateObject private var session = QLiveSession()
++
+     // DECISIONE CD 18/07 (ratificata — LIBRO Sez.2, riga 18/07/2026):
+     // navigazione ≠ transport. NESSUNO stop audio va agganciato alle
+     // transizioni di `page`, in NESSUNA forma (niente `.onChange(of: page)`
+@@ -62,7 +86,64 @@ struct QLiveRootView: View {
+         case .detail:
+             EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
+         case .metronome:
+-            EmptyView()   // scaffold — S4L innesta qui la sessione (`if let runner`)
++            // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
++            if let runner = session.runner {
++                // UNICO punto in cui il runner entra nell'albero delle viste.
++                // I figli lo osservano DIRETTAMENTE (`@EnvironmentObject` sul
++                // runner: `LiveView.swift:6`). ⛔ MAI leggere attraverso la
++                // sessione (`session.runner?.…`): compila, sembra giusto, e
++                // produce l'UI metronomo CONGELATA che sembra un guasto del DSP
++                // — `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`.
++                //
++                // ⛔ IL BACK DEL PLAYER NON È UN'USCITA DI STANZA: va all'IMBUTO
++                //    INTERNO (`navigate(to: .shows)`), MAI a `onExit`. Freeze CD
++                //    `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html:286 @
++                //    40f099bb28ad87627e3c6df926993a3df297df90` — «Navigazione ≠
++                //    transport … back dal player → lista (click continua, (c));
++                //    … Nessuna tocca il clock.» — e `:290`, stesso commit:
++                //    «Player (metronomo) = nessun terzo sfondo … sul player la
++                //    barra stanze non c'è → nessuna uscita-stanza, niente gate
++                //    lì.» Passare `onExit` qui significherebbe che a ⟦S5⟧ un
++                //    tocco involontario esce dalla stanza e UCCIDE IL CLICK,
++                //    saltando il gate «Stop & Exit / Stay» obbligatorio in play.
++                //    ⛔ Quel gate NON si costruisce qui: è ⟦S-EXIT⟧, e nel
++                //    freeze vive su lista e dettaglio, non sul player.
++                //
++                // `audioEngine` NON si re-inietta, e NON è un'omissione:
++                //  · iniettato a `AppRootView.swift:53 @
++                //    40f099bb28ad87627e3c6df926993a3df297df90`, DIRETTAMENTE su
++                //    questa view — un livello sopra il gate;
++                //  · Apple, `View.environmentObject(_:)`: «Supplies an
++                //    observable object to a view's hierarchy», disponibile alle
++                //    subview della gerarchia — developer.apple.com/
++                //    documentation/swiftui/view/environmentobject(_:);
++                //  · prova IN-REPO su percorso esercitato A OGNI AVVIO:
++                //    `HomeRootView.swift:14` dichiara `@EnvironmentObject var
++                //    audioEngine` e `AppRootView.swift:34-35` NON gliene inietta
++                //    uno locale — arriva solo da `QBeatsApp.swift:16`. Se la
++                //    propagazione non funzionasse, l'app crasherebbe all'avvio;
++                //  · simmetria: lo specchio `QStageRootView` non dichiara
++                //    `audioEngine` (0 occorrenze) pur ricevendolo a
++                //    `AppRootView.swift:45`. Re-iniettarlo qui romperebbe lo
++                //    specchio dichiarato in testa a questo file.
++                LiveView(onExit: { navigate(to: .shows) })
++                    .environmentObject(runner)
++            } else {
++                // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
++                // futuro lettore cablerebbe per errore.
++                // Qui va l'EMPTY-STATE ONESTO della pagina metronomo.
++                // ⛔ NON messo in ⟦S4R⟧: il disegno è materia CD e NON esiste
++                //    freeze per questa pagina. CC non genera UX.
++                // ⛔ Nessun testo d'interfaccia, nessun componente
++                //    `QLiveEmptyStates`/`EmptyStateKit`, nessun pulsante —
++                //    nemmeno disabilitato: un disabilitato è già una promessa di
++                //    Start, e lo Start è ⟦S5⟧.
++                // ⟦S5⟧ NON parte senza questo empty-state.
++                // Oggi la pagina resta comunque IRRAGGIUNGIBILE: nessuno chiama
++                // `navigate(to: .metronome)`. L'unico chiamante dell'imbuto è
++                // il back del player qui sopra, e porta a `.shows`.
++                EmptyView()
++            }
+         }
+     }
+ }
+
+================================================================================
+PARTE 2 — FILE NUOVO, untracked: NON compare in git diff.
+Non e' stato fatto 'git add -N' perche' il prompt vieta ogni git add.
+Contenuto integrale di ios_app/QBeats/UI/QLive/QLiveSession.swift:
+--------------------------------------------------------------------------------
+import Foundation
+import Combine
+
+/// Contenitore-sessione della stanza Q-Live — forma B, ratificata in
+/// `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb28ad87627e3c6df926993a3df297df90`.
+///
+/// Possiede lo SLOT del runner, non il runner. All'ingresso nella stanza lo
+/// slot è VUOTO, perché nessuna scaletta è ancora stata scelta; il runner
+/// nasce allo Start con la setlist SCELTA, sopravvive alla navigazione INTERNA
+/// della stanza e muore all'uscita dalla stanza.
+///
+/// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+/// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+/// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+/// il solo posto in cui il runner può nascere.
+///
+/// VINCOLO DI PROPAGAZIONE — verbatim da
+/// `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:
+/// «Un `ObservableObject` ANNIDATO dentro un altro NON propaga:
+/// `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del
+/// runner, NON i suoi cambi interni (canzone/sezione/BPM). I figli devono
+/// osservare IL RUNNER (`@ObservedObject`/`@EnvironmentObject` sul runner), NON
+/// la sessione — pena UI metronomo CONGELATA che sembrerebbe un bug del DSP.»
+///
+/// Conseguenza operativa, che è anche il solo modo corretto di usare questa
+/// classe: la si osserva SOLO per sapere se il runner c'è — apparizione e
+/// scomparsa sono l'unico segnale che sa dare. ⛔ Nessun figlio legga MAI
+/// `session.runner?.…`: quella forma compila, sembra giusta, ed è esattamente
+/// il difetto descritto sopra.
+@MainActor
+final class QLiveSession: ObservableObject {
+
+    /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+    /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+    @Published private(set) var runner: SetlistRunner? = nil
+}
+================================================================================
+FINE

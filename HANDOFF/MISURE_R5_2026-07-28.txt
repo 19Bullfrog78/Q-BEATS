@@ -1,0 +1,119 @@
+================================================================================
+MISURE_R5_2026-07-28.txt — COMMIT BUGS v44 + PUSH + PROPAGAZIONE A E:
+Q-BEATS — 2026-07-28. Ratifica referee sul delta di MISURE_R4
+(41bbfcfa409570330931ccbdecae87c57e9394c33d9134faba181f3921bc9264, riverificato
+coincidente PRIMA del commit). Autorizzazione Mauro: commit BUGS + push di
+entrambi i commit + stampa su E:. Zero branch. --no-verify NON usato (regola
+nuova del referee, rispettata; il repo comunque non ha hook attivi, misurato in R4).
+================================================================================
+
+################################################################################
+# 1. COMMIT BUGS v44
+################################################################################
+
+Pre-commit misurato: status --untracked-files=no = solo ' M BUGS_QBEATS.md';
+indice vuoto; dopo git add BUGS_QBEATS.md (solo quello) l'indice conteneva
+1 file (verificato con conteggio, abort armato). BUGS su disco verificato =
+stato post-R4: CR=911=righe, i tre marcatori delle correzioni -> 1/1/1.
+
+$ git -C "$R" log -1 --format='%H%n%an <%ae>%n%cn <%ce>%n%s' 4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+Mauro Martintoni <di_tutto@icloud.com>
+Mauro Martintoni <di_tutto@icloud.com>
+BUGS_QBEATS.md: v44 — tab-reset chiuso by-design + 2 ticket nuovi + angolo del riordino
+
+Trailer nel messaggio: grep -ci 'co-authored|generated|assistant' -> 0,
+controllo positivo grep -c . -> 14 (misurati al momento del commit).
+Rieseguo ORA per il verbale:
+0
+14
+
+################################################################################
+# 2. PUSH — in DUE passi, uno per commit
+################################################################################
+
+Il workflow CI parte per EVENTO DI PUSH sul tip: un push unico avrebbe dato
+una run al solo tip e '[]' legittimo sul commit intermedio. Sequenza eseguita:
+  push 1: git push origin 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199:master   (8fa5018..8926c2a)
+  push 2: git push origin master          (8926c2a..4b55686)
+
+$ git -C "$R" rev-parse HEAD
+4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+$ git -C "$R" rev-parse origin/master
+4b55686c04e3bd14ccf06c31b5e89e74a38341ab
+  => HEAD == origin/master: SI
+
+################################################################################
+# 3. CI — letta a fonte (gh run view --json), mai da un exit code
+################################################################################
+
+$ gh run list --commit 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199 --json databaseId,conclusion,headSha,status
+[{"conclusion":"success","databaseId":30355560441,"headSha":"8926c2af482dce5f4fa0e0dd36d2ba36eb90c199","status":"completed"}]
+
+$ gh run list --commit 4b55686c04e3bd14ccf06c31b5e89e74a38341ab --json databaseId,conclusion,headSha,status
+[{"conclusion":"success","databaseId":30355563451,"headSha":"4b55686c04e3bd14ccf06c31b5e89e74a38341ab","status":"completed"}]
+
+$ gh run view 30355560441 --json conclusion,headSha,status
+{"conclusion":"success","headSha":"8926c2af482dce5f4fa0e0dd36d2ba36eb90c199","status":"completed"}
+
+$ gh run view 30355563451 --json conclusion,headSha,status
+{"conclusion":"success","headSha":"4b55686c04e3bd14ccf06c31b5e89e74a38341ab","status":"completed"}
+
+headSha coincidenti coi commit controllati, entrambe le conclusioni lette
+PRIMA di propagare. La propagazione e' partita solo a doppio verde.
+
+################################################################################
+# 4. PROPAGAZIONE A E: — stampe per-versione dal BLOB
+################################################################################
+
+Nome per-versione ancorato al commit di estrazione (= commit introduttivo:
+qui coincidono, ogni versione e' nata nel proprio commit). Convenzione copiata
+dalle stampe esistenti (LIBRO V39/V40/V41 gia' in forma ancorata; per BUGS e'
+la PRIMA stampa in forma ancorata — le precedenti erano BUGS_QBEATS<N>.md,
+l'ultima BUGS_QBEATS43.md = 195668 B = blob v43 esatto). Pre-esistenza
+verificata PRIMA di scrivere: entrambe le destinazioni erano libere —
+mai sovrascrivere in silenzio (BOX3 V99 (f)).
+
+PATH COMPLETI SU E: (lettera di disco):
+  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS_V42_2026-07-28_8926c2a.md
+  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS_V44_2026-07-28_4b55686.md
+
+--- LIBRO v42: blob @ 8926c2af482dce5f4fa0e0dd36d2ba36eb90c199 vs stampa ---
+  sha256 blob   : 065873628a7760e379b4b16f222fa19db9425507dbfd828532cd77a1f447a28a
+  sha256 stampa : 065873628a7760e379b4b16f222fa19db9425507dbfd828532cd77a1f447a28a
+  cmp           : IDENTICI byte-a-byte
+  byte blob=157751 stampa=157751 · righe(terminatori, wc -l) blob=453 stampa=453 · CR stampa=0
+
+--- BUGS v44: blob @ 4b55686c04e3bd14ccf06c31b5e89e74a38341ab vs stampa ---
+  sha256 blob   : bef02dd68e4b411dac4e17227eab929b8553732a61065833ac0d683a0010095e
+  sha256 stampa : bef02dd68e4b411dac4e17227eab929b8553732a61065833ac0d683a0010095e
+  cmp           : IDENTICI byte-a-byte
+  byte blob=207903 stampa=207903 · righe(terminatori, wc -l) blob=911 stampa=911 · CR stampa=0
+
+  NB: CR=0 e' GIUSTO — la stampa e' la faccia BLOB (LF), non la faccia disco
+  CRLF del repo. Confronto stampa-vs-blob, come da rettifica BOX3 V99 (c).
+
+⚠️ NON TOCCATI, fuori dal perimetro autorizzato di questo prompt: i mirror
+vivi (LIBRO_MASTRO_QBEATS.md in LIBRO_MASTRO\ e in CC MEMORIA\, fermi a
+prima di v42). Il prompt chiede le stampe per-versione; i mirror restano
+un atomo di propagazione a parte, da autorizzare.
+
+################################################################################
+# 5. STATO FINALE
+################################################################################
+
+$ git -C "$R" log -3 --oneline
+4b55686 BUGS_QBEATS.md: v44 — tab-reset chiuso by-design + 2 ticket nuovi + angolo del riordino
+8926c2a LIBRO_MASTRO_QBEATS.md: v42 — giro colore 27/07: 5 ratifiche + 2 rettifiche + regola indirizzo di contenuto
+8fa5018 LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07 + Sez.5 -> ee31281
+$ git -C "$R" status --porcelain --untracked-files=no
+[fine — vuoto = nessun tracciato modificato]
+$ git -C "$R" branch --show-current
+master
+
+Giro chiuso: LIBRO v42 e BUGS v44 committati, pushati, CI verdi, stampati
+su E:. Zero branch creati. «Pushato» != «chiuso»: le chiusure di merito
+(device) restano quelle dichiarate nei canonici.
+================================================================================
+FINE MISURE_R5.
+================================================================================

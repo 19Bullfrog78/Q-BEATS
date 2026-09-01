@@ -1,0 +1,332 @@
+REFERTO QB-2026-08-07-A82 — SLIDER: PERSISTENZA · APERTURA DEL MIXER
+=====================================================================
+
+Orologio: 2026-08-07T17:50:06Z, locale 2026-08-07 19:50:06 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ IN TESTA E DA SOLO — LA CLAIM DI CD È CONFERMATA: IL DANNO È PERMANENTE
+================================================================================
+
+[M] GLI SLIDER DEL MIXER SCRIVONO SU DISCO, SEMPRE, ANCHE A MOTORE FERMO.
+    Catena tracciata INTERA, nessun passaggio dedotto (verbatim in A10):
+      Slider → `MixerOverlayView.swift:62` `audioEngine.setChannelVolume(index + 1, volume: $0)`
+             → `AudioEngine.swift:1441-1471` — UNICO guard: `guard (1...4).contains(channel)`
+             → `AudioEngine.swift:1468` `self.appSettings.updateChannelVolumes(...)`
+             → `AppSettings.swift:40-46` — assegna i quattro campi e chiama `save()`
+             → `AppSettings.swift:35-38` `UserDefaults.standard.set(data, forKey:
+                "com.bullfrog.qbeats.appSettings")`
+    ⇒ NON esiste, in nessun punto della catena, un guard sullo stato del motore.
+      Nessun `isPlaying`, nessun `isRunning`, nessun early-return condizionato. Cercato e
+      misurato, non assunto: la funzione è stata letta per intero.
+    ⇒ E il valore TORNA all'avvio successivo: `AudioEngine.swift:109`
+      `@Published var appSettings: AppSettings = AppSettings.load()` legge da UserDefaults,
+      e `applySettings` (`:211-218`) riporta i quattro volumi sui mixer node.
+
+⇒ A10(c) = SÌ. Un tocco involontario su uno slider a END SHOW **sopravvive alla chiusura
+  dell'app** e si ritrova allo show successivo. Se quel tocco azzera CLICK o BACKTRACK,
+  il concerto dopo parte muto e nulla lo segnala.
+  ⚠️ Questo NON ferma il presente mandato, che è di sola misura ed è stato completato.
+  Ferma un'altra cosa: la gravità con cui il ticket del mixer verrà scritto, e il peso
+  della decisione sul disegno che porta la barra dentro quella fascia (A81). Il ticket
+  NON è stato aperto, come da §3.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD, REGIME
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A82 ═══». INTEGRO. Eseguito per intero.
+0.2 [M] A82 LIBERO. Due supporti × due casse × due forme.
+      NOME sensibile: A82 repo=0 mirror=0 · NOME INsensibile: a82 repo=0 mirror=0
+      CONTENUTO INsensibile: A82 repo=11 mirror=33 — IDENTIFICATE una per una: tutte
+      sottostringhe esadecimali dentro impronte (`6f923da82674dd7d`, `24a82cb2`,
+      `1a824ed97703582e`, `a820c6ed9cb72e1`, `08cced17e1c6a820705d59e6`). NESSUNA è un ID.
+      CONTROLLI POSITIVI non-zero: A80 nome=1/1 contenuto=22/28 · A81 nome=2/2
+      (referto + file del diff) contenuto=32/42.
+0.3 [M] HEAD = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+REGIME [M]: zero modifiche sotto `ios_app/`, zero commit/push/branch, zero scritture sui
+canonici (verificato a fine giro). Unica scrittura: questo referto in `HANDOFF/` + mirror
+`E:\…\FILE X CLAUDE.MD\HANDOFF\` (cartelle lette a fonte cercando dove vivono A80 e A81),
+verificato a due forme.
+
+LETTURE INTEGRALI DICHIARATE [M], tutte dal blob a HEAD:
+  `ios_app/QBeats/AppSettings.swift`            47 righe · 1897 B  -> LETTO INTERO
+  `ios_app/QBeats/UI/Live/TransportView.swift` 115 righe · 5240 B  -> LETTO INTERO
+  `AudioEngine.setChannelVolume` per intero (`:1441-1471`) · `applySettings` per intero
+  (`:198-232`) · il `didSet` di `appSettings` (`:107-114`).
+  ⚠️ `AudioEngine.swift` NON è stato letto per intero (è il file grande del progetto): ne ho
+  letto le tre funzioni sopra e tutte le righe rese dai censimenti su `channelVolumes`,
+  `setChannelVolume`, `appSettings`. Dichiarato, non taciuto.
+  Ereditati interi da A78-A81: MixerOverlayView, LiveView, FineSetlistView, LiveSession.
+
+
+================================================================================
+A10 — GLI SLIDER SCRIVONO SU DISCO?
+================================================================================
+
+A10(a) — A COSA È LEGATO CIASCUNO DEI QUATTRO SLIDER  [M]
+-----------------------------------------------------------
+  I quattro slider sono quattro istanze dello STESSO sub-componente, `MixerChannelView`,
+  create in `MixerOverlayView.swift:15-18` con `index` 0,1,2,3 ed etichette
+  CLICK · BACKT · CH3 · CH4 (gli ultimi due abilitati solo se `session.isProMode`).
+  Il binding è UNO SOLO, parametrico sull'indice — `MixerOverlayView.swift:56-63`, VERBATIM:
+
+      GeometryReader { geo in
+          let binding = Binding<Float>(
+              get: {
+                  guard index < audioEngine.channelVolumes.count else { return 0 }
+                  return audioEngine.channelVolumes[index]
+              },
+              set: { audioEngine.setChannelVolume(index + 1, volume: $0) }
+          )
+          Slider(value: binding, in: 0...1)
+
+  ⇒ LETTURA da `audioEngine.channelVolumes[index]` (`@Published`, `AudioEngine.swift:99`).
+    SCRITTURA verso `audioEngine.setChannelVolume(index + 1, …)` — canali 1..4.
+  ⚠️ `.disabled(!enabled)` a `:69`: CH3/CH4 sono disabilitati fuori da Pro Mode; CLICK e
+    BACKT sono SEMPRE abilitati (`enabled: true`, righe 15-16). I due canali che contano
+    su un palco sono quelli sempre attivi.
+
+A10(b) — IL MECCANISMO INTERO, non la prima costante  [M]
+-----------------------------------------------------------
+  `AudioEngine.swift:1441-1471`, VERBATIM INTEGRALE della funzione:
+
+      func setChannelVolume(_ channel: Int, volume: Float) {
+          guard (1...4).contains(channel) else { return }
+          let v = max(0.0, min(1.0, volume))
+          audioQueue.async { [weak self] in
+              guard let self else { return }
+              switch channel {
+              case 1:
+                  self.ch1Volume = v
+                  self.ch1MixerNode.outputVolume = v
+              …
+              }
+              let vols = [self.ch1Volume, self.ch2Volume, self.ch3Volume, self.ch4Volume]
+              let v1 = self.ch1Volume
+              …
+              DispatchQueue.main.async {
+                  self.channelVolumes = vols
+                  self.appSettings.updateChannelVolumes(ch1: v1, ch2: v2, ch3: v3, ch4: v4)
+              }
+          }
+      }
+
+  `AppSettings.swift:40-46`, VERBATIM:
+
+      mutating func updateChannelVolumes(ch1: Float, ch2: Float, ch3: Float, ch4: Float) {
+          ch1Volume = ch1
+          ch2Volume = ch2
+          ch3Volume = ch3
+          ch4Volume = ch4
+          save()
+      }
+
+  `AppSettings.swift:26` e `:35-38`, VERBATIM:
+
+      private static let udKey = "com.bullfrog.qbeats.appSettings"
+      func save() {
+          guard let data = try? JSONEncoder().encode(self) else { return }
+          UserDefaults.standard.set(data, forKey: Self.udKey)
+      }
+
+  ⇒ PERSISTE, e il supporto è **UserDefaults**, JSON, chiave `com.bullfrog.qbeats.appSettings`.
+  ⇒ RITORNO ALL'AVVIO, misurato: `AudioEngine.swift:109` inizializza il campo con
+    `AppSettings.load()` (che legge quella chiave, `AppSettings.swift:28-33`), e
+    `applySettings` (`:211-218`) riscrive `chNVolume` e `chNMixerNode.outputVolume` dai
+    valori caricati. Il giro si chiude: disco → motore.
+
+  ⚠️ [M] REPERTO NON CHIESTO — LA SCRITTURA È DOPPIA. `appSettings` è dichiarata con un
+    osservatore (`AudioEngine.swift:109-114`, VERBATIM):
+        @Published var appSettings: AppSettings = AppSettings.load() {
+            didSet {
+                appSettings.save()
+                applySettings(appSettings)
+            }
+        }
+    Chiamare un metodo `mutating` su una proprietà con osservatore fa scattare `didSet`.
+    Quindi ogni movimento di slider salva DUE volte: una dentro `updateChannelVolumes`
+    (`AppSettings.swift:45`) e una da `didSet` (`AudioEngine.swift:111`). [I] Quante volte
+    per gesto dipende da quanti `set` emette il trascinamento dello `Slider` — runtime,
+    NON MISURATO — ma il doppio percorso è nel codice, non dedotto.
+
+A10(c) — A MOTORE FERMO LA SCRITTURA AVVIENE LO STESSO?  **SÌ**  [M]
+----------------------------------------------------------------------
+  Nella catena non esiste alcun guard sullo stato del motore. Verificato leggendo la
+  funzione per intero: l'unico `guard` è `(1...4).contains(channel)` (validità del canale) e
+  l'unico altro è `guard let self` (vita dell'oggetto). `audioQueue.async` esegue comunque —
+  è una coda di dispatch, non il motore audio — e `AVAudioMixerNode.outputVolume` è
+  assegnabile a motore fermo.
+  ⚠️ Rafforzativo misurato: perfino se il motore fosse smontato, il salvataggio
+    passerebbe lo stesso. `applySettings` ha un early-return (`:200-201`
+    `guard let self = self, let mh = self.metronomeHandle else { return }`), ma `save()`
+    nel `didSet` viene chiamata PRIMA di `applySettings` (`:111` prima di `:112`): il disco
+    viene scritto anche quando l'applicazione al motore viene saltata.
+  ⇒ LA CLAIM DI CD È CONFERMATA, e in una forma più forte di come l'aveva posta: non solo
+    «scrivono su AppSettings», ma **AppSettings persiste su UserDefaults e il valore torna
+    all'avvio successivo**. Il difetto sopravvive al riavvio dell'app.
+  ⚠️ Una precisazione sulla formulazione di CD, che va corretta perché altrimenti si eredita
+    sbagliata: CD dice che gli slider «agiscono sul silenzio». [M] NON è così — agiscono
+    sull'audio in tempo reale (`chNMixerNode.outputVolume`, `:1449` ecc.). Che a END SHOW il
+    motore sia fermo non li rende inerti: scrivono sul nodo E sul disco. La conseguenza che
+    CD temeva è giusta; il meccanismo che immaginava no.
+
+
+================================================================================
+A11 — COME SI APRE IL MIXER, A HEAD
+================================================================================
+
+A11(a) — CENSIMENTO ESAUSTIVO DELLE APERTURE  [M]
+----------------------------------------------------
+  `showMixer` compare **9** volte in tutto `ios_app/` (cassa sensibile e insensibile rendono
+  lo stesso numero: nessuna variante maiuscola). Ripartizione: `LiveSession.swift` 1
+  (dichiarazione) · `LiveView.swift` 4 · `MixerOverlayView.swift` 1 · `TransportView.swift` 3.
+  Le APERTURE (`showMixer = true`) sono **TRE**, tutte verbatim:
+
+    (1) `LiveView.swift:116-121` — trascinamento VERSO IL BASSO sul blocco teleprompter:
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onEnded { value in
+                        if value.translation.height > 15 {
+                            session.showMixer = true
+                        }
+        (attaccato al VStack che contiene TeleprompterCapsuleView, MacroBarView, POIView,
+         HandleStripView — `LiveView.swift:105-115`)
+
+    (2) `TransportView.swift:95-101` — TAP sulla maniglia a capsula, visibile solo a mixer chiuso:
+            if !session.showMixer {
+                Capsule()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 28, height: 3)
+                    .padding(.top, 4)
+                    .onTapGesture { session.showMixer = true }
+            }
+
+    (3) `TransportView.swift:104-108` — trascinamento VERSO L'ALTO su tutta la pulsantiera:
+            .gesture(
+                DragGesture(minimumDistance: 20).onEnded { val in
+                    if val.translation.height < -30 { session.showMixer = true }
+                }
+            )
+
+  Le CHIUSURE (`showMixer = false`) sono DUE: `LiveView.swift:201` (zona `Color.clear`) e
+  `MixerOverlayView.swift:34` (tap sul pannello).
+  CONTROLLO POSITIVO della forma di ricerca sulle assegnazioni, stesso corpus:
+  `playbackState *= *\.` rende **19** ⇒ la notazione trova le assegnazioni; i conteggi valgono.
+
+  ⇒ **IL FRAMEWORK DI CD È SMENTITO SU ENTRAMBE LE METÀ.** I due `DragGesture` verticali
+    NON sono stati rimossi: sono a HEAD, vivi, uno per verso. E l'unico tap che apre non è
+    su un tasto della pulsantiera: è su una **maniglia a capsula** larga 28 pt e alta 3 pt.
+    La mia misura di A79 regge; quella di CD no.
+
+A11(b) — ESISTE UN TASTO DELLA PULSANTIERA CHE LO APRE? **NO**  [M]
+---------------------------------------------------------------------
+  `TransportView.swift` letto PER INTERO (115 righe). La pulsantiera è fatta di **SEI**
+  `RubberBtnView`, censiti e letti uno per uno con la loro azione:
+      `:26` «prev sez» ◀        → `audioEngine.prevSection()`
+      `:30` play/stop ▶ / ■     → stop · `.waitingForDirector` · `runner.startSetlist(...)`
+      `:66` «next sez» ▶▶       → `audioEngine.nextSection()`
+      `:72` loop ↺              → `audioEngine.toggleLoop()`
+      `:76` KILL BASE           → `audioEngine.stopBacktrack()` + lampeggio
+      `:90` «emerg» ⚠           → **closure VUOTA**
+  ⇒ NESSUNO dei sei tocca `showMixer`. E la sigla «TR» non esiste: occorrenze di `TR` come
+    parola in `TransportView` = **0**, con controllo positivo `label:` = **6** sullo stesso
+    file (la forma trova le etichette). Il «tasto TR della pulsantiera» **non esiste a HEAD**.
+
+  ⚠️ [M] REPERTO COLLATERALE, trovato leggendo per intero e riportato senza indagare oltre
+    (§3): il sesto tasto è un BOTTONE MORTO ATTIVO. `TransportView.swift:90-92`, VERBATIM:
+        RubberBtnView(label: "emerg", glyph: "⚠", danger: true,
+            disabled: false,
+            scaleFactor: scaleFactor) { /* navigazione Vista LISTA — Fase successiva */ }
+    Closure vuota, `disabled: false` — è premibile, è marcato `danger`, e non fa nulla. È la
+    stessa forma dei due di `FineSetlistView` e cade sotto la stessa regola CD-Q7 che tutta
+    questa discussione invoca. **Terzo bottone morto della famiglia.** NON ho aperto ticket,
+    NON ho indagato la sua storia: lo registro perché nessun altro lo sta guardando.
+
+A11(c) — QUEI MODI SONO ARMATI IN `.fineSetlist`?  [M] per il codice, [I] per la resa
+----------------------------------------------------------------------------------------
+  [M] NESSUNO DEI TRE È SCOPED PER STATO. Non esiste alcun `if case` di `playbackState`
+    attorno a (1), (2) o (3); l'unico gate è su (2), ed è `if !session.showMixer` — cioè
+    sulla visibilità della maniglia, non sullo stato del transport. Le tre sorgenti restano
+    montate anche in `.fineSetlist`, perché vivono nella VStack principale di `LiveView`
+    (`:96-126`), che non è dentro alcun ramo condizionale di stato.
+  [I] SONO PERÒ OCCLUSE. `FineSetlistView` è disegnata DOPO nello ZStack (`LiveView:144-164`)
+    e il suo fondo `Color(hex: "#0e0e10").ignoresSafeArea()` è opaco e hit-testable: i tocchi
+    su quell'area non raggiungono il teleprompter né la pulsantiera. È semantica SwiftUI a
+    runtime, non testo: marcato inferenza, NON misurato su device.
+  ⇒ RISPOSTA ESPLICITA ALLA DOMANDA DEL MANDATO: la premessa «l'unica apertura è un tasto
+    della pulsantiera» è **FALSA** (A11b), quindi Ⓨ **NON è chiusa per costruzione**. È
+    chiusa — se lo è — per OCCLUSIONE, che è una proprietà di resa, non di struttura: non la
+    garantisce nessun guard nel codice, e cambierebbe da sola se qualcuno riordinasse lo
+    ZStack o rendesse il fondo non opaco.
+  ⚠️ E resta comunque APERTA la strada che non passa da qui: nessuno azzera `showMixer` al
+    cambio di stato (le due sole chiusure sono gesti dell'utente). Un mixer aperto PRIMA
+    dell'ultima sezione arriva a END SHOW già aperto — misurato in A79, non ridiscusso qui.
+
+
+================================================================================
+SEGNALAZIONE PRESCRITTA DAL MANDATO — RATIFICA CD MAI ATTERRATA
+================================================================================
+  [M] Il framework di CD dichiara che dal 19/05 i `DragGesture` verticali sono stati rimossi
+  e che l'apertura è un tap su un tasto della pulsantiera. A HEAD nessuna delle due cose è
+  vera (A11a, A11b). ⇒ SE la ratifica del 19/05 esiste nella forma che CD ricorda, è una
+  **decisione CD mai atterrata nel codice** — la seconda in una settimana dopo BACK TO SHOWS
+  (ratificato 21/05, cablato solo il 06/08 con ⟦S5x⟧).
+  ⛔ NON HO INDAGATO OLTRE, come prescritto: non ho cercato la ratifica del 19/05 nei
+  canonici, non ho verificato la citazione «CD-4», non ho aperto nulla. Materia di un giro suo.
+  [R] La nota del referee su `LIBRO:205` / `:208` (CD-4 = pulsantiera della Vista LIVE, non
+  rimozione dei gesti) è riportata come mi è arrivata: NON l'ho verificata a fonte.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho proposto rimedi, NON ho aperto ticket, NON ho toccato i canonici, NON ho
+    riaperto A79/A80/A81.
+  · NON ho letto per intero `AudioEngine.swift` (dichiarato in §0): solo le tre funzioni
+    pertinenti e le righe rese dai censimenti.
+  · NON ho misurato quante scritture su UserDefaults produca un trascinamento reale:
+    NON MISURATO, è runtime.
+  · NON ho stabilito se uno `Slider` consumi il tap (questione aperta da A81): invariato,
+    NON MISURABILE da testo.
+  · NON ho indagato la ratifica CD del 19/05 né la citazione CD-4: vietato dal mandato.
+  · NON ho indagato il bottone «emerg»: solo registrato.
+  · NON ho eseguito nulla su device.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SUL MECCANISMO CHE CD IMMAGINA, non sulla sua conclusione. CD scrive che gli slider
+  «agiscono sul silenzio ma scrivono su AppSettings». La seconda metà è giusta, la prima no:
+  gli slider agiscono sui nodi audio in tempo reale, sempre. A END SHOW non c'è audio da
+  alterare, ma non è che il gesto sia «a vuoto e basta»: tocca il nodo E il disco. La
+  differenza conta se qualcuno progettasse il rimedio pensando «tanto lì è inerte».
+
+D2 — SULLA GRAVITÀ, che secondo me è ora più alta di come la si sta trattando. Sommando
+  A81 e A82: dopo il disegno Ⓐ, la barra unica cade dentro un pannello OPACO, sopra quattro
+  slider, di cui i due sempre attivi sono CLICK e BACKT, e ogni loro movimento è
+  PERMANENTE su UserDefaults. Lo scenario completo — mixer lasciato aperto durante l'ultima
+  sezione, fine show, il pollice cerca l'unico pulsante dove il disegno lo mette e trova uno
+  slider — non produce solo un tap rubato: può azzerare il click e lasciarlo azzerato allo
+  show successivo. Non lo definirei più un difetto di comodità.
+
+D3 — SU DUE FRAMEWORK CD SBAGLIATI IN DUE GIRI. In A81 ho misurato che il disegno REV3 è
+  stato fatto senza sapere che esiste uno strato sopra END SHOW; in A82 che il framework su
+  come si apre il mixer è sbagliato su entrambe le metà. Non è una critica a CD, che non ha
+  accesso al codice e le ha segnalate onestamente come da verificare — è un'osservazione sul
+  PROCESSO: CD sta progettando su un modello del codice che nessuno gli ha mai misurato
+  contro. Finché quel modello non viene aggiornato, ogni disegno che tocca l'interazione
+  (non il colore, non la tipografia) nasce con lo stesso rischio.
+
+D4 — INVARIATO E RIBADITO PER LA TERZA VOLTA: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e NON
+  validati su device; A79-A3 ha misurato che ⟦S5a⟧ è raggiungibile SUBITO. Continuiamo ad
+  aggiungere misure e decisioni sopra un gate che nessuno ha chiuso.
+
+FINE REFERTO A82.

@@ -1,0 +1,265 @@
+REFERTO QB-2026-08-07-A83 — DUE TICKET IN BUGS, COME DIFF
+==========================================================
+
+Orologio: 2026-08-07T18:09:52Z, locale 2026-08-07 20:09:52 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+NESSUN RILIEVO CHE FERMA. Il cancello del §2 non è scattato (le due facce di BUGS coincidono
+anche non spogliate), e nessuna delle misure di questo giro impedisce un'esecuzione in corso.
+I due reperti di forma trovati per strada — il registro che salta la voce 48, e la riga vuota
+fra hunk che NON appartiene alla forma di casa — sono registrati sotto, non in testa: nessuno
+dei due ferma niente.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD, REGIME
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A83 ═══». INTEGRO. Eseguito per intero.
+0.2 [M] A83 LIBERO. Due supporti × due casse × due forme.
+      NOME sensibile: A83 repo=0 mirror=0 · NOME INsensibile: a83 repo=0 mirror=0
+      CONTENUTO INsensibile: A83 repo=25 mirror=30 — IDENTIFICATE una per una: tutte
+      sottostringhe esadecimali dentro impronte (`7c632e86a8337444…`, `0a9bdc96838ea83b`,
+      `11408e5dcdbca830…`, `370b284b3338a839…`, `9c5f11da8729a83d…`). NESSUNA è un ID.
+      CONTROLLI POSITIVI non-zero: A81 nome=2/2 contenuto=33/43 · A82 nome=1/1 contenuto=12/34.
+0.3 [M] HEAD = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+
+REGIME [M]: zero modifiche sotto `ios_app/`, zero commit/push/branch, ZERO scritture sui
+canonici — `git status -- BUGS_QBEATS.md` resta vuoto e il blob a HEAD è ancora
+`2598ae0288aefc29ac3d29c8b2e3b33e4057bb82`. Due scritture, entrambe autorizzate: questo
+referto e il file dei diff, ciascuno in `HANDOFF/` + mirror
+`E:\…\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\` (cartelle lette a fonte cercando dove vivono A81 e
+A82), verificate a due forme.
+
+LETTURE INTEGRALI DICHIARATE [M], tutte dal blob a HEAD:
+  · intestazione di §1.1 con il suo cappello (`:59-63`) e intestazione di §1.2 (`:148`) —
+    lette per intero come prescritto dal §3;
+  · DUE ticket esistenti per intero, per la forma: `TD-qlive-exit-unconfirmed-stop`
+    (`:117-133`) e `TD-injecttestdata-sovrascrive-dati-reali` (`:134-146`);
+  · header del documento (`:1-6`), intestazione della tabella di Sezione 5 (`:985-986`),
+    coda del registro (`:1030-1039`);
+  · l'elenco completo delle intestazioni `##`/`###` fino a `:400`.
+  NON letto per intero: il resto di `BUGS_QBEATS.md` (1039 righe) — dichiarato, non taciuto.
+  Le misure di merito dei due ticket sono ereditate da A79/A81/A82, dove i file di codice
+  citati erano stati letti per intero; qui NON sono state rimisurate, e ogni indirizzo che
+  incidono è riportato con la sua ancora a commit.
+
+
+================================================================================
+2 — PRIMO PASSO OBBLIGATO: LE DUE FACCE DI BUGS
+================================================================================
+
+[M] Misurato ADESSO, prima di comporre qualunque cosa:
+      blob OID      = 2598ae0288aefc29ac3d29c8b2e3b33e4057bb82
+      CR nel BLOB   = 0          CR sul DISCO = 0
+      attributo git = BUGS_QBEATS.md: text: unspecified
+      byte blob = 283858        byte disco = 283858        righe blob = 1039
+      sha256 blob  = 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+      sha256 disco = 04de830d440bc789794eceb294c0500b79a6e69a88880945ab4ea11e412e1778
+[M] CRITERIO CHE DECIDE (regola nuova A80) — contenuti SPOGLIATI dei CR:
+      blob senza CR  = 04de830d440bc789…412e1778
+      disco senza CR = 04de830d440bc789…412e1778   → COINCIDONO.
+    ⇒ NON mi fermo. Base del diff = FACCIA BLOB.
+⚠️ [M] L'ANOMALIA DEL CONGEDO 07/08 È CONFERMATA, NON EREDITATA: BUGS ha **una faccia sola**
+   (disco == blob al byte), pur essendo `text: unspecified` come LIBRO — che invece ha 509 CR
+   su disco. Stesso attributo, stesso `core.autocrlf`, facce diverse. Qui la coincidenza è
+   perfino più forte di quanto il criterio richieda: i due sha coincidono **anche senza
+   spogliare i CR**, perché di CR non ce ne sono da nessuna delle due parti.
+   ⇒ Chi scriverà su BUGS non deve preservare alcun CRLF: la regola `BOX3 V99 (g)(1)`
+     («su file a due facce non si usa un editor») **non si applica a questo file oggi**.
+     Registrato, non riparato: non è materia di questo mandato.
+
+
+================================================================================
+5 — LA FORMA, LETTA A FONTE
+================================================================================
+
+[M] STRUTTURA DEL TICKET, ricavata dai due letti per intero (non inventata):
+      `### <ID-kebab> — <titolo> (<severità> / <qualificatore>)`
+      poi una lista di `- **<Campo>:** <corpo>` in cui ricorrono, nell'ordine osservato:
+      **Sintomo** / **Fatto** — **Causa** (spesso «verificata a fonte», con `file:riga @ sha40`)
+      — clausole e marcature `⚠️`/`⛔` additive — **Stato:** `<severità> / <priorità palco>`
+      seguito dal MOTIVO — **Dominio:** `<chi>`.
+      Separatore fra ticket: UNA riga vuota. Entrambi i ticket letti chiudono con **Dominio**.
+[M] CAPPELLO DI §1.1 (`:63`), che decide la collocazione — VERBATIM parziale:
+      «*(Le due assi sono indipendenti — vedi Convenzioni: 🔴 OPEN ALTA = «bloccante palco **o**
+       richiesto entro 2 settimane». Un ticket può quindi essere 🔴 ALTA e ⚠️ NON BLOCCANTE…»
+    ⇒ L'appartenenza a §1.1 è determinata dalla SEVERITÀ (🔴 ALTA), non dalla priorità palco.
+      Prova d'uso nello stesso corpus: `TD-injecttestdata-sovrascrive-dati-reali` sta in §1.1
+      con Stato «🔴 OPEN ALTA / ⚠️ NON BLOCCANTE PALCO» (`:145`).
+[M] HEADER del documento: `**Versione:** 50` (`:3`) e `**Ultima modifica:** 2026-08-04` (`:4`).
+    ⚠️ Forma PIÙ POVERA di quella del LIBRO: qui «Ultima modifica» è **solo la data**, senza
+      il riepilogo fra parentesi. Non ho aggiunto un riepilogo che la forma non prevede.
+[M] REGISTRO in Sezione 5 (`:983-986`): colonne `| Versione | Data | Autore | Modifiche
+    principali |`. Ultima voce = `| 50 |`. ⇒ la nuova è `| 51 |`.
+
+⚠️ [M] REPERTO DI FORMA, registrato e NON riparato: **il registro salta la voce 48.** La
+   sequenza misurata è 1…47, poi **49**, 50 — `| 48 |` non esiste da nessuna parte nel file
+   (ricerca su tutto il blob). Non l'ho colmata né rinumerata: sarebbe riscrivere la storia,
+   ed è fuori mandato. La voce nuova prende **51**, non 48.
+
+
+================================================================================
+3-4 — I DUE TICKET: COLLOCAZIONE E SEVERITÀ
+================================================================================
+
+COLLOCAZIONE — ENTRAMBI IN §1.1, e il titolo della sezione NON mente  [M]+[I]
+------------------------------------------------------------------------------
+  §1.2 si intitola «Non bloccanti palco…»: il ticket 1, con la severità PROPOSTA
+  (🚨 BLOCCANTE PALCO), lì dentro renderebbe il titolo **falso** — è esattamente il difetto
+  già inciso in casa nella voce Stato di `TD-fineshow-bottoni-morti`, che sta in §1.2
+  dichiarandosi bloccante. Non lo ripeto.
+  §1.1 si intitola «Bloccanti palco **o** urgenti (🔴 OPEN ALTA)» e il suo cappello (`:63`)
+  dichiara le due assi indipendenti: ci stanno sia un 🚨 BLOCCANTE sia un ⚠️ NON BLOCCANTE,
+  purché la severità sia ALTA. Entrambi i ticket propongono ALTA. ⇒ §1.1 non mente su nessuno
+  dei due.
+  ⚠️ VINCOLO DICHIARATO, invece che aggirato: **la collocazione segue una severità PROPOSTA,
+    non decisa.** Se Mauro assegna un valore diverso da 🔴 ALTA, il ticket va spostato — e la
+    riga di Stato di ciascuno lo dice esplicitamente, così che lo spostamento non richieda
+    di rileggere questo referto. Non ho trovato alcun vincolo (voci di registro, puntatori)
+    che impedisca la collocazione in §1.1: sono ticket nuovi, nessuno li indirizza ancora.
+
+SEVERITÀ — PROPOSTA, NON ASSEGNATA  [M] per i fatti, [I] per la proposta
+--------------------------------------------------------------------------
+  Entrambe le righe di Stato dicono, testualmente, «**PROPOSTA, non assegnata: decide Mauro**»
+  e citano il precedente di forma (`TD-fineshow-bottoni-morti`, severità **decisa da Mauro il
+  04/08/2026**). Io non ho assegnato nessun valore: ho scritto la proposta e il suo motivo.
+    · Ticket 1 — proposta 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Motivo: la conseguenza è un
+      canale audio azzerato in modo **permanente** (persiste su UserDefaults e torna
+      all'avvio), su un percorso raggiungibile dal flusso normale di fine show.
+    · Ticket 2 — proposta 🔴 OPEN ALTA / ⚠️ NON BLOCCANTE PALCO. Motivo: ALTA perché è
+      premibile **oggi**, col dito, in performance; NON BLOCCANTE perché lo show va avanti
+      lo stesso e non è una regressione. Stessa combinazione di `TD-injecttestdata`, già in §1.1.
+
+ANCORE — VERIFICATE, NON PROPAGATE A SCATOLA CHIUSA  [M]
+-----------------------------------------------------------
+  Le quattro ancore CD-Q7 indicate dal mandato sono state VERIFICATE a fonte una per una
+  prima di essere incise, e reggono tutte e quattro:
+    `SCALETTA_ATOMI_S6_2026-07-10.md:322` → «…SUPERATO da CD-Q7 (LIBRO v31): «+» OMESSO…,
+        NIENTE bottone morto. La 10/07 diceva «bottone presente, azione off»: ora è VIETATO.»
+        ⇒ è il sito dove la regola è formulata come DIVIETO.
+    `LIBRO_MASTRO_QBEATS.md:272` → «**Q7 (risolta)** — Header Q-Stage›Shows: «+» … OMESSO
+        finché §8 … non arriva…» ⇒ la ratifica originale dell'11/07.
+    `LIBRO_MASTRO_QBEATS.md:287` → «…anticipata **per non lasciare un bottone morto a
+        schermo**…» ⇒ un'applicazione della regola.
+    `BUGS_QBEATS.md:731` → «**CD-Q7 rientrata:** non c'è più un bottone morto nell'header…»
+        ⇒ la chiusura precedente della stessa famiglia.
+  ⚠️ Misura aggiuntiva, per onestà del perimetro: `CD-Q7` compare in **più** siti dei quattro
+    citati — LIBRO `:410,:411,:479,:481` · BUGS `:731,:1027` · BOX3 `:118,:296,:460,:479,:770`
+    · SCALETTA `:10,:26,:50,:69,:78,:123,:322`. I quattro del mandato sono un sottoinsieme
+    valido e sufficiente; non ho aggiunto gli altri per non gonfiare l'indirizzamento.
+  [M] R7 rispettata: nel testo dei ticket ogni indirizzo a un canonico o a un `.swift` porta
+    l'ancora `@ 2960f089225b3c80cf56cb839fde871cf9738b3d`; **nessuno sha256 è inciso nel
+    documento** (le impronte vivono nell'intestazione del file del diff e in questo referto,
+    che non sono canonici). Nessuna ancora è stata fabbricata: dove non ne avevo una — il
+    deliverable CD del 07/08, che non è in git — l'ho citato per descrizione («il deliverable
+    CD del 07/08») e non con un indirizzo inventato.
+
+
+================================================================================
+IL DIFF — COSTRUZIONE E PROVA
+================================================================================
+
+[M] File prodotto: `HANDOFF/DIFF_BUGS-v51_2026-08-07_A83-DUE-TICKET-MIXER-E-EMERG.txt`
+    18839 byte · 57 righe · CR 0
+    sha256 `e7ecc64d…` NON è più valido: rigenerato dopo la correzione di forma, l'impronta
+    definitiva è dichiarata in coda a questo referto insieme alla verifica di propagazione.
+
+[M] COSTRUZIONE — le righe di contesto NON sono state trascritte a mano. Sono state estratte
+    dal blob con `awk` sulle righe esatte (1,2,5,6 · 146,147,148,149 · 1034,1035,1036,1037) e
+    prefissate con uno spazio. Le righe aggiunte vengono da due file composti a parte e
+    prefissate con `+`. Questo elimina alla radice l'errore di trascrizione su righe lunghe.
+
+[M] TRE HUNK, forma `-U2`:
+      `@@ -1,6 +1,6 @@`          header: Versione 50→51, Ultima modifica 2026-08-04→2026-08-07
+      `@@ -146,4 +146,29 @@`     inserzione di 25 righe in coda a §1.1 (i due ticket)
+      `@@ -1034,4 +1059,5 @@`    inserzione della voce `| 51 |` in coda al registro
+    Conteggi: 29 righe `+` (2 header + 25 ticket + 1 registro + la riga `+++`) · 3 righe `-`
+    (2 header + la riga `---`). Esito: 1039 → **1065** righe.
+
+[M] ⚠️ CORREZIONE DI FORMA IN CORSO D'OPERA, dichiarata perché era un mio errore: la prima
+    versione del file metteva una RIGA VUOTA fra un hunk e il successivo. Misurato sul diff di
+    casa `DIFF_LIBRO-v53_2026-08-04_A39`: gli hunk si susseguono **senza** riga vuota
+    (`:21` è contesto, `:22` è già `@@`). La riga vuota era una mia invenzione, non la forma
+    di casa. Rimossa: il file consegnato ha **0** righe vuote fra hunk.
+
+[M] PROVA DI CORRETTEZZA — `git apply --check` PASSA, e l'applicazione simulata torna.
+    ⚠️ Il file di consegna, nella forma di casa, NON è applicabile da git: l'intestazione
+      porta il suffisso decorativo `(v50 @ 2960f08)` / `(v51 PROPOSTA)`, che git legge come
+      parte del nome file. Misurato: anche il diff di casa `DIFF_LIBRO-v53` fallisce
+      `git apply --check` per la stessa ragione. Non ho cambiato la forma di casa per
+      compiacere lo strumento.
+    Ho invece costruito una COPIA TEMPORANEA del solo corpo con intestazione git pulita
+      (`--- a/BUGS_QBEATS.md` / `+++ b/BUGS_QBEATS.md`) e l'ho verificata contro una copia
+      del blob in una cartella di simulazione, fuori dal repo:
+        `git apply --check`  → exit 0  ⇒ contesto verbatim e range corretti;
+        `git apply`          → applicato; righe risultanti = **1065**, esattamente le attese;
+        `:3` → `**Versione:** 51` · `:4` → `**Ultima modifica:** 2026-08-07`;
+        `:148` → `### TD-mixer-copre-endshow …` · `:165` → `### TD-emerg-bottone-morto …`;
+        `:173` → `## ⚠️ 1.2 — Non bloccanti palco…` (spostata di 25, come atteso);
+        `:1061` → `| 51 | 2026-08-07 | Mauro + CC + referee | …`;
+        coda invariata: `---` + `**Fine documento.**`;
+        §1.1 passa da 5 a **7** ticket · §1.2 ne conserva **20**, nessuno perso.
+      La cartella di simulazione è stata rimossa a fine verifica (una sottodirectory `.git`
+      temporanea è rimasta bloccata dal filesystem: è nello scratchpad di sessione, fuori dal
+      repo e fuori da E:, e non tocca nulla di tracciato).
+
+[M] IL CANONICO È INTATTO: `git status --porcelain -- BUGS_QBEATS.md` vuoto, blob a HEAD
+    ancora `2598ae0288aefc29ac3d29c8b2e3b33e4057bb82`. Il diff NON è stato applicato al repo.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho applicato il diff, NON ho committato, NON ho toccato LIBRO/SCALETTA/BOX3/BOX5.
+  · NON ho assegnato la severità di nessuno dei due ticket: solo proposta e motivo.
+  · NON ho colmato né rinumerato la voce 48 mancante del registro: solo registrata.
+  · NON ho indagato COSA debba fare il tasto «emerg»: è materia CD, vietato dal §4.
+  · NON ho rimisurato in questo giro i fatti di codice dei due ticket: sono ereditati da
+    A79/A81/A82 e citati con le loro ancore. Dichiarato, non spacciato per misura di oggi.
+  · NON ho proposto rimedi tecnici oltre a quanto già misurato (§6).
+  · NON ho letto per intero `BUGS_QBEATS.md`: solo le regioni elencate in §0.
+  · NON ho verificato su device nulla; la geometria citata nei ticket resta calcolo su
+    baseline iPhone 13 dichiarata, com'era in A81.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SULLA SEVERITÀ DEL TICKET 1, dove la tua proposta mi sembra giusta ma per un motivo
+  in più di quello che scrivi. Il mandato motiva 🚨 BLOCCANTE PALCO con la copertura
+  dell'uscita. Misurato, la copertura da sola NON blocca: la zona di chiusura alta resta
+  scoperta, e l'ho scritto esplicitamente nel ticket come chiedevi. Ciò che secondo me regge
+  la proposta è l'ALTRA metà — la scrittura permanente su UserDefaults senza guard. Un'uscita
+  invisibile costa un tocco in più; un canale azzerato che sopravvive al riavvio costa un
+  concerto. Se domani qualcuno rimuovesse la sovrapposizione geometrica e lasciasse gli
+  slider come sono, il ticket resterebbe grave — e con la sola motivazione del mandato
+  sembrerebbe chiuso.
+
+D2 — SUL TICKET 2, e qui divergo sulla priorità che gli si dà implicitamente. Trattarlo come
+  il minore dei due mi pare sbagliato: il ticket 1 descrive un difetto che **oggi non si
+  raggiunge** (si arma con ⟦S5b⟧), il ticket 2 uno che **è premibile adesso, in ogni show che
+  Mauro suona**. Sul piano del rischio immediato l'ordine è invertito rispetto all'ordine in
+  cui li abbiamo scritti. Non ho cambiato nulla nella loro forma per questo — la severità la
+  decide Mauro — ma se qualcuno lavora un ticket solo, il mio voto è il secondo.
+
+D3 — SULLA COLLOCAZIONE, un rilievo di sistema che eccede questi due ticket. Mettere in §1.1
+  un ticket la cui severità è ancora PROPOSTA significa anticipare una decisione di Mauro con
+  un atto di archiviazione. L'alternativa — metterlo in §1.2 e spostarlo dopo — è peggiore,
+  ed è esattamente come è nato il difetto di `TD-fineshow-bottoni-morti`, che è rimasto dove
+  non doveva perché spostarlo avrebbe rotto una voce di registro. ⇒ [I] Il problema vero è
+  che **la collocazione fisica porta un'informazione (la severità) che il documento tiene
+  anche in un campo esplicito**, e le due possono divergere. Finché è così, ogni ticket nuovo
+  obbliga a scegliere fra anticipare una decisione e creare un titolo che mente. Non è
+  materia di questo mandato e non l'ho toccato: lo segnalo perché è la terza volta in una
+  settimana che ci inciampiamo.
+
+D4 — INVARIATO, e non lo ripeto oltre: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e NON validati su
+  device; ⟦S5a⟧ è raggiungibile e collaudabile subito (misurato in A79-A3). Stiamo scrivendo
+  ticket su una stanza il cui ultimo gate device non è mai stato chiuso.
+
+FINE REFERTO A83.

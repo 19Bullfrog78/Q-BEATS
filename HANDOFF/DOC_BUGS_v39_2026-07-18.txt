@@ -1,0 +1,87 @@
+TRASPORTO DOC — BUGS_QBEATS v38 → v39 — testo nuovo/modificato VERBATIM (per referee)
+Data: 2026-07-18 · Autore: CC · FILE 3 di 3 del giro doc ridotto (ordine invertito: BUGS
+PRIMA di LIBRO, per non far nascere in LIBRO un puntatore a un ticket ancora inesistente).
+Canonico: BUGS_QBEATS.md (TRACCIATO in git → dopo ratifica + OK Mauro va COMMITTATO, staging
+file-per-file, autore Mauro, zero Co-Authored-By, verifica trailer post-commit; + propagazione
+ai mirror con sha256 ai due capi; + push; + lettura CI verbatim — anche se BUGS non tocca il
+build, la run va letta, non dedotta).
+Metodo: sotto è la formulazione ratificata, trascritta integrale (non riassunta). Applico il
+canonico + commit SOLO dopo ratifica verbatim + OK Mauro (due cancelli).
+
+─────────────────────────────────────────────────────────────────────────
+A · HEADER (righe 3-4) — SOSTITUZIONI
+─────────────────────────────────────────────────────────────────────────
+VECCHIO riga 3:  **Versione:** 38
+NUOVO   riga 3:  **Versione:** 39
+
+VECCHIO riga 4:  **Ultima modifica:** 2026-07-17
+NUOVO   riga 4:  **Ultima modifica:** 2026-07-18
+
+─────────────────────────────────────────────────────────────────────────
+B · NUOVO TICKET — Sezione 1.1 (🚨 Bloccanti palco, 🔴 OPEN ALTA)
+Inserito in coda alla sezione §1.1 (dopo l'ultimo ticket esistente, prima di
+«## ⚠️ 1.2 — Non bloccanti palco…»). Classificazione: 🔴 OPEN ALTA + 🚨 BLOCCANTE PALCO —
+oggi, a HEAD f8276f6, un solo tap ferma realmente la banda in diretta (verificato a fonte,
+sezione D sotto), non è un rischio ipotetico rimandabile.
+─────────────────────────────────────────────────────────────────────────
+### TD-qlive-exit-unconfirmed-stop — Uscita-stanza col click attivo = stop non confermato (evento-banda)
+- **Sintomo:** col click ATTIVO, un solo tocco su Home o sullo switch Q-Stage della
+  RoomSwitchBar fa uscire da `.qLive` → canonico `AppRootView.swift:61-68` → `audioEngine.
+  stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/Stop Sync attivo sui
+  peer coinvolti, **la band si ferma**. Nessuna conferma richiesta all'utente. Due porte
+  distinte espongono lo stesso rischio: Home (hit-area 34×34, `RoomSwitchBar.swift:177`) e
+  lo switch di stanza (bersaglio più grande, `RoomSwitchBar.swift` pill `.opt`).
+- **Natura — DUE METÀ che si chiudono in modo DIVERSO (non dichiararlo chiuso a metà):**
+  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale
+    (`f8276f6`) il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) e il
+    CANCEL di `WaitingForDirectorView` (`LiveView.swift:166`) chiamano `onExit()` diretto →
+    `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop.
+    Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non
+    ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto);
+    quindi oggi la SOLA porta viva è la Home via il back-button del metronomo, non lo
+    switch (che non esiste ancora in Q-Live). Questa metà **NON la chiude l'overlay**: la
+    chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più
+    Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6
+    ricabla la destinazione del back, non per un fix dedicato a questo ticket.
+  - **Metà NUOVA (introdotta da S4/S4b, non ancora spedita):** dopo il flip S4b, la
+    RoomSwitchBar compare nella lista/dettaglio Shows di Q-Live con DUE porte reali (Home +
+    switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click
+    può essere attivo mentre si è su lista/dettaglio: uscire da lì con un tap, su ENTRAMBE
+    le porte, propone lo stesso stop-non-confermato. **Questa la copre l'overlay** (STOP con
+    conferma, opzione (iii) CD — LIBRO v36 riga 3), che atterra a **S6**, insieme al rerouting.
+- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`,
+  guardia `:1638` `guard self.isRunning else { return }` prima di `:1645`
+  `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata
+  e lo stop propaga ai Follower. Propagazione reale = per-peer, condizionata a Start/Stop
+  Sync ATTIVO nelle impostazioni Link dell'utente sui device coinvolti (`ABLLink.h:75-82`,
+  «only controllable by the user via the Link settings dialog»); `project.yml:19
+  ABLLinkStartStopSyncSupported: true` PERMETTE l'attivazione, non la impone (BOX3 V97 (b)).
+  Sullo scenario d'uso Q-BEATS da palco, l'effetto-banda è concreto.
+- **Dipendenza:** decisione CD (iii) ratificata 18/07 (LIBRO v36 riga 3) — direzione FERMA,
+  **freeze del disegno ATTESO da CD**, deve coprire ENTRAMBE le uscite (Home + Switch) e
+  tutti i contesti di sfondo. **Nessuna implementazione prima del freeze.** Da chiudere
+  PRIMA di S6 (la metà nuova nasce proprio con S6).
+- **Fuori scope, registrato non implementato (NOTA referee 18/07, per quando arriva il
+  freeze):** l'overlay richiederà peer-count + stato Start/Stop Sync = **dati L2**; §6 è
+  dichiarato RT-neutro → la deroga va DICHIARATA esplicitamente nel disegno S6, non scoperta
+  in corsa. Ruling referee già dato a CD: l'apparato d'allarme ambra può COMPARIRE in diretta
+  se le condizioni diventano vere, ma NON deve SPARIRE finché il modale è aperto (il conteggio
+  peer non è affidabile finché **TD#17** resta OPEN — un avviso agganciato a quel dato
+  lampeggerebbe nel momento peggiore; aggiungere un avviso è sempre sicuro, toglierlo fa
+  premere il tasto rosso convinti che non faccia male). Supersede la richiesta CD di
+  ricalcolo live simmetrico.
+- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO (la metà pre-esistente è un rischio reale OGGI
+  su ogni sessione con Start/Stop Sync utente attivo). Nessun fix applicato — bloccato sul
+  freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+
+─────────────────────────────────────────────────────────────────────────
+C · SEZIONE «Storico versioni» — NUOVA RIGA 39 (append in coda alla tabella changelog)
+─────────────────────────────────────────────────────────────────────────
+| 39 | 2026-07-18 | Mauro + CC + referee | **Nuovo ticket §1.1 `TD-qlive-exit-unconfirmed-stop` (doc-only) — uscita-stanza col click attivo = stop non confermato (evento-banda).** Due metà che si chiudono diversamente: PRE-ESISTENTE (back dal metronomo → Home → stop con un tap, oggi, verificato a fonte `LiveHeaderView.swift:30`/`AppRootView.swift:43,61-68` — sparisce per costruzione col rerouting S6, non con l'overlay) e NUOVA (uscite-stanza da lista/dettaglio Q-Live col click attivo dopo S4b/S5, coperta dall'overlay STOP-con-conferma, opzione (iii) CD, freeze atteso). Causa `AudioEngine.swift:1638→1645 link_engine_stop`, propagazione per-peer condizionata a Start/Stop Sync utente (`ABLLink.h:75-82`). 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Dipendenza: freeze disegno CD (LIBRO v36 riga 3), da chiudere prima di S6. Bump header 38→39. Doc-only, nessun fix codice. |
+
+─────────────────────────────────────────────────────────────────────────
+FINE TRASPORTO FILE 3. Attendo ratifica verbatim del referee + OK di Mauro prima di scrivere
+il canonico BUGS v39, COMMITTARLO (tracciato) e propagarlo ai mirror. Nessun canonico toccato
+in questo turno. Solo dopo che BUGS v39 è committato e propagato passo a LIBRO v36 (che cita
+questo ticket in Sez.2 riga 3 e riga 5 — l'inversione d'ordine serve esattamente a questo).

@@ -1,0 +1,119 @@
+MISURE CC — 2026-08-04 — giro QB-2026-08-04-A35-PUSH-E-DEPOSITI
+REPERTO: la QUARTA DESTINAZIONE di R-δ — dichiarazione di Mauro, NON misurata
+
+⛔ QUESTO FILE NON MODIFICA R-δ E NON ENTRA IN UN CANONICO.
+   È un deposito. La regola vive altrove (vedi §3) e si tocca solo con un
+   atomo suo, deciso da Mauro.
+
+================================================================
+1. LA DICHIARAZIONE — di Mauro, 04/08/2026
+================================================================
+· Quarta destinazione di R-δ = **NAS SYNOLOGY**.
+· Modalità: **copia manuale, NESSUNA sincronizzazione.**
+· Perimetro: **ENTRAMBI** gli alberi, non uno solo —
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS   (repo vivo)
+    E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS       (archivio storico)
+· Motivo del perimetro doppio: nessuno dei due contiene l'altro.
+    - solo su C: → `tools/` (cartella intera fuori da git; untracked
+      verificato in A29 e ri-verificato in A35), e i file di HANDOFF/
+      anteriori al 01/08;
+    - solo su E: → gli archivi storici, ~90 versioni di BOX3 più le serie
+      di BOX5, BUGS e LIBRO.
+· Momento: eseguita PRIMA del commit del lotto TD-fineshow-bottoni-morti.
+
+⚠️ **NON VERIFICATA.** Né il referee né CC hanno accesso al NAS. Registrata
+   come DICHIARAZIONE, mai come misura. Nessuna delle righe di questa
+   sezione è stata controllata a fonte.
+
+================================================================
+2. IL PUNTO CHE CONTA — non è uno specchio, ma invecchia
+================================================================
+È l'unica delle quattro destinazioni che NON è uno specchio:
+  · C: → E: → Drive sono legati da sync (Drive verificato live in A26/A28:
+    i file compaiono da soli entro ~1-98 secondi, senza upload manuale);
+  · il NAS no: una copia manuale **non replica le cancellazioni**, quindi
+    è l'unica che sopravvive a una distruzione propagata.
+
+⚠️ IL ROVESCIO, ed è la ragione per cui questo reperto esiste: una copia
+   manuale **INVECCHIA**. È una fotografia, non uno specchio.
+   La fotografia del 04/08 è stata scattata **prima** del commit del lotto:
+     - copre  → i reperti su ancore, notazione e Drive-sync, e i diff A25/A26;
+     - NON copre → i tre commit delle 15:11-15:15 del 04/08
+       (`bce6a736…`, `5cd6397…`, `ea3f94a4…`) né i due diff A33.
+   ⇒ **Va rifatta dopo ogni blocco che produca prove citate da una ratifica.
+     Questo blocco lo è.**
+
+⚠️ La domanda sugli snapshot/versioning Synology, aperta in un turno
+   precedente, **DECADE**: proteggevano da una sincronizzazione distruttiva,
+   che in modalità copia manuale non esiste.
+
+================================================================
+3. DOVE VIVE R-δ OGGI — MISURATO, non indovinato
+================================================================
+Ricerca su tutti i `*.md` del repo, forme `R-δ` e `R-delta`.
+Fuori da HANDOFF/ risponde **un solo file**: `LIBRO_MASTRO_QBEATS.md`.
+
+  · **LA REGOLA** — `LIBRO_MASTRO_QBEATS.md:336 @ ea3f94a4a11153a2f4c9f08ab8e1cd73d55d00ae`
+    riga di Sez.2 datata `2026-08-01`, che apre:
+    «**R-δ — TRE DESTINAZIONI PER OGNI DOCUMENTO: C: + E: + Drive.
+      DUE SU TRE = SCRITTO, NON CONSEGNATO.**»
+
+  · **LA VOCE DI REGISTRO** — `LIBRO_MASTRO_QBEATS.md:494 @ ea3f94a4a11153a2f4c9f08ab8e1cd73d55d00ae`
+    voce `| 50 |` di Sez.6, datata `2026-08-01`.
+
+Controllo positivo dello stesso filtro: `R-β` risponde su BUGS e LIBRO,
+`R7` su BOX3, BUGS e LIBRO — il filtro morde, quindi il «un solo file» è un
+fatto e non un falso zero. `LIBRO_MASTRO_QBEATS.md` è invariato dai tre
+commit del lotto (blob `526dcd608e10e2b73a0e52b912368302153df310`, working
+tree identico, `git status` pulito).
+
+================================================================
+4. ⚠️ DISCORDANZA — il canonico dice GIÀ una quarta destinazione, ed è ALTRA
+================================================================
+La riga 336, verbatim nel suo tratto finale:
+
+  «Quarta destinazione, periodica e manuale, di Mauro: **la chiavetta**.»
+
+La dichiarazione del 04/08 dice **NAS Synology**. Il canonico dice
+**chiavetta**. Le due non coincidono.
+
+⛔ NON RISOLTA QUI, e non si risolve per inferenza. Restano aperte almeno
+   tre letture, e non sono equivalenti:
+     (a) la destinazione è CAMBIATA — chiavetta → NAS — e il canonico è
+         stale dal 01/08;
+     (b) sono DUE destinazioni distinte, entrambe vive, e R-δ ne conta
+         quattro invece di tre più una;
+     (c) «chiavetta» era già allora un modo generico di dire «copia manuale
+         di Mauro», e il NAS ne è la forma attuale.
+   Quale delle tre sia vera **non è misurabile da qui**: dipende da cosa
+   Mauro ha fatto, non da cosa sta scritto.
+
+⇒ Chi porterà la quarta destinazione in un canonico deve prima sciogliere
+  questo, altrimenti incide una riga che ne contraddice un'altra a nove
+  righe di distanza nello stesso documento.
+
+================================================================
+5. UNA COSA CHE LA STESSA RIGA 336 GIÀ DICEVA
+================================================================
+Sempre `LIBRO_MASTRO_QBEATS.md:336`, verbatim:
+
+  «**Per i file TRACCIATI la fonte è il blob:** le stampe destinate a E: e
+    Drive si estraggono con `git show`, mai dal disco»
+
+Registrato perché in A34 CC ha affermato che questa prescrizione poggiasse
+su un presupposto falso — «il blob non è LF» — e quella affermazione era
+sbagliata, prodotta da uno strumento di misura difettoso (vedi il reperto
+sulla notazione, sezione 7). ⇒ Non fu solo una contraddizione al referee:
+fu una contraddizione a una **regola canonica già incisa**, fatta senza
+essersi accorti che la regola esisteva.
+
+================================================================
+6. LIMITI DICHIARATI
+================================================================
+- Tutto il §1 e il §2 sono NON verificati: nessun accesso al NAS.
+- Non è stato misurato SE la copia manuale del 04/08 sia effettivamente
+  avvenuta, né cosa contenga. Si registra che è stata dichiarata.
+- La ricerca del §3 copre i `*.md` del repo su C:. NON copre: i file non-.md,
+  l'albero E: nella sua interezza, né i BOX archiviati fuori dal repo.
+- La discordanza del §4 è misurata sul testo; le tre letture proposte sono
+  ipotesi di CC, non misure, ed è per questo che nessuna viene scelta.

@@ -1,0 +1,225 @@
+================================================================================
+ESITO COMMIT — giro indirizzi e proprietari — BUGS v47 + LIBRO v49
+Prompt di autorizzazione: QB-2026-08-01-S4d-COMMIT (ramo B)
+Autorizzazione di Mauro: ricevuta in chat, verbatim:
+  «Procedi col commit del giro indirizzi e proprietari, ramo B. Autorizzo.»
+================================================================================
+Orologio: 2026-08-01 13:39:43 +0200
+
+==========================================================================
+1 · IL COMMIT
+==========================================================================
+sha        : 0ee9543d45d638df061c5a48872aaefeb8a88f26
+autore     : Mauro Martintoni <di_tutto@icloud.com>  2026-08-01 13:34:33 +0200
+committer  : Mauro Martintoni <di_tutto@icloud.com>  2026-08-01 13:34:33 +0200
+trailer Co-Authored-By: 0
+  controllo positivo, righe del messaggio: 32
+HEAD = origin/master  : SI
+
+--- messaggio di commit, verbatim ---
+docs: giro indirizzi e proprietari - BUGS v47 + LIBRO v49 (doc-only, zero codice)
+
+Due file, nessun sorgente toccato. Otto marcature additive in BUGS_QBEATS.md
+piu' una riga di Sezione 2 nel LIBRO_MASTRO_QBEATS.md.
+
+Principio del giro: si marca, non si riscrive. Unica eccezione lo STATO del
+ticket LIBRO-sez6-buco-v25-v26, che vive nel titolo e non in una nota sotto.
+
+BUGS_QBEATS.md v46 -> v47
+- r.289 falsificata nel CONTENUTO, non solo negli indirizzi: Q-Live E' nell'enum
+  Screen (AppRootView.swift:18 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8);
+  i quattro bersagli non corrispondono e il commento citato a :10-12 non esiste piu'
+- proprietario del rerouting: S4R, non S6 - cinque righe coperte (r.120 r.121
+  r.125 r.128 r.129, non r.126); scadenza e severita' INVARIATE
+- indirizzi al codice riscritti per SIMBOLO, per marcatura additiva: r.118 e r.120
+- LIBRO-sez6-buco-v25-v26 CHIUSO per ACCERTAMENTO: le voci 25 e 26 non sono mai
+  state scritte - 42 punti misurati fra v24 e v27, registro a 24 ovunque
+- le quattro premesse di r.122 sono scadute, ne sopravvive una; la conclusione
+  regge su due serrature nuove mai misurate prima. Severita' INVARIATA
+- LIBRO:467 e' deriva pura -> indirizzo di contenuto, un solo sito vivo (r.356)
+- due debiti nuovi in 1.3: riscrittura integrale del ticket 1.1, e il doc-comment
+  stale QLiveRootView.swift:85 - e' codice, si traccia e non si tocca qui
+
+LIBRO_MASTRO_QBEATS.md v48 -> v49
+- Sezione 2, +1 riga: estesa ai sorgenti la regola di indirizzamento "per SIMBOLO,
+  non per riga"; il numero di riga, se compare, DEVE portare @ commit a 40.
+  La regola esisteva gia' in casa per il freeze e per un sorgente: si estende.
+
+BOX3_QBEATS.md NON toccato, per decisione del referee: la marcatura preparata per
+BOX3:33 confluisce nella riscrittura V100, dichiarata prossimo giro e non backlog.
+.gitattributes NON toccato: decisione ancora aperta.
+
+--- fine messaggio ---
+
+==========================================================================
+2 · IL DIFF, VERBATIM E COMPLETO
+==========================================================================
+--- git show --stat ---
+ BUGS_QBEATS.md         | 24 +++++++++++++++++++++---
+ LIBRO_MASTRO_QBEATS.md |  8 +++++---
+ 2 files changed, 26 insertions(+), 6 deletions(-)
+--- git diff numstat ---
+21	3	BUGS_QBEATS.md
+5	3	LIBRO_MASTRO_QBEATS.md
+
+[V] Ogni riga + e ogni riga - del diff e' stata confrontata per sha256 con le
+    righe preparate PRIMA della scrittura: 26 righe +, 6 righe -, ZERO estranee.
+    Il cancello di ABORT non e' scattato.
+
+--- INIZIO DIFF VERBATIM ---
+diff --git a/BUGS_QBEATS.md b/BUGS_QBEATS.md
+index 5bf4713..c896f91 100644
+--- a/BUGS_QBEATS.md
++++ b/BUGS_QBEATS.md
+@@ -3,2 +3,2 @@
+-**Versione:** 46
+-**Ultima modifica:** 2026-07-30
++**Versione:** 47
++**Ultima modifica:** 2026-08-01
+@@ -129,0 +130,3 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
++- ⚠️ **MARCATURA — IL PROPRIETARIO DEL REROUTING CAMBIA: è ⟦S4R⟧, NON ⟦S6⟧. Cinque righe coperte — `r.120`, `r.121`, `r.125`, `r.128`, `r.129` — misurate sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Zero parole riscritte.** **COSA CAMBIA:** ognuna delle cinque attribuisce a ⟦S6⟧ il ricablaggio della destinazione del back. Il ricablaggio **è già avvenuto**, e l'ha portato **⟦S4R⟧**: commit `bfc9228` («S4R fase 2b: la proprietà del runner sale alla stanza Q-Live»), ratificato in `LIBRO_MASTRO_QBEATS.md:330 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` («⟦S4R⟧ CHIUSO — la proprietà del runner sale alla stanza»). A HEAD il back del player va all'imbuto **interno**, non alla Home: *il ramo `.metronome` di `QLiveRootView` costruisce `LiveView(onExit:)` con `navigate(to: .shows)`* (`ios_app/QBeats/UI/QLive/QLiveRootView.swift:145 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`). **COSA NON CAMBIA:** ⛔ **SCADENZA e SEVERITÀ restano vere.** Il «🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO» di `r.128` non si tocca, e la mitigazione operativa di `r.125` resta l'unica difesa disponibile. Si cambia **il proprietario dell'atomo**, non lo stato del ticket. ⚠️ **FUORI DA QUESTA MARCATURA:** `r.126`, che non contiene «rerouting» e non è toccata; `r.999` e `r.981`, che sono **registro** = storia e non si marcano mai.
++- ⚠️ **MARCATURA DI FORMA — DUE INDIRIZZI AL CODICE DI QUESTO TICKET SONO SCADUTI, e si riscrivono PER SIMBOLO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Le righe restano come scritte.** **(a) `r.118` cita `AppRootView.swift:61-68` come «il canonico».** A HEAD `:61` è `UIApplication.shared.isIdleTimerDisabled = (newPhase == .active)`, dentro `.onChange(of: scenePhase)`, e `:63-69` sono **commento**. Il canonico è *l'handler `.onChange(of: screen)` di `AppRootView`, il ramo `else if previousScreen == .qLive` che chiama `audioEngine.stop()`* — a HEAD `ios_app/QBeats/UI/AppRootView.swift:70-77 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`, con la chiamata a `:74`, **unica occorrenza di `audioEngine.stop()` nel file**. **(b) `r.120` cita `AppRootView.swift:43` per `{ screen = .home }` di Q-Live.** A HEAD `:43` è il costruttore di **Q-Stage**, non di Q-Live. Il bersaglio è *il ramo `case .qLive`, costruttore `QLiveRootView(onExit:)`* — a HEAD `:51-52 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. ⛔ **Nessun numero di questo ticket è stato corretto in loco: la correzione vive qui, per simbolo.**
++- ⚠️ **MARCATURA — LE QUATTRO PREMESSE DI `r.122` SONO SCADUTE; LA CONCLUSIONE REGGE, MA SU UN FONDAMENTO NUOVO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. Nessuna riga riscritta, severità invariata.** **PERIMETRO DELLA MISURA, dichiarato perché in v46 non lo fu:** `git grep` è **testuale** e non valuta il preprocessore — ogni conteggio qui sotto **include** i rami `#if DEBUG`, che non sono mai stati fuori da una ricerca per stringa; ciò che in v46 restava fuori era il **comportamento a runtime**. Controprova: `HomeRootView.swift` porta quattro `#if DEBUG` (`:15`, `:39`, `:45`, `:79`) e contiene **0** occorrenze di `SetlistRunner`, `LiveRootView`, `LiveView(` e `navigate(` — controllo positivo stessa forma stesso file, `Button` → **3**. **LE QUATTRO PREMESSE.** **(1)** «`= SetlistRunner(` un solo sito, `LiveRootView.swift:12`» — **FALSIFICATA NELLA FORMA**: a HEAD i siti di costruzione sono **ZERO** e quel file **non esiste più**; il movimento è da uno a nessuno, cioè **verso il sicuro**. **(2)** «`LiveRootView` a zero call-site» — **REGGE**, e per una ragione più forte: il tipo è **cancellato**, e le tre occorrenze superstiti (filtro dichiarato: `LiveRootView` non preceduto da `Q` né da alfanumerico, perché `QLiveRootView` la contiene come sottostringa) sono **commenti** nel solo `ios_app/QBeats/UI/QLive/QLiveRootView.swift`, `:28` `:31` `:56`, e `:31` recita «`LiveRootView` non esiste più»; controllo positivo stessa forma `QLiveShowsView(` → **1**. **(3)** «`LiveView` irraggiungibile **DI CONSEGUENZA**» — **IL NESSO CAUSALE È MORTO**: `LiveView` **È** costruito, unico costruttore `QLiveRootView.swift:145`; controllo positivo a radice diversa `TransportView(` → **1**. **(4)** «`navigate(to:)` a zero chiamanti» — **FALSIFICATA**: un chiamante **vero**, `:145`; il bilancio a HEAD è **1 definizione** (`:86`) + **4 commenti** (`:14` `:95` `:107` `:159`) + **1 chiamata**. **LA CONCLUSIONE «IL PERICOLO NON MORDE ANCORA» REGGE, e il suo fondamento è RISCRITTO, non ereditato: poggia su DUE SERRATURE INDIPENDENTI che in v46 non erano misurate.** **SERRATURA A — la pagina.** `page` nasce `.shows` (`QLiveRootView.swift:46`); l'unica assegnazione di `page` in tutto il codice è `:87`, dentro l'imbuto; l'unica chiamata vera all'imbuto è `:145` e passa **`.shows`**; e `:145` sta **dentro** `case .metronome`, cioè dentro il ramo che solo un cambio di `page` aprirebbe. ⇒ **`.shows` è un pozzo assorbente**: nessuna transizione raggiungibile porta a `.metronome` o `.detail`. **SERRATURA B — il runner.** Lo slot è `@Published private(set) var runner: SetlistRunner? = nil` (`ios_app/QBeats/UI/QLive/QLiveSession.swift:35`), **senza mutatore in nessun punto del repo**, e `= SetlistRunner(` ha **zero** siti ⇒ `if let runner` (`:98`) **non lega mai**. Il solo `.environmentObject(runner)` dell'albero è `:146`, sulla stessa riga chiusa da entrambe le serrature; le altre tre iniezioni del progetto passano tutte `audioEngine`. ⚠️ **IL MARGINE SI È RIDOTTO, e questa è la cosa che il prossimo lettore deve sapere.** In v46 «irraggiungibile» voleva dire **che il codice non esisteva**. A HEAD il codice **esiste** ed è soltanto chiuso dietro un ramo morto: prima per arrivare al pericolo bisognava **SCRIVERE** codice, ora basta **RAGGIUNGERLO**. ⚠️ **⟦S5⟧ APRE ENTRAMBE LE SERRATURE NELLO STESSO ATOMO, e non è più un'intuizione:** `QLiveRootView.swift:95` dichiara «scaffold — mutatori a S5 (tap riga → `navigate(.detail)`)», e ⟦S5⟧ porta lo **Start**, che è ciò che costruirebbe il runner — il solo posto in cui può nascere, per dichiarazione di `QLiveSession.swift:12-15`. ⛔ **SEVERITÀ INVARIATA: 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO.** Questa marcatura **non muove lo stato** e va letta per quello che è: nessun declassamento, nessuna chiusura, nessuna riapertura.
+@@ -289,0 +293 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
++  - ⚠️ **MARCATURA — LA TESI DI `r.289` È FALSIFICATA NEL CONTENUTO, non solo negli indirizzi. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. La riga resta come scritta: si marca, non si riscrive.** **(1) LA TESI È FALSA.** «Q-Live NON è in questo enum: è montata come modale UIKit»: a HEAD `enum Screen` è dichiarato a `ios_app/QBeats/UI/AppRootView.swift:18 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` e recita `private enum Screen { case home, qStage, qLive }` — `.qLive` **è** nell'enum, e il ramo `case .qLive` monta `QLiveRootView(onExit:onSwitchToStage:)`. La modale UIKit è stata **ritirata** da ⟦NODO A⟧ N1b, commit `152445e`, e **la prova è DOPPIA — le due metà non si sostituiscono**. **(a) FONTE DIRETTA NEL CODICE, che prova l'INTENZIONE:** `ios_app/QBeats/UI/AppRootView.swift:14-17 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` dichiara «Routing top-level della Home: commutazione di schermata (NON push). Nodo A N1b: Q-Live è una schermata dell'enum come Q-Stage — la porta della Home fa `screen = .qLive` (entry-point canonico unico); la modale UIKit è stata ritirata». **(b) CONFRONTO DI CONTEGGI FRA REV, che prova la RIMOZIONE:** fra `152445e^` (`beb9e084fefcfb7f9dbb31971147dc59929fc737`) e HEAD, sugli `.swift` tracciati: `presentLive` **10 → 0** righe, `modalPresentationStyle` **1 → 0**, `UIHostingController` **6 → 2** e le due superstiti sono **commenti** (`Models/LivePlaybackState.swift:16`, `QLiveRootView.swift:19`); controllo positivo a radice diversa su entrambe le rev, `struct ` → 89 e 93. **(2) I QUATTRO BERSAGLI NON CORRISPONDONO.** `:8` = `@State private var screen: Screen = .home` · `:13` = **riga vuota**, 1 byte · `:27-33` = chiusura della closure dello splash e apertura dello `switch` (`showSplash = false`, tre graffe, `} else {`, `switch screen {`, `case .home:`) — nessuno dei tre è l'enum. **(3) IL COMMENTO CITATO NON ESISTE PIÙ.** A `:10-12` non c'è «Q-Live resta una modale UIKit … riconciliazione top-level = Nodo A (a verbale)», ma tre righe di documentazione su `previousScreen`: «`/// Nodo A N1a — valore precedente di 'screen' per il handler '.onChange'`». **(4) FORMA DELL'INDIRIZZO, d'ora in poi:** il bersaglio si nomina **per simbolo** — *la dichiarazione `private enum Screen` e il ramo `case .qLive` di `AppRootView`* — e un numero di riga, se compare, porta `@ <commit>`. ⛔ **CONSEGUENZA SULLA SEVERITÀ: NESSUNA.** `r.289` descrive il PERIMETRO di un atomo, non un difetto: la sua falsificazione non riapre e non chiude nulla.
+@@ -356,0 +361 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
++- ⚠️ **MARCATURA — `LIBRO:467` È UN PUNTATORE SCADUTO: il suo bersaglio si indirizza per CONTENUTO. Misurato sul blob a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`. La riga resta com'è.** Le **due** occorrenze di `LIBRO:467` in questo bullet vanno lette come **«la voce 43 del registro Sez.6 del LIBRO — quella che nomina la proprietà del runner»**. Il numero è deriva pura: la voce 43 stava a `:467` al commit `3164564` del 2026-07-30, a `:475` a `8822598`, e a HEAD sta a **`:476`** (controprova: `sed -n '476p'` rende **1** sulla stringa «proprietà del runner»). Chi deve incidere un numero scriva **`LIBRO_MASTRO_QBEATS.md:476 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`**, mai il numero nudo. ⛔ **Questa marcatura NON tocca `r.1006`**, che porta la terza occorrenza di `LIBRO:467`: è **registro** = storia. ⚠️ **La qualifica di «PUNTATORE PURO» data a `LIBRO:467` in questo stesso bullet RESTA VERA e non è in discussione**: si corregge la forma dell'indirizzo, non la natura del sito.
+@@ -519 +524 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+-### LIBRO-sez6-buco-v25-v26 — righe changelog v25/v26 mancanti in LIBRO_MASTRO Sez.6 (🟡 OPEN BASSA / doc-hygiene — pre-esistente)
++### LIBRO-sez6-buco-v25-v26 — righe changelog v25/v26 mancanti in LIBRO_MASTRO Sez.6 — 🟢 CHIUSO 01/08/2026
+@@ -523,0 +529 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
++- ⚠️ **CHIUSO PER ACCERTAMENTO il 2026-08-01. IL TICKET NON HA OGGETTO: le voci 25 e 26 non sono MAI STATE SCRITTE.** Il ticket prescriveva il `git log` del LIBRO come unica via lecita (`r.522`: «MAI a memoria»), e quella via è stata percorsa. Misura CC in sola lettura sulla finestra **completa** fra la rev con header v24 (`2b5cdd3`) e quella con header v27 (`82d743e`): **42 punti misurati** — tutti i 41 commit della finestra più l'estremo inferiore, inclusi i 38 che non toccano il LIBRO. Il conteggio delle righe di registro Sez.6 rende **24 su ogni punto** e sale a 25 solo nel commit di v27; la seconda forma, che non usa la data, rende **0 ovunque**. ⛔ **Non c'è backfill da fare**: non è che il contenuto di v25/v26 sia irrecuperabile — **non è mai esistito**, gli header furono bumpati senza scrivere la riga di changelog. ⚠️ Chiusura per **ACCERTAMENTO**, non per fix: `r.522` resta valida come regola e non è stata violata. Output grezzi in `HANDOFF/MISURE_CC_2026-08-01_Q1-Q3.txt` (sha256 `3b9b2007589741c476fd859dd6e0a683a437972c41c9bc308bc59929d2224a28`), sezione Q1.
+@@ -616,0 +623,11 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
++### TD-riscrittura-integrale-exit-unconfirmed-stop — il ticket §1.1 porta TRE strati di marcature sopra un testo falso in più punti (🟡 OPEN BASSA / doc-hygiene)
++- **Il fatto:** `TD-qlive-exit-unconfirmed-stop` (§1.1) è oggi leggibile solo all'indietro. Il corpo è ancorato a `f8276f6` e afferma al presente cose false a HEAD; sopra ci sono la **marcatura v46** (`r.122`), le **marcature del 01/08** su proprietario del rerouting, forma degli indirizzi e catena di severità. Tre strati, e ognuno è corretto: è la **somma** a non essere più leggibile in avanti.
++- **Perché non adesso:** riscrivere ora significherebbe fissare un testo su due metà che stanno per cambiare **entrambe** — la pre-esistente l'ha già mossa ⟦S4R⟧, la nuova la muoverà ⟦S5⟧ con lo Start e ⟦S6⟧ con l'overlay. Si riscriverebbe due volte.
++- **Quando:** a ⟦S5⟧ e ⟦S6⟧ chiusi. Riscrittura **da zero**, non un'altra marcatura: marcare all'infinito un testo che nessuno può più leggere in avanti diventa **sedimento**.
++- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto su codice, prodotto o palco. **Dominio:** CC.
++
++### TD-doccomment-navigate-zero-chiamanti — `QLiveRootView.swift:85` dichiara zero chiamanti dell'imbuto, falsificato da `:145` dello STESSO file (🟡 OPEN BASSA / commento-codice stale)
++- **Il fatto:** il doc-comment a `:85` recita «A S4b ha zero chiamanti (la porta è installata per S5/S6)». Misurato a HEAD `ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8`: l'imbuto `navigate(to:)` ha **un chiamante vero**, `:145`, nello stesso file, introdotto da ⟦S4R⟧. Il commento era vero a ⟦S4b⟧ e nessuno l'ha aggiornato.
++- **Impatto:** zero sul comportamento — è un commento. Il rischio è di lettura: chi lo prende per buono conclude che il ramo `.metronome` non è raggiungibile **per assenza di chiamanti**, che a HEAD è falso (la ragione vera è che l'unica chiamata passa `.shows`).
++- **⛔ NON si tocca in un giro doc-only:** è **codice**. Si traccia qui e si corregge nel primo atomo che apre quel file. **Dominio:** CC.
++- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG.
+@@ -1006,0 +1024 @@ Per data di chiusura, decrescente.
++| 47 | 2026-08-01 | Mauro + CC + referee | **Giro indirizzi e proprietari — otto marcature additive, doc-only, zero codice.** ⛔ Principio: **si marca, non si riscrive**; unica eccezione lo STATO, che vive nel titolo e non in una nota. **(1) `r.289` falsificata nel CONTENUTO**, non negli indirizzi: «Q-Live NON è in questo enum» è falso, `AppRootView.swift:18 @ ddd5716ab0cc696f21cf0c1ec899ee9ed07adab8` recita `case home, qStage, qLive`; i quattro bersagli non corrispondono e il commento citato a `:10-12` non esiste più. **(2) PROPRIETARIO DEL REROUTING: ⟦S4R⟧, non ⟦S6⟧** — cinque righe coperte (`r.120` `r.121` `r.125` `r.128` `r.129`, **non** `r.126`, che non contiene «rerouting»); scadenza e severità INVARIATE, cambia solo l'atomo. **(3) INDIRIZZI AL CODICE PER SIMBOLO** — `r.118` e `r.120` riscritti per simbolo, la regola estesa ai sorgenti in `LIBRO` (Sez.2, riga `2026-08-01`); la regola **esisteva già in casa** per il freeze (`SCALETTA:8`) e per un sorgente (`SCALETTA:129`), si estende e non si inventa. **(4) `LIBRO-sez6-buco-v25-v26` CHIUSO PER ACCERTAMENTO 🟢** — 42 punti misurati fra v24 e v27, registro a 24 ovunque, seconda forma a 0: le voci 25 e 26 non sono **mai state scritte**, non c'è backfill da fare. **(5) LE QUATTRO PREMESSE DI `r.122` SONO SCADUTE, la conclusione REGGE su fondamento NUOVO**: ne sopravvive una; «il pericolo non morde ancora» poggia ora su due serrature indipendenti mai misurate prima — pagina `.metronome` non raggiungibile (`.shows` è un pozzo assorbente) e slot `runner` senza mutatore. ⚠️ **Il margine si è ridotto**: prima per arrivare al pericolo bisognava SCRIVERE codice, ora basta RAGGIUNGERLO. ⛔ Severità INVARIATA 🔴/🚨. **(6) `LIBRO:467` è deriva pura** → indirizzo di contenuto («voce 43 del registro»), un solo sito vivo (`r.356`), `r.1006` è registro e non si tocca. **(7-8) Due debiti nuovi** in §1.3: riscrittura integrale del ticket §1.1 a ⟦S5⟧/⟦S6⟧ chiusi, e il doc-comment stale `QLiveRootView.swift:85` — **è codice, si traccia e non si tocca in un giro doc-only**. ⚠️ **BOX3 FUORI DAL GIRO, per decisione del referee:** la marcatura preparata per `BOX3:33` non è stata scritta — BOX3 è stale dal 22/07 nella sua interezza e una nota additiva lo farebbe sembrare curato; la correzione confluisce nella riscrittura **V100, dichiarata prossimo giro**. ⚠️ **PROVA CHE IL GIRO DÀ DI SÉ:** l'inserzione in Sez.2 del LIBRO sposta di **una** riga tutto ciò che segue, quindi il bersaglio di `LIBRO:467` — la voce 43 — passa da `:476` a `:477` **dentro il commit che lo ripara**. È il motivo per cui l'indirizzo si scrive per contenuto. |
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 13ea0c3..e4c80f2 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -5,3 +5,3 @@
+-**Versione:** 48 (31/07/2026)
+-**Ultima modifica:** 2026-07-31 (v48 — **Sez.2 +1 riga**: ⟦S6F⟧ istituito per la fascia «Q-LIVE · PLAYING», e collocato dopo ⟦S5⟧. Doc-only, zero codice)
+-**Edit author:** CC chat principale 31/07/2026
++**Versione:** 49 (01/08/2026)
++**Ultima modifica:** 2026-08-01 (v49 — **Sez.2 +1 riga**: estensione ai sorgenti della regola di indirizzamento «per SIMBOLO, non per riga». Doc-only, zero codice.)
++**Edit author:** CC chat principale 01/08/2026
+@@ -334,0 +335 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
++| 2026-08-01 | **ESTENSIONE AI SORGENTI DELLA REGOLA DI INDIRIZZAMENTO — «per SIMBOLO, non per riga».** La regola **esiste già in casa** e si estende, non si inventa: `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` la impone al **freeze** («Riferimenti al freeze per SELETTORE, mai per riga») e `:129` la applica **già a un sorgente** («per SIMBOLO: `stop()` → `stopSync()` … a HEAD `AudioEngine.swift:1638`/`:1705`»). **Estensione ratificata:** ogni nuovo indirizzo a un sorgente `.swift` si scrive **per SIMBOLO** — dichiarazione, funzione, ramo, costruttore — e il numero di riga, se compare, è un **ausilio alla lettura** che **DEVE** portare `@ <commit a 40>`. **Motivo misurato, non teorico:** al 2026-08-01 quattro puntatori vivi su `AppRootView.swift` risultavano scaduti dopo tre atomi di §6 — ⟦NODO A⟧, ⟦S4b⟧, ⟦S4R⟧ — che hanno spostato le righe **senza cambiare i simboli**: `BUGS:118` e `BOX3:33` (`:61-68`), `BUGS:120` (`:43`), `BUGS:289` (`:8,13,27-33` e `:10-12`). ⛔ **Le righe storiche e il registro NON si convertono**: si convertono i **siti vivi**, per marcatura additiva, e le righe esistenti non si riscrivono. | Mauro + CC + referee | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` · `:129` · marcature BUGS/BOX3 di questo giro | attiva | — |
+@@ -481,0 +483 @@ Entrambe nascono dalla giornata del 29/07 (Sez.2, righe ⟦S4K⟧ e DARK-DECL) e
++| 49 | 2026-08-01 | Mauro + CC + referee | **Sez.2 +1 riga, doc-only, zero codice.** Estesa ai sorgenti la regola di indirizzamento: ogni nuovo indirizzo a un `.swift` si scrive **per SIMBOLO**, e il numero di riga, se compare, **DEVE** portare `@ <commit a 40>`. **La regola esisteva già in casa e si estende, non si inventa:** `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:8` la impone al freeze, `:129` la applica già a un sorgente. **Motivo misurato:** quattro puntatori vivi su `AppRootView.swift` erano scaduti dopo tre atomi di §6 — ⟦NODO A⟧, ⟦S4b⟧, ⟦S4R⟧ — che hanno spostato le righe **senza cambiare i simboli**. ⚠️ **E la forma corretta era già in casa nella direzione opposta:** `ios_app/QBeats/UI/QLive/QLiveSession.swift:5` e `:18` citano `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb…` e `BOX3_QBEATS.md:34 @ 0a6ebafa…` — numero di riga **con ancora a commit**. Il codice indirizzava i documenti bene mentre i documenti indirizzavano il codice con numeri nudi: questa riga **pareggia l'asimmetria**, non introduce una regola nuova. ⛔ Le righe storiche e il registro NON si convertono: si convertono i siti vivi, per marcatura additiva. ⚠️ **Questa stessa riga sposta di uno tutto ciò che la segue**, incluso il registro: la voce 43 passa da `:476` a `:477`. Il giro che ripara i puntatori ne sposta uno mentre lo ripara — ed è la miglior prova della regola che incide. Marcature di dettaglio: **BUGS v47**. |
+--- FINE DIFF VERBATIM ---
+
+==========================================================================
+3 · IMPRONTE — REALI CONTRO PROSPETTIVE, CON LA FACCIA DICHIARATA
+==========================================================================
+BUGS_QBEATS.md — DUE FACCE (text: unspecified, core.autocrlf=true)
+  PRIMA blob LF   : b24d1b3c9a2c913104f16a8ea3c5adf20f1230cca7e3ef09d874cbca32a2415a
+                     256406 B  1010 righe
+  DOPO  blob LF   : a3bab5b8667dbb72fc145a3d0dfa3feb9a3b2a0611e703ef3e3b1a9446d32e8a
+                     272339 B  1028 righe   [prospettiva: a3bab5b8... IDENTICA]
+  DOPO  disco CRLF: f55d46ec058a7ddc89786263d0f51f928e656262c995cb36bb7e68777eb30f6a
+                     273367 B  1028 CR   [prospettiva: f55d46ec... IDENTICA]
+  delta LF +15933 B   righe +21 / -3
+
+LIBRO_MASTRO_QBEATS.md — DUE FACCE (text: unspecified)
+  PRIMA blob LF   : 39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5
+                     215598 B  485 righe
+  DOPO  blob LF   : 8153e5c0473b9ca491dbe5796e74f7ff06cbc8295aac1054f563e886fb26ae7f
+                     218352 B  487 righe   [prospettiva: 8153e5c0... IDENTICA]
+  DOPO  disco CRLF: 8b529799f7d7dce6e0db614cbe16c2482241e129a0f2a2984ecee8cb78b9110f
+                     218839 B  487 CR   [prospettiva: 8b529799... IDENTICA]
+  delta LF +2754 B    righe +5 / -3
+
+[V] QUATTRO impronte su quattro coincidono con quelle dichiarate PRIMA di scrivere.
+
+==========================================================================
+4 · VERSIONI E POSIZIONI, lette dai blob a HEAD
+==========================================================================
+  BUGS  header riga 3 : **Versione:** 47
+  BUGS  header riga 4 : **Ultima modifica:** 2026-08-01
+  LIBRO header riga 5 : **Versione:** 49 (01/08/2026)
+  LIBRO header riga 7 : **Edit author:** CC chat principale 01/08/2026
+  voce 47 di BUGS  a riga : 1024
+     (previsto 1024)
+  voce 49 di LIBRO a riga : 483
+     (previsto 483)
+  voce 43 di LIBRO a riga : 477
+     (previsto 477 — il bersaglio di LIBRO:467 si e' spostato DENTRO il commit
+      che lo ripara, ed e' scritto nelle due voci di registro)
+
+==========================================================================
+5 · PROPAGAZIONE — «pushato non e' propagato»
+==========================================================================
+[V] Push: HEAD = origin/master, verificato per confronto di sha a 40.
+[V] Stampe estratte con git show, MAI copiate dal disco:
+  BUGS_QBEATS/BUGS_QBEATS_V47_2026-08-01_0ee9543.md   a3bab5b8667dbb72fc145a3d0dfa3feb9a3b2a0611e703ef3e3b1a9446d32e8a
+     byte 272339  CR 0  — STAMPA-VS-BLOB: IDENTICHE
+  LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V49_2026-08-01_0ee9543.md   8153e5c0473b9ca491dbe5796e74f7ff06cbc8295aac1054f563e886fb26ae7f
+     byte 218352  CR 0  — STAMPA-VS-BLOB: IDENTICHE
+
+[V] Stampe precedenti NON toccate — sono archivio:
+  BUGS  V46 : b24d1b3c9a2c913104f16a8ea3c5adf20f1230cca7e3ef09d874cbca32a2415a
+  LIBRO V48 : 39627eeeb419efc9998200cb8c5cdfbe5a0936a04edb74d348887c5199909df5
+
+[V] Censimento delle aree mirror, misurato in questo giro:
+    Le copie vive dei due canonici stanno SOLO in FILE X CLAUDE.MD/BUGS_QBEATS/
+    e FILE X CLAUDE.MD/LIBRO_MASTRO/. La cartella CC MEMORIA contiene un solo
+    file, MEMORY.md, e NESSUNA copia dei canonici: la nota che la indicava come
+    area mirror e' SUPERATA. DESIGN_E_BRIEFING porta tre copie storiche del
+    LIBRO con la nomenclatura vecchia (v2, v8, v15): archivio, non mirror.
+
+==========================================================================
+6 · CI — letta NEL CONTENUTO, mai dall'exit code, mai con sha corto
+==========================================================================
+{"conclusion":"success","databaseId":30697974806,"event":"push","headBranch":"master","headSha":"0ee9543d45d638df061c5a48872aaefeb8a88f26","name":"iOS Signed Build","status":"completed"}
+
+run totali su questo commit (list con sha a 40): 1
+  Una sola run, come per ddd5716: NESSUNA run F1 «Build Check». Il debito
+  D-F1-ROSSO-PER-COSTRUZIONE resta invariato e non e' stato toccato da questo giro.
+
+==========================================================================
+7 · CIO' CHE NON E' STATO TOCCATO
+==========================================================================
+  BOX3_QBEATS.md  : c728baccb7823f7f20d4544b72130147e7f72fc40104887f0da3fcf24d29fb3c
+     invariato. La marcatura S1.c-BOX3 NON e' stata scritta: confluisce nella
+     riscrittura V100, dichiarata PROSSIMO GIRO e non backlog generico.
+  .gitattributes  : 410056a522f74ea74bb7047400d32594b9f08b918166927582d31db7f28e5cf4
+     invariato. Decisione di Mauro ancora aperta.
+  SCALETTA e BOX5   : non toccati.
+  albero: diff 0 righe, staging 0 righe
+
+==========================================================================
+8 · CONSEGUENZA IMMEDIATA — LA PROVA PER INTERVALLO E' SCADUTA SU DUE FILE
+==========================================================================
+  Da questo commit, le copie del Progetto Claude di BUGS_QBEATS.md e
+  LIBRO_MASTRO_QBEATS.md NON sono piu' HEAD:path. Ogni sha di intervallo che il
+  referee calcoli su quei due rendera' una divergenza che NON e' una divergenza.
+  ⇒ Mauro deve ricaricare nel Progetto: BUGS_QBEATS.md e LIBRO_MASTRO_QBEATS.md.
+  BOX3_QBEATS.md, SCALETTA e BOX5 non sono toccati e restano validi.
+
+==========================================================================
+9 · CIO' CHE NON HO MISURATO
+==========================================================================
+[V] Nessuna misura su device. La CI verde dice che la build compila e firma,
+    non che l'IPA sia stata installata o esercitata.
+[V] I log della run non sono stati letti: e' stato letto il JSON di esito.
+[V] Nessun conteggio warning, e nessuna run F1 con cui confrontarlo.
+[V] Il contenuto delle stampe storiche su E: non e' stato riletto: ne e' stata
+    verificata solo l'impronta, per accertare che non fossero state toccate.
+[R] I file:riga citati DENTRO le righe marcate non sono stati riverificati in
+    questo passaggio: lo furono nei referti S1-S3 e N1-N5.
+
+================================================================================
+FINE ESITO COMMIT.
+================================================================================

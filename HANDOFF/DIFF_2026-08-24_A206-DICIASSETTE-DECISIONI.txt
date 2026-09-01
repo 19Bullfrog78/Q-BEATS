@@ -1,0 +1,242 @@
+diff --git a/BOX5_QBEATS.md b/BOX5_QBEATS.md
+index 8b65d6f..9f0388a 100644
+--- a/BOX5_QBEATS.md
++++ b/BOX5_QBEATS.md
+@@ -1,5 +1,5 @@
+ # Q-BEATS — BOX 5 — Specifiche e Contratti
+-**Versione:** V31 — 23/08/2026
++**Versione:** V32 — 24/08/2026
+ 
+ > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+ 
+@@ -790,6 +790,20 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
+ 
+ ---
+ 
++### R-δ.7 — LA TESTA DI UN DOCUMENTO CITATO NON CRESCE MAI (ratificata Mauro 24/08/2026)
++
++⛔ **REGOLA:** ciò che si accumula a ogni versione — riassunti, blocchi Delta, cappelli — va **IN CODA**, mai in testa. La testa di un documento che altri citano **non cresce mai**. Vale per tutti i canonici, **BOX3 compreso**.
++
++**Perché, misurato:** un blocco aggiunto in testa sposta di N righe **tutto** il file, e con esso ogni citazione `FILE:riga` che altri documenti e il **codice di produzione** gli puntano contro. Misura del 24/08 su BOX5: **29 citazioni nude + 7 ancorate = 36**, distribuite su otto sedi — BUGS, LIBRO, SCALETTA e **cinque file `.swift`** (`SetlistRunner`, `LiveView`, `StandbyOverlayView`, `QLiveSession`, `QLiveShowDetailView`). Un solo blocco in testa le avrebbe rotte **tutte e ventinove** in un colpo.
++
++⚠️ **Non è un'ipotesi: è già successo.** Il ticket `TD-box3-citazioni-nude-slittate` in `BUGS_QBEATS.md` nasce esattamente così — BOX3 V100 ha aggiunto 16 righe in testa e ha slittato 27 citazioni. **Stesso difetto, stesso tipo di file, seconda volta.** La regola esiste per non farne una terza.
++
++⚠️ **La convenzione precedente NON era scritta:** cercata il 24/08 nei cinque canonici e nella Costituzione, rende **zero regole** sulla posizione — solo sedici intestazioni `Delta VN vs VN-1:`, che sono **istanze di un'abitudine**, non una prescrizione. Non si sta ribaltando una ratifica: se ne sta scrivendo una dove non ce n'era nessuna.
++
++✅ **Il numero di versione in testa resta in testa**, e si aggiorna **dentro la riga**: sostituire una cifra non sposta nulla.
++
++⛔ **I riassunti già in testa NON si spostano.** Muoverli costerebbe quanto aggiungerne uno. Si marca, non si riscrive — vedi la dichiarazione di transizione in coda a questo documento.
++
+ ## Backlog — feature da implementare
+ 
+ | # | Feature | Fase | Priorità | Specs CD |
+@@ -848,3 +862,62 @@ citare questo capitolo per affermare che Drive sia una copia integrale.
+ ## Cambio open per ratifica (da V19, invariato)
+ 
+ **Proporzioni layout Vista LIVE** — proposta in attesa di test su device con sessione live attiva e contenuti reali. Vedi V19 per dettagli.
++
++---
++
++## MODELLO DI SINCRONIZZAZIONE — «GLI SCAFFALI» (ratificato Mauro 23/08/2026, riconfermato 24/08)
++
++⛔ **Sede unica del modello.** Le parole sono di Mauro; qui sono messe nella forma di casa, non riformulate.
++
++**D1 · LA TABELLA.** Quando una canzone parte si costruisce la sua tabella: **uno scaffale per ogni battito**. Ogni scaffale dichiara **sezione, battuta, quale battito, se accentato**.
++
++**D2 · UN NUMERO SOLO.** Il motore consegna **UN numero**. La grafica va a quello scaffale e disegna. **Non converte, non divide, non conta: legge.**
++
++**D3 · DOVE STA IL TRADUTTORE.** Il traduttore sta **nello SHOW**, mai nel motore audio. Il motore **non sa cosa sia una canzone e non deve saperlo**.
++
++**D4 · L'ENTITÀ.** Ogni canzone è un'entità a sé, con o senza pausa prima di lei. «Una canzone vive e muore dentro se stessa» — parole di Mauro.
++
++**D5 · COSA SIGNIFICA IL NUMERO.** È sempre «a che battito di **QUESTA** canzone siamo», mai «da quanto suona il motore».
++
++**D6 · CHI CONTA E CHI SOTTRAE.** Il motore **conta e basta**; lo Show **sottrae**. Il motore **non azzera mai niente mentre suona**.
++
++**D7 · DA DOVE COMINCIA.** La numerazione comincia al **PRIMO battito prodotto, conto alla rovescia COMPRESO**. Gli scaffali del conto alla rovescia **dicono «conto alla rovescia»**.
++
++**D8 · L'ATTACCA FRA CANZONI.** 1→250, poi 1→180, **niente in mezzo**. All'orecchio un blocco unico, **sullo schermo due canzoni**. Pausa o non pausa **si decide in Q-Stage, mai dal vivo**. ⚠️ **Oggi l'attacca NON esiste, e la casella nemmeno.**
++
++**D9 · IL CONTO ALLA ROVESCIA — FORMA.** Tre valori: **Off · 1 battuta · 2 battute**. Velocità e metrica **dalla PRIMA SEZIONE della canzone**: 100 BPM in 3/4 → **3-2-1**; 115 BPM in 4/4 → **4-3-2-1**. **Deve chiudersi esattamente sul battito 1 della musica.**
++
++**D10 · IL CONTO ALLA ROVESCIA — NATURA.** È **parte della canzone, non un prefisso**. Ce l'hanno **tutti i dispositivi** e lo producono **uguale**.
++
++⚠️ **Stato a HEAD `8ee5485`, misurato 24/08: il conto alla rovescia è ROVESCIATO rispetto a D9/D10.** Due difetti distinti, agli atti in `BUGS_QBEATS.md`: `TD-countin-rovesciato` e `TD-countin-impostazione-non-letta`.
++
++### D17 — LE SCALETTE IDENTICHE (ratificata Mauro 24/08/2026)
++
++**Le scalette devono essere identiche su tutti i dispositivi, e oggi niente lo verifica.**
++
++⚠️ **Il difetto è ATTIVO ADESSO, non lo introduce l'attacca.** Il passaggio sezione→sezione è **senza interruzione** e **ogni dispositivo decide quando farlo contando la PROPRIA copia**; se due copie divergono **gli schermi si sfasano mentre il click resta insieme**, senza errore né avviso. **L'attacca non crea il problema: toglie la rete di sicurezza**, cioè lo stop di fine canzone che oggi rimette tutti d'accordo.
++
++⛔ **Senza un canale fra i dispositivi la garanzia non esiste** — misurato sull'header LinkKit: Link trasporta **il tempo**; il nome del dispositivo si scrive in `Info.plist`, **non è impostabile a comando e non è leggibile dagli altri peer**.
++
++**QUATTRO MISURE, TUTTE DICHIARATE PROVVISORIE:**
++- **(a)** impronta della scaletta calcolata **in locale**, mostrata **IN FORMA DI PAROLE**, non di codice esadecimale;
++- **(b)** mostrata **dove il musicista sta già guardando prima di partire**, mai in un menù impostazioni;
++- **(c)** condividere una scaletta dev'essere **UN GESTO UNICO** fra dispositivi, non un caricamento manuale su ognuno;
++- **(d)** impronta **stabile nel tempo**, così un cambiamento si nota da solo senza confronto.
++
++⚠️ **Si sostituiscono quando arriva il protocollo Q-BEATS.**
++
++⛔ **Misurato a HEAD `8ee5485`, 24/08: nessun meccanismo di verifica identità esiste.** L'unico riscontro su «hash» nel codice è `ios_app/QBeats/Models/TimeSignature.swift:11`, che è `Hashable` di Swift — **falso amico**, altra materia.
++
++---
++
++## ⚠️ DA V32 I RIASSUNTI VANNO IN CODA — dichiarazione di transizione, 24/08/2026
++
++⛔ **Questo documento ha i riassunti VECCHI in testa (`Delta V31` … `Delta V23`, righe 6-64) e i NUOVI qui in coda.** Non è disordine: è una **transizione datata**, ratificata da Mauro il 24/08/2026 insieme alla regola **R-δ.7**. I vecchi **restano dove sono**: spostarli costerebbe quanto aggiungerne uno in testa, cioè rompere ventinove citazioni. **Si marca, non si riscrive.**
++
++**Delta V32 vs V31:**
++
++- **Capitolo NUOVO «MODELLO DI SINCRONIZZAZIONE — GLI SCAFFALI»**, sede unica delle decisioni **D1-D10** e **D17** di Mauro (23/08, riconfermate 24/08). Nessuna di esse esisteva in alcun canonico prima di oggi: vivevano solo in chat.
++- **Regola NUOVA `R-δ.7`** nel capitolo R-δ: la testa di un documento citato **non cresce mai**; ciò che si accumula va in coda. Vale per tutti i canonici, BOX3 compreso.
++- ⚠️ **La convenzione precedente non era scritta**: misurato il 24/08, zero regole sulla posizione nei cinque canonici e nella Costituzione.
++
+diff --git a/BUGS_QBEATS.md b/BUGS_QBEATS.md
+index 7b4dcba..c0a6c02 100644
+--- a/BUGS_QBEATS.md
++++ b/BUGS_QBEATS.md
+@@ -1,7 +1,7 @@
+ # BUGS_QBEATS — Tracker centralizzato bug e tech debt
+ 
+-**Versione:** 61
+-**Ultima modifica:** 2026-08-23
++**Versione:** 62
++**Ultima modifica:** 2026-08-24
+ **Autore iniziale:** CC chat principale 26/05/2026 sera
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+@@ -816,18 +816,18 @@ Regole di ripetizione dichiarate PRIMA di provare. Osservazione: compare «Bar 1
+   | 2 | `BUGS_QBEATS.md` | 462 | `BOX3:30` | **46** | `BOX3:NN` |
+   | 3 | `BUGS_QBEATS.md` | 462 | `BOX3:33` | **49** | `BOX3:NN` |
+   | 4 | `BUGS_QBEATS.md` | 462 | `BOX3:30` | **46** | `BOX3:NN` (2ª occorrenza sulla stessa riga) |
+-  | 5 | `BUGS_QBEATS.md` | 1251 | `BOX3:49` | **65** | `BOX3_QBEATS.md:NN` |
+-  | 6 | `BUGS_QBEATS.md` | 1251 | `BOX3:30` | **46** | `BOX3:NN` |
+-  | 7 | `BUGS_QBEATS.md` | 1251 | `BOX3:33` | **49** | `BOX3:NN` |
+-  | 8 | `BUGS_QBEATS.md` | 1251 | `BOX3:30` | **46** | `BOX3:NN` (2ª occorrenza) |
+-  | 9 | `BUGS_QBEATS.md` | 1252 | `BOX3:33` | **49** | `BOX3:NN` |
++  | 5 | `BUGS_QBEATS.md` | 1280 | `BOX3:49` | **65** | `BOX3_QBEATS.md:NN` |
++  | 6 | `BUGS_QBEATS.md` | 1280 | `BOX3:30` | **46** | `BOX3:NN` |
++  | 7 | `BUGS_QBEATS.md` | 1280 | `BOX3:33` | **49** | `BOX3:NN` |
++  | 8 | `BUGS_QBEATS.md` | 1280 | `BOX3:30` | **46** | `BOX3:NN` (2ª occorrenza) |
++  | 9 | `BUGS_QBEATS.md` | 1281 | `BOX3:33` | **49** | `BOX3:NN` |
+   | 10 | `LIBRO_MASTRO_QBEATS.md` | 317 | `BOX3:30` | **46** | `BOX3:NN` |
+   | 11 | `LIBRO_MASTRO_QBEATS.md` | 317 | `BOX3:45` | **61** | `BOX3:NN` |
+   | 12 | `LIBRO_MASTRO_QBEATS.md` | 335 | `BOX3:33` | **49** | `BOX3:NN` |
+   | 13 | `LIBRO_MASTRO_QBEATS.md` | 345 | `BOX3:34` | **50** | `BOX3_QBEATS.md:NN` |
+-  | 14 | `LIBRO_MASTRO_QBEATS.md` | 506 | `BOX3:34` | **50** | `BOX3:NN` |
+-  | 15 | `LIBRO_MASTRO_QBEATS.md` | 506 | `BOX3:30` | **46** | `BOX3:NN` |
+-  | 16 | `LIBRO_MASTRO_QBEATS.md` | 515 | `BOX3:34` | **50** | `BOX3_QBEATS.md:NN` |
++  | 14 | `LIBRO_MASTRO_QBEATS.md` | 512 | `BOX3:34` | **50** | `BOX3:NN` |
++  | 15 | `LIBRO_MASTRO_QBEATS.md` | 512 | `BOX3:30` | **46** | `BOX3:NN` |
++  | 16 | `LIBRO_MASTRO_QBEATS.md` | 521 | `BOX3:34` | **50** | `BOX3_QBEATS.md:NN` |
+   | 17 | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` | 311 | `BOX3:34` | **50** | `BOX3_QBEATS.md:NN` |
+   | 18 | `ios_app/QBeats/UI/QLive/QLiveRootView.swift` | 62 | `BOX3:51` | **67** | `BOX3_QBEATS.md:NN` |
+   | 19 | `LIBRO_MASTRO_QBEATS.md` | 317 | `r.30` | **46** | `BOX3 … r.NN` |
+@@ -873,6 +873,35 @@ Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
+ 
+ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del backlog ma il primario è `LIBRO_MASTRO_QBEATS.md` Sezione 3.
+ 
++### TD-countin-rovesciato — il conto alla rovescia c'è dove non deve e manca dove deve (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro**)
++- **Contratto violato:** **D9/D10**, ratificate Mauro 23/08 e riconfermate 24/08, sede unica in `BOX5_QBEATS.md` V32, capitolo «MODELLO DI SINCRONIZZAZIONE — GLI SCAFFALI». Il conto alla rovescia è **parte della canzone**: sta **all'inizio**, chiude **sul battito 1 della musica**, e la sua velocità/metrica vengono **dalla PRIMA SEZIONE**.
++- **Fatto ① — l'unica accensione è nel posto sbagliato.** Misurato a HEAD `8ee548551369b2c6bebe64c03b7d372744bac04e`, sweep per EFFETTO sulle **scritture** dello stato: l'unica è `ios_app/QBeats/AudioEngine.swift:1255` `self?.playbackState = .countIn`, dentro `resumeFromCurrentSection()` (`:1251`). I suoi chiamanti veri: `ios_app/QBeats/UI/Live/OverlayStopView.swift:17` — cioè **la ripresa dopo uno stop a metà canzone** — e `DebugView.swift:198`. ⇒ **C'è dove D9/D10 dicono che non deve esserci.**
++- **Fatto ② — all'inizio della canzone non c'è.** `SetlistRunner.startSetlist` (`:109-124`) e `SetlistRunner.startCurrentSong` (`:124-141`) hanno **zero** riferimenti a countIn. ⇒ **Manca dove deve esserci.**
++- **Fatto ③ — il numero mostrato è scritto a mano, e sbaglia in 3/4.** `ios_app/QBeats/UI/Live/LiveView.swift:302` → `session.playbackState = .countIn(countdown: 4)`. **Quattro, letterale**, mai derivato dalla metrica. In 3/4 D9 prescrive **3-2-1**: questo mostrerebbe 4. ⚠️ **Reperto di CC, non del mandato che ha aperto il ticket.**
++- ⛔ **NON è lo stesso difetto di `TD-countin-impostazione-non-letta`, e non si chiudono insieme:** si può cablare il conto alla rovescia all'inizio **con un numero fisso**, lasciando l'impostazione ancora non letta; e si può leggere l'impostazione alimentando **il momento sbagliato**. **Nessuno dei due fix implica l'altro.**
++- **Stato:** 🟠 OPEN MEDIA — **PROPOSTA, il valore lo assegna Mauro**. Motivo della proposta: non blocca il palco (lo show parte lo stesso) ma **rompe una ratifica** e si vede a ogni partenza. **Dominio:** CC.
++
++### TD-countin-impostazione-non-letta — `song.countIn` si sceglie, si salva, si testa, e nessuno la legge (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro**)
++- **Il fatto, misurato a HEAD `8ee548551369b2c6bebe64c03b7d372744bac04e`:** `song.countIn` (`ios_app/QBeats/Models/Song.swift:21`, commento «0=nessuno, 1=1 battuta, 2=2 battute» — **coincide alla lettera con D9**) è **scritta** (`ios_app/QBeats/UI/QStage/SongEditorView.swift:34`, `Picker`), **persistita** (`Song.swift:60` decode · `QBeatsBackupManager.swift:217`) e **coperta da quattro test** (`SongCodableRoundTripTests`, `SongRetroCompatDecodingTests` ×2, `BackupManifestCodableTests`). **Sweep per EFFETTO su `AudioEngine.swift` + `SetlistRunner.swift` + `UI/Live/`: nessuna lettura del campo.** Tutti i riscontri sono il **caso enum** `.countIn` dello stato di riproduzione, **mai il campo di Song**.
++- **Controllo positivo, forma identica sugli stessi due file:** `.beatsPerBar` — un altro campo di Song — rende **4 hit in `AudioEngine.swift` e 4 in `SetlistRunner.swift`**. Un campo letto davvero esiste, e la sonda lo vede. **Controllo negativo:** 0.
++- **Impatto:** l'utente sceglie un valore in Q-Stage, l'app glielo **salva e glielo ripropone**, e quel valore **non produce alcun effetto**. È una promessa mantenuta a metà: peggio di un controllo assente, perché sembra funzionare.
++- ⛔ **Distinto da `TD-countin-rovesciato`** — vedi lì il perché. **Stato:** 🟠 OPEN MEDIA — **PROPOSTA, decide Mauro**. **Dominio:** CC.
++
++### TD-loop-infinito-da-rimuovere — l'interruttore «Loop ∞» va tolto dall'editor delle sezioni (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro**)
++- **Decisione D15, Mauro 23/08 riconfermata 24/08:** l'interruttore **SI ELIMINA**. Motivo suo: è un **residuo del metronomo da studio**; dentro uno show produce una **sezione senza uscita**. ⇒ Ogni canzone ha **lunghezza conosciuta** e il modello degli scaffali (D1-D7) **funziona senza pezzi in più**.
++- **Dove vive, misurato a HEAD `8ee548551369b2c6bebe64c03b7d372744bac04e`:** `ios_app/QBeats/UI/QStage/SectionEditorView.swift:144-145` — `Toggle(isOn: loopBinding)` con `Text("Loop ∞")`; `:236` dichiara la corrispondenza `repetitions = -1 (sentinel loop) ⇄ toggle`. Il sentinel vive nel modello (`ios_app/QBeats/Models/SongSection.swift:9`), nel motore (`AudioEngine.swift:1136` e `:1139`, dove è scritto che «la distinzione 0 vs -1 è preservata») e in un test (`SongCodableRoundTripTests.swift:35`).
++- ✅ **La conseguenza-dati è CHIUSA, misurata:** **zero sezioni con `repetitions = -1`** su **10 sezioni** nei tre file JSON del progetto (`test_data/songs.json` e due archivi), e **Mauro dichiara che non ne esistono sul suo dispositivo**. ⚠️ **Non è una prova su TUTTI i dispositivi**: chi esegue la rimozione decida comunque cosa fare di una sezione che arrivasse con -1.
++- ⚠️ **Il perimetro è più largo del solo `Toggle`:** c'è anche `DebugView.swift:414` `Button("Loop infinito (∞)")`. Chi rimuove decida se è dentro o fuori.
++- **Stato:** 🟡 OPEN BASSA — **PROPOSTA, decide Mauro**. **Dominio:** CC (rimozione) + CD (il controllo sparisce dall'editor: è UI).
++
++### TD-scalette-non-verificate — nessuno garantisce che i dispositivi abbiano la stessa scaletta, e il difetto è attivo oggi (🔴 OPEN ALTA — **PROPOSTA, non assegnata: decide Mauro**)
++- **Decisione D17, Mauro 24/08:** le scalette **devono essere identiche su tutti i dispositivi** e **oggi niente lo verifica**.
++- ⚠️ **IL DIFETTO È ATTIVO ADESSO, e l'attacca non lo crea.** Misurato a HEAD `8ee548551369b2c6bebe64c03b7d372744bac04e`: il cambio sezione è deciso **in locale** — `ios_app/QBeats/SetlistRunner.swift` legge `currentSectionIdx` (`:31`) sull'evento `sectionEndedSubject` (`AudioEngine.swift:166`), senza concordare con alcun peer. **Ogni dispositivo conta la PROPRIA copia.** Se due copie divergono, **gli schermi si sfasano mentre il click resta insieme**, **senza errore né avviso**. ⇒ **L'attacca toglie la rete di sicurezza** — lo stop di fine canzone che oggi rimette tutti d'accordo — ma il difetto è già qui.
++- **Perché la garanzia non esiste, sorgentato:** LinkKit trasporta **il tempo**; il nome del dispositivo si scrive in `Info.plist`, **non è impostabile a comando e non è leggibile dagli altri peer**. Senza un canale fra i dispositivi non c'è nulla su cui confrontare.
++- **Misurato: nessun meccanismo esiste.** Sweep su tutti i `.swift` per «checksum/hash/fingerprint/impronta»: l'unico riscontro è `ios_app/QBeats/Models/TimeSignature.swift:11` `func hash(into:)`, che è `Hashable` di Swift — **falso amico**. **Controllo positivo:** «setlist» rende riscontri in **17 file**, quindi la sonda leggeva davvero il corpus.
++- **QUATTRO MISURE, TUTTE DICHIARATE PROVVISORIE da Mauro** — sede spec `BOX5_QBEATS.md` V32, capitolo D17: (a) impronta locale **in parole**, non esadecimale · (b) mostrata **dove il musicista già guarda prima di partire**, mai in un menù impostazioni · (c) condivisione = **UN GESTO UNICO** fra dispositivi · (d) impronta **stabile nel tempo**. ⚠️ **Si sostituiscono quando arriva il protocollo Q-BEATS.**
++- **Stato:** 🔴 OPEN ALTA — **PROPOSTA, il valore lo assegna Mauro**. Motivo della proposta: la conseguenza è che **due musicisti leggono sezioni diverse sullo stesso brano**, in silenzio. **Dominio:** CD (le quattro misure sono UX) → poi CC.
++
+ ## 🚢 1.5 — PREREQUISITI DI DISTRIBUZIONE (bloccano la SPEDIZIONE, non il palco)
+ 
+ Blocco aperto il **30/07/2026**. Nasce da un fatto nuovo messo agli atti il giorno prima e non prima: **l'app si vende** (`LIBRO_MASTRO_QBEATS.md` Sez.2, riga `2026-07-30` «L'APP SI VENDE», dichiarazione Mauro 29/07). Finché il traguardo era «suonarci sopra», nulla di quanto segue era un difetto; da quando il traguardo è «spedirla», ognuna di queste voci è una **porta chiusa fra la CI verde di oggi e una build che possa esistere sullo Store**.
+@@ -1264,6 +1293,7 @@ Per data di chiusura, decrescente.
+ | 59 | 2026-08-22 | Mauro (collaudo) + CC + referee | **Una marcatura additiva + due ticket NUOVI, doc-only, zero codice.** **(1)** `TD-direttore-parte-da-bar2` (§1.1) — inserita in coda la **CARATTERIZZAZIONE FASE 1 (22/08)**: matrice a 7 righe su build 632 `a83353c`, `ios_app/` identico a `6527d82b`. ①②③ ✅ 8/8 ciascuna, ma **sono UNA SOLA riga di codice** (`AudioEngine.swift:971`, con zero peer la prima clausola è vera per tutte e tre). **Tre** righe restano **provvisorie** (④ ha 3 giri su 8, ma completi; Sintomo ② e «rientro senza STOP» senza conteggio, per lacuna del referee che non aveva predisposto il foglio di raccolta). **Bias dichiarato:** banco sterile vs difetto nato in condizioni di palco. `startBeatOffset` **escluso per misura** come causa del Sintomo ① sul Direttore. Due ipotesi **falsificate** (mascheramento; rientro-senza-STOP come causa). Stato: caccia manuale **SOSPESA**, gravità **INVARIATA** 🔴/🚨, causa **⬜ NON ATTRIBUITA**. Strumentazione `[Q-BEATS][DIAG-A]` del 05/2026 **non riusabile** (referto A166). **(2)** Ticket nuovo §1.1 `TD-rientro-senza-stop-sgancia-audio-e-grafica` — il `guard !isRunning` di `AudioEngine.swift:859` fa uscire `start()` prima degli azzeramenti di `:874`: motore sulla vecchia canzone, grafica da bar 1. **(3)** Ticket nuovo §1.2 `TD-mode-picker-senza-solo` — `SettingsView.swift:26-37` offre solo `Director`/`Follower`, nessuna voce «Solo»: dal selettore non si torna al default `.standalone`; rende non eseguibile la riga ⑤ della matrice. Gravità **ratificate da Mauro 22/08**: **(2)** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — conseguenza identica a bar2 ma **riproducibile a comando**, e nessuna difesa nell'app; **(3)** 🟠 OPEN MEDIA / ⚠️ NON BLOCCANTE PALCO — si può sempre suonare da soli spegnendo Link, quindi requisito di distribuzione, non difetto di palco. |
+ | 60 | 2026-08-22 | Mauro (osservazione) + CC + referee | **Solo additivo, zero correzioni, zero codice (mandati A176 + A178 + A180 + A181 + A182 + A184 + A185 + A186 + A187).** Vocabolario «due orologi» (OROLOGIO MOTORE AUDIO/OROLOGIO GRAFICA, ACCENTO AUDIO/ACCENTO GRAFICO, CAMBIO SEZIONE AUDIO/CAMBIO SEZIONE GRAFICO) ratificato da Mauro nella sola sede `BOX5_QBEATS.md` (V30) — non copiato qui. Su `TD-rientro-senza-stop-sgancia-audio-e-grafica` (§1.1): aggiunta l'osservazione diretta di Mauro 22/08 (seconda ricognizione) — ACCENTO AUDIO e ACCENTO GRAFICO non coincidono, scarto crescente a ogni uscita-rientro, uscita usata è «<»/«< show», non i tasti prev/next sez. Sulla riga «rientro senza STOP» della matrice di `TD-direttore-parte-da-bar2`: la stessa osservazione **corrobora** l'esito ma **NON chiude la lacuna di conteggio** dichiarata a `:211` — è qualitativa, il conteggio prescritto non è stato eseguito, e la riga resta provvisoria insieme a ④ e Sintomo ②. Nessuna riga esistente modificata o cancellata. |
+ | 61 | 2026-08-23 | Mauro (collaudo device + OK sul diff) + referee (ratifiche A196–A200) + CC (esecuzione) | **Solo additivo, zero riscritture, zero codice (commit `203d331`).** Sei marcature 23/08 su tre ticket: `TD-fineshow-bottoni-morti` — titolo e Sintomo falsificati anche su device (collaudo Mauro 23/08: END SHOW raggiunto, BACK TO SHOWS percorso); il residuo è la RIMOZIONE di RESTART SETLIST ratificata il 07/08 e non eseguita, ferma da 16 giorni. `TD-mixer-copre-endshow` — clausola «SI ARMA CON ⟦S5b⟧» scaduta il 19/08; CANCELLO sulla contraddizione fra i due canonici sul disegno Ⓐ (decide Mauro); il deliverable CD del 07/08 esiste in COPIA UNICA (repo 1 · E: 0 · git 0). `TD-emerg-bottone-morto` — la marcatura 18/08 punto (4) è diventata falsa a sua volta. NUOVO ticket §1.3 `TD-box3-citazioni-nude-slittate`: 27 citazioni nude di BOX3 slittate di +16 righe, elenco COMPLETO in tabella dentro il ticket, falsi amici dichiarati, clausola di AUTO-ESCLUSIONE (la tabella porta 19 forme `BOX3:NN` che sono dati, non indirizzi), cancello agganciato alla «riscrittura piena di BOX3». Celle 5–9 della tabella rimisurate DOPO l'inserimento (quarto livello della deriva: la tabella invecchia scrivendosi — correzioni intra-riga, conteggio righe invariato). Header bump 60→61. Doc-only. |
++| 62 | 2026-08-24 | Mauro (decisioni 23/08, riconfermate 24/08) + referee (mandato) + CC (misure ed esecuzione) | **Quattro ticket NUOVI, doc-only, zero codice.** **(1)** `TD-countin-rovesciato` — l'unica accensione dello stato conto-alla-rovescia è `AudioEngine.swift:1255` dentro `resumeFromCurrentSection()`, raggiunta da `OverlayStopView.swift:17`, cioè **la ripresa a metà canzone**; all'inizio (`SetlistRunner:109-124` e `:124-141`) **zero riferimenti**. ⚠️ **Terzo fatto, reperto di CC e non del mandato:** `LiveView.swift:302` porta `countdown: 4` **letterale**, che in 3/4 sbaglia. **(2)** `TD-countin-impostazione-non-letta` — `song.countIn` si sceglie, si salva, è coperta da quattro test, e **nessuno la legge nella catena audio**; controllo positivo `.beatsPerBar` = 4+4 hit sugli stessi file. ⛔ **I due NON si fondono**: nessuno dei due fix implica l'altro, e il perché è scritto in entrambi. **(3)** `TD-loop-infinito-da-rimuovere` — D15; ✅ conseguenza-dati **chiusa a misura**: zero sezioni con `repetitions = -1` su 10, più dichiarazione di Mauro. **(4)** `TD-scalette-non-verificate` — D17; il difetto è **attivo oggi**, non lo introduce l'attacca. Header bump 61→62. Doc-only. |
+ 
+ ---
+ 
+diff --git a/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md b/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+index 6c8ea5e..385a267 100644
+--- a/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
++++ b/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+@@ -1,6 +1,6 @@
+ # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
+ 
+-**Versione:** 13 (23/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
++**Versione:** 14 (24/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6) · **cancello END SHOW in scheda ⟦S5⟧ 02/08** (v7) · **variante `.segMini` ABOLITA dal freeze consolidato 06/08, marcata nella scheda ⟦S5⟧** (v8) · **⟦S5⟧ spezzata in tre in sez.C + ⟦S-EXIT⟧ senza scheda + reperto tipi runner SEPARATO in premessa e domanda aperta + cancello END SHOW al singolare + sez.F marcata stale 07/08** (v9) · **A3 empty-state cancellata + ⟦S5a⟧ chiuso device + destinazione ⟦S6⟧ ribadita, 18/08** (v10) · **scheda ⟦S5b⟧ INCISA in sezione B (13 atomi, titolo marcato) + clausola «zero citazioni nude ≥320» di sez.C marcata SCADUTA, 18/08** (v11) · **⟦S-EXIT⟧ RIFORMULATO E SCOMPOSTO in sei punti (a)-(f) — marcatura additiva in coda a sez.C, ordine 31/07 INVARIATO, 22/08** (v12) · **⟦S5b⟧ CHIUSO DEVICE 23/08 (collaudo Mauro, quattro passi) + marcature sulle righe «irraggiungibile» + CONFERMA PRIMA DI USCIRE DALLA STANZA incisa come QUARTO lavoro non-atomo, ordine degli atomi INVARIATO, 23/08** (v13)
+ > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
+ > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
+ > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
+@@ -501,6 +501,13 @@ LAVORI NON-ATOMI che corrono a fianco, nell'ordine ratificato da Mauro:
+    volta ed è stato ritrovato per misura, non per memoria.
+ ⛔ Non sono atomi della scaletta e non entrano nella riga d'ordine.
+ 
++⚠️ MARCATURA 24/08 — D16 È SUPERATA E GIÀ INCISA. Non si riscrive nulla: si marca.
++Il 23/08 Mauro aveva ordinato «prima la barra delle stanze, poi ⟦S-EXIT⟧». Nello stesso
++giorno ha deciso che la conferma d'uscita è un LAVORO NON-ATOMO, ed è il punto 4)
++qui sopra, entrato col commit `203d331`. ⇒ L'ordine degli atomi non è mai stato
++toccato e non lo è adesso: resta ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧, sede unica e invariata.
++
++
+ ⚠️ MARCATURA 23/08 — LE RIGHE «IRRAGGIUNGIBILE» DI QUESTA SEZIONE CADONO
+ IN BLOCCO. Zero parole riscritte: si marca.
+ Misurato a HEAD `91809bb1cf9b914c070f4a0f315982021b3cbb59`, e provato sul
+diff --git a/LIBRO_MASTRO_QBEATS.md b/LIBRO_MASTRO_QBEATS.md
+index 407661f..c672233 100644
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -2,8 +2,8 @@
+ 
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+ 
+-**Versione:** 62 (23/08/2026)
+-**Ultima modifica:** 2026-08-23 (v62 — **una riga sola in Sez.2, doc-only, zero codice**: ⟦S5b⟧ CHIUSO DEVICE al collaudo Mauro del 23/08, quattro passi su quattro, e con esso si chiudono tre cancelli. Perimetro negativo dichiarato nella riga stessa. — v61 era: **una riga sola in Sez.2, doc-only, zero codice**: la sessione A166→A190 sta a cavallo del 22 e del 23/08/2026, e la riga registra le date misurate — commit, referti, e il limite di cio' che il referee sa collocare sulle ratifiche.)
++**Versione:** 63 (24/08/2026)
++**Ultima modifica:** 2026-08-24 (v63 — **Sez.2 +6 righe, doc-only, zero codice**: le diciassette decisioni di Mauro del 23/08, riconfermate 24/08, entrano nei canonici; regola nuova R-δ.7 sulle teste dei documenti. — v62 era: **una riga sola in Sez.2, doc-only, zero codice**: ⟦S5b⟧ CHIUSO DEVICE al collaudo Mauro del 23/08, quattro passi su quattro, e con esso si chiudono tre cancelli. Perimetro negativo dichiarato nella riga stessa. — v61 era: **una riga sola in Sez.2, doc-only, zero codice**: la sessione A166→A190 sta a cavallo del 22 e del 23/08/2026, e la riga registra le date misurate — commit, referti, e il limite di cio' che il referee sa collocare sulle ratifiche.)
+ **Edit author:** CC — mandati A176 + A178 + A180 + A181 + A182 + A184 + A185 + A186 + A187, 22/08/2026 · A190 + A198 + A199 + A200, 23/08/2026
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+ 
+@@ -362,6 +362,12 @@ Colonna `stato`: `attiva` | `superseded` | `revocata` | `ratificata-no-CC-review
+ | 2026-08-22 | **VOCABOLARIO DEI DUE OROLOGI — ratificato Mauro 22/08/2026.** Sede unica: capitolo omonimo in `BOX5_QBEATS.md` (V30). Non si copia qui: si rinvia. **REGOLA UNICA: ogni cosa esiste in versione AUDIO e in versione GRAFICO, e il difetto è SEMPRE la distanza fra le due, mai una delle due «sbagliata».** **Tutti e sei i nomi sono ratificati da Mauro:** OROLOGIO MOTORE AUDIO · OROLOGIO GRAFICA · ACCENTO AUDIO · ACCENTO GRAFICO · CAMBIO SEZIONE AUDIO · CAMBIO SEZIONE GRAFICO. ⚠️ **Cinque su sei erano stati proposti diversamente dal referee e sono stati CORRETTI da Mauro prima della ratifica:** OROLOGIO MOTORE AUDIO (era «orologio motore»), ACCENTO AUDIO (era «accento sonoro»), ACCENTO GRAFICO (era «primo verde»), CAMBIO SEZIONE AUDIO (era «cambio suonato»), CAMBIO SEZIONE GRAFICO (era «cambio scritto»). Solo OROLOGIO GRAFICA è rimasto come proposto. | Mauro (ratifica, e correzione di tre nomi) + referee (proposta del lessico) | `BOX5_QBEATS.md` cap. «VOCABOLARIO DEI DUE OROLOGI» (V30) | attiva | — |
+ | 2026-08-23 | **LA SESSIONE A166→A190 STA A CAVALLO DI DUE GIORNI — date misurate da CC, non asserite.** ⚠️ **Le date dei nomi NON sono state cambiate e nessun file e' stato rinominato: la discrepanza si dichiara qui.** **(1) Commit dei documenti:** `9edc120eafd2999bf915f974e8b204492e7931f5`, author = committer = **2026-08-23T09:46:57+02:00** (`git show -s --format=%ad --date=iso-strict`); il commit precedente `4629ee9` e' del **2026-08-22T10:58:38+02:00** — **ventitre ore esatte** fra i due. **(2) Referti:** A172→A182 sono del **22/08** (da 12:02:23 a 17:08:22); **A184→A188 sono del 23/08** (da 08:52:39 a 09:55:32) **pur portando `2026-08-22` nel nome**. Fra l'ultimo del 22 e il primo del 23 corrono **15h44m** senza alcun artefatto. **(3)** ⚠️ **NON SORGENTATO, e si dichiara invece di colmarlo:** le ratifiche di Mauro incise come «22/08/2026» compaiono in referti scritti il 22/08 fra le 15:36 e le 16:46, cioe' **prima** di quella finestra — ma **nessun documento registra QUANDO Mauro le ha pronunciate**: l'evento di ratifica vive in chat, non in un artefatto datato. ⛔ **La data resta come scritta; il referee non l'ha chiesta a Mauro e CC non la inventa.** | CC (misure) + referee (rilievo) | `git show -s` su `9edc120` e `4629ee9` · `stat` sui referti in `HANDOFF/` · `HANDOFF/MISURE_CC_2026-08-23_A190-DATA-REALE-E-DUE-REGOLE.md` | attiva | — |
+ | 2026-08-23 | **⟦S5b⟧ CHIUSO DEVICE — collaudo Mauro 23/08, QUATTRO PASSI SU QUATTRO, e con esso si chiudono TRE cancelli.** Percorso: DEBUG → `TESTSONG L1.b` → Q-Live → Shows → tap riga → dettaglio → **START SHOW** → player ARMATO e FERMO → setlist fino in fondo → END SHOW → **BACK TO SHOWS** → ritorno a Shows. **Passo (1)** — segni verbatim di Mauro: titolo in alto, pulsazione «SI RESPIRA», oscuramento «COME SE CI FOSSE UN VELO SOPRA», nulla suona. **Passo (2)** — ⚠️ **conseguenza necessaria dell'aver percorso la setlist, NON osservazione riportata: Mauro non l'ha descritto.** **Passo (3)** — BACK TO SHOWS riporta alla lista. **Passo (4)** — «SI IN HOME O IN Q-STAGE L'AUDIO SI FERMA»: **entrambe** le porte di uscita di stanza. **CANCELLI CHE SI CHIUDONO — tre:** il proprio di ⟦S5b⟧ · quello DIFFERITO di ⟦S5x⟧, che dal 06/08 (`4e4c241`) era «CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧» · e si conferma l'armamento di `TD-mixer-copre-endshow`, che non è un cancello di collaudo ma uno stato scattato alla consegna del 19/08. **CI al commit dell'atomo `7c04bea`:** `iOS Signed Build` **success**, run `32259878138`. ⚠️ `F1 — Build Check` resta **escluso dal conteggio per clausola** («non conta come cancello finché Mauro non decide»), e **quella decisione non è stata presa**: due sole run, entrambe failure, entrambe del 31/07. ⚠️ **APPROVAZIONE DEL SUPERVISORE, NON MISURA:** la posizione del titolo — «a circa 2/3 dal basso, va benissimo così» — è approvata da Mauro; il codice la pone al **27 % dall'alto** (`StandbyOverlayView.swift:18`), cioè 73 % dal basso: **scarto fra 3 e 6 punti percentuali** secondo che si misuri al bordo superiore o al centro ottico. **Non risolto: approvato dal decisore.** ⛔ **PERIMETRO NEGATIVO — cosa NON è provato:** non è il percorso di un utente finale (ingresso da DEBUG, previsto dal cancello stesso) · una sola setlist di test · **zero peer, zero Link**: Direttore/Follower non toccati · nessuna misura di timing né di audio · RESTART SETLIST **osservato** morto, non provato — coerente con la ratifica del 07/08 che dispone di toglierlo, tuttora **non eseguita**. | Mauro (collaudo, unico che tocca il device) + CC (misura e ricostruzione a fonte) + referee (verifica) | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` scheda ⟦S5b⟧, cancello `:343-370` · commit `7c04bea` · CI `32259878138` | attiva | ⚠️ **QUESTA RIGA SPOSTA DI UNA RIGA tutto ciò che la segue** (525→526 righe totali); undici citazioni nude a `LIBRO:467` slittano a `:468` — indirizzo GIÀ dichiarato scaduto in `BUGS:454`, non si corregge qui |
++| 2026-08-23 | **GLI SCAFFALI — MODELLO DI SINCRONIZZAZIONE RATIFICATO (D1-D7), riconfermato 24/08.** Quando una canzone parte si costruisce la sua tabella, **uno scaffale per ogni battito**, e ogni scaffale dichiara sezione/battuta/quale battito/se accentato. Il motore consegna **UN numero**; la grafica **legge** quello scaffale — non converte, non divide, non conta. Il **traduttore sta nello SHOW**, mai nel motore: il motore non sa cosa sia una canzone e non deve saperlo. Il numero è sempre «a che battito di QUESTA canzone siamo». Il motore **conta e basta**, lo Show **sottrae**, e il motore non azzera mai niente mentre suona. La numerazione comincia al **primo battito prodotto, conto alla rovescia COMPRESO**. ⛔ Sede unica delle spec: capitolo «MODELLO DI SINCRONIZZAZIONE — GLI SCAFFALI» in `BOX5_QBEATS.md` (V32) — non copiato qui. | Mauro (decisione) + referee (forma) + CC (misure) | BOX5 V32, capitolo omonimo | attiva | — |
++| 2026-08-23 | **L'ATTACCA FRA CANZONI E IL CONTO ALLA ROVESCIA (D8-D10), riconfermati 24/08 — CD deve coordinarsi.** **Attacca:** 1→250, poi 1→180, **niente in mezzo**; all'orecchio un blocco unico, **sullo schermo due canzoni**; pausa o non pausa **si decide in Q-Stage, mai dal vivo**. ⚠️ **Oggi l'attacca NON esiste, e la casella nemmeno** — è lavoro di prodotto, non una marcatura. **Conto alla rovescia:** Off · 1 battuta · 2 battute, velocità e metrica **dalla PRIMA SEZIONE** (100 BPM in 3/4 → 3-2-1; 115 in 4/4 → 4-3-2-1), **chiude esattamente sul battito 1 della musica**; è **parte della canzone, non un prefisso**, e tutti i dispositivi lo producono uguale. ⚠️ **Misurato a HEAD `8ee5485`: oggi è rovesciato** — due ticket distinti in BUGS. | Mauro (decisione) + referee (forma) + CC (misure) | BOX5 V32 · `TD-countin-rovesciato` e `TD-countin-impostazione-non-letta` in BUGS | attiva | — |
++| 2026-08-23 | **I COMANDI AL RIENTRO NEL PLAYER (D11-D14), con la modifica di Mauro del 24/08 — dominio CD per i nomi.** **D11:** su uno show in corso **il bottone Start non esiste**. **D12:** comanda il **PEER, in tempo reale** — **senza peer TRE voci** (STOP · riprendi · ricomincia la canzone), **con peer DUE voci** (riprendi · STOP); **l'app si adegua da sola in ENTRAMBE le direzioni**. ⚠️ **MODIFICATA DA MAURO IL 24/08:** «ricomincia lo show» **esce**, **STOP entra in entrambi i menù**. ⛔ **Mauro ha respinto DUE VOLTE la variante asimmetrica** (menù che si stringe ma non si riallarga): non si ripropone. **D13:** «ricomincia la canzone» **sopravvive solo senza peer**. **D14:** nella lista degli show, i bottoni di partenza degli **ALTRI** show **si spengono** finché c'è un live in corso. ⚠️ **Nomi finali da CD.** | Mauro (decisione, e modifica 24/08) + CD (nomi) + referee (forma) | decisioni 23/08 riconfermate 24/08 | attiva | — |
++| 2026-08-23 | **«LOOP ∞» SI ELIMINA DALL'EDITOR DELLE SEZIONI (D15), riconfermata 24/08 — CD deve saperlo, è un controllo visibile che sparisce.** Motivo di Mauro: è un **residuo del metronomo da studio**; dentro uno show produce una **sezione senza uscita**. ⇒ Ogni canzone ha **lunghezza conosciuta** e il modello degli scaffali **funziona senza pezzi in più**. ✅ **Misurato a HEAD `8ee5485`, 24/08: zero sezioni con `repetitions = -1`** su 10 sezioni nei tre file JSON del progetto, e Mauro dichiara che non ne esistono sul suo dispositivo ⇒ la conseguenza-dati sollevata il 20/08 **è chiusa**. ⚠️ Non è una prova su TUTTI i dispositivi. Rimozione a ticket: `TD-loop-infinito-da-rimuovere` in BUGS. | Mauro (decisione) + CD (controllo che sparisce) + CC (misura) | `SectionEditorView.swift:144-145` · ticket in BUGS | attiva | — |
++| 2026-08-24 | **LE SCALETTE IDENTICHE SU TUTTI I DISPOSITIVI (D17) — quattro misure PROVVISORIE, dominio CD.** Le scalette devono essere identiche e **oggi niente lo verifica**; ⚠️ **il difetto è attivo adesso**: il passaggio sezione→sezione è senza interruzione e ogni dispositivo decide contando **la propria copia** — se due copie divergono **gli schermi si sfasano mentre il click resta insieme**, senza errore né avviso. **L'attacca non crea il problema: toglie la rete di sicurezza.** ⛔ Senza canale fra dispositivi la garanzia non esiste (LinkKit trasporta il tempo; il nome device sta in `Info.plist`, non impostabile a comando né leggibile dai peer). **Quattro misure provvisorie:** (a) impronta locale **in parole**, non esadecimale · (b) mostrata **dove il musicista già guarda prima di partire**, mai in impostazioni · (c) condivisione = **UN GESTO UNICO** · (d) impronta **stabile nel tempo**. ⚠️ **Si sostituiscono quando arriva il protocollo Q-BEATS.** Spec in BOX5 V32; difetto a ticket `TD-scalette-non-verificate` in BUGS. | Mauro (decisione) + CD (le quattro misure sono UX) + referee (misura LinkKit) + CC (misura codice) | BOX5 V32 · ticket in BUGS | attiva | — |
++| 2026-08-24 | **LA TESTA DI UN DOCUMENTO CITATO NON CRESCE MAI — regola nuova sui canonici, ratificata Mauro.** Ciò che si accumula a ogni versione (riassunti, blocchi Delta, cappelli) va **IN CODA**, mai in testa; il **numero di versione resta in testa** e si aggiorna **dentro la riga**. Vale per tutti i canonici, **BOX3 compreso**. **Perché, misurato 24/08:** un blocco in testa a BOX5 avrebbe rotto **29 citazioni nude** su otto sedi, **cinque delle quali file `.swift` di produzione**. ⚠️ **È già successo**: il ticket `TD-box3-citazioni-nude-slittate` nasce così da BOX3 V100 — stesso difetto, stesso tipo di file, seconda volta. ⚠️ **La convenzione precedente NON era scritta**: cercata nei cinque canonici e nella Costituzione, rende zero. ⛔ I riassunti già in testa **non si spostano**: si marca, non si riscrive — dichiarazione di transizione in coda a BOX5. Sede: **R-δ.7 in BOX5 V32**. | Mauro (ratifica) + referee (misura e proposta) + CC (misura delle 29 citazioni) | BOX5 V32 R-δ.7 | attiva | — |
+ 
+ ---
+ 
+@@ -522,6 +528,7 @@ Entrambe nascono dalla giornata del 29/07 (Sez.2, righe ⟦S4K⟧ e DARK-DECL) e
+ | 58 | 2026-08-21 | Mauro (collaudo device) + referee (mandato A155) + CC (esecuzione) | **UNA RIGA in Sez.2, doc-only, zero codice.** Esito del collaudo device 21/08: **A139** — griglia di otto controlli, esiti verbatim, **sei verdi**, **TEST 4 = NO** (risolto da A144), **TEST 8 su iPad NON ESEGUITO**; **A144** — verde su iPhone, scivola su iPad ⇒ `TD-qlive-non-scalata-ipad`. ⛔ Marca come **falsi** i punteggi «7/7» e «8/8» circolati in chat e nel congedo referee del 21/08: quel congedo **non e' tracciato in git**, quindi senza questa riga nessun canonico li smentirebbe. Header bump 57→58. Doc-only. |
+ | 59 | 2026-08-21 | Mauro (dettatura) + referee (mandato A162) + CC (esecuzione) | **UNA RIGA in Sez.2, doc-only, zero codice.** La gamba «Drive scritto a mano» **esce dal regime R-δ**: quattro destinazioni, **due sole scritture** — `C:` e `E:` si scrivono, git col push, **Drive arriva da solo** come riflesso di `E:`. Sede operativa unica = capitolo «R-δ — dove vanno i file» in **BOX5 V29**. Le righe `2026-08-01` e `2026-08-04` non si riscrivono, si **circoscrivono**. Agli atti la **rettifica della conclusione di A159** (falsa la conclusione, giusta la misura), con sede in BOX5. Header bump 58→59. Doc-only. |
+ | 62 | 2026-08-23 | Mauro (collaudo device + OK sul diff) + referee (verifica) + CC (esecuzione) | **UNA RIGA in Sez.2, doc-only, zero codice (commit `203d331`).** ⟦S5b⟧ CHIUSO DEVICE — collaudo Mauro 23/08, quattro passi su quattro; si chiudono TRE cancelli (il proprio, quello DIFFERITO di ⟦S5x⟧, e si conferma l'armamento di `TD-mixer-copre-endshow`); perimetro negativo dichiarato nella riga stessa; il Passo (2) è conseguenza necessaria e non osservazione; la posizione del titolo è approvazione del supervisore, non misura. Header bump 61→62. ⚠️ **BUCO DI REGISTRO EREDITATO, DICHIARATO QUI PERCHÉ È QUI CHE SI INCIAMPA (precedente di forma: voce 49 di `BUGS_QBEATS.md`):** le voci **60** e **61** di questo registro NON ESISTONO — v60 (commit `9edc120`) e v61 (commit `91809bb`), entrambe del 23/08 sessione A166→A190, sono entrate senza voce; misurato a fonte: a `4629ee9` versione = registro = 59, catena intatta. ⛔ Le due voci NON si ricostruiscono qui — richiederebbero un giro suo, a fonte sui due commit. Il salto 59→62 è dichiarato, non riparato. Doc-only. |
++| 63 | 2026-08-24 | Mauro (decisioni 23/08, riconfermate e modificate 24/08) + referee (forma) + CC (misure ed esecuzione) | **Sez.2 +6 righe, doc-only, zero codice.** Le **diciassette decisioni** prese da Mauro il 23/08 in una chat di sole decisioni — **che non erano in alcun canonico** — entrano nei documenti: **D1-D7** modello degli scaffali · **D8-D10** attacca e conto alla rovescia · **D11-D14** comandi al rientro (con la modifica di Mauro del 24/08: «ricomincia lo show» esce, STOP entra in entrambi i menù) · **D15** rimozione di «Loop ∞» · **D17** scalette identiche. **D16 è superata e già incisa** dal commit `203d331`: marcata nella SCALETTA, non riscritta. Spec in **BOX5 V32**, capitolo nuovo in coda. Regola nuova **R-δ.7** (la testa di un documento citato non cresce mai). Due difetti misurati a fonte diventano ticket distinti: `TD-countin-rovesciato` e `TD-countin-impostazione-non-letta`. ⚠️ **Nessuna marcatura di superamento per D7 e D13**: misurato che le regole superate **non erano scritte in nessun canonico**, vivevano solo in chat. Header bump 62→63. Doc-only. |
+ ---
+ 
+ **Fine documento.**

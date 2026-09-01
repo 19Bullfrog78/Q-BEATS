@@ -1,0 +1,439 @@
+REFERTO QB-2026-08-07-A78 — RICOGNIZIONE DEL PERCORSO DI AVVIO (sola lettura)
+=============================================================================
+
+Orologio: 2026-08-07T15:31:35Z, locale 2026-08-07 17:31:35 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ RILIEVO IN TESTA E DA SOLO — chi scrive il mandato ⟦S5b⟧ deve leggerlo PRIMA
+================================================================================
+
+[M] IL CANCELLO DI ⟦S5⟧ E' GIA' SODDISFATTO A META', E LA SCALETTA NON LO SA.
+
+`SCALETTA_ATOMI_S6_2026-07-10.md:308` (scheda ⟦S5⟧, bullet CANCELLO) dichiara:
+  «⟦S5⟧ non chiude device finché i due bottoni di `FineSetlistView` non fanno qualcosa.»
+
+Uno dei due ORA fa qualcosa. Misurato sul blob a HEAD `2960f089`:
+  `ios_app/QBeats/UI/Live/FineSetlistView.swift:29`
+      `Button("BACK TO SHOWS") { onBackToShows() }`          <- CABLATO (⟦S5x⟧, `4e4c2411`)
+  `ios_app/QBeats/UI/Live/FineSetlistView.swift:31`
+      `Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }`   <- ancora inerte
+
+E la SCALETTA non registra il cablaggio. Misurato sul blob della SCALETTA a HEAD, DUE CASSE:
+  `S5x` = 0 · `S5X` = 0 · `4e4c2411` = 0 · `onBackToShows` = 0
+  controlli positivi stessa forma stesso blob: `FineSetlistView` = 1 · `S5` = 24 · «BACK TO
+  SHOWS» = 1 (ed e' proprio la riga :308 del cancello).
+
+⇒ CONSEGUENZA OPERATIVA: chi pianificasse ⟦S5b⟧ leggendo `:308` pianificherebbe di cablare un
+  bottone che e' gia' cablato da ieri. E' la STESSA classe del reperto sulla «Causa a fonte» di
+  `TD-fineshow-bottoni-morti` gia' segnalato: un documento che descrive come da fare un lavoro
+  fatto. Due siti, stesso guasto, entrambi non registrati.
+  ⛔ NON l'ho corretto: il punto 6.1 di questo mandato vieta di toccare la SCALETTA. Va aperto.
+
+
+================================================================================
+0 — INTEGRITA', AGGANCIO, HEAD
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A78 ═══». INTEGRO. Eseguito per intero.
+
+0.2 [M] A78 e' LIBERO. Due supporti × due casse × due forme.
+    forma NOME FILE, cassa sensibile   : A78 repo=0 mirror=0
+    forma NOME FILE, cassa INsensibile : a78 repo=0 mirror=0
+    forma CONTENUTO, cassa INsensibile : A78 repo=10 mirror=13
+    ⚠️ Le occorrenze per CONTENUTO sono state IDENTIFICATE una per una, non assunte falsi
+       positivi: sono tutte sottostringhe esadecimali dentro sha256 o blob OID
+       (`c4ba784…`, `532e4a78…`, `80bb8895669…`, `b573e5…`). NESSUNA e' un identificativo.
+    CONTROLLI POSITIVI, stessa forma, tutti non-zero come richiesto:
+       A75 nome=1/1 contenuto=22/24 · A76 nome=1/1 contenuto=10/12 · A77 contenuto=28/33.
+       ⚠️ A77 rende 0 sulla forma NOME FILE perche' il congedo si chiama `CONGEDO_CC_2026-08-07.md`
+       e non porta l'ID nel nome — dichiarato, non nascosto: per A77 il controllo valido e'
+       quello per contenuto.
+
+0.3 [M] HEAD = `2960f089225b3c80cf56cb839fde871cf9738b3d`. COINCIDE con l'atteso. Proseguito.
+
+0.4 [M] SI', ARRIVATA INTEGRA. Ho ricevuto la risposta del referee che citava verbatim la voce
+    Stato di `TD-fineshow-bottoni-morti`, per intero e leggibile. Non e' stato un guasto di
+    canale: e' stata una MIA lettura saltata. Avevo letto `:319` (il titolo) e i confini di
+    sezione, e non le righe `:320-326`. Il rilievo del referee e' fondato e l'ho confermato a
+    fonte prima di questa riga.
+
+
+================================================================================
+1 — REGIME E PERCORSI (letti a fonte, non dettati)
+================================================================================
+
+[M] Nessuna modifica sotto `ios_app/`. Nessuna modifica ai cinque canonici. Nessun commit,
+    push o branch. Tutto il Blocco A e B e' stato letto con `git cat-file blob`.
+
+[M] Le due cartelle dei referti, LETTE A FONTE cercando dove stanno A75, A76 e il congedo 07/08:
+    repo   : `HANDOFF/`  (A75=1 · A76=1 · CONGEDO_CC_2026-08-07=1)
+    mirror : `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\`
+             (A75=1 · A76=1 · CONGEDO_CC_2026-08-07=1)
+    ⚠️ Il mirror sta sotto `FILE X CLAUDE.MD\`, NON alla radice di Q-BEATS su E:.
+    ⚠️ [M] Resta vero quanto misurato in A77: NESSUNA REGOLA SCRITTA norma questa collocazione.
+       E' prassi osservabile. La `LISTA-TARGET` di `BOX3:397-401` copre solo BUGS/LIBRO/BOX3.
+
+
+================================================================================
+2 — DICHIARAZIONE DI LETTURA INTEGRALE (vincolo 2.4)
+================================================================================
+
+Dichiaro esplicitamente di aver letto PER INTERO, dalla prima all'ultima riga, dal blob a HEAD:
+
+  `ios_app/QBeats/Models/LiveSession.swift`        41 righe · 1602 B  · CR 0   -> LETTO INTERO
+  `ios_app/QBeats/UI/QLive/QLiveSession.swift`     36 righe · 1882 B  · CR 0   -> LETTO INTERO
+  `ios_app/QBeats/SetlistRunner.swift`            382 righe · 19723 B · CR 0   -> LETTO INTERO
+  `ios_app/QBeats/UI/Live/LiveView.swift`         466 righe · 25911 B · CR 0   -> LETTO INTERO
+  scheda ⟦S5⟧ della SCALETTA, righe 298-309                                    -> LETTA INTERA
+
+  [M] Tutti letti DAL BLOB, mai dal disco. `LiveView.swift` ha due facce (disco 26377 B con
+      466 CR, blob 25911 B con 0 CR): leggerlo dal disco avrebbe dato numeri di byte falsi.
+
+  NON LETTI PER INTERO, e lo dichiaro: `AudioEngine.swift`, `TransportView.swift`,
+  `WaitingForDirectorView.swift`, `QLiveRootView.swift`, `QLiveShowDetailView.swift`,
+  `LivePlaybackState.swift`. Di questi ho letto solo le righe rese dai censimenti e il loro
+  contesto immediato. Nessuna conclusione di questo referto poggia su una loro lettura integrale.
+
+
+================================================================================
+3 — BLOCCO A: IL PERCORSO DI AVVIO
+================================================================================
+
+3.1 — FIRMA DI startSetlist  [M]
+--------------------------------
+  `ios_app/QBeats/SetlistRunner.swift:109`, VERBATIM:
+      func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+
+  Contesto immediato (`:107-108`, doc-comment):
+      /// Primo Play della setlist — resetta indici a 0 e carica la prima sezione.
+      /// Chiamato dal pulsante Play del transport quando da `.stopped`.
+
+  Il tipo dichiara SEI `func` in tutto (`:109` startSetlist · `:124` startCurrentSong ·
+  `:140` prepareAndStartCurrentSection `private` · `:238` updateSessionDisplay `private` ·
+  `:271` primeDisplay · `:285` makeSectionEndedClosure).
+
+  ⚠️ [M] REPERTO NON RICHIESTO: `SetlistRunner.swift:61` dichiara
+      init(setlist: Setlist, store: QBeatsStore) {
+  ed e' l'UNICO init del tipo. Vedi 3.6: non e' mai chiamato.
+
+3.2 — LiveSession  [M]
+-----------------------
+  DICHIARAZIONE, `Models/LiveSession.swift:7-8` VERBATIM:
+      @MainActor
+      final class LiveSession: ObservableObject {
+
+  ELENCO COMPLETO DEI CAMPI — SEDICI, tutti `@Published`, nessun altro membro,
+  nessun init, nessun metodo (file di 41 righe letto per intero):
+      :11  @Published var currentSongName: String = ""
+      :12  @Published var currentBPM: Double = 120
+      :13  @Published var currentTimeSig: String = "4/4"
+      :14  @Published var currentSectionName: String = ""
+      :15  @Published var nextSectionName: String? = nil
+      :16  @Published var nextSongName: String? = nil
+      :19  @Published var currentBar: Int = 1
+      :20  @Published var totalBarsInSection: Int = 4
+      :21  @Published var macroBarCurrent: Int = 0
+      :22  @Published var macroBarTotal: Int = 1
+      :26  @Published var accentPattern: [String] = ["accent", "beat", "beat", "beat"]
+      :27  @Published var beatActive: Int = 0
+      :35  @Published var playbackState: LivePlaybackState = .stopped
+      :36  @Published var isBacktrackLocked: Bool = false
+      :39  @Published var showMixer: Bool = false
+      :40  @Published var isProMode: Bool = false
+
+  SITO DI ISTANZIAZIONE E VISIBILITA' — censimento esaustivo di `LiveSession()` su tutti i
+  file tracciati sotto `ios_app/`: UNA SOLA occorrenza.
+      `UI/Live/LiveView.swift:11` VERBATIM:
+          @StateObject private var session = LiveSession()
+      property wrapper = `@StateObject` · modificatore = `private`
+  Controllo positivo stessa forma: `QLiveSession()` = 1 (e sappiamo che esiste a
+  `QLiveRootView.swift:76`) -> la forma sa trovare una costruzione.
+
+  ⇒ [M] `LiveSession` e' CREATA DA `LiveView`, ed e' `private`: nessuno la inietta, nessuno
+    dall'esterno puo' leggerla o passarla. Viene invece propagata VERSO IL BASSO a quattro
+    foglie come `@ObservedObject var session: LiveSession`:
+      `LiveHeaderView.swift:4` · `MixerOverlayView.swift:4` ·
+      `TeleprompterCapsuleView.swift:4` · `TransportView.swift:4`
+
+3.3 — QLiveSession  [M]
+------------------------
+  File di 36 righe, LETTO PER INTERO. Trenta righe sono doc-comment; il corpo e' una sola
+  proprieta' memorizzata.
+
+  DICHIARAZIONE, `UI/QLive/QLiveSession.swift:30-31` VERBATIM:
+      @MainActor
+      final class QLiveSession: ObservableObject {
+
+  ELENCO COMPLETO DEI CAMPI — UNO SOLO. Nessun metodo, nessun init esplicito.
+      `:33-35` VERBATIM:
+          /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+          /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+          @Published private(set) var runner: SetlistRunner? = nil
+
+  SITO DI ISTANZIAZIONE, `UI/QLive/QLiveRootView.swift:76` VERBATIM:
+      @StateObject private var roomSession = QLiveSession()
+
+  ⚠️ Il doc-comment del tipo dichiara l'intenzione, `:12-15` VERBATIM:
+      /// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+      /// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+      /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+      /// il solo posto in cui il runner può nascere.
+
+3.4 — IL SITO START LOCAL DENTRO LiveView  [M]
+-----------------------------------------------
+  `UI/Live/LiveView.swift:183-192` VERBATIM:
+      if case .waitingForDirector = session.playbackState {
+          WaitingForDirectorView(scaleFactor: scaleFactor, onExit: onExit) {
+              // START LOCAL — utente decide di partire standalone
+              // ignorando l'attesa Director. Nessun guard idempotenza
+              // esplicito: WaitingForDirectorView è renderizzata
+              // SOLO in `.waitingForDirector`, quindi questa
+              // closure scatta solo in quello stato.
+              runner.startSetlist(audioEngine: audioEngine, session: session)
+          }
+      }
+
+  COSA CHIAMA: `runner.startSetlist(audioEngine: audioEngine, session: session)` a `:190`,
+  dove `runner` e' l'`@EnvironmentObject` di `:6` e `session` e' lo `@StateObject private`
+  di `:11` — cioe' la `LiveSession` che LiveView possiede.
+
+3.5 — CENSIMENTO ESAUSTIVO DEI CALL SITE DI startSetlist  [M]
+---------------------------------------------------------------
+  Sweep su TUTTI i file tracciati sotto `ios_app/` (`git ls-files`), letti dal blob, in
+  ENTRAMBE LE CASSE. Le due casse rendono numeri IDENTICI: nessuna variante maiuscola esiste.
+
+  VENTUNO occorrenze totali, cosi' ripartite:
+      AudioEngine.swift            2   (`:172`, `:511`)          -> COMMENTI
+      Models/LivePlaybackState.swift 2 (`:15`, `:16`)            -> COMMENTI
+      SetlistRunner.swift          4   (`:54` commento, `:109` DICHIARAZIONE,
+                                        `:116` stringa di log, `:125` commento)
+      UI/Live/LiveView.swift       8   (`:171`,`:176`,`:405`,`:413`,`:418`,`:428` COMMENTI;
+                                        `:190` CHIAMATA, `:433` CHIAMATA)
+      UI/Live/TransportView.swift  2   (`:44` commento, `:62` CHIAMATA)
+      UI/Live/WaitingForDirectorView.swift 2 (`:11`, `:13`)      -> COMMENTI (doc-comment)
+      UI/QLive/QLiveShowDetailView.swift 1 (`:290`)              -> COMMENTO
+
+  ⇒ CHIAMATE REALI: TRE, e sono tutte e tre identiche nella forma
+    `runner.startSetlist(audioEngine: audioEngine, session: session)`:
+      1. `LiveView.swift:190`   — closure START LOCAL di WaitingForDirectorView
+      2. `LiveView.swift:433`   — ramo `else` dell'observer `linkStartedSubject` (avvio
+                                   orchestrato da un Director peer via Link)
+      3. `TransportView.swift:62` — tap Play del transport
+    Piu' UNA dichiarazione (`SetlistRunner.swift:109`) e UNA stringa di log (`:116`).
+    Le altre sedici sono commenti.
+
+  ⚠️ `QLiveShowDetailView.swift:290` e' l'unica occorrenza nella stanza Q-Live, ed e' un
+     commento che dichiara il buco, VERBATIM:
+       // ⟦S5b⟧ cablerà qui l'avvio reale (SetlistRunner.startSetlist). Vuota apposta:
+
+  CONTROLLI POSITIVI, forma identica, verificati positivi PRIMA dell'uso:
+      `SetlistRunner.swift`: `func ` = 6 · `session` = 55
+      `LiveView.swift`:      `func ` = 2 · `session` = 54
+
+3.6 — MUTATORI DELLO SLOT runner, DIRETTI E INDIRETTI  [M]
+------------------------------------------------------------
+  ⚠️ Il mandato chiede la SECONDA garanzia, non la prima. La do a TRE livelli indipendenti.
+
+  LIVELLO 1 — il tipo non ha nulla che possa scrivere.
+    `QLiveSession.swift` letto per intero (36 righe): ZERO metodi, ZERO init espliciti,
+    una sola proprieta' memorizzata. Non esiste codice dentro la dichiarazione del tipo che
+    possa assegnare a `runner`.
+
+  LIVELLO 2 — non esiste estensione del tipo, in nessun file.
+    `extension QLiveSession` (case-insensitive, su tutti i file tracciati) = **0**
+    CONTROLLO POSITIVO stessa forma: `extension ` (qualunque) = **11** -> la forma sa trovare
+    le estensioni; lo zero e' un fatto negativo valido.
+    ⚠️ Perche' questo livello serve: in Swift `private(set)` rende il setter accessibile alla
+      dichiarazione del tipo E alle sue estensioni NELLO STESSO FILE. Contare i costruttori non
+      copre questo percorso; contare le estensioni si'.
+
+  LIVELLO 3 — nessuna scrittura, e una sola lettura, in tutto il corpus.
+    occorrenze di `.runner` su tutti i file tracciati = **1** — UNA SOLA, ed e'
+      `UI/QLive/QLiveRootView.swift:110` VERBATIM:
+          if let runner = roomSession.runner {
+      che e' un `if let` — LETTURA, binding di una costante nuova. NON una scrittura.
+      Contesto `:109` VERBATIM: `// ⟦S4R⟧ GATE — MAI il player senza runner iniettato.`
+      Contesto `:111` VERBATIM: `// UNICO punto in cui il runner entra nell'albero delle viste.`
+    occorrenze di `roomSession` = 3 · occorrenze di `QLiveSession` = 8, TUTTE lette una per una
+      (`SetlistRunner.swift:7` commento · `QLiveRootView.swift:74` commento, `:76` istanza ·
+       `QLiveSession.swift:20` commento, `:31` dichiarazione ·
+       `QLiveShowDetailView.swift:57`,`:58`,`:292` commenti).
+    CONTROLLO POSITIVO della forma di assegnazione: `playbackState *=[^=]` = **19** -> la forma
+      sa trovare un'assegnazione; lo zero su `runner` non e' un artefatto di notazione.
+
+  LIVELLO 0 (la prima garanzia, quella che NON basta, riportata per completezza):
+    `SetlistRunner(` su tutti i file tracciati = **0**. L'`init(setlist:store:)` di
+    `SetlistRunner.swift:61` non e' MAI chiamato.
+
+  ⇒ [M] CONCLUSIONE: lo slot `runner` NON HA MUTATORI, ne' diretti ne' indiretti. Non e'
+    «vuoto per convenzione»: e' strutturalmente non riempibile, esattamente come il
+    doc-comment `QLiveSession.swift:12-15` dichiara di volere.
+    ⇒ [I] Ne segue che a HEAD nessun percorso di codice puo' portare un runner nell'albero
+      delle viste, e quindi il gate `QLiveRootView.swift:110` non passa mai. Marco [I] perche'
+      e' una conseguenza delle misure, non una misura: non ho eseguito l'app.
+
+
+================================================================================
+4 — BLOCCO B: I DUE BERSAGLI DOCUMENTALI
+================================================================================
+
+4.1 — IL BULLET «OPEN — tipo del runner»  [M] + verdetto
+----------------------------------------------------------
+  Scheda ⟦S5⟧ letta PER INTERO (`:298`-`:309`, dieci bullet).
+  `SCALETTA_ATOMI_S6_2026-07-10.md:306` VERBATIM INTEGRALE:
+
+    - **OPEN — tipo del runner:** `SetlistRunner.startSetlist(audioEngine:session:)`
+      (`ios_app/QBeats/SetlistRunner.swift`) si aspetta un `LiveSession`
+      (`ios_app/QBeats/Models/LiveSession.swift`), tipo DIVERSO da `QLiveSession`
+      (`ios_app/QBeats/UI/QLive/QLiveSession.swift`) — il contenitore-stanza che ⟦S4R⟧ ha
+      introdotto per possedere lo slot del runner. **⟦S5⟧ deve riconciliare i due tipi: non è
+      cablaggio, è architettura.** Reperto CC
+      (`HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt` punto 2), nessuna soluzione decisa
+      qui — il reperto rende visibile la materia, non la scioglie.
+
+  VERDETTO, con la misura del Blocco A in mano. Non eredito nessuna delle due tesi in
+  circolazione: non ho letto il referto P3 del 02/08 (fonte citata dal bullet) e non ho preso
+  per buona nessuna rettifica successiva. Quello che segue esce solo dal codice a HEAD.
+
+  (a) LA PREMESSA E' VERA, e l'ho rimisurata io. [M]
+      I due tipi sono diversi (`LiveSession` in `Models/`, 16 campi di display · `QLiveSession`
+      in `UI/QLive/`, 1 campo slot) e `startSetlist` vuole un `LiveSession`
+      (`SetlistRunner.swift:109`, firma verbatim sopra). Nulla da eccepire.
+
+  (b) LA CONCLUSIONE NON E' SORGENTATA — e il bullet lo ammette da sé. [M]
+      «⟦S5⟧ **deve riconciliare** i due tipi» e' in grassetto dentro un canonico, ma il
+      periodo successivo dello stesso bullet dice «il reperto rende visibile la materia, non la
+      scioglie». Il referto citato copre la premessa; nessuna fonte e' portata per il dovere.
+
+  (c) LA MISURA DI OGGI RENDE LA CONCLUSIONE ANCHE IMPROBABILE. [M] per i fatti, [I] per il nesso
+      I due tipi non si incontrano MAI, in nessun punto del percorso di avvio:
+        · `LiveSession` e' creata DENTRO `LiveView` (`:11`, `@StateObject private`) e non esiste
+          prima che il player sia montato. Nessuno puo' iniettarla, nessuno puo' leggerla da fuori.
+        · `QLiveSession` non nomina `LiveSession` in nessuna delle sue 36 righe (lette per
+          intero) e ha un solo campo: lo slot.
+        · Tutte e TRE le chiamate reali di `startSetlist` stanno dentro `LiveView` (`:190`,
+          `:433`) o dentro `TransportView` (`:62`), che riceve la stessa `session` da LiveView
+          (`LiveView.swift:124`). Cioe': ogni chiamata avviene DOVE la `LiveSession` gia' esiste.
+        · Il runner viaggia dallo slot all'albero delle viste come `@EnvironmentObject`
+          (`QLiveRootView.swift:110` -> `LiveView.swift:6`), non attraverso una sessione.
+      ⇒ [I] Non c'e' nulla da riconciliare: i due tipi vivono a strati diversi e in momenti
+        diversi. Il runner NASCE nello slot (⟦S5b⟧) e RICEVE una `LiveSession` piu' tardi, come
+        parametro, quando il player e' gia' montato.
+
+  (d) CHE COSA ⟦S5b⟧ DEVE DAVVERO SCIOGLIERE, misurato. [M]
+      Non un conflitto di tipi, ma due assenze:
+        1. `SetlistRunner.init(setlist:store:)` (`:61`) non e' mai chiamato — `SetlistRunner(`
+           rende 0 su tutto il corpus.
+        2. Lo slot di `QLiveSession` non ha mutatore, a tre livelli (3.6).
+      `LiveSession` non entra in nessuno dei due punti.
+
+  ⇒ RISPOSTA SECCA ALLA DOMANDA DEL MANDATO: **VERO NELLA PREMESSA, NON SORGENTATO NELLA
+    CONCLUSIONE.** E aggiungo, marcandolo [I]: la conclusione non e' solo non sorgentata, e'
+    verosimilmente sbagliata nel merito — ma questa e' una mia lettura del codice, non una
+    ratifica, e non la incido da nessuna parte.
+    ⛔ Una riserva esplicita, perche' non voglio che questo referto venga ereditato come
+      assoluzione: se qualcuno volesse che la sessione di display SOPRAVVIVA alla navigazione
+      interna della stanza, allora una riconciliazione servirebbe davvero. Quella e' una
+      DECISIONE DI DISEGNO che nessuno ha preso, non un fatto del codice. Io misuro che oggi
+      non serve; non misuro che non possa servire domani.
+
+4.2 — LIBRO:502, L'INSTRADAMENTO  [M]
+---------------------------------------
+  Riga 502 = voce `| 51 |` del registro di **Sezione 6** (Storico versioni file), datata
+  2026-08-02. Frase pertinente, VERBATIM:
+
+    Il reperto architetturale su ⟦S5⟧ (`SetlistRunner.startSetlist` vs `QLiveSession`) **è
+    deciso fuori dal LIBRO**: entra nella scheda ⟦S5⟧ di
+    `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`, diff separato, non ratifica cross-team in senso
+    proprio.
+
+  ⇒ CONFERMATO: la sede designata E' la scheda ⟦S5⟧ della SCALETTA, ed e' esattamente dove il
+    bullet `:306` si trova. L'instradamento e' stato onorato.
+  ⚠️ [M] Precisazione di collocazione, perche' cambia il peso della riga: `:502` sta in
+    **Sezione 6** (che apre a `:450`), NON in Sezione 2 (`:191`-`:355`). E' una voce di
+    registro-versioni, cioe' storia di un diff, non una ratifica cross-team — e la frase
+    stessa lo dice («non ratifica cross-team in senso proprio»).
+  ⚠️ [M] Verificato inoltre che Sezione 2 di LIBRO NON contiene nulla sui tipi del runner:
+    le uniche righe che nominano `QLiveSession` in Sezione 2 sono `:285` (18/07, proprieta' del
+    runner sale alla stanza) e `:330` (31/07, ⟦S4R⟧ chiuso) — entrambe sulla PROPRIETA' dello
+    slot, nessuna sulla riconciliazione dei tipi.
+
+4.3 — IDENTITA' DELLA SCALETTA  [M]
+-------------------------------------
+  sha256 del blob a HEAD =
+    23665ddfa7a3bbcfacb7aa60f1e7ff006ecc1ea8fa3ef1ce344b61f3f8bdbe37
+  Atteso dal referee = identico. ⇒ COINCIDE. La copia in mano al referee e' questo blob.
+
+
+================================================================================
+5 — BLOCCO C: DUE DEBITI DA APRIRE, NON DA RIPARARE
+================================================================================
+
+5.1 — ⟦S5a⟧ SENZA ANCORA: **CONFERMATO**  [M]
+  `25056b66` sui cinque canonici a HEAD, letti dal blob:
+      LIBRO = 0 · BUGS = 0 · BOX3 = 0 · BOX5 = 0 · SCALETTA = 0
+  CONTROLLO POSITIVO stessa forma: `4e4c2411` = **5** in LIBRO (0 negli altri quattro).
+  Misura aggiuntiva mia, stessa forma: `S5a` = 0 su tutti e cinque.
+  ⇒ ⟦S5a⟧ e' invisibile al corpus canonico sia per NOME sia per IMPRONTA DI COMMIT. Un atomo
+    committato su master il 05/08 di cui nessun canonico registra l'esistenza.
+  NON RIPARATO, come da mandato.
+
+5.2 — ⟦S-EXIT⟧ SENZA SCHEDA: **CONFERMATO**  [M]
+  Occorrenze di `S-EXIT` nella SCALETTA = **2**, ed entrambe stanno sulla STESSA riga, la
+  `:319`, che e' la prima riga di **Sezione C · Ordine (2 corsie)** (intestazione a `:318`).
+  Sezione B («B · Scaletta 12 atomi», intestazione a `:38`) contiene esattamente **12**
+  intestazioni `### ` fra `:38` e `:318` — contate: ⟦S0⟧`:42` · ⟦S1⟧`:48` · ⟦S2F⟧`:54` ·
+  ⟦S2⟧`:60` · ⟦S3⟧`:66` · ⟦NODO A⟧`:125` · ⟦S4⟧`:132` · ⟦S4K⟧`:165` · ⟦S4R⟧`:194` ·
+  ⟦S4L⟧`:247` · ⟦S5⟧`:298` · ⟦S6⟧`:310`. **Nessuna e' ⟦S-EXIT⟧.**
+  ⇒ ⟦S-EXIT⟧ esiste nell'ordine ratificato e non ha scheda. CONFERMATO.
+  NON RIPARATO, come da mandato.
+
+
+================================================================================
+6 — COSA NON HO FATTO
+================================================================================
+  · NON ho proposto alcuna soluzione per ⟦S5b⟧, NON ho scritto codice, NON ho toccato la
+    SCALETTA ne' alcun canonico (6.1 rispettato).
+  · NON ho letto `HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt`, la fonte citata dal
+    bullet `:306`. Il verdetto 4.1 poggia SOLO sul codice a HEAD, non sul referto di origine.
+    Chi volesse sapere se la premessa fu misurata bene ALLORA deve leggerlo: io non l'ho fatto.
+  · NON ho eseguito l'app: la conseguenza in 3.6 («il gate non passa mai») e' marcata [I].
+  · NON ho letto per intero sei file toccati dai censimenti (elencati in §2).
+  · NON ho verificato se esistano percorsi Objective-C/runtime che aggirino `private(set)`:
+    fuori portata di una misura testuale, e nel progetto non c'e' Objective-C. NON MISURATO.
+
+
+================================================================================
+7 — DISACCORDI COL REFEREE
+================================================================================
+
+7.1 — Sul modo in cui il bullet `:306` viene qualificato. Il referee lo chiama «una violazione
+  di §7 incisa in casa nostra». Sul fatto sono d'accordo — conclusione in grassetto senza fonte.
+  ⚠️ Ma segnalo che il bullet `:306` **dichiara da sé** il proprio limite («il reperto rende
+  visibile la materia, non la scioglie»). Non e' una claim mascherata da fatto: e' una claim
+  che porta accanto la propria riserva, scritta male. La differenza conta per come si ripara:
+  non va rimossa come falsa, va SEPARATA — premessa misurata da un lato, conclusione degradata a
+  domanda aperta dall'altro. Che e' poi la forma che gli altri bullet della stessa scheda
+  (`:301`, `:307`, `:308`) usano gia' correttamente.
+
+7.2 — Sull'ordine. Il referee mi ha corretto, giustamente, sul fatto che «il ticket dei bottoni
+  morti» non e' un fronte eseguibile e che l'unica mossa che lo muove e' ⟦S5b⟧. Accetto.
+  ⚠️ Resta pero' una cosa che questo giro non tocca e che continuo a mettere sopra il resto:
+  ⟦S5x⟧ e ⟦S5a⟧ sono CI-verdi e **non validati su device**, e ⟦S5b⟧ ci si appoggia sopra. Se
+  ⟦S5b⟧ viene costruito e poi il gate device di ⟦S5x⟧ fallisce, si e' costruito su un piano
+  non collaudato. Il gate device non e' un fronte parallelo: e' un prerequisito, e nessuno dei
+  due mandati di oggi lo nomina.
+
+7.3 — Su me stesso, perche' vale piu' dei due punti sopra. Il rilievo del referee sul mio
+  errore di stamattina e' fondato e l'ho confermato a fonte (§0.4). La contromisura che ha
+  messo in questo mandato — «leggi il bersaglio per intero e dichiaralo» — ha funzionato: e'
+  leggendo per intero la scheda ⟦S5⟧ che ho trovato il rilievo in testa a questo referto, che
+  sta al bullet `:308` e che con una lettura mirata al solo `:306` non avrei visto.
+
+
+FINE REFERTO A78.

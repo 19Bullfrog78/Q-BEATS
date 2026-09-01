@@ -1,0 +1,21 @@
+diff --git a/old/BUGS_QBEATS.md b/new/BUGS_QBEATS.md
+index 70461e7..0786728 100644
+--- a/old/BUGS_QBEATS.md
++++ b/new/BUGS_QBEATS.md
+@@ -1,6 +1,6 @@
+ # BUGS_QBEATS — Tracker centralizzato bug e tech debt
+ 
+-**Versione:** 49
++**Versione:** 50
+ **Ultima modifica:** 2026-08-02
+ **Autore iniziale:** CC chat principale 26/05/2026 sera
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+@@ -306,7 +306,7 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
+ 
+ ### TD-qlive-libero-limbo — Q-Live "libero" intrappola l'utente (🟠 OPEN MEDIA / flusso pre-produzione — severità d'uso ALTA)
+ - **Sintomo (device, collaudo `59ab33e` 28/06, Mauro):** Q-LIVE dalla Home senza Show → videata non popolata ("Bar — of —"); Play → WAITING FOR DIRECTOR; START LOCAL → END SHOW immediato; i bottoni fine-show non rispondono → l'utente DEVE chiudere l'app.
+-- **Causa sourced (3 pezzi):** (i) DEV fallback `LiveRootView.swift:8` (`setlists.first ?? Setlist.makeDefault()` = setlist degenere) → END SHOW istantaneo; (ii) Play in default `.collaborativa` → waiting (`TransportView.swift:38-58`, ramo senza check peer, commento `:48-51`; fronte Standalone §1.4); (iii) bottoni fine-show vuoti: `FineSetlistView.swift:19` `Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }` + `:21` RESTART SETLIST idem.
++- **Causa sourced (3 pezzi):** (i) DEV fallback `LiveRootView.swift:8` (`setlists.first ?? Setlist.makeDefault()` = setlist degenere) → END SHOW istantaneo; (ii) Play in default `.collaborativa` → waiting (`TransportView.swift:38-58`, ramo senza check peer, commento `:48-51`; fronte Standalone §1.4); (iii) bottoni fine-show vuoti: `FineSetlistView.swift:19` `Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }` + `:21` RESTART SETLIST idem. ⚠️ **MARCATURA 02/08 — LE TRE CAUSE NON SONO PIÙ TUTTE VERE, misurato a HEAD `c1556e57b1a81fafa7973b8647741ede9c92e6cf`. Zero parole di questa riga riscritte.** (i) **MORTA**: `LiveRootView.swift` non esiste, la forma esatta `setlists.first ??` rende zero occorrenze, `Setlist.makeDefault` rende zero — tre controlli indipendenti, `HANDOFF/MISURE_CC_2026-08-03_A17-TRE-CAUSE-LIMBO.txt` (nome con data 03/08; misura eseguita realmente il 02/08, corroborato da createdTime Drive `2026-08-02T19:14Z` — non si corregge il nome, si marca qui). (ii) **VIVA, ma la premessa è falsa**: il ramo `.collaborativa` di `TransportView.swift:38` esiste tale e quale (righe invariate), ma il default dichiarato è `.standalone` su tre siti (`AppSettings.swift:22`, `AudioEngine.swift:55`, `AudioEngine.swift:280`), coerente con `LIBRO_MASTRO_QBEATS.md:268`: il ramo resta raggiungibile per scelta manuale del ruolo a ogni avvio, non per default automatico. (iii) **VIVA, e TRASFERITA**: `FineSetlistView.swift:19`/`:21` restano a closure vuota — la porta ora `TD-fineshow-bottoni-morti` (sotto), non più questa riga. ⇒ **La cura a `BUGS_QBEATS.md:312 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` (scelta d'ingresso A/B) punta a una causa che non esiste più**: risolveva (i), e (i) è morta. Non si cancella: si marca che il suo bersaglio principale è caduto. ⚠️ **Il qualificatore «flusso pre-produzione» nel titolo di questo ticket (riga precedente, non toccata) prendeva sostegno anche dalla causa (i): con (i) morta, quel sostegno cade.** Non tocco il titolo né lo Stato a fondo scheda: la riclassificazione, se ce n'è una, è decisione di Mauro.
+ - **NON regressione di `59ab33e`** (`--stat` = 0 file `UI/Live/`): pre-esistente, reso raggiungibile dalla porta Q-LIVE.
+ - **Ri-confermato sul device (Mauro 15/07/2026):** flusso rivissuto integralmente — Q-Live senza setlist installata → Play → WAITING FOR DIRECTOR → START LOCAL → END SHOW → uscita solo con kill+riavvio dell'app. **Conferma, non nuova diagnosi:** severità (🟠 severità d'uso ALTA) e causa a 3 pezzi invariate. Verbale del turno → changelog v36.
+ - **Cura:** scelta d'ingresso A) metronomo libero · B) setlist (memoria `project_qbeats_metronomo_libero`) → risolve il limbo alla radice + cablaggio bottoni + ponte Select Setlist→Live. Stessa radice di Nodo A (§1.2) + Nodo B (`LiveRootView.swift:6-10`).

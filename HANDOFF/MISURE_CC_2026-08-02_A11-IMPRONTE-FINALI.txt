@@ -1,0 +1,126 @@
+================================================================================
+REFERTO CC — ID ESEGUITO: QB-2026-08-02-A11-COMMIT-ATTERRAGGIO
+================================================================================
+⚠️ NOTA SULL'ID: questo prompt riusa l'ID di quello già eseguito nel turno precedente
+(stesso PASSO 0-4, invariati). La regola ratificata in questo progetto vuole che due
+prompt con lo stesso ID NON si arbitrino, si blocchino — qui non ho bloccato, perché
+non ci sono istruzioni opposte (solo un'aggiunta, PASSO 5 + questo referto) e PASSO 0-4
+erano già eseguiti e pushati, quindi irripetibili nella sostanza. Segnalato in chat,
+non taciuto. PASSO 0-4 NON sono stati rieseguiti in questo giro: restano quelli del
+turno precedente, HEAD invariato da allora.
+
+Questo file copre SOLO la parte nuova: PASSO 5 + impronte finali.
+
+================================================================================
+CORREZIONE A UNA MISURA PROPRIA, PRESA IN QUESTO STESSO GIRO
+================================================================================
+Una prima lettura di "CR per riga" su SCALETTA (`grep -c $'\r'`) rendeva 340/340 —
+in contraddizione con lo sha256 disco=blob già misurato prima. Rimisurato con `od`
+byte-per-byte: SCALETTA ha ZERO byte 0x0D. La prima misura era un artefatto di quoting
+nella shell, non un fatto sul file. Non è entrata in una consegna: presa e corretta
+prima di scrivere questo referto.
+
+================================================================================
+IMPRONTE FINALI DEI TRE CANONICI — a HEAD (locale = remoto, verificato)
+================================================================================
+HEAD                     c1556e57b1a81fafa7973b8647741ede9c92e6cf
+origin/master            c1556e57b1a81fafa7973b8647741ede9c92e6cf   (git ls-remote)
+
+--------------------------------------------------------------------------------
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md — v6
+--------------------------------------------------------------------------------
+commit che ha introdotto v6:  e386264d609713341c141db445fbf915bc2383c5
+OID blob:                     1e0003be94c74446b2235945ae0e80968a946292
+righe totali:                 340
+byte (faccia BLOB, LF):       39354
+sha256 (faccia BLOB, LF):     9763b646f249bdbb485d85bf0b50749441709d06f1cc63664e6220c5edcb8ac8
+byte (faccia DISCO):          39354   ⚠️ IDENTICA alla faccia blob — zero CR (verificato `od`,
+                                        0 byte 0x0D su 340 righe). `.gitattributes` copre
+                                        `HANDOFF/** -text`: nessuna conversione, UNA sola faccia.
+sha256 (faccia DISCO):        9763b646f249bdbb485d85bf0b50749441709d06f1cc63664e6220c5edcb8ac8
+                                        (= alla faccia blob, non duplicata: stesso valore, dichiarato
+                                         due volte per completezza della tabella)
+
+--------------------------------------------------------------------------------
+BUGS_QBEATS.md — v48
+--------------------------------------------------------------------------------
+commit che ha introdotto v48: ebbb864c59bbb8b3cff3dbcd5ebbccf756062b3e
+OID blob:                     a67583425f74866d5f54a53d64ecebfbce8d4e03
+righe totali:                 1028
+byte (faccia BLOB, LF):       273043
+sha256 (faccia BLOB, LF):     7cc35f82a695b1d2d39fbe7b3a034fa662c2425276a923fe7f2912d861e9acf3
+byte (faccia DISCO, CRLF):    274071   (= blob + 1028, un CR per riga, verificato `od`)
+sha256 (faccia DISCO, CRLF):  cd8bdcce60ab32eca8f9296ac60fc78e3211a8d5dc374df2ac8e76662af6e03e
+                                        ⚠️ DUE FACCE REALI, diverse. `.gitattributes` NON copre
+                                        `BUGS_QBEATS.md` con `-text`: core.autocrlf=true converte
+                                        al checkout. Debito già catalogato (memoria: ".gitattributes
+                                        copre BOX3/BOX5, non LIBRO e BUGS"), qui ri-misurato a fonte.
+
+--------------------------------------------------------------------------------
+LIBRO_MASTRO_QBEATS.md — v52
+--------------------------------------------------------------------------------
+commit che ha introdotto v52: c1556e57b1a81fafa7973b8647741ede9c92e6cf   (= HEAD)
+OID blob:                     526dcd608e10e2b73a0e52b912368302153df310
+righe totali:                 500
+byte (faccia BLOB, LF):       242346
+sha256 (faccia BLOB, LF):     17564fcaf92aca5810aafefb27b33393d01711d53da53d3a212eb3b5bfdc295e
+byte (faccia DISCO, CRLF):    242846   (= blob + 500, un CR per riga, verificato `od`)
+sha256 (faccia DISCO, CRLF):  5ab35fa35b8faed0f5ccbb806f87bc9fcab4d1970497122f1904c37eba1f40a8
+                                        ⚠️ DUE FACCE REALI. Stesso debito di BUGS: `.gitattributes`
+                                        non copre `LIBRO_MASTRO_QBEATS.md`.
+
+================================================================================
+PASSO 5 — CONSEGNA A MAURO: FILE DA RICARICARE NEL PROGETTO
+================================================================================
+Tre snapshot creati ora, verificati byte-esatti contro la faccia blob (sha256 sopra),
+ciascuno nel commit che ha DAVVERO introdotto quella versione — non un successivo.
+⛔ Non lo stesso errore di oggi con `LIBRO…V51…07e0926` (v51 era di `d737141`, non
+`07e0926`): qui ogni nome porta il commit verificato riga per riga.
+
+   1) HANDOFF/SCALETTA_v6_2026-08-02_e386264.md
+   2) BUGS_QBEATS/BUGS_QBEATS_V48_2026-08-02_ebbb864.md
+   3) LIBRO_MASTRO/LIBRO_MASTRO_QBEATS_V52_2026-08-02_c1556e5.md
+
+Questi sono i TRE file che Mauro deve ricaricare nel Progetto Claude, con questi nomi
+esatti. Sono già su E: (percorsi sopra) e la sincronizzazione li propaga su Drive.
+
+================================================================================
+PROPAGAZIONE R-δ — TRE DESTINAZIONI
+================================================================================
+① Snapshot su C: (repo) — NON esiste una cartella di snapshot nel repo git: la
+   pratica degli snapshot per-versione vive SOLO su E: (cartelle LIBRO_MASTRO/,
+   BUGS_QBEATS/, HANDOFF/), mai vista tracciata in git in tutta questa sessione.
+   Dichiarato, non presunto. Il "C:" di questo referto è quindi il file DI QUESTO
+   REFERTO stesso (in HANDOFF/, repo), non un secondo snapshot dei tre canonici.
+② E: — i tre snapshot scritti ai path sopra, verificati byte-esatti (sha256 sopra).
+③ Drive — atteso per sincronizzazione automatica del mirror E:, verificato sotto
+   dopo la scrittura di questo stesso referto.
+
+*Fine referto originale. PASSO 0-4 restano quelli del turno precedente, non ripetuti qui.*
+
+================================================================================
+CORREZIONE PER AGGIUNTA — QB-2026-08-02-A13-RETTIFICA-CENSIMENTO, 2026-08-02
+================================================================================
+Questa sezione CORREGGE PER AGGIUNTA il PASSO 4 qui sopra. Non riscrive, non cancella:
+il testo originale resta leggibile sopra, con l'errore incluso.
+
+⛔ FRASE FALSA, sezione PASSO 4 di questo stesso referto: «nessuno dei tre file aveva una
+copia mirror lì (zero occorrenze per BUGS e SCALETTA su tutto l'albero...)». È un FALSO
+NEGATIVO da forma di ricerca, non un buco reale.
+
+FORMA CHE L'HA PRODOTTO: ho cercato il nome-file del REPO (`BUGS_QBEATS.md`,
+`SCALETTA_ATOMI_S6_2026-07-10.md`) su E:. L'archivio versiona con nome SNAPSHOT
+(`<DOC>_V<N>_<data>_<commit>.md`, cartelle dedicate `LIBRO_MASTRO/`, `BUGS_QBEATS/`,
+`HANDOFF/` per SCALETTA) — quel nome non l'ho mai cercato. Avevo anche i dati sotto gli
+occhi nello stesso turno: un `find` più ampio (pattern `*_V[0-9]*_2026-*`) aveva già
+mostrato quelle cartelle, e nel PASSO 5 di questo stesso referto ho citato
+`LIBRO_MASTRO_QBEATS_V51_2026-08-02_07e0926.md` come esistente su E: — contraddicendo la
+frase del PASSO 4 poche righe sopra, senza che me ne accorgessi.
+
+MISURA CORRETTA: il mirror ESISTE per tutti e tre i canonici, in cartelle dedicate, nella
+FACCIA GIUSTA (blob/LF). Cade anche la conclusione implicita sulle copie Drive («faccia
+disco»): le copie VERSIONATE sono in faccia blob; solo le copie a NOME NUDO (create da me
+in questo stesso giro, per colmare un buco che non esisteva) erano/sono in faccia disco su
+Drive. Dettaglio completo, con controlli positivi: `HANDOFF/MISURE_CC_2026-08-02_A13-RETTIFICA-CENSIMENTO.txt`.
+
+*Fine correzione. Propagata sulle tre destinazioni R-δ insieme al resto di questo file.*

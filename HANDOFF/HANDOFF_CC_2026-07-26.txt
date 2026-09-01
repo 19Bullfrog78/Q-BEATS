@@ -1,0 +1,116 @@
+================================================================================
+HANDOFF CC — 2026-07-26 — chiusura sessione, passaggio a chat nuova
+================================================================================
+Stato derivato a fonte il 26/07. Se diverge dai file, VINCONO I FILE. La chat
+nuova RIVERIFICA a fonte, non eredita. B2 (LIBRO v41) NON e' chiuso: mancano
+almeno tre giri (correzioni pendenti -> bersagli referee -> scrittura+misura ->
+OK Mauro -> commit). Materiale di lavoro untracked; nessun canonico toccato.
+
+================================================================================
+1) IL DIFF B2 — LIBRO v40 -> v41, 5 HUNK, VERBATIM (come prodotto, NON corretto)
+================================================================================
+Flusso: (1) CC manda questo diff SENZA impronte · (2) il referee ricostruisce
+sulla sua copia e da' i bersagli · (3) CC scrive, misura col set 3c, confronta ·
+(4) OK Mauro · (5) commit. I bersagli NON sono stati calcolati (giusto cosi':
+BOX3 V99 (g), «chi scrive e chi controlla non condividono la misura»).
+
+--- HUNK 1 — header (righe 5-7) ---
+-**Versione:** 40 (22/07/2026)
++**Versione:** 41 (26/07/2026)
+-**Ultima modifica:** 2026-07-22 (v40 — Sez.2 +2 righe di RETTIFICA DEL REGISTRO: (1) condizione di chiusura TD#17 messa agli atti … (2) rettifica della premessa FALSA sulla SCALETTA dentro la riga 2026-07-21 … Header bump 39→40. Doc-only, nessun fix codice.)
++**Ultima modifica:** 2026-07-26 (v41 — Sez.2 +7 righe cross-team: incisione del contratto card Q-Live›Shows (4 decisioni del freeze 24/07, ratifica Mauro 24/07) + le 3 postille ratificate da Mauro 26/07 (P1 con protezione via-di-ritorno; la copy va in BOX5 V28) + contratto Q20 (RIEMISSIONE, supersede eabf28c7 per il vincolo iOS 16.0; chiude TD-qlive-search-keyboard-trap) + tab-reset (chiude TD-qstage-tab-reset by-design) + emendamento dell'invariante read-only (prima scrittura §6 con ⟦S4L⟧, limitata all'appartenenza a Q-Live). Sez.3 +1: compito CD aperto (copy popup più completa) — registrato, non inciso. NON contiene: QL-SHOWS-02/08 (→ BOX5 V28), stato tecnico (→ BOX3), riferimenti al file tastiera 23/07 (inesistente). Sez.5 «HEAD codice pre-doc-commit» → ee31281 (FIX-PILL, unico codice fra v40 e v41). Header bump 40→41. Doc-only, nessun fix codice.)
+-**Edit author:** CC chat principale 22/07/2026
++**Edit author:** CC chat principale 26/07/2026
+
+--- HUNK 2 — Sez.2, 7 righe nuove, DOPO la riga 298 (2026-07-22 RETTIFICA SCALETTA), PRIMA della riga 299 vuota ---
++| 2026-07-24 | **CARD Q-LIVE›SHOWS — 4 decisioni (freeze 24/07)** — **§1** forma ③ riga compatta, una sola, nessuna soglia card/riga · **§2** nessuna label a schermo (pillola ▶; VoiceOver «Start show · {nome}») · **§3** Start = **arma + standby** sulla prima canzone, il click parte al SECONDO tap (schermo o MIDI) · **§4** **«Remove from Q-Live» semantica (a)**: toglie SOLO da questa lista, la setlist resta in Q-Stage, nessuna canzone toccata; nome unico «Remove from Q-Live» ovunque. ⚠️ Cancello rev2: la pillola ▶ si **accende SOLO all'atomo ⟦S4L⟧**. Il testo finale (copy) NON è qui → BOX5 V28. | CD (freeze 24/07) + Mauro (ratifica 24/07) | freeze su E:, sha256 `a97a4f54a8fafaefc7c68cb03cb6117a214d600fc31e3b35f117628d0ee62764`; nascita: discussione CD 23/07 → freeze 24/07 | attiva | — |
++| 2026-07-26 | **POSTILLA 1 al freeze 24/07 — popup Remove: si appende «— turn it back on from there»** — alla frase ratificata del 24/07 si appende «— turn it back on from there»; la prima parte resta IDENTICA. Ratificata la PROTEZIONE (il popup dice DOVE si ripristina: la setlist resta in Q-Stage, si riattiva da lì). Il testo finale del popup NON va in LIBRO → BOX5 V28. ⚠️ Compito CD aperto associato (NON una decisione): Mauro ha chiesto di rendere il messaggio più completo — registrato in Sez.3, non inciso qui. | Mauro (ratifica 26/07: «Va bene procediamo») | rev2, sha256 `f1b362f0202470bb1fa041a719e29cf48d853f9e2871c7c31ef5feeffc6ee1ea` (ancora = sha256, NON il percorso: il file è ora in `_SUPERATI/`; NON rev3 `805e86c9` né `fd62da58`) | attiva | — |
++| 2026-07-26 | **POSTILLA 2 al freeze 24/07 — «···» NON costruito pre-⟦S4L⟧** — il menu «···» arriva INSIEME a Remove, dentro ⟦S4L⟧; pre-⟦S4L⟧ resterebbe con una sola voce che duplica il tap-riga. La fascia-cancello del freeze 24/07 («riga, meta e "···" sono già vivi») va corretta di conseguenza. | Mauro (ratifica 26/07: «ok va bene!») | rev2, sha256 `f1b362f0202470bb1fa041a719e29cf48d853f9e2871c7c31ef5feeffc6ee1ea` | attiva | — |
++| 2026-07-26 | **POSTILLA 3 al freeze 24/07 — Remove DISABILITATO con sessione armata/in play** — la voce «Remove from Q-Live» resta visibile ma disabilitata quando la sessione è armata o in play: gesto di preparazione, non di palco. | Mauro (ratifica 26/07: «si d'accordo») | rev2, sha256 `f1b362f0202470bb1fa041a719e29cf48d853f9e2871c7c31ef5feeffc6ee1ea` | attiva | — |
++| 2026-07-26 | **CONTRATTO Q20 — congedo tastiera in Q-Live›Shows** — gesto canonico «Done» su toolbar-accessorio pinnata (≥44pt, accento stanza); perdonanti IN AGGIUNTA: tap fuori + swipe giù interattivo (`scrollDismissesKeyboard(.interactively)`); Return = «Search»; il congedo CONSERVA query e filtro (svuota solo la «×»). ⚠️ `scrollDismissesKeyboard(.interactively)` è iOS 16.0 = pavimento ESATTO del deployment target. **Supersede `eabf28c7`** (che non portava il vincolo iOS). **Chiude `TD-qlive-search-keyboard-trap` (BUGS §1.2) a codice fatto.** | Mauro (ratifica 26/07: «ok va bene») | RIEMISSIONE, sha256 `5dcfbbfbfefe7607cfdac58b73fb2ddb2898012788d75f9827203e1c5ab9d408`; supersede `eabf28c7` | attiva | — |
++| 2026-07-26 | **TAB-RESET Q-STAGE — apre sempre sulla tab Songs all'ingresso; non persiste l'ultima tab** — all'ingresso in Q-Stage la linguetta atterra SEMPRE su **Songs**. **Chiude `TD-qstage-tab-reset` (BUGS §1.3) by-design a ZERO codice se Songs è già il default del container** (oggi `@State tab = .songs`, verificato a fonte in `QStageRootView` @ HEAD `54ccddc`): il comportamento osservato È l'invariante voluto. Il montaggio condizionale (invariante Nodo A / S4b) NON si tocca. | CD (decisione) + Mauro (ratifica 26/07: «sì») | `BUGS_QBEATS.md` v43, `TD-qstage-tab-reset` §1.3; `QStageRootView` @ `54ccddc` | attiva | — |
++| 2026-07-26 | **EMENDAMENTO ALL'INVARIANTE READ-ONLY — Q-Live›Shows cessa di essere sola-lettura** — l'invariante read-only di Q-Live›Shows è EMENDATO: la **prima scrittura sui dati utente** entra con ⟦S4L⟧, **limitata allo stato di appartenenza dello show a Q-Live**. Ogni altra scrittura resta VIETATA in §6. Motivo: con «Remove» ratificato (§4) l'invariante vigente lo contraddirebbe — SCALETTA sez.B «Nessun atomo scrive dati utente» e `QLiveShowsView.swift:15` «READ-ONLY: nessuna scrittura su QBeatsStore». La forma tecnica del campo di appartenenza la sceglie CC (→ BOX5 V28 / SCALETTA v3). | CC (rilievo B1) + referee (verdetto) + Mauro (ratifica §4 Remove) | `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` sez.B (:36) + `ios_app/QBeats/UI/QLive/QLiveShowsView.swift` :15 @ HEAD `54ccddc`; freeze 24/07 §4 | attiva | — |   [PENDENZA 4: «Mauro (ratifica §4 Remove)» e' DEDOTTO — dipende da R6, PENDENTE]
+
+--- HUNK 3 — Sez.5 (riga 373), campo «HEAD codice pre-doc-commit» (edit parziale) ---
+⚠️ PENDENZA 1: la riga 373 e' abbreviata con «…». Va rimandata INTEGRALE (~1477
+   car, dal primo all'ultimo carattere) in ENTRAMBE le facce - e +, altrimenti il
+   referee non puo' ricostruire il v41 al byte. Comando: git show 131a511:LIBRO_MASTRO_QBEATS.md
+   e prendere la riga 373 verbatim.
+-…**HEAD codice pre-doc-commit**: `6ded4ab` (S4b «flip root Q-Live: QLivePage + funnel navigate(to:) + cablaggio CTA "Go to Q-Stage"»). CONVENZIONE: …AGGIORNATO a v38: S4b (`6ded4ab`) è un commit di CODICE arrivato fra v37 e v38 …
++…**HEAD codice pre-doc-commit**: `ee31281` (FIX-PILL «la pill Q-Live in Q-Stage naviga davvero — QStageRootView + AppRootView + ShowsListView, +19/−5»). CONVENZIONE: …AGGIORNATO a v38: S4b (`6ded4ab`) è un commit di CODICE arrivato fra v37 e v38 …  AGGIORNATO a v41: `ee31281` (FIX-PILL) è il commit di CODICE fra v40 e v41; v39/v40 lo tenevano a `6ded4ab` perché fra loro solo doc.
+
+--- HUNK 4 — Sez.3 «Deliverable in volo»: 1 riga nuova, DOPO la riga 320 (TD #44), PRIMA della riga 321 vuota ---
++| CD-copy-remove | Copy popup «Remove from Q-Live» — versione più completa | richiesta Mauro 26/07, aperto (CD) | 2026-07-26 | Oltre la **postilla 1** (ratificata così com'è): Mauro ha chiesto «rendere il messaggio più completo». NON è una decisione incisa; la copy migliorata, se arriva, aggiorna UNA riga in BOX5 V28. Non blocca il giro doc. |
+
+--- HUNK 5 — Sez.6 «Storico versioni»: riga 41 nuova, DOPO la riga 428 (v40), PRIMA della riga 429 vuota ---
++| 41 | 2026-07-26 | Mauro + CC + referee | **Sez.2 +7 righe cross-team (26/07): INCISIONE del contratto card Q-Live›Shows.** (1) le 4 decisioni del freeze 24/07 (§1 forma ③ · §2 nessuna label · §3 Start=arma+standby · §4 Remove semantica (a); ratifica Mauro 24/07, fonte `a97a4f54…`); (2-4) le 3 postille ratificate da Mauro 26/07 (fonte rev2 `f1b362f0…`, ancora=sha256 ora che il file è in `_SUPERATI/`; parole di Mauro citate per voce: P1 «Va bene procediamo», P2 «ok va bene!», P3 «si d'accordo»); (5) contratto Q20 (RIEMISSIONE `5dcfbbfb…`, supersede `eabf28c7` per il vincolo iOS 16.0; chiude `TD-qlive-search-keyboard-trap`); (6) tab-reset (→ `TD-qstage-tab-reset` chiuso by-design); (7) emendamento dell'invariante read-only (prima scrittura §6 = appartenenza a Q-Live, con ⟦S4L⟧). **Sez.3 +1**: compito CD aperto — registrato, non inciso. NON incisi: QL-SHOWS-02/08 (→ BOX5 V28), stato tecnico (→ BOX3), file tastiera 23/07 (inesistente). **Sez.5 «HEAD codice pre-doc-commit» → `ee31281`** (FIX-PILL, unico commit di codice fra v40 e v41; v40 lo teneva invariato a `6ded4ab`). Header bump 40→41. Doc-only, nessun fix codice. |
+
+================================================================================
+2) RATIFICATO DAL REFEREE (sulla forma del diff)
+================================================================================
+· i tre flag: Sez.5/HUNK 3 RESTA (la convenzione del campo la impone) · 3 righe
+  SEPARATE per le postille · colonna Data della card = 2026-07-24.
+· punti d'inserimento: 298/299 (Sez.2) · 320/321 (Sez.3) · 428/429 (Sez.6).
+· HUNK 4 (compito CD in Sez.3 «Deliverable in volo»): sede giusta; distinzione
+  «registrato, non inciso» corretta.
+
+================================================================================
+3) QUATTRO PENDENZE — NESSUNA ESEGUITA. Sono cio' che sblocca i bersagli.
+================================================================================
+1. HUNK 3: la riga 373 va rimandata INTEGRALE, senza «…», in ENTRAMBE le facce
+   - e + (~1477 car). Senza di essa il referee NON puo' ricostruire il v41 al
+   byte -> NON esistono bersagli -> cancello chiuso. PRIMA COSA nella chat nuova.
+   Prenderla con: git show 131a511:LIBRO_MASTRO_QBEATS.md  (riga 373).
+2. Riga CARD (2026-07-24): NON deve dire «freeze su E:» (il 24/07 quel file su E:
+   non c'era — comparso il 26/07 08:50, cartella creata quel mattino). Solo
+   nome-documento + sha256, come per le postille. [gia' applicato nella copia qui
+   sopra; verificarlo alla riscrittura].
+3. Provare A FONTE che ee31281 e' l'ULTIMO commit di CODICE fra v40 e HEAD:
+     git log --oneline --name-only 131a511..HEAD
+   Oggi e' ASSERITO. Se fra ee31281 e HEAD c'e' un altro commit .swift, il valore
+   di Sez.5 (HUNK 3) e' sbagliato e va corretto.
+4. Riga EMENDAMENTO: «Mauro (ratifica §4 Remove)» e' un'attribuzione DEDOTTA
+   (parole piu' morbide). Dipende da R6 (PENDENTE): se Mauro non ratifica
+   esplicito l'emendamento, la riga NON entra in v41. NON ammorbidire, NON dedurre.
+
+================================================================================
+4) BASELINE DEL CANCELLO
+================================================================================
+LIBRO v40 @ 131a511, OID blob efef5320553a052fc79ef3cae1de4fca6b185a6c —
+VERIFICATO coincidente (git rev-parse 131a511:LIBRO_MASTRO_QBEATS.md) e con la
+copia del referee nel Progetto. Il referee puo' quindi fare da CANCELLO
+INDIPENDENTE: applica il diff alla sua copia e calcola LUI i bersagli.
+
+================================================================================
+5) SET IMPRONTE 3c (per la fase di scrittura, NON ora)
+================================================================================
+· OID blob = garanzia PRIMARIA (git hash-object, byte-esatta).
+· byte su ENTRAMBE le facce: disco (Get-Item .Length) e blob (git cat-file -s <oid>).
+· righe con comandi NON condivisi fra i due lati: CC = (Get-Content <file>).Count ·
+  referee = git show <commit>:<path> | wc -l.  MAI Measure-Object -Line (non conta
+  le righe vuote: su LIBRO il delta e' 77).
+· auto-check: righe = byte_CRLF - byte_LF  (LIBRO e' file a due facce, CRLF disco /
+  LF blob; per file -text sarebbe 0 e il conteggio va fatto diretto).
+
+================================================================================
+6) COSA LA CHAT NUOVA VERIFICA A FONTE (non eredita)
+================================================================================
+· HEAD e origin/master coincidono (git log -1 / rev-parse / ls-remote; atteso
+  54ccddc… al momento della chiusura, ma RIVERIFICARE).
+· versioni canoniche dagli HEADER dei file: BOX3 V99 · LIBRO v40 · BUGS v43 ·
+  BOX5 V27 · SCALETTA v2.
+· che LIBRO sia ANCORA v40 (nessuna scrittura e' avvenuta: B2 non ha inciso).
+· tree pulito (solo untracked).
+· le tre impronte CD ancora valide: rev2 f1b362f0 / Q20 5dcfbbfb / freeze
+  a97a4f54 — l'ancora e' il sha256, non il percorso (i file si spostano in
+  _SUPERATI/).
+
+================================================================================
+7) DUE TRAPPOLE (invarianti)
+================================================================================
+(i)  gh --commit: SEMPRE sha a 40 (corto = [] exit 0, falso-zero).
+(ii) SCRITTURA != DEPOSITO / CONSEGNA != RATIFICA: si rilegge dal file e si da'
+     l'impronta; una ratifica dev'essere ENUMERATA (voce + impronta + parole).
+     Un parere in prima persona inoltrato NON e' una ratifica del decisore.
+
+FINE HANDOFF.

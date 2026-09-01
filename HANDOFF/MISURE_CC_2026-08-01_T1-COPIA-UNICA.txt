@@ -1,0 +1,252 @@
+==============================================================================
+MISURE CC — REFERTO PER IL PROMPT ID: QB-2026-08-01-T1-COPIA-UNICA
+Inventario dei documenti a COPIA UNICA e triage di cio' che non deve finire
+in un archivio pubblico.
+SOLA LETTURA. Nessun file copiato, spostato, pubblicato o cancellato.
+==============================================================================
+
+⚠️ RETTIFICA DELLA PREMESSA, in DUE punti.
+
+  (1) IL 94 COPRE META' DEL PROBLEMA. E' il numero dei contenuti presenti solo
+      su E:. Ma i contenuti presenti solo nel repo sono altrettanto a copia
+      unica, perche' su 96 file di HANDOFF/ ne sono TRACCIATI 4:
+      gli altri 92 non sono in git, non sono su GitHub, e vivono solo
+      sul disco C:. Due dischi, due modi indipendenti di perdere tutto.
+
+  (2) E IL TOTALE VA POI RIDOTTO. Un contenuto e' davvero a copia unica solo se
+      NON esiste nell'object database di git. Il controllo e' esatto: si calcola
+      l'OID git del file e si chiede al repo se lo conosce. Alcuni file di E:
+      sono copie di roba gia' committata, e non rischiano nulla.
+
+[V] repo HANDOFF/ : 96 file, 95 contenuti distinti, 4 tracciati
+[V] E:   HANDOFF/ : 144 file, 144 contenuti distinti, 0 sotto versione
+[V] in comune     : 50 contenuti — hanno due copie, sono i piu' sicuri
+
+⚠️ NOTA SULL'ETA': la data di modifica su disco viene RESETTATA da una copia.
+   Dove il nome porta una data, quella e' la nascita vera. Se divergono, si
+   riportano entrambe.
+
+----------------------------------------------------------------------------
+A · CLASSIFICAZIONE A TRE VIE — il dato che decide le priorita'
+----------------------------------------------------------------------------
+  contenuti a copia unica per NOME/AREA : 139
+  di questi, GIA' PRESENTI IN GIT       : 12  → NON a rischio
+      [E:] 2026-04-29_QBEATS_Handoff_VolumiClick_Mute.md
+      [E:] HANDOFF_STUDIO_PER_CD_25_06_2026.md
+      [E:] REFEREE_SYNC_2026-07-12\2026-07-11_Q7-Q16.html
+      [E:] REFEREE_SYNC_2026-07-12\BUGS_QBEATS35.md
+      [E:] REFEREE_SYNC_2026-07-12\LIBRO_MASTRO_QBEATS31.md
+      [E:] REFEREE_SYNC_2026-07-13\LIBRO_MASTRO_QBEATS33.md
+      [E:] ROADMAP_PRE_CD_16_05_2026.md
+      [E:] S3_BACKUP_2026-07-13\Store\QBeatsStore.swift
+      [E:] S3_BACKUP_2026-07-13\UI\QStageRootView.swift
+      [E:] S3_BACKUP_2026-07-13\UI\QStage\ShowsListView.swift
+      [E:] S3_HITFIX_BACKUP_2026-07-14\RoomSwitchBar.swift
+      [E:] SCALETTA_v3_2026-07-28_8289944.md
+  A RISCHIO REALE                       : 127
+      45 esistono SOLO sul disco C:  (untracked in un repo pubblico)
+      82 esistono SOLO sul disco E:
+
+----------------------------------------------------------------------------
+B · A RISCHIO — SOLO SUL DISCO C:
+----------------------------------------------------------------------------
+  46 file, ordinati per CITAZIONI nei canonici, poi per peso.
+  «cit» = quante volte i cinque canonici a HEAD nominano questo file.
+  Un file molto citato che sparisce lascia buchi in documenti ratificati.
+
+  cit     byte  eta                        nome
+    4    44638  5gg                        HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+    4    12443  5gg                        HANDOFF_CC_2026-07-27.txt
+    2    64520  4gg                        MISURE_R3_2026-07-28.txt
+    2    16898  4gg                        MISURE_M1_IDENTITA-S4L_2026-07-28.txt
+    1    25863  4gg                        MISURE_R2_2026-07-28.txt
+    0    51361  2gg                        DIFF_BUGS-v45_2026-07-30_rev2.txt
+    0    47335  2gg                        DIFF_BUGS-v45_2026-07-30.txt
+    0    37228  2gg                        HANDOFF_CC_2026-07-30_sera_chiusura-v45.md
+    0    37013  15gg (nome) / 14gg (disco) DIFF_GIRO_DOC_2026-07-17.txt
+    0    34628  4gg                        DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+    0    32596  5gg                        HANDOFF_REFEREE_2026-07-27_sera.md
+    0    31215  2gg (nome) / 3gg (disco)   HANDOFF_CC_2026-07-30_sera.md
+    0    30262  2gg (nome) / 3gg (disco)   DIFF_LIBRO-v44_2026-07-30_rev3.txt
+    0    30195  4gg                        DIFF_B3bis_BOX5-V28_2026-07-28.txt
+    0    29252  2gg (nome) / 3gg (disco)   DIFF_LIBRO-v44_2026-07-30_rev2.txt
+    0    25948  2gg (nome) / 3gg (disco)   DIFF_LIBRO-v44_2026-07-30.txt
+    0    25058  4gg                        DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt
+    0    24211  4gg                        DIFF_B3_BOX5-V28_2026-07-28.txt
+    0    23918  4gg                        MISURE_R1b_2026-07-28.txt
+    0    22353  4gg (nome) / 3gg (disco)   HANDOFF_CC_2026-07-28_sera_chiusura-sdoppiamento-S4L.txt
+    0    21430  11gg                       BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+    0    21430  11gg                       BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+    0    20440  2gg                        DIFF_LIBRO-v45_2026-07-30.txt
+    0    20376  5gg                        MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+    0    19976  4gg                        MISURE_R1_2026-07-28.txt
+    0    19261  6gg (nome) / 5gg (disco)   ROADMAP_2026-07-26.txt
+    0    18747  3gg                        HANDOFF_CC_2026-07-29_sera.md
+    0    18510  5gg                        HANDOFF_REFEREE_2026-07-27.md
+    0    18428  4gg                        HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md
+    0    17599  4gg                        HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt
+    0    14569  6gg                        HANDOFF_CC_2026-07-26.txt
+    0    12551  15gg                       DIFF_N1b_flip-qLive_2026-07-17.txt
+    0    12418  4gg (nome) / 3gg (disco)   INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt
+    0    12215  4gg                        MISURE_R4_2026-07-28.txt
+    0    11146  5gg                        MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+    0    10971  5gg                        MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+    0     9753  15gg                       DIFF_N0_seam-onExit_2026-07-17.txt
+    0     9621  21gg                       DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+    0     7874  3gg                        DIFF_S4K_congedo-tastiera_rev2_2026-07-29.txt
+    0     7321  3gg                        DIFF_S4K_congedo-tastiera_2026-07-29.txt
+    0     6671  4gg                        MISURE_R5_2026-07-28.txt
+    0     6271  10gg                       DIFF_FIX-PILL_2026-07-22.txt
+    0     6119  15gg                       DIFF_N1a_scaffold-qLive_2026-07-17.txt
+    0     3086  8gg                        HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+    0     2746  10gg                       HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+    0      793  3gg                        DIFF_DARK-DECL_2026-07-29.txt
+
+----------------------------------------------------------------------------
+C · A RISCHIO — SOLO SUL DISCO E:
+----------------------------------------------------------------------------
+  82 file, ordinati per CITAZIONI nei canonici, poi per peso.
+  «cit» = quante volte i cinque canonici a HEAD nominano questo file.
+  Un file molto citato che sparisce lascia buchi in documenti ratificati.
+
+  cit     byte  eta                        nome
+    9    26193  18gg                       S3_HITFIX_BACKUP_2026-07-14\ShowsListView.swift
+    3    30726  18gg (nome) / 14gg (disco) HANDOFF_CC_2026-07-14_sera_NODOA.txt
+    2    30122  19gg                       REFEREE_SYNC_2026-07-13\BOX5_V25_2026-07-13.md
+    2    17602  19gg                       S3_CHECKLIST_TOKEN_2026-07-13.txt
+    1    39198  19gg                       REFEREE_SYNC_2026-07-13\BOX3_V94_2026-07-13.md
+    1    14094  19gg                       HANDOFF_CC_2026-07-13_sera.txt
+    1    12336  18gg                       S3_HITFIX_DIFF_2026-07-14.txt
+    1     8239  19gg                       SCALETTA-rename_BOX3v95_DIFF_2026-07-13.txt
+    0   130281  18gg                       S3_DOCCOMMIT_DIFF_2026-07-14.txt
+    0    62915  12gg                       INVENTARIO_GIRO-DOC_2026-07-20_rev1.txt
+    0    59040  12gg                       ESITO_COMMIT_LIBRO-v38_2026-07-20_rev1.txt
+    0    54595  12gg                       ESITO_COMMIT_BUGS-v41_2026-07-20_rev1.txt
+    0    43935  12gg                       DIFF_LIBRO-v38_2026-07-20_rev2.txt
+    0    41829  11gg (nome) / 12gg (disco) QUADRA_TD17_2026-07-21_rev1.txt
+    0    39036  12gg                       DIFF_BUGS-v41_2026-07-20_rev2.txt
+    0    37134  12gg                       DIFF_BUGS-v41_2026-07-20_rev1.txt
+    0    34634  12gg                       DIFF_LIBRO-v38_2026-07-20_rev1.txt
+    0    32278  11gg                       PROPOSTA_RETE-GIT-CANONICI_2026-07-21_rev1.txt
+    0    30310  19gg                       S3_DIFF_2026-07-13.txt
+    0    29926  13gg                       INDAGINE_TASTO-MORTO-QSTAGE_2026-07-19.txt
+    0    28236  24gg                       QBEATS_FONTI_PER_REFEREE_PIVOT_2026-07-08.txt
+    0    26988  12gg                       INVENTARIO_DOCREF-FUORI-GIT_2026-07-20_rev1.txt
+    0    25726  13gg                       HANDOFF_CC_2026-07-19_SERA_chiusura-S4b.txt
+    0    25325  11gg                       HANDOFF_CC_2026-07-21_rev1.txt
+    0    23752  12gg                       VERIFICA_GATE-S4b_SCALETTA_2026-07-20.txt
+    0    23108  20gg                       LIBRO_V30_DIFF_2026-07-12_v2.txt
+    0    21649  13gg                       S4B_FASE0_PIANO_2026-07-19.txt
+    0    21340  12gg                       HANDOFF_CC_2026-07-20_rev1.txt
+    0    21327  20gg                       S2e_DIFF_2026-07-12.txt
+    0    20419  20gg                       SCALETTA_S3_REVIEW_2026-07-12.txt
+    0    20165  19gg (nome) / 18gg (disco) HANDOFF_CC_2026-07-13_notte.txt
+    0    19873  12gg                       INVENTARIO_CANONICI-VS-GIT_2026-07-20_rev1.txt
+    0    19276  17gg                       HANDOFF_CC_2026-07-15_sera.txt
+    0    18613  12gg                       VERIFICA_CLAUDE-MD_2026-07-20_rev1.txt
+    0    18080  19gg                       S3_BOZZA_PROMPT_2026-07-13.txt
+    0    17745  12gg                       VERIFICA_4TOCCHI-BARRA_2026-07-20_rev1.txt
+    0    17619  12gg                       VERIFICA_STATO_GIT_2026-07-20.txt
+    0    17484  11gg                       HANDOFF_CC_2026-07-21_notte_V27-v39-CHIUSURA.txt
+    0    16921  13gg                       INDAGINE_C-TER_STORE-MODELLO_2026-07-19.txt
+    0    16799  21gg                       _superseded_by_v2\E1_MARCATORI_LIBRO_DIFF_2026-07-11.txt
+    0    16720  21gg                       S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v3.txt
+    0    16408  21gg                       _superseded_by_v3\S2_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+    0    16404  21gg                       EMENDAMENTO_187_DIFF_2026-07-11_v2.txt
+    0    16243  19gg                       BOX3v93-SCALETTAv1-LIBROv32_DIFF_2026-07-13.txt
+    0    16078  13gg                       DIFF_S4b_2026-07-19.txt
+    0    15947  14gg                       HANDOFF_REFEREE_2026-07-18_nodoa-chiuso.txt
+    0    15525  20gg                       S2d_DIFF_2026-07-12.txt
+    0    15459  19gg                       S3_GATE_ACCERTAMENTO_2026-07-13.txt
+    0    15071  11gg                       IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt
+    0    15030  21gg                       QBEATS_S1_S2F_DIFF_v3_2026-07-11.txt
+    0    14868  11gg                       HANDOFF_CC_2026-07-21_sera_REGIME-CANONICI.txt
+    0    14457  14gg                       roadmap_sezione6_stato_18_luglio.svg
+    0    14274  21gg                       _superseded_by_v2\S2_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+    0    13781  21gg                       _superseded_by_v2\EMENDAMENTO_187_DIFF_2026-07-11.txt
+    0    13713  58gg                       HANDOFF_BUG2B_BORN_04_06_2026.md
+    0    13656  21gg                       R1-REF-02_RoomSwitchBar_intero_piu_ancore_S3_2026-07-11.txt
+    0    13247  12gg                       VERIFICA_FREEZE-DESIGN_2026-07-20_rev1.txt
+    0    12962  20gg                       LIBRO_V31_DIFF_2026-07-12.txt
+    0    12753  14gg                       HANDOFF_CC_2026-07-18_nodoa-chiuso-giro-doc.txt
+    0    12362  19gg                       HANDOFF_CHIUSURA_2026-07-13.txt
+    0    11948  21gg                       QBEATS_S1_S2F_DIFF_v2_2026-07-11.txt
+    0    11445  15gg                       HANDOFF_CC_2026-07-17.md
+    0    11287  21gg                       S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11_v2.txt
+    0    11044  19gg                       BOX3v94-LIBROv33-BOX5v25_DIFF_2026-07-13.txt
+    0    11002  11gg                       ESITO_COMMIT_RETE-GIT_2026-07-21_rev1.txt
+    0    10731  21gg                       _superseded_by_v2\S2c_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+    0    10706  23gg                       CC_REVIEW_SHOWS_HANDOFF_2026-07-09.md
+    0     9875  91gg                       2026-05-02_QBeats-Handoff_CD_a_CC.md
+    0     8252  13gg                       ESITO_COMMIT_S4b_2026-07-19.txt
+    0     7943  21gg                       QBEATS_S1_S2F_DIFF_2026-07-11.txt
+    0     7795  13gg                       DIFF_S4b_2026-07-19_rev2_QLiveRootView.txt
+    0     6950  23gg                       CD_FREEZE_QLIVE_NAV_2026-07-09.md
+    0     6747  19gg                       ACCERTAMENTO_LETTURA_ABC_2026-07-13.txt
+    0     6029  20gg                       BUGS_v35_DIFF_2026-07-12.txt
+    0     5995  20gg                       R1_VERIFICA_SOLA_LETTURA_2026-07-12.txt
+    0     4971  21gg                       S2b_QLIVEEMPTYSTATES_DIFF_2026-07-11.txt
+    0     3788  13gg                       VERIFICA_STATO_GIT_2026-07-19.txt
+    0     2885  21gg                       R1-REF-01_B3_CTA_verbatim_2026-07-11.txt
+    0     2554  23gg                       CD_FREEZE_QLIVE_NAV_CONSEGNA_2026-07-09.md
+    0     1286  22gg                       QBEATS_S0_DIFF_2026-07-10.txt
+    0      884  13gg                       VERIFICA_REMOTE_CI_2026-07-19.txt
+    0      739  22gg                       QBEATS_S0_STATUS_2026-07-10.txt
+
+----------------------------------------------------------------------------
+D · TRIAGE — CHE COSA NON DEVE FINIRE IN UN ARCHIVIO PUBBLICO
+----------------------------------------------------------------------------
+  Il repo e' PUBLIC (verificato su GitHub): cio' che entra in un commit e'
+  pubblicato e non si toglie piu'. I 92 untracked di HANDOFF/ sono a UN
+  `git add -A` di distanza dalla pubblicazione.
+  ⛔ Si riportano CATEGORIA e CONTEGGIO. I valori trovati NON sono stampati.
+
+  RIEPILOGO PER CATEGORIA, sui soli file a rischio:
+       156  path assoluto col nome utente
+        81  percorso disco E: (topologia locale)
+        62  indirizzo email
+        26  identita' Apple / firma
+         2  chiave/credenziale
+         1  password/segreto in chiaro
+
+  FILE CON CATEGORIE GRAVI (chiavi o segreti in chiaro): 1
+    [E:] IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt
+          chiave/credenziale: 2
+          password/segreto in chiaro: 1
+          identita' Apple / firma: 6
+          path assoluto col nome utente: 6
+          indirizzo email: 2
+
+  ⚠️ FALSI POSITIVI ACCERTATI, e vanno detti perche' altrimenti allarmano:
+     `IGIENE_REPO-PUBBLICO_2026-07-21_rev1.txt` e' un AUDIT di igiene che
+     ELENCA i pattern cercati e riporta «HIT: 0» per ciascuno. Il rilevatore
+     ha agganciato il CATALOGO, non un segreto. Il file lo dichiara da se':
+     «Nessun valore trovato e' stato incollato in questo file». E' la stessa
+     trappola gia' a verbale: un documento che cita i pattern fallisce la
+     scansione di quei pattern. Verificato riga per riga, coi valori mascherati.
+
+  ⚠️ CIO' CHE E' GIA' PUBBLICO, e che quindi il backup NON espone:
+     `C:\Users\BULLFROG`  → gia' in 4 file TRACCIATI (BOX3, BUGS, LIBRO, un referto)
+     Team ID Apple         → gia' in 10 file TRACCIATI, inclusi i due workflow
+     `E:\HOBBY`            → gia' in 3 file TRACCIATI (BUGS, LIBRO, SCALETTA)
+     email di Mauro        → e' il campo autore di OGNI commit del repo pubblico
+     ⇒ Su queste quattro categorie il rischio incrementale del backup e' NULLO:
+       sono gia' fuori. Toglierle dai file da salvare non protegge niente.
+
+----------------------------------------------------------------------------
+E · CIO' CHE NON HO MISURATO
+----------------------------------------------------------------------------
+  · Il perimetro e' le DUE cartelle HANDOFF. Il resto di E: (LOG, IPA, AUDIO,
+    DESIGN, gli archivi BOX) NON e' stato indicizzato: fuori dal mandato, ma
+    e' verosimile che contenga altro materiale a copia unica.
+  · Il triage e' per PATTERN su byte. Un segreto scritto in una forma che i
+    pattern non prevedono non viene visto: l'assenza di segnalazione non e'
+    prova di assenza.
+  · Non ho aperto i .swift di backup per giudicare se il loro contenuto sia
+    sensibile: ne ho verificato solo la presenza in git.
+  · Nessun file e' stato copiato, spostato o modificato. Nessuna proposta di
+    dove metterli al sicuro: quella e' la decisione che torna a Mauro.
+
+==============================================================================
+FINE REFERTO T1.
+==============================================================================

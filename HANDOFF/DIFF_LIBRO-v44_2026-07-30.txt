@@ -1,0 +1,210 @@
+================================================================================
+DIFF LIBRO_MASTRO_QBEATS.md  v43 -> v44
+Preparato da CC il 2026-07-30. NON COMMITTATO. Due cancelli aperti:
+  (1) ratifica referee sul diff verbatim   (2) OK esplicito di Mauro
+Base: HEAD = origin/master = 6c7352a19b0dc6edadca8c14d34939ca30711369
+File base: LIBRO_MASTRO_QBEATS.md, 455 righe, sha256(disco) 734c0158...4355817
+================================================================================
+
+
+--------------------------------------------------------------------------------
+[1] HEADER — riga 5
+--------------------------------------------------------------------------------
+- **Versione:** 43 (28/07/2026)
++ **Versione:** 44 (29/07/2026)
+
+
+--------------------------------------------------------------------------------
+[2] HEADER — riga 6
+--------------------------------------------------------------------------------
+- **Ultima modifica:** 2026-07-28 (v43 — Sez.2 +1: **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI** ratificato (⟦S4K⟧ congedo tastiera → ⟦S4R⟧ launcher → ⟦S4L⟧ prima scrittura; ordine obbligatorio), con la REGOLA DI RILETTURA delle citazioni di «S4L» anteriori al 28/07, che chiude il riferimento incrociato delle sei enumerazioni d'ordine di BOX3 **senza toccarle**. Sez.5 «HEAD codice pre-doc-commit» invariato a `ee31281`: misurato, `git diff --stat ee31281..HEAD -- ios_app/` rende vuoto (i tre commit intermedi sono doc-only). Header bump 42→43. Doc-only, nessun fix codice.)
++ **Ultima modifica:** 2026-07-29 (v44 — Sez.2 +7 righe, giornata 29/07: ⟦S4K⟧ congedo tastiera CHIUSO device · DARK-DECL CHIUSO device · due domande aperte a CD · identità Apple verificata a due fonti indipendenti · **l'app si vende** (fatto nuovo che rilegge l'intero registro) · nuova regola di processo **INDIRIZZO, NON COPIA** · **sesta forma di falso-negativo** (`&&` che tronca il controllo positivo). Sez.5 «HEAD codice pre-doc-commit»: il campo DEVE muoversi da `ee31281` — fra v43 e questa stesura sono arrivati DUE commit di prodotto — ma la convenzione della riga stessa è **ambigua** sul caso di oggi e CC NON ha scelto: vedi nota di consegna, la scelta è del referee. Rettificata inoltre la descrizione fra parentesi del campo, che dal v41 descriveva un commit diverso dal valore che accompagnava. Header bump 43→44. Doc-only, nessun fix codice.)
+
+
+--------------------------------------------------------------------------------
+[3] HEADER — riga 7
+--------------------------------------------------------------------------------
+- **Edit author:** CC chat principale 28/07/2026
++ **Edit author:** CC chat principale 30/07/2026
+
+
+--------------------------------------------------------------------------------
+[4] SEZIONE 2 — SETTE RIGHE NUOVE, inserite DOPO la riga 317
+    (ultima riga esistente = "| 2026-07-28 | **SDOPPIAMENTO ⟦S4L⟧ IN TRE ATOMI ...")
+    Nessuna riga storica modificata o cancellata.
+--------------------------------------------------------------------------------
+
++ | 2026-07-29 | **⟦S4K⟧ CONGEDO TASTIERA (contratto Q20) — CHIUSO, device-validato.** Commit `b9f4e5f0c806a40938136cd8bb076f590c5e851d`, CI run `30456740570` **success** (letta verbatim da `gh run view`, non dedotta da un exit code). Gate device: Mauro, iPad + iPhone, 29/07. **Costrutto: barra propria via `.safeAreaInset(edge:.bottom)`.** ⛔ `ToolbarItemGroup(placement:.keyboard)` è stato SCARTATO **prima** del commit: riproduce un bug Apple documentato e mai risolto (forum thread 736040) per cui un `Spacer()` dentro un `HStack` dentro quel placement rende la toolbar **VUOTA** su device. ⛔ **NIENTE `NavigationStack` in Q-Live.** Token nuovi, entrambi propri di Q-Live: `QLiveTheme.accent` `#ff8a5c` (Q20 r.32 `--live-l`; uso Q20 r.104 `.kbdone`) e `QLiveTheme.kbbar` `#1c1c20` (Q20 r.103 `.kbtoolbar` background) — `ios_app/QBeats/UI/QLive/QLiveKit.swift:15-16 @ 6c7352a19b0dc6edadca8c14d34939ca30711369`. ⛔ **VIETATO riusare `QStageTheme.orangeTint`** benché il valore coincida esattamente (`#ff8a5c`, `ios_app/QBeats/UI/QStage/QStageKit.swift:19 @ 6c7352a19b0dc6edadca8c14d34939ca30711369`): stanze separate, coincidenza di valore permessa e attesa per la clausola (1) della riga `2026-07-27` **PALETTE ANNOTAZIONI CD**. ⚠️ **NON verificati, e scritti qui come tali:** tastiera fisica · tastiera flottante iPad · «il congedo conserva la **selezione**» — quest'ultimo **non testabile a HEAD**, perché `let isPick = false` è cablato per OGNI riga (`ios_app/QBeats/UI/QLive/QLiveShowsView.swift:274 @ 6c7352a19b0dc6edadca8c14d34939ca30711369`). | Mauro (gate device) + CC (costruzione) + referee (ratifica) | commit `b9f4e5f0…` · CI `30456740570` · contratto Q20 `5dcfbbfb…5ab9d408` | attiva | — |
+
++ | 2026-07-29 | **DARK-DECL — `UIUserInterfaceStyle: Dark`. CHIUSO, device-validato.** Commit `6c7352a19b0dc6edadca8c14d34939ca30711369`, CI run `30463659772` **success**. Una sola riga, in `ios_app/project.yml:22 @ 6c7352a19b0dc6edadca8c14d34939ca30711369`, dentro `info.properties` — **non** nel file fisico `Info.plist` (vedi riga `2026-07-29` **INDIRIZZO, NON COPIA**, punto (b)). **Verificato fino al PRODOTTO REALE, non al commit:** `UIUserInterfaceStyle = 'Dark'` letto con `plistlib` dall'`Info.plist` **binario** dentro `Payload/QBeats.app/`, estratto dall'artifact `QBeats-IPA` della run `30463659772` (misura CC 29/07, riletta 30/07 sullo stesso estratto). Gate device (Mauro, 29/07): tastiera scura su iPad in modalità chiara + pannello Ableton Link scuro. ⚠️ **CONSEGUENZA AGLI ATTI — non effetto collaterale: forza lo scuro su TUTTA l'app, per sempre, ignorando l'impostazione del dispositivo. Nessuna modalità chiara sarà possibile senza rimuovere quella riga.** ⚠️ La citazione della doc Apple (`developer.apple.com/documentation/bundleresources/information-property-list/uiuserinterfacestyle`) è **[R] NON RIMISURATA**: tre tentativi di fetch, tutti falliti (restituito il solo titolo, corpo non recuperabile) — buco dichiarato, non colmato per inferenza. La chiusura NON dipende da quella fonte: poggia sulla misura diretta sul prodotto e sul gate device. | Mauro (gate device) + CC (costruzione) + referee (ratifica) | commit `6c7352a1…` · CI `30463659772` · artifact `QBeats-IPA` run `30463659772` | attiva | — |
+
++ | 2026-07-29 | **DUE DOMANDE APERTE A CD — entrambe su contratti già congelati. Riga di REGISTRAZIONE, non di ratifica: nessuna delle due è decisa.** **(a)** Il contratto Q20 prescrive «Search» come tasto di ritorno; iOS rende una **LENTE** su iPhone e la **FRECCIA INVIO** su iPad — stesso codice, disegno deciso da Apple, non dall'app. Mauro preferirebbe la freccia. **(b)** **DARK-DECL chiude la porta alla modalità chiara** (riga `2026-07-29` **DARK-DECL**): CD non è mai stato interpellato. La scelta è corretta oggi — le palette del Design System sono tutte scure — ma è irreversibile finché quella riga resta, e nessuno ha chiesto a CD se il progetto voglia rinunciare per sempre a una versione chiara. | CC (rilievo (a), dal gate device) + referee (rilievo (b)) | riga `2026-07-29` ⟦S4K⟧ · riga `2026-07-29` DARK-DECL · contratto Q20 `5dcfbbfb…5ab9d408` | attiva | — |
+
++ | 2026-07-29 | **IDENTITÀ APPLE VERIFICATA A DUE FONTI INDIPENDENTI.** Portale Apple Developer (letto da Mauro, 29/07): App ID `com.bullfrog.qbeats` **explicit**, Team `X42CX3ZP3T`, capability **Multicast Networking ABILITATA** (stato salvato, Save disattivato). Repo (misurato da CC, 30/07): `ios_app/project.yml:105` · `.github/workflows/ios_build.yml:82` (`DEVELOPMENT_TEAM=X42CX3ZP3T`) · `CFBundleIdentifier` del **prodotto reale** (`Payload/QBeats.app/Info.plist` binario, artifact run `30463659772`) · grep esaustivo su `ios_app/` e `.github/` — **4 su 4 coincidono** col portale. Tutti gli indirizzi @ `6c7352a19b0dc6edadca8c14d34939ca30711369`. ⚠️ **RESTA NON VERIFICATO, ed è il punto che conta: che l'entitlement multicast SOPRAVVIVA ALLA FIRMA su un profilo di DISTRIBUZIONE.** Nessuna build di distribuzione è mai stata costruita in questo repo: la CI produce **solo** development-signed (`-configuration Debug`, `method: development`, profilo `QBeats_Dev_Profile`, `get-task-allow: true` incondizionato). ⚠️ **Precedente TD#44, che rende il dubbio concreto e non teorico: il permesso c'era sul portale e si perse COMUNQUE nella firma.** | Mauro (fonte portale) + CC (fonte repo) | portale Apple Developer 29/07 · `project.yml:105 @ 6c7352a1…` · `ios_build.yml:82 @ 6c7352a1…` · artifact run `30463659772` | attiva | — |
+
++ | 2026-07-29 | **FATTO NUOVO CHE RILEGGE L'INTERO REGISTRO — L'APP SI VENDE.** Dichiarato da Mauro il 29/07/2026. **Non era in nessun canonico**, quindi per **R-γ** non esisteva: ogni valutazione di severità anteriore a questa riga è stata fatta col cappello «app personale», e va riletta. Cambia la lettura di almeno quattro cose: **TD#17** (perdita del peer a metà set, su un prodotto venduto) · il gap `SettingsView` in Release · **l'assenza totale di diagnostica di guasto** (misurato 29/07: zero Crashlytics, Sentry, Bugsnag, MetricKit, `NSSetUncaughtExceptionHandler`; solo `os_log`, leggibile **soltanto** con device fisico + iMazing — cioè: di un guasto sul palco di un cliente non arriverebbe nulla) · il percorso di firma di distribuzione mai percorso. ⚠️ **La riclassificazione di severità di TD#17 è DECISIONE DI MAURO** — non del referee, non di CC: qui è registrata come **pendenza aperta, NON decisa.** | Mauro | dichiarazione Mauro 29/07/2026 · misure CC 29/07 (censimento commerciale) | attiva | — |
+
++ | 2026-07-29 | **NUOVA REGOLA DI PROCESSO — INDIRIZZO, NON COPIA.** Accanto a R-β e R-γ: «**Un documento può CITARE il contenuto di un altro; non può DICHIARARNE LO STATO. Lo stato appartiene a chi lo possiede.**» Origine: **TRE casi misurati in 48h**, tutti dello stesso stampo. **(a)** `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:141 @ 6c7352a19b0dc6edadca8c14d34939ca30711369` dichiara «RATIFICA NON ANCORA ATTERRATA IN LIBRO — pendenza aperta»: misurata su LIBRO **v42**, ma la ratifica **è atterrata in v43** — `LIBRO_MASTRO_QBEATS.md:317 @ 6c7352a19b0dc6edadca8c14d34939ca30711369`, misura CC 30/07: «S4K» 3 righe, «S4R» 3 righe, controllo positivo «Mauro» 162 righe. **L'allarme è rimasto acceso su una pendenza chiusa.** **(b)** `ios_app/QBeats/Info.plist` tiene una COPIA di ciò che `project.yml` comanda: il file fisico dice `CFBundleVersion` **142**, il prodotto reale porta **`'1'`** — prova per **contro-esempio** che XcodeGen SOVRASCRIVE. Fonte verbatim, XcodeGen `Docs/ProjectSpec.md`: «This is the path where the plist will be written to». ⛔ **Ogni futura chiave Info.plist va in `project.yml`.** **(c)** Su E: due mirror LIBRO col **nome vivo** e contenuto **v41**, e due mirror BUGS col nome vivo e contenuto **v43** (canonici v43 e v44): un nome che promette lo stato corrente su un contenuto che non lo è. ⚠️ **La generalizzazione «il difetto è del sistema di cartelle» è stata MISURATA E FALSIFICATA il 30/07:** BOX3 **94 file su 94**, BOX5 35, SCALETTA 5 — **tutti** col numero di versione nel nome, **nessuna eccezione**. Il difetto riguarda i **soli due canonici che in git vivono a nome nudo** (LIBRO e BUGS): chi li ha copiati su E: ha portato con sé il nome del repo. | referee (formulazione della regola) + CC (le tre misure) | `SCALETTA:141 @ 6c7352a1…` · `LIBRO:317 @ 6c7352a1…` · XcodeGen `Docs/ProjectSpec.md` · censimento E: CC 30/07 | attiva | — |
+
+  ⚠️ RIGA 7 — TESTO REDATTO DA CC, NON dal referee. Vedi nota [R6]: l'aggiunta
+  che la conteneva non è mai arrivata a CC. Sostanza dalla misura CC del 30/07;
+  la formulazione del referee, quando arriva, prevale su questa.
+
++ | 2026-07-29 | **SESTA FORMA DI FALSO-NEGATIVO — l'operatore `&&` che TRONCA il controllo positivo.** Un comando della forma `grep <pattern> <path> && echo "controllo positivo" && grep -c <stringa-nota-presente>` **non stampa il controllo positivo proprio quando il grep rende zero**: `grep` esce con codice **1** su nessuna corrispondenza, e la catena `&&` si interrompe lì. L'output che ne risulta mostra lo zero **senza** la prova che il comando funzionasse — cioè esattamente la forma che il protocollo di questo progetto vieta, prodotta però dallo **strumento** e non da chi lo usa: chi legge vede un referto che sembra completo. ⚠️ **La polarità è OPPOSTA a quella già agli atti** (`BOX3_QBEATS.md` V99 punto (d): `gh run list --commit <sha corto>` rende `[]` con exit **0** — un vuoto che sembra un fatto). Qui è un exit **1** che sopprime la verifica. Le due forme si **sommano**, non si sostituiscono: la prima falsifica il dato, la seconda cancella la prova. **REGOLA: nei comandi diagnostici il controllo positivo non si concatena MAI con `&&` — si separa con `;`, o si cattura l'exit code esplicitamente.** Caso reale che l'ha prodotta: misura CC del 30/07 sull'icona — il primo tentativo rese lo zero nudo; il secondo, separato con `;`, rese zero **più** il controllo positivo (`grep -c "QBeats"` → 17 e 11). | CC (l'errore e il rilievo) + referee (formulazione della regola) | misura CC 30/07 · `BOX3_QBEATS.md` V99 (d) per la forma di polarità opposta | attiva | — |
+
+
+--------------------------------------------------------------------------------
+[5] SEZIONE 5 — riga 393  ⚠️ VALORE NON SCELTO DA CC — DUE VARIANTI
+    La convenzione della riga è ambigua sul caso di oggi. CC NON sceglie.
+    Il referee ratifica UNA delle due, e si scrive quella.
+    In ENTRAMBE è rettificata la descrizione fra parentesi (vedi nota [R1]).
+--------------------------------------------------------------------------------
+
+- - **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. **HEAD codice pre-doc-commit**: `ee31281` (S4b «flip root Q-Live: QLivePage + funnel navigate(to:) + cablaggio CTA "Go to Q-Stage"»). CONVENZIONE: [...resto della riga INVARIATO...]
+
+  VARIANTE A — criterio «.swift», lettera delle voci v39 e v40 del registro
+  ("zero file `.swift` toccati"):
++ - **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. **HEAD codice pre-doc-commit**: `b9f4e5f` (⟦S4K⟧ «congedo tastiera Q-Live (contratto Q20) — barra propria via safeAreaInset», 29/07 — ultimo commit che tocca un file `.swift`). CONVENZIONE: [...resto della riga INVARIATO...]
+
+  VARIANTE B — criterio «ios_app/», lettera della voce v43 del registro
+  (`git diff --stat ee31281..HEAD -- ios_app/`):
++ - **Repo Q-BEATS**: `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\` — GitHub: `https://github.com/19Bullfrog78/Q-BEATS` branch `master`. **HEAD codice pre-doc-commit**: `6c7352a` (⟦DARK-DECL⟧ «UIUserInterfaceStyle=Dark — la UI di sistema segue l'app, non il device», 29/07 — ultimo commit che tocca `ios_app/`). CONVENZIONE: [...resto della riga INVARIATO...]
+
+
+--------------------------------------------------------------------------------
+[6] SEZIONE 6 — REGISTRO VERSIONI: una riga nuova, DOPO la riga 451 (voce 43)
+--------------------------------------------------------------------------------
+
++ | 44 | 2026-07-29 | Mauro + CC + referee | **Sez.2 +7 righe: i due atomi del 29/07 chiusi su device, l'identità Apple, il fatto commerciale, 2 regole di processo (doc-only).** ⟦S4K⟧ congedo tastiera **CHIUSO device** (`b9f4e5f0…`, CI `30456740570`; costrutto `.safeAreaInset`, `ToolbarItemGroup(.keyboard)` scartato per il bug Apple 736040; token `QLiveTheme.accent`/`.kbbar` propri di Q-Live; tre punti dichiarati NON verificati, fra cui la «selezione» non testabile perché `isPick` è cablato a false) · **DARK-DECL CHIUSO device** (`6c7352a1…`, CI `30463659772`, verificato sul plist **binario del prodotto reale**; conseguenza irreversibile messa agli atti; citazione doc Apple dichiarata [R] non rimisurata) · **due domande aperte a CD** (rendering «Search» iPhone/iPad · modalità chiara preclusa) · **identità Apple a due fonti indipendenti** (portale + repo, 4 su 4; resta scoperto il profilo di **DISTRIBUZIONE**, col precedente TD#44 a dire che il dubbio è concreto) · **L'APP SI VENDE** (dichiarazione Mauro 29/07, mai in un canonico: per R-γ non esisteva; riclassificazione TD#17 registrata come **pendenza di Mauro, NON decisa**) · **REGOLA INDIRIZZO, NON COPIA** (tre casi misurati; e la generalizzazione «difetto delle cartelle» **falsificata a misura**: BOX3 94/94, BOX5 35, SCALETTA 5, tutti versionati) · **SESTA FORMA DI FALSO-NEGATIVO** (`&&` che tronca il controllo positivo: exit 1 del grep interrompe la catena e la prova non viene stampata — polarità opposta al falso-zero di BOX3 V99 (d), le due si sommano). **Sez.5 «HEAD codice pre-doc-commit»**: il campo si muove da `ee31281` — fra v43 e questa stesura sono arrivati due commit di prodotto — ma ⚠️ **il VALORE non è stato scelto da CC**: la convenzione è ambigua sul caso di oggi (l'ultimo commit tocca `project.yml`, non un `.swift`), due varianti sottoposte al referee. Rettificata la descrizione fra parentesi del campo, stale dal v41. Header bump 43→44. Doc-only, nessun fix codice. |
+
+
+================================================================================
+NOTE DI CONSEGNA — da leggere PRIMA di ratificare
+================================================================================
+
+[R1] RETTIFICA NON RICHIESTA DAL PROMPT, proposta e non applicata d'iniziativa.
+     La riga 393 descrive `ee31281` come «S4b "flip root Q-Live..."». È FALSO,
+     misurato: `ee31281b03a4898bfbccc29bd558cbb68f5e23e1` = «FIX-PILL: la pill
+     Q-Live in Q-Stage naviga davvero», 2026-07-23. S4b è `6ded4ab1a5415d3b...`,
+     2026-07-19. Quando v41 spostò il VALORE a `ee31281`, la descrizione fra
+     parentesi rimase quella del valore PRECEDENTE e non fu aggiornata.
+     È esattamente un caso della regola che questa stessa v44 ratifica
+     (INDIRIZZO, NON COPIA). Poiché sto riscrivendo quel campo comunque,
+     lasciare una descrizione che descrive un altro commit sarebbe propagare
+     consapevolmente una falsità: l'ho corretta in entrambe le varianti.
+     Se il referee preferisce trattarla come riga storica intoccabile
+     (precedente: il blocco della rettifica dell'ancora `54ccddc` in v42),
+     si toglie — ma allora va tolta CONSAPEVOLMENTE, non per inerzia.
+
+[R2] SEZ.5 — PERCHÉ NON HO SCELTO. Il documento usa DUE criteri non identici
+     per lo stesso campo:
+       · v39 e v40 dicono «zero file `.swift` toccati»
+       · v43 dice «`git diff --stat ee31281..HEAD -- ios_app/` rende vuoto»
+     Finora coincidevano sempre, quindi l'ambiguità non era mai emersa.
+     Oggi divergono per la prima volta. Misurato:
+       git log --oneline ee31281..HEAD -- "*.swift"   -> b9f4e5f  (solo S4K)
+       git log --oneline ee31281..HEAD -- ios_app/    -> 6c7352a, b9f4e5f
+       git diff --stat ee31281..HEAD -- ios_app/      -> 3 file, 101 ins, 4 del
+         ios_app/QBeats/UI/QLive/QLiveKit.swift       | 11 +++-
+         ios_app/QBeats/UI/QLive/QLiveShowsView.swift | 89 +++++++++++++++-
+         ios_app/project.yml                          |  5 ++
+     Osservazione a supporto del referee, NON una scelta: DARK-DECL non tocca
+     `.swift`, ma ha **dimostrabilmente cambiato il prodotto** (misurato sul
+     plist binario dell'IPA). Chiamarlo «non codice» contraddirebbe una misura
+     che abbiamo già agli atti. Resta però la lettera di v39/v40. Decide il
+     referee; entrambe le varianti sono scritte e pronte.
+
+[R3] IL CONTRATTO Q20 NON È NEL REPO. Misurato:
+       find . -iname "*Q20*" -o -iname "*Keyboard-Dismiss*"   -> 0
+       git log --all --diff-filter=A -- "*Q20*"               -> 0
+     Esiste UNA sola copia, su E:, mai committata:
+       E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\
+         DA_CD_PER_CC\26_07_2026\
+         2026-07-26_QLive-Shows-Keyboard-Dismiss__Q20-RIEMISSIONE.html
+       37430 byte · sha256 5DCFBBFBFEFE7607CFDAC58B73FB2DDB2898012788D75F98
+                            27203E1C5AB9D408
+     -> lo sha del referee (`5dcfbbfb…5ab9d408`) è CONFERMATO al byte.
+     Verificate anche le tre righe citate:
+       r.32  --live:#d43f00; --live-l:#ff8a5c; --amber:#f5b820;
+       r.103 .kbtoolbar{height:46px; background:#1c1c20; ...}
+       r.104 .kbdone{... color:var(--live-l); ... min-height:44px; ...}
+       (controllo positivo: il file ha 308 righe)
+     ASIMMETRIA DA SEGNALARE, non da risolvere da me: il contratto NORMATIVO
+     di un atomo appena chiuso vive fuori dal repo, mentre altri contratti sono
+     in git (la SCALETTA ancora il freeze a `DESIGN/QLive_Nav/2026-07-11_
+     Q7-Q16.html @ 9994bc0`). Non propongo rimedi: lo dichiaro.
+
+[R4] DUE OSSERVAZIONI STRUTTURALI SULLA TERZA RIGA (domande aperte a CD).
+     (a) È una DOMANDA, e la Sez.2 si chiama «Decisioni ratificate»; esiste una
+         Sez.4 «Domande aperte» (riga 344) che sembra la sua casa naturale.
+     (b) La colonna `Stato` ammette per definizione (riga 193) solo
+         `attiva | superseded | revocata | ratificata-no-CC-review`:
+         non esiste un valore per «domanda non ancora risposta». Ho scritto
+         `attiva` perché è l'unico ammesso, ma è una forzatura del vocabolario.
+     Ho eseguito come da prompt (Sez.2). Se il referee la sposta in Sez.4 il
+     testo regge senza modifiche.
+
+[R5] CODA — PRE-CHECK SULLE DUE COPIE BUGS VECCHIE SU E:.
+     Domanda letterale: esiste uno snapshot `BUGS_QBEATS_V43_*.md`?
+       RISPOSTA: NO. Zero risultati.
+       Controllo positivo, stessa forma: `BUGS_QBEATS_V44*` -> 1 risultato,
+       BUGS_QBEATS_V44_2026-07-28_4b55686.md, 207903 byte.
+       In tutta la radice esiste UN SOLO file in forma `BUGS_QBEATS_V*`: il V44.
+     MA la domanda sostanziale — «cancellandole si perde la v43?» — ha risposta
+     OPPOSTA, e la do perché è quella che conta:
+       E:\...\BUGS_QBEATS\BUGS_QBEATS43.md  ·  195668 byte
+       sha256 2FCF1D0659E313A9245AE5E458E259BD9035033665A44D24865A9E4D238F438F
+     È IDENTICO, al byte e all'impronta, alle due copie a nome vivo.
+     La v43 sopravvive quindi in un file correttamente versionato, solo nella
+     convenzione VECCHIA (`BUGS_QBEATS43.md`, senza `_V`) anziché nella nuova.
+     -> Cancellare le due copie a nome vivo NON perde alcun contenuto.
+     La decisione resta di Mauro. NULLA è stato cancellato o rinominato.
+
+[R6] 🔴 GUASTO DI TRASPORTO — L'AGGIUNTA CON LE RIGHE 7 E 8 NON È MAI ARRIVATA A CC.
+     Il prompt ricevuto da CC elencava SEI righe per la Sez.2, numerate 1-6.
+     CC ha prodotto sei righe. Successivamente è arrivata una CORREZIONE che
+     parla di una «aggiunta appena mandata» contenente una riga 7 (icona) e una
+     riga 8 (`&&` / falso-negativo): quel messaggio non è mai stato consegnato.
+     Conseguenze, dichiarate invece di essere aggirate:
+       · RIGA ICONA — nessuna rimozione da fare: non era nel diff, non c'è mai
+         stata. La correzione del referee (non è un deliverable di design ma una
+         INTEGRAZIONE MANCANTE, quindi debito tecnico -> BUGS v45) è comunque
+         registrata qui e NON viene scritta in LIBRO.
+       · RIGA 8 -> 7 (`&&`) — CC non ha mai visto il testo del referee. La riga
+         qui sopra è REDATTA DA CC sulla sostanza della propria misura del
+         30/07. Quando la formulazione del referee arriverà, PREVALE su questa:
+         il confronto fra le due è esso stesso un dato (se divergono, uno dei
+         due ha capito male il reperto).
+     È il medesimo modo di guasto già agli atti in BOX3 V98/V99 e nel precedente
+     E3: un contenuto che esiste per il mittente e non per il destinatario.
+     Consegna riuscita solo quando il destinatario conferma di aver LETTO.
+
+[R7] MISURE SULL'ICONA — CONSERVATE PER IL TICKET BUGS v45, non rimisurate.
+     Tutte [V], misurate il 30/07 sull'artifact run 30463659772 già estratto.
+       (a) File icona nel prodotto reale: ZERO.
+           find <QBeats.app> -iname "*icon*" -type f   -> nessun risultato
+           Controllo positivo: .png totali nel bundle  -> 0
+           Controllo positivo 2: file totali nel bundle -> 35 (bundle non vuoto:
+             click.wav, embedded.mobileprovision, Info.plist, 6 Inter .ttf,
+             16 JetBrainsMono .ttf, PkgInfo, QBeats (9.846.032 byte),
+             test_backtrack.mp3, ZIPFoundation.bundle (6), _CodeSignature)
+       (b) Chiavi icona nell'Info.plist BINARIO del prodotto reale: tutte ASSENTI.
+           CFBundleIcons ASSENTE · CFBundleIcons~ipad ASSENTE
+           CFBundleIconFiles ASSENTE · CFBundleIconName ASSENTE
+           Controllo positivo: 36 chiavi totali nel plist (non vuoto/troncato)
+       (c) Riferimenti nel repo: ZERO.
+           grep -rn "APPICON\|AppIcon\|ICON_NAME" ios_app/ .github/ -> 0, exit 1
+           Controllo positivo: grep -c "QBeats" -> project.yml 17,
+             ios_build.yml 11
+       (d) Nessun catalogo grafico esiste: .xcassets 0, .colorset 0, .imageset 0,
+           Contents.json 0 — controllo positivo .swift repo-wide -> 66.
+     Dato nuovo di Mauro (30/07), [R] per CC: l'artefatto grafico dell'icona
+     ESISTE già ma è fuori dal progetto. -> il ticket non è «disegnare l'icona»
+     ma: reperire il file, verificarne la conformità, CREARE il catalogo grafico
+     (oggi inesistente) e dichiararlo in project.yml.
+
+================================================================================
+STATO: nessun file canonico è stato toccato. Nessun commit, nessun push,
+nessuna propagazione ai mirror. Entrambi i cancelli sono APERTI.
+Sez.2: SETTE righe nuove (la settima redatta da CC, vedi [R6]).
+================================================================================

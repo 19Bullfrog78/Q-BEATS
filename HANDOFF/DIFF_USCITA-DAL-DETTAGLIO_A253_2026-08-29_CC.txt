@@ -1,0 +1,373 @@
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 044a7ba..0d4f5ac 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -232,6 +232,14 @@ struct LiveView: View {
+                     //   secondo innesco di END SHOW — quello del dettaglio, disegnato
+                     //   da CD il 27/08 e OGGI NON COSTRUITO — nascerebbe già
+                     //   dimenticandolo.
++                    //   ⚠️ MARCATURA A253 (29/08/2026) — «OGGI NON COSTRUITO» È
++                    //     SCADUTO: il secondo innesco esiste (voce END SHOW del
++                    //     dettaglio, `QLiveShowDetailView`) ed è agganciato a
++                    //     `endShowAndLeave()`, come queste righe prevedevano. E la
++                    //     chiusura ha preso una riga in più IN TESTA: `endShow`
++                    //     ora si chiama `endShow(audioEngine:)` e ferma il motore
++                    //     PRIMA di svuotare lo slot — il reset a `.stopped` di (a)
++                    //     non è più la prima riga del corpo, ed è sempre lì.
+                     // ⛔ RESTART SETLIST di `FineSetlistView` NON è toccato da questo
+                     //    giro: resta inerte com'era. Una decisione ratificata il
+                     //    07/08 (`LIBRO_MASTRO_QBEATS.md:353`) dispone di TOGLIERLO da
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index 669c611..c19b6f3 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -75,6 +75,17 @@ struct QLiveRootView: View {
+     /// (`LIBRO_MASTRO_QBEATS.md:285`) e NON si tocca: cambia la sola proprietà.
+     @StateObject private var roomSession = QLiveSession()
+ 
++    /// A253 — il motore, DICHIARATO e non iniettato: arriva dall'iniezione di
++    /// `AppRootView.swift:53` su questa stessa view (catena provata nel cartello
++    /// del gate `.metronome` più sotto, «`audioEngine` NON si re-inietta»).
++    /// Serve ai due chiamanti di `endShow(audioEngine:)`: lo stop del motore
++    /// vive LÀ, dove ogni innesco passa, e il parametro obbliga chi chiama.
++    /// ⚠️ ASIMMETRIA CON LO SPECCHIO, dichiarata: `QStageRootView` non dichiara
++    ///    `audioEngine` (0 occorrenze) e resta così — Q-Stage non possiede una
++    ///    sessione da chiudere. Lo specchio è di struttura, non un vincolo di
++    ///    identità riga-per-riga.
++    @EnvironmentObject private var audioEngine: AudioEngine
++
+     // DECISIONE CD 18/07 (ratificata — LIBRO Sez.2, riga 18/07/2026):
+     // navigazione ≠ transport. NESSUNO stop audio va agganciato alle
+     // transizioni di `page`, in NESSUNA forma (niente `.onChange(of: page)`
+@@ -113,9 +124,16 @@ struct QLiveRootView: View {
+     ///    PROPAGAZIONE (`QLiveSession.swift:26-38`) riguarda l'UI che non si
+     ///    aggiorna osservando un `ObservableObject` annidato: qui non si osserva
+     ///    nulla e non si disegna nulla, si legge un valore per decidere un'azione.
++    /// ⚠️ MARCATURA A253 (29/08/2026) — DA OGGI `endShow(audioEngine:)` PORTA LO
++    ///    STOP DEL MOTORE, e il «non ferma l'audio» qui sopra resta vero PER
++    ///    MISURA, non più per costruzione: su questo ramo il motore è già fermo
++    ///    (`SetlistRunner.swift:466`, ramo fineSetlist) e `stopSync()` esce al
++    ///    `guard self.isRunning` (`AudioEngine.swift:1694`) prima di
++    ///    `link_engine_stop` — nessun evento alla band. Non si ferma niente che
++    ///    stia suonando, perché non c'è.
+     private func leavePlayer() {
+         if case .fineSetlist = roomSession.liveSession.playbackState {
+-            roomSession.endShow()
++            roomSession.endShow(audioEngine: audioEngine)
+         }
+         navigate(to: .shows)
+     }
+@@ -132,8 +150,14 @@ struct QLiveRootView: View {
+     /// disegno non ancora consegnato. ⛔ Non l'ho inventato.
+     /// ⇒ Quando arriverà, si aggancia QUI e non deve sapere altro. È
+     ///   precisamente il motivo per cui lo spegnimento non sta nel bottone.
++    ///
++    /// ⚠️ MARCATURA A253 (29/08/2026) — È ARRIVATO: il secondo innesco è la voce
++    ///    END SHOW del dettaglio (`QLiveShowDetailView`, `endShowRow`),
++    ///    agganciata a questo stesso metodo come secondo chiamante. Nessun
++    ///    percorso nuovo, e la previsione delle due righe qui sopra si è
++    ///    avverata alla lettera: è nato senza dover sapere altro.
+     private func endShowAndLeave() {
+-        roomSession.endShow()
++        roomSession.endShow(audioEngine: audioEngine)
+         navigate(to: .shows)
+     }
+ 
+@@ -211,7 +235,15 @@ struct QLiveRootView: View {
+                                                               store: QBeatsStore.shared))
+                         }
+                         navigate(to: .metronome)
+-                    }
++                    },
++                    // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio
++                    // (fogli CD 27/08 §② e 29/08 §B). STESSA funzione del primo,
++                    // nessun percorso nuovo. La foglia dice «l'utente ha premuto
++                    // END SHOW»; chi chiude — stop del motore, slot, stato — è la
++                    // stanza. Un tap, NESSUNA conferma (§C del 29/08: da fuori lo
++                    // show non sta sotto le mani, la sottoriga ha già detto cos'è
++                    // vivo; un «sei sicuro?» addestrerebbe a spingere via i popup).
++                    onEndShow: { endShowAndLeave() }
+                 )
+             } else {
+                 EmptyView()
+diff --git a/ios_app/QBeats/UI/QLive/QLiveSession.swift b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+index 0c8b0ce..6ff787a 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveSession.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+@@ -161,7 +161,32 @@ final class QLiveSession: ObservableObject {
+     ///    e cosa lo schermo legge al rientro è materia della FIRMA A (le sedici
+     ///    voci), che non è questo mandato. Qui si chiude la sessione, non si
+     ///    pulisce la vetrina.
+-    func endShow() {
++    /// ⚠️ CARTELLO A253 (29/08/2026) — TERZO EFFETTO: LO STOP DEL MOTORE, e la
++    /// firma cambia APPOSTA. L'etichetta di CD promette «this will stop other
++    /// devices too» (fogli 27/08 R4 e 29/08 §B): chiudere lo show DEVE fermare
++    /// il click, o l'etichetta mente — la categoria che il §D del rev3 esiste
++    /// per vietare. Fino ad A253 questo metodo non chiamava nessuno stop.
++    ///
++    /// ⛔ LO STOP STA QUI E NON NEI BOTTONI, per la stessa ragione di :139-143:
++    ///    ogni innesco di END SHOW passa di qui. E il motore entra come
++    ///    PARAMETRO — idioma di casa: `SetlistRunner` lo riceve per parametro e
++    ///    non lo conserva (`startSetlist(audioEngine:session:)`) — così
++    ///    l'obbligo è strutturale: il prossimo innesco non può nascere senza,
++    ///    non compila.
++    ///
++    /// ✅ A MOTORE GIÀ FERMO LA CHIAMATA È INERTE, misurato a fonte:
++    ///    `stopSync()` esce al `guard self.isRunning` (`AudioEngine.swift:1694`)
++    ///    PRIMA di `link_engine_stop` (`:1701`) ⇒ nessun evento alla band. È ciò
++    ///    che rende lo stop INCONDIZIONATO qui: sul ramo `.fineSetlist` (motore
++    ///    già fermato dal runner, `SetlistRunner.swift:466`) non fa nulla.
++    ///
++    /// ⚠️ ORDINE: lo stop PRIMA di svuotare lo slot — prima si zittisce la
++    ///    stanza, poi si chiude la sessione. `stop()` dispatcha il SUO
++    ///    `playbackState = .stopped` async su main (coda di `stop()`, per
++    ///    simbolo); la scrittura della sessione qui sotto è sincrona e non
++    ///    dipende da quel dispatch.
++    func endShow(audioEngine: AudioEngine) {
++        audioEngine.stop()
+         runner = nil
+         liveSession.playbackState = .stopped
+     }
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+index b4d772a..180f414 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -145,6 +145,25 @@ struct QLiveShowDetailView: View {
+     ///   dichiarata sopra non esiste più.
+     let onStart: () -> Void
+ 
++    /// A253 — il SECONDO innesco di END SHOW (terza faccia del dettaglio, fogli
++    /// CD 27/08 §② e 29/08 §B). Stessa forma di `onStart`, per la stessa
++    /// ragione: la foglia dice soltanto «l'utente ha premuto END SHOW»; chi
++    /// chiude — stop del motore, slot, stato — è la stanza
++    /// (`QLiveRootView.endShowAndLeave()` → `QLiveSession.endShow(audioEngine:)`).
++    let onEndShow: () -> Void
++
++    /// A253 — il motore, DICHIARATO e non iniettato: arriva da
++    /// `AppRootView.swift:53`, iniettato su `QLiveRootView` un livello sopra
++    /// (catena provata nel cartello del gate `.metronome` di quel file). Serve
++    /// SOLO alla sottoriga della voce END SHOW, per i suoi due segnali:
++    /// `linkIsConnected` (SE la riga compare — R4 del foglio 27/08) e
++    /// `isPlaying` (QUALE stato dice — §B del foglio 29/08).
++    /// ⚠️ COSTO DICHIARATO: osservare l'intero `AudioEngine` ridisegna questa
++    ///    vista a ogni @Published del motore (`currentBeat` compreso, a show
++    ///    vivo). È l'idioma di casa (`LiveView.swift:5`, `LiveHeaderView`), non
++    ///    un'invenzione di questo atomo.
++    @EnvironmentObject private var audioEngine: AudioEngine
++
+     @ObservedObject private var store = QBeatsStore.shared
+ 
+     var body: some View {
+@@ -456,7 +475,133 @@ struct QLiveShowDetailView: View {
+     // MARK: - Startfoot (§CSS `.startfoot` :265 · `.startbtn` :270-273) — sempre in fondo,
+     // presente in TUTTI e tre gli stati (Frame 3/F/G lo portano tutti).
+ 
++    // A253 — DA OGGI IL PIEDE È UN CONTENITORE A DUE POSTI, non più il solo
++    // bottone: a show vivo porta SOPRA la voce END SHOW («in alto quella che
++    // chiude, in basso quella che prendi» — regola delle facce, foglio 27/08
++    // frame ③). `spacing: 10` = gap del `.vstack` del freeze 27/08; paddings e
++    // gradiente sono gli stessi che il piede aveva già, spostati dal bottone al
++    // contenitore perché ora sfumano le righe sotto ENTRAMBE le voci.
++    // ⛔ RESUME NON C'È E NON È UNA DIMENTICANZA: bloccato dal §D del rev3
++    //    (28/08) — «finché l'esecutore non onora la sezione, Resume from
++    //    [section] non va a schermo. Non "con copy più prudente": assente» — e
++    //    «la terza faccia eredita il blocco». Costruirlo è un difetto.
+     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
++        VStack(spacing: 10) {
++            if isShowLive {
++                endShowRow
++            }
++            startButton(resolved)
++        }
++        .padding(.horizontal, 18)
++        .padding(.top, 14)
++        .padding(.bottom, 20)
++        // §CSS `.startfoot` :265 — `linear-gradient(to top, var(--qlive-bg) 66%,
++        // rgba(14,14,16,0))`. NON è decorazione: con `.songlist` che scorre (LIBRO:342) è ciò
++        // che fa SFUMARE le righe sotto il footer; senza, le canzoni spuntano di netto da sotto
++        // lo Start. CSS `to top` = asse dal basso verso l'alto ⇒ `.bottom → .top`; opaco da 0%
++        // a 66%, poi dissolvenza ad alpha 0.
++        .background(
++            LinearGradient(
++                stops: [
++                    .init(color: Color(hex: "#0e0e10"), location: 0.0),
++                    .init(color: Color(hex: "#0e0e10"), location: 0.66),
++                    .init(color: Color(hex: "#0e0e10").opacity(0), location: 1.0)
++                ],
++                startPoint: .bottom,
++                endPoint: .top
++            )
++        )
++    }
++
++    // A253 — LA VOCE END SHOW, il secondo innesco (fogli CD 27/08 §② e 29/08 §B).
++    // Veste dal freeze 27/08, `.vrow`/`.vrow.end` verbatim: h 56 (64 con
++    // sottoriga) · radius 15 · gap 11 · padding 0/16 · JB Mono 700 13.5 ls 2.2
++    // UPPERCASE · bordo 1px rgba(255,59,48,0.52) · testo #ff8a80 · sottoriga
++    // (`em`) JB Mono 600 10 ls 1.1, ambra #ffd35a, col triangolo d'avviso.
++    // (Coincidenza di valore col token `QStageTheme.stop` #ff3b30: NON riusato —
++    // stanze separate, hex verbatim dal freeze come per `accent` in QLiveKit.)
++    //
++    // I DUE SEGNALI, e perché proprio loro:
++    //  · la sottoriga COMPARE con `audioEngine.linkIsConnected` — R4 del 27/08:
++    //    «Link acceso e almeno un apparecchio collegato. Senza, la riga non c'è
++    //    e la voce torna a 56 pt». Senza apparecchi, «this will stop other
++    //    devices too» sarebbe un'etichetta che mente — la categoria che il §D
++    //    esiste per vietare. Stesso segnale del chip Link (`LiveHeaderView`,
++    //    per simbolo: `if audioEngine.linkIsConnected`).
++    //  · lo STATO della sottoriga è `audioEngine.isPlaying` — lo stato REALE del
++    //    motore, @Published, scritto solo dal motore stesso. ⛔ NON `isShowLive`:
++    //    quel bit dice «uno show è APERTO» (runner != nil), e uno show aperto
++    //    può essere muto — agganciarlo lì produrrebbe un'altra etichetta che
++    //    mente. ⚠️ Limite NOTO di `isPlaying` (rev3.1 §2): non vede
++    //    l'esaurimento della coda («il terzo interruttore che a isPlaying
++    //    manca»). Le due finestre in cui mentiva: lo show orfano è reso
++    //    irraggiungibile da ⟦PORTA-RIENTRO⟧, e a fine scaletta il runner ferma
++    //    il motore (`SetlistRunner.swift:466`) che spegne `isPlaying`.
++    //
++    // COPY: dal §B del foglio 29/08, verbatim — «This will stop other devices
++    // too» / «The show is playing now · this will stop other devices too»
++    // (· = MIDDLE DOT U+00B7). ⚠️ DIVERGENZA FRA I DUE FOGLI, dichiarata: il
++    // markup del 27/08 porta «the other devices»; il §B del 29/08 — posteriore,
++    // ed È la spec dei due stati — lo scrive senza «the». Vince il 29/08.
++    // ⚠️ Lo stato 2 non ha un frame disegnato (il 29/08 dà solo la copy): a
++    //    390pt la riga lunga non sta in una riga da 10pt ⇒ `.lineLimit(2)`,
++    //    dentro i 64pt (17,8+3+2×13,2 = 47,4). Scelta dichiarata, attende CD.
++    //
++    // UN TAP, NESSUNA CONFERMA (§C del 29/08): la sottoriga È il dato che manca,
++    // non una domanda. E nessun RESUME qui (§D rev3, vedi cartello sopra).
++    // ⚠️ EREDITA la conseguenza (iii-a) dichiarata su `isShowLive` (:99-110):
++    //    dal dettaglio dello show B con lo show A vivo, END SHOW chiude lo show
++    //    DI STANZA — cioè A — senza dirlo. Stesso limite del bottone BACK TO
++    //    SHOW, girato a CD, non risolto qui.
++    private var endShowRow: some View {
++        let subline: String? = audioEngine.linkIsConnected
++            ? (audioEngine.isPlaying
++                ? "The show is playing now \u{00B7} this will stop other devices too"
++                : "This will stop other devices too")
++            : nil
++        return Button(action: onEndShow) {
++            HStack(spacing: 11) {
++                EndShowGlyphShape()
++                    .stroke(Color(hex: "#ff8a80"),
++                            style: StrokeStyle(lineWidth: 2 * 15 / 24, lineCap: .round, lineJoin: .round))
++                    .frame(width: 15, height: 15)
++                VStack(alignment: .leading, spacing: 3) {
++                    Text("END SHOW")
++                        .font(.jbMono(.bold, size: 13.5))
++                        .tracking(2.2)
++                        .foregroundColor(Color(hex: "#ff8a80"))
++                    if let subline {
++                        HStack(spacing: 5) {
++                            LinkWarnTriangleShape()
++                                .stroke(Color(hex: "#ffd35a"),
++                                        style: StrokeStyle(lineWidth: 1.4 * 11 / 12, lineCap: .round, lineJoin: .round))
++                                .frame(width: 11, height: 10)
++                            Text(subline)
++                                .font(.jbMono(.semibold, size: 10))
++                                .tracking(1.1)
++                                .foregroundColor(Color(hex: "#ffd35a"))
++                                .lineLimit(2)
++                        }
++                    }
++                }
++                Spacer(minLength: 0)
++            }
++            .padding(.horizontal, 16)
++            .frame(maxWidth: .infinity)
++            .frame(height: subline == nil ? 56 : 64)
++            .overlay(
++                RoundedRectangle(cornerRadius: 15, style: .continuous)
++                    .strokeBorder(Color(hex: "#ff3b30").opacity(0.52), lineWidth: 1)
++            )
++            // Hit-area: il GESTO copre l'intera riga (56/64 ≥ 44) — lezione del
++            // gate device S3: il `.contentShape` sta DENTRO la label del Button
++            // (`RoomSwitchBar.swift:152-164`).
++            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
++        }
++        .buttonStyle(.plain)
++    }
++
++    private func startButton(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
+         // ⟦PORTA-RIENTRO⟧ ③ — ⚠️ È L'UNICO PUNTO IN CUI HO ESTESO OLTRE LA LETTERA
+         // DEL MANDATO, e va guardato per primo. Prima era `!resolved.songs.isEmpty`
+         // secco. A slot pieno il bottone NON avvia questo show: riporta a quello
+@@ -557,25 +702,8 @@ struct QLiveShowDetailView: View {
+         //    prescritto (:333). Confronto: Frame F/G del freeze,
+         //    `DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html`.
+         .disabled(!isEnabled)
+-        .padding(.horizontal, 18)
+-        .padding(.top, 14)
+-        .padding(.bottom, 20)
+-        // §CSS `.startfoot` :265 — `linear-gradient(to top, var(--qlive-bg) 66%,
+-        // rgba(14,14,16,0))`. NON è decorazione: con `.songlist` che scorre (LIBRO:342) è ciò
+-        // che fa SFUMARE le righe sotto il footer; senza, le canzoni spuntano di netto da sotto
+-        // lo Start. CSS `to top` = asse dal basso verso l'alto ⇒ `.bottom → .top`; opaco da 0%
+-        // a 66%, poi dissolvenza ad alpha 0.
+-        .background(
+-            LinearGradient(
+-                stops: [
+-                    .init(color: Color(hex: "#0e0e10"), location: 0.0),
+-                    .init(color: Color(hex: "#0e0e10"), location: 0.66),
+-                    .init(color: Color(hex: "#0e0e10").opacity(0), location: 1.0)
+-                ],
+-                startPoint: .bottom,
+-                endPoint: .top
+-            )
+-        )
++        // A253 — paddings e gradiente del piede sono SALITI al contenitore
++        // (`startfoot` qui sopra): coprono ora anche la voce END SHOW.
+     }
+ }
+ 
+@@ -631,3 +759,50 @@ private struct PlayGlyphShape: Shape {
+         return path
+     }
+ }
++
++// A253 — glifo `.vrow.end` (§markup del freeze 27/08, viewBox 24×24, reso 15×15):
++// porta con freccia in uscita — "M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" +
++// "M10 8l-4 4 4 4M6 12h9", stroke 2. I due raccordi r2 sono resi con `addArc`
++// nella STESSA convenzione di `LockShape` qui sopra (`clockwise: false`, angoli
++// crescenti nello spazio y-in-giù), che è collaudata su device.
++private struct EndShowGlyphShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        let scale = rect.width / 24
++        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale) }
++        var path = Path()
++        // Telaio della porta: M15 4h3, raccordo r2 → (20,6), v12, raccordo r2 → (18,20), h-3.
++        path.move(to: pt(15, 4))
++        path.addLine(to: pt(18, 4))
++        path.addArc(center: pt(18, 6), radius: 2 * scale,
++                    startAngle: .degrees(270), endAngle: .degrees(0), clockwise: false)
++        path.addLine(to: pt(20, 18))
++        path.addArc(center: pt(18, 18), radius: 2 * scale,
++                    startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
++        path.addLine(to: pt(15, 20))
++        // Freccia in uscita: M10 8l-4 4 4 4 + M6 12h9.
++        path.move(to: pt(10, 8))
++        path.addLine(to: pt(6, 12))
++        path.addLine(to: pt(10, 16))
++        path.move(to: pt(6, 12))
++        path.addLine(to: pt(15, 12))
++        return path
++    }
++}
++
++// A253 — triangolo d'avviso della sottoriga di END SHOW (§markup del freeze
++// 27/08: viewBox 12×11, reso 11×10): "M6 1l5 9H1z" + barra "M6 4.4v2",
++// stroke 1.4. ⚠️ La scala è sul viewBox 12, non 24 come i fratelli.
++private struct LinkWarnTriangleShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        let scale = rect.width / 12
++        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale) }
++        var path = Path()
++        path.move(to: pt(6, 1))
++        path.addLine(to: pt(11, 10))
++        path.addLine(to: pt(1, 10))
++        path.closeSubpath()
++        path.move(to: pt(6, 4.4))
++        path.addLine(to: pt(6, 6.4))
++        return path
++    }
++}

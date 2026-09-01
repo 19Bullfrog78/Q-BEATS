@@ -1,0 +1,149 @@
+MISURE CC — 2026-08-03 — giro QB-2026-08-03-A26-CHIUSURA-LOTTO-FINESHOW
+REPERTO: Google Drive NON è una destinazione manuale — è un SYNC LIVE di C: e di E:
+
+⛔ QUESTO FILE NON MODIFICA R-δ. È un deposito di misure, non una regola.
+   La riapertura o riscrittura di R-δ è decisione di Mauro, non di CC.
+   Qui si registra solo CIÒ CHE È STATO MISURATO, con le prove e con i limiti.
+
+================================================================
+1. IL FATTO — due alberi Drive, non uno
+================================================================
+Entrambi figli dello stesso genitore Drive `1xf2DOJNqg3yuRjZ7ZVpEh-Zj1tfAhr8w`:
+
+  (a) cartella «Q-BEATS»          id `1Q5OqXBNDKuziGm8SCy7i6L_JG73eCS5k`
+      Contiene `.git`, `.gitignore`, `.gitattributes`, `ios_app`, `core_engine`,
+      `LICENSE`, `ARCHIVIO.MD`, `_cc_processo`, `FILE.MD`.
+      ⇒ è il sync del REPO su C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS
+
+  (b) cartella «FILE X CLAUDE.MD» id `1BSsFiju0nt1xbXZZYvg5OPex0B-RzoZn`
+      Contiene `BOX1_Memoria`, `BOX2_Istruzioni`, `BOX3_Codice`, `BOX4`,
+      `BOX5_Test`, `CC MEMORIA`, `DA_CD_PER_CC`, `DESIGN_E_BRIEFING`,
+      `DUPLICATI`, `LIBRO_MASTRO`, `BUGS_QBEATS`, `HANDOFF`, `tools`, `ALTRI`,
+      `ARCHIVI_ZIP`, `GRAFICA`, `IMMAGINI`, `SYSTEM_PROMPT`, `DOC  MIX`.
+      ⇒ stessa struttura a cartelle del mirror
+        E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD
+      ⇒ è il sync di E:
+
+================================================================
+2. LA PROVA CHE È LIVE, non un caricamento manuale
+================================================================
+I tre diff del giro A25 sono stati scritti da CC SOLO su C: e su E:.
+Nessun upload su Drive è stato eseguito da CC — nessuna chiamata di scrittura.
+Sono comparsi ugualmente su ENTRAMBI gli alberi Drive.
+
+  scrittura locale (mtime reale su C:, orologio macchina):
+    DIFF_BUGS-v49_2026-08-03_A25-TICKET-FINESHOW.txt      2026-08-03 16:00:19.640 +0200
+    DIFF_BUGS-v50_2026-08-03_A25-MARCATURA-LIMBO.txt      2026-08-03 16:00:19.673 +0200
+    DIFF_SCALETTA-v7_2026-08-03_A25-CANCELLO-ENDSHOW.txt  2026-08-03 16:00:19.708 +0200
+    (= 14:00:19 UTC)
+
+  comparsa su Drive, ramo C: — HANDOFF id `1GYF6RuAlcSUth706f1vIWMD7v57gtsWs`
+    createdTime 2026-08-03T14:00:20Z   → ritardo ~1 secondo
+  comparsa su Drive, ramo E: — HANDOFF id `1lVJaqtTT4bGfCpuS884qnhgY12-mC5Y8`
+    createdTime 2026-08-03T14:01:57Z   → ritardo ~98 secondi
+
+  dimensioni combacianti esatte su tutti e tre, su entrambi i rami:
+    7017 · 4235 · 5764 byte
+
+================================================================
+3. `.git` FINISCE SU DRIVE — e con esso il contenuto COMMITTATO
+================================================================
+Fatto misurato indipendentemente dal referee, e QUI RI-MISURATO DA CC in forma
+diversa (non per struttura, ma per OGGETTO SPECIFICO):
+
+  `.git` su Drive, id `15gr5lA5qSuuW-Y5k9WQ-F-GnhdURnn3E`, contiene:
+    objects/ · refs/ · logs/ · info/ · hooks/ · worktrees/
+    packed-refs · index · HEAD · ORIG_HEAD · FETCH_HEAD · config · COMMIT_EDITMSG
+
+  CONTROPROVA PUNTUALE — l'oggetto sciolto del commit HEAD È su Drive:
+    HEAD              = c1556e57b1a81fafa7973b8647741ede9c92e6cf
+    oggetto atteso    = .git/objects/c1/556e57b1a81fafa7973b8647741ede9c92e6cf
+    trovato su Drive  = id `19WqahPeB-jTaGmMfIZOSMgJUpizjKMMT`, 239 byte
+                        createdTime  2026-08-02T17:05:02.295Z
+                        modifiedTime 2026-08-02T17:05:01.415Z
+    ora del commit    = 2026-08-02T19:05:01+02:00 = 17:05:01Z
+    ⇒ l'oggetto è atterrato su Drive entro ~1 secondo dal commit.
+
+  ⇒ CONSEGUENZA: per il contenuto GIÀ COMMITTATO, una cancellazione su C:
+    resta recuperabile da Drive. Confermato in due misure indipendenti.
+
+================================================================
+4. ⚠️ TRAPPOLA DI MISURA — il modifiedTime di una cartella Drive MENTE
+================================================================
+La cartella `.git/objects/c1` (id `1i4hGGy0n2F4sR69UDF3rQvl5Qe6EvyJC`) porta
+  modifiedTime 2026-07-11T16:52:04Z
+ma CONTIENE un file del 2026-08-02. Il mtime della cartella NON si aggiorna
+quando un figlio viene aggiunto.
+
+⇒ Chi giudicasse «questa roba non è sincronizzata» guardando il mtime della
+  cartella otterrebbe un FALSO NEGATIVO su un oggetto che c'è.
+  Stessa famiglia del falso-zero-da-filtro già in memoria: si verifica
+  l'OGGETTO, mai il contenitore.
+
+================================================================
+5. DOVE STA IL RISCHIO VERO — i file UNTRACKED
+================================================================
+Il punto 3 protegge solo ciò che è committato. E `HANDOFF/` è quasi tutta
+FUORI da git. Numeri misurati, non stimati
+(`git status --porcelain --untracked-files=all HANDOFF/` · `git ls-files HANDOFF/`):
+
+  file untracked in `HANDOFF/`        = 147
+  file untracked in tutto il repo     = 151
+  file TRACCIATI in `HANDOFF/`        = 4, e sono solo questi:
+      HANDOFF/MISURE_CC_2026-07-30_R1-ACCERTAMENTI.txt
+      HANDOFF/NODO_A_PIANO_2026-07-10.md
+      HANDOFF/PIANO_S4b_REV_2026-07-18.txt
+      HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+
+⚠️ Precisazione che conta, e che una prima stesura di QUESTO file sbagliava:
+  «`HANDOFF/` non è tracciata» è FALSO in senso stretto — quattro file lo sono,
+  e uno dei quattro è la SCALETTA che questo stesso giro modifica (è per questo
+  che la si può diffare contro HEAD, mentre i diff `.txt` accanto no).
+  La prima stesura scriveva anche «~100» dove il numero vero è 147.
+
+Per QUESTI file non esiste alcun oggetto git a fare da rete: le uniche copie
+sono C:, E: e i due alberi Drive. Sono anche, per volume, la maggior parte
+della memoria di lavoro del progetto.
+
+⇒ Il rischio che R-δ dovrebbe coprire non è il codice committato: è la scia
+  untracked di HANDOFF/. Formulazione e decisione: MAURO.
+
+================================================================
+6. TERZA COPIA ORFANA (segnalata, non toccata)
+================================================================
+  SCALETTA_ATOMI_S6_2026-07-10.md
+  id `1l668tcKTRO2VcORfvfuJrLa74or0qrrX`, 36070 byte,
+  modifiedTime 2026-07-30T18:20:11Z, parentId `1qJQEj4yuRfpuUam9jblipWNbGMrrWCAv`
+
+Non sta in nessuno dei due alberi vivi (creati entrambi 2026-08-01T15:47Z) e
+precede la loro creazione. Contenuto NON verificato, file NON toccato.
+Chi lo aprisse cercando la scaletta corrente troverebbe una versione vecchia.
+
+================================================================
+7. LIMITI DICHIARATI DI QUESTA MISURA
+================================================================
+- NON è stato fatto il confronto sha256 byte-a-byte fra locale e Drive: le
+  copie Drive non sono state scaricate. La verifica è per DIMENSIONE ESATTA
+  su 5 file distinti + coerenza dei createdTime. L'uguaglianza byte-esatta
+  su Drive NON è provata. (Vale qui la regola nota: l'impronta prova
+  l'identità, la dimensione no — e qui non abbiamo nemmeno l'impronta.)
+- NON è stato enumerato l'intero contenuto di `.git/objects` su Drive: è
+  stato verificato UN oggetto, quello di HEAD, scelto perché è il più
+  recente e quindi il caso peggiore per un sync in ritardo.
+- Il meccanismo di sync (quale client, quale cadenza, se bidirezionale) NON
+  è stato ispezionato. Si osserva l'effetto, non si dichiara la causa.
+- Direzione del sync NON provata: si è osservato locale→Drive. Se Drive
+  scrivesse verso il locale, e con quali conflitti, NON è stato misurato.
+
+================================================================
+8. PERCHÉ QUESTO REPERTO ESISTE
+================================================================
+Perché R-δ è scritta come se Drive fosse una TERZA DESTINAZIONE da servire
+a mano, accanto a C: ed E:. La misura dice che è invece un RIFLESSO delle
+prime due. Le due letture portano a comportamenti diversi in almeno due casi:
+  · una copia «mancante» su Drive può essere solo un sync in ritardo,
+    non una propagazione dimenticata;
+  · una cancellazione su C: o E: si propaga a Drive da sola, e per i file
+    untracked non c'è oggetto git che la annulli.
+
+⛔ Nessuna conclusione operativa viene tratta qui. Il seguito è di Mauro.

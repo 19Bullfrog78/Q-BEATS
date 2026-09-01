@@ -1,0 +1,29 @@
+diff --git a/old/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md b/new/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+index 4bacc52..8d7095e 100644
+--- a/old/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
++++ b/new/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+@@ -1,6 +1,6 @@
+ # Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
+ 
+-**Versione:** 5 (02/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5)
++**Versione:** 6 (02/08/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4) · **reperto tipi runner nella scheda ⟦S5⟧ 02/08** (v5) · **ordine §6 emendato 31/07 atterrato in sez.C + vincolo ObservableObject in scheda ⟦S5⟧ 02/08** (v6)
+ > Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
+ > nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
+ > 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
+@@ -303,6 +303,7 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
+ - **Cond:** E (tag solo layout; iPad/editor differiti); Start su risolto-non-vuoto (F=`songIDs.isEmpty`; G=`!songIDs.isEmpty && resolve().songs.isEmpty`); A (`.segMini` INERTE).
+ - **OPEN:** badge `⚠ FILE MISSING` (≠ orfani; = esistenza `Song.backtrackFilename:22`, nessun helper oggi) **DIFFERITO**. Referee: quando si farà, esistenza calcolata FUORI dal render path (cache al load), MAI `FileManager.fileExists` per-riga a scroll-time (jank).
+ - **OPEN — tipo del runner:** `SetlistRunner.startSetlist(audioEngine:session:)` (`ios_app/QBeats/SetlistRunner.swift`) si aspetta un `LiveSession` (`ios_app/QBeats/Models/LiveSession.swift`), tipo DIVERSO da `QLiveSession` (`ios_app/QBeats/UI/QLive/QLiveSession.swift`) — il contenitore-stanza che ⟦S4R⟧ ha introdotto per possedere lo slot del runner. **⟦S5⟧ deve riconciliare i due tipi: non è cablaggio, è architettura.** Reperto CC (`HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt` punto 2), nessuna soluzione decisa qui — il reperto rende visibile la materia, non la scioglie.
++- **VINCOLO TECNICO — ObservableObject annidato non propaga:** `QLiveSession.@Published runner` notifica solo apparizione/scomparsa del runner, non i suoi cambi interni; i figli devono osservare IL RUNNER, non la sessione — pena UI metronomo congelata. Testo pieno e motivazione: `BOX3_QBEATS.md:34 @ 710b384b07db114bf25080f0efcba2c70fe2fb96` (INDIRIZZO-NON-COPIA).
+ 
+ ### ⟦S6⟧ METROFAB — cablaggio porta (dest differita stub) · POST · CI
+ - **Scopo:** legare `onTap` MetroFAB (coda lista + empty E) a stub differito.
+@@ -313,7 +314,7 @@ scheda ⟦S4R⟧ e le sei enumerazioni d'ordine di BOX3 (`r.60`, `:151`, `:212`,
+ ---
+ 
+ ## C · Ordine (2 corsie)
+-**PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST:** S4 → **S4K** → **S4R** → **S4L** → S5 → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco è **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧.
++**PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST — ordine ratificato 31/07:** S4 → **S4K** → **S4R** → **S5** → **⟦S-EXIT⟧** → **S4L** → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco resta **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧. ⛔ **⟦S4L⟧ è SOSPESO** fino a chiusura di tre pendenze (atomo della pillola ▶ · forma tecnica del campo di persistenza · procedura di rollback dati), e **⟦S-EXIT⟧ precede ⟦S4L⟧**, per condizione fisica e non per disciplina dell'operatore — `LIBRO_MASTRO_QBEATS.md:329 @ 40f099bb28ad87627e3c6df926993a3df297df90`. **QUESTA RIGA È LA SEDE UNICA DELL'ORDINE DEGLI ATOMI §6: ogni altra catena d'ordine in un canonico è storia — si legge, non si riscrive.**
+ 
+ ## D · Risposte referee alle 8 domande
+ 1. "+" create → ⚠️ **SUPERATO da CD-Q7 (LIBRO v31):** «+» OMESSO finché §8 non arriva, NIENTE bottone morto. La 10/07 diceva «bottone presente, azione off»: ora è VIETATO. 2. Badge FILE MISSING → DIFFERIRE (esistenza cache al load, no fileExists a scroll). 3. QLiveTheme = enum separato (file: scelta CC). 4. Switch-closure AppRootView → in S4, non Nodo A. 5. onHome non-defaulted → SÌ (Cond A enforced-by-compiler). 6. S6 separato. 7. S4/S4L coppia stretta; device gate S4 = no-crash tap-riga pre-S5. ⚠️ **PARZIALMENTE SUPERATA dallo sdoppiamento 28/07:** il device gate S4 resta invariato; «S4L» qui indicava il **launcher**, oggi ⟦S4R⟧, e fra i due si è inserito ⟦S4K⟧ — la contiguità non è più garantita (pendenza nella scheda ⟦S4R⟧). 8. Cross-ref AudioEngine → confluisce in Prereq 1.

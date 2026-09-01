@@ -1,0 +1,185 @@
+HANDOFF CC — CHIUSURA SESSIONE 2026-07-19 (DEFINITIVO) — per il CC della prossima sessione
+Autore: CC (questa sessione). Scritto dal MIO punto di vista, SENZA allinearmi al handoff del referee
+(separato e non condiviso per costruzione — l'indipendenza dei due R1 ha fatto emergere discrepanze reali
+più volte oggi). SUPERSEDE il mio precedente `HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt` (bozza
+scritta PRIMA che il referee chiedesse la PARTE 0 e prima dell'incidente project-upload): leggi QUESTO.
+
+LEGENDA: [V] = verificato A FONTE da me in QUESTA sessione (comando/lettura mostrata). [R] = riscontro
+RIPORTATO (handoff/BOX3/LIBRO/parola di Mauro-referee), NON ri-verificato a fonte da me → il prossimo CC lo ri-verifica.
+
+╔══════════════════════════════════════════════════════════════════════╗
+║ PARTE 0 — CHIUSURA REPORT FILE 2 (il referee non l'aveva mai ricevuta) ║
+╚══════════════════════════════════════════════════════════════════════╝
+Tutto [V], comandi eseguiti in questo turno.
+
+0a — COMMIT LIBRO v37 (git log -1, verbatim):
+     SHA:        a61647b15b99d5440671851665489a844dbcda00
+     autore:     Mauro Martintoni <di_tutto@icloud.com>
+     committer:  Mauro Martintoni <di_tutto@icloud.com>
+     subject:    LIBRO_MASTRO_QBEATS.md: v37 — Sez.2 +1 riga cross-team «Follower gregario» (Mauro, ratificata referee) + sanata la descrizione Sez.5 (doc-only)
+     trailers:   []  (ZERO — nessun Co-Authored-By)
+
+0b — BLOB sha256 di LIBRO_MASTRO_QBEATS.md a quel commit:
+     git show a61647b:LIBRO_MASTRO_QBEATS.md | sha256sum =
+       35fdeb3b62f47034141e5bb752db9317e850249acd88f4d049144552e32755d8
+     Copia verificata dal referee arrivata al PROGETTO: 35fdeb3b…32755d8.
+     >>> COMBACIA. La copia nel progetto == blob committato. Propagazione al progetto INTEGRA (dopo il recupero, vedi §A).
+
+0c — PUSH `git push origin master`: `fe6d34b..a61647b  master -> master`.
+     Post-push (verificato ORA con fetch): HEAD = origin/master = a61647b → ALLINEATI. behind 0 / ahead 0.
+
+0d — CI (gh run view 29679196935, VERBATIM, non exit code):
+       ✓ master iOS Signed Build · 29679196935
+       Triggered via push
+       JOBS
+       ✓ build in 2m0s (ID 88172132446)
+       ARTIFACTS: QBeats-IPA
+     → VERDE. Annotazioni = solo i warning COSTANTI NOTI non-bloccanti (Node.js 20 deprecato; tap aws/tap non-trusted).
+
+0e — STATO FINALE:
+     working directory: /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+     git status --short: tracked PULITO. Untracked = 23 voci (i HANDOFF/*.txt dei giorni scorsi + di oggi,
+       + 2 piani orfani in root QBEATS_A5C_PIANO_2026-07-04.md / QBEATS_ATOMC_PIANO_2026-07-06.md). Nessuna sorpresa.
+     git worktree list:
+       C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS  a61647b [master]                      ← LIVE
+       C:/Users/BULLFROG/qb_fixB                      add556f [test/bug2b-test7-fixtures]
+
+0f — TARGET PROPAGAZIONE E: (LIBRO v37) con impronta, quali combaciano col blob (35fdeb3b…32755d8):
+     [live]     …\CC MEMORIA\LIBRO_MASTRO_QBEATS.md        35fdeb3b…32755d8  == blob v37 ✓
+     [live]     …\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS.md      35fdeb3b…32755d8  == blob v37 ✓
+     [snapshot] …\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS37.md    35fdeb3b…32755d8  == blob v37 ✓
+     [snapshot] …\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS36.md    5409533e…4a546e7  == v36 (NON v37 — è lo snapshot storico, atteso) ✓
+
+╔══════════════════════════════════════════════════════════════════════╗
+║ PARTE A — RACCONTO TECNICO (quello che io so, il referee non vede)     ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+I DUE COMMIT DOC DI OGGI (giro "Follower gregario"):
+[V] 284eb31 — BUGS v39→v40. Mauro/Mauro, trailer []. blob `b7bca81b08ac1a8a0298be1708f46d20409a30a63996fd344dc4a5c24dd9e830`.
+    Contiene: nuovo ticket §1.2 `TD-follower-stop-propaga` (🟠 MEDIA) + stretta ESITO A §1.1 (tolto «impossibile
+    per costruzione», promossa la clausola-limite del buco sub-frame).
+[V] a61647b — LIBRO v36→v37 (vedi PARTE 0). blob `35fdeb3b…32755d8`. Sez.2 +1 riga cross-team «Follower gregario»
+    + sanata la descrizione Sez.5 (EM-1 referee) + Edit author 19/07 (EM-2).
+
+PROPAGAZIONI:
+[V] BUGS v40 → 3 target E: (mirror `BUGS_QBEATS\`, mirror `CC MEMORIA\`, snapshot NUOVO `BUGS_QBEATS40.md`),
+    tutti == blob b7bca81b. LIBRO v37 → 2 mirror vivi + (novità, §sotto) 2 snapshot, tutti verificati (PARTE 0 0f).
+[R→azione MANUALE Mauro] PROJECT UPLOAD claude.ai = azione UI: IO NON POSSO FARLA da CLI.
+    ⚠️ INCIDENTE DI OGGI (riportato da Mauro/referee, non visibile da me): l'upload al progetto ha PERSO il
+    LIBRO IN SILENZIO — la copia non è entrata / è stata droppata senza errore. È stata RECUPERATA passando il
+    file come ALLEGATO al referee, che ha poi verificato l'impronta della copia nel progetto = 35fdeb3b…, e IO
+    ho confermato [V] che == blob committato → ciò che ORA è nel progetto è corretto. LEZIONE (vale doppio):
+    il project upload è un target «pushato≠propagato» a rischio di PERDITA SILENZIOSA → dichiarare sempre a
+    Mauro l'impronta attesa e farla ri-verificare sulla copia nel progetto, mai dare per fatto l'upload.
+    (Coerente con reference_qbeats_doc_paths §PROJECT UPLOAD: è un target della lista, non un extra.)
+
+LE DUE VERIFICHE DEL GIORNO (read-only, autorizzate; vivono in `HANDOFF/` repo + mirror E:, impronta ai due capi):
+[V] V-ISP — `VERIFICA_V-ISP_2026-07-19.txt` sha `9918c379ec4f29e2fdcefecad77234f9dbebc6e03cff3ef4cf8713951f0350aa`.
+    Stabilì: `isPlaying` (AudioEngine.swift:56 @Published/main) e `isRunning` (:273 private/audioQueue) sono DUE
+    campi su DUE code → divergono. Prova: `handleAppWakeUp` (:3053 `guard self.isPlaying, !self.isRunning`) esiste
+    per lo stato discorde. Il player non ha RoomSwitchBar; 2 sole uscite (back LiveHeaderView:30 + CANCEL
+    WaitingForDirectorView:72), entrambe onExit()→Home. → da qui la stretta ESITO A in BUGS v40.
+[V] V-DIR — `VERIFICA_V-DIR_2026-07-19.txt` sha `99ea6ce11b989d4ffc1bf43790ed42069b42588b19369621beb0e2599428ff5f`.
+    Stabilì: il percorso STOP (stop()→stopSync()→link_engine_stop :1645) NON ha rami di modalità; linkEngineHandle
+    creato incondizionatamente (:409); corpo C senza modalità (LinkEngine.mm:485-496). ASIMMETRIA: AVVIO
+    differenziato per ruolo (:991 Direttore / :757 Follower-join / :951 resume), STOP no. Il Direttore ignora
+    l'INBOUND (:533), non l'outbound. → «solo il Direttore ferma la band» NON è implementato = ticket + decisione.
+
+⚠️⚠️ OSSERVAZIONE CHE NON È ENTRATA IN NESSUN DOCUMENTO (per chi progetterà il fix di TD-follower-stop-propaga):
+[V] LA CODA SERIALE NON PROTEGGE — GARANTISCE L'ORDINE CHE APRE IL BUCO. `stopSync()` fa `audioQueue.sync`
+    (:1629) sulla STESSA coda seriale del blocco di `start()` (:857, `audioQueue.async`). Un CANCEL/stop che
+    arriva mentre uno start() è in volo si ACCODA DIETRO start(): quando gira, start() ha già scritto
+    `isRunning=true` (:886) → guardia :1638 lo trova true → :1645 link_engine_stop PROPAGA. Cioè serializzare
+    ORDINA le due chiamate ma NON impedisce la propagazione. Vale sia per il buco sub-frame della clausola-limite
+    di ESITO A (LiveView:406-407 senza guard su `.waitingForDirector`) sia per la propagazione ungated del
+    Follower. → il fix NON può essere «basta serializzare»: serve un GATE ESPLICITO (di modalità sull'outbound,
+    o su `.waitingForDirector` nell'observer :406, o sul percorso CANCEL). Fix NON progettato, NON in S4b, priorità media.
+
+PROSSIMO ATOMO — S4b (NON aperto oggi):
+[V] Modello da raccomandare all'apertura (regola standing): Opus 4.8 effort `xhigh` — è codice di navigazione
+    che PORTA LOGICA (funnel page/switch page/navigate), non un cosmetico.
+[R, da BOX3 V97 (c) / S4a-handoff §3 / PIANO_S4b_REV — RI-VERIFICARE per simbolo a HEAD]:
+  · Perimetro: `QLiveRootView.swift` EDIT + `AppRootView.swift` EDIT (iniezione `onSwitchToStage`).
+    **`QLiveShowsView.swift` NON SI TOCCA** — S4a l'ha già scritta/verificata token-per-token; S4b la referenzia.
+    [V] oggi: QLiveShowsView.swift:65 istanzia RoomSwitchBar ed è DEAD CODE (referenziata da nessuno a HEAD) → coerente.
+  · Ruling D1-split (BOX3 V97 (c)): installare page + switch page + navigate(to:) + commento di guardia con la
+    decisione CD 18/07. **NIENTE `previousPage`** (taglio referee: unico consumatore era l'handler di stop, che
+    NON esiste; vietato anche inerte; si aggiunge col suo primo lettore reale, atteso S6).
+  · Vincolo: `QLivePage` case-only (Equatable auto-sintetizzato come `Screen` in AppRootView.swift:18 —
+    [V] letto oggi: `private enum Screen { case home, qStage, qLive }`); payload in `@State` separato, MAI nell'enum.
+  · Disegno intero S4b: `HANDOFF/PIANO_S4b_REV_2026-07-18.txt` (trasporto, non canonico).
+[V] Le ancore .swift DOVREBBERO reggere: `git log --oneline f8276f6..HEAD -- ios_app/` è VUOTO (i +2 commit di
+    oggi sono doc). Ma vanno riverificate per SIMBOLO all'apertura, non per numero di riga scritto nei doc.
+
+⚠️ TRAPPOLA 1 — La **CTA «Go to Q-Stage» cablata a `onSwitchToStage` GIÀ a S4b** vive SOLO in **LIBRO Sez.2**
+   (riga 2026-07-18, «CC proposta / referee ratifica»). **NON è in BOX3 V97.** Chi scrive S4b partendo da BOX3
+   (il doc-leggi-per-primo) NON la trova → aprire ANCHE LIBRO Sez.2 prima di disegnare S4b.
+⚠️ TRAPPOLA 2 — Il vecchio **punto «0b» del prompt S4b (verifica isPlaying/isRunning) è CHIUSO da V-ISP.** NON
+   ripeterlo: la sincronia è FALSIFICATA, handleAppWakeUp:3053 gestisce la divergenza, ESITO A già ristretto in v40.
+
+DEBITI APERTI CHE CONOSCO IO (il referee dal suo lato non li vede tutti):
+[V] LIBRO Sez.5 riga 363 — debito che HO INTRODOTTO: dopo EM-1 la parentetica dice la convenzione corretta
+    («ultimo commit di codice, salta i doc»), MA la frase ⚠️ successiva nella stessa riga dice ancora «…sarà
+    sempre INDIETRO DI UNO per definizione» — falso sotto la convenzione sanata (può essere indietro di PIÙ di
+    uno). Non toccata (fuori scope EM-1, commit «senza nuova fermata»). Da sanare in un giro doc-hygiene.
+[V] Commento stale in codice — `SetlistRunner.swift:361-362` cita «guard `!isRunning` (AudioEngine.swift:503)»
+    ma [V] il guard reale è `guard !self.isRunning` a `AudioEngine.swift:859`. Registrato BOX3 V96/V97 «da bonificare in S4L», non fatto.
+[V] CRONOSTORIA LIBRO su E: — NOVITÀ DI OGGI (decisione Mauro): LIBRO ora HA la catena snapshot per-versione come
+    BUGS. Creati `LIBRO_MASTRO\LIBRO_MASTRO_QBEATS36.md` (5409533e…, git 2d36784) + `…37.md` (35fdeb3b…, git a61647b),
+    guardia anti-sovrascrittura. Convenzione INCISA in memoria `reference_qbeats_doc_paths` (+ indice MEMORY.md):
+    da ora OGNI bump LIBRO crea il suo `LIBRO_MASTRO_QBEATS<N>.md` byte-esatto da git, mai riscritto. Backfill
+    v11–v35 NON fatto (offerto, in attesa; recuperabili con `git show <commit-vN>:LIBRO_MASTRO_QBEATS.md`).
+[R] 2 piani orfani in root (QBEATS_A5C_PIANO, QBEATS_ATOMC_PIANO): vivo/morto da stabilire, non deciso.
+[R] I HANDOFF/*.txt untracked di oggi hanno valore replay/audit finché S4b non chiude, poi relitti. Non cancellati.
+[R→Mauro] project upload: ORA la copia nel progetto è corretta (0b combacia); ma resta un target a rischio perdita silenziosa.
+
+COSA HA RETTO E COSA HA CEDUTO NEL MIO LAVORO (con i miei errori per nome):
+[V] HA RETTO: le due verifiche a fonte (il referee ha CONFERMATO la lettura V-DIR e la stretta ESITO A; V-ISP
+    ha retto), la decisione Sez.5 (f8276f6 invariato, confermata dal referee), i due commit puliti (Mauro/zero-
+    trailer verificati per %(trailers)), le propagazioni tutte verificate sha-ai-due-capi.
+[V] MIO ERRORE 1 — «diff abbreviato». Nel primo .txt di FILE 1 avevo abbreviato 3 righe di CONTESTO del changelog
+    con «(…riga invariata…)» + una nota. Viola il «verbatim, mai riassunto». L'ho INTERCETTATO da solo PRIMA di
+    dichiarare qualsiasi sha o propagare, e ho rigenerato il diff byte-per-byte da `git diff` (il referee ha visto
+    solo la versione byte-esatta, e2/e1b4abb7 poi rev2 24a82cb2). Errore di rigore, auto-corretto pre-consegna.
+[V] MIO ERRORE 2 (auto-corretto in corsa) — in V-ISP avevo IPOTIZZATO che il ramo `catch` di start() potesse
+    lasciare uno stato incoerente persistente; leggendo :896-1024 l'ho RITRATTATO (l'unico `try` che lancia,
+    engine.start() :883, è PRIMA di isRunning=true :886 → il catch non vede mai isRunning true). Ritrattazione
+    dichiarata nel file V-ISP, non lasciata implicita.
+[V] MINORE — EM-2a: nell'applicare l'emendamento referee ho adattato un MIO connettivo di coda («→ il difetto»
+    → «Il difetto») per grammatica; dichiarato in trasparenza, nessuna parola del referee alterata.
+    Nessun altro cedimento noto; nessun commit fatto su mia sola iniziativa (sempre doppio cancello).
+
+UNA RIGA ONESTA: non ho auditato se i 2 commit doc possano aver toccato build settings/project.yml/Info.plist/CI
+oltre al file dichiarato — mi sono fermato al diff-stat «1 file changed» + CI verde. CI-verde prova che il build
+passa, non che nessun commit *avrebbe potuto* toccare altro per errore. Debole ma è quello che ho.
+
+╔══════════════════════════════════════════════════════════════════════╗
+║ PARTE B — IL MIO R1 (checklist che il prossimo CC esegue in apertura)  ║
+╚══════════════════════════════════════════════════════════════════════╝
+0. APRI dichiarando il MODELLO consigliato (regola standing) — per S4b: Opus 4.8 `xhigh` (motivo: nav che porta logica).
+1. R8 — dichiara la working directory REALE + `git worktree list`. Atteso:
+     wd = C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS ; worktree LIVE + `qb_fixB` (add556f, test/bug2b-test7-fixtures,
+     rimozione = azione manuale Mauro, mai fatta).
+2. `git fetch` → confronta HEAD vs origin/master → `git status --short`. Atteso all'apertura: HEAD=origin=`a61647b`,
+     tracked pulito, untracked = HANDOFF/*.txt + 2 piani orfani. Se DIVERGE dal paste, VINCONO I FILE (fetch+origin reale).
+3. ANCORE file:riga da RI-TROVARE a fonte (MAI riusare dal racconto — sono a codice `f8276f6`-era, invariato perché
+     f8276f6..HEAD -- ios_app/ è vuoto, ma si ri-verifica per SIMBOLO, non per numero):
+     AudioEngine.swift — isPlaying :56 · isRunning :273 · isRunning=true :886 · isPlaying=true :1025 · guard stop
+       :1638 · link_engine_stop :1645 · guard Director inbound :533 · handleAppWakeUp :3053 · start_at_beat_zero :991 ·
+       join_running_session :757 · guard start :859 · linkEngineHandle create :409.
+     LiveView.swift — waiting render :165-166 · START LOCAL :172 · observer linkStartedSubject SENZA guard .waitingForDirector :406-407.
+     TransportView.swift — if isPlaying :36 · playbackState=.waitingForDirector :58.
+     Per S4b: AppRootView.swift enum Screen :18 + onChange stop :61-68 + closure {screen=.home} :43 · QLiveShowsView.swift RoomSwitchBar :65 (dead code).
+4. VERSIONI CANONICHE a questo HEAD:
+     BUGS_QBEATS.md v40 (commit 284eb31, blob b7bca81b…e830).
+     LIBRO_MASTRO_QBEATS.md v37 (commit a61647b, blob 35fdeb3b…32755d8).
+     BOX3 = V97 (gitignored, mirror E:\…\BOX3_Codice\). SCALETTA_ATOMI_S6 = Versione 2 17/07, ⚠️ STALE rispetto allo
+       stato reale S4/S4L (riscrittura v3 = ratifica referee DOPO S4b, non fatta). Disegno S4b = PIANO_S4b_REV (trasporto).
+5. PRIMA di dire «solo il Direttore ferma la band» come FATTO: è DECISIONE ratificata (LIBRO v37 Sez.2 + BUGS v40
+     TD-follower-stop-propaga), NON ancora implementata nel codice. Il fix non è progettato e NON è S4b.
+6. Le DUE TRAPPOLE S4b (PARTE A): CTA-cablata-a-S4b vive solo in LIBRO Sez.2 (non BOX3); vecchio punto 0b
+     (isPlaying/isRunning) CHIUSO da V-ISP, da NON ripetere.
+7. Se tocchi un doc canonico: doppio cancello (diff verbatim byte-per-byte → ratifica referee → OK Mauro), commit
+     Mauro/zero-trailer, propagazione DAL BLOB (`git show`) a TUTTI i target (BUGS: 2 mirror + snapshot<N>; LIBRO:
+     2 mirror + snapshot<N> DAL 19/07), sha256 ai due capi, e DICHIARA a Mauro l'impronta per il project upload
+     (target a perdita silenziosa — vedi incidente §A).

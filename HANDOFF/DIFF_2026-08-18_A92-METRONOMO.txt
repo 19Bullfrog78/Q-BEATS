@@ -1,0 +1,83 @@
+════════════════════════════════════════════════════════════════════════════
+PREAMBOLO — decorazione di versione FUORI dalle righe ---/+++
+(forma verificata funzionante in A86: con la decorazione qui, `git apply` legge
+ il patch e NON serve GNU `patch`, che riscriverebbe le fini-riga dell'intero file)
+
+  MANDATO   : A92 — chiusura dell'equivoco «metronomo» (doc-only)
+  DATA      : 2026-08-18
+  BASE      : HEAD = 321293e18094d9d4f1c167bfc921be1ad216e3ac
+  APPLICARE : git apply --check HANDOFF/DIFF_2026-08-18_A92-METRONOMO.txt
+              git apply         HANDOFF/DIFF_2026-08-18_A92-METRONOMO.txt
+
+  VERSIONI  : LIBRO_MASTRO_QBEATS.md              v55 → v56   (Sez.2 +4 righe)
+              HANDOFF/SCALETTA_ATOMI_S6_...md      v9 → v10   (scheda ⟦S6⟧ +1 marcatura)
+              BUGS_QBEATS.md                      v51 → v52   (1 marcatura additiva)
+
+  BLOB PRIMA (verifica di applicabilità):
+    LIBRO    50ca123ee0c919891c432331cc3f8e80221b2fa3   511 righe
+    BUGS     a6bd89dcc508e2db07a4459555742d0827771817  1065 righe
+    SCALETTA 73f9f323c0414fa7e31a06a4ee9c0beb139f4031   348 righe
+
+  ⛔ TUTTO ADDITIVO. Zero parole riscritte, zero righe rimosse.
+  ⛔ ZERO righe sotto ios_app/.
+  ⚠️ NON INCLUSI IN QUESTO DIFF, per scelta dichiarata: i bump di intestazione
+     (v55→v56 ecc.) e le righe di Sezione 6 «storico versioni». Si compongono
+     DOPO la ratifica del contenuto, per non rifarli se il contenuto cambia.
+  ⚠️ FATTO ⑤ NON INCISO: vedi referto A92 §⑤ — non regge come formulato.
+
+  ⚠️ ANTI-CASCATA — CENSITA E CHIUSA SU TUTTI E TRE I FILE (mandato A93).
+     Punto d'inserzione e delta: LIBRO riga 354 (delta +4 su tutto ≥354) ·
+     BUGS riga 171 (delta +1 su tutto ≥171) · SCALETTA riga 318 (solo
+     inserzione, nessun delta a valle rilevante — vedi sotto).
+
+     SCALETTA — pulita, RICONFERMATA con metodo indipendente (dedup per
+     sorgente+riga, due forme di notazione, controllo positivo long=18/
+     short=12 non nulli): nuda più alta = riga 300, ben sotto 318. ZERO
+     citazioni nude si spostano.
+
+     LIBRO (≥354) e BUGS (≥171) — censite 5 citazioni NUDE VIVE nel range
+     interessato dal delta (registro Sez.6/Sez.5 escluso per convenzione
+     consolidata: quelle righe sono storia e non si toccano mai). Tutte e
+     CINQUE, misurate una per una sul contenuto reale a HEAD, sono GIÀ
+     ROTTE OGGI — indipendentemente da questo diff, per deriva pregressa:
+       · LIBRO:335 → BUGS:289 — bersaglio vero oggi: BUGS:317
+       · BUGS:394  → BUGS:349 — riga 349 appartiene oggi a un ALTRO ticket
+       · BUGS:394  → BUGS:355 «questa stessa riga» — riga fisica vera: 394
+       · LIBRO:338 → BUGS:741 · LIBRO:339 → BUGS:743 — bersaglio vero oggi:
+         BUGS:775 (TD-ipad-home)
+       · LIBRO:467 (6 citazioni, 4 in BUGS + 2 in LIBRO) — bersaglio vero
+         oggi: LIBRO:495. GIÀ MARCATA come scaduta a BUGS:395 dal 30/07.
+     ⇒ ZERO citazioni sane trovate nel range del delta: NULLA da spostare
+     per la regola «sana→sposta». Questo diff non le tocca, non le marca
+     una seconda volta, e non le ripara: sono deriva PREESISTENTE, non
+     causata da questo giro, e la loro riparazione eccede la proporzione
+     di questo mandato — vedi referto A93 per il censimento completo e
+     la raccomandazione di aprirle come atomo a sé.
+════════════════════════════════════════════════════════════════════════════
+
+--- a/LIBRO_MASTRO_QBEATS.md
++++ b/LIBRO_MASTRO_QBEATS.md
+@@ -354,4 +354,8 @@
++| 2026-08-18 | **Q-LIVE › SHOWS HA DUE VIE D'INGRESSO INDIPENDENTI, E LA SECONDA È UNA DESTINAZIONE PROPRIA — dichiarazione Mauro 18/08.** (a) uno show preparato in Q-Stage; (b) il pulsante **METRONOME**, che porta al **metronomo libero**, destinazione SUA e **non** una variante di (a). La via (b) è **show-indipendente**: non sparisce mai, nemmeno a zero show. ⇒ **CONFERMA e non cambia** le due ratifiche esistenti, che questa riga si limita a consolidare in un solo posto leggibile: `LIBRO_MASTRO_QBEATS.md:271` («metronomo-libero = uscita metrofab (anche 0-show)», 10/07) e `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:22` (elenco CONGELATO, «③ METROFAB=uscita metronomo»). ⚠️ **PERCHÉ QUESTA RIGA ESISTE BENCHÉ IL FATTO FOSSE GIÀ SCRITTO DUE VOLTE:** in quindici giorni tre attori distinti hanno inciampato sullo stesso punto. La causa **non è l'assenza del fatto** — misurata: era scritto — ma la sua **dispersione**: in `:271` vive come inciso dentro una riga che parla d'altro (Nodo A), e nella SCALETTA vive in sezione A, un documento di piano che non si rilegge. ⇒ **Da qui in avanti la sede cross-team di questo fatto è QUESTA riga. ⛔ RISPOSTA A R2 DI CD, aperta il 02/08 e chiusa da Mauro il 18/08: «uscita metronomo» = la porta VERSO il metronomo libero, NON l'uscita DAL metronomo.** La lettura che CD ha disegnato è **quella giusta** e **la sua schermata non si rifà** — cade quindi la clausola con cui CD si dichiarava pronta a rifarla («Se la lettura giusta e' quella del brief, questa schermata cambia e torno a rifarla», file del 02/08). ⛔ **Domanda CHIUSA:** chi la riapre trova questa riga. | Mauro (dichiarazione di prodotto e risposta a R2) + referee (mandato A92) + CC (misure a fonte) | `LIBRO:271` · `SCALETTA:22` · file CD `2026-08-02_QLive-Metronome-EmptyState_390x844.html` (28 721 B, sha256 `293fae04…f61a805`) | attiva | — |
++| 2026-08-18 | **PERIMETRO DELL'EMPTY-STATE «No show running» — VALE PER UNA SOLA PROVENIENZA, NON PER DUE.** La copy «No show running / The metronome runs with a show. Nothing is playing right now.» è valida per la provenienza **sessione finita o morta**. ⛔ **NON è la destinazione del pulsante METRONOME:** chi cabla ⟦S6⟧ non porta lì, sarebbe **una porta che dà su un muro** — l'utente chiede il metronomo e riceve un cartello che gli dice che non c'è nessuno show. ⚠️ **MARCATURA, NON RISCRITTURA:** il file CD del 02/08 dichiara la copy «provenienza-agnostica» e valida «per entrambe le provenienze» (misurato verbatim nel file, intestazione del pannello ②). **Quella metà è SUPERATA** dalla riga precedente di questa stessa sezione. ⛔ **Non si chiede a CD di riemettere il file**, e il file **non si tocca**: si marca qui, una volta, e chi legge il file trova la marcatura da questa parte. | Mauro (①, da cui deriva) + referee (rilievo) + CC (misura a fonte sul file CD) | file CD del 02/08, pannello ② · riga `2026-08-18` precedente | attiva | — |
++| 2026-08-18 | **⛔ I PULSANTI VISIBILI E INERTI DI Q-LIVE SONO UNA SCELTA DI PRODOTTO, NON UN DIFETTO — dichiarazione Mauro 18/08.** **METRONOME** ed **«emerg»** restano **VISIBILI e INERTI**: sono la **coda di lavoro di Mauro**, emergono durante i collaudi e vengono animati man mano. ⛔ **NESSUN ATTORE — CC, CD, referee, presente o futuro — ne proponga la rimozione come igiene.** Chi la propone sta cancellando un **promemoria di prodotto**. ⚠️ **QUESTA È UNA ECCEZIONE DICHIARATA ALLA LETTURA GENERALIZZATA DI CD-Q7, e la generalizzazione è misurata:** CD-Q7 fu decisa **per UN pulsante solo** — il «+» dell'header Q-Stage›Shows, omesso in attesa di §8 (`LIBRO_MASTRO_QBEATS.md:272`, 11/07) — e la formula «nessun bottone morto o disabilitato» nacque **dentro quella decisione di ambito**. È poi stata riscritta in forma di **divieto generale** a `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:327` («NIENTE bottone morto … ora è VIETATO») e citata come «**Regola violata**» a `BUGS_QBEATS.md:168`. ⛔ **LA GENERALIZZAZIONE HA GIÀ PRODOTTO UNA PERDITA, ed è la ragione per cui questa riga non è una formalità:** il `.viewtoggle` del dettaglio show **è stato omesso da ⟦S5a⟧ proprio per quel precedente** — verbatim a fonte, `ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift:50 @ 321293e18094d9d4f1c167bfc921be1ad216e3ac`: «`.viewtoggle` (Q-Live view / List view) OMESSO: precedente ratificato Q7» — e il freeze consolidato di CD lo registra come «tolto **per equivoco**». ⇒ **CD-Q7 resta viva per il «+» di Q-Stage; NON si applica ai pulsanti in coda di lavoro di Q-Live.** | Mauro (dichiarazione di prodotto) + referee (rilievo sull'ambito) + CC (misura della generalizzazione e della perdita) | `LIBRO:272` · `SCALETTA:327` · `BUGS:168` · `QLiveShowDetailView.swift:50 @ 321293e1…` · freeze consolidato rev3 | attiva | — |
++| 2026-08-18 | **«EMERG» NON È UN ORFANO: HA UNA DESTINAZIONE NOTA, E IL SUO NOME È PROVVISORIO — dichiarazione Mauro 18/08.** Il tasto collega la **modalità dinamica di Q-Live (sync)** a una **versione a LISTA**. Il nome «emerg» è **provvisorio dall'inizio del progetto** e **si rifà quando si cabla**: non va discusso come se fosse definitivo. ⇒ **Corroborato in modo indipendente dal codice**, che portava già l'intenzione senza che fosse mai ratificata: `ios_app/QBeats/UI/Live/TransportView.swift:90-92 @ 321293e18094d9d4f1c167bfc921be1ad216e3ac`, closure `{ /* navigazione Vista LISTA — Fase successiva */ }`. ⛔ **«emerg» e il `.viewtoggle` del dettaglio sono LA STESSA MATERIA, non due:** entrambi commutano fra la vista Q-Live e la **vista a LISTA**, per due controlli diversi in due schermate diverse. ⇒ **Si progettano e si cablano insieme**, e chi apre l'uno apre l'altro. ⚠️ Conseguenza sul tracker: la domanda «cosa deve fare emerg» — registrata come aperta in `BUGS_QBEATS.md` — **non è più senza risposta di prodotto**; resta aperto il **disegno**, che è dominio CD. | Mauro (dichiarazione di prodotto) + referee (legame emerg ↔ `.viewtoggle`) + CC (corroborazione a fonte) | `TransportView.swift:90-92 @ 321293e1…` · `QLiveShowDetailView.swift:50 @ 321293e1…` · riga `2026-08-18` sui pulsanti inerti | attiva | — |
+ 
+ ---
+ 
+ ## Sezione 3 — Deliverable in volo
+
+--- a/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
++++ b/HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+@@ -318,4 +318,5 @@
++- ⚠️ **MARCATURA 18/08 — LA DESTINAZIONE DI ⟦S6⟧ È IL METRONOMO LIBERO, NON L'EMPTY-STATE «No show running». Il bullet «Cond: D» sopra resta come scritto: si marca, non si riscrive.** Ratificato in `LIBRO_MASTRO_QBEATS.md`, righe datate `2026-08-18` (due vie d'ingresso · perimetro dell'empty-state). ⛔ Chi cabla `onTap` **non** porta all'empty-state A3 del file CD del 02/08: quella copy vale per la provenienza *sessione finita o morta*, e portarci il pulsante METRONOME sarebbe **una porta che dà su un muro**. ⇒ La destinazione resta quella già agli atti nel bullet sopra — **Opzione 1**, sezione sintetica «free», riuso della catena invariata; **Opzione 2** (`mode: .freeMetronome` nel cuore RT) resta **VIETATA**. ⚠️ **Il meccanismo per cui la destinazione non esiste ancora era GIÀ INCISO in questo stesso file dal 10/07, a `:32`** («setlist vuota → `guard currentSection nil` → `.fineSetlist` immediato (NON un metronomo)»), e **rimisurato a HEAD il 18/08**: `ios_app/QBeats/SetlistRunner.swift:142` (`guard let section = currentSection else {`, col commento «Stato degenerato: setlist vuota … Trattato come fineSetlist immediato») e `:148` (`session.playbackState = .fineSetlist`) `@ 321293e18094d9d4f1c167bfc921be1ad216e3ac`. ⇒ Il fatto **regge invariato**; ciò che mancava non era la misura ma la sua **sede leggibile da CD**, ora in LIBRO.
+ 
+ ---
+ 
+ ## C · Ordine (2 corsie)
+
+--- a/BUGS_QBEATS.md
++++ b/BUGS_QBEATS.md
+@@ -171,1 +171,2 @@
++- ⛔ **MARCATURA 18/08 — LA VOCE «Regola violata» DI QUESTO TICKET NON È PIÙ VERA, E LO STATO CAMBIA. Zero parole riscritte sopra: si marca.** **(1)** La «Regola violata — CD-Q7» del bullet `:168` **cade per questo ticket**: CD-Q7 fu decisa per il solo «+» di Q-Stage e la sua lettura generalizzata è **esplicitamente eccettuata** per i pulsanti in coda di lavoro di Q-Live — `LIBRO_MASTRO_QBEATS.md`, riga datata `2026-08-18` sui pulsanti inerti. **(2)** ⛔ **Il ticket NON è «da rimuovere».** Lo Stato del bullet `:170` si legge da qui in avanti: **«in attesa di destinazione, PER SCELTA»** — dichiarazione di prodotto di Mauro del 18/08: «emerg» e METRONOME restano visibili e inerti come **coda di lavoro**, e **nessun attore ne proponga la rimozione come igiene**. **(3)** La domanda *«cosa deve fare emerg»* **ha risposta di prodotto**: collega la modalità dinamica di Q-Live a una **versione a LISTA**, nome «emerg» **provvisorio**, e si cabla **insieme** al `.viewtoggle` del dettaglio (`QLiveShowDetailView.swift:50 @ 321293e18094d9d4f1c167bfc921be1ad216e3ac`) perché sono **la stessa materia**. Resta aperto il **disegno**, dominio CD. **(4)** ⚠️ **FUORI DA QUESTA MARCATURA, e non toccato qui:** il bullet `:163` («È RAGGIUNGIBILE OGGI … sul percorso normale») è stato **misurato falso** il 18/08 — la pulsantiera vive solo dentro `LiveView`, che a HEAD non è raggiungibile da alcun gesto. È materia di un giro proprio, non di questo.
+ - **Dominio:** CD (che cosa deve fare, o se va tolto) → poi CC (cablaggio o rimozione).

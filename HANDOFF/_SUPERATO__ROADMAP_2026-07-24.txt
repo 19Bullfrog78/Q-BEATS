@@ -1,0 +1,80 @@
+ROADMAP Q-BEATS — riconciliata (base 24/07/2026)
+Stato derivato A FONTE il 2026-07-24. Se diverge dai file, VINCONO I FILE.
+La prossima sessione riverifica, non eredita. [R] = riferito, non verificato a fonte.
+
+=====================================================================
+DOVE SIAMO (verificato a fonte)
+=====================================================================
+- Git: HEAD = origin = remote 54ccddc · CI 30015719424 verde · tree pulito (solo untracked).
+- Canonici (intestazioni lette dai file): BOX3 V99 · LIBRO v40 · BUGS v43 · BOX5 V27 · SCALETTA v2.
+- ⟦FIX-PILL⟧ ee31281 CHIUSO su device (Mauro 4/4).
+- ⟦S4b⟧ = commit 6ded4ab (19/07) — DEVICE-VALIDATO 20/07 (LIBRO v38: gate PIANO_S4b_REV §5d, tocchi
+  [2][3][4][5] PASS), con DUE debiti di copertura dichiarati: caso durata-0 e "riga singola verificata".
+  => NON è un gate device aperto. (Correzione: handoff precedenti dicevano "S4b non gated" — stale dal 19/07.)
+- Freeze card Q-Live>Shows del 24/07: ratificato Mauro, verificato coerente. FUORI dai canonici.
+
+=====================================================================
+ORDINE CRITICO (non invertire)
+=====================================================================
+DOC prima, CODICE poi. E dentro il doc: LIBRO PRIMA (R-γ: "è in LIBRO_MASTRO -> è ratificato; altrimenti no").
+Sede dei contratti = BOX5 ("Specifiche e Contratti", R-γ), NON BUGS. L'atomo vive in UNA sede (SCALETTA),
+non duplicato in BUGS (dual-homing = due case che divergono, stampo E3 / due-SCALETTA).
+
+=====================================================================
+FASE A · CD in parallelo (latenza lunga, parte subito, non dipende dal resto)
+=====================================================================
+1. Card Q-Live>Shows: confermare le bandiere aperte (Start=arma+standby; cosa resta al dettaglio Show).
+2. Decisione tab-reset "Q-Stage apre sempre su Songs" — metterla in un FILE CD, non in chat. [R] oggi.
+3. Q20 tastiera: NON esiste alcun freeze (verificato). Serve la DECISIONE CD (dismissal/⌫/scroll).
+   ⚠️ diventa 🔴 ALTA all'apertura di S4L (uscire dalla stanza = unico modo di chiudere la tastiera,
+   ma da S4L uccide la sessione live).
+
+=====================================================================
+FASE B · GIRO DOC (zero codice, un commit single-purpose ciascuno; file a due facce -> xhigh)
+=====================================================================
+B1. LETTURA BOX5 — come sono collocate le spec analoghe, prima di scrivere.
+B2. LIBRO v41 — ratifica cross-team: 4 decisioni card + tab-reset (se CD ha risposto). [PRIMO per R-γ]
+B3. BOX5 V28 — SPEC card Q-Live>Shows (§1-§4) + spec tastiera Q20 (se decisa) + invariante tocco-annidato.
+B4. SCALETTA v3 — RISCRITTURA ⟦S4L⟧ + split ⟦S4⟧->S4a/S4b (già a master: f8276f6/6ded4ab):
+     · runner che SALE, muore solo all'uscita stanza — atterra in S4L (BOX3 V97 a)
+     · vincolo ObservableObject ANNIDATO non propaga -> figli osservano IL RUNNER (BOX3 V97 e)
+     · emendamento invariante Nodo A "renderizza LiveRootView, MAI LiveView diretto" (BOX3 V97 e)
+     · bonifica 5 commenti-stale (BOX3 V95): SetlistRunner cita AudioEngine:503; :169/LiveView:378 "~436-442";
+       :616-618 deinit "blocking"; HomeRootView cita LiveView:82; LivePlaybackState:16/TransportView:46 "dismiss a Bivio"
+     · regime del file (tracciato ma in HANDOFF/ con nome per-data, fuori dal regime root+in-place)
+B5. BUGS v44 — chiusura tab-reset se sourced · rimessa "Fase 6-7" nel ticket TD#17 (BOX3 V99 b).
+B6. BOX3 V100 — chiusura del giro.
+Cancello per ognuno: impronte precalcolate -> diff verbatim -> ratifica referee -> OK Mauro (due cancelli).
+
+=====================================================================
+FASE C · CODICE
+=====================================================================
+- ⟦atomo card⟧ (dopo B3) — DIVISIBILE: parte cosmetica (riga compatta + pillola INERTE) = pre-S4L, CI-only;
+  pillola ACCESA = post-S4L (cancello rev2 del freeze). Finestra per "vedere qualcosa" prima del fronte grosso.
+- ⟦S4L⟧ (dopo B4) — launcher: iniezione setlist + kill phantom makeDefault (LiveRootView:7-8,:13) + proprietà
+  runner che sale. Opus 4.8 xhigh, chat CC dedicata, branch fiammifero SOLO con autorizzazione esplicita Mauro.
+- ⟦S5⟧ (detail + Start) -> ⟦S6⟧ (cablaggio MetroFAB).
+
+=====================================================================
+FASE D · GATE DEVICE
+=====================================================================
+- S4L: gate device obbligatorio (percorso audio-live).
+- ⚠️ S4b NON è un arretrato: già device-validato 20/07. Restano solo i 2 debiti di copertura dichiarati
+  (durata-0, riga singola) — da coprire se/quando si rientra in quella zona, non un gate da rifare.
+- ⚠️ Durante QUALSIASI gate: NON premere i pulsanti "Carica dati test" del ⚙ DEBUG.
+  injectTestData (QBeatsStore.swift:198-202) SOSTITUISCE songs+setlists in RAM (assegnazione diretta, non
+  appende); un CRUD successivo -> save() (:65-77) scrive i dati di test su disco AL POSTO dei veri.
+  Popolare la lista con dati propri, non col DEBUG.
+
+=====================================================================
+CODA · non bloccanti
+=====================================================================
+- TD#17 🟠 OPEN MEDIA: chiusura (A) run palco 2-3h VR2800 banda singola senza perdita peer OPPURE (B) Soluzione C.
+- Igiene mount 20_07_26 nel Progetto: due Taratura Q17-Q22 (base + rev2) -> togliere la base. [R, referee]
+- Igiene nomi nel Progetto (upload). BUGS v43 da caricare (esce v42).
+
+=====================================================================
+DUE TRAPPOLE
+=====================================================================
+(i)  gh --commit: SEMPRE sha a 40 (il corto rende [] exit 0, falso-zero).
+(ii) CONSEGNA != RATIFICA: un artefatto consegnato non è una ratifica ricevuta; se manca, fermarsi e chiedere.

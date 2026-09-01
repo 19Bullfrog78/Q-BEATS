@@ -1,0 +1,258 @@
+REFERTO QB-2026-08-05-A59-DRIVE-SU-REPO
+=======================================
+
+Orologio di esecuzione: 2026-08-06T10:30:58Z (`date -u`), locale +02:00.
+
+/!\ NOME vs ESECUZIONE — DICHIARATO, NON CORRETTO. L'ID emesso porta la data 2026-08-05;
+    la misura e' stata eseguita realmente il 2026-08-06. Il nome del file segue l'ID
+    (che e' la chiave di indirizzamento), la data vera e' questa riga. Stessa forma del
+    precedente in casa: BUGS_QBEATS.md:321 («nome con data 03/08; misura eseguita realmente
+    il 02/08 — non si corregge il nome, si marca qui»).
+
+VERIFICA ID — A59 NON COLLIDE.
+  · repo  : `ls HANDOFF/ | grep -i 'A59'` -> exit 1 (nessun match)
+            `grep -rl 'A59' HANDOFF/`     -> nessun file
+  · E:    : stessi due comandi in `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF`
+            -> exit 1 / nessun file
+  · controllo positivo (prova che la ricerca non e' rotta): `ls | grep -i 'A55'` ->
+    `MISURE_CC_2026-08-05_A55-S5A-COMMIT.txt` presente su entrambi i supporti.
+
+Convenzione: [V] = misurato da me. [D] = documentazione esterna citata.
+
+
+--------------------------------------------------------------------------------
+1. RADICE DEL REPO LIVE, HEAD, BRANCH
+--------------------------------------------------------------------------------
+
+· Path assoluto reale (forma Windows risolta):
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS
+  fonte: `(Resolve-Path "C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS").Path`
+  corroborato da: `git rev-parse --show-toplevel` -> C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+  (git normalizza le barre; e' lo stesso path)
+
+· HEAD:   25056b66eda40ad76d91a886ace442b7064ca900        fonte: `git rev-parse HEAD`
+· branch: master                                          fonte: `git rev-parse --abbrev-ref HEAD`
+· remoto: 25056b66eda40ad76d91a886ace442b7064ca900 refs/heads/master
+                                                          fonte: `git ls-remote origin master`
+  => locale e remoto coincidono. CONFERMATO. [V]
+
+
+--------------------------------------------------------------------------------
+2. IL REPO E' DENTRO UNA RADICE DI SINCRONIZZAZIONE DI GOOGLE DRIVE? -> SI
+--------------------------------------------------------------------------------
+
+Tre vie indipendenti, tutte praticabili, tutte concordi.
+
+VIA A — CONFIGURAZIONE DI GOOGLE DRIVE FOR DESKTOP (la fonte primaria). [V]
+  file: %LOCALAPPDATA%\Google\DriveFS\root_preference_sqlite.db  (+ -wal, -shm)
+  metodo: i tre file COPIATI nello scratchpad e letti li' con python3.12/sqlite3;
+          l'originale NON e' stato aperto ne' modificato.
+  tabella `roots`, 2 righe — verbatim dei campi:
+
+    root_id = 2
+    title = 'FILE X CLAUDE.MD'
+    root_path = 'HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD'
+    last_seen_absolute_path = 'E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD'
+    account_token = '116582425977112133428'
+    sync_type = 1 · destination = 1 · medium = 1 · state = 2 · one_shot = 0 · is_my_drive = 0
+
+    root_id = 6
+    title = 'Q-BEATS'
+    root_path = 'Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS'
+    last_seen_absolute_path = 'C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS'
+    account_token = '116582425977112133428'
+    sync_type = 1 · destination = 1 · medium = 1 · state = 2 · one_shot = 0 · is_my_drive = 0
+
+  => La radice del repo NON e' "dentro" una radice di sincronizzazione:
+     LA RADICE DEL REPO **E'** UNA RADICE DI SINCRONIZZAZIONE (root_id 6), registrata
+     col suo path assoluto esatto. E la seconda radice (root_id 2) e' l'area mirror E:
+     usata per le consegne.
+  => Entrambe hanno is_my_drive = 0 -> categoria "Folders from your computer"
+     (backup di cartelle del computer), NON "Il mio Drive".
+
+  Corroborazione dal registro: HKCU:\Software\Google\DriveFS
+    PerAccountPreferences = {"per_account_preferences":[{"key":"116582425977112133428",
+                             "value":{"machine_root_doc_id":"1xf2DOJNqg3yuRjZ7ZVpEh-Zj1tfAhr8w"}}]}
+    CurrentAccountToken   = 116582425977112133428
+  fonte: `Get-ItemProperty "HKCU:\Software\Google\DriveFS"`
+  => esiste un machine_root per questa macchina: il backup di cartelle e' configurato.
+
+  Processo attivo: GoogleDriveFS.exe, PID 13908 e 14012, versione 129.0.1.0,
+    path C:\Program Files\Google\Drive File Stream\129.0.1.0\GoogleDriveFS.exe
+  fonte: `Get-Process | Where-Object { $_.Name -like "*Drive*" }`
+
+VIA B — PATH ASSOLUTO DI .tmp.driveupload [V]
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\.tmp.driveupload
+  attributi: Hidden, Directory
+  CreationTime  : 01/08/2026 17:47:24
+  LastWriteTime : 05/08/2026 20:55:24
+  contenuto     : 790 elementi
+  fonte: `(Resolve-Path ...).Path` + `Get-Item -Force` + `(Get-ChildItem -Force | Measure-Object).Count`
+
+  Nota di coerenza temporale: la creazione (01/08 17:47) segue di ~2 minuti
+  %LOCALAPPDATA%\Google\DriveFS\first-run-info (01/08/2026 17:45:31).
+
+  CONTROPROVA CHE .tmp.driveupload MARCA ESATTAMENTE UNA RADICE, non una cartella qualsiasi:
+    · presente nella radice 2 : E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\.tmp.driveupload
+    · ASSENTE un livello sopra: E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\  -> zero marcatori
+  => il marcatore compare nelle 2 radici della VIA A e non altrove. Due forme concordi.
+
+VIA C — ALTRI MARCATORI NELLA GERARCHIA SOPRA IL REPO [V]
+  scansionati per marcatori Drive (.tmp.drive*, *driveupload*, *drivedownload*, desktop.ini):
+    C:\Users\BULLFROG                              -> nessun marcatore Drive
+    C:\Users\BULLFROG\Desktop                      -> `desktop.ini` (282 B), attributi ReadOnly+Directory
+                                                      = marcatore di cartella di sistema Windows,
+                                                        NON un marcatore Drive
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY          -> nessun marcatore
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS  -> .tmp.driveupload (vedi VIA B)
+  => la sincronizzazione NON eredita da una cartella superiore (il Desktop NON e' in backup):
+     comincia esattamente alla radice del repo.
+
+  Log di Drive: %LOCALAPPDATA%\Google\DriveFS\Logs\drive_fs_16.txt
+    `grep -c 'ANTIGRAVITY'` -> 803 occorrenze; tutte le forme estratte puntano a
+    ...\Q-BEATS\.tmp.driveupload\<numero>.
+    /!\ In quel log `.git` rende ZERO — ma questo NON e' una prova di esclusione
+        (assenza-di-prova != prova-di-assenza): il punto 4 lo risolve a fonte diretta.
+    Le 3 occorrenze di "EXCLUDE" nel log sono `content_cache_capacity_heuristic:
+    EXCLUDE_NONEVICTABLE` = euristica della cache, NIENTE a che vedere con esclusioni di path.
+
+
+--------------------------------------------------------------------------------
+3. VERSO DELLA SINCRONIZZAZIONE
+--------------------------------------------------------------------------------
+
+METODO -> MIRRORING. Documentato. [D]
+  Fonte: Google Drive Help, "Manage Google Drive for desktop: Advanced guide",
+  https://support.google.com/drive/answer/16631477 — verbatim:
+    «Shared drives use streaming, and folders you sync from your computer, under
+     'Folders from your computer,' use mirroring.»
+  Applicabilita' a QUESTO caso, misurata e non assunta: entrambe le radici hanno
+  `is_my_drive = 0` nella tabella `roots`, cioe' appartengono esattamente alla categoria
+  "folders you sync from your computer" di cui parla la frase citata.
+
+BIDIREZIONALITA' STRETTA (modifiche fatte su Drive che TORNANO sul disco)
+  -> NON DETERMINATO da fonte esplicita.
+
+  Cosa ho provato, e cosa ha dato ciascuna via:
+   (a) https://support.google.com/drive/answer/16631477  -> da' il METODO (mirroring),
+       NON afferma letteralmente la direzione Drive -> disco per questa categoria.
+   (b) https://support.google.com/drive/answer/10838124  -> definisce streaming vs mirroring
+       («Streaming a file uses almost no computer space» / «mirroring downloads a full copy
+       directly to your computer») e porta la frase generale «Any edits you make to files
+       sync automatically to your computer and to Google Drive» — che e' una frase a DUE
+       direzioni, ma riferita al syncing in generale e NON specificamente alle cartelle di
+       backup del computer.
+   (c) file di preferenze locali: %LOCALAPPDATA%\Google\DriveFS\116582425977112133428\
+       `user_settings` (34 B) e `account_settings` (0 B) -> contenuto binario/protobuf,
+       nessun campo leggibile su mirror/stream. `local_folders\` -> VUOTA.
+       `global_feature_config` -> zero righe con "mirror" o "stream".
+       VIA NON RISOLUTIVA.
+   (d) campi grezzi della tabella `roots`: sync_type=1, destination=1, medium=1, state=2.
+       Non esiste documentazione pubblica che mappi questi interi a una semantica.
+       VIA NON PRATICABILE per rispondere alla domanda.
+
+  /!\ NON HO DEDOTTO IL VERSO DAL COMPORTAMENTO OSSERVATO, come da mandato.
+      Registro pero' un FATTO DI SCHEMA, come dato grezzo e non come conclusione:
+      la tabella `mirror_item` porta colonne APPAIATE per i due lati —
+      local_filename/cloud_filename, local_mtime_ms/cloud_mtime_ms,
+      local_md5_checksum/cloud_md5_checksum, local_size/cloud_size,
+      local_version/cloud_version — piu' un campo `target_version`.
+      E' la forma di un riconciliatore a due lati. NON lo chiamo prova della direzione:
+      e' struttura dati, non semantica documentata.
+
+
+--------------------------------------------------------------------------------
+4. .git/ E' DENTRO O FUORI DAL PERIMETRO? -> DENTRO. DIMOSTRATO A FONTE.
+--------------------------------------------------------------------------------
+
+Fonte: %LOCALAPPDATA%\Google\DriveFS\116582425977112133428\mirror_sqlite.db
+       (copiato nello scratchpad e letto li'; originale non toccato)
+       tabella `mirror_item`, 3060 righe totali.
+
+Ricerca di '.git' su OGNI colonna testuale di OGNI tabella -> 4 voci, presenti sia in
+`local_filename` sia in `cloud_filename` (cioe' NON solo viste in locale: hanno un
+corrispettivo lato cloud):
+
+    '.gitignore'      (id=799,  type=file)    -> percorso ricostruito: Q-BEATS/.gitignore
+    '.git'            (id=1228, type=dir)     -> percorso ricostruito: Q-BEATS/.git
+    '.github'         (id=2428, type=dir)     -> percorso ricostruito: Q-BEATS/.github
+    '.gitattributes'  (id=2812, type=file)    -> percorso ricostruito: Q-BEATS/.gitattributes
+
+I percorsi sono RICOSTRUITI risalendo la catena `parent_local_stable_id` fino alla radice,
+non letti da un campo path: ancorano `.git` alla radice `Q-BEATS`
+(local_stable_id=2, is_root=1), che e' root_id 6 = C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS.
+
+PROFONDITA' DELL'ESPOSIZIONE:
+    sotto '.git' risultano 1136 DISCENDENTI TRACCIATI in `mirror_item`.
+    Primi 15 enumerati: index, opencode, description, COMMIT_EDITMSG, ORIG_HEAD, refs,
+    hooks, packed-refs, FETCH_HEAD, HEAD, config, logs, objects, worktrees, info.
+    Totale voci discendenti per radice:
+      radice 'FILE X CLAUDE.MD' (id=1) : 882
+      radice 'Q-BEATS'          (id=2) : 2176   <- di cui 1136 sono sotto .git
+
+CONTROLLO POSITIVO della stessa ricerca (prova che il metodo non e' rotto):
+    'Q-BEATS'     -> 148 righe    'LIBRO'   -> 208
+    'BUGS_QBEATS' -> 102          'HANDOFF' -> 176
+    'ios_app'     -> 2
+    'ANTIGRAVITY' -> 0  (atteso: e' un antenato FUORI dalla radice, non un figlio)
+
+Tabelle di coda al momento della lettura: pending_deletes = 0 righe,
+pending_uploads = 0, queued_uploads = 0.
+
+=> .git/ E' DENTRO IL PERIMETRO DI SINCRONIZZAZIONE, con oltre metà delle voci
+   tracciate della radice Q-BEATS che gli appartengono. Nessuna regola di esclusione
+   trovata in nessuna delle fonti consultate.
+
+
+--------------------------------------------------------------------------------
+5. I:\Il mio Drive — COINCIDE CON LE RADICI DEL PUNTO 2? -> NO
+--------------------------------------------------------------------------------
+
+· L'unita' I: e' il mount virtuale di Google Drive:
+    Get-PSDrive -PSProvider FileSystem -> I: Root=I:\ Description='Google Drive'
+  e nella tabella `media` di root_preference_sqlite.db:
+    media_id='e4386f3d-90cf-11f1-a610-00d861c585d1', name='Google Drive',
+    last_mount_point='I:\', fs_type=10, capacity=16106127360
+  /!\ La stessa lettera I: risulta storicamente usata da un'altra unita'
+      (media_id='670f8d9d-...', name='KEYTOOLS_NG', last_mount_point='I:\'):
+      la lettera non e' un identificatore stabile, il media_id si'.
+
+· Path assoluto esistente: I:\Il mio Drive     fonte: `(Resolve-Path "I:\Il mio Drive").Path`
+· Primo livello di I:\ : "Il mio Drive", "Altri computer", ".shortcut-targets-by-id",
+  ".Encrypted", "$RECYCLE.BIN".
+· I:\Altri computer\ contiene un solo nodo, "Il mio Computer", il cui contenuto
+  elencabile e' il solo `desktop.ini`.
+
+· RICERCA DIRETTA: `Get-ChildItem "I:\" -Recurse -Depth 2` filtrato su "*Q-BEATS*" e
+  "*FILE X CLAUDE*" -> ZERO risultati.
+  => le due radici di sincronizzazione NON sono navigabili sotto I: a profondita' <= 2.
+
+· CONCLUSIONE, e coincide con la misura del punto 2: NON COINCIDONO.
+  Le due radici hanno `is_my_drive = 0` (categoria "Folders from your computer"),
+  mentre I:\Il mio Drive e' "Il mio Drive" — due spazi dei nomi distinti.
+
+· PENDENZA R-delta (terza destinazione): dentro I:\Il mio Drive esistono DUE cartelle
+  di nome affine ma DIVERSO da quello delle radici:
+      I:\Il mio Drive\Qbeats
+      I:\Il mio Drive\Qbeats_IN_CD
+  Sono cartelle di "Il mio Drive", NON i backup del punto 2. Chi ragiona sulla terza
+  destinazione di R-delta non deve confonderle con le due radici: sono oggetti diversi,
+  in uno spazio dei nomi diverso, e questo referto NON ne ha misurato il contenuto.
+
+
+--------------------------------------------------------------------------------
+NOTA DI PERIMETRO
+--------------------------------------------------------------------------------
+Nessuna modifica sotto ios_app/, nessuna in .git/, nessuna a .tmp.driveupload/.
+I database di Drive sono stati COPIATI nello scratchpad di sessione e letti li';
+gli originali non sono stati aperti in scrittura.
+Unica scrittura di questo giro: questo referto (HANDOFF/ + mirror E:), come autorizzato.
+
+Nessuna raccomandazione, nessuno spostamento: la decisione e' di Mauro.
+
+
+DICHIARAZIONE STANDARD
+Ho letto le fonti VERE sul sistema live e i file VERI a HEAD
+25056b66eda40ad76d91a886ace442b7064ca900, non a memoria. Ogni affermazione sopra porta
+il comando o il file da cui viene. Dove non ho fonte l'ho scritto: la bidirezionalita'
+stretta del punto 3 e' NON DETERMINATA, e le quattro vie tentate sono elencate.

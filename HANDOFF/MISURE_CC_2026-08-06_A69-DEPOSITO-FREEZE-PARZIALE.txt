@@ -1,0 +1,179 @@
+REFERTO QB-2026-08-06-A69-DEPOSITO-E-ANCORAGGIO-FREEZE — DEPOSITO PARZIALE
+===========================================================================
+
+Orologio: 2026-08-06T19:27:45Z, locale +02:00. Data ID = data esecuzione.
+
+ESITO: **FERMATO DOPO LA PARTE 1.**
+  · rev3-NORMATIVA: DEPOSITATA E VERIFICATA — combacia su TUTTE le misure decisive,
+    inclusa quella su cui io avevo sbagliato per primo (CR).
+  · rev2-BUONA: **ASSENTE SU TUTTI E TRE I SUPPORTI.** Non depositata.
+  · NULLA e' stato messo in stage. LIBRO e SCALETTA NON toccati. ios_app/ NON toccato.
+  Unica scrittura: questo referto.
+
+
+================================================================================
+CANCELLI D'INGRESSO — SUPERATI
+================================================================================
+  · A69 non collide (repo + E:, nome e contenuto; controllo positivo A68 presente).
+  · Aggancio: ultimo referto = A68-ANCORAGGIO-FREEZE-BLOCCO (21:11). Corretto.
+  · HEAD = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f, branch master.
+  · IDEMPOTENZA: `git ls-files DESIGN/QLive_Nav/ | grep FREEZE-CONSOLIDATO` -> exit 1
+    (non tracciati); LIBRO senza occorrenze di `7154428263`/`FREEZE-CONSOLIDATO`/
+    `rev3-NORMATIVA`. Nulla di gia' fatto: non e' un caso di duplicazione.
+
+
+================================================================================
+PARTE 1 — VERIFICA DEL DEPOSITO
+================================================================================
+
+rev3-NORMATIVA — DEPOSITATA. **TUTTE LE IMPRONTE COMBACIANO.**
+  path: DESIGN/QLive_Nav/2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844__rev3-NORMATIVA.html
+
+                    ATTESO (referee)                                    MISURATO (CC)                                      ESITO
+  sha256   7154428263b93e4d6371ae99236fa6986c0934c31ecd0494df5b9c817aabaca5   idem                                        COMBACIA
+  byte     75 771                                                             75 771                                      COMBACIA
+  newline  534                                                                534                                         COMBACIA
+  CR       0                                                                  0                                           COMBACIA
+  blob     430c9894c2539c4753f8ab0b8c3baf64d73f5335                           430c9894c2539c4753f8ab0b8c3baf64d73f5335    COMBACIA
+
+  ⇒ Il transito NON ha alterato il file. Quattro misure indipendenti concordi, di cui
+    lo sha256 e' da solo decisivo sui byte.
+
+  CORROBORAZIONE IN PIU', non richiesta ma eseguita: Mauro ha depositato rev3 anche su
+  E: in `DA_CD_PER_CC/06_08_2026/` (cartella creata oggi, dopo A68 — in A68 non
+  esisteva, ed e' il motivo del blocco di allora). sha256 e byte della copia E:
+  IDENTICI a quelli del repo. Tre copie concordi: Progetto Claude (referee), repo, E:.
+
+rev2-BUONA — **ASSENTE.** Ricerca a CINQUE forme, tutte vuote:
+   1) `DESIGN/QLive_Nav/` -> l'unico FREEZE-CONSOLIDATO presente e' rev3
+   2) repo, `find -name '*FREEZE-CONSOLIDATO*'` -> solo rev3
+   3) E:, `find /e -name '*FREEZE-CONSOLIDATO*'` -> solo rev3 (in 06_08_2026)
+   4) E:, `find /e -name '*rev2*.html'` -> due file, del 20/07 e del 26/07, altra materia
+   5) NAS Z:, `find /z/Q-BEATS -name '*FREEZE-CONSOLIDATO*'` -> zero
+  Anche la cartella `DA_CD_PER_CC/06_08_2026/` su E: contiene UN SOLO file: rev3.
+  ⇒ rev2 non e' stata depositata. Non e' un problema di nome ne' di path: non c'e'.
+
+
+================================================================================
+⚠️ IL REPERTO DI MISURA — E UNA MIA RETTIFICA RETROATTIVA
+================================================================================
+
+LA MIA PRIMA LETTURA DEL CR ERA FALSA, E LA CORREGGO IO.
+  Alla prima misura `grep -c $'\r'` su rev3 ha reso **534**, contro lo 0 dichiarato dal
+  referee. Sembrava una divergenza. Non lo era: era la FORMA a mentire.
+
+  Verifica sui byte grezzi (python, sul contenuto binario):
+      byte totali 75 771 · 0x0D (CR) = **0** · 0x0A (LF) = 534 · CRLF = **0**
+      LF soli = 534 · ultimo byte = b'\n'
+  `od -c` sui primi byte: `< ! d o c t y p e   h t m l > \n` — nessun \r.
+  ⇒ **IL REFEREE AVEVA RAGIONE: CR 0.** Il file e' LF puro.
+
+  CONTROPROVA CHE INCHIODA LA FORMA: creato un file di controllo di 3 righe LF pure.
+      `grep -c $'\r'`   -> **3**   (dovrebbe essere 0)
+      `grep -c $'\r$'`  -> **3**   (dovrebbe essere 0)
+  Entrambe le forme matchano OGNI riga: il pattern e' degenere in questo grep. E' la
+  gemella rovesciata del «falso-zero da filtro» gia' agli atti — un **FALSO-POSITIVO
+  DA FILTRO**, che non rende vuoto ma rende TUTTO. Regola operativa: i fine-riga si
+  contano sui BYTE, mai con `grep` su `\r`.
+
+🚨 RETTIFICA AL REFERTO A64 — un mio numero pubblicato e' FALSO.
+  A64 (blocco «NOTA LINE-ENDING») dichiara: «working copy dei due file interamente
+  CRLF (38/38 e 466/466 righe CRLF)». Rimisurato oggi sui byte:
+      FineSetlistView.swift : CR = **0**, LF = 38, CRLF = **0**  -> era **LF PURO**
+      LiveView.swift        : CR = 466, LF = 466, CRLF = 466     -> CRLF, quello era esatto
+  ⇒ L'affermazione era vera per UN file e FALSA per l'altro. Prodotta dalla stessa
+    forma difettosa. Aggravante: git me lo stava dicendo, con l'avviso «in the working
+    copy of FineSetlistView.swift, LF will be replaced by CRLF» — che significa
+    «questo file e' LF». L'ho archiviato come cosmetico invece di leggerlo come la
+    misura che contraddiceva la mia.
+  ⚠️ PERIMETRO DEL DANNO — misurato, non minimizzato: **ZERO sul contenuto committato.**
+    Il commit 4e4c2411 e' corretto: `.gitattributes` non copre `ios_app/`, la
+    normalizzazione ha reso il blob LF in entrambi i casi, e il `numstat` +11/-1 e
+    +19/-1 senza churn lo conferma. Il difetto e' nel REFERTO, non nel codice: un
+    numero misurato male e presentato come misura. Va agli atti perche' A64 e' citato
+    dal messaggio di commit di ⟦S5x⟧, che sta su un repo pubblico.
+
+
+================================================================================
+PARTE 2 — DEPOSITO IN GIT: PREPARATA, NON ESEGUITA
+================================================================================
+
+⛔ NULLA IN STAGE. `git add` non e' stato eseguito su nessun file: mettere in stage il
+   solo rev3 sarebbe eseguire a meta' una parte che ne prescrive due, e la riga della
+   Parte 3 ha bisogno di ENTRAMBI gli OID.
+
+LA VERIFICA CHE LA PARTE 2 CHIEDEVA E' PERO' GIA' FATTA, ED E' VERDE:
+  «Se `.gitattributes` o una regola di normalizzazione alterasse il blob rispetto al
+   file su disco, FERMATI» -> NON LO ALTERA. Provato a tre forme:
+   1) `.gitattributes` porta `DESIGN/** -text` -> l'intera cartella e' esente da
+      conversione di fine-riga (stessa riga che copre HANDOFF/** e i due BOX).
+   2) `git check-attr -a` sul file -> `text: unset`. Confermato sul file specifico,
+      non dedotto dal glob.
+   3) `git hash-object` SENZA path e CON `--path` (che applica i filtri) rendono lo
+      STESSO OID: 430c9894c2539c4753f8ab0b8c3baf64d73f5335. Se un filtro agisse, i due
+      valori divergerebbero. Non divergono.
+  ⇒ Al momento dello stage, rev3 entrera' BYTE-IDENTICO, e il suo blob sara'
+    430c9894c2539c4753f8ab0b8c3baf64d73f5335 — lo stesso OID misurato dal referee.
+    Questo numero e' quindi gia' pronto per la riga di ancoraggio.
+  ⚠️ Nota di misura: `core.autocrlf=true` e' attivo, ma `-text` su DESIGN/** lo
+    SCAVALCA per questa cartella. E' il motivo per cui rev3 e' sicuro mentre un file
+    sotto ios_app/ non lo sarebbe.
+
+
+================================================================================
+PARTI 3, 4, 5 — NON ESEGUITE, INTERE
+================================================================================
+PARTE 3 (ancoraggio LIBRO)  : NON eseguita. La riga ratificata nomina DUE artefatti e
+                              richiede DUE blob OID. Di rev2 non ho ne' il file ne'
+                              alcuna impronta verificabile: inciderne l'OID sarebbe
+                              inventarlo. Non incido meta' riga: la forma ratificata
+                              e' quella intera.
+PARTE 4 (tre decisioni)     : NON eseguita. Non e' bloccata dal materiale mancante, ma
+                              appartiene allo stesso giro doc: eseguirla ora
+                              spezzerebbe l'atomo in due commit e lascerebbe il LIBRO
+                              con le decisioni senza il loro artefatto normativo.
+PARTE 5 (marcatura SCALETTA): NON eseguita. La nota di superamento rimanda
+                              all'artefatto normativo: senza l'ancoraggio inciso, il
+                              rimando non avrebbe bersaglio.
+
+⇒ Le tre parti restano INTERE nel mandato, pronte per il giro che ripartira' appena
+  rev2 e' depositata. Nessuna eseguita a meta' — stesso criterio di A68.
+
+
+================================================================================
+COSA SERVE PER SBLOCCARE
+================================================================================
+UNA SOLA COSA: Mauro deposita `2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844__
+rev2-BUONA.html` in `DESIGN/QLive_Nav/` (stessa cartella di rev3).
+Al deposito io: misuro sha256/byte/newline/CR sui BYTE (non con grep), confronto con
+09c29587aba186d1ff9f3914a8068da8a2d9a0f36a4f5d1058f518c971fec750 / 73 427 B / 513
+newline / CR 0, calcolo il blob OID, e — se combacia — eseguo Parti 2-3-4-5 in un
+giro solo, senza altre domande. Se non combacia, mi fermo e lo segnalo: e' esattamente
+il caso che questo doppio controllo esiste per intercettare.
+
+⚠️ SEGNALO SENZA DECIDERE, perche' e' materia del referee: la riga ratificata dichiara
+rev2 «NON NORMATIVA, agli atti come impronta dell'EVENTO DI RATIFICA». Se il referee
+giudicasse che quel ruolo e' assolto dalla sola incisione delle sue impronte nel LIBRO
+— senza deporre il file — la Parte 3 diventerebbe eseguibile subito, ma il LIBRO
+porterebbe un blob OID che non esiste. Io non posso scriverlo. La forma alternativa
+(incidere rev2 con sha256 e byte, SENZA blob OID, dichiarando che il file non e'
+depositato) e' possibile ma **cambia la riga ratificata**: la propongo, non la applico.
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+NESSUN `git add`, NESSUN commit, NESSUN push. NESSUNA modifica a LIBRO_MASTRO_QBEATS.md,
+alla SCALETTA o a qualunque canonico. NESSUNA modifica sotto ios_app/. Nessun file
+spostato, rinominato o cancellato: rev3 resta dove Mauro l'ha messa, non tracciata.
+Unica scrittura: questo referto in HANDOFF\ + mirror E:.
+
+
+DICHIARAZIONE STANDARD
+Ho misurato i file VERI a disco, non a memoria, e a HEAD 4e4c24113b21fed53b55c2a6d38a
+1903e52ecd1f. Ogni affermazione porta il comando da cui viene. La divergenza sul CR
+era MIA e l'ho risolta contro me stesso, con una controprova su file di controllo che
+inchioda la forma difettosa; da essa e' emersa una rettifica retroattiva a un numero
+gia' pubblicato in A64, che dichiaro qui invece di lasciarla agli atti come misura.
+L'assenza di rev2 e' verificata a cinque forme su tre supporti. Non ho eseguito
+nessuna parte a meta'.

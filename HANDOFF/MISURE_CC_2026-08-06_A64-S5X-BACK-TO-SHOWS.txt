@@ -1,0 +1,272 @@
+REFERTO QB-2026-08-06-A64-S5X-BACK-TO-SHOWS
+============================================
+
+Orologio: 2026-08-06T13:17:58Z, locale +02:00. Data ID = data esecuzione.
+Atomo: ⟦S5x⟧ — cablaggio BACK TO SHOWS in FineSetlistView.
+Stato alla consegna: **PROPOSTO — DIFF APERTO NEL WORKING TREE, NON COMMITTATO.**
+
+VERIFICA ID — A64 NON COLLIDE.
+  · repo : nessun file con 'A64' nel nome (`ls | grep` -> exit 1).
+    Nel CONTENUTO 'A64' compare in UN file: MISURE_CC_2026-08-06_A65-VERIFICA-NAS.txt —
+    ed e' la riga che REGISTRA la sospensione di A60/A63/A64 («mai eseguiti»).
+    E' una menzione della sospensione, non un artefatto di esecuzione: NON collide.
+  · E:   : identico (nome: nessun match; contenuto: solo il mirror di A65).
+  · controllo positivo: A65 presente su entrambi i supporti.
+  · A60 e A63: annullati dal referee, non cercati, come da mandato.
+
+AGGANCIO — CONFERMATO.
+  Ultimo referto per mtime: MISURE_CC_2026-08-06_A65-VERIFICA-NAS.txt (15:07). Corretto.
+
+CANCELLO HEAD — SUPERATO.
+  HEAD   = 25056b66eda40ad76d91a886ace442b7064ca900   (atteso: identico)
+  albero = 63c793a8d0ec122cdfc9657992c309568f83821e   (atteso: identico)
+  branch = master
+  `git status --porcelain -- ios_app/` PRIMA delle modifiche -> VUOTO.
+  Le misure di A58 su cui poggia questo mandato valgono a questo albero.
+
+IDEMPOTENZA — CABLAGGIO ASSENTE, SI PROCEDE.
+  `grep -rn 'onBackToShows|onBackToLibrary|backToShows' ios_app/` -> exit 1, zero occorrenze.
+  FineSetlistView.swift:19 a disco = `Button("BACK TO SHOWS") { /* navigazione — Fase
+  successiva */ }` (closure vuota, verbatim riletto PRIMA di scrivere).
+  LiveView.swift:145 a disco = `FineSetlistView(scaleFactor: scaleFactor)`.
+  Callsite di FineSetlistView( in tutto ios_app/: UNO SOLO (LiveView.swift:145).
+
+
+================================================================================
+§7 — CENSIMENTO DEGLI OSSERVATORI DI session.playbackState (PRIMA di scrivere)
+================================================================================
+
+Domanda del mandato: scrivere `.stopped` su `session.playbackState` in stato
+`.fineSetlist`, a motore gia' fermo (fermato da `SetlistRunner.swift:378
+audioEngine.stop()` all'ingresso in fineSetlist), e' INERTE?
+
+RISPOSTA: SI'. Censimento esaustivo a quattro grep + lettura dei file coinvolti.
+
+GREP ESEGUITI (verbatim dei comandi):
+  1. grep -rn 'session\.playbackState' ios_app/QBeats/     -> 29 occorrenze
+  2. grep -rn '\$playbackState' ios_app/QBeats/            ->  4 occorrenze
+  3. grep -rn 'onChange' ios_app/QBeats/UI/                -> 10 occorrenze
+  4. grep -n 'state: session.playbackState' LiveView.swift ->  3 occorrenze
+
+LA CLASSE STESSA — LiveSession.swift, LETTA PER INTERO (41 righe):
+  `Models/LiveSession.swift:35`:
+      @Published var playbackState: LivePlaybackState = .stopped
+  @Published NUDO: ZERO didSet, ZERO willSet, ZERO logica. Scriverlo emette solo
+  objectWillChange (re-render SwiftUI). Nessun altro campo della classe ha didSet.
+
+CENSIMENTO COMPLETO, occorrenza per occorrenza:
+
+A. RAMI DI RENDERING in LiveView.body — :92, :101, :103, :108, :132, :140, :144, :165.
+   Con `.stopped`: isStandby=false (:92); gli overlay standby (:132), overlayStop
+   (:140), fineSetlist (:144), waitingForDirector (:165) NON montati (il tap fa
+   proprio sparire END SHOW: e' l'effetto voluto); :101/:103/:108 passano lo stato
+   alle tre bar (sotto). Rendering puro. INERTE.
+
+B. LEAF CHE RICEVONO LO STATO — letti a fonte, ramo `.stopped` per ciascuno:
+   · BarCounterView.swift:14 `switch state`: `.stopped` cade nel `default:` ->
+     mostra «Bar N of M» (testo). Rendering. INERTE.
+   · SegBarViews.swift (MicroSegBarView) :30:
+       `let isLit = !isStandby && (isPlaying || sectionHold)`
+     con `.stopped`: isPlaying=false, isStandby=false -> isLit dipende dal solo
+     sectionHold (vedi reperto collaterale sotto). Rendering. INERTE.
+   · SegBarViews.swift (MacroBarView) :53: check `.standby` -> false. Rendering. INERTE.
+   · TeleprompterCapsuleView.swift:16 `switch`: `.stopped` -> `default:` -> testo
+     (BPM fallback o nome sezione). Rendering. INERTE.
+   · TransportView.swift :13/:17/:20: tre COMPUTED per il body (isCountIn, isStandby,
+     isStopped). Con `.stopped`: isStopped=true -> il transport disegna lo stato fermo.
+     NESSUNA azione automatica: le azioni partono solo da tap dell'utente. INERTE.
+     (La scrittura :58 `.waitingForDirector` e' un'AZIONE DA TAP, non un observer.)
+   · WaitingForDirectorView.swift:5: commento. INERTE.
+
+C. LOGICA ATTIVA in LiveView — i tre punti che REAGISCONO a eventi:
+   · :224-264 `.onReceive(audioEngine.$playbackState)`: si innesca SOLO su emissioni
+     del MOTORE. La scrittura su `session` NON lo attiva (sorgente diversa). E il
+     motore e' fermo: l'ultimo `.stopped` del motore (dispatch AudioEngine:1090-1091,
+     innescato da SetlistRunner:378) e' arrivato all'INGRESSO in fineSetlist ed e'
+     stato SCARTATO dalla guardia :231-233 (`case .standby, .fineSetlist: return`).
+     Nessuna emissione in volo al momento del tap.
+     => LA GUARDIA :231-233 NON E' SUL PERCORSO DEL CABLAGGIO, riconfermato in questo
+        giro: ascolta il motore, non la sessione. VINCOLO 1 RISPETTATO (non toccata).
+   · :371-379 `.onReceive(audioEngine.sectionEndedSubject)` + asyncAfter con guard
+     `:375 if case .stopped = session.playbackState`. L'asyncAfter viene armato
+     dall'emissione di SetlistRunner:376 (un beat ~0.5s) e all'ingresso in fineSetlist
+     scatta col guard che FALLISCE (stato = .fineSetlist) -> no-op. Al momento del tap
+     (secondi/minuti dopo) NESSUN asyncAfter pendente. Ipotesi limite (tap dentro la
+     finestra di un beat): il guard passerebbe DOPO la mia scrittura -> effetti:
+     `sectionHold=false; session.beatActive=0` — due reset di DISPLAY, zero audio.
+     INERTE SOTTO ENTRAMBE LE IPOTESI.
+   · :406-417 `.onReceive(audioEngine.linkStartedSubject)` (:407 e :412 leggono lo
+     stato): si innesca SOLO dal callback Link (un Director remoto avvia). Non
+     innescato dalla mia scrittura. Percorso pre-esistente, invariato da questo atomo.
+
+D. FUORI DALLA UI:
+   · SetlistRunner: si sottoscrive a `session.$beatActive` (:179-181), NON a
+     playbackState. Le sue tre occorrenze (:148, :348, :377) sono SCRITTURE.
+     Nessun observer. INERTE.
+   · AudioEngine: le due occorrenze (:178, :1089) sono COMMENTI. AudioEngine non
+     legge mai LiveSession. INERTE.
+   · grep `$playbackState`: le 4 occorrenze sono tutte `audioEngine.$playbackState`
+     (1 codice = LiveView:224, 3 commenti). NESSUNO si sottoscrive a
+     `session.$playbackState`. Nessun observer Combine nascosto.
+   · grep `onChange` su UI/: AppRootView (:60 scenePhase, :70 screen — il mio percorso
+     NON cambia `screen`, resta .qLive: non scatta), SectionEditorView (:91, :94 —
+     stanza Q-Stage, non montata). INERTE.
+
+VERDETTO §7: NESSUN osservatore compie azioni non inerti. Il mandato NON decade.
+
+REPERTO COLLATERALE (pre-esistente, NON toccato — fuori mandato):
+  All'ingresso in fineSetlist `sectionHold` resta `true` per sempre: l'asyncAfter di
+  :374 scatta col guard :375 che fallisce (stato = .fineSetlist), quindi il reset non
+  avviene mai. Il mio cablaggio NON lo cambia (non tocco sectionHold). Conseguenza
+  visibile SOLO nell'ipotesi «LiveView non si smonta al flip di page» (NON SORGENTATA):
+  al rientro nel player un segmento della barretta potrebbe risultare acceso
+  (MicroSegBarView:30, isLit=sectionHold a fermo). Da valutare in ⟦S5b⟧ col device;
+  registrato qui perche' emerso dal censimento, non risolto perche' fuori mandato.
+
+
+================================================================================
+DIFF VERBATIM — 2 file, +30/−2
+================================================================================
+
+diff --git a/ios_app/QBeats/UI/Live/FineSetlistView.swift b/ios_app/QBeats/UI/Live/FineSetlistView.swift
+index b4efb0b..4602937 100644
+--- a/ios_app/QBeats/UI/Live/FineSetlistView.swift
++++ b/ios_app/QBeats/UI/Live/FineSetlistView.swift
+@@ -5,6 +5,16 @@ struct FineSetlistView: View {
+     /// Propagato a `OverlayStopButtonStyle` con lo stesso valore ricevuto
+     /// da `LiveView` (denominatore 390pt unico in tutta la Vista LIVE).
+     let scaleFactor: CGFloat
++    /// ⟦S5x⟧ (A64) — tap su BACK TO SHOWS. Comportamento ratificato
++    /// `LIBRO_MASTRO_QBEATS.md:154` (R-CD5-10, 21/05): «torna alla libreria SHOWS».
++    /// Closure OPACA e OBBLIGATORIA (niente default no-op: un default rifarebbe il
++    /// bottone morto): questa vista non sa nulla di sessione né di navigazione —
++    /// la composizione delle azioni vive nel presentatore (`LiveView.swift:145`),
++    /// che possiede la sessione.
++    /// ⛔ RESTART SETLIST resta volutamente inerte: comportamento solo «proposto
++    /// (CD-3)» (`LIBRO:153`), mai ratificato — cablarlo, disabilitarlo o
++    /// nasconderlo è decisione CD, non di questo atomo.
++    let onBackToShows: () -> Void
+
+     var body: some View {
+         ZStack {
+@@ -16,7 +26,7 @@ struct FineSetlistView: View {
+                     .tracking(2)
+
+                 VStack(spacing: 12) {
+-                    Button("BACK TO SHOWS") { /* navigazione — Fase successiva */ }
++                    Button("BACK TO SHOWS") { onBackToShows() }
+                         .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
+                     Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
+                         .buttonStyle(OverlayStopButtonStyle(primary: false, scaleFactor: scaleFactor))
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 46961e1..b436fa0 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -142,7 +142,25 @@ struct LiveView: View {
+                 }
+
+                 if case .fineSetlist = session.playbackState {
+-                    FineSetlistView(scaleFactor: scaleFactor)
++                    // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
++                    // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
++                    //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
++                    //      di `page` è NON SORGENTATO (QLiveRootView.swift:64-67): se
++                    //      LiveView NON si smontasse, senza questo reset il prossimo
++                    //      ingresso al player si aprirebbe direttamente su END SHOW.
++                    //      Scrittura INERTE a motore già fermo (SetlistRunner:378):
++                    //      `LiveSession.playbackState` è @Published nudo, zero didSet
++                    //      (LiveSession.swift:35); la guardia :231-233 qui sotto NON
++                    //      è su questo percorso — ascolta il MOTORE
++                    //      (audioEngine.$playbackState), non la sessione.
++                    //  (b) onExit — il seam del presentatore (QLiveRootView.swift:157,
++                    //      `navigate(to: .shows)`): stesso identico canale già usato
++                    //      da LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
++                    //      TERZO inoltro dello stesso seam, nessun percorso nuovo.
++                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: {
++                        session.playbackState = .stopped
++                        onExit()
++                    })
+                 }
+
+                 // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR
+
+diffstat:  FineSetlistView.swift +11/−1 · LiveView.swift +19/−1  =  +30/−2
+
+NOTA LINE-ENDING (due-file/due-facce, dichiarata): working copy dei due file
+interamente CRLF (38/38 e 466/466 righe CRLF — le righe nuove hanno la stessa faccia
+delle esistenti); blob a HEAD LF puro (0 CRLF); core.autocrlf=true. `git diff
+--numstat` = +11/−1 e +19/−1: ZERO churn di line-ending, il diff e' solo contenuto.
+Il warning git «LF will be replaced by CRLF» apparso su FineSetlistView e' cosmetico
+del working copy: il blob che entrerebbe in commit e' normalizzato LF, identico in
+faccia a quello a HEAD.
+
+
+================================================================================
+VINCOLI DEL MANDATO — RISPETTO, VOCE PER VOCE
+================================================================================
+
+1. Guardia LiveView:231-233        -> NON TOCCATA (fuori dal diff; e il censimento
+                                      riconferma che non sta sul percorso).
+2. RESTART SETLIST                 -> NON TOCCATO: riga byte-identica, closure vuota
+                                      compresa (visibile nel contesto del diff).
+                                      Nessuna modifica di aspetto/stato del bottone.
+3. AudioEngine / SetlistRunner / RT-> ZERO file toccati fuori dai due del diff.
+                                      `git status --porcelain -- ios_app/` = 2 M, soli.
+4. RIUSO                           -> il cablaggio INOLTRA il seam esistente
+                                      (`onExit` di LiveView:10, gia' cablato da
+                                      QLiveRootView:157 a `navigate(to: .shows)`).
+                                      Nessuno stato nuovo, nessuna navigazione nuova,
+                                      nessun tipo nuovo.
+5. ORDINE (a) stato, (b) uscita    -> rispettato verbatim nella closure. Il reset
+                                      NON e' stato omesso, per la ragione del mandato
+                                      (rilascio del sottoalbero NON SORGENTATO):
+                                      corretto sotto entrambe le ipotesi.
+6. RIPARTIZIONE                    -> FineSetlistView riceve una closure OPACA
+                                      (() -> Void, parametro OBBLIGATORIO senza
+                                      default). `session` NON entra nella vista.
+                                      La composizione sta in LiveView.
+
+SCELTA DICHIARATA (non prescritta dal mandato): il parametro e' `let` SENZA default.
+Un default no-op `= {}` avrebbe ricreato il bottone morto in silenzio a ogni futuro
+callsite; senza default il compilatore forza ogni costruttore a decidere. Callsite
+esistenti: UNO (LiveView:145), aggiornato in questo stesso diff.
+
+
+================================================================================
+CI E COLLAUDO
+================================================================================
+
+CI: NON ESEGUITA IN QUESTO GIRO, e non per dimenticanza: far girare la CI richiede un
+push, e il mandato vieta commit e push prima della ratifica del referee E dell'OK di
+Mauro (due cancelli distinti). La compilazione CI segue la ratifica, nella forma gia'
+usata per ⟦S5a⟧ (ramo temporaneo + workflow_dispatch, poi innesto su master — A51/A55).
+Verifica sintattica locale: NON DISPONIBILE (nessun toolchain Swift in ambiente CC,
+dichiarato). Il diff e' stato riletto riga per riga contro i tipi coinvolti
+(closure `() -> Void`; unico callsite aggiornato nello stesso diff).
+
+DEVICE: questo atomo NON e' validabile su device oggi — l'ingresso alla schermata
+END SHOW resta chiuso dalle serrature I-1…I-4 di A58 (page mai .metronome, runner
+slot vuoto, START inerte, empty-state CD mancante). Formula di stato imposta dal
+mandato e sottoscritta: «chiuso a codice, validazione device differita a ⟦S5b⟧» —
+NON «chiuso». E "chiuso a codice" varra' solo DOPO ratifica + OK Mauro + CI verde:
+oggi lo stato e' PROPOSTO.
+
+
+================================================================================
+STATO DEL WORKING TREE ALLA CONSEGNA
+================================================================================
+`git status --porcelain -- ios_app/`:
+   M ios_app/QBeats/UI/Live/FineSetlistView.swift
+   M ios_app/QBeats/UI/Live/LiveView.swift
+NESSUN COMMIT. NESSUN PUSH. HEAD invariato a 25056b66eda40ad76d91a886ace442b7064ca900.
+Il diff vive nel working tree in attesa dei due cancelli (ratifica referee + OK Mauro),
+che restano distinti e non si fondono.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI a HEAD 25056b66eda40ad76d91a886ace442b7064ca900, non a memoria:
+le righe bersaglio rilette a disco PRIMA di scrivere (idempotenza), LiveSession.swift
+letta PER INTERO, i leaf letti nelle porzioni che consumano lo stato, i quattro grep
+del censimento riportati coi loro risultati. Ogni affermazione porta il comando o il
+file:riga da cui viene. Il reperto collaterale (sectionHold) e' dichiarato e non
+risolto perche' fuori mandato. La CI non e' stata eseguita e il motivo e' dichiarato.

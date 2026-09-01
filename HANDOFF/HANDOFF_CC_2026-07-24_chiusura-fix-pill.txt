@@ -1,0 +1,39 @@
+HANDOFF CC — chiusura sessione ⟦FIX-PILL⟧ + BUGS v43
+Stato derivato a fonte il 2026-07-24. Se diverge dai file, VINCONO I FILE.
+La prossima sessione riverifica, non eredita.
+
+=== STATO GIT (verificato a fonte) ===
+HEAD = origin/master = ls-remote(GitHub) = 54ccddc8be2e839e05ac025c156b513d80bb1725
+Tree: pulito — 0 tracked-modified, 30 untracked (HANDOFF/*.txt + 2 PIANO .md).
+Worktree secondario: C:\Users\BULLFROG\qb_fixB  add556f [test/bug2b-test7-fixtures] (debito noto, non toccare alla cieca).
+Ultimi commit: 54ccddc (BUGS v43) <- ee31281 (FIX-PILL) <- 7c804c1 (BOX3 V99) <- bfa07eb (BUGS v42) <- 131a511 (LIBRO v40).
+
+=== VERSIONI CANONICHE (lette dai file, non a memoria) ===
+BOX3_QBEATS.md = V99 (22/07)  ·  LIBRO_MASTRO_QBEATS.md = v40 (22/07)  ·  BUGS_QBEATS.md = v43
+BOX5_QBEATS.md = V27 (21/07)  ·  HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md = Versione 2 (17/07)
+
+=== CHIUSO IN QUESTA SESSIONE ===
+- ⟦FIX-PILL⟧ commit ee31281 (autore=committer Mauro, 0 trailer), 3 file +19/-5, L3 puro:
+  QStageRootView espone onSwitchToLive, AppRootView lo inietta {screen=.qLive}, ShowsListView lo chiama al posto della sonda [GATE-S3].
+  CI 29994513488 = success (iOS Signed Build, 1/1 job).
+- TD-qstage-pill-qlive-morta -> 🟢 CHIUSO su device (Mauro, iPhone+iPad, 4 tocchi hit-area 4/4 PASS). Spostato in BUGS Sez.2.
+- BUGS v43 commit 54ccddc (blob 8431496d), CI 30015719424 = success. Propagazione E: 4/4 (blob-print 2fcf1d06, 195668 B; diff 4b3fd1c7).
+
+=== PROSSIMO FRONTE REALE ===
+S4L. (Il fix pill, che era il fronte codice pre-S4L, è chiuso.)
+
+=== APERTI NON BLOCCANTI ===
+- TD-qstage-tab-reset (BUGS §1.3, 🟡 BASSA): Q-Stage rientra sempre su Songs. Pre-esistente, NON regressione ee31281. Vedi DECISIONE CD sotto.
+- Regime SCALETTA: tracciata (fe6d34b, 18/07) ma vive in HANDOFF/ con nome per-data, fuori dal regime root+in-place; atomo doc a sé (BOX3 V99 (a)).
+- "Fase 6-7" da rimettere nel ticket TD#17 di BUGS (BOX3 V99 (b)).
+- Gate device S4b non completato.
+- TD#17 = 🟠 OPEN MEDIA, NON bloccante. Chiusura: (A) run palco 2-3h VR2800 banda singola senza perdita peer OPPURE (B) Soluzione C. Alternative; roam = caratterizzazione.
+
+=== DECISIONE CD 23/07 su TD-qstage-tab-reset — [R] NON verificata dal referee, NON incisa ===
+CD: "al rientro in Q-Stage si atterra su Songs; nessuna memoria dell'ultima linguetta; invariante unico: Q-Stage apre SEMPRE su Songs, qualunque la porta d'ingresso."
+Risponde ESATTAMENTE alla domanda aperta del ticket (Shows vs Songs? cambia dalla Home?): sì -> Songs, no -> stesso invariante da ogni porta.
+Implicazione: risoluzione BY-DESIGN a ZERO codice (il comportamento osservato È l'invariante voluto). Da incidere nel ticket al PROSSIMO GIRO DOC (serve il giro), NON ora.
+
+=== DUE TRAPPOLE ===
+(i) gh run list --commit <sha corto> -> [] con exit 0 (falso-zero); SEMPRE sha a 40. Un vuoto da un filtro non è un fatto finché non verifichi la notazione.
+(ii) CONSEGNA != RATIFICA: un artefatto consegnato (o creduto tale) non è una ratifica ricevuta. Se manca la ratifica: fermarsi e chiedere. (già in memoria)

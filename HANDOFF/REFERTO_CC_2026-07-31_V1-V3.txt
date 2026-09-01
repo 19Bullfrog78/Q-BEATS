@@ -1,0 +1,331 @@
+==============================================================================
+REFERTO CC — 2026-07-31 — TRE VERIFICHE CORTE (V1 · V2 · V3)
+==============================================================================
+ZERO scritture sul repo, ZERO commit, ZERO push, ZERO branch.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessuna conclusione: le trae il referee.
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+$ git diff --stat        # tracciati modificati
+[VUOTO]
+$ git diff --cached --stat
+[VUOTO]
+
+==============================================================================
+V1 — FONTE PER .swipeActions
+==============================================================================
+
+Nel referto M0-M4 avevo scritto, SENZA fonte, che «.swipeActions e' un
+modificatore che SwiftUI applica alle righe di List». Sotto la fonte.
+La fonte c'e': NON scrivo NON TROVATO.
+
+TESTO RECUPERATO DALLA RETE — NON e' output di un comando sulla macchina di
+Mauro. La catena di custodia e' dichiarata in fondo a questo blocco.
+
+────────────────────────────────────────────────────────────────────────────
+FONTE 1 — swipeActions(edge:allowsFullSwipe:content:)
+────────────────────────────────────────────────────────────────────────────
+URL della pagina leggibile dall'uomo:
+  https://developer.apple.com/documentation/swiftui/view/swipeactions(edge:allowsfullswipe:content:)
+
+URL effettivamente interrogato (endpoint dati che serve QUELLA pagina; la pagina
+HTML e' renderizzata in JavaScript e il primo tentativo ha reso solo il titolo):
+  https://developer.apple.com/tutorials/data/documentation/swiftui/view/swipeactions(edge:allowsfullswipe:content:).json
+
+INDIRIZZO DEL PUNTO: campo «Abstract» della pagina, la riga immediatamente sotto
+il nome del simbolo. VERBATIM:
+
+    "Adds custom swipe actions to a row in a list."
+
+INDIRIZZO DEL PUNTO: sezione «Discussion», PRIMA frase. VERBATIM:
+
+    "Use this method to add swipe actions to a view that acts as a row in a list."
+
+INDIRIZZO DEL PUNTO: sezione «Discussion», ULTIMA frase. VERBATIM:
+
+    "Actions accumulate for a given edge if you call the modifier multiple times
+     on the same list row view."
+
+L'esempio di codice della Discussion monta il modificatore dentro:
+    List { ForEach(store.messages) { message in MessageCell(message: message)
+        .swipeActions(edge: .leading) { ... } } }
+
+DISPONIBILITA' dichiarata dalla stessa pagina:
+    iOS 15.0+ · iPadOS 15.0+ · Mac Catalyst 15.0+ · macOS 12.0+ ·
+    visionOS 1.0+ · watchOS 8.0+
+
+────────────────────────────────────────────────────────────────────────────
+FONTE 2 — swipeActionsContainer()
+────────────────────────────────────────────────────────────────────────────
+URL leggibile:
+  https://developer.apple.com/documentation/swiftui/view/swipeactionscontainer()
+URL interrogato:
+  https://developer.apple.com/tutorials/data/documentation/swiftui/view/swipeactionscontainer().json
+
+INDIRIZZO DEL PUNTO: «Abstract». VERBATIM:
+
+    "Coordinates swipe action dismissal and mutual exclusion across rows in a
+     container."
+
+INDIRIZZO DEL PUNTO: «Discussion», prima frase. VERBATIM:
+
+    "Apply this modifier to a `ScrollView` or other container that holds rows
+     using the swipeActions(edge:allowsFullSwipe:content:) modifier."
+
+INDIRIZZO DEL PUNTO: «Discussion», dopo l'elenco puntato. VERBATIM:
+
+    "`List` provides this coordination automatically. Use
+     `swipeActionsContainer()` when building custom row-based layouts that use
+     `ScrollView`, `LazyVStack`, or similar containers."
+
+INDIRIZZO DEL PUNTO: «Discussion», ultima frase. VERBATIM:
+
+    "Applying this modifier to a `List` is a no-op, since `List` already
+     provides this coordination."
+
+L'esempio di codice della Discussion monta:
+    ScrollView { LazyVStack { ForEach(items) { item in ItemRow(item)
+        .swipeActions { ... } } } } .swipeActionsContainer()
+
+DISPONIBILITA' dichiarata dalla stessa pagina:
+    iOS 27.0 (beta) · iPadOS 27.0 (beta) · Mac Catalyst 27.0 (beta) ·
+    macOS 27.0 (beta) · visionOS 27.0 (beta) · watchOS 27.0 (beta)
+
+────────────────────────────────────────────────────────────────────────────
+FONTE 3 — swipeActions(edge:allowsFullSwipe:content:onPresentationChanged:)
+────────────────────────────────────────────────────────────────────────────
+URL leggibile:
+  https://developer.apple.com/documentation/SwiftUI/View/swipeActions(edge:allowsFullSwipe:content:onPresentationChanged:)
+URL interrogato:
+  https://developer.apple.com/tutorials/data/documentation/swiftui/view/swipeactions(edge:allowsfullswipe:content:onpresentationchanged:).json
+
+INDIRIZZO DEL PUNTO: «Abstract». VERBATIM:
+
+    "Adds custom swipe actions to a row in a list or container, notifying you
+     when the actions are revealed or dismissed."
+
+DISPONIBILITA' dichiarata dalla stessa pagina:
+    iOS 27.0 (beta) · iPadOS 27.0 (beta) · Mac Catalyst 27.0 (beta) ·
+    macOS 27.0 (beta) · visionOS 27.0 (beta) · watchOS 27.0 (beta)
+
+────────────────────────────────────────────────────────────────────────────
+CATENA DI CUSTODIA — dichiarata perche' NON e' della stessa qualita' di una
+misura fatta sul disco di Mauro
+────────────────────────────────────────────────────────────────────────────
+· Le pagine HTML di developer.apple.com sono renderizzate in JavaScript: il
+  primo tentativo sull'URL leggibile ha reso SOLO il titolo della pagina
+  («swipeActions(edge:allowsFullSwipe:content:) | Apple Developer
+  Documentation»), NESSUN testo. Questo prova che l'URL esiste e punta al
+  simbolo giusto, ma non basta a citare.
+· Il testo sopra viene dall'endpoint JSON che serve la stessa pagina. Lo
+  strumento di fetch estrae e restituisce il contenuto: NON ho letto i byte
+  grezzi del JSON con i miei occhi. Fra la fonte e questa pagina c'e' uno
+  strato di estrazione.
+· CORROBORAZIONE: la frase-chiave della Discussion di FONTE 1 e' stata
+  richiesta DUE VOLTE, in due interrogazioni separate e con due formulazioni
+  di richiesta diverse (la seconda: «quote character-for-character ONLY the
+  single first sentence, do not paraphrase»). Le due estrazioni rendono la
+  stessa frase, parola per parola. Non e' la stessa cosa di aver letto il
+  byte, e lo dichiaro.
+· Una ricerca indipendente su developer.apple.com ha reso, fra i risultati, i
+  titoli dei tre simboli sopra — compreso «Adds custom swipe actions to a row
+  in a list or container» per FONTE 3. E' una seconda strada che concorda.
+· NON ho verificato queste pagine su un dispositivo ne' compilando: nessun
+  Xcode in ambiente CC.
+
+------------------------------------------------------------------------------
+SECONDA DOMANDA DI V1 — esiste un contenitore DIVERSO da List?
+------------------------------------------------------------------------------
+
+SI, e la fonte e' la FONTE 2 sopra, verbatim: «Apply this modifier to a
+`ScrollView` or other container that holds rows using the
+swipeActions(edge:allowsFullSwipe:content:) modifier» e «Use
+`swipeActionsContainer()` when building custom row-based layouts that use
+`ScrollView`, `LazyVStack`, or similar containers».
+
+Il meccanismo dichiarato dalla pagina e' quindi: la riga porta
+.swipeActions come sempre; a cambiare e' il CONTENITORE, che deve portare
+.swipeActionsContainer() per fare il coordinamento che List fa da se'.
+
+⚠️ LA DISPONIBILITA' E' PARTE DELLA RISPOSTA, non un dettaglio: entrambi i
+simboli nuovi sono dichiarati iOS 27.0 (beta). Il simbolo di base e' iOS
+15.0+. Sotto il target di distribuzione del progetto, misurato a fonte.
+
+$ git ls-tree -r HEAD --name-only | grep -iF 'project.yml'
+ios_app/project.yml
+[fine]
+  controllo positivo, stessa forma, stesso input:
+$ git ls-tree -r HEAD --name-only | grep -ciF '.yml'
+4
+
+$ git show HEAD:ios_app/project.yml | grep -n 'deploymentTarget'
+14:    deploymentTarget: "16.0"
+137:    deploymentTarget: "16.0"
+[fine]
+  controllo positivo, stessa forma, stesso file:
+$ git show HEAD:ios_app/project.yml | grep -c 'platform'
+2
+
+$ git show HEAD:ios_app/project.yml | cat -n | sed -n '10,16p'
+    10	targets:
+    11	  QBeats:
+    12	    type: application
+    13	    platform: iOS
+    14	    deploymentTarget: "16.0"
+    15	    info:
+    16	      path: QBeats/Info.plist
+[fine]
+
+--- i due simboli compaiono nel codice a HEAD? ---
+forma: git grep -lF <stringa> HEAD -- 'ios_app/*.swift' | wc -l   (FILE, non occorrenze)
+  swipeActions             -> 0
+  swipeActionsContainer    -> 0
+  onPresentationChanged    -> 0
+  contextMenu              -> 0
+  --- controlli positivi, STESSA forma, STESSO input ---
+  POS ScrollView           -> 2
+  POS LazyVStack           -> 2
+  POS List                 -> 11
+  POS ForEach              -> 12
+
+⚠️ RETTIFICA CHE SEGNALO SU ME STESSO — il claim del referto M0-M4 va
+emendato per DUE motivi distinti, e non li confondo:
+  (i) era senza fonte. Questo e' il difetto che V1 contesta, ed e' sanato
+      qui sopra.
+  (ii) era INCOMPLETO. «List-only» descrive la API di base come Apple la
+       documenta, ma dal simbolo swipeActionsContainer() esiste una strada
+       per ScrollView/LazyVStack. Che quella strada sia utilizzabile da
+       QUESTO progetto e' materia di confronto fra iOS 27.0 (beta) e il
+       deploymentTarget misurato sopra: il confronto lo fa il referee, non
+       io. Riporto i due numeri, non la loro conseguenza.
+
+==============================================================================
+V2 — TICKET 'TD-qlive-exit-unconfirmed-stop', PER INTERO
+==============================================================================
+
+--- localizzazione per SIMBOLO, prima che per riga ---
+$ git show HEAD:BUGS_QBEATS.md | grep -n '### TD-qlive-exit-unconfirmed-stop'
+117:### TD-qlive-exit-unconfirmed-stop — Uscita-stanza col click attivo = stop non confermato (evento-banda)
+[fine]
+  controllo positivo, stessa forma, stesso file:
+$ git show HEAD:BUGS_QBEATS.md | grep -c '^### '
+114
+
+--- dove finisce: la prima riga 'Dominio:' a partire dall'intestazione ---
+$ git show HEAD:BUGS_QBEATS.md | grep -n 'Dominio:' | head -4
+88:- **Dominio:** CC.
+115:- **Dominio:** CC (+ rete).
+129:- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay)
+143:- **Dominio:** CC.
+[fine — la 115 appartiene al ticket PRECEDENTE, la 129 e' quella di questo]
+
+--- IL TICKET, righe 117-129, VERBATIM, NESSUN TRONCAMENTO ---
+$ git show HEAD:BUGS_QBEATS.md | cat -n | sed -n '117,129p'
+   117	### TD-qlive-exit-unconfirmed-stop — Uscita-stanza col click attivo = stop non confermato (evento-banda)
+   118	- **Sintomo:** col click ATTIVO, uscire da `.qLive` verso la Home fa scattare il canonico `AppRootView.swift:61-68` → `audioEngine.stop()` → `link_engine_stop` (`AudioEngine.swift:1645`) → con Start/Stop Sync attivo sui peer coinvolti, **la band si ferma**. Nessuna conferma richiesta all'utente. È l'uscita ORDINARIA (non un tasto sfiorato per sbaglio) ad avere questo costo nascosto.
+   119	- **Natura — DUE METÀ che si chiudono in modo DIVERSO (non dichiararlo chiuso a metà):**
+   120	  - **Metà PRE-ESISTENTE (attiva OGGI, non introdotta da §6):** nel build attuale (`f8276f6`) Q-Live apre dritta nel metronomo e il back-button di `LiveHeaderView.swift:30` (`Button { onExit() }`) è l'UNICA via d'uscita → `QLiveRootView.onExit` → `{ screen = .home }` (`AppRootView.swift:43`) → canonico → stop. Verificato a fonte 18/07: NESSUN RoomSwitchBar è oggi montato dentro Q-Live (S4b non ancora mergiato — `QLiveRootView` renderizza ancora `LiveRootView`→`LiveView` diretto), quindi **oggi la porta viva è UNA sola** (Home via back del metronomo), non due. Questa metà **NON la chiude l'overlay**: la chiude il **rerouting di S6** (back dal metronomo → `Q-Live›Shows` interno, non più Home — richiesta Mauro 17/07, BOX3 V97 (a)). **Sparisce per costruzione** quando S6 ricabla la destinazione del back.
+   121	  - **Metà NUOVA (introdotta da S4b/S5, non ancora spedita):** dopo il flip S4b la RoomSwitchBar compare in lista/dettaglio Shows con DUE porte reali (Home + switch verso Q-Stage). Con lo Start di S5/S4L il metronomo torna raggiungibile e il click può essere attivo mentre si è su lista/dettaglio: uscire di lì con un tap, su ENTRAMBE le porte, ripropone lo stop-non-confermato. **Questa la copre l'overlay** (STOP con conferma, opzione (iii) CD — LIBRO v36), che atterra a **S6** insieme al rerouting.
+   122	  - ⚠️ **MARCATURA v46 — le DUE metà sopra portano lo stesso difetto SPECCHIATO, misurato a HEAD `897d458e0777c2edbce349e4b0001c7c2c50c9b9`. Le righe restano come scritte: si marca, non si riscrive.** `r.120` dice «**attiva OGGI**» e «**oggi la porta viva è UNA sola**» al **presente** dentro un'ancora congelata a `f8276f6`, e le sue due affermazioni fattuali sono **FALSE a HEAD**: la **RoomSwitchBar È montata dentro Q-Live** (`ios_app/QBeats/UI/QLive/QLiveShowsView.swift:70`, costruttore; controllo positivo stessa forma `ios_app/QBeats/UI/QStage/ShowsListView.swift:82` per Q-Stage, 2 costruttori in tutto) e **`QLiveRootView` rende `QLiveShowsView`** (`ios_app/QBeats/UI/QLive/QLiveRootView.swift:61`), **non** `LiveRootView`→`LiveView` diretto. `r.121` dice «**non ancora spedita**» di ⟦S4b⟧, che **È spedito** — commit `6ded4ab`, gate device 20/07, inciso in `LIBRO_MASTRO_QBEATS.md:290`. ⛔ **LA SEVERITÀ NON CAMBIA**, e va detto qui esplicitamente perché il prossimo lettore non la riapra: **a HEAD il runner non nasce mai** — un solo sito di nascita (`= SetlistRunner(` → **1**, `ios_app/QBeats/UI/LiveRootView.swift:12`), `LiveRootView` a **ZERO call-site** (⚠️ il grep grezzo di `LiveRootView(` rende **1**, ma è `QLiveRootView(` ad `AppRootView.swift:51` — **sottostringa**; filtrato → **0**; controllo positivo stessa forma `QLiveShowsView(` → **1**), `LiveView` irraggiungibile di conseguenza (`LiveRootView.swift:18`), e funnel `navigate(to:)` a **ZERO chiamanti** (2 righe = **1 commento** a `:14` + **1 definizione** a `:54`; `page = ` compare **1** volta, a `:55`, dentro il funnel stesso). **Il pericolo non morde ancora.** ⚠️ Misurata la **struttura di montaggio**, non ogni percorso a runtime: il ramo `#if DEBUG` di `HomeRootView` non è stato misurato.
+   123	  - **CANCEL di `WaitingForDirectorView` — nel percorso ORDINARIO non è una porta di band-stop, ma con una CLAUSOLA-LIMITE precisa (verificato a fonte 18/07, rafforzato 19/07 — `VERIFICA_V-ISP_2026-07-19`, sha `9918c379…0350aa`; ESITO A):** `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector` (`LiveView.swift:165-166`); quello stato è assegnato SOLO a `TransportView.swift:58`, raggiungibile SOLO nel ramo `else if` di `if audioEngine.isPlaying` (`TransportView.swift:36`) → cioè SOLO con `isPlaying == false`; l'ingresso in waiting (`:58`) NON avvia l'audio. **Il ponte della prova NON è `isPlaying ⟹ isRunning`** — sono campi DISTINTI (`AudioEngine.swift:56` `@Published`/main vs `:273` `private`/audioQueue) e la loro sincronia è FALSIFICATA: `handleAppWakeUp` (`:3053` `guard self.isPlaying, !self.isRunning`) esiste APPOSTA per lo stato discorde `isPlaying==true && isRunning==false`. **Il ponte reale è «nessuno `start()` ha girato mentre la view è montata»**: `isRunning` diventa true SOLO in `start()` (`:886`, audioQueue), e le uscite che avviano l'audio (Director→`runner.startSetlist`; START LOCAL `LiveView.swift:172`) transitano a `.playing` smontando la view. Per il percorso ORDINARIO il ponte regge → il CANCEL→`onExit()`→`stop()` colpisce `guard self.isRunning` (`:1638`, `isRunning==false`) e ritorna PRIMA di `:1645` = nessuno stop propagato. **CLAUSOLA-LIMITE (ex-parentetico «boundary sub-frame», PROMOSSA da nota a confine del claim):** il ponte ha UN buco REALE, non teorico — `LiveView.swift:406-407` (observer `linkStartedSubject`) NON ha guard su `.waitingForDirector` (guarda solo `!= .playing`) → quando il Direttore preme Play, il Follower fa `start()` → `isRunning=true` (`:886`) MENTRE `session.playbackState` è ANCORA `.waitingForDirector` (lo smontaggio arriva dopo gli hop su main) → WaitingForDirectorView ancora montata, CANCEL ancora vivo, guard `:1638` PASSA → `:1645` propaga (con Start/Stop Sync attivo). Percorso a bassa probabilità, NON nullo, e di durata NON MISURATA: la finestra non è la sola latenza di dispatch, va da `:886` fino all'esecuzione della closure main `:1024-1025` — quindi include tutto il resto di `start()` su audioQueue (midi_engine_*, link_engine_*, metronome_*, scheduleNextBuffer, os_log, UserDefaults) — e lo smontaggio della view arriva ancora dopo (observer `:254` → session=.playing). Nessuna misura a runtime esiste (nessun Xcode lato CC) — quindi NON «impossibile per costruzione». La sola altra questione aperta sul CANCEL è la sua DESTINAZIONE di navigazione (R7, domanda CD). **Collegamento:** se `TD-follower-stop-propaga` (§1.2) viene risolto — lo stop del Follower reso locale — questo buco si chiude ALLA RADICE, senza toccare il CANCEL né la transizione waiting→playing.
+   124	- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata e lo stop propaga ai Follower. Propagazione = per-peer, condizionata a Start/Stop Sync ATTIVO nelle impostazioni Link dell'utente sui device coinvolti (`ABLLink.h:75-82`, «only controllable by the user via the Link settings dialog»); `project.yml:19 ABLLinkStartStopSyncSupported: true` PERMETTE l'attivazione, non la impone (BOX3 V97 (b)).
+   125	- **Mitigazione operativa (fino a S6):** **non uscire dal metronomo col click attivo — fermare il click PRIMA di premere back.** È l'unico percorso oggi esistente che espone il rischio. Se è prevista una data con la band prima di S6, la priorità del rerouting S6 va rivalutata.
+   126	- **Dipendenza:** decisione CD (iii) ratificata 18/07 (LIBRO v36) — direzione FERMA, **freeze del disegno ATTESO da CD**, deve coprire ENTRAMBE le uscite (Home + Switch) e tutti i contesti di sfondo. **Nessuna implementazione prima del freeze.** Da chiudere PRIMA di S6.
+   127	- **Fuori scope, registrato non implementato (NOTA referee 18/07, per quando arriva il freeze):** l'overlay richiederà peer-count + stato Start/Stop Sync = **dati L2**; §6 è dichiarato RT-neutro → la deroga va DICHIARATA esplicitamente nel disegno S6, non scoperta in corsa. Ruling referee (a CD 18/07): l'apparato d'allarme ambra può COMPARIRE in diretta se le condizioni diventano vere, ma NON deve SPARIRE finché il modale è aperto (il conteggio peer non è affidabile finché **TD#17** resta OPEN — un avviso agganciato a quel dato lampeggerebbe nel momento peggiore; aggiungere un avviso è sempre sicuro, toglierlo fa premere il tasto rosso convinti che non faccia male). Supersede la richiesta CD di ricalcolo live simmetrico.
+   128	- **Stato:** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Non per inerzia: la conseguenza catastrofica (stop propagato alla band) è innescabile dal percorso di uscita NORMALE, oggi, su ogni sessione con Start/Stop Sync utente attivo. Nessun fix applicato — bloccato sul freeze CD (metà nuova) e su S6 (metà pre-esistente, rerouting).
+   129	- **Dominio:** CD (disegno overlay + freeze) → CC (rerouting S6 + cablaggio overlay).
+[fine blocco — 13 righe, da 117 a 129 incluse]
+
+--- ancoraggio: il blob e' quello di HEAD, non il disco ---
+$ git rev-parse HEAD:BUGS_QBEATS.md
+5bf4713b90e7d1b1bf1790596a349a73e1ed69e1
+$ git show HEAD:BUGS_QBEATS.md | wc -l        # righe del blob
+1010
+$ git log --oneline -1 -- BUGS_QBEATS.md
+e61efd0 BUGS v46: marcature falsificazione E3 su r.355/r.1004 + difetto specchiato r.120-121 (doc-only) + referto MISURE_CC_2026-07-30_R1-ACCERTAMENTI in HANDOFF/
+
+⚠️ Non rispondo alla domanda del referee sulle righe 126 e 128. Il testo e'
+sopra per intero e non l'ho selezionato: ho riportato dall'intestazione
+alla riga 'Dominio:' inclusa, come chiesto.
+
+==============================================================================
+V3 — LA SECONDA SUPERFICIE DELLA FASCIA
+==============================================================================
+
+--- il comando indicato dal prompt ---
+$ git ls-tree -r HEAD --name-only | grep -i 'ShowDetail'
+[nessuna riga di output]
+
+--- quattro notazioni, e la stringa fissa come chiesto ---
+  grep -ci  ShowDetail (regex, insens.) -> 0
+  grep -c   ShowDetail (regex, sens.)   -> 0
+  grep -ciF ShowDetail (FISSA, insens.) -> 0
+  grep -cF  ShowDetail (FISSA, sens.)   -> 0
+
+--- CONTROLLI POSITIVI a STRINGA FISSA, stessa forma, stesso input ---
+    (non incatenati con && ai comandi sopra: uno zero non deve troncarli)
+  POS grep -ciF QLiveShowsView     -> 1
+  POS grep -ciF ShowsListView      -> 1
+  POS grep -ciF UI/QLive/          -> 6
+  POS grep -ciF .swift             -> 66
+
+--- MISURA SEPARATA, NON un controllo positivo ---
+    Avevo messo anche 'Detail' fra i controlli positivi. RENDE 0, quindi
+    NON e' un controllo positivo: un controllo che tace non prova nulla,
+    ed elencarlo fra i positivi avrebbe reso falsa la frase «rendono tutti
+    > 0». Lo tengo, ma come misura a se' stante:
+  grep -ciF Detail                 -> 0
+    Nessun nome di file tracciato a HEAD contiene 'Detail', in nessun caso.
+
+--- ancoraggio dimensionale dell'input ---
+$ git ls-tree -r HEAD --name-only | wc -l
+201
+
+--- che cosa c'e' invece sotto UI/QLive/ ---
+$ git ls-tree -r HEAD --name-only | grep -F 'UI/QLive/'
+ios_app/QBeats/UI/QLive/MetroFAB.swift
+ios_app/QBeats/UI/QLive/QLiveEmptyStates.swift
+ios_app/QBeats/UI/QLive/QLiveKit.swift
+ios_app/QBeats/UI/QLive/QLiveRootView.swift
+ios_app/QBeats/UI/QLive/QLiveSession.swift
+ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+[fine]
+
+COME SI SCRIVE QUESTO ZERO, come da prompt: zero righe in questa forma —
+quattro notazioni, di cui due a stringa fissa — su un input di 201 file
+tracciati, con QUATTRO controlli positivi della STESSA forma che rendono
+tutti > 0 sullo STESSO input (1, 1, 6, 66). Non e' scritto «non esiste».
+
+⚠️ Il richiamo del prompt e' pertinente e lo applico: la settima forma di
+falso-negativo che ho trovato io stesso era un controllo positivo notato
+male ('**' senza -F, che in regex base aggancia ogni riga). Qui i controlli
+positivi sono TUTTI a -F, e la forma provata e' la stessa della misura.
+
+==============================================================================
+CODA — COSA NON HO MISURATO
+==============================================================================
+
+· V1: non ho letto i byte grezzi del JSON di Apple. Fra la fonte e il testo
+  riportato c'e' uno strato di estrazione, dichiarato nella catena di
+  custodia. La frase-chiave e' stata corroborata da due interrogazioni
+  indipendenti che rendono la stessa frase parola per parola.
+
+· V1: non ho compilato nulla, non ho provato .swipeActions ne'
+  .swipeActionsContainer() su un dispositivo. Nessun Xcode in ambiente CC.
+
+· V1: non ho censito se altri simboli SwiftUI, oltre ai tre riportati,
+  tocchino lo stesso vincolo. Ho cercato quello chiesto e i due che la
+  ricerca ha fatto emergere accanto.
+
+· V2: ho riportato il ticket dall'intestazione alla riga 'Dominio:'. NON ho
+  verificato a fonte nessuna delle affermazioni che il ticket contiene, ne'
+  i riferimenti file:riga che cita. Ho riportato, non convalidato.
+
+· V3: ho misurato l'elenco dei file tracciati a HEAD. Un file non tracciato,
+  o un simbolo di dettaglio dentro un file dal nome diverso, non sarebbe
+  agganciato da questa forma: la forma cerca NOMI DI FILE, non contenuti.
+
+==============================================================================
+FINE REFERTO.
+==============================================================================

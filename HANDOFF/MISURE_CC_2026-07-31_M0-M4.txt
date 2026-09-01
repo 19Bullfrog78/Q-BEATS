@@ -1,0 +1,734 @@
+==============================================================================
+MISURE CC — 2026-07-31 — M0..M4 — SOLA LETTURA
+==============================================================================
+Nessuna scrittura sul repo, nessun commit, nessun branch, nessun push.
+L'unico file creato e' questo referto, untracked, in HANDOFF/.
+Nessun ABORT: i quattro punti sono tutti stati eseguiti.
+Comandi eseguiti da: /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS
+Ogni output sotto e' output di comando, non trascrizione.
+
+VARIABILI USATE NEI COMANDI RIPORTATI — dichiarate perche' senza di esse i
+comandi sotto non sarebbero riproducibili:
+  $SW     = ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+  $SC     = HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+  $FREEZE = DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html
+  $CANON  = i cinque canonici elencati dal prompt, nell'ordine:
+            HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+            LIBRO_MASTRO_QBEATS.md
+            BUGS_QBEATS.md
+            BOX3_QBEATS.md
+            BOX5_QBEATS.md
+
+==============================================================================
+M0 — ANCORAGGIO
+==============================================================================
+
+$ git rev-parse HEAD
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+
+$ git status --porcelain
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+?? HANDOFF/DIFF_B3_BOX5-V28_2026-07-28.txt
+?? HANDOFF/DIFF_B3bis_BOX5-V28_2026-07-28.txt
+?? HANDOFF/DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+?? HANDOFF/DIFF_B6_LIBRO-ratifica-sdoppiamento_2026-07-28.txt
+?? HANDOFF/DIFF_BUGS-v45_2026-07-30.txt
+?? HANDOFF/DIFF_BUGS-v45_2026-07-30_rev2.txt
+?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19_rev2.txt
+?? HANDOFF/DIFF_BUGS_v42_2026-07-22.txt
+?? HANDOFF/DIFF_BUGS_v43_2026-07-23.txt
+?? HANDOFF/DIFF_DARK-DECL_2026-07-29.txt
+?? HANDOFF/DIFF_FIX-PILL_2026-07-22.txt
+?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+?? HANDOFF/DIFF_LIBRO-v44_2026-07-30.txt
+?? HANDOFF/DIFF_LIBRO-v44_2026-07-30_rev2.txt
+?? HANDOFF/DIFF_LIBRO-v44_2026-07-30_rev3.txt
+?? HANDOFF/DIFF_LIBRO-v45_2026-07-30.txt
+?? HANDOFF/DIFF_LIBRO-v46_2026-07-31.txt
+?? HANDOFF/DIFF_LIBRO-v46_2026-07-31_rev2.txt
+?? HANDOFF/DIFF_LIBRO-v47_2026-07-31.txt
+?? HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev2.txt
+?? HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev3.txt
+?? HANDOFF/DIFF_LIBRO_v37_2026-07-19.txt
+?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_S4K_congedo-tastiera_2026-07-29.txt
+?? HANDOFF/DIFF_S4K_congedo-tastiera_rev2_2026-07-29.txt
+?? HANDOFF/DIFF_S4R-fase2_2026-07-31.txt
+?? HANDOFF/DIFF_S4R-fase2b_2026-07-31.txt
+?? HANDOFF/DIFF_S4a_2026-07-18.txt
+?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+?? HANDOFF/ESITO_COMMIT_BUGS_v40_2026-07-19.txt
+?? HANDOFF/ESITO_GIRODOC_FOLLOWER-GREGARIO_2026-07-19.txt
+?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_CHIUSURA_definitivo.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt
+?? HANDOFF/HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+?? HANDOFF/HANDOFF_CC_2026-07-24_chiusura-fix-pill.txt
+?? HANDOFF/HANDOFF_CC_2026-07-26.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27.txt
+?? HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_CC_2026-07-28_chiusura-giro-colore.txt
+?? HANDOFF/HANDOFF_CC_2026-07-28_sera_chiusura-sdoppiamento-S4L.txt
+?? HANDOFF/HANDOFF_CC_2026-07-29_sera.md
+?? HANDOFF/HANDOFF_CC_2026-07-30_sera.md
+?? HANDOFF/HANDOFF_CC_2026-07-30_sera_chiusura-v45.md
+?? HANDOFF/HANDOFF_CC_2026-07-31.txt
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-27_sera.md
+?? HANDOFF/HANDOFF_REFEREE_2026-07-28_sera_chiusura-giro-doc.md
+?? HANDOFF/INVENTARIO_SOPRAVVIVENZA_2026-07-28.txt
+?? HANDOFF/MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+?? HANDOFF/MISURE_CC_2026-07-31_M0-M4.txt
+?? HANDOFF/MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+?? HANDOFF/MISURE_M1_IDENTITA-S4L_2026-07-28.txt
+?? HANDOFF/MISURE_R1_2026-07-28.txt
+?? HANDOFF/MISURE_R1b_2026-07-28.txt
+?? HANDOFF/MISURE_R2_2026-07-28.txt
+?? HANDOFF/MISURE_R3_2026-07-28.txt
+?? HANDOFF/MISURE_R4_2026-07-28.txt
+?? HANDOFF/MISURE_R5_2026-07-28.txt
+?? HANDOFF/MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+?? HANDOFF/PIANO_S4_2026-07-18.txt
+?? HANDOFF/ROADMAP_2026-07-26.txt
+?? HANDOFF/STATO_FINALE_2026-07-30_sera_e61efd0.txt
+?? HANDOFF/STATO_FINALE_2026-07-31_40f099b.txt
+?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+?? HANDOFF/VERIFICA_V-DIR_2026-07-19.txt
+?? HANDOFF/VERIFICA_V-ISP_2026-07-19.txt
+?? HANDOFF/_SUPERATO__ROADMAP_2026-07-24.txt
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+?? tools/
+[fine output — nessuna riga di tipo ' M' o 'M ': nessun tracciato modificato,
+ nessuna staging area. Tutte le voci sono '??' (untracked). Vedi conferma sotto.]
+
+$ git diff --stat        # tracciati modificati
+[fine output — VUOTO]
+
+$ git diff --cached --stat        # staging
+[fine output — VUOTO]
+
+$ git status --porcelain | grep -c '^??'
+80
+  controllo positivo, stessa forma, stesso input (righe TOTALI di porcelain:
+  se coincide col numero sopra, allora ogni voce e' '??' e nessuna e' 'M'):
+$ git status --porcelain | grep -c '^'
+80
+
+⚠️ QUESTO NUMERO CONTA SE' STESSO. Il referto che state leggendo e' stato creato
+   dalla redirezione PRIMA che il comando girasse, quindi e' gia' dentro il conto.
+   Alla misura M0 fatta a mano, prima di generare il file, il conto era 79.
+   Non e' una discrepanza: e' il nudo che si muove mentre lo si misura. Chi
+   ripete la misura domani trovi 80 e non lo tratti come errore.
+
+$ git worktree list
+C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS 8822598 [master]
+C:/Users/BULLFROG/qb_fixB                     add556f [test/bug2b-test7-fixtures]
+[fine output]
+
+TUTTO CIO' CHE SEGUE E' ANCORATO A:
+8822598801ecbf9ca1be5adbf005f904c0b45f39
+
+==============================================================================
+M1 — REGIONI DI QLiveShowsView
+==============================================================================
+
+--- verifica del path a fonte, PRIMA di usarlo ---
+$ git ls-tree -r HEAD --name-only | grep -i qliveshows
+ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+[fine]
+  controllo positivo, stessa forma:
+$ git ls-tree -r HEAD --name-only | grep -c 'UI/QLive/'
+6
+
+$ git show HEAD:ios_app/QBeats/UI/QLive/QLiveShowsView.swift | wc -l
+396
+
+--- mappa dei SIMBOLI del file (prima delle righe, come da prompt) ---
+$ git show HEAD:$SW | grep -n 'struct \|var body\|private var \|func \|// MARK'
+3:// MARK: - QLiveShowsView — Q-Live › Shows (frame ②, read-only) · S4a
+39:struct QLiveShowsView: View {
+46:    @ObservedObject private var store = QBeatsStore.shared
+49:    @State private var searchText = ""
+51:    @FocusState private var searchFieldFocused: Bool
+54:    private var visibleShows: [Setlist] {
+61:    var body: some View {
+106:    private var keyboardDoneBar: some View {
+128:    // MARK: - Header (.scrhead §CSS) — h1 + badge .ro (NON .cnt: Q-Live è read-only)
+130:    private var scrhead: some View {
+146:    private var roBadge: some View {
+167:    // MARK: - Search row (.searchrow / .search §CSS) — SENZA .sortbtn (Q15); omessa nell'empty
+169:    private var searchRow: some View {
+219:    private var xclearButton: some View {
+232:    // MARK: - Corpo (lista / empty Ⓔ / no-match) + MetroFAB in coda (.metrofab margin-top:auto)
+235:    private var content: some View {
+252:    private var showList: some View {
+272:    private func showCard(_ show: Setlist) -> some View {
+315:    private func showMeta(_ show: Setlist) -> String {
+325:    private var noMatchHint: some View {
+339:// MARK: - Icon Shapes (path SVG verbatim dal freeze) — pattern ShowsListView/EmptyStateKit
+344:private struct LockIconShape: Shape {
+345:    func path(in rect: CGRect) -> Path {
+347:        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+362:private struct SearchIconShape: Shape {
+363:    func path(in rect: CGRect) -> Path {
+365:        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+374:private struct RowChevronShape: Shape {
+375:    func path(in rect: CGRect) -> Path {
+377:        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+387:private struct XClearIconShape: Shape {
+388:    func path(in rect: CGRect) -> Path {
+390:        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+[fine]
+
+------------------------------------------------------------------------------
+M1 (a) — DOVE VIVE OGGI IL PULSANTE METRONOMO IN CODA ALLA LISTA
+------------------------------------------------------------------------------
+
+PER SIMBOLO:
+$ git show HEAD:$SW | grep -n 'MetroFAB'
+25://  · MetroFAB in coda SOLO PIAZZATO (S2F riusato; dest = S6 stub, SCALETTA ⟦S4⟧/⟦S6⟧).
+86:                    // SafeAreaRegions: case separati). Occlude MetroFAB/lista sotto la
+232:    // MARK: - Corpo (lista / empty Ⓔ / no-match) + MetroFAB in coda (.metrofab margin-top:auto)
+237:            // Frame Ⓔ (FROZEN): include già CTA «Go to Q-Stage» + MetroFAB in coda (S2).
+238:            // EmptyStateLayout si espande da sé (maxHeight .infinity) → MetroFAB resta in fondo.
+247:            MetroFAB()
+324:    // search senza match. Il MetroFAB resta visibile (è l'uscita costante della stanza).
+[fine]
+  controllo positivo, stessa forma, stesso file:
+$ git show HEAD:$SW | grep -c 'struct'
+5
+
+Delle 7 righe sopra, UNA SOLA e' codice eseguibile: la 247. Le altre sei sono
+commento (righe 25, 86, 232, 237, 238, 324). Il simbolo che costruisce e' quindi
+'MetroFAB()' dentro la proprieta' calcolata 'content'.
+
+PER RIGA — blocco VERBATIM, numeri di riga reali a HEAD (righe 232-250):
+$ git show HEAD:$SW | cat -n | sed -n '232,250p'
+   232	    // MARK: - Corpo (lista / empty Ⓔ / no-match) + MetroFAB in coda (.metrofab margin-top:auto)
+   233	
+   234	    @ViewBuilder
+   235	    private var content: some View {
+   236	        if store.setlists.isEmpty {
+   237	            // Frame Ⓔ (FROZEN): include già CTA «Go to Q-Stage» + MetroFAB in coda (S2).
+   238	            // EmptyStateLayout si espande da sé (maxHeight .infinity) → MetroFAB resta in fondo.
+   239	            NoShowsToPlayEmptyState(onGoToQStage: onSwitchToStage)
+   240	        } else {
+   241	            if visibleShows.isEmpty {
+   242	                noMatchHint
+   243	            } else {
+   244	                showList
+   245	            }
+   246	            // .metrofab (§CSS): margin-top:auto (qui: dopo lo scroll greedy), padding-bottom 30.
+   247	            MetroFAB()
+   248	                .padding(.bottom, 30)
+   249	        }
+   250	    }
+[fine blocco]
+
+------------------------------------------------------------------------------
+M1 (b) — DOVE VIENE COSTRUITA LA SINGOLA RIGA-SHOW
+------------------------------------------------------------------------------
+
+PER SIMBOLO:
+$ git show HEAD:$SW | grep -n 'showCard\|ForEach\|showList'
+244:                showList
+252:    private var showList: some View {
+256:                ForEach(visibleShows) { show in
+257:                    showCard(show)
+272:    private func showCard(_ show: Setlist) -> some View {
+[fine]
+  controllo positivo, stessa forma, stesso file:
+$ git show HEAD:$SW | grep -c 'private'
+20
+
+IL FILE OFFRE DUE CANDIDATI DISTINTI, NON UNO. Li elenco entrambi, come da prompt.
+
+CANDIDATO b1 — 'showList': dove la riga viene ISTANZIATA nella lista (righe 252-267)
+$ git show HEAD:$SW | cat -n | sed -n '252,267p'
+   252	    private var showList: some View {
+   253	        ScrollView {
+   254	            // .list (§CSS): padding 0 16, gap 11.
+   255	            LazyVStack(spacing: 11) {
+   256	                ForEach(visibleShows) { show in
+   257	                    showCard(show)
+   258	                }
+   259	            }
+   260	            .padding(.horizontal, 16)
+   261	            .padding(.bottom, 16)   // inset di scroll (come ShowsListView)
+   262	        }
+   263	        // Q20 §2, gesto perdonante: swipe giù interattivo. iOS 16.0+ confermato a fonte
+   264	        // (Apple Developer Documentation, scrolldismisseskeyboard(_:).json → introduced 16.0),
+   265	        // combacia col minimo del progetto: nessun margine, ma nessuna specifica cade.
+   266	        .scrollDismissesKeyboard(.interactively)
+   267	    }
+[fine blocco b1]
+
+CANDIDATO b2 — 'showCard': dove la riga viene DISEGNATA (righe 269-311)
+$ git show HEAD:$SW | cat -n | sed -n '269,311p'
+   269	    // .showrow (§CSS): radius 15, padding 15/16, bg --qlive-surf, bordo --qlive-bd,
+   270	    // inset-top 1px .04; variante .pick: bg --qlive-pick, bordo live .45. Chevron A DESTRA
+   271	    // (§markup frame ②) — riga INERTE fino a S5 (nessun Button/tap qui).
+   272	    private func showCard(_ show: Setlist) -> some View {
+   273	        // ⚠️ default CC (flag in testa): nessun modello last-opened → pick MAI attivo per ora.
+   274	        let isPick = false
+   275	        return HStack(spacing: 0) {
+   276	            VStack(alignment: .leading, spacing: 5) {
+   277	                // «Untitled show» = fallback per name vuoto (specchio ShowsListView, 10° punto:
+   278	                // raggiungibile via import/restore che non valida il nome).
+   279	                Text(show.name.isEmpty ? "Untitled show" : show.name)
+   280	                    .font(.custom("Inter-SemiBold", size: 16))
+   281	                    .tracking(-0.2)
+   282	                    .foregroundColor(.white)
+   283	                Text(showMeta(show))
+   284	                    .font(.jbMono(.regular, size: 10.5))
+   285	                    .tracking(0.3)
+   286	                    .foregroundColor(QStageTheme.text2)
+   287	            }
+   288	            Spacer(minLength: 0)
+   289	            // Chevron §markup frame ②: viewBox 8×14, stroke 1.8, reso a 8×14 pt (scala 1:1).
+   290	            // Colore: pick = live-l @ .85 · plain = white .3 (§markup, due varianti verbatim).
+   291	            RowChevronShape()
+   292	                .stroke(isPick ? QStageTheme.orangeTint.opacity(0.85) : Color.white.opacity(0.3),
+   293	                        style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+   294	                .frame(width: 8, height: 14)
+   295	        }
+   296	        .padding(.horizontal, 16)
+   297	        .padding(.vertical, 15)
+   298	        .background(isPick ? QLiveTheme.pick : QLiveTheme.surf,
+   299	                    in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+   300	        .overlay(
+   301	            RoundedRectangle(cornerRadius: 15, style: .continuous)
+   302	                .strokeBorder(isPick ? QStageTheme.orange.opacity(0.45) : QLiveTheme.bd, lineWidth: 1)
+   303	        )
+   304	        .overlay(
+   305	            // box-shadow:inset 0 1px 0 rgba(255,255,255,0.04) (§CSS .showrow) — riga 1px SOLO
+   306	            // in cima, tecnica mask-su-strip-2pt (ShowsListView / RoomSwitchBar FIX 3).
+   307	            RoundedRectangle(cornerRadius: 15, style: .continuous)
+   308	                .strokeBorder(Color.white.opacity(0.04), lineWidth: 1)
+   309	                .mask(VStack(spacing: 0) { Rectangle().frame(height: 2); Spacer(minLength: 0) })
+   310	        )
+   311	    }
+[fine blocco b2]
+
+BASE SU CUI HO IDENTIFICATO QUESTI DUE PUNTI — dichiarata esplicitamente.
+E' l'unico punto di questo referto che contiene giudizio, e lo dichiaro come tale.
+
+  1. Il file separa istanziazione e disegno in due simboli distinti: 'showList'
+     contiene il ForEach (righe 256-258) che produce una riga per show; 'showCard'
+     e' la funzione che ne costruisce l'albero di viste. Sono due punti d'innesto
+     diversi, non due nomi dello stesso punto.
+
+  2. Il menu «···» e' un ELEMENTO DELLA RIGA (un glifo dentro la riga, accanto al
+     chevron), quindi il suo innesto naturale e' l'HStack di 'showCard', righe
+     275-295. Misura a supporto — il chevron oggi occupa quel posto:
+$ git show HEAD:$SW | grep -n 'RowChevronShape'
+291:            RowChevronShape()
+374:private struct RowChevronShape: Shape {
+[fine]
+
+  3. Lo SWIPE TRAILING ha un vincolo di contenitore che si misura, non si opina:
+     '.swipeActions' e' un modificatore che SwiftUI applica alle righe di 'List'.
+     Qui il contenitore NON e' una List:
+$ git show HEAD:$SW | grep -n 'List(\|List {\|ScrollView\|LazyVStack'
+253:        ScrollView {
+255:            LazyVStack(spacing: 11) {
+[fine]
+     controllo positivo, stessa forma, stesso file (i contenitori CI SONO):
+$ git show HEAD:$SW | grep -c 'VStack\|HStack'
+11
+     Quindi il punto d'innesto dello swipe ricade su 'showList' (b1), dove vive il
+     contenitore, e non su 'showCard' (b2). E' questa la ragione per cui i candidati
+     sono DUE e non uno: i due innesti di ⟦S4L⟧ cadono in due simboli diversi.
+     ⚠️ NON traggo la conclusione su cosa debba fare ⟦S4L⟧: la trae il referee.
+
+  4. Oggi nel file non esiste nessuno dei due agganci. Misura, non impressione:
+$ git show HEAD:$SW | grep -c 'swipeActions'
+0
+$ git show HEAD:$SW | grep -c 'contextMenu'
+0
+     controllo positivo, stessa forma, stesso file (NON incatenato ai due sopra):
+$ git show HEAD:$SW | grep -c 'padding'
+19
+$ git show HEAD:$SW | grep -c 'overlay'
+5
+
+------------------------------------------------------------------------------
+M1 (c) — LE DUE REGIONI SI SOVRAPPONGONO? — coi numeri, non a parole
+------------------------------------------------------------------------------
+
+  (a) pulsante metronomo   : righe 234-250  ('content'), chiamata a riga 247
+                             (232-233 = commento MARK che intesta la regione)
+  (b1) istanziazione riga  : righe 252-267  ('showList'), ForEach 256-258
+  (b2) disegno riga        : righe 272-311  ('showCard')
+                             (269-271 = commento che intesta la regione)
+
+  intersezione (a) ∩ (b1) : 0 righe.  250 < 252. Divise dalla sola riga 251.
+  intersezione (a) ∩ (b2) : 0 righe.  250 < 272. Divise dalle righe 251-271, 21 righe.
+  intersezione (b1) ∩ (b2): 0 righe.  267 < 272. Divise dalle righe 268-271, 4 righe.
+
+  verifica dell'adiacenza, verbatim (righe 250-252 e 267-272):
+$ git show HEAD:$SW | cat -n | sed -n '250,252p;267,272p'
+   250	    }
+   251	
+   252	    private var showList: some View {
+   267	    }
+   268	
+   269	    // .showrow (§CSS): radius 15, padding 15/16, bg --qlive-surf, bordo --qlive-bd,
+   270	    // inset-top 1px .04; variante .pick: bg --qlive-pick, bordo live .45. Chevron A DESTRA
+   271	    // (§markup frame ②) — riga INERTE fino a S5 (nessun Button/tap qui).
+   272	    private func showCard(_ show: Setlist) -> some View {
+[fine]
+
+  NESSUNA delle tre coppie si sovrappone. Le tre regioni sono disgiunte.
+
+==============================================================================
+M2 — CENSIMENTO DELLA FASCIA «Q-LIVE · PLAYING»
+==============================================================================
+
+--- verifica di esistenza dei cinque file a HEAD ---
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md    git cat-file -e -> exit=0
+LIBRO_MASTRO_QBEATS.md                     git cat-file -e -> exit=0
+BUGS_QBEATS.md                             git cat-file -e -> exit=0
+BOX3_QBEATS.md                             git cat-file -e -> exit=0
+BOX5_QBEATS.md                             git cat-file -e -> exit=0
+
+--- dimensione dei blob (ancora dimensionale della misura) ---
+HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md    337 righe
+LIBRO_MASTRO_QBEATS.md                     483 righe
+BUGS_QBEATS.md                             1010 righe
+BOX3_QBEATS.md                             803 righe
+BOX5_QBEATS.md                             596 righe
+
+------------------------------------------------------------------------------
+⚠️ RILIEVO SULLA NOTAZIONE — da leggere PRIMA dei numeri
+------------------------------------------------------------------------------
+Il mio primo controllo positivo usava la stringa '**' senza -F. In regex BASE
+'**' significa «zero o piu' asterischi», che aggancia OGNI riga, comprese quelle
+che non contengono asterischi. Era un controllo VACUO: rendeva un numero alto
+senza provare nulla. Dimostrazione:
+
+$ printf 'riga senza asterischi\n' | grep -c -- '**'
+1
+$ printf 'riga senza asterischi\n' | grep -cF -- '**'
+0
+
+I controlli positivi riportati sotto sono quindi TUTTI a stringa fissa (-F).
+E' la settima forma di falso-positivo/negativo che incontro, e la registro qui
+perche' non e' agli atti: un controllo positivo mal notato NON protegge da nulla.
+
+------------------------------------------------------------------------------
+QUATTRO NOTAZIONI PER TERMINE E PER FILE
+------------------------------------------------------------------------------
+  righe/sens    = git show HEAD:FILE | grep -c   TERMINE
+  occ/sens      = git show HEAD:FILE | grep -o   TERMINE | wc -l
+  righe/insens  = git show HEAD:FILE | grep -ci  TERMINE
+  occ/insens    = git show HEAD:FILE | grep -oi  TERMINE | wc -l
+  Comando e controllo positivo NON sono incatenati con && : ogni misura e' una
+  invocazione a se', quindi uno zero non tronca il controllo che lo segue.
+
+------------------------------------------------------------------------------
+FILE: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md   (337 righe)
+------------------------------------------------------------------------------
+  fascia         righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  PLAYING        righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  mini-player    righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  Return         righe/sens=1     occ/sens=1     righe/insens=1     occ/insens=1    
+  condizionale   righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  --- CONTROLLI POSITIVI, stringa fissa, stessa forma, stesso file ---
+  POS -F **       righe/sens=147   occ/sens=366   righe/insens=147   occ/insens=366  
+  POS -F Versione righe/sens=2     occ/sens=2     righe/insens=5     occ/insens=5    
+  POS -F 2026     righe/sens=10    occ/sens=11    righe/insens=10    occ/insens=11   
+
+------------------------------------------------------------------------------
+FILE: LIBRO_MASTRO_QBEATS.md   (483 righe)
+------------------------------------------------------------------------------
+  fascia         righe/sens=4     occ/sens=4     righe/insens=4     occ/insens=4    
+  PLAYING        righe/sens=0     occ/sens=0     righe/insens=7     occ/insens=8    
+  mini-player    righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  Return         righe/sens=2     occ/sens=2     righe/insens=2     occ/insens=2    
+  condizionale   righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  --- CONTROLLI POSITIVI, stringa fissa, stessa forma, stesso file ---
+  POS -F **       righe/sens=210   occ/sens=1926  righe/insens=210   occ/insens=1926 
+  POS -F Versione righe/sens=5     occ/sens=5     righe/insens=26    occ/insens=35   
+  POS -F 2026     righe/sens=221   occ/sens=438   righe/insens=221   occ/insens=438  
+
+------------------------------------------------------------------------------
+FILE: BUGS_QBEATS.md   (1010 righe)
+------------------------------------------------------------------------------
+  fascia         righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  PLAYING        righe/sens=0     occ/sens=0     righe/insens=14    occ/insens=23   
+  mini-player    righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  Return         righe/sens=0     occ/sens=0     righe/insens=4     occ/insens=4    
+  condizionale   righe/sens=3     occ/sens=3     righe/insens=3     occ/insens=3    
+  --- CONTROLLI POSITIVI, stringa fissa, stessa forma, stesso file ---
+  POS -F **       righe/sens=679   occ/sens=3537  righe/insens=679   occ/insens=3537 
+  POS -F Versione righe/sens=3     occ/sens=3     righe/insens=22    occ/insens=28   
+  POS -F 2026     righe/sens=123   occ/sens=158   righe/insens=123   occ/insens=158  
+
+------------------------------------------------------------------------------
+FILE: BOX3_QBEATS.md   (803 righe)
+------------------------------------------------------------------------------
+  fascia         righe/sens=3     occ/sens=3     righe/insens=4     occ/insens=4    
+  PLAYING        righe/sens=0     occ/sens=0     righe/insens=1     occ/insens=1    
+  mini-player    righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  Return         righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  condizionale   righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  --- CONTROLLI POSITIVI, stringa fissa, stessa forma, stesso file ---
+  POS -F **       righe/sens=175   occ/sens=502   righe/insens=175   occ/insens=502  
+  POS -F Versione righe/sens=6     occ/sens=7     righe/insens=19    occ/insens=25   
+  POS -F 2026     righe/sens=36    occ/sens=45    righe/insens=36    occ/insens=45   
+
+------------------------------------------------------------------------------
+FILE: BOX5_QBEATS.md   (596 righe)
+------------------------------------------------------------------------------
+  fascia         righe/sens=1     occ/sens=1     righe/insens=1     occ/insens=1    
+  PLAYING        righe/sens=0     occ/sens=0     righe/insens=3     occ/insens=3    
+  mini-player    righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  Return         righe/sens=2     occ/sens=2     righe/insens=3     occ/insens=3    
+  condizionale   righe/sens=0     occ/sens=0     righe/insens=0     occ/insens=0    
+  --- CONTROLLI POSITIVI, stringa fissa, stessa forma, stesso file ---
+  POS -F **       righe/sens=152   occ/sens=541   righe/insens=152   occ/insens=541  
+  POS -F Versione righe/sens=1     occ/sens=1     righe/insens=5     occ/insens=6    
+  POS -F 2026     righe/sens=29    occ/sens=41    righe/insens=29    occ/insens=41   
+
+------------------------------------------------------------------------------
+LE RIGHE AGGANCIATE, VERBATIM — senza queste i conteggi non sono verificabili
+------------------------------------------------------------------------------
+Forma: git show HEAD:FILE | grep -in TERMINE     (troncate a 400 caratteri:
+il troncamento e' dichiarato, le righe dei canonici superano i 1000 caratteri)
+
+##### HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md · «Return» · grep -in · 1 righe
+168:  interattivo; Return = «Search» conferma **e** congeda; il congedo conserva query, filtro, scroll e
+
+##### LIBRO_MASTRO_QBEATS.md · «fascia» · grep -in · 4 righe
+282:| 2026-07-14 | **S3 CHIUSO — primo atomo §6 device-validato (gate 4 tocchi PASSATO su iPhone reale, build #564)** — [1] centro Q-Live PASS (+dimming visivo) · [2] sopra bordo non-testabile-pulito (fascia di sistema iOS intercetta i tocchi vicino al bordo alto, non un difetto app — CD ne è informato) · [3] sotto bordo PASS = prova decisiva (ieri morto, oggi vivo: unica `.padding(.vert
+299:| 2026-07-24 | **CARD Q-LIVE › SHOWS — 4 decisioni chiuse.** §1 forma **③ riga compatta**, una sola, nessuna soglia card/riga (rimodellerebbe lo schermo alla quinta data); la forma ① card resta agli atti come **scartata**. §2 **nessuna label a schermo** sulla pillola ▶; VoiceOver «Start show · {nome}»; se un domani si tornasse alla card ①, la label è «Start». §3 **Start = 
+302:| 2026-07-26 | **POSTILLA 2 — il menu «···» NON si costruisce pre-⟦S4L⟧.** Pre-⟦S4L⟧ si costruisce **solo** la forma ③ della riga compatta, più il congedo tastiera Q20. Pillola ▶, «···», action sheet, Remove e campo di persistenza atterrano in **blocco unico** dentro ⟦S4L⟧, e Remove non può slittare a un atomo successivo alla pillola. Motivo aritmetico: tolto Remo
+356:| CD-8 | Copy del popup «Remove from Q-Live» — mockup + prompt CD | ratificata da Mauro 26/07 sera (supersede la postilla 1); bottone `Cancel` confermato 27/07. **Deliverable CD non misurato da CC** | 2026-07-27 | **Registrato, non inciso.** Deposito **VERIFICATO da CC il 27/07** su E:\…\DA_CD_PER_CC\27_07_2026\, al byte: mockup `0f90dae6…` (18253 B) e prompt `aca1d86c…` (6308 B). �
+
+##### LIBRO_MASTRO_QBEATS.md · «PLAYING» · grep -in · 7 righe
+118:| Vista WAITING FOR DIRECTOR | Schermata Q-Live cugina di CD-1 cerimoniale, attivata quando l'utente Follower tap PLAY senza Director peer attivo via Link. Full-screen `#0e0e10`, "WAITING FOR DIRECTOR…" pulse 2.2s, bottoni `START LOCAL` + `CANCEL`. Transiziona seamless in `.countIn` / `.playing` appena Director si attiva. Ratificata 27/05 CD-Q2=B. **⚠️ Nota interim 12/06:** perimetro in 
+157:| EMERGENCY (BR pulsantiera CD-4) | Bottone in basso-destra della pulsantiera CD-4 che fa switch da Vista Q-Live a Vista LISTA (ex Vista Emergenza). Sempre visibile durante `.playing` / `.standby`, nascosto durante `.stoppedMidSong` (Q7=A) | attivo (brief Fase 4 19/05, label inglese ratificata 21/05 Q12=A) |
+167:| `.playing` | Esecuzione in corso | attivo |
+170:| `.waitingForDirector` | Stato attivato quando Follower tap PLAY senza Director peer attivo via Link. Mostra Vista WAITING FOR DIRECTOR. Transizioni in uscita: automatica a `.countIn` / `.playing` quando Director si attiva via Link; esplicita a `.playing` su tap `START LOCAL` (escape); uscita a Select Setlist su tap `CANCEL`. Distinto da `.stopped` (CD-1 standalone) e da `.standby` (overlay t
+250:| 2026-05-27 | **CD-Q2=B con escape** — Tap PLAY su Follower senza Director peer attivo via Link → entra in nuovo stato `LiveSession.waitingForDirector` con Vista WAITING FOR DIRECTOR (`#0e0e10`, pulse 2.2s "WAITING FOR DIRECTOR…", bottoni `START LOCAL` + `CANCEL`). Auto-transizione seamless a `.countIn` / `.playing` appena Director si attiva via Link. Motivazione UX: A viola Predictabil
+307:| 2026-07-27 | **CONFINE DISTRUTTIVO Q-LIVE / Q-STAGE — regola normativa, non descrizione dello stato attuale.** Quando la cancellazione definitiva di una setlist verrà costruita, **potrà vivere solo in Q-Stage**: Q-Live non contiene, e non conterrà, alcuna azione distruttiva sui dati dell'utente. «Remove from Q-Live» agisce esclusivamente sull'appartenenza dello show alla lista di palc
+347:| CD-6 | Vista WAITING FOR DIRECTOR (Follower tap PLAY senza Director attivo via Link) | **implementato e validato device 29/05** (caveat CANCEL→Bivio interim, vedi sez. 2 29/05) | 2026-05-29 | Ratificato 27/05 CD-Q2=B. Layout proposto da CD nella risposta 27/05: full-screen `#0e0e10`, "WAITING FOR DIRECTOR…" Inter-Black 52pt × scaleFactor pulse 2.2s, sotto nome canzone + NEXT prima sezio
+
+##### LIBRO_MASTRO_QBEATS.md · «Return» · grep -in · 2 righe
+304:| 2026-07-26 | **CONTRATTO Q20 — congedo tastiera in Q-Live › Shows.** Gesto canonico: «Done» su toolbar accessoria pinnata sopra la tastiera, sempre visibile, ≥44pt, arancio (accento Q-Live — **non** ambra, che in Q-Live è ALERT). In aggiunta e non al posto: tap fuori e swipe giù interattivo. Return = «Search» → conferma il filtro **e congeda**. Il congedo **conserva** query, 
+312:| 2026-07-27 | **CONTRATTO Q20 — RICONFERMATO SUL CONTENUTO RILETTO.** La ratifica è **già agli atti** alla riga `2026-07-26` **CONTRATTO Q20** (`Mauro: «ok va bene»`, stato `attiva`): questa riga **non la ripara e non la sposta**. Il 27/07 Mauro ha riletto il contratto per intero — «Done» su toolbar pinnata · in aggiunta tap fuori e swipe giù · Return = «Search», conferma **e**
+
+##### BUGS_QBEATS.md · «PLAYING» · grep -in · 14 righe
+74:  - **(B) Gap di propagazione reset L3→L1.** `startSetlist`→`updateSessionDisplay` (sincrono) resetta il prompter a sezione 0, ma la metrica del metronomo (`beatsPerBar`/`_beatsPerBarQ`, applicata **al primo beat tick post-arrivo** quando `isPlaying`) resta stale → prompter sez 0 / metronomo 5/4. Device-confermato 01/06.
+76:    - **(C-veloce):** Play→Stop→Play **veloce** — `stop()` dispatcha `.stopped` async (`LiveView.swift:224`); se `linkStartedSubject` arriva con stato ancora `.playing`, il guard `LiveView.swift:402` scarta `startSetlist` → reset a sezione 0 mai eseguito.
+123:  - **CANCEL di `WaitingForDirectorView` — nel percorso ORDINARIO non è una porta di band-stop, ma con una CLAUSOLA-LIMITE precisa (verificato a fonte 18/07, rafforzato 19/07 — `VERIFICA_V-ISP_2026-07-19`, sha `9918c379…0350aa`; ESITO A):** `WaitingForDirectorView` è renderizzata SOLO in `session.playbackState == .waitingForDirector` (`LiveView.swift:165-166`); quello stato è assegnat
+148:- **Fatto (verificato a fonte 19/07 — `VERIFICA_V-DIR_2026-07-19`, HEAD `fe6d34b`, sha `99ea6ce1…28ff5f`):** NESSUN ramo di modalità fra `AudioEngine.swift:1078` (`stop()`) e `:1645` (`link_engine_stop`) — l'unica Link-call sul percorso è `:1645`, sotto le sole guardie `guard self.isRunning` (`:1638`) + `if let lh = linkEngineHandle` (`:1644`). `linkEngineHandle` è creato INCONDIZIONA
+149:- **Asimmetria (il cuore del ticket):** l'AVVIO verso Link è differenziato per ruolo/scenario — Direttore `link_engine_start_at_beat_zero` (`:991`, force-timeline, gattato da `(peersCount==0 && !probe.isPlaying) || _linkMode == .direttore` a `:971`); Follower `link_engine_join_running_session` (`:757`, funzione DEDICATA che NON sovrascrive la timeline, `LinkEngine.mm:474-476`); resume `link
+237:  - **Lettura CANDIDATA (IPOTESI, riga da inchiodare col log):** al join un publish con `_beatsPerBarQ` stantio=3 (candidato: quello di `engine.start()`, `AudioEngine.swift:1020-1025`) sovrascrive il 4, e niente ripristina il valore corretto fino al cambio successivo (110). Meccanismo candidato che concilierebbe la tensione sotto: il publish di `start()` viaggia su `main.async` (stessa dispatc
+560:- **Precondizione 1 — la guardia «non si cancella in sessione» NON può stare nello Store:** `isPlaying` → ZERO occorrenze in `Store/` (controllo positivo doppio: `isPlaying` vive in 8 file fuori da `Store/`; `setlists` → 21 occorrenze in `QBeatsStore.swift`). O la guardia sta nel chiamante, o lo Store acquisisce una dipendenza sullo stato di riproduzione che oggi non ha. Decisione di 
+744:- **Causa root:** gestore `.onReceive(audioEngine.linkStartedSubject)` (`LiveView.swift:400-403`) con guard solo su `.playing` → chiamava `runner.startSetlist(...)` incondizionato anche in `.standby`; `startSetlist` azzera `currentSongIdx = 0` → reset a Song A. Buco nella copertura multi-canzone di **Problema B / Opzione C / CD-6** (l'Opzione C copriva solo il primo start della setlist; il
+745:- **Fix:** branch `fix/bug-2b-visual-section-sync`, commit `2475487` — `if case .standby = session.playbackState → runner.startCurrentSong(...)` (preserva `currentSongIdx`), `else → runner.startSetlist(...)`, guard `!= .playing` invariato. Commento gestore aggiornato (`dbd76a2`); harness test "3/4 Long" rientrato (`7e61958`).
+772:- **Fix:** `007de87` (ex `611d4ee`). `start()` branching: `if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore` → il Direttore forza sempre `start_at_beat_zero`.
+943:- **Commit `31dddbb`** (Round 2, Item 1 PARTE A): 10 log `[Q-BEATS][DIAG-A][T0]` → `[T9]` in `AudioEngine.swift`. Misurano timing dispatch chain iPad-side dal callback Link `isPlaying=true` (T0) fino all'entry primo buffer pre-roll (T9).
+963:| 3 | 2026-05-30 | CC chat principale 30/05 | Registrazione nuova voce APERTA in Sez. 1.1: "Bug cambio-canzone cross-device — Follower riparte da Song A allo standby" — buco nella copertura multi-canzone di Problema B / Opzione C / CD-6 (l'Opzione C `007de87` copriva solo il primo start della setlist; al cambio-canzone allo standby il Follower veniva resettato a songIdx 0 e ripartiva da So
+999:| 39 | 2026-07-18 | Mauro + CC + referee | **Nuovo ticket §1.1 `TD-qlive-exit-unconfirmed-stop` (doc-only) — uscita-stanza col click attivo = stop non confermato (evento-banda).** 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO (conseguenza catastrofica innescabile dal percorso di uscita ORDINARIO). Due metà distinte: PRE-ESISTENTE (oggi Q-Live apre dritta nel metronomo, back `LiveHeaderView.swift:3
+1000:| 40 | 2026-07-19 | Mauro + CC + referee | **Nuovo ticket §1.2 `TD-follower-stop-propaga` + stretta ESITO A di `TD-qlive-exit-unconfirmed-stop` (doc-only) — decisione «Follower gregario» (Mauro 19/07, ratificata referee).** **(1)** Nuovo ticket 🟠 OPEN MEDIA: lo stop di un Follower chiama la STESSA `link_engine_stop` (`AudioEngine.swift:1645`) del Direttore, senza alcun ramo di modalit
+
+##### BUGS_QBEATS.md · «Return» · grep -in · 4 righe
+124:- **Causa (verificata a fonte 18/07, HEAD f8276f6):** `AudioEngine.swift` `stopSync()`, guardia `:1638` `guard self.isRunning else { return }` prima di `:1645` `link_engine_stop(lh, mach_absolute_time())` — con `isRunning==true` la guardia è superata e lo stop propaga ai Follower. Propagazione = per-peer, condizionata a Start/Stop Sync ATTIVO nelle impostazioni Link dell'utente sui device c
+150:- **Perché NON si vede a 2 device [INFERENZA da ordine del codice, NON osservata su device]:** il Direttore IGNORA l'inbound start/stop dai peer — `AudioEngine.swift:533` `if engine._linkMode == .direttore { return }`. Con 1 Direttore + 1 Follower, lo stop del Follower PARTE comunque (`:1645`, non-gattato) ma l'unico altro peer è il Direttore, che lo ignora → *sembra* «il Follower ferma
+760:- **Fix:** `007de87` (ex `611d4ee`). Guard → `if engine._linkMode == .direttore { return }` (ignora SEMPRE start/stop da peer, in play e in stop).
+766:- **Fix-storia:** `611d4ee` rimuoveva `isRunning` ma era troppo aggressivo (Direttore fermo *dominava* il BPM → inchiodava il Follower in START LOCAL, scoperto al test R2 29/05) → **affinato in `46ba0f3`**: `if engine._linkMode == .direttore { if engine.isRunning { ri-trasmette } return }`. Da fermo non adotta e non domina; in play ri-trasmette il proprio.
+
+##### BUGS_QBEATS.md · «condizionale» · grep -in · 3 righe
+173:    - **NON stampato affatto:** il read vivo (`link_engine_is_connected`) in un istante di stallo — questa build lo legge solo nel +2s condizionale, mai in continuo. Stallo candidato = il **flapping** dalle 12:56 (fronti che *scattano*; perdita-vera vs spia-indietro non separabili senza pannello/read-vivo).
+697:- **Il montaggio condizionale resta invariante (Nodo A / S4b):** il sottoalbero della stanza si distrugge all'uscita, nessuno stato di linguetta sale in `AppRootView` — il costo di incapsulamento dichiarato in anticipo nel ticket NON si paga, perché non c'è rimedio da costruire.
+1003:| 43 | 2026-07-23 | Mauro + CC + referee | **⟦FIX-PILL⟧ chiuso su device + 1 ticket nuovo.** `TD-qstage-pill-qlive-morta` → 🟢 **CHIUSO 23/07**, spostato in Sez.2 (Luglio 2026, in testa per data decrescente): commit `ee31281`, CI `29994513488` verde, gate device Mauro iPhone+iPad, 4 tocchi hit-area 4/4 PASS — ora osservabili a occhio invece che dalla Console. Fix = 3 file L3 (`QStag
+
+##### BOX3_QBEATS.md · «fascia» · grep -in · 4 righe
+62: · Nuova §15: 5 cose per CD (le 4 note + 1 nuova: fascia di sistema iOS sul bordo alto).
+129:        fascia di sistema in alto. Non un difetto app. Reso superfluo dal [3] (vedi sotto).
+625:🟡 4. **iOS INTERCETTA I TOCCHI VICINO AL BORDO ALTO DELLO SCHERMO** (fascia di
+783:5. **[NUOVO, dal gate S3 14/07] Fascia di sistema iOS sul bordo alto:** l'area
+
+##### BOX3_QBEATS.md · «PLAYING» · grep -in · 1 righe
+31: · **(b) §0/§7 — CLAIM LINK SORGENTATO A HEAD E CORRETTO** (supersede reperto (l) di V96, che restava «da riancorare»). Fonte terza = header Ableton VENDORED nel repo `Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h`. Catena a HEAD f8276f6: `link_engine_stop` (`LinkEngine.mm:485-496`) fa `ABLLinkSetIsPlaying(state,false,…)` + `ABLLinkCommitAppSessionState`; l'header
+
+##### BOX5_QBEATS.md · «fascia» · grep -in · 1 righe
+363:- ⚠️ **Due frammenti del freeze 24/07 sono superati, le quattro decisioni no** (LIBRO r.299): (i) la coda della decisione §4, «Popup: "leaves this list · stays in Q-Stage"», è superata dalla copy ratificata la sera del 26/07 — vale QL-SHOWS-09; (ii) la fascia-cancello «Riga, meta e "···" sono già vivi — il menu contiene solo letture e il Remove, che esistono», è superata da
+
+##### BOX5_QBEATS.md · «PLAYING» · grep -in · 3 righe
+437:| Link — fresh play branching | Modello a 4 rami: (peers==0 && !isPlaying) → standalone puro; (_linkMode == .direttore, qualsiasi stato peer) → direttore-standalone, detta la timeline con start_at_beat_zero (Director comanda sempre — i peer si adeguano); (collaborativa con peer in play) → join_running_session; resume → start_at_beat. Build #309 esteso 28/05/2026. Nota: in .direttor
+446:| Link — UI Picker bloccato in play | V20 — Picker modalità in SettingsView ha `.disabled(audioEngine.isPlaying)` |
+453:| **Pattern `sectionEndedSubject` + `sectionHold`** | **V21** — Per spegnimento sincronizzato di componenti UI multipli a fine ciclo naturale: AudioEngine espone `sectionEndedSubject: PassthroughSubject<Void, Never>`. LiveView riceve il subject, attiva `@State sectionHold: Bool` che funge da OVERRIDE del gate `state==.playing` per la durata del fade. Un `asyncAfter(60.0/currentBPM)` su main 
+
+##### BOX5_QBEATS.md · «Return» · grep -in · 3 righe
+372:3. **Return = «Search» → conferma il filtro E congeda**, conservando la query. Via di comodo, non il canonico.
+376:7. **iPad coperto in tutti gli stati.** Software (docked o floating): la toolbar «Done» cavalca la tastiera. Hardware attaccata: non c'è trappola, e la resign resta garantita da tap-fuori + Return + «×». In nessuno stato l'uscita richiede di lasciare la stanza.
+445:| Link — Direttore start/stop callback | V20/V24 — Ignora start/stop da peer in ogni stato (anche in stop). Guard: `if _linkMode == .direttore { return }`. Bug 5 fix 28/05/2026: pre-fix richiedeva `isRunning`, Director in stop accettava start da peer Collab via START LOCAL. |
+
+------------------------------------------------------------------------------
+MISURA SUPPLEMENTARE — NON RICHIESTA DAL PROMPT
+------------------------------------------------------------------------------
+Aggiunta perche' uno zero su 'mini-player' nella sola grafia col trattino e'
+prova debole. Qui la stessa domanda in altre grafie. Stringa fissa (-F).
+
+-- HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+   -F mini player        righe/sens=0     righe/insens=0     occ/insens=0    
+   -F miniplayer         righe/sens=0     righe/insens=0     occ/insens=0    
+   -F player             righe/sens=0     righe/insens=0     occ/insens=0    
+   -F Q-LIVE · PLAYING  righe/sens=0     righe/insens=0     occ/insens=0    
+   -F in play            righe/sens=1     righe/insens=1     occ/insens=1    
+   -F Exit-in-Play       righe/sens=0     righe/insens=0     occ/insens=0    
+-- LIBRO_MASTRO_QBEATS.md
+   -F mini player        righe/sens=0     righe/insens=0     occ/insens=0    
+   -F miniplayer         righe/sens=0     righe/insens=0     occ/insens=0    
+   -F player             righe/sens=2     righe/insens=5     occ/insens=7    
+   -F Q-LIVE · PLAYING  righe/sens=0     righe/insens=0     occ/insens=0    
+   -F in play            righe/sens=3     righe/insens=3     occ/insens=3    
+   -F Exit-in-Play       righe/sens=3     righe/insens=3     occ/insens=5    
+-- BUGS_QBEATS.md
+   -F mini player        righe/sens=0     righe/insens=0     occ/insens=0    
+   -F miniplayer         righe/sens=0     righe/insens=0     occ/insens=0    
+   -F player             righe/sens=1     righe/insens=3     occ/insens=3    
+   -F Q-LIVE · PLAYING  righe/sens=0     righe/insens=0     occ/insens=0    
+   -F in play            righe/sens=3     righe/insens=4     occ/insens=4    
+   -F Exit-in-Play       righe/sens=1     righe/insens=1     occ/insens=1    
+-- BOX3_QBEATS.md
+   -F mini player        righe/sens=0     righe/insens=0     occ/insens=0    
+   -F miniplayer         righe/sens=0     righe/insens=0     occ/insens=0    
+   -F player             righe/sens=0     righe/insens=0     occ/insens=0    
+   -F Q-LIVE · PLAYING  righe/sens=0     righe/insens=0     occ/insens=0    
+   -F in play            righe/sens=0     righe/insens=0     occ/insens=0    
+   -F Exit-in-Play       righe/sens=0     righe/insens=0     occ/insens=0    
+-- BOX5_QBEATS.md
+   -F mini player        righe/sens=0     righe/insens=0     occ/insens=0    
+   -F miniplayer         righe/sens=0     righe/insens=0     occ/insens=0    
+   -F player             righe/sens=0     righe/insens=1     occ/insens=2    
+   -F Q-LIVE · PLAYING  righe/sens=0     righe/insens=0     occ/insens=0    
+   -F in play            righe/sens=6     righe/insens=6     occ/insens=6    
+   -F Exit-in-Play       righe/sens=0     righe/insens=0     occ/insens=0    
+
+⚠️ Come da prompt: dove il conto e' zero, NON e' scritto qui «non esiste». E'
+scritto «zero righe in questa forma, con questo controllo positivo». La forma e'
+sopra, per esteso, e i controlli positivi rendono tutti > 0 sugli stessi file.
+La conclusione la trae il referee.
+
+==============================================================================
+M3 — INTEGRITA' DEL FREEZE CD
+==============================================================================
+
+--- verifica del path a fonte ---
+$ git ls-tree -r HEAD --name-only | grep -i 'QLive_Nav'
+DESIGN/QLive_Nav/2026-07-09_base_e141295.html
+DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html
+DESIGN/QLive_Nav/2026-07-11_Q7-Q10.html
+DESIGN/QLive_Nav/2026-07-11_Q7-Q13.html
+DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html
+DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html
+DESIGN/QLive_Nav/HANDOFF_CD_QLIVE_NAV_Q7-Q10_11_07_2026.md
+DESIGN/QLive_Nav/README.md
+[fine]
+
+$ git cat-file -e HEAD:DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html
+exit=0
+
+--- sha256 del BLOB, non del disco ---
+$ git rev-parse HEAD:DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html        # sha del blob GIT (non e' lo sha256)
+ce6cb714a9b033d97f08a40cfa0e09a13431c64d
+
+$ git cat-file blob $(git rev-parse HEAD:DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html) | sha256sum
+8d7a3150050f2d9ee88d552f6a59649081518a1189182174c5dfed655c398860 *-
+
+atteso dal prompt:
+8d7a3150050f2d9ee88d552f6a59649081518a1189182174c5dfed655c398860 *-
+
+$ git cat-file -s $(git rev-parse HEAD:DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html)        # byte del blob
+58463
+
+>>> COINCIDE. Nessun ABORT su M3.
+    Confronto meccanico invece che a occhio:
+$ [ "$MISURATO" = "$ATTESO" ] ; echo $?
+0   (0 = identici)
+
+⚠️ Nota di misura, non conclusione: sha256 e 'cat-file -s' provano che il blob e'
+QUELLO e quanto e' lungo. Non provano che sia INTERO rispetto a cio' che CD
+intendeva consegnare. Non ho rigenerato nulla per confronto.
+
+==============================================================================
+M4 — TESTO CORRENTE DELLA RIGA D'ORDINE
+==============================================================================
+
+--- campo Versione in testa al file, VERBATIM ---
+$ git show HEAD:HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md | cat -n | sed -n '1,7p'
+     1	# Q-BEATS — Mini-piano §6 + Scaletta atomi (RATIFICATA)
+     2	
+     3	**Versione:** 4 (30/07/2026)  ·  **Ratificata dal referee:** 13/07/2026 (v1) · **⟦NODO A⟧ CHIUSO device 17/07** (v2) · **sdoppiamento ⟦S4L⟧ in tre atomi 28/07** (v3) · **re-instradamento ⟦S4R⟧ CONFERMATO 30/07** (v4)
+     4	> Prima versione numerata. Prima d'ora la scaletta era identificata solo dalla data nel
+     5	> nome-file (`_2026-07-10`), che è più vecchia del contenuto reale (riscrittura S3 del
+     6	> 12/07). D'ora in poi la fonte di verità è QUESTO campo Versione, non la data nel nome.
+     7	
+[fine blocco]
+
+--- individuazione della sezione, per SIMBOLO ---
+$ git show HEAD:$SC | grep -n '^## '
+19:## A · Mini-piano §6 (mappatura contratto → codice)
+37:## B · Scaletta 12 atomi (erano 10 fino alla v2 — lo sdoppiamento 28/07 ha portato ⟦S4L⟧ da una scheda a tre)
+313:## C · Ordine (2 corsie)
+316:## D · Risposte referee alle 8 domande
+320:## E · 2 prerequisiti bloccanti (POST-lane, dominio RT)
+324:## F · Anchor a source — ⚠️ ANCORATO A HEAD STORICO `fa64832` (STALE, ~14 commit fa)
+[fine]
+
+La sezione '## C · Ordine (2 corsie)' apre a riga 313; la successiva '## D' apre
+a riga 316. La sezione e' quindi righe 313-315 (314 = corpo, 315 = riga vuota).
+
+--- sezione C per intero, VERBATIM, numeri di riga reali a HEAD ---
+$ git show HEAD:$SC | cat -n | sed -n '311,316p'
+   311	---
+   312	
+   313	## C · Ordine (2 corsie)
+   314	**PRE:** S0 → {S1, S2F} → S2 → S2b → S2c → S2e → S2d → **S3** (indipendente Nodo A; i sub-atomi S2b/S2c/S2e/S2d = ciclo CD-decisioni + estrazione EmptyStateKit, tutti FATTI). → **SPINE NODO A** (N0→N1a→N1b) gattella POST. → **POST:** S4 → **S4K** → **S4R** → **S4L** → S5 → **S6** ultimo. ⚠️ I tre atomi S4K/S4R/S4L sostituiscono l'unico «S4L» della v2 (sdoppiamento 28/07) e il loro ordine reciproco è **obbligatorio**: S4K → S4R → S4L. Sulla «coppia stretta» che la v2 prescriveva fra S4 e il launcher, vedi la pendenza nella scheda ⟦S4R⟧.
+   315	
+   316	## D · Risposte referee alle 8 domande
+[fine blocco]
+
+⚠️ Non ho corretto nulla in questo file, come da prompt: e' riportato e basta.
+
+==============================================================================
+CODA — COSA NON HO MISURATO, E COSA NON E' DETERMINABILE DA ME
+==============================================================================
+
+· Nessun ABORT. Tutti e quattro i punti eseguiti sul path indicato dal prompt,
+  ciascuno con la verifica di esistenza a monte.
+
+· M1 e' misurato sul SOLO file QLiveShowsView.swift, come da prompt. Non ho
+  censito se altri file della stanza contengano punti d'innesto equivalenti.
+  Se ⟦S4L⟧ tocca anche altrove, questo referto non lo dice.
+
+· M2 e' misurato sui SOLI cinque file elencati dal prompt e sui SOLI cinque
+  termini elencati (piu' le sei grafie supplementari, dichiarate come tali).
+  Non ho cercato in HANDOFF/ (79 file), ne' in DESIGN/, ne' nel codice.
+
+· M3: ho confrontato il blob a HEAD con l'atteso. Non ho verificato che la copia
+  letta dal referee fosse quella, ne' che esista una sola copia di quel file.
+
+· Il reso a schermo non e' verificabile da me (nessun Xcode in ambiente CC).
+  Ogni misura qui e' sul testo del codice, non sul suo comportamento.
+
+· Non ho tratto conclusioni. Dove il prompt chiedeva giudizio — M1 (b) — la base
+  del giudizio e' dichiarata riga per riga e i candidati sono elencati tutti.
+
+==============================================================================
+FINE REFERTO.
+==============================================================================

@@ -1,0 +1,62 @@
+diff --git a/ios_app/QBeats/UI/QLive/QLiveSession.swift b/ios_app/QBeats/UI/QLive/QLiveSession.swift
+--- a/ios_app/QBeats/UI/QLive/QLiveSession.swift  (post-A253, ratificato)
++++ b/ios_app/QBeats/UI/QLive/QLiveSession.swift  (post-A254)
+@@ -181,10 +181,32 @@
+     ///    già fermato dal runner, `SetlistRunner.swift:466`) non fa nulla.
+     ///
+     /// ⚠️ ORDINE: lo stop PRIMA di svuotare lo slot — prima si zittisce la
+-    ///    stanza, poi si chiude la sessione. `stop()` dispatcha il SUO
+-    ///    `playbackState = .stopped` async su main (coda di `stop()`, per
+-    ///    simbolo); la scrittura della sessione qui sotto è sincrona e non
+-    ///    dipende da quel dispatch.
++    ///    stanza, poi si chiude la sessione.
++    ///
++    /// ⚠️ CORREZIONE A254 (29/08/2026) — LA FRASE CHE SEGUIVA QUI ERA VERA MA
++    ///    INDICAVA LA PROTEZIONE SBAGLIATA. `stop()` dispatcha `.stopped`
++    ///    SUL MOTORE (`AudioEngine.playbackState`, un `@Published` diverso da
++    ///    quello di questa sessione) async su main SENZA CONDIZIONE —
++    ///    `AudioEngine.swift:1100-1101` sta FUORI dal `guard self.isRunning`
++    ///    di `stopSync()` (:1694): parte a OGNI `stop()`, motore già fermo
++    ///    compreso. Quella scrittura può arrivare TARDI: se nel frattempo si
++    ///    è aperto un secondo show e `primeDisplay` ha già armato
++    ///    `liveSession.playbackState = .standby`, un `.stopped` dell'ENGINE
++    ///    in ritardo la scavalcherebbe. La scrittura sincrona di questo
++    ///    metodo non protegge da questo: è un evento successivo, indipendente,
++    ///    su un campo diverso.
++    ///
++    ///    CIÒ CHE LO IMPEDISCE è la GUARDIA in `LiveView.swift:461-466`
++    ///    (`case .standby, .fineSetlist: return`, dentro
++    ///    `.onReceive(audioEngine.$playbackState)`) — non un ordine scritto
++    ///    qui. Quella stessa guardia è dichiarata (`LiveView.swift:442-460`)
++    ///    come ciò che tiene in piedi l'ARMAMENTO D'INGRESSO DI ⟦S5b⟧, e
++    ///    `:459-460` avverte già, da PRIMA di A253, che togliere `.standby`
++    ///    da quella lista «romperebbe ⟦S5b⟧ senza toccarne una riga». A253
++    ///    non crea questa dipendenza: la EREDITA — e senza questa riga
++    ///    restava una protezione che nessuno sapeva di dover difendere.
++    ///    (Righe citate sul working tree CORRENTE: A253 aggiunge 8 righe di
++    ///    commento in testa a `LiveView.swift`, +8 rispetto a `HEAD`.)
+     func endShow(audioEngine: AudioEngine) {
+         audioEngine.stop()
+         runner = nil
+
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift  (post-A253, ratificato)
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift  (post-A254)
+@@ -84,6 +84,17 @@
+     ///    `audioEngine` (0 occorrenze) e resta così — Q-Stage non possiede una
+     ///    sessione da chiudere. Lo specchio è di struttura, non un vincolo di
+     ///    identità riga-per-riga.
++    ///
++    /// ⚠️ COSTO DICHIARATO (A254, 29/08/2026): DA OGGI QUESTA RADICE OSSERVA
++    ///    IL MOTORE, e il suo `body` si ridisegna a ogni `@Published` che
++    ///    pubblica — `currentBeat` (`AudioEngine.swift:104`) compreso,
++    ///    scritto una volta per battuta dentro il callback di render
++    ///    (`:2419-2421`): 2-4 volte al secondo a tempi da palco. Non è un
++    ///    difetto: è un costo nuovo, non una svista. PRIMA di A253 questa
++    ///    view aveva ZERO occorrenze reali di `audioEngine` — lo stesso «0
++    ///    occorrenze» che il cartello del gate `.metronome` più sotto misura
++    ///    su `QStageRootView`, misurato identico anche su questo file a
++    ///    `HEAD`. Da A253 vale solo per lo specchio.
+     @EnvironmentObject private var audioEngine: AudioEngine
+ 
+     // DECISIONE CD 18/07 (ratificata — LIBRO Sez.2, riga 18/07/2026):

@@ -1,0 +1,176 @@
+REFERTO QB-2026-08-06-A70-DEPOSITO-E-ANCORAGGIO-FREEZE
+=======================================================
+
+Orologio: 2026-08-06T19:27:45Z+, locale +02:00. Data ID = data esecuzione.
+
+ESITO: **ESEGUITO. DIFF PRONTO, NON COMMITTATO.**
+  · rev2 verificata: TUTTE le impronte combaciano.
+  · I due file sono IN STAGE. LIBRO v53→v54 e SCALETTA v7→v8 scritti.
+  · NESSUN COMMIT, NESSUN PUSH: attendono ratifica referee + OK Mauro.
+  · ⚠️ ESECUZIONE PREVISTA IN **DUE COMMIT** — vedi §ESECUZIONE. Non è una
+    variazione della riga ratificata: è la sola forma che la rende scrivibile,
+    ed è il precedente esatto del freeze 2026-07-11.
+
+
+================================================================================
+CANCELLI D'INGRESSO — SUPERATI
+================================================================================
+  · A70 non collide (repo, nome e contenuto; controllo positivo A69 presente).
+  · Aggancio: ultimo referto = A69-DEPOSITO-FREEZE-PARZIALE (21:29). Corretto.
+  · HEAD = 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f, branch master.
+  · LIBRO, SCALETTA e ios_app/ INTATTI all'ingresso (`git status --porcelain`
+    su quei tre path -> vuoto).
+  · IDEMPOTENZA: file non tracciati (`git ls-files` -> exit 1), LIBRO con
+    **0** occorrenze di `FREEZE-CONSOLIDATO`, stage vuoto. Nulla di già fatto.
+
+
+================================================================================
+PARTE 1 — VERIFICA DI rev2: TUTTE LE IMPRONTE COMBACIANO
+================================================================================
+
+Misurato SUI BYTE (mai con grep — vedi Parte 6):
+                    ATTESO (referee)                                              MISURATO      ESITO
+  sha256   09c29587aba186d1ff9f3914a8068da8a2d9a0f36a4f5d1058f518c971fec750        idem        COMBACIA
+  byte     73 427                                                                 73 427       COMBACIA
+  newline  513                                                                    513          COMBACIA
+  CR       0                                                                      0            COMBACIA
+  (ultimo byte: b'\n' · CRLF: 0)
+  blob git c4abeb45a4ef282b7b827911b8680eee93a48092 — identico con e senza `--path`
+
+⇒ Il transito non ha alterato rev2. Con rev3 (verificata in A69 a tre copie
+  concordi), il deposito è completo e integro.
+
+
+================================================================================
+PARTE 2 — DEPOSITO IN GIT: ESEGUITO (in stage)
+================================================================================
+Stage FILE PER FILE, mai `git add -A`:
+    git add DESIGN/QLive_Nav/…rev3-NORMATIVA.html
+    git add DESIGN/QLive_Nav/…rev2-BUONA.html
+`git diff --cached --name-status` -> ESATTAMENTE 2 righe, entrambe **A**.
+`git status --porcelain | grep -v '^??'` -> i 2 file + i 2 canonici modificati,
+nient'altro.
+
+BLOB OID DEFINITIVI, letti dall'INDEX (`git ls-files --stage`), non da hash-object:
+    rev3-NORMATIVA : 430c9894c2539c4753f8ab0b8c3baf64d73f5335   (534 righe, +534)
+    rev2-BUONA     : c4abeb45a4ef282b7b827911b8680eee93a48092   (513 righe, +513)
+Coincidono con quelli previsti: la precondizione `DESIGN/** -text` ha retto, i
+file sono entrati byte-identici al disco.
+
+
+================================================================================
+PARTI 3-4-5 — SCRITTE
+================================================================================
+LIBRO_MASTRO_QBEATS.md  v53 → **v54**   (502 → 508 righe · numstat +9/−3)
+  · header: Versione, Ultima modifica, Edit author (3 righe sostituite)
+  · Sez.2: **+5 righe** — ancoraggio · font · menu «···» · R3 · falso-positivo
+  · Sez.6: **+1 riga** — voce di registro v54
+SCALETTA_ATOMI_S6_2026-07-10.md  v7 → **v8**  (341 → 342 righe · numstat +2/−1)
+  · riga 3: Versione 7→8 **con il descrittore (v8) aggiunto alla catena**
+  · **+1 bullet** dopo `:300`, di marcatura
+
+⚠️ CONTROPROVA ESEGUITA: la riga `:300` è **byte-identica** a quella di HEAD
+  (confronto diretto stringa-a-stringa). Non è stata riscritta: è stata marcata.
+
+
+================================================================================
+PARTE 6 — LE DUE RETTIFICHE: SCRITTE, NEL POSTO GIUSTO
+================================================================================
+Incise nella **quinta riga nuova di Sez.2**, accanto ai due gemelli di polarità
+opposta già agli atti:
+  · `BOX3_QBEATS.md` V99 (d) — vuoto che sembra un fatto (exit 0)
+  · `LIBRO_MASTRO_QBEATS.md:323` — exit 1 che sopprime la prova
+  · **questa** — un numero pieno che sembra una misura
+⛔ IL FILE DEL REFERTO A64 **NON È STATO TOCCATO**: verificato che non compare in
+  `git status`. La rettifica vive solo nella riga nuova, come prescritto.
+
+
+================================================================================
+⚠️ TRE RILIEVI CHE SEGNALO SENZA RISOLVERLI DA SOLO
+================================================================================
+
+(1) 🚨 **TENSIONE DI FORMA: R7 §1 VIETA GLI SHA256 INCISI, LA RIGA RATIFICATA LI
+    PRESCRIVE.** `LIBRO_MASTRO_QBEATS.md:88` (R7 §1) dice: «Sha256 = trasporto,
+    non puntatore. Si usa SOLO come checksum usa-e-getta nel messaggio di
+    consegna di un file, **mai incisi dentro un documento persistente**… File
+    tracciati in git → si cita `path @ commit`». E `HANDOFF/SCALETTA_ATOMI_S6_
+    2026-07-10.md:8` lo ribadisce: «**R7: nessuno sha256 inciso.**»
+    MA la riga-modello che il mandato indica — `LIBRO_MASTRO_QBEATS.md:294` —
+    **uno sha256 lo incide** («blob sha256 `c9bd0b02…3341e74`»).
+    ⇒ HO INCISO COME RATIFICATO, senza modificare la riga. Registro la tensione
+      perché il canonico non si contraddica in silenzio.
+    ⚠️ La mia lettura, che NON applico: qui gli sha256 sono difendibili perché
+      (a) l'artefatto è un FREEZE, e il timore di R7 è «ogni edit successivo li
+      invalida» — un freeze non si edita; (b) la riga porta ANCHE `path @ commit`
+      e il blob OID, cioè le forme R7-conformi, e lo sha256 è l'unico ponte verso
+      la misura del referee nel Progetto Claude, che in git non c'è.
+      Se il referee preferisce, la rimozione dei due sha256 è un'edit di due
+      stringhe e non tocca nient'altro. **Decide lui.**
+
+(2) **`.segMini` COMPARE IN CINQUE PUNTI DELLA SCALETTA, NON IN UNO.** Misurato:
+    `:28` (mappa dei frame) · `:50` (scheda ⟦S1⟧, props del componente) · `:113`
+    (gate device ⟦S3⟧, «sblocca `.seg-mini` a S5») · `:300` e `:304` (scheda ⟦S5⟧).
+    La mia prima stesura del bullet diceva «SUPERATA IN UN PUNTO»: **imprecisa, e
+    l'ho corretta prima di consegnare**. La marcatura ora dichiara il proprio
+    perimetro — copre i **due di ⟦S5⟧** — e registra che gli altri tre restano
+    non marcati, perché marcare da dentro ⟦S5⟧ le schede altrui sarebbe fuori
+    forma. ⇒ **Materia di un giro doc a sé.** Non l'ho deciso io.
+
+(3) **IL COMMIT DELLA RIGA D'ANCORAGGIO NON PUÒ CITARE SE STESSO.** La riga
+    ratificata prescrive `@ <commit a 40>` per i due file. Se deposito e
+    ancoraggio stessero nello **stesso** commit, quello sha non sarebbe
+    conoscibile al momento di scrivere la riga: circolarità.
+    ⇒ **ESECUZIONE IN DUE COMMIT**, che è il precedente ESATTO su cui la riga è
+      modellata: il freeze 2026-07-11 fu **depositato** in
+      `9994bc0b5ef6df2a6397b8ef2e6dd8380ff9def9` (11/07, «DESIGN: versiona freeze
+      QLive Nav CD») e **ancorato** nove giorni dopo in
+      `c288e8694917d856d7d04b7cffaced8d1549d1c3` (20/07, LIBRO v38).
+      Misurato con `git log --diff-filter=A` e `git log -S`, non ricordato.
+    ⇒ Questa forma **NON cambia la riga ratificata**: la rende scrivibile
+      esattamente com'è. Nel diff che consegno il posto dello sha porta il token
+      **`⟪SHA40-DEPOSITO⟫`**, visivamente inconfondibile e impossibile da
+      scambiare per un sha. All'esecuzione lo sostituisco con lo sha reale del
+      commit 1 e **riporto la riga sostituita verbatim prima del commit 2.**
+
+
+================================================================================
+ESECUZIONE PREVISTA (dopo ratifica + OK Mauro), IN QUEST'ORDINE
+================================================================================
+  COMMIT 1 — DEPOSITO: i 2 file HTML (già in stage). Nessun canonico.
+  → leggo lo sha a 40 di commit 1
+  → sostituisco `⟪SHA40-DEPOSITO⟫` nella riga di Sez.2
+  → riporto la riga sostituita VERBATIM
+  COMMIT 2 — ANCORAGGIO: LIBRO v54 + SCALETTA v8.
+  Entrambi: stage file per file, autore=committer=Mauro, zero trailer, niente
+  `--no-verify`. Poi ramo-fiammifero + CI + push, se il mandato lo estende.
+  ⚠️ NON eseguo nulla di questo senza i due cancelli.
+
+
+================================================================================
+PERIMETRO
+================================================================================
+Modificati: `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`.
+Aggiunti (in stage): i 2 file HTML in `DESIGN/QLive_Nav/`.
+⛔ NESSUNA modifica sotto `ios_app/` — verificato: non compare in `git status`.
+⛔ Il referto A64 NON toccato. Nessun altro canonico toccato.
+NESSUN commit, NESSUN push, nessun `git add -A`, nessun `--force`.
+Unica scrittura fuori dai due canonici: questo referto, HANDOFF\ + mirror E:.
+
+NOTA OPERATIVA, minore ma coerente col tema del giorno: durante una verifica
+intermedia ho lanciato un `grep -F` il cui pattern era **vuoto** (derivava da una
+riga bianca), e ha matchato tutte le righe — la stessa forma degenere che questo
+giro incide. Nessuna conclusione sbagliata è stata pubblicata (la verifica è
+stata rifatta per simbolo), ma lo registro: la forma morde anche chi la sta
+documentando.
+
+
+DICHIARAZIONE STANDARD
+Ho misurato i file VERI a disco e a HEAD 4e4c24113b21fed53b55c2a6d38a1903e52ecd1f,
+non a memoria: rev2 sui byte, i blob dall'index, la forma delle righe leggendo
+R7, LIBRO:294, LIBRO:323 e la struttura di Sez.2/Sez.6, il precedente dei due
+commit con `git log --diff-filter=A` e `git log -S`, e il censimento delle
+citazioni a SCALETTA prima di introdurre lo slittamento. Ogni affermazione porta
+il comando o il file:riga da cui viene. I tre rilievi sono segnalati e NON
+risolti da me. Due difetti della mia stessa stesura — la formula «in un punto» e
+il descrittore (v8) mancante nella catena — li ho trovati e corretti prima di
+consegnare, e li dichiaro qui invece di lasciarli passare.

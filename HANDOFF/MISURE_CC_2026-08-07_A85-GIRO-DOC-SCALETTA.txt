@@ -1,0 +1,280 @@
+REFERTO QB-2026-08-07-A85 — GIRO DOC SCALETTA: SEZIONE C E SCHEDA ⟦S5⟧
+=======================================================================
+
+Orologio: 2026-08-07T19:28:16Z, locale 2026-08-07 21:28:16 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+
+================================================================================
+⛔ IN TESTA E DA SOLO — IL PUNTO 5.2 NON SI PUÒ FARE IN QUESTO DIFF.
+   ROMPEREBBE VENTI CITAZIONI NUDE. NON L'HO FATTO.
+================================================================================
+
+[M] Le tre marcature `.segMini` chieste dal §5.2 vanno inserite a `:28`, `:50`, `:113` —
+    cioè in TESTA al file. Ogni riga aggiunta lì sposta di uno tutto ciò che segue, e la
+    forma di casa impone di verificare chi ne resterebbe rotto. L'ho verificato, ed è tanto:
+
+      citazioni alla SCALETTA per numero di riga, censite su tutti e cinque i canonici
+      PIÙ i commenti `.swift`:   ANCORATE a commit (immuni) = **5**   ·   NUDE = **26**
+      valori nudi, ordinati: 8 8 8 8 8 8 · 129 130 130 130 130 · 144 144 · 210 213 213 ·
+                             219 219 · 234 · 261 · 272 · 275 · 290 · 297 297 · 300
+
+      inserzione dopo `:28`  → citazioni nude con riga > 28  = **20**
+      inserzione dopo `:50`  → citazioni nude con riga > 50  = **20**
+      inserzione dopo `:113` → citazioni nude con riga > 113 = **20**
+      inserzione dopo `:306` → **0**   ·  dopo `:308` → **0**
+      inserzione dopo `:319` → **0**   ·  dopo `:342` → **0**  (coda del file)
+
+    ⇒ Le venti che si romperebbero vivono in `LIBRO_MASTRO_QBEATS.md` (`SCALETTA:130`,
+      `:141`, `:144`, `:219`, `:234`, `:261`, `:272-274`, `:275-278`, `:290-295`, `:297`×2),
+      in `BUGS_QBEATS.md` (`SCALETTA:129`, `:130`, `:213-215`×2) e in DUE commenti `.swift`
+      (`QLiveRootView.swift:29` → `:210-213` · `QLiveShowDetailView.swift:14` → `:300`).
+      Ripararle significherebbe toccare LIBRO, BUGS e `ios_app/`: tutti e tre vietati dal §6.
+
+    ⇒ **HO ESEGUITO TUTTO IL RESTO E HO LASCIATO FUORI SOLO IL 5.2.** I §4.1, 4.2, 4.3, 5.1
+      e 5.3 sono nel diff e non rompono nulla: sopra le loro soglie le uniche citazioni
+      esistenti sono ancorate a commit, quindi immuni per la regola di casa.
+      Il 5.2 va fatto in un giro suo, e quel giro deve prima decidere che fare delle venti
+      citazioni nude — che sono già oggi una violazione della regola «riga solo con
+      `@ commit` a 40», indipendentemente da questo diff.
+
+⚠️ [M] PRECISAZIONE SUL 5.2, per quando lo si farà: il mandato le chiama «le tre `.segMini`
+   residue». Misurato, le grafie sono DUE e vanno cercate entrambe: `.segMini` (camelCase)
+   rende 5 righe — `:3`, `:50`, `:300`, `:301`, `:304` — e `seg-mini` (con trattino) ne rende
+   3 — `:28`, `:113`, `:301`. Le tre residue sono dunque `:50` in `.segMini` e `:28`/`:113`
+   in `seg-mini`; `:300`/`:301`/`:304` sono già coperte dalla marcatura del 06/08, e `:3` è
+   la riga di versione, che le NOMINA come abolite e non le prescrive.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD, A84
+================================================================================
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A85 ═══». INTEGRO.
+0.2 [M] A85 LIBERO. NOME sensibile 0/0 · NOME INsensibile 0/0 · CONTENUTO INsens. 19/23,
+    IDENTIFICATE una per una: tutte sottostringhe esadecimali dentro impronte
+    (`3c59202c20a850dd…`, `4c40ad080ca85c64…`, `604c2ee038a85fd4…`, `6b2bc9728ba85762…`,
+    `810b9e80eca85a22…`, `a88998e6a8a85de0…`). NESSUNA è un ID.
+    CONTROLLI POSITIVI non-zero: A83 nome=2/2 contenuto=28/33 · A84 nome=1/1 contenuto=8/15.
+0.3 [M] A84 ERA APERTO — referto mancante — e l'ho CHIUSO PRIMA, come prescritto:
+    `HANDOFF/MISURE_CC_2026-08-07_A84-APPLICAZIONE-DUE-DIFF-RATIFICATI.txt`,
+    sha256 `dc269a0046a28d9bb8d32a54a8ba1abad6b4be63f062f61841c3202d8ed1da6d`, propagato
+    su entrambi i supporti. Nulla di A84 resta aperto sotto questo giro.
+0.4 [M] HEAD = **779172e6353d6e51dcee542953725000f48dd05a** — cambiato con i due commit di
+    A84 (`81740e48f24e089703b0199d0ffd20b9b3bfae7c` LIBRO v55, poi questo per BUGS v51).
+    `origin/master` è ancora `2960f089225b3c80cf56cb839fde871cf9738b3d`: due commit indietro,
+    NON pushato.
+
+REGIME [M]: zero modifiche sotto `ios_app/`, zero commit/push/branch, ZERO scritture sul
+canonico — verificato a fine giro che `git status -- HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`
+è vuoto e il blob a HEAD è ancora `580e8f3bebc76a2cace02d8e8505aa2ff028fe23`. Due scritture,
+entrambe autorizzate: questo referto e il file del diff, in `HANDOFF/` + mirror
+`E:\…\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\` (cartelle lette a fonte), verificate a due forme.
+
+
+================================================================================
+2 — LE DUE FACCE DELLA SCALETTA
+================================================================================
+[M] blob OID `580e8f3bebc76a2cace02d8e8505aa2ff028fe23` · CR blob **0** · CR disco **0**
+    attributo `text: unset` (cioè `-text`, da `.gitattributes` riga `HANDOFF/** -text`)
+    byte 44101 = 44101 · righe blob 342
+    contenuti SPOGLIATI dei CR: blob `23665ddf…f8bdbe37` = disco `23665ddf…f8bdbe37`
+    ⇒ COINCIDONO. Non mi fermo. **Base del diff = FACCIA BLOB.**
+
+
+================================================================================
+3 — LA FORMA, LETTA A FONTE
+================================================================================
+[M] LETTURE INTEGRALI DICHIARATE, tutte dal blob a HEAD:
+    · **Sezione C per intero** (`:318-320`): è una sola riga d'ordine, `:319`, che si chiude
+      dichiarando «**QUESTA RIGA È LA SEDE UNICA DELL'ORDINE DEGLI ATOMI §6: ogni altra
+      catena d'ordine in un canonico è storia — si legge, non si riscrive.**»
+    · **Sezione F per intero** (`:329-342`, fino alla fine del file).
+    · **Tre schede di Sezione B**, per intero: ⟦S4R⟧ (`:194-246`), ⟦S5⟧ (`:298-309`),
+      ⟦S6⟧ (`:310-315`). Più l'elenco completo delle 12 intestazioni di Sezione B.
+[M] FORMA DELLE MARCATURE, ricavata e non inventata — modello: il bullet `:301` del 06/08.
+    Ogni marcatura è **una riga**, comincia con `- ⚠️ **MARCATURA <data> — <TITOLO IN
+    MAIUSCOLE>.**`, dichiara che il testo sopra **resta come scritto**, e chiude dichiarando
+    **di quante righe sposta** ciò che la segue e la **verifica delle citazioni** a valle.
+    Le due marcature di Sezione C non portano il trattino iniziale, perché Sezione C non è
+    una lista ma un blocco di prosa: la riga `:319` non è un bullet.
+[M] R7 rispettata: ogni indirizzo nelle righe aggiunte porta `@ <sha40>`; **nessuno sha256**
+    è inciso nel testo del canonico. Ancore usate, tutte verificate a fonte prima di
+    scriverle: `779172e6353d6e51dcee542953725000f48dd05a` (HEAD, per il codice misurato oggi)
+    · `81740e48f24e089703b0199d0ffd20b9b3bfae7c` (commit introduttivo di LIBRO v55, per la
+    riga di ratifica) · `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f` (⟦S5x⟧) ·
+    `25056b66eda40ad76d91a886ace442b7064ca900` (⟦S5a⟧) ·
+    `e61efd0e9bc2f9174b755e5a25e02a611c795cea` e `2960f089…` (citate come ancore preesistenti).
+    ⚠️ Ancora che NON avevo e che NON ho fabbricato: nessuna, in questo giro.
+    [M] Verificato a fonte che `LIBRO_MASTRO_QBEATS.md:353` a `@ 81740e48…` è davvero la riga
+    `| 2026-08-07 | **RESTART SETLIST SI TOGLIE DA END SHOW — OPZIONE Ⓐ DI CD (07/08).** …`
+
+
+================================================================================
+4 — I TRE OBBLIGATORI (tutti e tre nel diff)
+================================================================================
+
+4.1 — SEZIONE C, ⟦S5⟧ SPEZZATA IN TRE  [M]
+  Misura che motiva la marcatura, rifatta oggi sul blob a HEAD: `S5a`, `S5b`, `S5x` rendono
+  **ZERO** in tutto il file **in entrambe le casse** (`S5A`/`S5B`/`S5X` rendono anch'esse 0),
+  con controllo positivo `S5` = **24**. E `25056b66` rende **ZERO** su tutti e cinque i
+  canonici, con controllo positivo `4e4c2411` = **5** in LIBRO. Le due misure confermano il
+  mandato: la sede unica dell'ordine non sa che l'atomo si è spezzato.
+  La marcatura incide i tre atomi con le formule esatte prescritte — ⟦S5a⟧ **consegnata,
+  CI verde, NON validata device, e RAGGIUNGIBILE OGGI** col percorso misurato (`.shows` è la
+  pagina di default, `QLiveRootView.swift:46`; il ramo `.detail` a `:103-104` non ha gate) ·
+  ⟦S5x⟧ «**CHIUSO A CODICE, validazione device DIFFERITA a ⟦S5b⟧**», con la ragione
+  dell'impossibilità e non della disciplina · ⟦S5b⟧ **il fronte**, un solo bottone, il
+  `.startfoot` del dettaglio invariato — e chiude con l'ordine reciproco S5a → S5x → S5b,
+  poi ⟦S-EXIT⟧ «come già ratificato dalla riga sopra».
+
+4.2 — SCHEDA ⟦S5⟧, «OPEN — tipo del runner»: SEPARATO, NON RIMOSSO  [M]
+  Due marcature distinte, perché l'atto è una separazione e il documento deve mostrarla:
+  · la PRIMA conferma la premessa e aggiunge ciò che il bullet non poteva sapere —
+    `LiveSession` 16 `@Published`, istanziata in **un solo punto** (`LiveView.swift:11`,
+    `@StateObject private var session = LiveSession()`, quindi creata dal player e `private`);
+    `QLiveSession` **un solo campo** (`:35`), zero metodi, zero init, `extension QLiveSession`
+    = **0** con controllo positivo `extension ` = 11.
+  · la SECONDA degrada la conclusione a **DOMANDA APERTA**, spiega perché oggi non serve —
+    i due tipi non si incontrano mai, e lo Start non può chiamare `startSetlist` perché la
+    `LiveSession` non esiste ancora quando lo Start viene premuto — e porta **la riserva di
+    CC incisa insieme e non soppressa**: è misurato che oggi non serve, NON è misurato che
+    non possa servire domani.
+  ⚠️ La marcatura dichiara al suo interno che la fonte citata dal bullet originale
+  (`HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt`) **NON è stata riletta**: il verdetto
+  poggia sul codice a HEAD, non su un giudizio di quel referto. È scritto nel canonico, non
+  solo qui: chi lo leggerà domani saprà su cosa poggia.
+
+4.3 — BULLET «CANCELLO»: AL SINGOLARE, NON SODDISFATTO  [M]
+  Una marcatura, ancorata a `LIBRO_MASTRO_QBEATS.md:353 @ 81740e48f24e089703b0199d0ffd20b9b3bfae7c`
+  (citata per ancora, non ricopiata). Dice tre cose e le tiene distinte: la condizione si
+  legge **al singolare**; il pulsante superstite **è cablato** (`FineSetlistView.swift:29
+  @ 779172e6…`, ⟦S5x⟧); e **questo non rende il cancello soddisfatto**, perché la validazione
+  device è differita e nessuno ha mai visto quel bottone funzionare. Rilievo di CD, accolto
+  e attribuito a CD nel testo.
+
+
+================================================================================
+5 — LE MARCATURE BREVI
+================================================================================
+5.1 — ⟦S-EXIT⟧ SENZA SCHEDA: **FATTO**  [M]
+  Misurato: `S-EXIT` rende **2** occorrenze in tutto il file, **entrambe sulla riga `:319`**
+  (Sezione C). Sezione B contiene esattamente **12** intestazioni `###`, contate e nominate
+  una per una nella marcatura: ⟦S0⟧ ⟦S1⟧ ⟦S2F⟧ ⟦S2⟧ ⟦S3⟧ ⟦NODO A⟧ ⟦S4⟧ ⟦S4K⟧ ⟦S4R⟧ ⟦S4L⟧
+  ⟦S5⟧ ⟦S6⟧ — **nessuna è ⟦S-EXIT⟧**. La marcatura registra il buco e dichiara esplicitamente
+  che **la scheda NON si scrive qui**, come prescritto.
+5.2 — LE TRE `.segMini`: **NON FATTO**. Motivo in testa al referto, con i numeri.
+5.3 — SEZIONE F: **FATTO**  [M]
+  Una marcatura in coda al file (`:348` nel risultato), che quindi **non sposta nulla**.
+  Registra che l'intestazione `:329` ancora a `fa64832` e la riga `:330` dichiarano i
+  riferimenti «non affidabili a HEAD `6fca624`», e che **quel** HEAD non è più HEAD: oggi è
+  `779172e6…`, e nella sola giornata del 07/08 ne sono passati altri tre. Riscrive la
+  prescrizione di `:333` come «ri-verificare a HEAD CORRENTE, per SIMBOLO poi riga» e
+  dichiara che **i riferimenti NON sono stati ricostruiti** in questo giro.
+
+
+================================================================================
+IL DIFF — COSTRUZIONE E PROVA
+================================================================================
+[M] File prodotto: `HANDOFF/DIFF_SCALETTA-v9_2026-08-07_A85-SEZIONE-C-E-SCHEDA-S5.txt`
+    19233 byte · 44 righe · CR 0. Impronta in coda al referto.
+
+[M] ⚠️ BUMP DI VERSIONE **8 → 9**, che il mandato non nomina e che ho incluso lo stesso.
+    Non è un'aggiunta arbitraria: **R7 lo impone** quando il contenuto cambia, e questo stesso
+    file, a `:16`, incide un precedente di segno opposto — «⚠️ **BUMP v5 TARDIVO — R7
+    rispettata in ritardo**» — cioè un giro in cui il bump fu dimenticato e dovette essere
+    riparato dopo. Ometterlo qui avrebbe rifatto quel difetto. La riga `:3` è l'**unica**
+    riga sostituita del diff, e la sua forma segue le otto voci precedenti: `· **<cosa è
+    cambiato>** (vN)` in coda. [I] Se il referee non vuole il bump in questo giro, si toglie
+    il primo hunk e restano sei aggiunte pure — ma allora R7 va riparata dopo, e va detto.
+
+[M] COSTRUZIONE: le righe di contesto NON sono state trascritte a mano. Estratte dal blob con
+    `awk` sulle righe esatte (1-2, 4-5 · 304-306, 307-308, 309 · 317-319, 320-321 · 340-342)
+    e prefissate con uno spazio; le righe aggiunte vengono da file composti a parte e
+    prefissate con `+`. Nessun errore di trascrizione possibile su righe lunghe.
+
+[M] QUATTRO HUNK, forma `-U2`:
+      `@@ -1,5 +1,5 @@`          bump di versione (1 riga sostituita, net 0)
+      `@@ -304,6 +304,9 @@`      2 marcature dopo `:306` + 1 dopo `:308`
+      `@@ -317,5 +320,7 @@`      2 marcature dopo `:319` (Sezione C)
+      `@@ -340,3 +345,4 @@`      1 marcatura in coda (Sezione F)
+    Conteggi: 8 righe `+` (7 contenuto + la riga `+++`) · 2 righe `-` (1 contenuto + `---`).
+    ⇒ **SEI marcature aggiunte, UNA riga sostituita, ZERO righe di contenuto rimosse.**
+    Esito: 342 → **348** righe.
+
+[M] PROVA — `git apply --check` PASSA SUL FILE COSÌ COM'È.
+    ⚠️ È la differenza con A84, e viene dalla correzione che il mandato §1 prescrive: la
+    decorazione di versione sta nel **preambolo**, sopra le righe `---`/`+++`, non dentro.
+    Con l'intestazione pulita `git apply` legge il patch, e **non serve GNU `patch`** — che
+    in A84 aveva riscritto l'intero LIBRO da CRLF a LF. Due problemi, una causa, come dicevi.
+[M] SIMULAZIONE FEDELE, fuori dal repo, in un ambiente che riproduce quello vero (copia del
+    `.gitattributes` del repo + `core.autocrlf=false`):
+      righe risultanti = **348** (attese 348) · CR = **0** · byte 54558
+      sha256 del risultato = `5a3c1e47d73647ca2870750384b44087f7db80a3c29b042eabcb560b968dcf39`
+      riga 3 = `**Versione:** 9 (07/08/2026) · …`
+      righe originali NON ritrovate = **1** — ed è la sola riga 3, sostituita dal bump
+      righe nuove = **7** = 6 marcature + la riga 3 nuova
+      marcature `MARCATURA 07/08` presenti = **6**
+      i quattro bersagli originali **intatti e leggibili**: riga d'ordine «SEDE UNICA» = 1 ·
+      bullet «OPEN — tipo del runner» = 1 · bullet «CANCELLO» = 1 · intestazione Sezione F = 1
+    ⚠️ Una prima simulazione, fatta in una cartella **senza** il `.gitattributes` del repo,
+      aveva reso CR = 348: era un artefatto dell'ambiente di prova (là il file cade sotto
+      `autocrlf`, qui è `-text`). L'ho rifatta fedele invece di accettare il numero. Lo
+      registro perché un ambiente di prova che non riproduce il vero mente in silenzio.
+[M] IL CANONICO È INTATTO: blob a HEAD ancora `580e8f3bebc76a2cace02d8e8505aa2ff028fe23`,
+    `git status` sul file vuoto. Il diff NON è stato applicato al repo.
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho fatto il §5.2 (tre `.segMini`): romperebbe 20 citazioni nude. Motivo in testa.
+  · NON ho scritto la scheda di ⟦S-EXIT⟧, NON ho proposto soluzioni per ⟦S5b⟧, NON ho
+    ricostruito i riferimenti di Sezione F.
+  · NON ho toccato LIBRO, BUGS, BOX3, BOX5, `ios_app/`. NON ho applicato il diff.
+  · NON ho riaperto A78-A84; le misure di codice citate nelle marcature sono ereditate da
+    A78/A79/A81/A82 e ri-ancorate a HEAD corrente, non rimisurate riga per riga oggi —
+    tranne quelle che il §4.1 impone (`S5a`/`S5b`/`S5x`, `25056b66`, `4e4c2411`, `S5`),
+    che ho rifatto in questo giro.
+  · NON ho riletto `HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt`: dichiarato nel
+    canonico stesso, non solo qui.
+  · NON ho aperto lavoro sull'arretrato Drive né sullo snapshot numerato, come da tua
+    istruzione esplicita.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — SUL §5.2, e non è un disaccordo sul merito ma sull'ordine. Marcare le tre `.segMini` è
+  giusto; farlo **in questo diff** no, e il numero lo dice: venti citazioni nude si
+  romperebbero. ⚠️ Ma il punto vero è un altro, ed eccede il 5.2: **quelle venti citazioni
+  sono già oggi fuori regola.** La regola di casa è «indirizzi per SIMBOLO, riga solo con
+  `@ commit` a 40», e ventisei citazioni alla SCALETTA su trentuno sono nude. Finché stanno
+  così, **ogni inserzione in testa a questo file è bloccata per sempre** — non solo la mia.
+  Il giro che farà il 5.2 deve prima decidere se ancorarle o convertirle a simbolo,
+  altrimenti si riproporrà identico.
+
+D2 — SUL BUMP DI VERSIONE, che ho aggiunto senza che me lo chiedessi. L'ho fatto perché R7
+  lo impone e perché questo file porta inciso un precedente in cui fu dimenticato. ⚠️ Ma
+  segnalo la tensione: un mandato che elenca sei interventi puntuali e non nomina il bump
+  può voler dire «non bumpare» tanto quanto «lo do per scontato». Ho scelto la lettura che
+  rispetta il canonico invece di quella che rispetta il silenzio del mandato — coerente con
+  la regola che ho chiesto io stesso di adottare («il mandato non è una fonte»), ma resta
+  una mia scelta e la dichiaro come tale. Il primo hunk si toglie in dieci secondi.
+
+D3 — SULLA FORMA DELLE MARCATURE DI SEZIONE C. Le due marcature di §4.1 e §5.1 **non**
+  portano il trattino di elenco, perché Sezione C non è una lista: `:319` è prosa. Le altre
+  quattro lo portano, perché stanno dentro liste di bullet. Non ho uniformato: uniformare
+  avrebbe significato inventare una forma dove il file ne ha due. Se preferisci l'uniformità,
+  è una riga da cambiare — ma allora si sceglie quale delle due forme il file adotta.
+
+D4 — INVARIATO, e con un peso in più dopo A84: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e **NON
+  validati su device**, e oggi abbiamo committato due canonici e ne prepariamo un terzo che
+  descrivono quella stanza. ⟦S5a⟧ è raggiungibile **subito** — la marcatura di §4.1 ora lo
+  incide nel canonico, con il percorso misurato. Il gate si può chiudere prima di ⟦S5b⟧, e
+  ogni giro che passa aggiunge un piano sopra un cancello mai chiuso.
+
+FINE REFERTO A85.

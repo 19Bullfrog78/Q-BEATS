@@ -1,0 +1,252 @@
+REFERTO QB-2026-08-07-A80 — SBLOCCO CANCELLO · FILE CD · MIXER · DIFF RIGA LIBRO
+=================================================================================
+
+Orologio: 2026-08-07T17:10:39Z, locale 2026-08-07 19:10:39 +0200. [M] MISURATO con `date -u`.
+Data ID = data esecuzione = 2026-08-07.
+
+Marcatori: [M] misurato da me in questo giro · [R] riportato/asserito, non verificato da me
+· [I] mia inferenza a partire dalle misure.
+
+NESSUN RILIEVO CHE FERMA. Lo dichiaro in testa perché A80 ne prevedeva due possibili:
+  · il trigger di A6 («se il pannello copre BACK TO SHOWS → in testa e da solo») NON è
+    scattato: il pannello NON copre il pulsante, né in tutto né in parte — la misura è in A6,
+    insieme al varco REALE che resta (lo strato invisibile di tap-close);
+  · il cancello A5 di A79 è SCIOLTO dal mandato con la regola nuova (contenuti privati dei
+    CR, non conteggio dei CR). [M] La condizione della regola nuova è verificata: i due
+    contenuti spogliati rendono lo stesso sha256 (`9d8a6c64…`, misurato in A79 e qui non
+    rifatto) → coppia canonica → si procede, base = FACCIA BLOB. Il diff è in FASE B.
+
+
+================================================================================
+0 — INTEGRITÀ, AGGANCIO, HEAD
+================================================================================
+
+0.1 [M] Il mandato termina con «═══ FINE MANDATO A80 ═══». INTEGRO. Eseguito per intero.
+
+0.2 [M] A80 LIBERO. Due supporti × due casse × due forme.
+      NOME, sensibile   : A80 repo=0 mirror=0        NOME, INsensibile : a80 repo=0 mirror=0
+      CONTENUTO, INsens.: A80 repo=19 mirror=25
+    ⚠️ Le 19/25 per contenuto IDENTIFICATE: tutte sottostringhe esadecimali dentro impronte —
+      `edaa80f` (commit BOX5 V27, la più frequente), `a80251e7…` (un albero), `a80d934b…`,
+      `0848805fa24469a80…`, `1bcfb9ad90a205a80…`. NESSUNA è un identificativo di referto.
+    CONTROLLI POSITIVI, stessa forma, non-zero: A78 nome=1/1 contenuto=12/15 ·
+    A79 nome=1/1 contenuto=32/37.
+
+0.3 [M] HEAD = 2960f089225b3c80cf56cb839fde871cf9738b3d. COINCIDE con l'atteso.
+
+0.4 [M] Preso atto: A79 non si rifà, A1/A2/A3 acquisite. A4 rifatta qui (A4-bis).
+    ⚠️ I due esiti NON si contraddicono: A4 di A79 misurava «niente su E:» ed è ancora vero
+    (ricerca esaustiva, controllo positivo funzionante); il file vive su C:, a un percorso
+    creato a mano che nessuna famiglia di E: poteva rendere.
+
+
+================================================================================
+1 — REGIME, PERCORSI, LETTURE INTEGRALI
+================================================================================
+
+[M] Zero modifiche sotto ios_app/. Zero commit/push/branch. IL LIBRO NON È STATO TOCCATO:
+    la Fase B produce un diff, e il diff vive in questo referto — verificato a fine giro che
+    `git status` sui cinque canonici resta vuoto e HEAD invariato.
+[M] Cartelle dei referti lette a fonte (dove vivono A78 e A79): repo `HANDOFF/` · mirror
+    `E:\…\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\`. Propagazione in coda, due forme.
+[M] Letti PER INTERO in questo giro, dal blob a HEAD:
+      `UI/Live/MixerOverlayView.swift`   75 righe   -> LETTO INTERO (A6)
+      `UI/Live/OverlayStopView.swift`    52 righe   -> LETTO INTERO (stile bottoni, A6)
+    Più le righe del LIBRO necessarie al diff, tutte INTERE e verbatim: 3-10 · 351-355 ·
+    503-509 (le righe-contesto degli hunk sono riportate integrali dentro il diff).
+    Ereditati interi da A78/A79: LiveView, FineSetlistView, QLiveRootView, AppRootView,
+    HomeRootView, QBeatsApp, SetlistRunner, LiveSession, QLiveSession.
+
+
+================================================================================
+2 — CANCELLO A5: SCIOLTO, REGOLA NUOVA PRESA IN CARICO
+================================================================================
+
+[R] Dal mandato: un diff su un canonico si ferma SOLO se i contenuti privati dei CR rendono
+    sha256 DIVERSI; il conteggio dei CR da solo descrive la normalità autocrlf, non
+    un'anomalia; a parità di contenuto → base = FACCIA BLOB.
+[M] Condizione verificata per LIBRO (misura A79, non rifatta): blob senza CR e disco senza
+    CR rendono entrambi `9d8a6c647be12bee63dfd1f8060ef75234d1bd432e789b4870cd0e5351bd0d89`.
+    Coppia canonica. Si procede: la base del diff in Fase B è il BLOB
+    `f7cd8085023ef0382e8c26e81b802d2a6e3b3274` (LF, 509 righe) a HEAD `2960f089…`.
+
+
+================================================================================
+FASE A
+================================================================================
+
+A4-bis — IL FILE DI CD, AL PERCORSO DI MAURO  [M]
+---------------------------------------------------
+>>> ESISTE, ed è UNO SOLO — nessuna scelta da fare, nessuna revisione multipla.
+
+  Percorso (verbatim di Mauro, verificato esistente):
+    C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\DESIGN\QLive_EndShow\
+    DA_CD_PER_CC\07_08_2026\DESIGN\QLive_EndShow\
+
+  UNICO file contenuto:
+    nome    : 2026-08-07_QLive-EndShow_Secondo-Pulsante__RISPOSTA-A.html
+    sha256  : 6b6a2a76901fae04ce1315724fdd664d1c3b4c22ead6a755b1cce407f8d72b5c
+    byte    : 19476        righe : 176        CR : 0        mtime : 2026-08-07 18:34:49
+
+  ⚠️ Il percorso sta DENTRO l'albero di lavoro del repo ed è UNTRACKED
+    (`git status` → `?? DESIGN/QLive_EndShow/`; `git ls-tree` a HEAD sotto quel path →
+    vuoto). Fuori regime, come il mandato dichiara. NON copiato, NON spostato, NON
+    committato, NON aperto: solo impronte. L'annidamento doppio
+    (`DESIGN/QLive_EndShow/DA_CD_PER_CC/07_08_2026/DESIGN/QLive_EndShow/`) è quello
+    dichiarato, riportato senza normalizzare.
+
+A6 — IL MIXER SOPRA END SHOW: QUANTO È GRAVE  [M]+[I]
+-------------------------------------------------------
+RISPOSTA SECCA: il pannello del mixer NON copre BACK TO SHOWS, né in tutto né in parte —
+resta ~113 pt più in basso. MA l'intera area dei due pulsanti è coperta dallo strato
+INVISIBILE di tap-to-close: il primo tap su BACK TO SHOWS chiude il mixer invece di
+attivare il pulsante; il secondo tap funziona. E il mixer da lì SI CHIUDE, in due modi.
+Nessun vicolo cieco. Il dettaglio, misurato:
+
+  GLI STRATI, dal codice [M]:
+    · Strato mixer (LiveView:194-207): `VStack { Spacer() + Color.clear(h=0.49·H_geo,
+      .contentShape, tap→chiude) + MixerOverlayView }`, frame max ∞ → ancorato in BASSO;
+      `.allowsHitTesting(session.showMixer)` — a mixer chiuso lo strato è trasparente ai tocchi.
+      Sta DOPO il blocco `.fineSetlist` nel ZStack → z-order SOPRA END SHOW.
+    · Pannello (MixerOverlayView:24): `.frame(height: UIScreen.main.bounds.height * 0.21)`,
+      fondo `#16161a` OPACO (`:25`), bordo superiore 1.5pt (`:26-31`).
+    · Chiusure disponibili DENTRO lo stato [M]: (1) tap sulla zona `Color.clear`
+      (LiveView:200-201) — zona che copre proprio l'area dei pulsanti, quindi il «tap
+      sbagliato» È il gesto che ripara; (2) tap sul pannello stesso (MixerOverlayView:32-35,
+      `contentShape` + `onTapGesture` → `showMixer = false`). Terze vie: nessuna (nessuno
+      swipe esiste, censimento A79-A1).
+    · I due sistemi di coordinate COINCIDONO: il VStack del mixer e FineSetlistView vivono
+      nello stesso ZStack di LiveView, entrambi proposti nell'area safe; solo il Color di
+      fondo di FineSetlistView sborda (`ignoresSafeArea`), i pulsanti no.
+
+  LA GEOMETRIA [I] — calcolo dal codice, NON eseguito su device; baseline dichiarate:
+  iPhone 13 (baseline di casa: larghezza 390 → sf=1.0; altezza schermo 844), insets nominali
+  47 sopra / 34 sotto → H_geo ≈ 763. Altezza bottone: 56 pt FISSI
+  (`OverlayStopButtonStyle`, OverlayStopView.swift:46 `.frame(height: 56)`); titolo 28pt
+  (stima line-height ~34).
+    pannello mixer   : [586 … 763]   (alto 0.21·844 ≈ 177, ancorato al fondo)
+    zona tap-close   : [212 … 586]   (alta 0.49·763 ≈ 374, sopra il pannello)
+    blocco END SHOW  : centrato a 381.5 → titolo [~290…325] · BACK TO SHOWS [~349…405] ·
+                       RESTART [~417…473]
+  ⇒ ENTRAMBI i pulsanti e il titolo cadono INTERAMENTE nella zona tap-close; il pannello
+    parte ~113 pt SOTTO il bordo inferiore di RESTART. Robustezza della stima: anche
+    variando la line-height del titolo fra 28 e 40 pt, il fondo di RESTART resta sotto i
+    476 e il pannello sopra i 585 — il verdetto non dipende dalla stima. Su iPad (sf~2.63,
+    insets diversi) le proporzioni cambiano ma l'ordine verticale no: pannello in fondo,
+    pulsanti al centro, zona clear in mezzo. [I]
+
+  GRAVITÀ, in una frase [I]: non è il vicolo cieco di ⟦S5x⟧ — è un PRIMO TAP RUBATO con
+  feedback visibile (il pannello sparisce) e autoriparante; il costo scenico è un tocco in
+  più al buio, non una schermata senza uscite.
+
+  ⚠️ REPERTO COLLATERALE, misurato [M]: `UIScreen.main.bounds.height` a MixerOverlayView:24
+  è l'UNICA occorrenza di `UIScreen` in tutta l'app (sweep su ios_app/, 1 hit). Tutto il
+  resto della Vista LIVE misura su `geo` (area safe): il pannello è quindi ~0.21·844=177 pt
+  contro i ~0.21·763=160 pt della zona transport che copre — ~17 pt più alto del suo
+  alloggio, e in ambienti dove finestra ≠ schermo (iPad multitasking) misurerebbe la cosa
+  sbagliata. [I] Da registrare quando si aprirà il ticket del mixer — QUI NON APERTO, come
+  da mandato.
+
+  [M] Trigger «in testa e da solo»: NON scattato — il pannello non copre il pulsante.
+
+
+================================================================================
+FASE B — IL DIFF (base = faccia BLOB, come da regola nuova)
+================================================================================
+
+B2 [M] Forma letta a fonte, righe INTERE: Sez.2 `:349-352` (le quattro righe 2026-08-06,
+    tabella a sei colonne `| data | decisione | autore/canale | riscontri | stato | note |`),
+    header `:5-7`, registro Sez.6 `:500-505` + chiusura `:506-509`. Punti di inserzione:
+    Sez.2 dopo `:352` (prima della riga vuota `:353`); Sez.6 dopo `:505` (voce `| 54 |`).
+B3 [M] Ancore usate — nessuna fabbricata, nessuno sha256 nel testo del canonico (R7):
+    `LIBRO_MASTRO_QBEATS.md:153 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` (CD-3 proposto) ·
+    `:154 @ c1556e57…` (BACK TO SHOWS attivo, R-CD5-10) — entrambe già in uso nel corpus ·
+    `ios_app/QBeats/UI/Live/FineSetlistView.swift:31 @ 2960f089225b3c80cf56cb839fde871cf9738b3d`
+    (closure vuota) · blame MISURATO da me: `899be2ce1da81f0e4a6280904d8d18087a8c1074`,
+    autore «LiveHost Setup», 2026-05-21 — la dettatura «dal 21/05» passa da [R] a [M] ·
+    cancello di ⟦S5⟧ indirizzato PER SIMBOLO (bullet «CANCELLO», scheda ⟦S5⟧, SCALETTA).
+B4 [M] Il diff, VERBATIM, forma di casa (come `DIFF_LIBRO-v53_2026-08-04_A39`):
+    NON applicato. NON committato. Il canonico è intatto.
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DIFF LIBRO v54 -> v55 — giro QB-2026-08-07-A80-FILE-CD-MIXER-E-DIFF-RIGA-LIBRO
+│ Sorgente: blob a HEAD 2960f089225b3c80cf56cb839fde871cf9738b3d
+│           (git object f7cd8085023ef0382e8c26e81b802d2a6e3b3274, faccia BLOB, LF, 509 righe)
+│ PROPOSTA — il canonico NON e' stato modificato. Nessun commit, nessun push.
+│ Contesto ampio (-U2) per rendere leggibile la collocazione. Esito: 509 -> 511 righe.
+└─────────────────────────────────────────────────────────────────────────────┘
+
+--- a/LIBRO_MASTRO_QBEATS.md (v54 @ 2960f08)
++++ b/LIBRO_MASTRO_QBEATS.md (v55 PROPOSTA)
+@@ -3,7 +3,7 @@
+ > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
+
+-**Versione:** 54 (06/08/2026)
+-**Ultima modifica:** 2026-08-06 (v54 — **Sez.2 +6 righe**: il perimetro di R7 §1 chiarito (sha256 ammesso per gli artefatti CONGELATI, in aggiunta e mai in sostituzione); l'ancoraggio dell'ARTEFATTO NORMATIVO Q-Live › Shows (freeze consolidato CD — rev3 normativa, rev2 agli atti come impronta dell'evento di ratifica); le TRE decisioni ratificate il 06/08 (font e abolizione di `.seg-mini`; menu «···» a due voci; R3 `.navbar` dell'empty metronomo); il falso-**positivo** da filtro — polarità nuova, identificata per polarità e non per numero — con la rettifica del referto A64. Doc-only, zero codice.)
+-**Edit author:** CC chat principale 06/08/2026 (diff A70-DEPOSITO-E-ANCORAGGIO-FREEZE + A71-DIFF-VERBATIM-E-R7)
++**Versione:** 55 (07/08/2026)
++**Ultima modifica:** 2026-08-07 (v55 — **Sez.2 +1 riga**: RESTART SETLIST si toglie da END SHOW (opzione Ⓐ di CD; ratifica tecnica del referee e OK di Mauro lo stesso giorno, due cancelli distinti); CD-3 si sposta come proposta verso Q-Studio (preso agli atti, non ratificato); conseguenza dichiarata sul cancello di ⟦S5⟧ — condizione «i DUE pulsanti» da riscrivere AL SINGOLARE nel giro doc sulla SCALETTA, non dichiarata soddisfatta; il disegno del piede ribilanciato resta NON ratificato. Doc-only, zero codice.)
++**Edit author:** CC chat principale 07/08/2026 (diff A80-FILE-CD-MIXER-E-DIFF-RIGA-LIBRO)
+ **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
+
+@@ -351,4 +351,5 @@
+ | 2026-08-06 | **R3 — LA `.navbar` DELL'EMPTY-STATE DEL METRONOMO RESTA.** Il divieto «zero pulsanti» posto il 02/08 è **scopato al CORPO** dell'empty-state, **non al chrome** di navigazione. ⇒ **su questo punto ⟦S5⟧ NON è più bloccato.** Nessuna modifica al file del 02/08: la ratifica **CONFERMA** il disegno esistente, non lo cambia — è una decisione di ambito, non di contenuto. | referee (scoping del divieto) | freeze consolidato rev3 · empty-state metronomo del 02/08, invariato | attiva | — |
+ | 2026-08-06 | **FALSO-*POSITIVO* DA FILTRO — POLARITÀ NUOVA, PRIMA DELLA SUA SERIE.** `grep -c $'\r'` su un file che **non contiene alcun CR** rende **il numero totale delle righe**, non zero: il pattern è degenere e matcha **ogni** riga. ⚠️ **Anche la forma ancorata `grep -c $'\r$'` mente allo stesso modo** — controprova su file di controllo di **3 righe LF pure**: entrambe rendono **3**. **REGOLA: il conteggio dei CR si fa SUI BYTE** (conteggio di `0x0D` sul contenuto binario), **mai con `grep`.** ⚠️ **PERCHÉ NON PRENDE UN NUMERO NELLA SERIE ESISTENTE, e sono due misure distinte:** **(1)** quella serie enumera i soli falsi-**NEGATIVI** — l'unico membro numerato, `LIBRO_MASTRO_QBEATS.md:323`, si intitola «SESTA FORMA DI FALSO-**NEGATIVO**» — e questo caso ha **polarità opposta**: forzarne dentro un ordinale mescolerebbe due famiglie che la serie stessa tiene distinte. **(2)** ⚠️ **La serie NON è enumerata:** cercate su LIBRO, BOX3, BOX5 e BUGS le forme «prima/seconda/terza/quarta/quinta forma di», il risultato è **ZERO** — l'ordinale «sesta» non ha predecessori rintracciabili per nome in alcun canonico. **Reperto registrato, non riparato qui.** ⇒ Questa riga si identifica per **POLARITÀ**, non per numero, ed è la **prima** della propria: `falso-positivo` rende **0** occorrenze su LIBRO a HEAD `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`, BOX3, BOX5 e BUGS. ⚠️ **Il quadro delle polarità, che ora è a tre e si sommano:** `BOX3_QBEATS.md` V99 (d) = un vuoto che sembra un fatto (exit 0); `LIBRO_MASTRO_QBEATS.md:323` = un exit 1 che sopprime la prova; **questa** = un numero pieno che sembra una misura. **CASO REALE CHE L'HA PRODOTTA, E SUA RETTIFICA:** il referto `HANDOFF/MISURE_CC_2026-08-06_A64-S5X-BACK-TO-SHOWS.txt` dichiara «working copy dei due file interamente CRLF (38/38 e 466/466 righe CRLF)» — **AFFERMAZIONE FALSA per metà**: rimisurato sui byte, `FineSetlistView.swift` era **LF puro (CR 0)**, mentre `LiveView.swift` era davvero CRLF. Trovata da **CC stesso**, e aggravante: **git lo stava già dicendo** con l'avviso «LF will be replaced by CRLF», archiviato allora come cosmetico invece che letto come la misura che contraddiceva la propria. ⛔ **DANNO SUL CODICE: ZERO** — il commit `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f` è corretto, blob LF in entrambi i casi, `numstat` +11/−1 e +19/−1 senza churn di fine-riga. ⛔ **IL FILE DEL REFERTO A64 NON SI CORREGGE:** il messaggio di commit **pubblico** di ⟦S5x⟧ lo cita per NOME e per SHA256, e correggerlo renderebbe **morto un puntatore dentro un messaggio immutabile** (R7 §1 — l'incidente da ~4 ore dell'11/07). **La rettifica vive SOLO in questa riga.** | CC (l'errore, il rilievo e la rettifica) + referee (riproduzione indipendente con controllo positivo) | controprova CC su file di controllo · `BOX3_QBEATS.md` V99 (d) · `LIBRO_MASTRO_QBEATS.md:323` per le altre due polarità | attiva | — |
++| 2026-08-07 | **RESTART SETLIST SI TOGLIE DA END SHOW — OPZIONE Ⓐ DI CD (07/08).** Proposta e disegno di CD; **ratifica tecnica del referee** e **OK di Mauro** lo stesso giorno — due cancelli distinti, passati entrambi. Motivo di peso maggiore, nelle parole di CD: ratificare il comportamento adesso «servirebbe a sbloccare un atomo, non perché il disegno lo chieda». Motivo da palco: **asimmetria del rischio** — un tocco sbagliato al buio su RESTART fa ripartire un intero show; su BACK TO SHOWS non fa danno. La funzione non si perde: BACK TO SHOWS riporta alla libreria con lo show già lì (comportamento ratificato R-CD5-10, `LIBRO_MASTRO_QBEATS.md:154 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf`). Non si toglie una funzione, si toglie una promessa mai mantenuta: misurato a HEAD, RESTART è una closure vuota dalla nascita — `ios_app/QBeats/UI/Live/FineSetlistView.swift:31 @ 2960f089225b3c80cf56cb839fde871cf9738b3d`, blame `899be2ce1da81f0e4a6280904d8d18087a8c1074` (21/05/2026). **CD-3** («Restart Setlist … ricomincia la setlist appena suonata», `LIBRO_MASTRO_QBEATS.md:153 @ c1556e57b1a81fafa7973b8647741ede9c92e6cf` — proposto, mai ratificato) **si sposta come PROPOSTA verso Q-Studio: preso agli atti, NON ratificato oggi.** ⚠️ **Conseguenza sul cancello di ⟦S5⟧** (bullet «CANCELLO» della scheda ⟦S5⟧, `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md` — indirizzo per SIMBOLO: il bersaglio è editabile): la condizione «i DUE pulsanti di `FineSetlistView` devono fare qualcosa» va **RISCRITTA AL SINGOLARE**, NON dichiarata soddisfatta — rilievo di CD, accolto; la riscrittura è materia del giro doc sulla SCALETTA, non di questa riga. ⛔ **Il DISEGNO del piede ribilanciato NON è ratificato qui:** non è ancora passato per un canale byte-fedele — il deliverable CD del 07/08 è agli atti per impronta nel referto A80, non ancora letto né ratificato. | CD (proposta e disegno, opzione Ⓐ) + referee (ratifica tecnica) + Mauro (OK — il decisore) | misure CC nel referto `HANDOFF/MISURE_CC_2026-08-07_A80-FILE-CD-MIXER-E-DIFF-RIGA-LIBRO.txt` (A4-bis: impronta del deliverable CD · A6: geometria mixer/END SHOW) · ticket `TD-fineshow-bottoni-morti` in `BUGS_QBEATS.md` | attiva | — |
+
+ ---
+@@ -504,4 +505,5 @@
+ | 53 | 2026-08-04 | Mauro + CC + referee | **Sez.2 +1 riga + un cartello, doc-only, zero codice.** La **quarta destinazione di R-δ** è il **NAS Synology** — copia manuale, nessuna sincronizzazione, cadenza settimanale, su **entrambi gli alberi, C: e E:, perché nessuno dei due contiene l'altro** — e la **chiavetta esce dal regime**, declassata a complemento occasionale. ⛔ L'argomento della riga `2026-08-01` R-δ **non cade**: cambia chi occupa il ruolo, non la ragione per cui il ruolo esiste. **Proprietà nuova incisa qui:** una copia manuale non si cancella a distanza ma **invecchia**, quindi con cadenza settimanale il rischio residuo è «vecchia di al massimo sette giorni», non «assente». Cartello appeso alla riga `2026-08-01` di Sez.2 nella forma dei tre precedenti `:249`, `:252`, `:292`, testo originale **non riscritto**. ⚠️ **La voce 50 del registro NON è marcata**, benché nomini la chiavetta: in Sez.6 i precedenti di riga di registro marcata come superata sono **zero**, misurati con la stessa forma che in Sez.2 ne rende **tre**, e un precedente non si inventa — decisione rinviata a Mauro. ⚠️ La decisione è `[R]` da conversazione; la dichiarazione che la precede è depositata in `HANDOFF/MISURE_CC_2026-08-04_A35-QUARTA-DESTINAZIONE-NAS.txt` e lì registrata come **non verificata**, nessun accesso al NAS. Header bump 52→53. Doc-only. |
+ | 54 | 2026-08-06 | Mauro + CC + referee | **Sez.2 +6 righe, doc-only, zero codice** (il codice del giorno — ⟦S5x⟧ — è un atomo separato, `4e4c24113b21fed53b55c2a6d38a1903e52ecd1f`). **(0) R7 §1, PERIMETRO CHIARITO:** il divieto di sha256 inciso vale per i documenti persistenti **editabili** — è la sua stessa motivazione a dirlo («ogni edit successivo li invalida») — e **non** per gli artefatti **congelati**, dove lo sha256 è ammesso **in aggiunta** a `path @ commit` e al blob OID, mai in sostituzione, perché è l'unico ponte verso le copie fuori da git. Tensione rilevata da CC in scrittura e segnalata invece che risolta in autonomia. **(1) ARTEFATTO NORMATIVO Q-Live › Shows:** il freeze consolidato CD entra **IN GIT** (`DESIGN/QLive_Nav/`, due file), e l'ancoraggio diventa un puntatore a **blob**. Distinzione rev3-NORMATIVA / rev2-BUONA: la seconda è agli atti come **impronta dell'evento di ratifica** perché contiene ancora la voce che quella ratifica elimina — inciderla come normativa avrebbe reso normativa la decisione al contrario. Verificata a **tre copie concordi**. Porta con sé il **reperto A68**: la catena dei contratti CD dopo il 24/07 non esisteva su alcun supporto locale (cinque forme di ricerca, zero) ⇒ ticket aperto per il resto della catena. **(2) TRE DECISIONI 06/08:** font (`.dhead .nm` 23→29px; `.roomseg .opt` 10,5px/34pt; **`.seg-mini` ABOLITA**; area tattile invariata a 50pt) · menu «···» a **due voci**, «Start options…» eliminata come doppione · **R3**: la `.navbar` dell'empty metronomo RESTA, il divieto «zero pulsanti» è scopato al corpo ⇒ ⟦S5⟧ sbloccato su quel punto. **(3) FALSO-POSITIVO DA FILTRO:** `grep -c $'\r'` rende il totale delle righe su un file senza CR (anche in forma ancorata) ⇒ i CR si contano sui byte. **Identificato per POLARITÀ e non per numero**, per due misure: la serie esistente enumera i soli falsi-**negativi**, e per di più **non è enumerata** — «prima/…/quinta forma di» rende **zero** sui quattro canonici, quindi l'ordinale «sesta» di `:323` non ha predecessori rintracciabili (reperto registrato, non riparato). Con la **rettifica** della riga line-ending del referto A64, il cui FILE non si corregge perché un messaggio di commit pubblico lo cita per sha256. Header bump 53→54. |
++| 55 | 2026-08-07 | Mauro + CC + referee | **Sez.2 +1 riga, doc-only, zero codice.** RESTART SETLIST rimosso da END SHOW (opzione Ⓐ di CD, 07/08): **ratifica tecnica del referee** e **OK di Mauro**, due cancelli distinti passati entrambi — nominati separatamente perché togliere una funzione dall'app è decisione del decisore, non dell'arbitro. CD-3 spostato come proposta verso Q-Studio (preso agli atti, NON ratificato). Conseguenza dichiarata sul cancello di ⟦S5⟧: condizione «i DUE pulsanti» da riscrivere AL SINGOLARE nel giro doc sulla SCALETTA, NON dichiarata soddisfatta (rilievo di CD, accolto). Il disegno del piede ribilanciato resta NON ratificato: nessun canale byte-fedele ancora percorso (impronta del deliverable CD agli atti nel referto A80). Fonte: `HANDOFF/MISURE_CC_2026-08-07_A80-FILE-CD-MIXER-E-DIFF-RIGA-LIBRO.txt`. Header bump 54→55. Doc-only. |
+
+ ---
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FINE DIFF. Verifiche di coerenza del diff, eseguite sulla base [M]:
+│  · le righe-contesto sono VERBATIM dal blob (riportate integrali, nessun taglio);
+│  · numerazione: hunk 1 sostituisce 5-7 (net 0); hunk 2 inserisce dopo 352 (+1);
+│    hunk 3 inserisce dopo 505, che nella numerazione nuova è 506 (+1) → 511 righe totali;
+│  · R7 rispettata: NESSUNO sha256 nelle righe aggiunte — solo ancore `path:riga @ sha40`
+│    e indirizzi per simbolo; l'impronta del file CD resta nel referto, non nel canonico.
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+COSA NON HO FATTO
+================================================================================
+  · NON ho applicato il diff: il LIBRO su disco e a HEAD è intatto (verificato a fine giro:
+    `git status` sui canonici vuoto, HEAD invariato).
+  · NON ho scritto il file DIFF separato in stile CONSEGNA-GATE (`DIFF_LIBRO-v55_….txt`):
+    questo mandato autorizza UNA scrittura (referto + mirror). Il diff vive qui dentro,
+    delimitato; se lo vuoi come artefatto a sé, è un'autorizzazione da una riga.
+  · NON ho aperto il file HTML di CD: solo impronte (A4-bis). Le «parole di CD» nella riga
+    restano sul canale referee [R] — se devono diventare citazione verbatim dal file,
+    qualcuno deve leggerlo, e non è stato chiesto a me.
+  · NON ho aperto il ticket del mixer (vietato); la misura A6 è pronta per quando si aprirà.
+  · NON ho toccato SCALETTA, BUGS, BOX3, BOX5; NON ho riscritto il cancello di ⟦S5⟧;
+    NON ho proposto soluzioni per ⟦S5b⟧.
+  · NON ho eseguito nulla su device: la geometria di A6 è calcolo dal codice, marcato [I],
+    con baseline e stime dichiarate.
+
+
+================================================================================
+DISACCORDI COL REFEREE
+================================================================================
+
+D1 — Nessun disaccordo di merito su questo mandato: D1 e D2 di A79 sono stati accolti e
+  la regola nuova del cancello è quella giusta (è la misura che avevo proposto). Restano
+  tre note operative, nessuna bloccante:
+  (a) il diff è EMBEDDED nel referto perché le scritture autorizzate erano referto+mirror;
+      il protocollo CONSEGNA-GATE storico lo vuole anche come `.txt` a sé — una riga di
+      autorizzazione e lo estraggo identico;
+  (b) la citazione «servirebbe a sbloccare un atomo…» viaggia come [R] dal canale referee:
+      il deliverable CD ora ha un'impronta agli atti ma NESSUNO l'ha ancora letto — prima
+      che il DISEGNO si ratifichi, quel file va aperto e misurato contro ciò che la riga
+      afferma;
+  (c) ribadisco dal congedo e da A78: ⟦S5x⟧ e ⟦S5a⟧ restano CI-verdi e NON validati su
+      device, e A79-A3 ha misurato che ⟦S5a⟧ è validabile SUBITO (nessuna dipendenza da
+      ⟦S5b⟧). Se Mauro ha dieci minuti col device, quel gate si può chiudere prima di
+      costruire il prossimo piano.
+
+FINE REFERTO A80.

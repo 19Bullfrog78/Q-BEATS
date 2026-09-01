@@ -1,0 +1,181 @@
+ATOMO N0 — seam d uscita onExit (Nodo A) — behavior-preserving — NESSUN COMMIT
+BASE: HEAD 0e46e4d753ad13465601e26423adcdf0d518f5fe (master = origin/master)
+FILES: 5 · +49 · -19
+
+diff --git a/ios_app/QBeats/UI/HomeRootView.swift b/ios_app/QBeats/UI/HomeRootView.swift
+index efa393e..6fc93ce 100644
+--- a/ios_app/QBeats/UI/HomeRootView.swift
++++ b/ios_app/QBeats/UI/HomeRootView.swift
+@@ -5,7 +5,7 @@ import os
+ /// Grafica CD (kit Home v2, 28/06): blu notte #0c1024 · terna accenti per-modulo (§3.4 DS) ·
+ /// nomi-porta Inter ExtraBold (estensione §4.1) · resto JetBrains Mono ·
+ /// scaleFactor = geo.size.width / 390 (pattern Vista Live · LiveView.swift:82).
+-/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit (Nodo A invariato).
++/// Q-Studio = porta COMING SOON (non interattiva). Q-Live resta modale UIKit fino a N1b (Nodo A: seam N0 applicato).
+ struct HomeRootView: View {
+     let onOpenQStage: () -> Void
+     @EnvironmentObject var audioEngine: AudioEngine
+@@ -73,11 +73,20 @@ struct HomeRootView: View {
+         }
+     }
+ 
+-    // Q-Live = modale UIKit .overFullScreen sul rootViewController (INVARIATO dal Bivio — Nodo A).
++    // Q-Live = modale UIKit .overFullScreen sul rootViewController — resta fino a N1b.
++    // N0: l'uscita dei leaf non è più @Environment(\.dismiss) ma il seam onExit
++    // fornito QUI dal presenter, che dismissa lo UIHostingController.
++    // Rigore-1: la closure NON deve catturare `vc` forte (vc → rootView →
++    // closure → vc = retain cycle → leak del hosting controller). Holder
++    // debole `weakVC` dichiarato PRIMA della closure, assegnato DOPO.
+     private func presentLive() {
+         os_log("Home: Q-LIVE selezionato")
+         audioEngine.triggerDNDReminderIfNeeded()
+-        let vc = UIHostingController(rootView: LiveRootView().environmentObject(audioEngine))
++        weak var weakVC: UIViewController?
++        let vc = UIHostingController(rootView:
++            LiveRootView(onExit: { weakVC?.dismiss(animated: false) })
++                .environmentObject(audioEngine))
++        weakVC = vc
+         vc.modalPresentationStyle = .overFullScreen
+         vc.view.backgroundColor = .clear
+         UIApplication.shared.connectedScenes
+diff --git a/ios_app/QBeats/UI/Live/LiveHeaderView.swift b/ios_app/QBeats/UI/Live/LiveHeaderView.swift
+index 53105b3..2bb531b 100644
+--- a/ios_app/QBeats/UI/Live/LiveHeaderView.swift
++++ b/ios_app/QBeats/UI/Live/LiveHeaderView.swift
+@@ -3,7 +3,12 @@ import SwiftUI
+ struct LiveHeaderView: View {
+     @ObservedObject var session: LiveSession
+     @EnvironmentObject var audioEngine: AudioEngine
+-    @Environment(\.dismiss) private var dismiss
++
++    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
++    /// Sostituisce `@Environment(\.dismiss)`: l'uscita non dipende più dal
++    /// contesto di presentazione (oggi modale UIKit dismissata dal presenter
++    /// in HomeRootView.presentLive; da N1b commutazione screen in AppRootView).
++    let onExit: () -> Void
+ 
+     /// TD #23 (17/05/2026) — fattore di scala per font responsive iPad v1.
+     /// Calcolato in `LiveView` come `geo.size.width / 390` (baseline iPhone 13
+@@ -23,7 +28,7 @@ struct LiveHeaderView: View {
+         HStack(spacing: 8) {
+ 
+             // ── Back button ──
+-            Button { dismiss() } label: {
++            Button { onExit() } label: {
+                 RoundedRectangle(cornerRadius: 10)
+                     .fill(Color.white.opacity(0.05))
+                     .overlay(
+diff --git a/ios_app/QBeats/UI/Live/LiveView.swift b/ios_app/QBeats/UI/Live/LiveView.swift
+index 6b0125f..b59c019 100644
+--- a/ios_app/QBeats/UI/Live/LiveView.swift
++++ b/ios_app/QBeats/UI/Live/LiveView.swift
+@@ -4,6 +4,10 @@ import os
+ struct LiveView: View {
+     @EnvironmentObject var audioEngine: AudioEngine
+     @EnvironmentObject var runner: SetlistRunner
++    /// Nodo A N0 — seam d'uscita fornito dal presenter (LiveRootView ←
++    /// HomeRootView.presentLive). Inoltrato ai 2 leaf d'uscita reali:
++    /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
++    let onExit: () -> Void
+     @StateObject private var session = LiveSession()
+     // L1.b — Tick di riferimento per il bar counter relativo alla sezione corrente.
+     // beatTickCounter di AudioEngine cresce monotono dalla partenza; per resettare
+@@ -90,7 +94,7 @@ struct LiveView: View {
+                 }()
+ 
+                 VStack(spacing: 0) {
+-                    LiveHeaderView(session: session, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
++                    LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
+                         .frame(height: geo.size.height * 0.08)
+                     MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
+                         .frame(height: geo.size.height * 0.10)
+@@ -152,13 +156,14 @@ struct LiveView: View {
+                 //      observer riga ~165) → questa view scompare;
+                 //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
+                 //      → runner.startSetlist standalone;
+-                //  (c) tap CANCEL → `dismiss()` Environment in
+-                //      WaitingForDirectorView → UIHostingController
+-                //      dismissato → ritorno a Bivio (deviazione esplicita
+-                //      da CD-Q2=B "→ Select Setlist" — Select Setlist non
+-                //      esiste ancora, F2.3 aperto; ratificata 28/05/2026).
++                //  (c) tap CANCEL → `onExit()` in WaitingForDirectorView
++                //      (seam N0, fornito dal presenter) → il presenter
++                //      dismissa lo UIHostingController → ritorno a Home
++                //      (deviazione esplicita da CD-Q2=B "→ Select Setlist"
++                //      — Select Setlist non esiste ancora, F2.3 aperto;
++                //      ratificata 28/05/2026).
+                 if case .waitingForDirector = session.playbackState {
+-                    WaitingForDirectorView(scaleFactor: scaleFactor) {
++                    WaitingForDirectorView(scaleFactor: scaleFactor, onExit: onExit) {
+                         // START LOCAL — utente decide di partire standalone
+                         // ignorando l'attesa Director. Nessun guard idempotenza
+                         // esplicito: WaitingForDirectorView è renderizzata
+diff --git a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+index e89a847..df0bae1 100644
+--- a/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
++++ b/ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+@@ -12,10 +12,11 @@ import SwiftUI
+ ///    seamless a `.playing` (questa vista scompare automaticamente).
+ ///  - `START LOCAL` → callback `onStartLocal` → `runner.startSetlist(...)`
+ ///    standalone, ignora l'attesa Director.
+-///  - `CANCEL` → `dismiss()` (Environment) → UIHostingController dismissato
+-///    → ritorno a Bivio. Deviazione esplicita da CD-Q2=B "CANCEL → Select
+-///    Setlist" ratificata da Mauro 28/05/2026 con nota "→ Select Setlist
+-///    quando F2.3 pronto" (libro mastro v15).
++///  - `CANCEL` → `onExit()` (seam N0, callback fornito dal presenter via
++///    LiveView) → il presenter dismissa lo UIHostingController → ritorno
++///    a Home. Deviazione esplicita da CD-Q2=B "CANCEL → Select Setlist"
++///    ratificata da Mauro 28/05/2026 con nota "→ Select Setlist quando
++///    F2.3 pronto" (libro mastro v15).
+ ///
+ /// File presentational puro: nessun `@EnvironmentObject`, le azioni sono
+ /// iniettate dal parent (LiveView) come callback. Più testabile e isolato.
+@@ -23,8 +24,12 @@ import SwiftUI
+ /// Specifica CD-Q2=B ratificata libro mastro v14.
+ struct WaitingForDirectorView: View {
+     let scaleFactor: CGFloat
++    /// Nodo A N0 — seam d'uscita fornito dal presenter (via LiveView).
++    /// Sostituisce `@Environment(\.dismiss)` del CANCEL. Dichiarato PRIMA di
++    /// `onStartLocal` così il call-site conserva il trailing closure per
++    /// `onStartLocal` (ultimo parametro).
++    let onExit: () -> Void
+     let onStartLocal: () -> Void
+-    @Environment(\.dismiss) private var dismiss
+ 
+     /// Pulse opacity 1.0 ↔ 0.40, periodo 2.2s (1.1s easeInOut autoreverses).
+     /// Avviato al primo `onAppear` e mai fermato — la vista scompare
+@@ -64,7 +69,7 @@ struct WaitingForDirectorView: View {
+                     .buttonStyle(.plain)
+ 
+                     Button {
+-                        dismiss()
++                        onExit()
+                     } label: {
+                         Text("CANCEL")
+                             .font(.jbMono(.regular, size: 14 * scaleFactor))
+diff --git a/ios_app/QBeats/UI/LiveRootView.swift b/ios_app/QBeats/UI/LiveRootView.swift
+index 2e21dc9..cba0514 100644
+--- a/ios_app/QBeats/UI/LiveRootView.swift
++++ b/ios_app/QBeats/UI/LiveRootView.swift
+@@ -1,6 +1,12 @@
+ import SwiftUI
+ 
+ struct LiveRootView: View {
++    /// Nodo A N0 — seam d'uscita fornito dal presenter (oggi
++    /// HomeRootView.presentLive → dismiss della modale; da N1b AppRootView
++    /// → { screen = .home }). Firma STABILE per N1a/N1b: cambia il
++    /// chiamante, non LiveRootView.
++    let onExit: () -> Void
++
+     @EnvironmentObject var audioEngine: AudioEngine
+ 
+     // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+@@ -10,7 +16,7 @@ struct LiveRootView: View {
+     )
+ 
+     var body: some View {
+-        LiveView()
++        LiveView(onExit: onExit)
+             .environmentObject(audioEngine)
+             .environmentObject(runner)
+     }

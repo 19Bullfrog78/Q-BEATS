@@ -1,0 +1,232 @@
+================================================================================
+MISURE CC — REFERTO PER IL PROMPT ID: QB-2026-08-01-D1-LIBRO-GEOMETRIA-E-RDELTA
+LIBRO v50 preparato: 7 righe Sez.2 + header. DIFF PRODOTTO, NON COMMITTATO.
+================================================================================
+⚠️ SUPERATO IL 01/08/2026 DAL GIRO D1b — marcato, non riscritto.
+   Le impronte del LIBRO e del diff dichiarate qui sotto sono MORTE:
+   il giro `QB-2026-08-01-D1b-CORREZIONI` ha aggiunto la voce 50 al registro
+   Sez.6, L3 alla riga R-δ e una subordinata alla riga 390×844.
+   Stato vivo: `HANDOFF/MISURE_CC_2026-08-01_D1b-CORREZIONI.txt`
+               `HANDOFF/DIFF_LIBRO-v50_2026-08-01_rev2.txt`
+   ⚠️ Il POSCRITTO §4 di questo referto è RETTIFICATO dal §5 di D1b: su Drive
+   la copia byte-esatta esisteva già, portata dalla sincronizzazione tre
+   minuti prima del mio upload manuale. Il resto del referto resta valido.
+================================================================================
+Due cancelli davanti, nessuno assolto da questa consegna:
+  1) ratifica del referee sul diff verbatim   2) OK esplicito di Mauro.
+Il diff è l'artefatto: HANDOFF/DIFF_LIBRO-v50_2026-08-01.txt (impronta nel
+messaggio di consegna, FUORI dai file — convenzione 01/08).
+
+⚠️ DISCREPANZA DI MANDATO, dichiarata in apertura: il banner del prompt diceva
+   «sei righe»; il corpo ne specifica SETTE (RIGA 1..RIGA 7; lo stesso banner
+   somma 1+5+1=7). Eseguito sulle SETTE del corpo.
+
+--------------------------------------------------------------------------
+0 · STATO DEL FILE — PRIMA / DOPO (misure a fonte, non dal mio script)
+--------------------------------------------------------------------------
+  grandezza                PRIMA (= HEAD 0ee9543d…8f26)               DOPO
+  OID (hash-object)        e4c80f23b712c071f61f8d37469059fbe775c9cf   1c2e5c205287edc038bd868a500ad4ca937aaf90
+  byte disco (CRLF)        218839                                     230900
+  byte blob  (LF)          218352                                     230406
+  righe (= CR = LF)        487                                        494
+  sha256 disco             8b529799f7d7dce6e0db614cbe16c2482241e129a0f2a2984ecee8cb78b9110f
+                                                                      97f9a0dc7540b5f29abb3d5b7a8c76231df3eb8af4b515c4bd228a4339d9f14d
+  sha256 blob (DOPO)       c908a5493439cff5b73d64e0c20929a967dc8ccba8b4fe91aa5f553de97fdf8b
+
+  Metodo: script sui byte grezzi (niente editor, niente heredoc), 10 ancore con
+  ABORT, backup del v49 nello scratchpad, impronte DOPO precalcolate in memoria
+  col disco ancora intatto, scrittura, rilettura, confronto. Poi verifica a
+  fonte con git hash-object / sha256sum / stat / tr: TUTTE coincidenti col
+  precalcolo. Controprova del metodo: l'OID-PRIMA calcolato dallo script
+  coincide con l'OID che git dichiarava per HEAD:LIBRO (e4c80f23…, già agli
+  atti nel referto R1b di stamattina).
+  git status --porcelain --untracked-files=no: vuoto PRIMA, « M LIBRO» DOPO
+  (unica voce). git diff --numstat: 10 aggiunte, 3 rimozioni (3 = header).
+  Il diff è stato generato nello SCRATCHPAD e poi collocato: chi conta una
+  cartella scrivendoci dentro sbaglia (lezione §4.5 dell'handoff 02/08).
+
+--------------------------------------------------------------------------
+1 · VERIFICHE PER RIGA — cosa ho misurato, cosa non ha confermato
+--------------------------------------------------------------------------
+RIGA 1 (R-δ)
+  [V] Asimmetria delle facce, misurata su HEAD:
+        LIBRO  blob 218352 B / 0 CR   disco 218839 B / 487 CR   Δ=487=righe
+        BUGS   blob 272339 B / 0 CR   disco 273367 B / 1028 CR  Δ=1028=righe
+        BOX3   89457 B, 0 CR, disco=blob (faccia unica, -text)
+        BOX5   57158 B, 0 CR, disco=blob (faccia unica, -text)
+      ⇒ per i tracciati a due facce le stampe si estraggono con git show:
+        confermato il fondamento della clausola.
+  [V] Il 46: HANDOFF/MISURE_CC_2026-08-01_W3-CHIUSURA-DRIVE.txt, W3.3 —
+      46 senza gemello, 46 copiati, 46 verificati sha256+dimensione,
+      0 falliti, controprova finale 0. IL CENSIMENTO SOMMA. Causa verbatim
+      nel referto: «la propagazione e' oggi un passo SEPARATO dalla
+      consegna… Non e' successo una volta: 46 volte.» CONFERMA.
+  [V] L1: MISURE_CC_2026-08-02_S1-DRIVE-SICUREZZA.txt blocco D.2 — 12 campi
+      elencati per nome, nessun checksum; API v3 dichiara md5/sha1/sha256
+      (URL ufficiale nel referto S1); verificato su DUE file. CONFERMA.
+  ⚠️ L2, SEDE DIVERSA DAL DETTATO: il prompt attribuiva a W3
+      l'autodichiarazione «unico mancante dal proprio censimento». W3.1
+      dichiara «MANCANTI: 0»; è S1 BLOCCO C (partizione A/B/C) che trova
+      1 mancante = il referto W3 stesso, nato dopo il caricamento. La prova
+      regge, la sede vera è S1.C. Nella riga ho citato la sede vera.
+  [V] L2, rimisurata oggi su Drive: query per titolo — 'saturazione' → 0,
+      'MISURE_CC_2026-08-02' → 0; SONDA POSITIVA stessa forma
+      'MISURE_CC_2026-08-01_R1' → 1. Gli zeri sono zeri veri: handoff di
+      saturazione + S1 + S2 stanno su C: ed E: e NON su Drive.
+  [R] Chiavetta quarta destinazione; motivo INDIRIZZO-NON-COPIA: dettati,
+      nessuna fonte documentale — dichiarati [R] nella riga.
+
+RIGA 2 (iPhone-first 390)
+  [V] BOX5_QBEATS.md:83 @ HEAD, verbatim: «| iPhone 13 | Sviluppo e test
+      (baseline scaling — `scaleFactor = 1.0`) | Lightning | **390pt**
+      (misurato empiricamente 18/05/2026) |». CONFERMA.
+  [V] BOX5_QBEATS.md:68 @ HEAD: Layout strategy v1, «`scaleFactor =
+      geo.size.width / 390` (V23)». CONFERMA.
+
+RIGA 3 (foglio 390×844)
+  [V] BOX5 a HEAD: '844' 0 righe/0 occ · '812' 0/0 · '390' 11 righe/16 occ.
+      DUE FORME (grep -c + grep -o | wc, e Python sui byte): concordi.
+      Le 11 righe del 390: 45,46,47,68,83,160,172,456,586,587,590.
+      Sonda positiva della forma: il '390' stesso (non-zero).
+  ⚠️ CITAZIONE DEL CONTRATTO — PARAFRASI, NON VERBATIM: la stringa dettata
+      «congelate a 390pt, 1:1» NON esiste in nessun file ('congelat' vicino
+      a '390': 0 esiti). Esistono: «Scala 390pt.»
+      (DESIGN/QLive_Nav/HANDOFF_CD_QLIVE_NAV_Q7-Q10_11_07_2026.md:6),
+      «§1 congelato 1:1 · e141295» (DESIGN/QLive_Nav/README.md:34),
+      «Contratto 1:1 = freeze CD …» (LIBRO:271 @ HEAD). La sostanza (solo
+      larghezza dichiarata, mai un'altezza) è CONFERMATA; nella riga ho
+      citato le formulazioni vere coi loro indirizzi.
+  ⛔ «QUATTRO MOCKUP» NON CONFERMATO — CENSITI SEI: in DESIGN/QLive_Nav/ a
+      HEAD i freeze .html sono SEI, tutti tracciati, tutti con
+      .frame{position:absolute; width:390px; height:812px; …}:
+        86b09bfb… 2026-07-09_base_e141295.html          (812 ×1)
+        2337b4ac… 2026-07-09_standalone_b23dfc78.html   (812 ×3, 844 ×1)
+        5c8fac04… 2026-07-11_Q7-Q10.html                (812 ×1)
+        a59e8d7a… 2026-07-11_Q7-Q13.html                (812 ×1)
+        355bd4c1… 2026-07-11_Q7-Q16.html                (812 ×1)
+        ce6cb714… 2026-07-18_QLive-Exit-in-Play.html    (812 ×1)
+      Le occorrenze oltre la prima in standalone_b23dfc78 sono RUMORE
+      BASE64 dei font incorporati (contesti verificati: «…8445UBgQ…»,
+      «…93812Mf…», «…8123B…»): su questi file il conteggio nudo di cifre
+      MENTE; l'occorrenza CSS vera è una per file. Non ho indovinato quali
+      quattro intendesse il referee: la riga porta il censimento vero (sei,
+      elencati) e dichiara che la dettatura ne nominava quattro. Ciò che
+      vale per i sei vale per qualunque quattro.
+  [V] BUGS_QBEATS.md:741-743 @ HEAD: TD-ipad-home 🟢 CHIUSO 30/06/2026,
+      device-confermato, collaudo b1c50ab, Mauro. 844 già DENOMINATORE.
+  [R] 390×812 ≠ alcun device reale: memoria referee, scritto [R] in riga.
+
+RIGA 4 (clamp A′)
+  [V] BUGS:743 @ HEAD, verbatim: «sf = .pad ? min(width/390,
+      height*0.92/844) : width/390» (HomeRootView.swift, commit 87d22a9);
+      «0.92 = manopola di taratura a vista, lasciata com'e' per decisione
+      Mauro». CONFERMA di formula, commit, manopola, chiusura device.
+  [R] Ritiri CD (cap globale min(w/390, h/812), tetto ~1,3×): dettati.
+
+RIGA 5 (alternatività)
+  [R] interamente. Il numero 917: NON scritto — non derivabile da me da
+      alcuna fonte, e il mandato lo prevedeva («la riga entra senza il
+      numero»). Nella riga: la quantificazione è omessa per scelta
+      esplicita, non per dimenticanza.
+
+RIGA 6 (schermo fisso / scrollabile)
+  [V] 'schermo fisso' e 'scrollabile' (grep -i -c): 0 su TUTTI e cinque i
+      canonici (LIBRO, BUGS, BOX3, BOX5, SCALETTA) a HEAD. SONDE POSITIVE
+      stessa forma: 'schermo' = 9/3/13/10/1 · 'scroll' = 2/5/0/4/4.
+      ⚠️ nota sonda: 'scroll' su BOX3 = 0 — su BOX3 la sonda valida è
+      'schermo' (13); ogni file ha almeno una sonda non-zero. CONFERMA:
+      il lessico è un INGRESSO.
+
+RIGA 7 (contratto ⟦S5⟧)
+  [V] SCALETTA:297 @ HEAD: «### ⟦S5⟧ QLiveShowDetailView (frame ③) +
+      Start · POST · CI+DEVICE» — frame ③ = scheda ⟦S5⟧.
+  [V] DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html @ HEAD
+      (OID 2337b4ac94605ef95de3daf9bbcdba0032809d3b), selettori verbatim:
+        .songlist{padding:2px 16px 0; display:flex; flex-direction:column;
+                  gap:2px; flex:1; overflow:hidden;}
+        .startfoot{flex:0 0 auto; padding:14px 18px 20px;
+                  background:linear-gradient(to top, var(--qlive-bg) 66%,
+                  rgba(14,14,16,0));}
+      CONFERMA della regola CSS dettata (gradiente to top, 66%).
+      Frame nel file: marcatori FRAME 1/2/3 e ①②③ (tre frame).
+  [V] Setlist.songIDs: simbolo Setlist.songIDs, ios_app/QBeats/Models/
+      Setlist.swift — «var songIDs: [UUID]», array senza vincolo di
+      cardinalità per costruzione, nessun tetto nella struct. CONFERMA.
+  [R] La misura CD dei 12 brani (11½ a 812, 12 esatte a 844, margine ≈0):
+      dettata, scritta [R] nella riga.
+  [R] Proposta gate «scroll durante playback»: scritta come PROPOSTA NON
+      RATIFICATA, decisione di Mauro pendente. Non come fatto.
+
+--------------------------------------------------------------------------
+2 · REGOLE DI SCRITTURA APPLICATE
+--------------------------------------------------------------------------
+  · Indirizzi congelati al passato o con ancoraggio esplicito («a <commit>
+    … incideva»); commit sempre a 40 cifre accanto ai numeri di riga.
+  · Sorgenti .swift citati PER SIMBOLO (Setlist.songIDs), zero numeri di
+    riga su .swift.
+  · Quantificatori con censimento che somma: 46 (W3.3), 6 freeze
+    (elencati), 11 righe/16 occorrenze (elencate le righe), 0×2 con sonde.
+  · Ogni zero con sonda positiva nella stessa forma, dichiarata.
+  · [R] segnalato nel corpo E nel campo fonte di ogni riga interessata.
+  · Nessun pipe nudo nelle celle; date di origine, mai tempo trascorso.
+
+--------------------------------------------------------------------------
+3 · CIÒ CHE NON HO FATTO
+--------------------------------------------------------------------------
+  [V] Nessun commit, nessun git add (staging vuoto: verificato), nessun
+      push, nessun branch. L'unica modifica su disco è LIBRO_MASTRO (v50
+      preparato) — reversibile: backup v49 byte-esatto nello scratchpad,
+      e in ogni caso git checkout -- LIBRO_MASTRO_QBEATS.md ripristina.
+  [V] Non ho toccato BUGS, BOX3, BOX5, SCALETTA, sorgenti, workflow.
+  [V] Non ho scritto 917 da nessuna parte (qui è nominato solo come
+      valore rifiutato).
+  [V] Non ho deciso quali fossero i «quattro» mockup: censiti sei.
+--------------------------------------------------------------------------
+4 · POSCRITTO — LA CONSEGNA SU DRIVE HA PAGATO IN PROPRIO IL PEDAGGIO DI R-δ
+--------------------------------------------------------------------------
+  Il PRIMO upload del diff su Drive (id 1MgtBUN_CdZjs2Fs-Uzz78eGXwf3VkFaD,
+  21304 byte) è DIFETTOSO: 12 byte in meno del file vero (21316).
+  [V] Misurato per riscaricamento e confronto byte-a-byte in locale:
+      SEI occorrenze di U+2019 (apostrofo tipografico, 3 byte UTF-8) rese
+      come apostrofo ASCII (1 byte) — 6 × 2 = 12, e 21316 − 21304 = 12:
+      il metadato del server chiude il conto. Tutte e sei stanno nella
+      riga ⟦S6F⟧ di CONTESTO del diff.
+  CAUSA: la trascrizione del contenuto ATTRAVERSO IL MODELLO nel parametro
+      testuale del connettore. Non il canale (provato byte-fedele): la
+      riscrittura. È esattamente il principio «la copia è una riscrittura»
+      già ratificato, che questa consegna ha violato e pagato — mentre
+      consegnava la riga che lo incide.
+  (Il confronto ha mostrato anche una settima differenza a offset 18322
+      con scarto di lunghezza 21303/21304: quella è un errore della MIA
+      trascrizione di verifica del base64 scaricato, non del file su
+      Drive — se Drive avesse un'altra differenza di lunghezza, il conto
+      21316−12 non chiuderebbe.)
+  PERIMETRO DEL DANNO, misurato: le SEI sostituzioni cadono TUTTE nella
+      riga ⟦S6F⟧ di CONTESTO del diff. Le SETTE righe nuove (+) e le tre
+      righe di header sono BYTE-INTATTE anche nella copia difettosa: il
+      testo di CC usa apostrofi ASCII e non contiene U+2019.
+  DECISIONE (non un ripiego taciuto): NESSUN secondo upload. Era stato
+      considerato un ricaricamento via base64 generato meccanicamente,
+      ed è stato scartato dopo verifica: anche il base64 dovrebbe essere
+      TRASCRITTO dal modello nel parametro (28798 caratteri, oltre la
+      pagina di lettura), cioè di nuovo una riscrittura — con il rischio
+      di un difetto DIVERSO e non misurato al posto di uno noto e
+      circoscritto. Il principio ratificato («la copia è una
+      riscrittura») dice di non forzare questo canale: non lo si forza.
+  STATO FINALE delle tre destinazioni per QUESTO giro:
+      DIFF    C: ✓ byte-verificato · E: ✓ cmp 0 · Drive: PRESENTE CON
+              DIFETTO DICHIARATO (id 1MgtBUN_CdZjs2Fs-Uzz78eGXwf3VkFaD,
+              21304 B, 6 apostrofi di una riga di contesto; payload
+              delle righe + intatto). La ratifica verbatim si fa su
+              C:/E: o sull'allegato del messaggio, NON sulla copia Drive.
+      REFERTO C: ✓ · E: ✓ cmp 0 · Drive: NON CARICATO, per la stessa
+              ragione. Due destinazioni byte-esatte su tre: per R-δ
+              questo referto è SCRITTO, non consegnato, finché una via
+              di sincronizzazione locale (Drive desktop / rclone, già
+              raccomandata in §5.7 dell'handoff) non chiude il canale.
+  È la dimostrazione in casa, il giorno stesso della ratifica, di ciò
+      che R-δ L1/L2 incide: la verifica su Drive è a campione, e ogni
+      trasporto attraverso il modello è una riscrittura.
+================================================================================
+FINE REFERTO D1.
+================================================================================

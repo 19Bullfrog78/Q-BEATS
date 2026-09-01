@@ -1,0 +1,483 @@
+================================================================================
+MISURE_R1b_2026-07-28.txt
+Q-BEATS — misura a fonte, SOLO LETTURA. Eseguito da CC il 2026-07-28.
+================================================================================
+REGOLE APPLICATE: sha a 40 in ogni comando git (espansioni in sez. 0) · CR solo
+con tr -cd '\r' | wc -c · righe dichiarate righe(terminatori, wc -l) · grep -c
+dichiarato righe-che-contengono, NON occorrenze · output catturato per
+redirezione, nessun numero ribattuto a mano · ogni zero ha il suo controllo
+positivo accanto.
+================================================================================
+
+################################################################################
+# 0. ESPANSIONE SHA (nessuno sha corto entra nei comandi)
+################################################################################
+
+$ git -C "$R" rev-parse fa92a75^{commit} 59ab33e^{commit} a2fb816^{commit} 152445e^{commit} ee31281^{commit} HEAD
+fa92a7520bbf21a4aac023a3acafb07b02a44bf3
+59ab33e9e8761d7df98066c2a665729cd8cd778f
+a2fb816fbb24fd606f1280336e513f5d079d992e
+152445e470eb0ca4a33c5b31a58ee5c8204e0482
+ee31281b03a4898bfbccc29bd558cbb68f5e23e1
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+
+################################################################################
+# 1. IL PATH CHE BLOCCA LIBRO v42
+################################################################################
+
+Testo che sta per essere inciso:
+   `ios_app/QBeats/UI/Live/LiveHeaderView.swift:107,109 @ 8fa5018`
+
+--- 1.a
+$ git -C "$R" ls-files -- '*LiveHeaderView*'
+ios_app/QBeats/UI/Live/LiveHeaderView.swift
+[fine]
+
+--- 1.b
+$ git -C "$R" ls-files -- '*RootView*'
+ios_app/QBeats/UI/AppRootView.swift
+ios_app/QBeats/UI/HomeRootView.swift
+ios_app/QBeats/UI/LiveRootView.swift
+ios_app/QBeats/UI/QLive/QLiveRootView.swift
+ios_app/QBeats/UI/QStageRootView.swift
+[fine]
+
+--- 1.c
+$ git -C "$R" ls-files 'ios_app/QBeats/UI/' | sort
+ios_app/QBeats/UI/AppRootView.swift
+ios_app/QBeats/UI/Components/EmptyStateKit.swift
+ios_app/QBeats/UI/Components/RoomSwitchBar.swift
+ios_app/QBeats/UI/HomeRootView.swift
+ios_app/QBeats/UI/Live/BarCounterView.swift
+ios_app/QBeats/UI/Live/FineSetlistView.swift
+ios_app/QBeats/UI/Live/LiveHeaderView.swift
+ios_app/QBeats/UI/Live/LiveView.swift
+ios_app/QBeats/UI/Live/MetSlotStripView.swift
+ios_app/QBeats/UI/Live/MixerOverlayView.swift
+ios_app/QBeats/UI/Live/OverlayStopView.swift
+ios_app/QBeats/UI/Live/POIView.swift
+ios_app/QBeats/UI/Live/RubberBtnView.swift
+ios_app/QBeats/UI/Live/SegBarViews.swift
+ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift
+ios_app/QBeats/UI/Live/TransportView.swift
+ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+ios_app/QBeats/UI/LiveRootView.swift
+ios_app/QBeats/UI/QLive/MetroFAB.swift
+ios_app/QBeats/UI/QLive/QLiveEmptyStates.swift
+ios_app/QBeats/UI/QLive/QLiveKit.swift
+ios_app/QBeats/UI/QLive/QLiveRootView.swift
+ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+ios_app/QBeats/UI/QStage/QStageKit.swift
+ios_app/QBeats/UI/QStage/SectionEditorView.swift
+ios_app/QBeats/UI/QStage/ShowsListView.swift
+ios_app/QBeats/UI/QStage/SongEditorView.swift
+ios_app/QBeats/UI/QStage/SongListView.swift
+ios_app/QBeats/UI/QStageRootView.swift
+ios_app/QBeats/UI/SplashView.swift
+[fine]
+
+--- 1.d  contenuto della sola directory UI/Live/ (per rispondere a (b) senza dedurre)
+$ git -C "$R" ls-files 'ios_app/QBeats/UI/Live/' | sort
+ios_app/QBeats/UI/Live/BarCounterView.swift
+ios_app/QBeats/UI/Live/FineSetlistView.swift
+ios_app/QBeats/UI/Live/LiveHeaderView.swift
+ios_app/QBeats/UI/Live/LiveView.swift
+ios_app/QBeats/UI/Live/MetSlotStripView.swift
+ios_app/QBeats/UI/Live/MixerOverlayView.swift
+ios_app/QBeats/UI/Live/OverlayStopView.swift
+ios_app/QBeats/UI/Live/POIView.swift
+ios_app/QBeats/UI/Live/RubberBtnView.swift
+ios_app/QBeats/UI/Live/SegBarViews.swift
+ios_app/QBeats/UI/Live/StandbyOverlayView.swift
+ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift
+ios_app/QBeats/UI/Live/TransportView.swift
+ios_app/QBeats/UI/Live/WaitingForDirectorView.swift
+[fine]
+
+$ git -C "$R" ls-files 'ios_app/QBeats/UI/Live/' | wc -l
+14
+  ^ righe(terminatori, wc -l) = file tracciati sotto UI/Live/
+
+--------------------------------------------------------------------------------
+DICHIARAZIONI SECCHE
+--------------------------------------------------------------------------------
+
+(a) path completo ESATTO di LiveHeaderView.swift a HEAD:
+       ios_app/QBeats/UI/Live/LiveHeaderView.swift
+
+(b) la directory `ios_app/QBeats/UI/Live/` ESISTE a HEAD?
+       SI. Contiene 14 file tracciati (elencati in 1.d).
+       ⚠️ Distinzione che conta: UI/Live/ ESISTE e contiene LiveHeaderView.swift,
+       ma NON contiene LiveRootView.swift, che sta in UI/ diretto (vedi 1.b).
+
+(c) il testo da incidere e' corretto cosi' com'e'?
+       Il PATH e' corretto: verificato in 1.a, coincide carattere per carattere.
+       Le RIGHE 107 e 109 sono corrette: verificate in 1.e.
+       L'ANCORA `@ 8fa5018` NO. Misura in 1.f: 8fa5018... e' un commit che
+       NON tocca quel file (tocca solo LIBRO_MASTRO_QBEATS.md).
+       E' la stessa forma di difetto che la RETTIFICA B corregge su r.305
+       (`@ 54ccddc`, commit doc che non tocca QStageRootView.swift).
+       L'ultimo commit che tocca il file e' 152445e470eb0ca4a33c5b31a58ee5c8204e0482 (1.f).
+
+       FORMA CORRETTA, verbatim, pronta da copiare:
+
+ios_app/QBeats/UI/Live/LiveHeaderView.swift:107,109 @ 152445e (ultimo commit che tocca il file; righe invariate a HEAD 8fa5018)
+
+--------------------------------------------------------------------------------
+
+--- 1.e  [gia' fatto oggi — rieseguito con sha a 40 e reincollato verbatim]
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/Live/LiveHeaderView.swift | sed -n '105p;107p;109p'
+                if false {
+                        .fill(Color(hex: "#2a6bd6"))
+                        .shadow(color: Color(hex: "#2a6bd6"), radius: 3)
+
+le tre righe con delimitatori, per rendere visibili gli spazi:
+  |                if false {|
+  |                        .fill(Color(hex: "#2a6bd6"))|
+  |                        .shadow(color: Color(hex: "#2a6bd6"), radius: 3)|
+
+--- 1.f  A CHI VA ANCORATO: quali commit toccano LiveHeaderView.swift
+$ git -C "$R" log --format='%H %ad %s' --date=short -- ios_app/QBeats/UI/Live/LiveHeaderView.swift
+152445e470eb0ca4a33c5b31a58ee5c8204e0482 2026-07-17 Nodo A N1b: flip porta Q-Live a screen-swap + ritiro modale (E1)
+a2fb816fbb24fd606f1280336e513f5d079d992e 2026-07-17 Nodo A N0: seam onExit dal presenter (behavior-preserving)
+007de8711babdb930daa918ebd525d7fee844e63 2026-05-29 feat(link): Fase 6-7 — Bug 4 + CD-6 WAITING FOR DIRECTOR + badge HEAD + rafforzamento modalità Direttore
+8a5432b60d78e0ff2503f15f9ff1d8eb19793dcf 2026-05-18 TD #23: font responsive geo.size.width scaleFactor — 24 callsite, 11 file
+f1c45aa709c55bf38e673ddf15449c3af69d5020 2026-05-04 Build 287 — LiveHeader V3: mute click btn + LED glow; swipe POI → mixer; handle bar
+85940a6ba5e6194714df31d0282b9067f51728e1 2026-05-03 Fix #235: UIHostingController overFullScreen — elimina AppNavigationState e overlay SwiftUI
+519c7e3af5e82b561d62fa077a4d6c9d31bf85b4 2026-05-03 Fix #230: LiveView come overlay nel ZStack radice — edge-to-edge garantito
+6ee8fb8ba314c61996917c6ea91d2cb30d620c4e 2026-05-03 Build #223: Vista LIVE — Step 1-5 completi (LiveView + tutti i sottocomponenti)
+[fine]
+
+$ git -C "$R" show --pretty=format: --name-only 8fa50189b13f49ba3b291510f7d1a388d75b5909
+LIBRO_MASTRO_QBEATS.md
+[fine elenco file di HEAD — LiveHeaderView.swift NON e' fra questi]
+
+$ git -C "$R" show --pretty=format: --name-only 8fa50189b13f49ba3b291510f7d1a388d75b5909 | grep -c 'LiveHeaderView'
+0
+  ^ righe-che-contengono. CONTROLLO POSITIVO dello stesso filtro sul commit giusto:
+$ git -C "$R" show --pretty=format: --name-only 152445e470eb0ca4a33c5b31a58ee5c8204e0482 | grep -c 'LiveHeaderView'
+1
+  ^ non-zero => il filtro funziona, quindi lo zero qui sopra e' un fatto.
+
+--- 1.g  le righe 107 e 109 sono invariate fra 152445e e HEAD?
+$ git -C "$R" show 152445e470eb0ca4a33c5b31a58ee5c8204e0482:ios_app/QBeats/UI/Live/LiveHeaderView.swift | sed -n '105p;107p;109p'
+                if false {
+                        .fill(Color(hex: "#2a6bd6"))
+                        .shadow(color: Color(hex: "#2a6bd6"), radius: 3)
+
+  sha256 delle tre righe @152445e : 1c0d09734c93f3c580b7ae0a719be496cf3d597f2467497353ec816076183571
+  sha256 delle tre righe @HEAD    : 1c0d09734c93f3c580b7ae0a719be496cf3d597f2467497353ec816076183571
+  => INVARIATE (impronta identica, non giudizio a occhio)
+
+
+################################################################################
+# 2. LE CINQUE RIGHE SONO INCISE SU DISCO?   [gia' fatto oggi in MISURE_R1 — reincollato]
+################################################################################
+
+File misurato (DISCO): /c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/LIBRO_MASTRO_QBEATS.md
+Unita': righe-che-contengono. NON occorrenze.
+
+$ grep -c "PALETTE ANNOTAZIONI CD"  ->  0
+$ grep -c "REGOLA DENTRO/FUORI"  ->  0
+$ grep -c "FORMA POPUP REMOVE"  ->  0
+$ grep -c "RICONFERMATO SUL CONTENUTO"  ->  0
+$ grep -c "b5f40d9e"  ->  0
+
+--- CONTROLLO POSITIVO OBBLIGATORIO (stesso comando, stesso file)
+$ grep -c "COPY POPUP REMOVE"  ->  3
+  Atteso dal prompt: 3.
+  RENDE 3 -> filtro FUNZIONA -> i cinque zeri sono misure valide.
+
+$ grep -n "COPY POPUP REMOVE" "$LD" | cut -d: -f1
+299
+300
+301
+  ^ numeri di riga del controllo positivo
+
+
+################################################################################
+# 3. IL BLOB DI LIBRO   [gia' fatto oggi in MISURE_R1 — reincollato]
+################################################################################
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | sha256sum
+e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 *-
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:LIBRO_MASTRO_QBEATS.md | wc -c
+141762
+
+ATTESO dal prompt: sha256 e096cbc6...45e86922 · 141762 byte
+MISURATO         : sha256 e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 · 141762 byte
+
+  sha256 : COINCIDE
+  byte   : COINCIDE
+
+DICHIARAZIONE: il BLOB a HEAD COINCIDE con la copia del Progetto Claude su
+entrambi i campi. (La faccia DISCO e' un altro file: 142206 byte, CR 444 —
+misurato in MISURE_R1 sez. 3. Qui il punto chiede il blob, ed e' il blob che coincide.)
+
+
+################################################################################
+# 4. LA FONTE DELLA FRASE — attribuzione, non misura
+################################################################################
+
+Frase in questione: "NESSUN commit tracciato ha mai avuto quel simbolo a riga 8"
+
+--------------------------------------------------------------------------------
+FONTE: PRODUCIBILE.
+--------------------------------------------------------------------------------
+  file : HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+         (percorso assoluto: C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\)
+  righe: 253-254 — la frase e' A CAVALLO del ritorno a capo
+  voce : sez. 4, atomo B5 (BUGS v44), voce «ANGOLO DEL RIORDINO», righe 251-257
+  NOTA : e' il file che mi e' stato incollato come PRIMO PROMPT di questa
+         sessione. Non e' un handoff del referee.
+
+--- 4.a  impronta del file fonte
+$ sha256sum "$HCC"
+d9e2a39b7f4fbe743266054f3837479f67bd656814d70464a048c617b499f41f */c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+byte = 44638
+righe(terminatori, wc -l) = 502
+CR (tr -cd) = 0
+
+--- 4.b  la voce intera, verbatim, righe 247-258
+$ sed -n '247,258p' "$HCC"
+--------------------------------------------------------------------------------
+      da appendere DOPO la riga 308 (309 vuota, 310 = ticket successivo).
+      [V] `moveSetlists(from:to:) async` -> Store/QBeatsStore.swift:120. Non serve
+          una cancellazione per cambiare quale show Q-Live caricherebbe: basta un
+          riordino, finche' non esiste selezione.
+      ⚠️ RIFERIMENTO STALE DA CORREGGERE nella stessa voce: r.304 di BUGS cita
+      `LiveRootView.swift:8`. A HEAD il commento `// L1.b DEV FALLBACK` e' a r.11
+      e il fallback `setlists.first ?? Setlist.makeDefault()` a r.13. E NESSUN
+      commit tracciato ha mai avuto quel simbolo a riga 8 (storia misurata:
+      dd0fcaa r.10 · 91897b1 r.12 · 59ab33e r.12 · 36775a4 r.12 · ee31281 r.17 —
+      quella e' QStageRootView; per LiveRootView il fallback e' a 12-13 dal 19/07).
+      Riancorare al SIMBOLO.
+    · `TD-design-system-non-ancorato` — testo pronto, sez. 3.3.
+--------------------------------------------------------------------------------
+
+--- 4.c  le due righe che portano la frase, isolate e numerate
+$ sed -n '253p;254p' "$HCC"
+      e il fallback `setlists.first ?? Setlist.makeDefault()` a r.13. E NESSUN
+      commit tracciato ha mai avuto quel simbolo a riga 8 (storia misurata:
+
+  r.253 finisce con : ...a r.13. E NESSUN
+  r.254 comincia con: commit tracciato ha mai avuto quel simbolo a riga 8 ...
+
+--- 4.d  PERCHE' LE MISURE DEL REFEREE RENDONO ZERO — tre meccanismi distinti
+
+MECCANISMO 1 — pattern spezzato dal ritorno a capo.
+Sul file fonte, con lo stesso pattern del referee:
+  $ grep -c "NESSUN commit" <file fonte>  ->  0
+  Zero. Ma la frase C'E'. Nessun grep di riga puo' trovarla: le due parole
+  stanno su righe diverse. E' un falso-zero PER COSTRUZIONE, su qualunque file.
+  Gli stessi pezzi, cercati separatamente sullo stesso file:
+  $ grep -c "riga 8"  ->  1
+  $ grep -c "quel simbolo"  ->  1
+  $ grep -c "12-13"  ->  1
+  $ grep -c "19/07"  ->  1
+  $ grep -c "Riancorare"  ->  1
+  $ grep -c "ANGOLO DEL RIORDINO"  ->  1
+  $ grep -c "moveSetlists"  ->  1
+
+MECCANISMO 2 — sensibilita' alle maiuscole.
+  $ grep -c "riancorare" <file fonte>  ->  0   (minuscolo)
+  $ grep -c "Riancorare" <file fonte>  ->  1   (come scritto nel file)
+  Lo zero minuscolo non e' un fatto negativo: e' il filtro che non copre il caso.
+
+MECCANISMO 3 — ambito sbagliato: misurato il file che non contiene la frase.
+Conteggi sui file indicati nel prompt. ⚠️ Uso SOLO grep -c (conteggi, nessun
+contenuto stampato) per rispettare il ⛔ «NON LEGGERE HANDOFF_REFEREE_*.md»
+che il handoff CC porta in testa alle proprie righe 9-11.
+
+  ---- HANDOFF_REFEREE_2026-07-27_sera.md
+       riga 8           -> 0
+       19/07            -> 0
+       12-13            -> 0
+       59ab33e          -> 0
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 1   [controllo positivo]
+       moveSetlists     -> 1   [controllo positivo]
+  ---- HANDOFF_REFEREE_2026-07-27.md
+       riga 8           -> 0
+       19/07            -> 0
+       12-13            -> 0
+       59ab33e          -> 0
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 1   [controllo positivo]
+       moveSetlists     -> 1   [controllo positivo]
+  ---- MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+       riga 8           -> 0
+       19/07            -> 0
+       12-13            -> 0
+       59ab33e          -> 0
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 0   [controllo positivo]
+       moveSetlists     -> 0   [controllo positivo]
+  ---- MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+       riga 8           -> 0
+       19/07            -> 0
+       12-13            -> 0
+       59ab33e          -> 0
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 0   [controllo positivo]
+       moveSetlists     -> 0   [controllo positivo]
+  ---- MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+       riga 8           -> 0
+       19/07            -> 0
+       12-13            -> 0
+       59ab33e          -> 0
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 0   [controllo positivo]
+       moveSetlists     -> 0   [controllo positivo]
+  ---- HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+       riga 8           -> 1
+       19/07            -> 1
+       12-13            -> 1
+       59ab33e          -> 2
+       a2fb816          -> 0
+       fa92a75          -> 0
+       NESSUN commit    -> 0
+       riancorare       -> 0
+       angolo riordino/i -> 1   [controllo positivo]
+       moveSetlists     -> 1   [controllo positivo]
+
+--- 4.e  SWEEP: la frase esiste altrove? cercata su TUTTI i supporti
+(assenza-di-prova non e' prova-di-assenza: cerco il pezzo NON spezzato)
+
+$ grep -rlc 'quel simbolo a riga 8' $R/HANDOFF/    (repo)
+/c/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS/HANDOFF/HANDOFF_CC_2026-07-27_chiusura-giro-colore.txt
+
+$ test -d "$E"    (il supporto E: e' raggiungibile?)
+  SI
+
+$ grep -rl 'quel simbolo a riga 8' "$E"    (archivio E:)
+  (nessun file)
+  conteggio file: 0
+
+  CONTROLLI POSITIVI dello stesso sweep, sullo stesso supporto.
+  ⚠️ Il primo controllo che avevo scelto ('ANGOLO DEL RIORDINO') rendeva 0:
+     era un controllo positivo INVALIDO, perche' quella stringa vive solo nel
+     handoff CC che sta nel repo, non su E:. Uno zero da un filtro non
+     controllato non e' un fatto — quindi lo sostituisco con due stringhe che
+     su E: devono esserci per costruzione.
+
+$ grep -rl 'b5f40d9e' "$E" | wc -l        (sha del payload g3, citato dal handoff come residente su E:)
+  1
+$ grep -rl 'Q-BEATS' "$E" | wc -l         (nome del progetto)
+  425
+
+  ESITO: almeno un controllo positivo rende non-zero => lo sweep su E' FUNZIONA.
+  => il conteggio 0 per 'quel simbolo a riga 8' su E: E' UN FATTO.
+
+$ ls "$E"/../HANDOFF/ 2>/dev/null | grep -c 'chiusura-giro-colore'   (il handoff CC e' anche su E:?)
+0
+  ^ righe-che-contengono nel listato della cartella HANDOFF di E:
+
+--- 4.f  DUE ZERI DEL REFEREE CHE SONO FATTI VERI, e non riguardano l'attribuzione
+  $ grep -c "a2fb816" <file fonte>  ->  0
+  $ grep -c "fa92a75" <file fonte>  ->  0
+  Corretti: il handoff CC non cita quei due commit. Sono comparsi per la prima
+  volta nelle MIE misure di questa sessione (sez. 5 qui sotto), non nel handoff.
+  Quindi quei due zeri non dicono nulla sull'attribuzione della frase.
+
+
+################################################################################
+# 5. VERIFICA DELLA MIA STESSA MISURA — 'setlists.first' in LiveRootView.swift
+################################################################################
+
+path: ios_app/QBeats/UI/LiveRootView.swift   (⚠️ UI/ diretto, NON UI/Live/)
+
+--- 5.a  [gia' fatto oggi — rieseguito con sha a 40 e reincollato]
+$ git -C "$R" log --format='%H %ad %s' --date=short -- ios_app/QBeats/UI/LiveRootView.swift
+152445e470eb0ca4a33c5b31a58ee5c8204e0482 2026-07-17 Nodo A N1b: flip porta Q-Live a screen-swap + ritiro modale (E1)
+a2fb816fbb24fd606f1280336e513f5d079d992e 2026-07-17 Nodo A N0: seam onExit dal presenter (behavior-preserving)
+fa92a7520bbf21a4aac023a3acafb07b02a44bf3 2026-05-13 L1.b: SetlistRunner + wiring multi-section setlist
+419873b09e6580ca94f170272220339e62ceec63 2026-05-03 Fix: rimuovi toolbar(.hidden) da LiveRootView — causava safe area insets spuri
+343d276240412f1277fb5b2136702807a0087d46 2026-05-03 Fix #227: rimuovi toolbar modifier da LiveRootView, ignoresSafeArea(.all) a tutti i livelli
+6ee8fb8ba314c61996917c6ea91d2cb30d620c4e 2026-05-03 Build #223: Vista LIVE — Step 1-5 completi (LiveView + tutti i sottocomponenti)
+dec185eb797574c09af9071991b3a7e28fbb5a8b 2026-05-03 Fix: back gesture su stub views + accesso DebugView dal Bivio
+ce27dcba7bb5595da2f03707693d01f7596ec354 2026-05-03 Build #222: Fase 2.1+2.2 — Splash + NavigationStack + Bivio STUDIO/LIVE
+[fine]
+
+--- 5.b  numero di riga e testo verbatim, commit per commit
+................................................................................
+$ git -C "$R" show fa92a7520bbf21a4aac023a3acafb07b02a44bf3:ios_app/QBeats/UI/LiveRootView.swift | grep -n "setlists.first"        [fa92a75]
+8:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+  data commit: 2026-05-13
+................................................................................
+$ git -C "$R" show 59ab33e9e8761d7df98066c2a665729cd8cd778f:ios_app/QBeats/UI/LiveRootView.swift | grep -n "setlists.first"        [59ab33e]
+8:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+  data commit: 2026-06-28
+................................................................................
+$ git -C "$R" show a2fb816fbb24fd606f1280336e513f5d079d992e:ios_app/QBeats/UI/LiveRootView.swift | grep -n "setlists.first"        [a2fb816]
+14:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+  data commit: 2026-07-17
+................................................................................
+$ git -C "$R" show 152445e470eb0ca4a33c5b31a58ee5c8204e0482:ios_app/QBeats/UI/LiveRootView.swift | grep -n "setlists.first"        [152445e]
+13:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+  data commit: 2026-07-17
+................................................................................
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/LiveRootView.swift | grep -n "setlists.first"        [HEAD]
+13:        setlist: QBeatsStore.shared.setlists.first ?? Setlist.makeDefault(),
+  data commit: 2026-07-27
+................................................................................
+
+--- 5.c  CONTROLLO POSITIVO del filtro 'setlists.first'
+(uno zero non vale niente se non dimostro che il filtro sa rendere non-zero)
+$ git -C "$R" show fa92a7520bbf21a4aac023a3acafb07b02a44bf3:ios_app/QBeats/UI/LiveRootView.swift | grep -c "setlists.first"
+1
+  ^ non-zero => filtro funzionante
+
+--- 5.d  il commento DEV FALLBACK, stessa griglia
+  fa92a75   -> 6:    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+  59ab33e   -> 6:    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+  a2fb816   -> 12:    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+  152445e   -> 11:    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+  HEAD      -> 11:    // L1.b DEV FALLBACK — sostituire con selezione setlist (F2.3)
+
+--- 5.e  ⚠️ AMBIGUITA' DEL SIMBOLO (misura, non proposta)
+$ git -C "$R" ls-files -- '*LiveRootView*'
+ios_app/QBeats/UI/LiveRootView.swift
+ios_app/QBeats/UI/QLive/QLiveRootView.swift
+[fine]
+
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/QLive/QLiveRootView.swift | grep -c 'setlists.first'
+0
+  ^ righe-che-contengono, nel file quasi-omonimo
+  CONTROLLO POSITIVO sullo stesso file (stringa che deve esistere):
+$ git -C "$R" show 8fa50189b13f49ba3b291510f7d1a388d75b5909:ios_app/QBeats/UI/QLive/QLiveRootView.swift | grep -c 'struct'
+1
+  ^ non-zero => il file e' leggibile e il filtro funziona, quindi lo zero sopra e' un fatto.
+
+--- 5.f  quante righe dei canonici citano la stringa 'LiveRootView' (blob a HEAD)
+  BUGS_QBEATS.md           "LiveRootView" -> 6 righe · "QLiveRootView" -> 1 righe
+  LIBRO_MASTRO_QBEATS.md   "LiveRootView" -> 5 righe · "QLiveRootView" -> 1 righe
+  ^ righe-che-contengono. Il primo conteggio INCLUDE le righe del secondo:
+    'QLiveRootView' contiene 'LiveRootView' come sottostringa.
+
+================================================================================
+FINE MISURE. Nessun file del repo scritto, nessun commit, nessun branch.
+$ git -C "$R" status --porcelain | wc -l
+41
+  ^ righe(terminatori, wc -l)
+$ git -C "$R" log -1 --format=%H
+8fa50189b13f49ba3b291510f7d1a388d75b5909
+================================================================================

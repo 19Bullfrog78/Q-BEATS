@@ -1,0 +1,197 @@
+================================================================================
+STATO FINALE — 2026-08-07, chiusura sessione. Pausa 7-10 giorni.
+================================================================================
+Scritto da CC per SE STESSO all'apertura della sessione nuova.
+Orologio: 2026-08-07T20:18:58Z, locale 2026-08-07 22:18:58 +0200 (misurato, `date -u`).
+
+Marcatura: [M] misurato in questa sessione, col comando accanto · [R] riportato da
+altri, non verificato da CC · [I] inferenza. ([M] è l'erede di [V] dei precedenti
+STATO_FINALE: stessa cosa, notazione allineata ai referti A75-A87.)
+
+⛔ REGOLA DI CONTENUTO DI QUESTO FILE, ereditata da STATO_FINALE_2026-07-31_40f099b:
+   qui sta SOLO ciò che NON si ricava dai file. Lo stato dei canonici, i mandati, i
+   reperti, gli errori e i disaccordi vivono nei due CONGEDI e nei referti A75-A87:
+   qui si INDIRIZZANO, non si copiano. Un handoff che duplica i canonici è un canonico
+   ombra che invecchia da solo.
+
+⇒ QUESTO FILE RISPONDE A UNA SOLA DOMANDA: *cosa devo sapere fra dieci giorni che non
+  posso leggere da nessun'altra parte, e cosa sarà DECADUTO nel frattempo.*
+
+I DUE CONGEDI, che sono la vera consegna e vanno letti PRIMA di questo file:
+  HANDOFF/CONGEDO_CC_2026-08-07.md        (mattina, mandati A75-A77)
+  HANDOFF/CONGEDO_CC_2026-08-07_sera.md   (sera,    mandati A78-A87)
+  ⚠️ COMPLEMENTARI, NON alternativi. Il `_sera` non supera l'altro: coprono mandati
+     diversi. NON fonderli, NON rinominarli.
+  ⚠️ MANCA `CONGEDO_REFEREE_2026-08-07.md`: annunciato come consegnato in A87 §3, non
+     esiste su nessun supporto (ricerca esaustiva, controllo positivo sui congedi
+     referee 01/08 e 04/08 che invece si trovano). Finché non arriva, **il confronto
+     R1 fra le due voci indipendenti non è possibile** — ed è il meccanismo che in
+     questa sessione ha prodotto sette correzioni alle misure del referee.
+
+
+────────────────────────────────────────────────────────────────────────────────
+1. PRIMA DI CREDERE A QUALUNQUE COSA — i comandi, non i valori
+────────────────────────────────────────────────────────────────────────────────
+Non ereditare i numeri di questo file: ricalcolali. I comandi sono qui perché la
+scelta della FORMA è la parte che si sbaglia, non l'esecuzione.
+
+  git fetch origin master
+  git rev-parse HEAD ; git ls-remote origin master | cut -f1
+      ⚠️ `git ls-remote`, MAI `git rev-parse origin/master`: il ref locale può essere
+         stale e mentire senza errore.
+  git status --porcelain=v1 | grep -vc '^??'        # deve rendere 0
+  gh run list --commit <SHA A 40 CARATTERI> --limit 5
+      ⚠️ sha CORTO = `[]` con exit 0. Falso-zero noto, censito in BOX3 V99 (d).
+  git check-attr text -- <file> ; git cat-file blob <oid> | tr -cd '\r' | wc -c
+      ⚠️ i CR si contano SUI BYTE. `grep -c $'\r'` su un file senza CR rende il numero
+         TOTALE delle righe — falso-POSITIVO, censito in LIBRO Sez.2 riga 2026-08-06.
+
+Ogni ricerca per nome va fatta ANCHE IN MAIUSCOLO (lezione `S5X` del 07/08), e ogni
+zero va accompagnato da un controllo positivo *scelto per quel bersaglio* e verificato
+non-nullo PRIMA dell'uso (in A75 il controllo prescritto rendeva 0 su BOX5).
+
+
+────────────────────────────────────────────────────────────────────────────────
+2. COSA SARÀ DECADUTO FRA DIECI GIORNI — e cosa no
+────────────────────────────────────────────────────────────────────────────────
+[M] **La faccia disco di LIBRO tornerà CRLF, e le impronte su disco non torneranno.**
+    Oggi `LIBRO_MASTRO_QBEATS.md` ha CR disco = **0** e sha256 disco = sha256 blob
+    (`1453624e…3eba287`), perché GNU `patch` l'ha appiattito in A84. Git ha già
+    avvisato: «LF will be replaced by CRLF the next time Git touches it».
+    ⇒ Al primo checkout/merge/stash che tocchi quel file, CR disco tornerà 511 e
+      **l'impronta su disco cambierà**. Il BLOB non cambia. ⚠️ Se al rientro misuri
+      l'impronta su disco e non torna, **non è un guasto**: è questo. Misura il blob.
+
+[M] **La lettera del mount di Drive NON è stabile.** Oggi Drive è `I:` (`/i/Il mio
+    Drive/Qbeats/`), montato `vfat`. `E:` è `ntfs`. Una lettera di unità vfat può
+    cambiare al riavvio o se si collega un altro supporto. ⇒ Non scrivere `I:` in
+    nessun canonico e ricercalo a fonte prima di usarlo:
+        find /?/  -maxdepth 2 -iname 'Qbeats' 2>/dev/null
+    ⚠️ E la trappola gemella già nota: il mirror su E: NON è alla radice di Q-BEATS ma
+      sotto `E:\…\Q-BEATS\FILE X CLAUDE.MD\`. Cercarlo alla radice rende un falso
+      «assente» — ci sono cascato io all'apertura del 07/08.
+
+[M] **L'autenticazione `gh` può scadere.** Oggi: loggato su `github.com` come
+    `19Bullfrog78` (keyring), account attivo. Se `gh run list` desse vuoto al rientro,
+    **verifica `gh auth status` PRIMA di concludere che non ci sono run**: è un
+    falso-zero da canale, e non è nella lista dei quattro censiti.
+
+[M] **Lo scratchpad di sessione sparisce.** Tutti i file temporanei di oggi
+    (simulazioni, blocchi di composizione dei diff) erano sotto la cartella di
+    sessione: al rientro NON ci sono più. Nulla di essenziale ci vive — i diff
+    consegnati sono in `HANDOFF/` e sono autosufficienti — ma non cercarli.
+
+[M] **NON decade:** HEAD, origin/master, i blob, la CI, i file su E: e Drive. Se HEAD
+    o `origin/master` al rientro NON sono `321293e18094d9d4f1c167bfc921be1ad216e3ac`,
+    **qualcuno ha lavorato durante la pausa** — ed è un fatto da accertare prima di
+    qualunque altra cosa, non da assorbire in silenzio.
+
+
+────────────────────────────────────────────────────────────────────────────────
+3. LO STATO CHE DEVE COINCIDERE (se non coincide, è successo qualcosa)
+────────────────────────────────────────────────────────────────────────────────
+[M] HEAD = origin/master = 321293e18094d9d4f1c167bfc921be1ad216e3ac   (branch master)
+[M] `git status --porcelain=v1`: 207 righe, TUTTE `??` — righe non-`??` = ZERO
+[M] CI dell'ultimo commit: run 31213490430, `iOS Signed Build`, completed **success**
+    ⚠️ Solo la punta ha una run: `81740e48…` e `779172e6…` rendono ZERO anche con lo
+      sha a 40, perché i tre commit sono stati pushati insieme. **Non è un guasto.**
+[M] Blob dei cinque canonici — per verificare di stare guardando gli stessi file:
+      LIBRO    50ca123ee0c919891c432331cc3f8e80221b2fa3   (v55, 511 righe)
+      BUGS     a6bd89dcc508e2db07a4459555742d0827771817   (v51, 1065 righe)
+      BOX3     490d6d9b38c355dc53ddc9b31431f9a858f2b342   (V99, 803 righe)
+      BOX5     21b23d621ac224c759b53d813196058483e3b056   (V28, 596 righe)
+      SCALETTA 73f9f323c0414fa7e31a06a4ee9c0beb139f4031   (v9,  348 righe)
+[M] `ios_app/` intatto: ZERO righe di codice toccate in tutta la sessione (A75-A89).
+    ⇒ Qualunque differenza sotto `ios_app/` al rientro NON viene da qui.
+
+
+────────────────────────────────────────────────────────────────────────────────
+4. LE TRAPPOLE CHE MORDONO SPECIFICAMENTE AL RIENTRO
+────────────────────────────────────────────────────────────────────────────────
+4.1 [M] **La sequenza degli ID ha TRENTASEI buchi, ed è normale.** Mancano A2, A3, A6,
+    A10, A12, A14, A15, A16, A18, A20, A21, A23, A24, A27, A29, A30, A31, A32, A34,
+    A36, A37, A38, A42, A43, A44, A45, A46, A52, A56, A57, A58, A60, A63, A73, A74,
+    **A77** — più **A88**, dichiarato ANNULLATO in A89 §0.3 (emesso e mai arrivato:
+    nessun artefatto, e non va cercato).
+    ⚠️ A77 non è un buco vero: quel mandato produsse il **congedo di mattina**, non un
+      referto. ⇒ **NON cercare artefatti mancanti**: un ID assente non è una consegna
+      persa. Il prossimo ID libero è **A90**, e va comunque riverificato a fonte su
+      due supporti e due casse.
+
+4.2 [M] **`patch` e `git apply` NON sono intercambiabili — ed è la lezione tecnica
+    della giornata.** GNU `patch` riscrive **l'intero file** nella fine-riga del patch
+    (lo ha fatto su LIBRO in A84, CRLF→LF). `git apply` non tocca le fini-riga e
+    rispetta `-text`. Ma `git apply` **rifiuta** i file di diff che portano la
+    decorazione di versione DENTRO le righe `---`/`+++`.
+    ⇒ **REGOLA, verificata funzionante in A86:** la decorazione va nel **PREAMBOLO**
+      del file di diff, sopra le righe `---`/`+++`. Con quella forma `git apply` legge
+      il patch e non serve `patch`. È la forma da usare per ogni diff futuro sui
+      canonici. Il file `HANDOFF/DIFF_SCALETTA-v9_2026-08-07_A85-…txt` è il modello.
+
+4.3 [M] **Prima di comporre un diff su un canonico: misura le due facce.** Ci si ferma
+    SOLO se i contenuti **spogliati dei CR** rendono sha256 diversi. Il conteggio dei
+    CR da solo descrive la normalità autocrlf, non un'anomalia — regola nata da un mio
+    rilievo in A79 e accolta dal referee. Stato attuale: LIBRO e BUGS `text:
+    unspecified`; BOX3, BOX5 e tutto `HANDOFF/**` sono `-text` (una faccia sola).
+
+4.4 [M] **Ogni inserzione IN TESTA alla SCALETTA è bloccata.** Ventisei citazioni su
+    trentuno la indirizzano per numero di riga **senza ancora a commit**; venti di
+    quelle si romperebbero inserendo righe sopra `:113`. Vivono in LIBRO, in BUGS e in
+    **due commenti `.swift`**. ⇒ È per questo che il §5.2 di A85 (le tre `.segMini`) è
+    rimasto fuori. Chi lo riprende deve **prima** decidere cosa fare di quelle
+    ventisei: ancorarle o convertirle a simbolo. Altrimenti si riproporrà identico.
+
+4.5 [M] **Cercare `.segMini` in una sola grafia ne trova metà.** Le grafie sono due:
+    `.segMini` (camelCase, 5 righe) e `seg-mini` (con trattino, 3 righe).
+
+4.6 [R]→[M] **Non fidarsi di una ratifica senza rimisurarla sull'oggetto consegnato.**
+    Sette casi misurati oggi in cui una dichiarazione del referee non ha retto; il
+    pattern è sempre lo stesso — una prova dichiarata «riprodotta indipendentemente»
+    senza che l'oggetto fosse bit-identico, o una forma di ricerca data per
+    equivalente a un'altra. Tabella completa in `CONGEDO_CC_2026-08-07_sera.md` §7.
+    ⚠️ Vale in entrambe le direzioni: lo stesso giorno il referee mi ha corretto su un
+      errore vero e grave (bersaglio localizzato e non letto fino in fondo), e aveva
+      ragione. **Non è sfiducia: è la procedura.**
+
+
+────────────────────────────────────────────────────────────────────────────────
+5. IL PRIMO GIRO AL RIENTRO — e perché proprio quello
+────────────────────────────────────────────────────────────────────────────────
+[I] **Il gate device di ⟦S5a⟧.** Non è una preferenza di stile: è l'unica cosa in
+    lista che *non si può recuperare scrivendo*. ⟦S5a⟧ e ⟦S5x⟧ sono su master, CI
+    verdi, **mai visti girare su un device**. ⟦S5a⟧ è **raggiungibile subito** — Home
+    → Q-LIVE → pagina `.shows` (default) → tap-riga → `.detail`, nessun gate — e da
+    oggi il percorso è **inciso nella SCALETTA v9 committata e pushata**, non più solo
+    in un mio referto. Sono dieci minuti di device.
+    ⇒ In dieci mandati l'ho segnalato dieci volte e non è mai stato raccolto. Se al
+      rientro si apre un altro giro documentale prima di quello, **stiamo aggiungendo
+      un piano sopra un cancello che nessuno ha chiuso** — e ora ci sono tre canonici
+      committati che descrivono quella stanza.
+
+[I] Subito dopo, in ordine: il congedo del referee (se arriva) e il confronto R1 ·
+    poi le due decisioni ferme da giorni, entrambe già misurate e nessuna iniziata:
+    la regola stale `BOX3:399` (`CC MEMORIA\` non è mirror né di LIBRO né di BUGS —
+    misurato in A76, decisione mai presa) e le ventisei citazioni nude di §4.4.
+
+
+────────────────────────────────────────────────────────────────────────────────
+6. COSA NON RIFARE — è già fatto, anche se non sembra
+────────────────────────────────────────────────────────────────────────────────
+[M] I tre commit sono **pushati** e la CI è **verde**: non ri-committare, non ri-pushare.
+[M] I tre diff (LIBRO v55, BUGS v51, SCALETTA v9) sono **applicati**: i file in
+    `HANDOFF/DIFF_*_2026-08-07_*.txt` sono la **storia della proposta**, non lavoro
+    pendente. Riapplicarli fallirebbe, ed è giusto così.
+[M] R-δ delle quattro consegne di stasera è **completa a tre gambe** (C: · E: · Drive),
+    verificata a sha256 + `cmp`. ⚠️ **NON è completo l'arretrato**: 12 stampe dei
+    canonici + 5 congedi + tutti i referti non sono mai arrivati su Drive. È un giro a
+    sé, escluso esplicitamente, e va aperto sapendo che dovrà anche capire **perché**
+    la gamba si è fermata — nessuno ha mai misurato se fu scelta o dimenticanza.
+[M] I due ticket nuovi (`TD-mixer-copre-endshow`, `TD-emerg-bottone-morto`) sono in
+    BUGS §1.1 con severità **PROPOSTA e non assegnata**: il valore lo decide Mauro.
+    Non trattarli come già classificati.
+
+────────────────────────────────────────────────────────────────────────────────
+FINE. Sessione 2026-08-07 chiusa.
+HEAD = origin/master = 321293e18094d9d4f1c167bfc921be1ad216e3ac · CI verde ·
+albero pulito sui tracciati · zero codice toccato · gate device APERTO.
+================================================================================

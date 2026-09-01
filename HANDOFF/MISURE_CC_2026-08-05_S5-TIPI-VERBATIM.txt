@@ -1,0 +1,378 @@
+QB-2026-08-05-A43 · RILEVAMENTO ⟦S5⟧ — I DUE TIPI, VERBATIM · SOLA LETTURA
+CC → Referee
+
+ID: A43. Ultimo ID reale trovato = A42, in HANDOFF/HANDOFF_CC_2026-08-04_cambio-chat-2.md:93
+("In A42 §3, lo script di verifica che ho scritto asseriva..."), trovato in forma stretta
+(`A[0-9]{2}[-_ ]` e `QB-...-A##`) su tutti i nomi-file e i contenuti di HANDOFF/ (escluso
+CONGEDO_REFEREE_2026-08-04.md, mai aperto), con controllo positivo integrato: la stessa forma
+morde correttamente su A41/A42 in più file. Nessun A43+ preesistente. Il file di consegna
+`MISURE_CC_2026-08-05_S5-TIPI-VERBATIM.txt` non esisteva prima di questa scrittura (verificato
+con `ls | grep`, non Glob).
+
+Orologio: 2026-08-05T07:11:26Z (`date -u`), controllato prima di scrivere qualunque data.
+
+Mandato: sola lettura. Questo giro non ha toccato nessun file tracciato, nessun commit, nessun
+push. Nessuna soluzione proposta — vedi nota di chiusura.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+0 — HEAD e working tree
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+HEAD reale [V]: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae
+
+`git status --porcelain` [V]: NON vuoto. 163 righe. Verificato per PREFISSO, non solo contate:
+  `git status --porcelain | cut -c1-2 | sort | uniq -c` → 163 "??"  , zero di qualunque altro
+  prefisso (nessun `M`, `A`, `D`). Tutte e 163 sono untracked, nessun file tracciato modificato.
+  (Nota non richiesta ma dichiarata per onestà: l'handoff di ieri notte citava 162 righe allo
+  stesso comando — quella era una LORO misura, mai riverificata da me fino ad ora; la differenza
+  di 1 non l'ho investigata, non era nel mandato di oggi.)
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+1 — ios_app/QBeats/Models/LiveSession.swift
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+41 righe totali — sotto la soglia di 250, verbatim integrale:
+
+    import Foundation
+    import Combine
+
+    /// Sorgente di verità per la Vista LIVE.
+    /// Alimentata da AudioEngine + QBeatsStore.
+    /// Tutti i @Published assegnati su main thread.
+    @MainActor
+    final class LiveSession: ObservableObject {
+
+        // MARK: - Canzone corrente
+        @Published var currentSongName: String = ""
+        @Published var currentBPM: Double = 120
+        @Published var currentTimeSig: String = "4/4"
+        @Published var currentSectionName: String = ""
+        @Published var nextSectionName: String? = nil
+        @Published var nextSongName: String? = nil
+
+        // MARK: - Posizione
+        @Published var currentBar: Int = 1
+        @Published var totalBarsInSection: Int = 4
+        @Published var macroBarCurrent: Int = 0
+        @Published var macroBarTotal: Int = 1
+
+        // MARK: - Metronomo slot
+        /// Array: "accent" | "beat" | "subdiv" — lunghezza = beatsPerBar
+        @Published var accentPattern: [String] = ["accent", "beat", "beat", "beat"]
+        @Published var beatActive: Int = 0      // 1-based, 0 = nessuno
+
+        // MARK: - Stato
+        // Default `.stopped`: all'avvio Vista LIVE niente em-dash centrale.
+        // L'overlay `.standby` viene mostrato SOLO quando il SetlistRunner
+        // imposta esplicitamente lo state tra una canzone e l'altra (vedi
+        // SetlistRunner.swift ramo standby). Cambiato da `.standby(nextSongName: "—")`
+        // il 17/05/2026 — TD #28, Step 2 roadmap pre-CD.
+        @Published var playbackState: LivePlaybackState = .stopped
+        @Published var isBacktrackLocked: Bool = false
+
+        // MARK: - Mixer
+        @Published var showMixer: Bool = false
+        @Published var isProMode: Bool = false
+    }
+
+Risposte:
+- struct o class? → CLASS (`final class LiveSession: ObservableObject`, riga 8)
+- a cosa conforma? → `ObservableObject` (riga 8), via `import Combine` (riga 2)
+- è ObservableObject? → SÌ
+
+Totale campi @Published: 16 (currentSongName, currentBPM, currentTimeSig, currentSectionName,
+nextSectionName, nextSongName, currentBar, totalBarsInSection, macroBarCurrent, macroBarTotal,
+accentPattern, beatActive, playbackState, isBacktrackLocked, showMixer, isProMode).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+2 — ios_app/QBeats/UI/QLive/QLiveSession.swift
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+36 righe totali — sotto soglia, verbatim integrale:
+
+    import Foundation
+    import Combine
+
+    /// Contenitore-sessione della stanza Q-Live — forma B, ratificata in
+    /// `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb28ad87627e3c6df926993a3df297df90`.
+    ///
+    /// Possiede lo SLOT del runner, non il runner. All'ingresso nella stanza lo
+    /// slot è VUOTO, perché nessuna scaletta è ancora stata scelta; il runner
+    /// nasce allo Start con la setlist SCELTA, sopravvive alla navigazione INTERNA
+    /// della stanza e muore all'uscita dalla stanza.
+    ///
+    /// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+    /// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+    /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+    /// il solo posto in cui il runner può nascere.
+    ///
+    /// VINCOLO DI PROPAGAZIONE — verbatim da
+    /// `BOX3_QBEATS.md:34 @ 0a6ebafa72dfc8a4ebed6dd5474a99161955d7e3`:
+    /// «Un `ObservableObject` ANNIDATO dentro un altro NON propaga:
+    /// `QLiveSession.@Published runner` notifica solo APPARIZIONE/SCOMPARSA del
+    /// runner, NON i suoi cambi interni (canzone/sezione/BPM). I figli devono
+    /// osservare IL RUNNER (`@ObservedObject`/`@EnvironmentObject` sul runner), NON
+    /// la sessione — pena UI metronomo CONGELATA che sembrerebbe un bug del DSP.»
+    ///
+    /// Conseguenza operativa, che è anche il solo modo corretto di usare questa
+    /// classe: la si osserva SOLO per sapere se il runner c'è — apparizione e
+    /// scomparsa sono l'unico segnale che sa dare. ⛔ Nessun figlio legga MAI
+    /// il runner ATTRAVERSO il contenitore-sessione: compila, SEMBRA GIUSTA, ed è
+    /// il difetto descritto sopra.
+    @MainActor
+    final class QLiveSession: ObservableObject {
+
+        /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+        /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+        @Published private(set) var runner: SetlistRunner? = nil
+    }
+
+Risposte:
+- struct o class? → CLASS (`final class QLiveSession: ObservableObject`, riga 31)
+- a cosa conforma? → `ObservableObject` (riga 31)
+- è ObservableObject? → SÌ
+
+Un solo campo @Published: `runner: SetlistRunner?`, `private(set)` — senza mutatore per
+costruzione (riga 35), motivato verbatim nei commenti di classe (righe 12-15, 17-23).
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+3 — ios_app/QBeats/SetlistRunner.swift
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+(a) Firma di `startSetlist`, riga LETTA:
+    riga 109: `func startSetlist(audioEngine: AudioEngine, session: LiveSession) {`
+
+(b) TUTTI i punti del file che usano `session` — CODICE e COMMENTO distinti, riga letta per
+    ciascuno (382 righe totali nel file, lette per intero):
+
+    CODICE (33 occorrenze):
+    109  func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+    118      prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
+    124  func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
+    130      prepareAndStartCurrentSection(audioEngine: audioEngine, session: session)
+    140-141  private func prepareAndStartCurrentSection(audioEngine: AudioEngine,
+                                                          session: LiveSession) {
+    148          session.playbackState = .fineSetlist
+    179      session.$beatActive
+    181          .sink { [weak self, weak session] _ in
+    183                guard let self, let session,
+    185          self.updateSessionDisplay(session: session)
+    195      sectionEndedClosure = makeSectionEndedClosure(audioEngine: audioEngine, session: session)
+    229      updateSessionDisplay(session: session)
+    238  private func updateSessionDisplay(session: LiveSession) {
+    240      session.currentSongName    = song.name
+    241      session.currentSectionName = section.name
+    242      session.nextSectionName    = nextSection?.name
+    243      session.nextSongName       = isLastSectionInSong ? nextSong?.name : nil
+    244      session.macroBarCurrent    = currentSectionIdx + 1
+    245      session.macroBarTotal      = song.sections.count
+    271  func primeDisplay(session: LiveSession) {
+    273      updateSessionDisplay(session: session)
+    274      session.currentBPM         = section.bpm
+    275      session.totalBarsInSection = Int(section.repetitions)
+    285-286  func makeSectionEndedClosure(audioEngine: AudioEngine,
+                                          session: LiveSession) -> () -> Void {
+    287      return { [weak self, weak audioEngine, weak session] in
+    288          guard let self, let audioEngine, let session else { return }
+    348          session.playbackState = .standby(nextSongName: nextSongName)
+    349          session.beatActive = 0
+    354          session.currentSongName = ""
+    355          session.currentSectionName = ""
+    356          session.nextSectionName = nil
+    357          session.nextSongName = nil
+    358          session.macroBarCurrent = 0
+    359          session.macroBarTotal = 1
+    377          session.playbackState = .fineSetlist
+
+    COMMENTO (menzioni testuali, non codice — 6 occorrenze):
+    19   /// weak session]» e legge `currentSongIdx`/`currentSectionIdx` al momento
+    135  /// Setup audio engine per la sezione corrente, aggiorna session, parte audio.
+    152  // TD #41 fix v2 (17/05/2026) — Lazy subscribe a session.$beatActive
+    166  // session.beatActive è invece settato da LiveView handler
+    173  // session.beatActive è scritto solo dal main (LiveView handler),
+    297  //   2. aggiorna session display
+
+    Campi di LiveSession EFFETTIVAMENTE toccati dal runner (misurato dalle 33 righe codice sopra,
+    non dedotto): playbackState (L148, L348, L377) · currentSongName (L240, L354) ·
+    currentSectionName (L241, L355) · nextSectionName (L242, L356) · nextSongName (L243, L357) ·
+    macroBarCurrent (L244, L358) · macroBarTotal (L245, L359) · beatActive — LETTO via `$beatActive`
+    (L179) e SCRITTO (L349) · currentBPM (L274) · totalBarsInSection (L275).
+    = 10 campi distinti su 16 totali di LiveSession (punto 1). NON toccati da SetlistRunner:
+    currentTimeSig, currentBar, accentPattern, isBacktrackLocked, showMixer, isProMode.
+    L'unica LETTURA (non scrittura) è `session.$beatActive` (L179, sottoscrizione al publisher);
+    ogni altro accesso è una scrittura.
+
+(c) Il runner è ObservableObject? → SÌ: `final class SetlistRunner: ObservableObject {` (riga 25).
+    @Published: `currentSongIdx` (riga 30) · `currentSectionIdx` (riga 31) ·
+    `pendingDisplayUpdate` (riga 57). Tutti e tre `private(set)`.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+4 — Censimento siti, tutto ios_app/ (perimetro dichiarato: non ho esteso a core_engine/ o fuori
+    da ios_app/, dove non vive codice Swift che referenzi questi tipi)
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Notazione: righe-che-contengono (una riga con più match conterebbe 1 volta; non si è dato il
+caso in questi risultati).
+
+(a) Chi COSTRUISCE `LiveSession(` — 1 sito:
+    ios_app/QBeats/UI/Live/LiveView.swift:11
+    `    @StateObject private var session = LiveSession()`
+    ⚠️ Tipo INFERITO dall'inizializzatore, nessuna annotazione esplicita `: LiveSession` su
+    questa riga — per questo non compare anche nel conteggio (b).
+
+(b) Chi dichiara `LiveSession` come proprietà/parametro/tipo di ritorno (forma `: LiveSession`)
+    — 10 siti:
+    ios_app/QBeats/SetlistRunner.swift:109, :124, :141, :238, :271, :286  (le 6 del punto 3)
+    ios_app/QBeats/UI/Live/LiveHeaderView.swift:4        `@ObservedObject var session: LiveSession`
+    ios_app/QBeats/UI/Live/MixerOverlayView.swift:4      `@ObservedObject var session: LiveSession`
+    ios_app/QBeats/UI/Live/TeleprompterCapsuleView.swift:4  `@ObservedObject var session: LiveSession`
+    ios_app/QBeats/UI/Live/TransportView.swift:4         `@ObservedObject var session: LiveSession`
+
+(c) Stessi due conteggi per `QLiveSession`:
+    Costruzione `QLiveSession(` — 1 sito:
+    ios_app/QBeats/UI/QLive/QLiveRootView.swift:74
+    `    @StateObject private var roomSession = QLiveSession()`
+    (stesso caveat: tipo inferito, non annotazione esplicita)
+
+    Dichiarazione `: QLiveSession` — 0 siti.
+    ⚠️ CONTROLLO POSITIVO obbligatorio su questo zero: la stessa identica forma di ricerca
+    (pattern `:\s*QLiveSession\b`, stesso perimetro ios_app/) applicata a `LiveSession` nello
+    stesso comando rende 10 hit (punto b) — il meccanismo di ricerca morde, non è rotto.
+    Secondo controllo: sweep senza vincolo di colonna su "QLiveSession" bare in tutto ios_app/
+    rende esattamente 5 righe — SetlistRunner.swift:7 (commento), QLiveRootView.swift:72
+    (commento) e :74 (costruzione, già contata sopra), QLiveSession.swift:20 (commento) e :31
+    (dichiarazione della classe stessa). Nessuna di queste è un consumo per tipo altrove. Lo
+    zero è vero: NESSUN punto del codice dichiara oggi una proprietà, parametro o tipo di
+    ritorno esplicitamente tipizzato `QLiveSession`, al di fuori della classe stessa.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+5 — Catena di osservazione
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+`LiveRootView.swift` — NON ESISTE. [V, oggi]
+Cercato con `find ios_app -name "*.swift" | grep -iE "LiveRootView|QLiveRootView|LiveView\.swift"`:
+la STESSA invocazione ha trovato correttamente `QLiveRootView.swift` (controllo positivo
+integrato nello stesso comando, stesso perimetro). Elenco per esteso di UI/Live/ + UI/QLive/
+(19 file .swift, tutti nominati) non contiene nessun `LiveRootView.swift`. Non è un buco di
+ricerca: [R, da MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt punto 7, e confermato
+indipendentemente — seconda fonte — nel commento di testa di QLiveRootView.swift stesso, righe
+26-33, letto oggi] il file esisteva («il vecchio contenitore col phantom `first ??
+makeDefault()`») ed è stato CANCELLATO nel commit di chiusura ⟦S4R⟧ `bfc92285d165852a9c5618786a
+7e95f7166025e7`. Rimozione deliberata e ratificata, non un buco.
+
+`ios_app/QBeats/UI/Live/LiveView.swift` — property wrapper, verbatim, riga letta:
+      5  @EnvironmentObject var audioEngine: AudioEngine
+      6  @EnvironmentObject var runner: SetlistRunner
+     11  @StateObject private var session = LiveSession()
+     16  @State private var sectionStartTick: Int = 1
+     17  @State private var pendingSectionStart: Bool = false
+     20  @State private var sectionHold: Bool = false
+     41  @State private var displayBpb: UInt32 = 4
+     42  @State private var displayAccentPattern: [UInt8] = [2, 1, 1, 1]
+     43  @State private var pendingBpb: UInt32? = nil
+     44  @State private var pendingAccentPattern: [UInt8]? = nil
+     45  @State private var pendingReps: Int? = nil
+(righe 24, 36, 54, 197, 323 menzionano @Published/@State solo dentro commenti — non sono
+dichiarazioni, escluse dall'elenco, dichiarate qui per non lasciarle implicite)
+
+⚠️ Riga 6 è la misura che più conta per il vincolo di oggi: `LiveView` dichiara GIÀ
+`@EnvironmentObject var runner: SetlistRunner` — osserva il runner DIRETTAMENTE, non attraverso
+un contenitore-sessione. È coerente con la regola di BOX3 punto (e) citata dal referee in
+apertura, e con quanto QLiveRootView dichiara di fare (sotto).
+
+`ios_app/QBeats/UI/QLive/QLiveRootView.swift` — property wrapper, verbatim, riga letta:
+     46  @State private var page: QLivePage = .shows
+     74  @StateObject private var roomSession = QLiveSession()
+(righe 42, 100, 137 menzionano @State/@EnvironmentObject solo in commento — non dichiarazioni)
+
+Due misure aggiuntive, trovate leggendo il file intero (necessario per rispondere con contesto,
+non dedotte dal solo grep):
+
+  · riga 146 — `.environmentObject(runner)`, applicato a `LiveView(onExit: { navigate(to:
+    .shows) })` (riga 145), dentro `if let runner = roomSession.runner` (riga 98). Non è una
+    DICHIARAZIONE di proprietà (per questo non è nell'elenco sopra) — è il MODIFICATORE che
+    inietta il runner (una volta esistente) nell'`@EnvironmentObject` di `LiveView.swift:6`.
+    È il sito che chiude la catena: `QLiveSession.runner` (slot, oggi sempre nil) → se
+    valorizzato → sbloccato dal gate riga 98 → iniettato riga 146 → osservato da `LiveView`
+    riga 6. `LiveSession` (riga 11 di LiveView) resta un oggetto SEPARATO, costruito
+    localmente da `LiveView`, mai connesso a `QLiveSession` in nessun punto misurato oggi.
+
+  · righe 67-73 (commento di classe) — dichiara ESPLICITAMENTE perché la proprietà si chiama
+    `roomSession` e non `session` nudo: `LiveView.swift:11` porta già una propria `session`
+    (tipo `LiveSession`), e `LiveView` è renderizzata DENTRO questo stesso file (riga 145) —
+    due oggetti diversi collidenti sul nome avrebbero reso ambiguo ogni divieto scritto su
+    quel nome. Misura, non mia deduzione: è testo del file.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+6 — HANDOFF/MISURE_CC_2026-08-02_P3-S5-RICOGNIZIONE.txt
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+ESISTE ANCORA. [V] Verificato su C: (HANDOFF/), su E: (stesso path relativo sotto `FILE X
+CLAUDE.MD\HANDOFF\`), e su Drive — due copie (stesso schema C:/E: sync separato già documentato
+ieri notte: due ID Drive diversi, due cartelle-parent diverse, 15767 B su entrambe).
+
+Richiesto verbatim il solo punto 2 — incollato integrale, comprese le righe di cornice:
+
+    ====================================================================================================
+    2 — COSA ESPONE S4R COME PUNTO D'AGGANCIO (per SIMBOLO, VERBATIM, il codice decide non io)
+    ====================================================================================================
+
+    Il punto d'aggancio è lo SLOT del runner dentro QLiveSession — VUOTO e SENZA MUTATORE per
+    costruzione. ⟦S4R⟧ l'ha lasciato apposta non riempibile; il commento nel file dice esplicitamente
+    che chi costruisce lo Start (⟦S5⟧) deve aggiungere qui il mutatore.
+
+    --- ios_app/QBeats/UI/QLive/QLiveSession.swift:33-35 ---
+        /// Slot del runner. `nil` = nessuna scaletta in esecuzione.
+        /// `private(set)` e senza mutatore: in ⟦S4R⟧ non è riempibile da nessuno.
+        @Published private(set) var runner: SetlistRunner? = nil
+
+    --- ios_app/QBeats/UI/QLive/QLiveSession.swift:12-15 (commento di classe) ---
+    /// In ⟦S4R⟧ lo slot resta VUOTO e nessuno lo riempie: il mutatore MANCA
+    /// APPOSTA, così lo slot è strutturalmente non riempibile invece che vuoto per
+    /// convenzione. Chi costruisce lo Start (⟦S5⟧) aggiunge qui il mutatore, ed è
+    /// il solo posto in cui il runner può nascere.
+
+    Il consumatore del slot (il gate che userà quel mutatore, una volta esistente) è già cablato,
+    sempre gated su optional-binding — MAI il player senza runner iniettato:
+
+    --- ios_app/QBeats/UI/QLive/QLiveRootView.swift:96-99 ---
+            case .metronome:
+                // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
+                if let runner = roomSession.runner {
+                    // UNICO punto in cui il runner entra nell'albero delle viste.
+
+    La firma di ciò che il runner SI ASPETTA come innesco per iniziare davvero a suonare, una volta
+    costruito (non è la costruzione — è il metodo che avvia la riproduzione):
+
+    --- ios_app/QBeats/SetlistRunner.swift:61 (init) ---
+        init(setlist: Setlist, store: QBeatsStore) {
+
+    --- ios_app/QBeats/SetlistRunner.swift:109 (avvio riproduzione) ---
+        func startSetlist(audioEngine: AudioEngine, session: LiveSession) {
+
+    ⚠️ NOTA STRUTTURALE, non dedotta ma misurata: `startSetlist` prende un `LiveSession` — che è un
+    tipo DIVERSO da `QLiveSession` (quello del punto d'aggancio sopra). `LiveSession` vive in
+    `ios_app/QBeats/Models/LiveSession.swift` ed è il tipo che il vecchio flusso `Live/` (LiveView,
+    WaitingForDirectorView) già usa. `QLiveSession` (UI/QLive/) è il contenitore-stanza nuovo che
+    possiede SOLO lo slot. Sono due oggetti distinti con ruoli distinti: chi scrive ⟦S5⟧ deve
+    riconciliare i due, non è una svista di questo referto — è una misura che consegno così com'è.
+
+    Verbatim consegnato: 15 righe di codice. Entro il limite di 40.
+
+Oltre al punto 2 (non richiesto, segnalato per trasparenza — non incollato integrale): lo stesso
+file ai punti 1 e 7 misura, con fonte indipendente, perché `LiveRootView.swift` non esiste più
+(già usato sopra, punto 5); al punto 3 misura che al 02/08 c'erano ZERO call-site reali per
+`SetlistRunner(` in tutto ios_app/. Non ho riverificato quest'ultimo punto oggi — non era nel
+mandato, e rifarlo senza motivo nuovo sarebbe overhead procedurale. Se serve fresco, è una
+misura di un rigo sola.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+NON RICHIESTO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Nessuna idea da mettere in quarantena in questo giro — dichiarato esplicitamente invece di
+lasciarlo implicito.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine misure. Nessun file toccato fuori da questa consegna, nessun commit, nessun push.
+════════════════════════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,211 @@
+================================================================================
+INVENTARIO SOPRAVVIVENZA — 2026-07-28 — ZERO CANCELLAZIONI
+================================================================================
+Scritto da CC. Solo misura e referto: nessun file toccato, nessuno spostato,
+nessuno cancellato. Verificato alla fine (§0): git status invariato.
+
+METODO: ricerca PER CONTENUTO, non per nome. Per ciascun bersaglio: prima
+ricerca per DIMENSIONE ESATTA in byte su tutto l'albero (`find -size Nc`),
+poi verifica sha256 PIENO sui candidati trovati — mai il solo prefisso a
+8 caratteri fornito nel prompt. Un match di sola dimensione senza sha256
+coincidente NON è riportato come sopravvivenza (vedi §2, MEMORY.md).
+
+Alberi coperti:
+  A) repo Q-BEATS: C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\ (tracciati
+     E untracked — `find` non distingue, `git status` sì, dichiarato dove serve)
+  B) E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\ e TUTTE le
+     sottocartelle, ricorsivo. Guardia: cartella base ESISTE, 18 sottocartelle
+     dirette, 620 file totali (misurato con `find -type f | wc -l`, prima di
+     cercare — così un albero vuoto non produrrebbe un falso "tutto perduto").
+
+================================================================================
+§0 — GUARDIA: zero scritture durante questa misura
+================================================================================
+`git status --porcelain -uno` prima e dopo la misura: entrambe vuote.
+Nessun file tracciato toccato. Questo file stesso è untracked.
+
+================================================================================
+§1 — SOPRAVVIVENZA DEI SEI RIMOSSI DAL PROGETTO CLAUDE
+================================================================================
+
+--- 1) MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt ---
+Atteso: sha256 `6bef059c…` · 20376 B
+✅ VIVO — SOLO nel repo:
+  C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+  sha256(disco) = 6bef059c20d5a5d49bc9882bde2ed4fde8bdc1e0e9ee20ca292c4ebe5f80d55e
+  byte(disco)   = 20376   [COMBACIA]
+  tracciato     = NO (untracked)
+Ricerca su E: (dimensione esatta 20376c, tutto l'albero): 0 file trovati.
+CONTROLLO POSITIVO del metodo `find -size`, stessa forma: dimensione 141762c
+sullo stesso albero rende 3 file (i mirror LIBRO noti, vedi §3) — il metodo
+trova ciò che c'è; lo 0 su 20376 è un'assenza vera su E:.
+⚠️ Copia unica sull'intero disco: solo nel repo, solo untracked.
+
+--- 2) MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt ---
+Atteso: sha256 `56176e4c…` · 11146 B
+✅ VIVO — SOLO nel repo:
+  C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+  sha256(disco) = 56176e4c40ad080ca85c64428333882ff0f26f125e63671a185c9fdcf6c93b9c
+  byte(disco)   = 11146   [COMBACIA]
+  tracciato     = NO (untracked)
+Ricerca su E: (dimensione esatta 11146c, tutto l'albero): 0 file trovati.
+⚠️ Copia unica sull'intero disco: solo nel repo, solo untracked.
+
+--- 3) MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt ---
+Atteso: sha256 `532e4a78…` · 10971 B
+✅ VIVO — in DUE posti indipendenti:
+  (a) C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+      sha256(disco) = 532e4a7841783eab177dedd816a722cb3241a9b55227ecfaa4768e29cb26c187
+      byte(disco)   = 10971 · tracciato = NO (untracked)
+  (b) E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\27_07_2026_g3\MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+      sha256(disco) = 532e4a7841783eab177dedd816a722cb3241a9b55227ecfaa4768e29cb26c187  [IDENTICO ad (a)]
+      byte(disco)   = 10971
+Trovato per dimensione esatta (10971c) su E:, poi confermato per CONTENUTO
+(sha256 pieno coincidente fra i due, non solo la dimensione).
+
+--- 4) 2026-07-20_QLive-Shows-Taratura-Q17-Q22_rev2.html ---
+Atteso: sha256 `5ff27046…` · 45604 B
+✅ VIVO — su E::
+  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\20_07_26\2026-07-20_QLive-Shows-Taratura-Q17-Q22_rev2.html
+  sha256(disco) = 5ff27046f9c98aa0afe345edd8c2827c17d07aa2152b0377bf2348cd77700946
+  byte(disco)   = 45604   [COMBACIA]
+Non presente nel repo (né tracciato né untracked, nessun match per nome).
+⚠️ È il file citato in BOX5 V28 e in `2026-07-24_QLive-Shows-Card-Azione-Overflow-FREEZE.html`
+come contratto vigente per scala tipografica/contrasto/cancello — copia unica,
+solo su E:, cartella `20_07_26` (nome abbreviato, diverso dalla convenzione
+`GG_MM_AAAA` usata altrove: nessun'altra cartella con questo schema trovata
+nell'albero — annotato, non corretto: fuori mandato di questo prompt).
+
+--- 5) 2026-07-26_QLive-Shows-Card-5-Risposte-di-Chiusura__rev2.html ---
+Atteso: sha256 `f1b362f0…` · 38185 B
+✅ VIVO — NON PERDUTO. Su E::
+  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\26_07_2026\2026-07-26_QLive-Shows-Card-5-Risposte-di-Chiusura__rev2.html
+  sha256(disco) = f1b362f0202470bb1fa041a719e29cf48d853f9e2871c7c31ef5feeffc6ee1ea
+  byte(disco)   = 38185   [COMBACIA]
+Non presente nel repo. È la fonte dichiarata VIETATA in BOX5 V28 (capitolo
+Q-Live›Shows): non era da citare come fonte del capitolo, ma NON andava
+cancellata — regge una ratifica `superseded` in LIBRO v43. Verificato
+l'incrocio, non assunto: `LIBRO_MASTRO_QBEATS.md:300 @ HEAD` cita VERBATIM
+  «rev2 `2026-07-26_QLive-Shows-Card-5-Risposte-di-Chiusura__rev2.html`
+   sha256 `f1b362f0…6ee1ea` (38185 B)»
+— nome, impronta e byte della citazione COMBACIANO col file misurato ora.
+Il file è integro; la ratifica che lo cita resta verificabile.
+
+--- 6) DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt ---
+Atteso: sha256 `a55c96b7…` · 34628 B
+✅ VIVO — SOLO nel repo:
+  C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\HANDOFF\DIFF_B4_SCALETTA-S4-sdoppiamento_2026-07-28.txt
+  sha256(disco) = a55c96b703f1a96c68d6ca416c989a661baec498113f9af984e174fcb94a5121
+  byte(disco)   = 34628   [COMBACIA]
+  tracciato     = NO (untracked)
+Ricerca su E: (dimensione esatta 34628c): 0 file trovati.
+**Ricostruibilità da git — VERIFICATA, non assunta.** Il file di consegna
+contiene due parti: (i) il diff `git --git a/…` con gli hunk +/-, (ii) la
+prosa di verifica di CC attorno. Ho estratto `git show 8289944…:HANDOFF/
+SCALETTA_ATOMI_S6_2026-07-10.md` e confrontato la sua sezione diff con quella
+del file di consegna: la sezione diff di `git show` è CONTENUTA PER INTERO
+nel file di consegna (confronto per sottostringa esatta, esito: True).
+⚠️ **Ricostruibile solo IN PARTE:** i hunk del diff (il contenuto sostanziale
+del cambiamento) sopravvivono per sempre nella storia git, a prescindere da
+questo file. La PROSA di verifica attorno — i gate pre-scrittura, i controlli
+positivi, il bilancio dei delimitatori, i cinque reperti confermati e i
+quattro scartati — **non è in git** e vive SOLO in questo file. Se questo
+file venisse perso, il diff si ricostruisce, il verbale di verifica no.
+
+================================================================================
+§2 — INVENTARIO «CC MEMORIA» — E:\…\FILE X CLAUDE.MD\CC MEMORIA\
+================================================================================
+Guardia: cartella ESISTE. Elenco ricorsivo: 0 sottocartelle (tutto piatto),
+3 file totali.
+
+--- File 1/3 ---
+path         : E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\BUGS_QBEATS.md
+byte(disco)  : 195668
+sha256       : 2fcf1d0659e313a9245ae5e458e259bd9035033665a44d24865a9e4d238f438f
+data-mod     : 2026-07-23 16:45:37
+Esiste altrove? SÌ, in TRE posti indipendenti:
+  (a) blob git al commit `54ccddc8be2e839e05ac025c156b513d80bb1725`
+      (`BUGS_QBEATS.md: v43 - FIX-PILL chiuso device + TD-qstage-tab-reset`,
+       2026-07-23) — versione dichiarata dentro quel blob: `**Versione:** 43`
+  (b) E:\…\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS.md — sha256 identico
+  (c) E:\…\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS43.md — sha256 identico
+Non è copia unica.
+
+--- File 2/3 ---
+path         : E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\LIBRO_MASTRO_QBEATS.md
+byte(disco)  : 141762
+sha256       : e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922
+data-mod     : 2026-07-27 14:55:45
+Esiste altrove? SÌ — dettaglio completo in §3 (è uno dei due mirror a nome
+fisso). Coincide col blob v41 e con la stampa per-versione V41. Non è copia
+unica: sopravvive in almeno 3 posti indipendenti, incluso git per sempre.
+
+--- File 3/3 ---
+path         : E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\MEMORY.md
+byte(disco)  : 27570
+sha256       : 737e68f188db459bf639464ed0bbc2272af6e9e91c0ae8066e66a082395542fa
+data-mod     : 2026-06-19 09:48:52
+🔴 COPIA UNICA — nessuna copia trovata altrove.
+Identificato per contenuto (prime righe, non per nome): apre con «# Memory
+Index» seguito dal riassunto Q-BEATS — è un'istantanea datata dell'indice di
+memoria di CC (lo stesso tipo di file dell'indice vivo attuale, ma una
+versione storica del 19/06).
+Ricerca su E: (dimensione esatta 27570c, tutto l'albero, esclusa se stessa):
+UN candidato per dimensione — `DA_CD_PER_CC\11_07_2026\1Q-BEATS\Q-BEATS
+Decisioni STOP - Visualizzazione.html` — sha256 **7991a005…**, DIVERSO:
+coincidenza di sola dimensione, non di contenuto. Nessun altro match.
+Ricerca nel repo (per nome «MEMORY.md»): 0 file.
+Confronto diretto contro l'indice di memoria VIVO di CC
+(`C:\Users\BULLFROG\.claude\projects\C--Users-BULLFROG\memory\MEMORY.md`):
+  sha256(vivo) = 98cdac3d47345972b6005feb572fb0a965250df4abd734ae4b8c8938e7044991
+  byte(vivo)   = 19732
+  coincide con la copia E: del 19/06?  NO — contenuti diversi (l'indice vivo
+  è stato riscritto molte volte da allora; 27570 ≠ 19732 byte).
+**Questa è l'unica copia sul disco di quello stato dell'indice al 19/06/2026.**
+Se persa, quello specifico istante dell'indice di memoria non è recuperabile
+da nessun'altra fonte misurata qui.
+
+================================================================================
+§3 — I DUE MIRROR A NOME FISSO DI LIBRO SU E:
+================================================================================
+
+  (a) E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS.md
+      sha256(disco) = e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922
+      byte(disco)   = 141762 · righe(term) = 444 · CR = 0
+
+  (b) E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\CC MEMORIA\LIBRO_MASTRO_QBEATS.md
+      sha256(disco) = e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922
+      byte(disco)   = 141762 · righe(term) = 444 · CR = 0
+
+(a) e (b) sono BYTE-IDENTICI fra loro (stesso sha256).
+
+**A quale versione corrispondono — confronto per CONTENUTO contro i blob**
+(mai per nome):
+  blob v41 (`8fa50189b13f49ba3b291510f7d1a388d75b5909`)
+    → sha256 = e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922
+    → COINCIDE con (a) e (b).
+  blob v42 (`8926c2af482dce5f4fa0e0dd36d2ba36eb90c199`)
+    → sha256 = 065873628a7760e379b4b16f222fa19db9425507dbfd828532cd77a1f447a28a
+    → NON coincide.
+  blob v43 (`c3caa58c2b9f84e413c4571ff415e03759d73b0d`, HEAD attuale)
+    → sha256 = 17dd0bc4c1663493a3e64864f59c69dd397c569179a232e3d5cbdbcaee1cea08
+    → NON coincide.
+
+**ENTRAMBI i mirror = v41.** Fermi da almeno due versioni (mancano v42 e v43).
+
+**Il contenuto è già presente integralmente altrove — verificato, non assunto:**
+  · stampa per-versione dedicata:
+    E:\…\LIBRO_MASTRO\LIBRO_MASTRO_QBEATS_V41_2026-07-27_8fa5018.md
+    sha256 = e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922
+    [IDENTICO a (a) e (b)]
+  · blob git permanente: `git show 8fa5018…:LIBRO_MASTRO_QBEATS.md` produce
+    lo stesso sha256, per sempre, in qualunque momento futuro.
+
+**Cancellarli perde qualcosa? NO.** Il contenuto di (a) e (b) sopravvive
+byte-per-byte in almeno due posti indipendenti e permanenti (la stampa
+per-versione dedicata e la storia git). Nessuna informazione univoca vive
+SOLO in questi due file.
+
+================================================================================
+FINE INVENTARIO. Zero file toccati, zero cancellati, zero spostati.
+================================================================================

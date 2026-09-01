@@ -1,0 +1,366 @@
+PIANO S4 — Q-Live › Shows (frame ②) — PER RATIFICA REFEREE
+Data: 2026-07-18 · Autore: CC · Baseline ratificata referee 18/07: HEAD ed5425c
+(ancore in HANDOFF/VERIFICA_R1_2026-07-18.txt, sha256 86e6ab93…c976bfd9).
+Contratto UX: freeze DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0 (1:1, UX di CD).
+NIENTE CODICE in questo documento: è un PIANO. Le "forme Swift" sono SPEC dal freeze/
+mirror, non implementazione. Ogni troncamento di citazione è marcato […].
+
+Nota metodo: 5 asserzioni portanti di questo piano sono state passate a una verifica
+avversariale a fonte (5 agenti indipendenti, incarico = REFUTARE). Esiti incisi qui
+sotto ai punti pertinenti come [VERIFICA: …]. Tre correzioni sono state recepite (token
+.tx + ·min condizionale; vincolo Equatable su QLivePage; "metronomo irraggiungibile"
+declassato da fatto a conseguenza-di-piano). Nulla è dato per assunto.
+
+
+════════════════════════════════════════════════════════════════════════
+0 — CHIUSURA REPERTO LINK (BOX3 V96 punto (l)) — FATTO OPERATIVO: SÌ
+════════════════════════════════════════════════════════════════════════
+Riancorato a HEAD ed5425c. Le tre fonti:
+
+(0.1) project.yml — PROPAGAZIONE ARMATA.
+  ios_app/project.yml:19  →  «        ABLLinkStartStopSyncSupported: true»
+  (specchiato in ios_app/QBeats/Info.plist:45-46 <key>ABLLinkStartStopSyncSupported</key><true/>).
+  Con StartStopSync ON, uno stop del leader È notificabile ai Follower via Link.
+
+(0.2) stop() regolare — PROPAGA ai Follower (se running).
+  ios_app/QBeats/AudioEngine.swift, func stopSync() (chiamata da stop():1079). Verbatim:
+     1637            wasRunning = self.isRunning
+     1638            guard self.isRunning else { return }
+     1639            self.isRunning = false
+     […]
+     1644            if let lh = linkEngineHandle {
+     1645                link_engine_stop(lh, mach_absolute_time())
+     1646            }
+  → un audioEngine.stop() con isRunning==true SUPERA la guardia (1638) e chiama
+    link_engine_stop (1645) = STOP PROPAGATO ai Follower = si ferma la band.
+
+(0.3) interruzione iOS (telefonata) — NON propaga (per progetto).
+  ios_app/QBeats/AudioEngine.swift, handleInterruption(...) caso .began. Verbatim:
+     2676                // CRITICO: NON chiamare midi_engine_stop() — il sequencer C++ continua a
+     2677                // mantenere la beat position corrente. NON notificare stop a Link.
+     […]
+     2691            playerNode.stop()
+     2692            engine.stop()
+  → l'interruzione ferma il layer audio SENZA link_engine_stop → i Follower NON si fermano.
+
+(0.4) Le righe :1645 e :2676-2677 citate in BOX3 (l) come "@872dd5b, da riancorare"
+  risultano ALLO STESSO NUMERO DI RIGA a HEAD ed5425c: il blocco non è stato toccato da
+  N0/N1a/N1b/C1/C2. Riancoraggio = coincidenza di posizione, MA la fonte-di-verità qui è
+  il grep a HEAD, non il commit vecchio.
+
+CONCLUSIONE OPERATIVA (dirime il progetto di S4): poiché lo stop che useremo per l'uscita
+intra-.qLive è lo STESSO stop() che a (0.2) propaga ai Follower, esso NON deve mai
+scattare in modo spurio (rischio band-stop, = ragione R1 dell'anti-.onDisappear, punto (j)).
+Deve scattare SOLO su navigazione reale, deterministica. → è il pilastro del §2.
+
+
+════════════════════════════════════════════════════════════════════════
+1 — IL PROBLEMA (BOX3 V96 punto (k)) + DIREZIONE RATIFICATA
+════════════════════════════════════════════════════════════════════════
+Il canonico AppRootView.swift:61-68 ferma l'audio SOLO quando muta `screen`:
+     61        .onChange(of: screen) { newScreen in
+     62            if newScreen == .qLive {
+     63                audioEngine.triggerDNDReminderIfNeeded()
+     64            } else if previousScreen == .qLive {
+     65                audioEngine.stop()
+     66            }
+     67            previousScreen = newScreen
+     68        }
+Le uscite INTRA-.qLive (metronomo → lista/dettaglio, `screen` resta .qLive) sono CIECHE a
+questo handler: `screen` non muta → onChange non scatta. E la rete `.onDisappear` è stata
+RIMOSSA da E1 (N1b). Oggi, su quel percorso, NIENTE ferma il click → suonerebbe uscendo
+dal metronomo, sul palco.
+
+DIREZIONE RATIFICATA (referee 17/07, non negoziabile — recepita alla lettera):
+  (a) VIETATO resuscitare `.onDisappear` (non-deterministico + rischio band-stop §0).
+  (b) Lo stop va al PUNTO DI MUTAZIONE dello stato di navigazione INTERNO di Q-Live,
+      dentro QLiveRootView, con la STESSA forma del canonico un livello sopra
+      (previousInternal == .metronomo → stop()). UN solo punto, deterministico.
+  (c) La POLITICA (su quali uscite fermare) è PARAMETRIZZATA, non cablata: il piano
+      regge entrambe le risposte CD cambiando UN valore (§2c).
+
+
+════════════════════════════════════════════════════════════════════════
+2 — IL PIANO
+════════════════════════════════════════════════════════════════════════
+
+── 2a · STATO DI NAVIGAZIONE INTERNO DI Q-LIVE ──────────────────────────
+FORMA: un enum CASE-ONLY che vive come @State DENTRO QLiveRootView, + un compagno
+`previousPage` (stessa tecnica di previousScreen, perché iOS 16 dà solo il valore NUOVO).
+SPEC (non codice):
+     @State private var page: QLivePage = .shows
+     @State private var previousPage: QLivePage = .shows
+     private enum QLivePage { case shows, detail, metronomo }   // case-only
+Il payload (show selezionato / setlist scelta) NON entra nell'enum: vive in @State
+SEPARATO (es. selectedShow: Setlist?). Il `body` fa `switch page`.
+
+MOTIVAZIONE vs lo specchio QStageRootView:
+  · QStageRootView (QStageRootView.swift:16-32) usa un TabView (Songs/Shows/Media) —
+    navigazione LATERALE tra pari. Q-Live è un DRILL-DOWN lineare (lista→dettaglio→
+    metronomo), non un TabView.
+  · Il canonico che (k) chiede di specchiare è l'enum `screen`+`onChange` di
+    AppRootView (AppRootView.swift:18 `private enum Screen { case home, qStage, qLive }`,
+    onChange :61). L'enum interno è lo specchio ESATTO un livello sotto: stesso pattern,
+    stesso singolo punto di mutazione, stessa determinismo. È ciò che (k) prescrive.
+
+[VERIFICA — claim "mirror determinism" = PARTIAL, con CAVEAT recepito]
+  Confermato: (1) una mutazione di `page` montato (metronomo→dettaglio) fa scattare
+  `.onChange(of: page)`; (2) su smontaggio dell'intero sottoalbero Q-Live (screen lascia
+  .qLive mentre page==.metronomo) `.onChange(of: page)` NON scatta (page non muta, la
+  view è distrutta) → scatta solo il canonico = UN solo stop. `.onChange` non è un hook
+  di disparizione (quello è `.onDisappear`, vietato da E1).
+  CAVEAT VINCOLANTE: `.onChange(of: page)` esige che QLivePage sia Equatable. Un enum
+  CASE-ONLY sintetizza Equatable da solo (come `Screen`). Se QLivePage portasse valori
+  associati (es. `.detail(Song)`), Swift NON sintetizza Equatable in automatico → o si
+  dichiara `: Equatable` con TUTTI i payload Equatable, o NON COMPILA. → REGOLA DEL PIANO:
+  QLivePage resta case-only; il payload sta in @State separato. (Recepito in FORMA sopra.)
+
+── 2b · PUNTO DI MUTAZIONE UNICO + AGGANCIO DELLO STOP ──────────────────
+Un unico `.onChange(of: page)` su QLiveRootView, specchio 1:1 di AppRootView:64-65.
+FORMA (spec, non codice):
+     .onChange(of: page) { newPage in
+         if previousPage == .metronomo, exitStopPolicy.shouldStop(from: previousPage, to: newPage) {
+             audioEngine.stop()
+         }
+         previousPage = newPage
+     }
+· Unico trigger. Deterministico (scatta solo quando `page` muta per navigazione reale).
+· Riusa lo stop() canonico (NON un nuovo "stop locale": inventarne uno toccherebbe
+  L1/L2 = viola "§6 RT-neutro"; e la propagazione ai Follower su uscita reale è la
+  STESSA semantica del canonico un livello sopra — coerente, non nuova).
+· In S4 `.metronomo` non è ancora raggiungibile (nessun launcher) → questo handler è
+  INERTE in S4 (scaffold, pattern N1a), diventa VIVO a S6. Vedi 2d/2f.
+
+── 2c · POLITICA CD, INIETTATA E PARAMETRIZZATA ─────────────────────────
+La domanda CD aperta: lo stop scatta su OGNI uscita dal metronomo, o solo su alcune?
+Il piano regge entrambe cambiando UN valore. SPEC:
+     // valore iniettato in QLiveRootView (default sicuro-palco)
+     enum QLiveMetronomeExitStop { case always /* , onlyToShows (se CD lo chiede) */ }
+  oppure, forma generale equivalente: una closure `(from,to)->Bool`.
+· DEFAULT proposto (mia posizione): `.always` — su QUALSIASI uscita dal metronomo il
+  click tace. È l'opzione sicura-palco: mai lasciare il click acceso uscendo.
+· Se CD risponde "solo alcune", si cambia SOLO quel valore/closure (un punto d'iniezione).
+· NON blocca S4: l'handler è inerte in S4; la STRUTTURA di parametrizzazione atterra in
+  S4, il VALORE definitivo CD può atterrare prima del go-live S6.
+
+── 2d · ATOMIZZAZIONE (step REVERSIBILI, stile N0/N1a/N1b) ───────────────
+Prerequisito già assolto: il seam onExit di QLiveRootView (Nodo A N0) esiste già
+(QLiveRootView.swift:22 `let onExit: () -> Void`) → S4 parte da un seam stabilito, non
+ne crea uno.
+
+  ▸ S4a — QLiveShowsView come DEAD CODE (CI). Specchio di N1a.
+    SCOPO: creare la vista lista read-only, NON ancora cablata nella root.
+    FILE: ios_app/QBeats/UI/QLive/QLiveShowsView.swift NUOVO. Legge QBeatsStore.shared
+      (setlists, estimatedDuration); righe INERTI (tap = no-op); search filtra localmente;
+      NIENTE sort (§Q15, ereditato read-only); MetroFAB solo PIAZZATO (dest a S6); pick
+      cosmetico (QLiveTheme.pick). RoomSwitchBar coda ma non ancora riceve onSwitch reale.
+    APP DOPO S4a: identica a oggi (file non referenziato). Q-Live continua ad aprire il
+      metronomo (dev-fallback attuale).
+    REVERT: elimina il file. Zero altri tocchi.
+
+  ▸ S4b — FLIP della root + scaffold nav + iniezione switch (CI+DEVICE). Specchio di N1b.
+    SCOPO: QLiveRootView apre QLiveShowsView; installa l'enum interno `page`+`previousPage`
+      e l'handler inerte (2b); AppRootView inietta lo switch verso Q-Stage.
+    FILE:
+      · QLiveRootView.swift EDIT: root .shows→QLiveShowsView; aggiunge @State page/
+        previousPage + enum QLivePage (case-only, 3 casi dichiarati; .detail/.metronomo
+        renderizzano EmptyView = scaffold inerte); `.onChange(of: page)` (2b, inerte);
+        riceve `onSwitchToStage` e lo passa a QLiveShowsView.
+      · AppRootView.swift EDIT: nel case .qLive (oggi AppRootView.swift:43
+        `QLiveRootView(onExit: { screen = .home })`) aggiunge
+        `onSwitchToStage: { screen = .qStage }`. `screen` resta private; è `.qStage`
+        secco (NON un toggle).
+      · QLiveShowsView.swift EDIT: RoomSwitchBar[active:.qLive, variant:.full,
+        onHome:onExit (Cond A), onSwitch:onSwitchToStage].
+    APP DOPO S4b: Q-Live apre la LISTA Shows read-only; Home (onExit→.home) e switch
+      (→.qStage) funzionano; il metronomo NON è più raggiungibile da Q-Live (nessun
+      Start/launcher fino a S5/S4L/S6). Vedi RISCHIO R1 in 2g.
+    REVERT: root torna a LiveRootView; rimuovi enum/handler; revert iniezione AppRootView.
+
+  Perché 2 atomi e non 1: separa "nuova vista come dead code" (rischio nullo, CI) dal
+  "flip che cambia comportamento + tocca AppRootView" (rischio/accoppiato, DEVICE) —
+  esattamente la disciplina N1a/N1b che ha retto il Nodo A.
+
+  POSIZIONE CC su (k) "progettare DENTRO S4" (da ratificare): installo l'enum interno +
+  l'handler inerte GIÀ in S4b (dead code alla N1a), NON solo come disegno in questo
+  documento. Motivo: una decisione che vive solo in un piano è precisamente il fallimento
+  E3 ("una ratifica che non atterra in un canonico non esiste"). Il SEAM atterra in
+  codice a S4; il FUOCO (device-osservabile) a S6. Alternativa scartata: rimandare
+  l'enum a S5/S6 — viola (k) e ripete l'errore E3.
+
+── 2e · CHECKLIST TOKEN (freeze → Swift) — ZERO righe vuote ──────────────
+Contratto = DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html. "R"=componente RIUSATO (cito il
+file Swift esistente). "N"=NUOVO in QLiveShowsView (spec = valore freeze verbatim).
+Frame di riferimento (markup): freeze:403-425 "Shows / Q-Live (read-only) [FROZEN]".
+
+  CLASSE.proprietà (riga freeze)              VALORE (verbatim freeze)                      → Swift (spec / cite)
+  ----------------------------------------------------------------------------------------------------------------
+  .sb (171)                                   status bar sistema h44                          R · trattamento sistema esistente
+  .roombar (175)                              height:54; padding:0 14; gap:8                  R · RoomSwitchBar variant .full
+  .roombar.center (176)                       justify-content:center; position:relative      R · RoomSwitchBar.swift:38-49 (.full ZStack)
+  .homebtn (177)                              34×34; radius:10; bg rgba(255,255,255,.05);     R · RoomSwitchBar homeButton
+                                              border rgba(255,255,255,.09); color --text2
+  .roombar.center .homebtn (178)              position:absolute; left:14; translateY(-50%)   R · RoomSwitchBar (.full, home a sx)
+  .roomseg.nm0 (180-181)                      bg .05; border .10; radius:12; padding:4;       R · RoomSwitchBar segment
+                                              gap:3; margin:0
+  .roomseg .opt (182)                         JetBrains Mono 10.5; w700; ls:1; UPPER;         R · RoomSwitchBar pill()
+                                              padding:7 12; radius:9; color --text3; minH:34
+  .roomseg .opt.live-on (184)                 color #fff; bg rgba(212,63,0,.24);              R · RoomSwitchBar (active:.qLive)
+                                              border rgba(212,63,0,.5); inset shadow .06
+  .frame.qlive bg (120,169)                   --qlive-bg #0e0e10                              N · inline Color(hex:"#0e0e10").ignoresSafeArea
+                                                                                                  (QLiveKit.swift nota "resta inline"; mirror LiveView.swift:89)
+  .scrhead (189)                              flex; align-items:baseline; justify:space-      N · HStack(alignment:.firstTextBaseline),
+                                              between; padding:8 18 12                            padding(.top8,.horizontal18,.bottom12)
+  .scrhead h1 (190)                           "Shows"; size:29; w800; ls:-0.6; #fff; lh:1     N · .font(.custom("Inter-ExtraBold",size:29))
+                                                                                                  + .white  [mirror ShowsListView.swift:110]
+  .ro (192 + markup 412)                      "Read-only"; JetBrains Mono 9.5; w700; ls:1;    N · HStack{lockShape(11×11); Text("Read-only")}
+                                              UPPER; color --live-l #ff8a5c;                      .font(.jbMono(.regular,size:9.5))…
+                                              bg rgba(212,63,0,.12); border rgba(212,63,0,       [Q-LIVE-SPECIFICO: sostituisce .cnt;
+                                              .32); padding:4 8; radius:7; + lucchetto SVG        S3 Q-Stage usava .cnt]
+  .searchrow (194)                            flex; gap:8; padding:2 16 12                     N · HStack(spacing:8)+padding
+  .search (195)                               flex:1; h:40; radius:12; padding:0 12;           N · frame(h:40)+radius12; placeholder --text3
+                                              color --text3 (placeholder)                         [mirror ShowsListView.swift:130-148]
+  .qlive .search (196)                        bg --qlive-surf #16161a; border --qlive-bd      N · QLiveTheme.surf / QLiveTheme.bd
+                                              rgba(255,255,255,.06)                               [cite QLiveKit.swift:9-10]
+  .search span (197 + markup 414)             "Search shows"; JetBrains Mono 12; ls:0.3       N · Text("Search shows").font(.jbMono(.regular,
+                                                                                                  size:12)) [mirror ShowsListView.swift:143/148]
+  .search magnifier (markup 414)              circle cx11 cy11 r7 + M16.5 16.5 L21 21;        N · SearchIconShape [mirror ShowsListView.swift:456]
+                                              stroke:1.8
+  (NIENTE .sortbtn)                           §Q15: sort ereditato read-only, assente         N · OMESSO di proposito (nessun bottone morto)
+  .list (222)                                 padding:0 16; gap:11                             N · VStack(spacing:11)+padding(.horizontal16)
+  .showrow (223)                              radius:15; padding:15 16; justify:space-        N · HStack+padding(15,16)+radius15;
+                                              between; inset shadow 0 1px 0 rgba(255,255,255,     strip-1px in cima [mirror ShowsListView.swift:213-243]
+                                              .04)
+  .qlive .showrow (225)                       bg --qlive-surf #16161a; border --qlive-bd      N · QLiveTheme.surf / QLiveTheme.bd
+  .qlive .showrow.pick (226)                  border rgba(212,63,0,.45); bg --qlive-pick      N · QLiveTheme.pick + bordo orange .45
+                                              #1a1614 (last-opened, COSMETICO)                    (cosmetico) [cite QLiveKit.swift:11]
+  .showrow .tx (227)                          min-width:0 (wrapper di .nm+.mt)                N · VStack(alignment:.leading) wrapper
+                                                                                                  [VERIFICA claim-D: elemento .tx recepito]
+  .showrow .nm (228)                          size:16; w600; #fff; ls:-0.2                     N · .font(.custom("Inter-SemiBold",size:16))
+                                                                                                  [mirror ShowsListView.swift:224]
+  .showrow .mt (229 + markup 417-419)         JetBrains Mono 10.5; --text2; mt:5; ls:0.3;     N · .font(.jbMono(.regular,size:10.5));
+                                              "N songs · M min" — «· M min» SOLO se minuti>0      testo condizionale [mirror ShowsListView.swift:
+                                              (riga 419 "Prove giovedì" = "5 songs" senza·)       250-254; store.estimatedDuration]
+                                                                                                  [VERIFICA claim-D: ·min condizionale recepito]
+  chevron .pick (markup 417)                  rgba(255,138,92,0.85) (≈ live-l @ .85)          N · Path chevron, colore live-l@0.85
+  chevron plain (markup 418-419)              rgba(255,255,255,0.3) (= --text3)               N · Path chevron, --text3
+  .metrofab (236)                             margin-top:auto; column; align:center; gap:8;   R · MetroFAB [MetroFAB.swift]
+                                              padding:0 0 30
+  .metrofab .c (237)                          64×64 circle; bg rgba(212,63,0,.14);            R · MetroFAB.swift:50-56
+                                              border 1.5 rgba(212,63,0,.5); color --live-l;
+                                              shadow nero .55
+  .metrofab .l (238)                          "Metronome"; JetBrains Mono 9; ls:2; --text2;   R · MetroFAB.swift:27
+                                              UPPER
+
+── 2f · GATE (CI vs DEVICE) — progettato per DISCRIMINARE ───────────────
+Problema noto (BOX3 caveat gate C): il gate C del Nodo A NON isolava il nuovo handler
+perché HomeRootView.swift:43 `.onAppear { audioEngine.stop() }` copriva doppio ogni
+ritorno in Home. Le uscite intra-.qLive NON passano dalla Home → serve un gate che
+discrimini davvero.
+
+[VERIFICA — claim "gate discrimination" = PARTIAL: nucleo strutturale CONFERMATO]
+  Confermato a fonte: HomeRootView è montata SOLO se screen==.home (AppRootView.swift:33);
+  lo switch Q-Live→Q-Stage muta `screen` a .qStage e NON monta mai la Home → NON passa
+  dall'onAppear-stop; lo stop d'uscita da .qLive è servito dal canonico (AppRootView:64-65).
+  onHome e onSwitch di RoomSwitchBar sono seam DISTINTI (RoomSwitchBar.swift:34 e :36) —
+  nessun percorso di switch passa dalla Home. Lo switch attuale di Q-Stage è un log
+  placeholder (ShowsListView.swift:86), diventa reale a S4b.
+
+  S4 — CI: build verde senza NUOVI warning (i 2 noti Node20/aws-tap restano, non-errori);
+    QLiveShowsView compila e renderizza; nessun crash a montaggio.
+  S4 — DEVICE (obbligatorio, ma di NAVIGAZIONE — non audio):
+    [1] Q-Live apre la lista Shows read-only con le setlist reali (nome, "N songs · M min"
+        condizionale, pick sull'ultima aperta).
+    [2] Home (RoomSwitchBar home / onExit) → torna alla Home, nessun crash.
+    [3] Switch → Q-Stage (secco, NON toggle), nessun crash. È il percorso DISCRIMINANTE
+        strutturale: NON passa dalla Home.
+    [4] Tap su riga / MetroFAB = INERTE, nessun crash (S5/S6 li cablano).
+    [5] RoomSwitchBar hit-area: RI-gate dei 4 tocchi (il gate S3 fallì su [2]/[3], hit-area
+        poi ristrutturata) NEL CONTESTO header Q-Live. Vedi RISCHIO R6.
+  ONESTÀ: in S4 NON c'è un'uscita intra-.qLive con audio ATTIVO da testare (il metronomo
+    non è raggiungibile, l'handler 2b è inerte). Quindi S4 NON prova la sicurezza-audio
+    del punto (k). Non lo maschero: lo dichiaro.
+
+  S6 — DEVICE: è QUI che l'handler (k) diventa vivo e QUI il gate DISCRIMINA davvero
+    l'audio: avvia il metronomo, poi torna alla lista/dettaglio INTERNI (screen resta
+    .qLive, NON passa dalla Home) e verifica che il click TACE. Questo test è impossibile
+    da mascherare con l'onAppear della Home, perché la Home non viene mai visitata. È il
+    discriminante vero del canonico interno.
+
+── 2g · RISCHI ──────────────────────────────────────────────────────────
+R1 — METRONOMO IRRAGGIUNGIBILE S4→S6 (conseguenza reale, da accettare consapevolmente).
+   [VERIFICA claim-E = CONFERMATO] LiveView è costruito UNA sola volta (LiveRootView.
+   swift:18), LiveRootView una sola volta (QLiveRootView.swift:25), QLiveRootView una
+   sola volta (AppRootView.swift:43). Nessun secondo ingresso (né debug né preview).
+   [VERIFICA claim-B] Inoltre OGGI Q-Live apre DIRETTAMENTE un metronomo eseguibile via
+   dev-fallback (LiveRootView.swift:12-13 `SetlistRunner(setlist: QBeatsStore.shared.
+   setlists.first ?? Setlist.makeDefault()…)`). → Il flip S4b RIMUOVE questo accesso
+   diretto: da S4 a S6 il metronomo non è raggiungibile da Q-Live. È lo stato intermedio
+   voluto dalla scaletta (frame ② prima di dettaglio/Start), ma cambia il comportamento
+   attuale. POSIZIONE CC: accettabile (pre-release, atomi CI/device-gated, catena S4→S4L→
+   S5→S6 "coppia stretta"), MA lo segnalo esplicitamente perché condiziona il testing
+   device tra gli atomi. Da confermare da referee/Mauro, non da assumere.
+
+R2 — DOPPIO STOP → nessun doppio band-stop. [VERIFICA claim-A = CONFERMATO]
+   Sequenza metronomo→dettaglio (handler interno: stop reale + propaga) poi dettaglio→
+   Home (canonico: stop di nuovo). Il secondo stop: `guard self.isRunning` (AudioEngine.
+   swift:1638) è già false (il primo ha fatto :1639) → RITORNA prima di link_engine_stop
+   (:1645). `audioQueue.sync` serializza le due chiamate. link_engine_stop ha UN solo
+   callsite. → i Follower ricevono UNO stop (all'uscita dal metronomo), il secondo è no-op.
+   Idempotente e sicuro.
+
+R3 — SMONTAGGIO INTERO mentre page==.metronomo → UN solo stop. [VERIFICA claim-C]
+   Se screen lascia .qLive col metronomo montato, `.onChange(of: page)` NON scatta
+   (page non muta, view distrutta; `.onChange` non è hook di disparizione) → scatta solo
+   il canonico. Nessun doppio. (E comunque idempotente, R2.)
+
+R4 — QLivePage NON Equatable → NON COMPILA. [VERIFICA claim-C, caveat vincolante]
+   Mitigazione GIÀ nel piano (2a): enum case-only, payload in @State separato.
+
+R5 — INIEZIONE onSwitchToStage: `screen` è private (E2). Va filata AppRootView →
+   QLiveRootView(nuovo param) → QLiveShowsView → RoomSwitchBar.onSwitch. Se mal cablata,
+   lo switch cracsherebbe o sarebbe no-op. Mitigazione: specchiare il pattern già vivo di
+   QStageRootView(onExit:) (AppRootView.swift:37) — stessa forma, un solo hop in più.
+
+R6 — RoomSwitchBar hit-area: il gate S3 (14/07) FALLÌ sui tocchi [2]/[3] (hit-area
+   inerte 34pt), poi ristrutturata. S4 riusa il componente → RI-verificare i 4 tocchi
+   NEL contesto header Q-Live (device), non darli per acquisiti dal fix S3.
+
+R7 — Semantica CANCEL / back del metronomo (NON S4, ma da tracciare per S5/S6): oggi
+   LiveView usa `onExit` sia per il back header (LiveView.swift:97) sia per CANCEL
+   WaitingForDirector (LiveView.swift:166), entrambi → home. A S6, quando il metronomo
+   diventa `page`, il back header va RI-instradato a page interno (pop, NON onExit→home);
+   la destinazione di CANCEL (interno vs home) è una domanda CD/referee aperta. Fuori
+   scope S4, segnalata per non perderla.
+
+
+════════════════════════════════════════════════════════════════════════
+3 — VINCOLI (checklist di conformità)
+════════════════════════════════════════════════════════════════════════
+[✓] `Screen` è private enum in AppRootView: `{ screen=.home }` / `{ screen=.qStage }`
+    NON escono da lì (E2). onSwitchToStage è iniettato DALL'alto, non ricostruito sotto.
+[✓] onExit di QLiveRootView è l'hookpoint unico riusato da S4 (Cond A): onHome→onExit;
+    lo switch è una closure DISTINTA (onSwitchToStage), non confusa con onExit.
+[✓] RoomSwitchBar reale = active/onHome/variant/onSwitch (RoomSwitchBar.swift:33-36).
+    `showsPlus` NON esiste (usato solo `active:.qLive, variant:.full`).
+[✓] «+» crea-show = §8 DIFFERITO: NESSUN bottone morto (CD-Q7/LIBRO v31). QLiveShowsView
+    non lo disegna.
+[✓] §6 RT-neutro: zero contatto L1/L2. Si RIUSA audioEngine.stop() esistente; nessun
+    nuovo percorso audio, nessun "stop locale" inventato.
+[✓] Ogni valore da libreria/API/OS con fonte esatta (§7): §0 cita project.yml:19,
+    AudioEngine.swift:1638/1645/2676-2677 a HEAD; §2e cita freeze per riga.
+[✓] VERBATIM: le citazioni di codice/freeze sono byte-per-byte; troncamenti marcati […].
+    Le "forme Swift" sono SPEC dichiarate, non righe di file (nessun .swift toccato).
+
+════════════════════════════════════════════════════════════════════════
+DECISIONI PER IL REFEREE (mia posizione esplicita)
+════════════════════════════════════════════════════════════════════════
+D1 · Enum interno + handler inerte INSTALLATI in S4b come dead code (non solo disegnati)
+     → SÌ (onora (k) "dentro S4" + evita il fallimento E3). [POSIZIONE CC: raccomandato]
+D2 · Politica stop default = `.always` (sicuro-palco), parametrizzata per il cambio CD
+     → SÌ come default; valore CD definitivo può atterrare prima di S6. [raccomandato]
+D3 · Accettare la perdita temporanea dell'accesso diretto al metronomo S4→S6 (R1)
+     → richiede OK esplicito referee/Mauro (cambia il testing tra atomi). [da ratificare]
+D4 · 2 atomi S4a(CI dead)/S4b(flip+device), specchio N1a/N1b → [raccomandato]
+
+FINE PIANO. Nessun codice scritto. Nessun .swift toccato. Un solo file creato.

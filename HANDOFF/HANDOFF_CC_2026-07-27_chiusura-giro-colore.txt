@@ -1,0 +1,502 @@
+================================================================================
+HANDOFF CC — 2026-07-27 sera — chiusura giro colore / forma popup
+================================================================================
+Scritto da CC. Ogni numero qui dentro e' [V] = misurato da CC, oppure [R] =
+riportato, con la fonte accanto. Nessuna terza categoria.
+Le tabelle di misura NON sono ricopiate: si rimanda ai tre artefatti sigillati
+(sez. 0). Stesso principio della sezione BOX5 che rimanda al codice.
+
+⛔ NON LEGGERE `HANDOFF_REFEREE_*.md`. I documenti di passaggio non circolano fra
+   ruoli: sono tarati su chi non vede i dischi e portano materiale ritirato.
+   Vale per chiunque apra la sessione nuova. Tu ricevi prompt e canonici.
+
+================================================================================
+0) I TRE ARTEFATTI DI MISURA — sigillati, immutabili, in `…\Q-BEATS\HANDOFF\`
+================================================================================
+Le prove stanno qui. Il handoff RIMANDA, non ricopia. Se servono misure nuove:
+addendum separato, MAI modificare un file la cui impronta e' in circolazione.
+
+[V] MISURE_TOKEN-COLORE_FORMA-POPUP_2026-07-27.txt
+    20376 B · 312 righe · sha256 6bef059c20d5a5d49bc9882bde2ed4fde8bdc1e0e9ee20ca292c4ebe5f80d55e
+    (inventario UPDATE2 · diff A/B/C · i 4 documenti DS verbatim · le citazioni del
+     referee su BOX5/BUGS riverificate da CC · forma (2) estratta dal file C)
+[V] MISURE_ADDENDUM_CODICE-A-HEAD_2026-07-27.txt
+    11146 B · 181 righe · sha256 56176e4c40ad080ca85c64428333882ff0f26f125e63671a185c9fdcf6c93b9c
+    (i sei valori nel sorgente · QStageKit verbatim · le tre divergenze · QLiveTheme
+     · verifica #0a0e20 chiusa)
+[V] MISURE_G3_INVENTARIO-E-TICKET_2026-07-27.txt
+    10971 B · 182 righe · sha256 532e4a7841783eab177dedd816a722cb3241a9b55227ecfaa4768e29cb26c187
+    (ri-inventario g3 · payload vecchio distrutto · reperto #28cd41 scomposto ·
+     verifiche per le voci del ticket)
+
+================================================================================
+1) STATO — misurato ORA, non copiato
+================================================================================
+[V] HEAD = 8fa50189b13f49ba3b291510f7d1a388d75b5909        git log -1 --format=%H
+[V] subject = "LIBRO_MASTRO_QBEATS.md: v41 — 10 ratifiche cross-team 24-27/07
+    + Sez.5 -> ee31281"
+[V] autore = Mauro Martintoni <di_tutto@icloud.com>, 2026-07-27T14:29:53+02:00
+[V] origin/master = HEAD, stesso sha            git rev-parse origin/master
+[V] branch corrente = master
+[V] working tree PULITO: `git status --porcelain --untracked-files=no` rende
+    ZERO righe. NESSUN canonico toccato oggi.
+[V] worktree (R8), due: il repo a 8fa5018 [master] · C:/Users/BULLFROG/qb_fixB
+    a add556f [test/bug2b-test7-fixtures]
+[V] ULTIMO COMMIT DI CODICE = ee31281b03a4898bfbccc29bd558cbb68f5e23e1,
+    2026-07-23, "FIX-PILL: la pill Q-Live in Q-Stage naviga davvero"
+    git log -1 --format='%H %ad %s' --date=short -- '*.swift'
+    => Da quattro giorni non si tocca codice. La giornata di oggi e' doc-only e
+       NON ha prodotto scritture.
+
+ZERO SCRITTURE · ZERO COMMIT · ZERO BRANCH. Nulla e' in volo.
+
+================================================================================
+2) STATO DELLA RATIFICA — quello che non si deduce da una misura
+================================================================================
+[R] (dal referee, nel prompt di chiusura) Le CINQUE righe di LIBRO, la sezione
+    «Token visivi» di BOX5 e il ticket `TD-design-system-non-ancorato` sono
+    RATIFICATI DAL REFEREE.
+[R] 🔴 CONDIZIONE DELLA RATIFICA, sulla cella Doc ref della riga (1): va aggiunto
+    che la clausola (2) generalizzata NON viene dal payload ma da una misura di CC
+    sul sorgente, ancorata a un commit.
+[V] Condizione VERIFICATA da CC sul payload b5f40d9e (g3):
+      'LiveHeaderView' -> 0 · 'altra stanza' -> 0 · 'proprio ambiente' -> 0 ·
+      'stanza sbagliata' -> 0
+      CONTROLLI POSITIVI stesso file: 'annotazion' 7 · 'cornice' 6 · 'ruolo' 7 ·
+      '28cd41' 7
+    Il payload si ferma al corollario di r.101 («un accento di stanza non entra a
+    colorare un'annotazione»): copre la meta' FUORI-CORNICE, non la meta'
+    ALTRA-STANZA. Il referee ha ragione.
+[V] Ancoraggio della clausola (2), misurato: `#2a6bd6` a
+    `ios_app/QBeats/UI/Live/LiveHeaderView.swift` righe 107 e 109, invariate fra
+    HEAD e `152445e470eb0ca4a33c5b31a58ee5c8204e0482` (2026-07-17, "Nodo A N1b"),
+    che e' l'ULTIMO commit che tocca quel file. La riga 305 di LIBRO e' caduta
+    esattamente qui: numero di riga senza sha. Non ripeterlo.
+
+⚠️ I DUE CANCELLI RESTANO DISTINTI: ratifica referee != OK di Mauro.
+   «Incidere direttamente» NON E' UN'OPZIONE. Precedente: BUGS v42, contenuto
+   giusto e procedura no, registrato in BOX3 V99 (f) perche' non si ripeta.
+⚠️ DOMANI IL PRIMO ATTO E' VERIFICA, NON SCRITTURA. Il referee della sessione
+   nuova deve rifare le PROPRIE misure prima di ratificare di nuovo: una ratifica
+   ereditata da un handoff non e' una ratifica.
+
+================================================================================
+3) MATERIALE PRONTO DA INCIDERE — verbatim
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 — LE CINQUE RIGHE, LIBRO Sez.2
+--------------------------------------------------------------------------------
+⚠️ La riga (1) qui sotto INCORPORA GIA' la condizione della ratifica (sez. 2).
+
+--- RIGA (1) ---
+| 2026-07-27 | **PALETTE ANNOTAZIONI CD — chiusa a 4 voci.** `pro` verde `#28cd41` · `con` rosso scuro `#b1281f` · `warn` ambra `#f5b820` · `asse`/`fatto`: la **chiave `#ffd35a` è l'invariante**, il fondo scala col peso del contenitore — riga in colonna `#16140f` · banda autonoma `#1c1608` · carta d'identità `#1b1a16`→`#131210`. Due clausole, entrambe vincolanti. **(1) Le coincidenze di VALORE sono permesse e attese:** `#28cd41` è accento di componente dentro la cornice (slot metronomo, BOX5 V27 r.167 da V21) e «pro» fuori — stesso numero, due ruoli legittimi. Vietato solo che un valore cambi ruolo **restando dallo stesso lato**. **(2) Un valore che identifica un AMBIENTE — `blue` `#2a6bd6` Q-Stage · `orange` `#d43f00` Q-Live · `teal` `#17a8a8` Q-Studio — non compare mai fuori dal PROPRIO ambiente: né fuori dalla cornice, né nel codice di un'altra stanza.** La formulazione stretta («mai fuori dalla cornice») è falsificata da una misura di CC: `#2a6bd6`, accento Q-Stage, è hardcoded in una vista di Q-**Live** (`LiveHeaderView.swift:107,109` @ `152445e`, invariate a HEAD, dentro `if false`) — dentro la cornice, nella stanza sbagliata. Stesso errore del blu usato per un'annotazione, commesso nel codice. Un accento di COMPONENTE non porta identità di ambiente e resta sotto la (1). Quinta voce = ratifica propria. Mauro: «si approvo» | Mauro | ⚠️ **La ratifica è stata presa su uno stato del documento che non esiste più.** Al «si approvo» il payload era `df55ccdc…9489115` (7444 B), **distrutto per sovrascrittura in place il 27/07 alle 20:14** e non più presente su alcun supporto (scansione dei 615 file sotto `E:\…\FILE X CLAUDE.MD`, controllo positivo su lunghezza 13092 → 2 match). Fonte citabile oggi: `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md` sha256 `b5f40d9e…b46a891e` (13092 B), che **incorpora una correzione POSTERIORE alla ratifica** — il ritiro della clausola falsa «non è UI, non finisce mai in `.swift`» — la quale **non altera ciò che Mauro ha ratificato**: le quattro voci e il confine. **La catena non è rotta:** la clausola ritirata sopravvive *dentro* `b5f40d9e…` alla sua riga 65, citata verbatim e marcata falsa, quindi il delta fra le due versioni è verificabile senza il file perduto. ⚠️ **La clausola (2) nella forma generalizzata NON viene dal payload**, che si ferma al corollario «fuori dalla cornice» (r.101; `LiveHeaderView`/«altra stanza»/«proprio ambiente» → zero occorrenze, controlli positivi 7/6/7): viene da una misura di CC sul sorgente, ancorata a `152445e` | attiva | — |
+
+--- RIGA (2) ---
+| 2026-07-27 | **REGOLA DENTRO/FUORI LA CORNICE — nei deliverable CD.** **Dentro** il disegno del telefono si rende ciò che l'utente vedrà: colori di sistema iOS + token dell'app. **Fuori**, la palette annotazioni chiusa a 4 voci. Il confine **non** vieta le coincidenze di valore — le prevede (clausola 1 della riga `2026-07-27` **PALETTE ANNOTAZIONI CD**). Vieta tre cose: **(a)** che un valore identificativo di ambiente esca dal proprio ambiente (clausola 2); **(b)** che un colore inventato entri da un lato qualsiasi — se un'annotazione ha bisogno di un colore che non esiste, non si inventa: si chiede la ratifica; **(c)** che un valore cambi ruolo restando dallo stesso lato. Mauro: «si approvo» | Mauro | ⚠️ **Stessa avvertenza della riga PALETTE ANNOTAZIONI CD, stesso documento:** ratifica presa su `df55ccdc…9489115` (7444 B), **distrutto per sovrascrittura in place il 27/07 alle 20:14**, assente da 615 file scansionati (controllo positivo eseguito). Fonte citabile oggi: `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md` sha256 `b5f40d9e…b46a891e` (13092 B), che porta una correzione **posteriore** alla ratifica e **non incidente** su ciò che è stato ratificato. Delta ricostruibile dall'interno: la clausola ritirata è citata verbatim alla riga 65 del file vivo | attiva | — |
+
+--- RIGA (3) ---
+| 2026-07-27 | **FORMA POPUP REMOVE — Mauro sceglie ②** (riquadro centrale, due bottoni impilati). Proprietà attribuite al FILE, non a Mauro: `Ordine` Remove in alto / Cancel in basso · `Default` Cancel, in basso e in grassetto · `Distruttivo` in cima, isolato · `Tap fuori` NON chiude (r.252, r.257, r.278). Nessuna collisione col congedo-tastiera Q20: lo stesso file marca ② «identico a ①». ⚠️ **PENDENZA:** il file (r.255) segnala che iOS impila i due bottoni da sé solo con etichette lunghe; con «Cancel»/«Remove» corte l'esito nativo atteso è affiancato — servirebbe il foglio dal basso (③, non scelta) o un contenitore custom con focus/VoiceOver/tap-fuori/ritorno da rifare a mano. **Si chiude solo con documentazione ufficiale Apple (URL) o prova su device.** **Alla riemissione di C imposta da quella verifica: correggere `#f3e2c0` → `#f3e2b0` in `.q20b`** — un carattere di scarto da `.gatebox`, nato oggi, misurato a fonte (stesso fondo `#1c1608`, stesso bordo, diverge solo il testo). **NON incisa la clausola «pattern per ogni conferma futura»**: impegnerebbe ogni conferma distruttiva successiva a un contenitore custom prima di sapere se serve. Copy invariata (`0f90dae6…`). Mauro: «② Riquadro al centro, due bottoni uno sopra l'altro» | Mauro | `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_Alert-Distruttivo-FORMA__3-vie.html` sha256 `9c3ea2bf…dc1edd` (43464 B) — stesso file, byte-identico, anche in `…\27_07_2026\UPDATE2\` | attiva | — |
+
+--- RIGA (4) ---
+| 2026-07-27 | **CONTRATTO Q20 — RICONFERMATO SUL CONTENUTO RILETTO.** La ratifica è **già agli atti** alla riga `2026-07-26` **CONTRATTO Q20** (`Mauro: «ok va bene»`, stato `attiva`): questa riga **non la ripara e non la sposta**. Il 27/07 Mauro ha riletto il contratto per intero — «Done» su toolbar pinnata · in aggiunta tap fuori e swipe giù · Return = «Search», conferma **e** congeda · il congedo conserva query, filtro, scroll e selezione, a svuotare è solo la «×» — e ha confermato: «SI VA BENE». 🔴 **IL BLOCCO SU ⟦S4L⟧ RESTA IN PIEDI.** Il `🔴 blocca ⟦S4L⟧` di r.304 è attaccato a «Chiude `TD-qlive-search-keyboard-trap` **a codice fatto**»: riguarda la **costruzione**, non la decisione. Ratificare il contratto **sblocca** l'atomo e lo rende costruibile; **non lo costruisce**. Finché il congedo non è nell'app e provato su device, a ⟦S4L⟧ l'utente resta con la tastiera alzata e l'unica uscita spegne la sessione del metronomo — sul palco. Cade **solo** la clausola dei deliverable CD «NON incidere come chiusa finché Mauro non ratifica». ⚠️ I due file CD che marcano Q20 «APERTA» (`2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html` riga QL-SHOWS-10 · `2026-07-26_…Q20-RIEMISSIONE.html`) sono **superati su questo solo punto**: si registra qui, **non si fa riemettere niente**. | Mauro | questa ratifica (27/07) — fonte primaria; contratto in `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\26_07_2026\2026-07-26_QLive-Shows-Keyboard-Dismiss__Q20-RIEMISSIONE.html` sha256 `5dcfbbfb…5ab9d408` (37430 B) | attiva | — |
+
+--- RIGA (5) ---
+| 2026-07-27 | **CHIP «Read-only» in testa alla lista Q-Live — RIMOSSO.** Via A delle tre proposte da CD. Motivo: dal giorno in cui Remove esiste, «sola lettura» non è più vero — e la riga `2026-07-26` **EMENDAMENTO ALL'INVARIANTE** (Q-Live cessa di essere di sola lettura) l'ha già sciolto. Mauro: «TOGLILA E BASTA». 🔴 **DUE CHIP DIVERSI, da non confondere in nessuna citazione futura:** «**Read-only**», testata della lista Q-Live → **RIMOSSO da qui**; «**Not in Q-Live**», chip sulla riga in Q-Stage → **RESTA**, ed è il vincolo duro di spedizione di Remove — riga `2026-07-26` **COPY POPUP REMOVE**, quella che contiene «**REMOVE NON SI SPEDISCE SENZA IL CHIP**» e supersede la postilla 1. ⚠️ **La citazione richiede il terzo discriminante:** a quella data esistono due righe che nominano il chip «Not in Q-Live» — la postilla 1 (`superseded`) e questa (`attiva`); titolo e data **non bastano**, e nemmeno il nome del chip. Toglierne uno non tocca l'altro. ⚠️ I mockup CD che mostrano ancora «Read-only» sono **superati su questo solo punto** e **NON vanno riemessi ora**: si correggono al primo tocco utile di ciascuno. Scritto perché nessuno lo ricostruisca leggendo un disegno vecchio. | Mauro | `E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\27_07_2026\UPDATE\2026-07-27_QLive-Shows-Read-only-Chip__3-vie.html` sha256 `646d0aa7…bc0d83ef` (45484 B) — byte-identico anche in `…\27_07_2026\UPDATE2\`; ⚠️ **NON presente** in `…\27_07_2026\27_07_2026_g3\`, la cartella coerente del terzo giro | attiva | — |
+
+--------------------------------------------------------------------------------
+3.2 — LA SEZIONE «Token visivi» PER BOX5 V28 (cinque righe, rimanda al codice)
+--------------------------------------------------------------------------------
+## Token visivi — UNICA FONTE DI VERITÀ
+
+**Trovata VUOTA il 27/07/2026**: «(invariato da V22)» per cinque versioni (V22→V27), mentre i token erano già in uso nell'app da V21 (`--green #28cd41`, r.167 di questa stessa versione).
+
+**Terna accenti e palette annotazioni: RATIFICATE** — LIBRO Sez.2, righe «PALETTE ANNOTAZIONI CD — chiusa a 4 voci» e «REGOLA DENTRO/FUORI LA CORNICE — nei deliverable CD», 2026-07-27.
+
+**Implementate** in `ios_app/QBeats/UI/QStage/QStageKit.swift:15-20`, enum `QStageTheme`. Questa sezione **rimanda al codice, non lo duplica**: i valori si leggono a fonte.
+
+⚠️ **Questa sezione è PARZIALE.** Lo stesso enum porta altri valori oltre ai sei accenti (`bg`, `surface`, `surface2`, `amber`, `green`, `stop`, `ink`), ed esiste un **secondo namespace** `QLiveTheme` (`ios_app/QBeats/UI/QLive/QLiveKit.swift`).
+
+Il catalogo completo, e le divergenze fra documenti e codice, sono l'atomo di `TD-design-system-non-ancorato` (BUGS §6).
+
+--------------------------------------------------------------------------------
+3.3 — IL TICKET, per BUGS dopo §6
+--------------------------------------------------------------------------------
+### TD-design-system-non-ancorato — il design system colore non ha un ancoraggio unico (🟡 OPEN BASSA / documentale + igiene codice — registrare, non risolvere)
+- **Origine:** il 27/07 la sezione «Token visivi» di BOX5 è stata trovata vuota da cinque versioni mentre i token erano in uso da V21. Incidendo la terna (LIBRO Sez.2, 27/07) sono emerse divergenze fra i documenti CD, i canonici e il codice. Questo ticket le **registra**; nessuna è bloccante e nessuna tocca l'utente.
+- **① `#28cd41` — deduplica NON completata, al contrario di `#d43f00`.** Voce principale. `grep -rn '28cd41' ios_app/ --include='*.swift'` → 5 occorrenze: 1 nel token (`QStageKit.swift:22`), **3 in codice eseguibile** (`MetSlotStripView.swift:29`, `:38`; `SectionEditorView.swift:265`), 1 in un commento `///` (`SectionEditorView.swift:256`). Confronto: `#d43f00` → **1 sola occorrenza**, dentro il token — lì la deduplica dichiarata dalla fonte CD («finora hardcoded → ora si riferisce, non si duplica») è **avvenuta**. Per il verde no. ⚠️ Aggravante: `SectionEditorView.swift:265` porta il commento `// = MetSlotStripView accent` — la copia è ancorata a **un altro sito hardcoded**, non al token: catena hardcoded→hardcoded.
+- **② La regola che quelle occorrenze violano non è in nessun documento.** «Zero-hex-fuori-DS» esiste **solo** come commento in `ios_app/QBeats/UI/QLive/QLiveKit.swift:5`. Una regola che vive in un commento non è opponibile: stessa forma di E3.
+- **③ Secondo namespace non documentato.** `QLiveTheme` (`QLiveKit.swift:8-12`): `surf #16161a`, `bd white 0.06`, `pick #1a1614`. Nessuno dei quattro documenti DS di CD lo nomina.
+- **④ I documenti del DS non concordano FRA LORO.** `--studio` = `#2a6bd6` = accento **Q-Stage** in `QBEATS_CD_to_CC_DesignSystem_26_06_2026.md:20` e `HANDOFF_CD_SHOWS_09_07_2026.md:40`; ma `HANDOFF_CD_Home_28_06_2026.md:38` lo chiama già `--blue`, e il codice usa `blue` (`--studio` → **0** occorrenze in `ios_app/`, controllo positivo `QStageTheme` → 138). **Divergenza documentale, non implementativa:** chi cercasse `--studio` nel codice non troverebbe nulla e concluderebbe male.
+- **⑤ `#ff8a5c` ha due nomi.** `--orange-tint` per CD; `--live-l` nei commenti del codice (`MetroFAB.swift:60`, `QLiveShowsView.swift:100`). Nome Swift: `orangeTint`.
+- **⑥ `#7fe39a` dichiarato e mai usato — e la deriva si legge su tre ambiti.** `#7fe39a`: nel DS doc 1 (`:35` «Verde-chiaro testo su tint», `:41` tabella) → 2 occorrenze; in `ios_app/` → **0** (controllo positivo `28cd41` → 5). Il valore che i disegni usano davvero è `#8fe0a0`, misurato su tre ambiti distinti: **0** nel codice Swift · **16** nei sei deliverable CD caricati nel Progetto Claude (Q7-Q16 10 · Exit-in-Play 0 · Taratura 1 · Card-Azione 1 · 5-Risposte 4 · Q20 0; controllo positivo stesso ambito: `ffd35a` 30, `16140f` 29) · **70** in tutto `DA_CD_PER_CC`. I tre numeri non si scelgono, si leggono insieme: **il DS dichiara `#7fe39a`, i disegni usano `#8fe0a0`, il codice non usa nessuno dei due.**
+- **⑦ Coppie a una cifra nella palette dei deliverable.** Nel file C del 27/07 (`9c3ea2bf…`): `#f3e2b0`/`#f3e2c0` · `#131210`/`#171210` · `#1b1a16`/`#1c1608`. **Il difetto non è la singola coppia, è la densità:** in una palette con più coppie a un carattere di distanza, un refuso è **indistinguibile da una decisione** — nessun controllo lo intercetta, e la revisione a occhio non può funzionare per costruzione.
+- **⑧ `#2a6bd6` fuori dal token, in codice morto.** `LiveHeaderView.swift:107,109` @ `152445e`, dentro `if false` (placeholder LED per `bleMIDIConnected`, STEP 2 mai cablato). È un terzo ruolo del valore — colore LED — **in una stanza che non è la sua** (vista di Q-Live). Falsifica la formulazione stretta della clausola (2) e per questo la riga di LIBRO la generalizza.
+- **⑨ Divergenza nome file/simbolo.** Il file è `QStageKit.swift`, l'enum è `QStageTheme`. `EmptyStateKit.swift:17,45` cita «`QStageTheme.text3` (via QStageKit)». Pre-esistente; segnalata per non generare citazioni rotte.
+- **⑩ Swatch colore-TAG «R1-pending».** `QLiveKit.swift:7`: «gli swatch colore-TAG restano fuori dal DS (R1-pending) finché R1 non ratifica la palette». Pendenza citata solo in un commento, mai in un canonico.
+- **Fix:** NESSUNO ora. Il catalogo completo dei token va misurato contro il codice a HEAD prima di essere inciso — atomo a sé, non in coda a un'altra consegna.
+- **Stato:** 🟡 OPEN BASSA / 📦 BACKLOG. Nessun impatto utente, nessun rischio palco.
+- **Dominio:** CC (igiene codice) + CD (coerenza dei documenti DS).
+
+--------------------------------------------------------------------------------
+3.4 — LE TRE VOCI DI RETTIFICA PER LIBRO (tutte misurate da CC il 27/07)
+--------------------------------------------------------------------------------
+[V] RETTIFICA A — clausola di deposito, r.308 (opzione A-bis, 2026-07-27).
+    La riga dichiara il mockup di confronto «non depositato su E:, vive nel
+    progetto CD». FALSO a fonte:
+      E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\
+      27_07_2026\2026-07-27_QLive-Shows-Remove-a-S4L-confronto.html
+      sha256 6455c8a98976fcb78a79c2f06822b8f02a152ffdcc9158e4b6d2a4091d2e19fc
+      40367 B · CreationTime 2026-07-27 13:41:19
+    ⚠️ IL DIFETTO NON E' «una claim falsa». E': una claim di NON-deposito e'
+    stata scritta in un canonico senza che nessuno avesse mai guardato su E:.
+    Se il file per caso non ci fosse stato, la riga sarebbe stata vera E
+    UGUALMENTE ILLEGITTIMA. La rettifica deve dire QUESTO, altrimenti incide la
+    conclusione giusta con la ragione sbagliata.
+    ⛔ NON scrivere «la pull e' avvenuta dopo la stesura del payload»: nessuno
+    conosce l'orario della stesura, e' inverificabile per costruzione. Va
+    eliminata, non declassata a [R].
+
+[V] RETTIFICA B — ancora `54ccddc`, r.305 (tab-reset Q-Stage, 2026-07-26).
+    La riga cita `QStageRootView.swift:17` @ `54ccddc`. Il NUMERO e' giusto
+    (riga 17 a `54ccddc`, a `ee31281` e a HEAD). L'ANCORA no:
+      git log -1 54ccddc -> "BUGS_QBEATS.md: v43 …", 2026-07-23
+    e' un commit DOC che non tocca quel file. L'ancora corretta e' `ee31281`,
+    il commit che ha spostato la riga da 12 a 17.
+    Storia misurata del simbolo: dd0fcaa r.10 · 91897b1 r.12 · 59ab33e r.12 ·
+    36775a4 r.12 · ee31281 r.17 · HEAD r.17.
+    ⚠️ BUGS r.546 cita lo stesso fatto PER SIMBOLO, senza numero di riga: e' la
+    forma giusta e NON va toccata. La rettifica riguarda solo LIBRO.
+
+[V] RETTIFICA C — variante `-standalone`, r.291 (freeze uscita-stanza, 2026-07-20).
+    La riga registra una PENDENZA: «su E: esiste una variante `-standalone`
+    (sha `8ff47031…`), contenuto DIVERSO, MAI committata … Decisione CD attesa:
+    la variante entra nel repo o si dichiara non-normativa».
+    Misurato ORA:
+      E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\DA_CD_PER_CC\
+      18_07_2026\2026-07-18_QLive-Exit-in-Play-standalone.html
+      sha256 8ff470313d71e1a795bb654cabece71cb6435a141e1cd586984a9359b88d89e5
+      484560 B
+      tracciata nel repo: DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html
+      blob sha256 8d7a3150050f2d9ee88d552f6a59649081518a1189182174c5dfed655c398860
+      58463 B
+      (l'equivalente del 09/07 E' tracciato: DESIGN/QLive_Nav/2026-07-09_standalone_b23dfc78.html)
+[R] CD dichiara la variante NON-NORMATIVA (riportato dal referee, non misurato
+    da CC: e' una dichiarazione, non un fatto sul disco). La rettifica chiude la
+    pendenza registrando la dichiarazione, NON committando il file.
+
+================================================================================
+4) IL GIRO DOC — taglie vere, fonte e impronta per ciascun atomo
+================================================================================
+⚠️ B3 NON E' INIZIATO. Quello che c'e' pronto (sez. 3.2) e' la SEZIONE TOKEN, che
+   era un'AGGIUNTA emersa strada facendo. Il capitolo Q-Live›Shows di BOX5 V28 —
+   le dieci righe QL-SHOWS-01..10 — E' TUTTO DA SCRIVERE, ed e' un capitolo
+   nuovo, non un emendamento: in BOX5 V27 le stringhe QL-SHOWS, Q-Live, Remove,
+   Q20, alert rendono ZERO occorrenze tutte e cinque (misurato da CC il 27/07,
+   notazione controprovata con «Vista LIVE» -> 13 righe).
+
+B3  BOX5 V28 — capitolo Q-Live›Shows + sezione token.
+    FONTE (dieci righe): E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\
+      DA_CD_PER_CC\27_07_2026\27_07_2026_g3\2026-07-27_QL-SHOWS-01-10__RIEMISSIONE.html
+      sha256 83c5c51d12081d5908b506fe7669b9c9746c9ab66a0bb9b2be958a3b8fabdf6c · 27803 B
+    FONTE (token colore): …\27_07_2026_g3\2026-07-27_BOX5-V28__Token-Colore-PAYLOAD.md
+      sha256 b5f40d9eadc63571f4570ddd9d83150b4a6ae349b053675a918aba52b46a891e · 13092 B
+    FONTE (forma popup): …\27_07_2026_g3\2026-07-27_Alert-Distruttivo-FORMA__3-vie.html
+      sha256 9c3ea2bfce36d43d1018bdc29b6c3b25083895e1b5f202ab043d415ed0dc1edd · 43464 B
+    FONTE (chip Read-only): …\27_07_2026\UPDATE\2026-07-27_QLive-Shows-Read-only-Chip__3-vie.html
+      sha256 646d0aa71e9ac061a32e9f88738160ef8d337bd8d12ae859749d135ebc0d83ef · 45484 B
+      ⚠️ NON e' in g3.
+    FONTE (riemissione freeze): …\27_07_2026_g3\2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html
+      sha256 50b34c398f5b738ef85bb27cbc2b45883d4f45807e92c61b3af163d2260dabec · 58620 B
+    BOX5 a HEAD: 474 righe (wc -l sul blob), 34541 B, disco = blob (`-text`).
+
+B4  SCALETTA v3 — e' una RISCRITTURA, non un ritocco.
+    File: HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md, tracciata dal 18/07 (`fe6d34b`).
+    [V] blob = disco = 0714a975de5a33fabc595d9e20b3d400638358e6 · 20750 B · 183 righe
+    [V] sha256 d2cdf1204709834ca96959fae571611846ec278b7cd68428c114ef72d6a60437
+    [V] copia su E: byte-identica (…\FILE X CLAUDE.MD\HANDOFF\).
+    Contenuto fermo alla riscrittura del 12/07. La riga «RESTANO:» (r.10, ANNEGATA
+    a meta' riga — non inizia con «RESTANO») elenca S3 · NODO A · S4 · S4L · S5 · S6.
+    A fonte: S3 CHIUSO (LIBRO r.282, r.433) · NODO A chiuso da `152445e` (17/07) ·
+    S4 fatto e SPEZZATO in S4a `f8276f6` + S4b `6ded4ab`, suddivisione che la
+    scaletta non modella. Indietro di TRE atomi su sei, piu' una suddivisione cieca.
+    ⚠️ RESTA APERTO il regime della SCALETTA: tracciata ma in HANDOFF\ con nome
+    per-data, fuori dal regime root+in-place dei canonici, mentre R-γ la enumera
+    fra i canonici (BOX3 V99 (a)).
+
+B5  BUGS v44 — le sue voci, materia prima gia' estratta ed elencata qui:
+    · `TD-qstage-tab-reset` -> CHIUDERE by-design. Blocco a HEAD: righe 543-551
+      (552 vuota, 553 = `## 1.4`). Forma di chiusura da copiare:
+      `TD-qstage-pill-qlive-morta` righe 576-583 e `TD-ipad-editor-fontsize`
+      righe 585-589. Pattern titolo: `### <id> — <descrizione> — 🟢 CHIUSO <data>`;
+      primo bullet `**🟢 CHIUSO <data> (device-confermato, <chi>):**`; chiude con
+      `**Dominio:**`.
+      ⚠️ La riga 582 rimanda a questo ticket come «strascico aperto»: chiudendolo
+      quella riga diventa stale NELLO STESSO ISTANTE. Vanno toccate in coppia.
+    · ACCUMULO SETLIST — voce NUOVA, separata da `TD-setlist-id-orfani`
+      (righe 535-541, confine netto: quello parla di UUID orfani lasciati DA una
+      cancellazione che esiste; questo dell'assenza della cancellazione stessa).
+      [V] `deleteSetlist(id: UUID) async` -> Store/QBeatsStore.swift:115,
+          ZERO call-site in tutto ios_app/. Controllo positivo su `deleteSong`
+          (QBeatsStore.swift:92): tre call-site in SongListView.swift:122,149,152.
+      [V] Vincolo di architettura: `isPlaying` -> ZERO occorrenze in Store/
+          (controllo positivo doppio: isPlaying esiste in 8 file fuori da Store/;
+          `setlists` -> 21 occorrenze in QBeatsStore.swift). La guardia «non si
+          cancella in sessione» NON puo' stare nello Store.
+    · ANGOLO DEL RIORDINO — si aggancia a `TD-qlive-libero-limbo` (righe 302-308),
+      da appendere DOPO la riga 308 (309 vuota, 310 = ticket successivo).
+      [V] `moveSetlists(from:to:) async` -> Store/QBeatsStore.swift:120. Non serve
+          una cancellazione per cambiare quale show Q-Live caricherebbe: basta un
+          riordino, finche' non esiste selezione.
+      ⚠️ RIFERIMENTO STALE DA CORREGGERE nella stessa voce: r.304 di BUGS cita
+      `LiveRootView.swift:8`. A HEAD il commento `// L1.b DEV FALLBACK` e' a r.11
+      e il fallback `setlists.first ?? Setlist.makeDefault()` a r.13. E NESSUN
+      commit tracciato ha mai avuto quel simbolo a riga 8 (storia misurata:
+      dd0fcaa r.10 · 91897b1 r.12 · 59ab33e r.12 · 36775a4 r.12 · ee31281 r.17 —
+      quella e' QStageRootView; per LiveRootView il fallback e' a 12-13 dal 19/07).
+      Riancorare al SIMBOLO.
+    · `TD-design-system-non-ancorato` — testo pronto, sez. 3.3.
+    BUGS a HEAD: 882 righe (wc -l sul blob) · blob 195668 B · disco 196550 B
+    (differenza 882 = un CR per riga, coerente).
+
+B6  BOX3 V100 — reperti in sez. 5.
+LIBRO v42 — le cinque righe (sez. 3.1) + le tre rettifiche (sez. 3.4).
+    LIBRO a HEAD: 444 righe (wc -l sul blob) · blob 141762 B · disco 142206 B
+    (differenza 444) · blob OID d8a2b7d07f72cf8de49879d62c67a07522506c9e ·
+    disco OID 6acfc2e2dac4bf1c403dce4303432898cea6bd24 ·
+    sha256 blob e096cbc63b069074d73c7064ff762a64a29718abbdcfbfe6ce295aab45e86922 ·
+    sha256 disco 689df25539c118e3f43d76349f6f07776246594285cb010072c93df89d5e0c89.
+
+⚠️ ORDINE R-γ: prima LIBRO, poi gli altri. Un commit per file, single-purpose,
+   autore = committer = Mauro, ZERO trailer (no Co-Authored-By, no Signed-off-by).
+
+================================================================================
+5) REPERTI PER BOX3 V100 — in forma incidibile
+================================================================================
+
+--- (a) FASCIA DI SCOPING OBBLIGATORIA — vale solo su QUESTO ambiente ---
+REPERTO — MSYS2/MINGW64 + GNU grep 3.0 + wrapper `eval` del tool Bash di Claude
+Code (bash 5.3.15(1)-release x86_64-pc-cygwin, Windows 11).
+[R] Su bash 5.2.21 + GNU grep 3.11 (Linux) NESSUNA delle forme si rompe; in `dash`
+    `$'\r'` non e' ANSI-C quoting e arriva come tre caratteri letterali (misure del
+    referee, non riproducibili da CC su questa macchina).
+Chi rilegge il reperto altrove NON deve aspettarsi gli stessi numeri.
+
+--- (b) DUE GUASTI INDIPENDENTI SUI FINE-RIGA, sovrapposti ---
+Facce usate: LF = BOX3_QBEATS.md (`-text`, disco = blob, 0 CR, 803 righe) ·
+CRLF = LIBRO_MASTRO_QBEATS.md su disco (444 CR, 444 righe).
+
+  #  comando                              LF      CRLF    verdetto
+  V1 tr -cd '\r' < F | wc -c              0       444     CORRETTO
+  V2 od -An -v -tu1 F|tr ' ' '\n'|grep -c '^13$'  0  444  CORRETTO
+  F1 grep -c $'\r' F                      0       0       FALSO (vero 444 su CRLF)
+  F2 cat F | grep -c $'\r'                0       0       FALSO (vero 444 su CRLF)
+  F3 echo "$(grep -c $'\r' F)"            803     444     FALSO (= conteggio righe)
+  F4 grep -cP '\r' F                      0       0       FALSO (vero 444 su CRLF)
+  F5 grep -c '' F                         803     444     (pattern vuoto = righe)
+
+D1 — `$'\r'` LETTERALE SVANISCE DENTRO `$( )`. `printf '%s' $'\r' | wc -c` rende
+   1 nudo e 0 dentro `$( )`. Specifico del CR: `$'\t'` e `$'\n'` rendono 1 in
+   entrambe le forme; un CR da variabile (`x=$'\r'`) sopravvive; `printf '\r'`
+   dentro `$( )` sopravvive. Effetto: il pattern arriva VUOTO e `grep -c` rende
+   il CONTEGGIO RIGHE.
+   [V] D1 NON e' del wrapper del tool: riprodotto identico eseguendo le stesse tre
+   righe da uno script con `bash /percorso/script.sh`, fuori dall'`eval`. Stessi
+   tre output (1 / 0 / 444) per entrambe le strade. E' `$( )` di bash su Cygwin.
+
+D2 — GNU grep 3.0 SU MSYS NON VEDE MAI IL CR. Lo consuma come terminatore prima
+   del match. Rende 0 in OGNI forma, su OGNI faccia, ANCHE con un CR autentico
+   passato per variabile (`x=$'\r'; grep -c "$x" LIBRO…` -> 0, vero 444).
+   E' il guasto grave: 0 e' la risposta che si SPERA di leggere quando si
+   certifica una faccia LF.
+
+   ⚠️ PERCHE' NON CE NE SIAMO ACCORTI PRIMA: su un file CRLF il conteggio righe
+   COINCIDE col conteggio CR. D1 maschera D2 dietro un numero corretto. Il falso
+   si vede solo su un file LF.
+   => `grep -c $'\r' <file>` NON HA MAI MISURATO NIENTE, su nessuna faccia. Ogni
+      «CR = 0» ottenuto cosi' e' una frase vuota, non una misura.
+
+REGOLA: per i CR si usa `tr -cd '\r' | wc -c`, corroborato da `od`. MAI grep, in
+nessuna forma, per i fine-riga.
+REGOLA GENERALE: se l'escape lo espande BASH (`$'…'`), non sopravvive a `$( )`;
+se lo espande il TOOL (`tr '\r'`, `printf '\r'`), sopravvive.
+CONTROLLO STRUTTURALE che non passa da nessun pattern e non puo' rompersi:
+`byte_disco − byte_blob == wc -l`. Verificato oggi 4/4: LIBRO 142206−141762=444 ·
+BUGS 196550−195668=882 · BOX3 e BOX5 differenza 0 (`-text`).
+⚠️ DA NON USARE: `od -c F | grep -c '\\r'` rende 4499 su LIBRO — conta righe di
+output di `od`, 16 byte l'una. Terzo numero plausibile e sbagliato.
+
+--- (c) TRE CONTEGGI RIGHE, TUTTI VERI ---
+Faccia disco CRLF, LIBRO_MASTRO_QBEATS.md, 142206 B:
+  wc -l                                            -> 444  [TERMINATORI]
+  ((Get-Content -Raw) -split "`n").Count           -> 445  [CAMPI]
+  (Get-Content).Count                              -> 444  [ELEMENTI]
+  (Get-Content | Measure-Object -Line).Lines       -> 367  [RIGHE NON VUOTE]
+Il 445: il blob finisce con byte 10 (`tail -c 1 | od -An -tu1`), quindi 444
+terminatori producono 445 campi, l'ultimo vuoto. Il 367: 444 − 77 righe vuote
+(`grep -c '^$'` sul blob) = 367.
+
+--- (d) LA CONVENZIONE DEL CONTEGGIO RIGHE — collisione gia' incisa ---
+BOX3 V99 (e) taratura l'indice del Progetto su sei conteggi. Rimisurati tutti
+(wc -l sul blob, e campi = +1):
+  BOX3 V98 @ccb8151    citato 795 · wc -l 794 · campi 795  OK
+  LIBRO v40 @131a511   citato 433 · wc -l 432 · campi 433  OK
+  BOX5 V27 @HEAD       citato 475 · wc -l 474 · campi 475  OK
+  SCALETTA v2 @HEAD    citato 184 · wc -l 183 · campi 184  OK
+  NODO_A @HEAD         citato  93 · wc -l  92 · campi  93  OK
+  BUGS «874»           -> NON e' v42 (875). E' v41 @5abacec: wc -l 873, campi 874.
+=> La convenzione del Progetto e' CAMPI (wc -l + 1), 6/6. E «BUGS 874» e' un'ANCORA
+   STALE: V99 e' del 22/07 e registra `bfa07eb` = v42 come commit dello stesso giorno.
+[R] DECISO DAL REFEREE: V99 (e) si MARCA, non si rettifica — i numeri sono corretti
+    nella convenzione «campi»; riscriverli cancellerebbe cosa fu davvero misurato.
+PROPOSTA per il cancello: la quarta impronta PORTA SCRITTO IL PROPRIO NOME,
+  `righe(terminatori, wc -l sul blob) = N`, piu' `byte_disco − byte_blob == righe`
+  come controllo strutturale. Un numero nudo non e' controllabile.
+
+--- (e) BUDGET DEL NOME FILE — soglia misurata ---
+Il taglio e' a 64 CARATTERI DEL NOME INTERO, estensione compresa. NON sullo stem:
+uno stem da 62 e' stato mutilato lo stesso.
+Casi: nome dichiarato 77-78 -> su disco 68 (stem 64 + «.htm» riappeso) ·
+prec.1 totale 64 (stem 62, tagliato dentro l'estensione -> «.ht») ·
+prec.2 totale 64 (stem 61 -> «.h»).
+=> BUDGET OPERATIVO: nome intero <= 64 caratteri, cioe' stem <= 59 con `.html`.
+   [V] Rinomina eseguita il 27/07 con autorizzazione esplicita di Mauro trasmessa
+   nel prompt: «…Card-Azione-Overflow__RIEMISSIONE-del-FRE.htm» ->
+   «2026-07-27_QLive-Shows-Card-RIEMISSIONE-FREEZE-24-07.html» (57 char).
+   Impronta invariata prima/dopo, verificata per due vie indipendenti (bash +
+   PowerShell): 068915fe213dba22078af89ca7e14b71714a3de152efdd2b5c824c5153c4e0e6,
+   56641 B. ⚠️ Quel file e' poi stato RIEMESSO da CD ed e' ora 50b34c39… / 58620 B.
+
+--- (f) QUARTA IMPRONTA ORFANA — e la prima creata da NOI ---
+[V] Il payload `df55ccdc3a8bcaa01987be7dedbe719ccbb62a5b7dc5c59c149b964bc9489115`
+    (7444 B) e' stato SOVRASCRITTO IN PLACE in `…\27_07_2026\UPDATE2\` alle
+    20:14:06 da `b5f40d9e…` (13092 B). Scansione dei 615 file sotto
+    `E:\…\FILE X CLAUDE.MD` per lunghezza 7444 -> ZERO; controllo positivo su
+    13092 -> 2 match. Non esiste piu' su alcun supporto.
+    Segue `04ce650a…`, `4d488900…`, `fd62da58…` (LIBRO Sez.3 CD-8).
+⚠️ E' ANDATA BENE SOLO PERCHE' LE RIGHE (1) E (2) NON ERANO ANCORA INCISE: un giro
+   piu' veloce avrebbe messo in LIBRO due ratifiche che citano il nulla — il
+   difetto della riga 308, creato da noi il giorno in cui lo rettifichiamo.
+   Il cancello che ha retto non e' stata l'attenzione: e' stata la lentezza.
+REGOLA, piu' stretta del principio: «affianca» non e' un'intenzione, e' una
+COLLOCAZIONE. UNA CONSEGNA NUOVA VA SOLO IN UNA CARTELLA NUOVA, MAI ANCHE IN UNA
+VECCHIA. Copiare un file omonimo in una cartella esistente lo distrugge in
+silenzio: nessun errore, nessuna traccia, e l'impronta citata altrove diventa
+orfana nello stesso istante.
+=> `…\27_07_2026\UPDATE2\` va marcata SNAPSHOT MISTO: quattro file del giro 19:32
+   piu' un payload del giro 20:14. Non rappresenta nessun momento.
+   La cartella coerente del terzo giro e' `27_07_2026_g3` (quattro file) — con
+   l'avvertenza che il file D NON e' li'.
+
+--- (g) DUE LETTORI POWERSHELL, DUE TESTI ---
+`Get-Content` senza `-Encoding UTF8` rende mojibake sui deliverable CD (nessun
+BOM: primi tre byte 60 33 100 = «<!d»); `Select-String` sullo stesso file
+decodifica correttamente. Nessun errore segnalato da nessuno dei due.
+=> Le IMPRONTE non ne risentono; le CITAZIONI DI COPY si'. E la copy dei popup e'
+   materiale da incidere. Per il testo CD usare bash/UTF-8 nativo o
+   `-Encoding UTF8` esplicito.
+
+--- (h) CORRUZIONE BYTE IN UN DOCUMENTO FONTE ---
+`HANDOFF_CD_SHOWS_09_07_2026.md` r.66: la parola «volutamente» contiene DUE
+lettere cirilliche al posto delle latine (`vol` + U+0443 + U+0442 + `amente`),
+verificato con `od -c`. Non tocca la terna colore, ma e' nello stesso file che
+diventa fonte per BOX5: se quella riga venisse citata verbatim, va ribattuta a
+mano, non copiata.
+
+--- (i) TRE FILE OMONIMI, TRE CONTENUTI ---
+`HANDOFF_CD_Home_28_06_2026.md` esiste in tre copie con sha256 diverse:
+  3e5ef78e0d9a98c3e829df44ecfa4252fc5a1098a562005db2ef0bb451d7bb88 · 10583 B
+  55f005a4b42c3738a5ec05cfba2ee1d6770e24255c9bae7c50764afe167b841b · 10159 B
+  d43d0076811d22fe88e5baea27368bd302823db9572df935e171d12245975638 · 10663 B
+Il VALORE della terna coincide identico su tutte e tre (r.38-41); divergono solo
+nella prosa. Nessuna delle tre e' al percorso che CD dichiara: `DA_CD_PER_CC\
+28_06_2026\Home\` NON ESISTE (Test-Path -> False su entrambi i livelli).
+=> Citare quel documento PER IMPRONTA, mai per nome-e-data.
+
+================================================================================
+6) METODO DI SCRITTURA E DISCIPLINA DI COMMIT
+================================================================================
+FILE A DUE FACCE (CRLF disco / LF blob): LIBRO e BUGS. BOX3 e BOX5 hanno `-text`
+(disco = blob al byte) dal commit `edaa80f` del 21/07.
+ 1. Su file a due facce NON SI USA UN EDITOR: script sui byte grezzi, ancore
+    verificate una per una, ABORT PRIMA della scrittura, CRLF preservato, niente BOM.
+ 2. IL CANCELLO NON E' IL DIFF: sono le IMPRONTE PRECALCOLATE dal referee per
+    ricostruzione indipendente — OID disco, OID blob, byte, conteggio righe (con
+    la convenzione NOMINATA, sez. 5d). Chi scrive e chi controlla non condividono
+    la misura.
+ 3. Copiare DAL BLOB (`git cat-file blob`), MAI dal file di lavoro: su file a due
+    facce e' cio' che impedisce di propagare la faccia CRLF al posto della LF.
+ 4. Verificare che il contenuto sopravviva ALTROVE prima di sovrascrivere.
+ 5. Un commit per file, single-purpose. Autore = committer = Mauro. ZERO trailer.
+ 6. CI: la conclusione si legge SOLO da `gh run view --json conclusion,headSha`.
+    MAI da un exit code in fondo a una pipe («gh run watch … | tail» rende l'exit
+    code di TAIL). E in `gh … --commit` SEMPRE lo sha a 40 caratteri: col corto
+    rende `[]` con exit 0 — falso-zero silenzioso.
+ 7. PROPAGAZIONE A E: NON E' AUTOMATICA. Scrivere nel repo non copia su E:.
+    Stampe con nome PER VERSIONE + commit di estrazione in coda, estratte dal blob,
+    verificate con sha256 su entrambe le sedi.
+ 8. «Pushato» != «propagato» != «chiuso». Chiuso solo dopo device confermato da Mauro.
+
+================================================================================
+7) VERIFICHE APERTE — con la condizione di chiusura
+================================================================================
+V1 FATTIBILITA' NATIVA DELLA FORMA ② (popup Remove).
+   Il file C (r.255) dice che iOS impila i due bottoni da se' SOLO con etichette
+   lunghe; con «Cancel»/«Remove» corte l'esito atteso e' affiancato.
+   CHIUSURA: documentazione ufficiale Apple (URL) OPPURE prova su device.
+   NON si chiude perche' l'ha detto il referee o CC.
+   Se non e' nativa: o foglio dal basso (forma ③, NON scelta da Mauro) o
+   contenitore custom con focus, VoiceOver, tap-fuori e ritorno da rifare a mano.
+   ⚠️ Da questa verifica dipende la riemissione di C, e con essa la correzione
+   `#f3e2c0` -> `#f3e2b0` in `.q20b` (agganciata alla riga (3) perche' non evapori).
+
+V2 IL «16» DI `#8fe0a0` — CHIUSO. Ambito dichiarato dal referee: i sei deliverable
+   CD caricati nel Progetto Claude. CC ha misurato gli altri due ambiti (0 nel
+   codice Swift, 70 in tutto DA_CD_PER_CC). Tutti e tre entrano nel ticket.
+
+V3 REGIME DELLA SCALETTA (BOX3 V99 (a)): tracciata ma fuori dal regime root +
+   in-place, mentre R-γ la enumera fra i canonici. CHIUSURA: ratifica esplicita
+   del regime, atomo doc a se'.
+
+V4 TD#17 — invariato, 🟠 OPEN MEDIA non bloccante. CHIUSURA: (A) run di palco 2-3h
+   su VR2800 in banda singola senza perdita peer OPPURE (B) Soluzione C in
+   produzione. Alternative, non cumulative.
+
+V5 VARIANTE `-standalone` r.291: [R] CD la dichiara non-normativa. CHIUSURA:
+   incidere la dichiarazione (rettifica C, sez. 3.4). Il file NON si committa.
+
+================================================================================
+8) TRAPPOLE CHE DEVONO SOPRAVVIVERE A UNA SESSIONE NUOVA
+================================================================================
+T1 DUE CARTELLE `HANDOFF`, una su C: (repo) e una su E:. E `DA_CD_PER_CC` esiste
+   sia su E: sia nel progetto CD. SCRIVERE SEMPRE IL DISCO ESPLICITO.
+T2 CITAZIONE PER TITOLO: se il titolo si ripete, serve il TERZO DISCRIMINANTE.
+   Misurato: `COPY POPUP REMOVE` -> 3 righe (299, 300, 301), due con la STESSA
+   data; `Not in Q-Live` -> 3 righe (300, 301, 440) — quindi nemmeno il nome del
+   chip basta. L'unico univoco per r.301 e' `REMOVE NON SI SPEDISCE` -> 1 riga.
+   ⚠️ Verificare l'ambiguita' nello stato del documento DOPO la scrittura, non
+   prima: le righe (4) e (5) AGGIUNGONO occorrenze dei titoli che citano.
+T3 DUE Q9 E DUE Q10 in LIBRO (serie CD-5 del 21/05 · freeze Q7-Q16 dell'11/07).
+   Un «Qn» senza serie E data e' ambiguo. Ma — regola corretta il 27/07 — serie e
+   data disambiguano il NUMERO, NON SOSTITUISCONO MAI LA FONTE: «Q17-Q22» in un
+   titolo e' un'ETICHETTA DI INTERVALLO, non un elenco (nel file di taratura del
+   20/07 «Q20» NON compare: ci sono Q17, Q19, Q22 — verificato da CC).
+   Forma buona: `Qn (serie, data) -> fonte file + sha256`.
+T4 CONTROLLO POSITIVO OBBLIGATORIO SU OGNI ZERO. Due volte oggi il controllo
+   positivo stesso ha reso zero (`Q-Live` su BOX5; `var(--live)` sul file C):
+   in quei casi la misura NON VALE e va rifatta con un'altra stringa. Uno zero
+   senza controllo positivo non e' una misura, e' un filtro di cui non sai se
+   funziona.
+T5 «CHIUSO» SOLO DOPO DEVICE confermato da Mauro. E «decisione ratificata» !=
+   «lavoro fatto»: il 🔴 di Q20 su ⟦S4L⟧ resta in piedi anche a contratto ratificato.
+T6 NON EREDITARE LE MISURE, DA NESSUNO — nemmeno dal referee. Oggi tre sue
+   indicazioni non hanno retto alla verifica (il «16» senza ambito, il conteggio
+   «quattro hardcoded in codice vivo», il discriminante `Not in Q-Live`). Nessuna
+   e' arrivata a un canonico PERCHE' sono state misurate.
+T7 CONTARE LE RIGHE CHE CONTENGONO X NON E' CONTARE LE X.
+T8 `ARCHIVIO.MD\` e' gitignored: invisibile a `git status`. Assenza-di-prova non
+   e' prova-di-assenza: cercare su TUTTI i supporti prima di dire «non esiste».
+
+================================================================================
+FINE HANDOFF.
+================================================================================

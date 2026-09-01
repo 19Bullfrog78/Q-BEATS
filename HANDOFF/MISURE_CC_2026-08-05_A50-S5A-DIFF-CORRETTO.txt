@@ -1,0 +1,393 @@
+QB-2026-08-05-A50-S5A-DIFF-RETTIFICA · segue A49
+CC → Referee · DIFF VERBATIM CORRETTO · nessun commit, nessun push
+
+ID: A50, assegnato da te. Verificato libero in forma stretta (nomi+contenuti HANDOFF/, escluso
+CONGEDO_REFEREE), controllo positivo confermato su A49. Consegna
+`MISURE_CC_2026-08-05_A50-S5A-DIFF-CORRETTO.txt` non esisteva prima di questa scrittura.
+Orologio: 2026-08-05T11:13:14Z (`date -u`). HEAD invariato: 5183758d8b80b0d1f975fb0e6074d146cec3e3ae.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+`.viewtoggle` RIMOSSO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Riverificato indipendentemente prima di editare, non preso per buono: `grep -n "viewtoggle"
+DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html` → markup presente **una sola volta**, riga 454 (dentro
+Frame 3). Zero occorrenze in Frame F e Frame G — che infatti portano `.startfoot` col solo
+`.startbtn`. Il tuo precedente Q7 (`LIBRO:272`) non è quindi l'unico argomento: la stessa
+asimmetria era già nel contratto, e la mia prima consegna l'aveva applicata in modo uniforme ai
+tre stati per una funzione `startfoot` condivisa, senza notare che il freeze stesso non lo fa.
+
+Rimosso l'intero blocco `.viewtoggle` (due `Text` con stile pillola). Al suo posto, un commento
+che dichiara la stessa cosa che dichiari tu: presente nel Frame ③ congelato, omesso per
+precedente Q7 (`LIBRO_MASTRO_QBEATS.md:272`), nessun canonico ne prescrive il comportamento,
+rientra quando un atomo lo definisce. `.startfoot` ora contiene il solo bottone Start, in tutti
+e tre gli stati — coerente con Frame F/G, non solo con la tua regola.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C1 — Badge ⚠ FILE MISSING: confermato omesso, riga del diff che lo dimostra
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+`songRow` (righe 215-244 del file, invariata da A49) è la SOLA funzione che disegna una riga
+canzone. Contenuto per intero, quattro elementi: rail trasparente (`Color.clear`), indice, nome,
+`met` condizionale su `song.sections.first`. **Zero riferimenti a `song.backtrackFilename`, zero
+stringa "MISSING", zero elemento `.warn`.** Non l'ho costruito — non per omissione ora, per
+scelta già presa in A48/A49 seguendo il tuo vincolo originale di Fase 1 ("Badge FILE MISSING →
+DIFFERITO, NON qui"), mai cambiata.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+C2 — nessuna azione (confermato da te)
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+Vocabolario Start disabilitato — verificato conforme, nessuna modifica necessaria
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Riletto il mio stesso `startfoot` contro `LIBRO:273` (Q9) prima di ripresentarlo: lo stato
+disabilitato usa DUE cose insieme, come il CSS `.startbtn.dead` (`background:rgba(255,255,255,
+0.05); border:1px solid var(--line); opacity:var(--disabled)`) le usa entrambe — non una scelta
+mia isolata. Nel mio codice: `AnyShapeStyle(Color.white.opacity(0.05))` per lo sfondo (stesso
+valore `rgba(255,255,255,0.05)` del CSS) + `.opacity(resolved.songs.isEmpty ? 0.4 : 1.0)` per il
+token `--disabled` (0.4, letto da `QStageKit.swift` in A49). Non un grigio arbitrario: entrambi i
+numeri vengono dal CSS del contratto.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+CONFINE RIVERIFICATO
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+`git status --porcelain`: identico ad A49 — `QLiveRootView.swift` (M), `QLiveShowsView.swift`
+(M), `QLiveShowDetailView.swift` (??). Nessun file in più toccato per questa rettifica: solo
+`QLiveShowDetailView.swift` è cambiato (267→253 righe). Nulla staged, nessun commit, nessun push.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+DIFF VERBATIM CORRETTO — `git diff`, tre file, nessuno staged
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+diff --git a/ios_app/QBeats/UI/QLive/QLiveRootView.swift b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+index b956c65..a87d9fd 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveRootView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveRootView.swift
+@@ -44,6 +44,8 @@ struct QLiveRootView: View {
+     private enum QLivePage { case shows, detail, metronome }
+
+     @State private var page: QLivePage = .shows
++    /// Show selezionata per il dettaglio — il payload separato di cui sopra (:42-43). ⟦S5a⟧.
++    @State private var selectedSetlist: Setlist? = nil
+
+     /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
+     /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
+@@ -90,9 +92,19 @@ struct QLiveRootView: View {
+     var body: some View {
+         switch page {
+         case .shows:
+-            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage)
++            QLiveShowsView(onExit: onExit, onSwitchToStage: onSwitchToStage, onSelectShow: { show in
++                selectedSetlist = show
++                navigate(to: .detail)
++            })
+         case .detail:
+-            EmptyView()   // scaffold — mutatori a S5 (tap riga → navigate(.detail))
++            // ⟦S5a⟧: raggiunge QLiveShowDetailView col payload separato (:47). Ramo `else`
++            // difensivo — non dovrebbe accadere (unico chiamante di navigate(.detail) è
++            // onSelectShow sopra, che valorizza selectedSetlist nello stesso gesto).
++            if let show = selectedSetlist {
++                QLiveShowDetailView(setlist: show, onBack: { navigate(to: .shows) })
++            } else {
++                EmptyView()
++            }
+         case .metronome:
+             // ⟦S4R⟧ GATE — MAI il player senza runner iniettato.
+             if let runner = roomSession.runner {
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+new file mode 100644
+index 0000000..f852768
+--- /dev/null
++++ b/ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift
+@@ -0,0 +1,253 @@
++import SwiftUI
++
++// MARK: - QLiveShowDetailView — Q-Live › Show Detail (frame ③, read-only) · ⟦S5a⟧
++//
++// Contratto vivo (freeze CD): DESIGN/QLive_Nav/2026-07-11_Q7-Q16.html @ 9994bc0 — Frame 3
++// "Show detail / read-only" (§1.2), Frame F "Empty show detail" (§1.5), Frame G "Show
++// all-orphan" (§1.5, NEW). Le due empty-state riusano `ThisShowIsEmptyState` /
++// `NoPlayableSongsEmptyState`, già costruite in `QLiveEmptyStates.swift` (S2) e finora montate
++// solo nel loro PreviewProvider: questo atomo le aggancia per la prima volta a una vista reale.
++//
++// ⚠️ `.songlist` SCORRE (`overflow-y:auto`), NON `overflow:hidden` come il CSS del freeze
++// (:252): `LIBRO_MASTRO_QBEATS.md:342` (ratificato 01/08, tre settimane dopo il freeze) VINCE
++// — `Setlist.songIDs` è `[UUID]` senza vincolo di cardinalità per costruzione, nessuna altezza
++// fissa basta mai. `.startfoot` resta ancorato al fondo, fuori dallo scroll (Start dev'essere a
++// un tap da qualunque punto della lista).
++//
++// ⚠️ Caso misto (alcune canzoni orfane, alcune no): SKIP silenzioso delle orfane
++// (`resolve(_:).missingIDs`), NESSUN conteggio a schermo — il conteggio "N unavailable" vive
++// SOLO nel caso all-orfano (`metaText`, sotto), dove serve a distinguere "show vuoto" da "show
++// con tutte le canzoni cancellate", due stati altrimenti identici a schermo. Badge/conteggio
++// del misto restano in Q-Stage, dove già vivono — decisione referee, round A49 (correzione di
++// una fusione di due regole distinte nel mandato originale).
++//
++// ⚠️ Tag-rail «R1-pending SOLO LAYOUT»: nessun modello dati tag esiste oggi (stesso stato di
++// `isPick` in QLiveShowsView.swift). Lo spazio del rail è riservato (`.crail`, larghezza fissa)
++// ma reso SEMPRE trasparente — niente evidenza finta, stesso principio già in uso in questa
++// stanza. Il chip `.stag` del freeze non ha equivalente onesto senza un modello: omesso.
++//
++// ⛔ START INERTE — closure vuota. Eccezione consapevole e dichiarata al divieto CD-Q7 sui
++// bottoni morti (LIBRO v31), a vita brevissima: il cablaggio verso `SetlistRunner` è ⟦S5b⟧, non
++// questo atomo — stessa forma con cui ⟦S4R⟧ ha lasciato lo slot di `QLiveSession` senza
++// mutatore APPOSTA (`QLiveSession.swift:12-15`). Lo stato VISIVO abilitato/disabilitato (DS
++// opacity 0.4) è invece cablato oggi, gattato sul risolto-non-vuoto — non sul numero di righe.
++struct QLiveShowDetailView: View {
++    let setlist: Setlist
++    let onBack: () -> Void
++
++    @ObservedObject private var store = QBeatsStore.shared
++
++    var body: some View {
++        // Calcolato UNA VOLTA per passata di render e passato ai sotto-blocchi: `resolve(_:)`
++        // è una scansione lineare su `songIDs`, non un valore cached — quattro letture
++        // indipendenti nella stessa `body` la rieseguirebbero quattro volte.
++        let resolved = store.resolve(setlist)
++        return VStack(spacing: 0) {
++            navbar
++            dhead(resolved)
++            content(resolved)
++            startfoot(resolved)
++        }
++        .background(Color(hex: "#0e0e10").ignoresSafeArea())
++    }
++
++    // MARK: - Navbar (§CSS .navbar :241-246) — .seg-mini INERTE, sola lettura, nessuna logica.
++
++    private var navbar: some View {
++        HStack {
++            Button(action: onBack) {
++                HStack(spacing: 5) {
++                    Image(systemName: "chevron.left")
++                        .font(.system(size: 12, weight: .semibold))
++                    Text("Shows")
++                        .font(.jbMono(.semibold, size: 12))
++                        .tracking(0.4)
++                }
++                .foregroundColor(QLiveTheme.accent)
++            }
++            .buttonStyle(.plain)
++            Spacer()
++            HStack(spacing: 3) {
++                Text("Q-STAGE")
++                    .foregroundColor(QStageTheme.text3)
++                    .frame(minHeight: 30)
++                Text("Q-LIVE")
++                    .foregroundColor(.white)
++                    .frame(minHeight: 30)
++                    .padding(.horizontal, 9)
++                    .background(QStageTheme.orange.opacity(0.24), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
++                    .overlay(
++                        RoundedRectangle(cornerRadius: 8, style: .continuous)
++                            .strokeBorder(QStageTheme.orange.opacity(0.5), lineWidth: 1)
++                    )
++            }
++            .font(.jbMono(.bold, size: 9))
++            .tracking(0.8)
++            .padding(3)
++            .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
++            .overlay(
++                RoundedRectangle(cornerRadius: 10, style: .continuous)
++                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
++            )
++        }
++        .padding(.horizontal, 14)
++        .frame(height: 50)
++    }
++
++    // MARK: - Dhead (§CSS .dhead/.dhrow/.mt :247-251) — nome, badge Read-only, meta condizionale.
++
++    private func dhead(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
++        VStack(alignment: .leading, spacing: 7) {
++            HStack(alignment: .center) {
++                Text(setlist.name.isEmpty ? "Untitled show" : setlist.name)
++                    .font(.custom("Inter-ExtraBold", size: 23))
++                    .tracking(-0.5)
++                    .foregroundColor(.white)
++                    .lineLimit(1)
++                Spacer(minLength: 10)
++                readOnlyBadge
++            }
++            if let text = metaText(resolved) {
++                Text(text)
++                    .font(.jbMono(.regular, size: 11))
++                    .tracking(0.3)
++                    .foregroundColor(resolved.songs.isEmpty ? QStageTheme.amber : QStageTheme.text2)
++            }
++        }
++        .padding(.horizontal, 18)
++        .padding(.top, 6)
++        .padding(.bottom, 10)
++    }
++
++    private var readOnlyBadge: some View {
++        HStack(spacing: 4) {
++            Image(systemName: "lock.fill")
++                .font(.system(size: 9))
++            Text("Read-only")
++                .font(.jbMono(.regular, size: 10))
++        }
++        .foregroundColor(QStageTheme.text2)
++    }
++
++    // .mt (setlist non vuota) / .mt.a (all-orfano) — assente per setlist genuinamente vuota
++    // (§markup Frame F: .dhead lì porta solo .dhrow, nessuna riga meta).
++    private func metaText(_ resolved: (songs: [Song], missingIDs: [UUID])) -> String? {
++        guard !setlist.songIDs.isEmpty else { return nil }
++        if resolved.songs.isEmpty {
++            return "0 playable · \(resolved.missingIDs.count) unavailable"
++        }
++        let count = resolved.songs.count
++        let songs = "\(count) \(count == 1 ? "song" : "songs")"
++        let minutes = Int((store.estimatedDuration(for: setlist) / 60).rounded())
++        guard minutes > 0 else { return songs }
++        return "\(songs) · \(minutes) min"
++    }
++
++    // MARK: - Corpo — songlist scorrevole, o una delle due empty-state già costruite.
++
++    @ViewBuilder
++    private func content(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
++        if setlist.songIDs.isEmpty {
++            ThisShowIsEmptyState()
++                .frame(maxWidth: .infinity, maxHeight: .infinity)
++        } else if resolved.songs.isEmpty {
++            NoPlayableSongsEmptyState()
++                .frame(maxWidth: .infinity, maxHeight: .infinity)
++        } else {
++            songList(resolved.songs)
++        }
++    }
++
++    private func songList(_ songs: [Song]) -> some View {
++        ScrollView {
++            LazyVStack(spacing: 0) {
++                ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
++                    songRow(index: index + 1, song: song)
++                }
++            }
++            .padding(.horizontal, 6)
++        }
++        .frame(maxWidth: .infinity, maxHeight: .infinity)
++    }
++
++    // §CSS .songrow :253-259 · .crail.pending → SEMPRE trasparente qui (vedi nota di testa).
++    private func songRow(index: Int, song: Song) -> some View {
++        let section = song.sections.first
++        return HStack(spacing: 12) {
++            Color.clear
++                .frame(width: 4)
++            Text("\(index)")
++                .font(.jbMono(.bold, size: 12))
++                .foregroundColor(QLiveTheme.accent)
++                .frame(width: 18, alignment: .trailing)
++            Text(song.name)
++                .font(.system(size: 16, weight: .semibold))
++                .tracking(-0.2)
++                .foregroundColor(.white.opacity(0.9))
++                .lineLimit(1)
++            Spacer(minLength: 8)
++            if let section {
++                Text("\(Int(section.bpm.rounded())) · \(section.beatsPerBar)/\(section.beatUnit)")
++                    .font(.jbMono(.regular, size: 12))
++                    .tracking(0.3)
++                    .foregroundColor(.white.opacity(0.7))
++            }
++        }
++        .padding(.vertical, 12)
++        .padding(.horizontal, 6)
++        .overlay(alignment: .bottom) {
++            Rectangle()
++                .fill(Color.white.opacity(0.05))
++                .frame(height: 1)
++        }
++    }
++
++    // MARK: - Startfoot (§CSS .startfoot/.startbtn :265, :270-273) — sempre in fondo, presente
++    // in TUTTI e tre gli stati (verificato sul freeze: Frame 3/F/G lo portano tutti).
++
++    private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
++        VStack(spacing: 12) {
++            // `.viewtoggle` (Q-Live view / List view) è nel Frame ③ congelato ma OMESSO qui,
++            // per lo stesso precedente ratificato di Q7 (`LIBRO_MASTRO_QBEATS.md:272`, header
++            // Q-Stage›Shows: «+» omesso finché §8 non arriva, nessun bottone morto al suo
++            // posto): zero occorrenze di «List view»/viewtoggle in LIBRO v53, BUGS v50,
++            // SCALETTA v7, BOX3 V99, BOX5 V28 — nessun canonico prescrive il comportamento di
++            // «List view», e una coppia di pillole di cui una "accesa" è un interruttore, non
++            // un'etichetta statica. Rientra quando un atomo lo definisce.
++
++            // Start show — INERTE (vedi nota di testa). Stato visivo cablato: DS opacity 0.4
++            // gattato sul risolto-non-vuoto, non sul conteggio di `songIDs`.
++            Button {
++                // ⟦S5b⟧ cablerà qui l'avvio reale (SetlistRunner.startSetlist). Vuota apposta:
++                // eccezione dichiarata al divieto CD-Q7 sui bottoni morti (LIBRO v31), stessa
++                // forma dello slot senza mutatore di QLiveSession (⟦S4R⟧).
++            } label: {
++                HStack(spacing: 10) {
++                    Image(systemName: "play.fill")
++                        .font(.system(size: 14))
++                    Text("START SHOW")
++                        .font(.jbMono(.bold, size: 15))
++                        .tracking(2.5)
++                }
++                .foregroundColor(.white)
++                .frame(maxWidth: .infinity, minHeight: 56)
++                .background(
++                    resolved.songs.isEmpty
++                        ? AnyShapeStyle(Color.white.opacity(0.05))
++                        : AnyShapeStyle(LinearGradient(colors: [Color(hex: "#e8571c"), Color(hex: "#c8360a")],
++                                                        startPoint: .top, endPoint: .bottom)),
++                    in: RoundedRectangle(cornerRadius: 15, style: .continuous)
++                )
++                .overlay(
++                    RoundedRectangle(cornerRadius: 15, style: .continuous)
++                        .strokeBorder(resolved.songs.isEmpty ? QStageTheme.line : Color.clear, lineWidth: 1)
++                )
++                .opacity(resolved.songs.isEmpty ? 0.4 : 1.0)
++            }
++            .buttonStyle(.plain)
++        }
++        .padding(.horizontal, 18)
++        .padding(.top, 14)
++        .padding(.bottom, 20)
++    }
++}
+diff --git a/ios_app/QBeats/UI/QLive/QLiveShowsView.swift b/ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+index d152820..2b8c4bf 100644
+--- a/ios_app/QBeats/UI/QLive/QLiveShowsView.swift
++++ b/ios_app/QBeats/UI/QLive/QLiveShowsView.swift
+@@ -42,6 +42,9 @@ struct QLiveShowsView: View {
+     /// Switch di stanza verso Q-Stage: closure DISTINTA da onExit (RoomSwitchBar.onSwitch).
+     /// A S4b sarà iniettata da AppRootView (`screen` resta private, E2).
+     let onSwitchToStage: () -> Void
++    /// Tap-riga → dettaglio show (⟦S5a⟧). Default no-op: solo questo atomo aggiunge la
++    /// chiamata al tap; nessun altro comportamento di questo file cambia.
++    var onSelectShow: (Setlist) -> Void = {}
+
+     @ObservedObject private var store = QBeatsStore.shared
+
+@@ -268,7 +271,7 @@ struct QLiveShowsView: View {
+
+     // .showrow (§CSS): radius 15, padding 15/16, bg --qlive-surf, bordo --qlive-bd,
+     // inset-top 1px .04; variante .pick: bg --qlive-pick, bordo live .45. Chevron A DESTRA
+-    // (§markup frame ②) — riga INERTE fino a S5 (nessun Button/tap qui).
++    // (§markup frame ②) — riga tap-abile da ⟦S5a⟧: naviga al dettaglio via `onSelectShow`.
+     private func showCard(_ show: Setlist) -> some View {
+         // ⚠️ default CC (flag in testa): nessun modello last-opened → pick MAI attivo per ora.
+         let isPick = false
+@@ -308,6 +311,7 @@ struct QLiveShowsView: View {
+                 .strokeBorder(Color.white.opacity(0.04), lineWidth: 1)
+                 .mask(VStack(spacing: 0) { Rectangle().frame(height: 2); Spacer(minLength: 0) })
+         )
++        .onTapGesture { onSelectShow(show) }
+     }
+
+     // .mt (§CSS): «N songs» + « · M min» SOLO se la durata stimata dà minuti > 0
+════════════════════════════════════════════════════════════════════════════════════════════════
+Fine diff. 3 file changed, 272 insertions(+), 3 deletions(-) (`git diff --stat`). Nessun file
+staged, nessun commit, nessun push — in attesa della tua ratifica e poi dell'OK di Mauro.
+════════════════════════════════════════════════════════════════════════════════════════════════

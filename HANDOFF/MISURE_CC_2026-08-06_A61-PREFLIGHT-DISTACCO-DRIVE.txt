@@ -1,0 +1,251 @@
+REFERTO QB-2026-08-06-A61-PREFLIGHT-DISTACCO-DRIVE
+==================================================
+
+Orologio: 2026-08-06T10:47:01Z (`date -u`), locale +02:00.
+La data dell'ID e quella di esecuzione COINCIDONO (a differenza di A59).
+
+VERIFICA ID — A61 NON COLLIDE.
+  · repo : `ls HANDOFF/ | grep -iE 'A6[01]'` -> exit 1 · `grep -rl 'A61' HANDOFF/` -> nessun file
+  · E:   : stessi comandi -> exit 1 / nessun file
+  · controllo positivo: `ls HANDOFF/ | grep -i 'A59'` ->
+    MISURE_CC_2026-08-05_A59-DRIVE-SU-REPO.txt  presente su entrambi i supporti.
+  · A60 non risulta emesso su nessun supporto.
+
+IDEMPOTENZA — nessuna copia di sicurezza preesistente di questo giro.
+  `ls -d C:\Users\BULLFROG\QBEATS_* / Desktop\QBEATS_* / SALVATAGGIO*` -> exit 2, nessun match.
+  La destinazione della Parte 2 non esisteva (controllo `Test-Path` prima di crearla).
+
+
+================================================================================
+CANCELLO 0 — INTEGRITA' DEL REPO (eseguito PER PRIMO, come da mandato)
+================================================================================
+
+`git fsck --full`  ->  EXIT CODE 0.
+
+Output: 200 righe, TUTTE della forma `dangling blob` / `dangling tree` / `dangling commit`.
+ZERO occorrenze di `error:`, `missing`, `broken link`, `corrupt`, `dangling` a parte.
+Gli oggetti dangling sono oggetti non referenziati (residuo normale di amend, cherry-pick,
+rami cancellati): NON sono danno. In particolare risultano dangling 9 commit, coerenti con
+la storia di ⟦S5a⟧ (cherry-pick + amend documentati nel congedo del 05/08).
+
+=> IL REPO NON E' DANNEGGIATO. Nessun motivo di fermarsi. Si procede.
+
+
+================================================================================
+PARTE 3 — IMPRONTA DI PARTENZA (la fotografia del "prima")
+================================================================================
+
+HEAD   : 25056b66eda40ad76d91a886ace442b7064ca900
+albero : 63c793a8d0ec122cdfc9657992c309568f83821e
+branch : master
+fonte  : `git rev-parse HEAD` / `git rev-parse HEAD^{tree}` / `git rev-parse --abbrev-ref HEAD`
+
+SHA256 DEI TRE FILE DI STATO DI GIT:
+  .git/HEAD         f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10
+  .git/config       929d5441cb6eba0888c39d53cd1defae0ae62d805f3c4dafb661c56a7e863f71
+  .git/packed-refs  32bca7a816e47c959bb072e5741b4de3f39c6a2c4dc5fb0a8f2ae7f6e996b08b
+fonte: `sha256sum .git/HEAD .git/config .git/packed-refs`
+/!\ RIMISURATI A FINE GIRO, DOPO la copia: i tre valori e HEAD/albero sono INVARIATI.
+    Prova che questo giro non ha toccato il repo.
+
+`git status --porcelain` COMPLETO:
+  177 righe, TUTTE con stato `??` (non tracciato).
+  Voci NON-`??` (modificati / staged / cancellati): ZERO.
+  fonte: `git status --porcelain | awk '{print $1}' | sort | uniq -c`
+
+CONTEGGI FILE:
+  totali sotto la radice (tutto incluso)        : 2450
+  sotto .git/                                   :  858
+  sotto .tmp.driveupload/ (staging Drive)       :  790
+  contenuto reale (esclusi .git e staging)      :  802
+  fonte: `find . -type f | wc -l` con i rispettivi `-not -path`
+
+  RICONCILIAZIONE ESATTA del contenuto reale:
+      202 tracciati (`git ls-files`)
+    + 176 non tracciati reali (`git ls-files --others --exclude-standard`, tolti i 790 di staging)
+    + 424 ignorati (`git ls-files --others --ignored --exclude-standard`)
+    = 802   <- coincide col conteggio indipendente sopra. Nessun buco.
+
+  /!\ Il conteggio dei non tracciati e' VOLATILE: due letture a pochi secondi di distanza
+      hanno dato 967 e 966, perche' `.tmp.driveupload/` e' una cartella di staging viva che
+      Drive riempie e svuota. E' un fatto misurato, non un'interpretazione.
+
+DIMENSIONI:
+  repo totale        : 104 MB   ·  .git/ : 32 MB
+  byte del contenuto copiato (Parte 2) : 103 418 214
+
+
+================================================================================
+PARTE 1 — INVENTARIO DEL NON COPERTO (cio' che vive nel repo e NON e' su github)
+================================================================================
+
+A) NON TRACCIATI REALI — 176 file
+   -------------------------------------------------------------------------
+   173  HANDOFF/            (la cartella ha 177 file in tutto: 4 sono TRACCIATI —
+                             MISURE_CC_2026-07-30_R1-ACCERTAMENTI.txt,
+                             NODO_A_PIANO_2026-07-10.md, PIANO_S4b_REV_2026-07-18.txt,
+                             SCALETTA_ATOMI_S6_2026-07-10.md)
+     1  tools/lint_canonici.py
+     1  QBEATS_ATOMC_PIANO_2026-07-06.md   (radice)
+     1  QBEATS_A5C_PIANO_2026-07-04.md     (radice)
+
+   ESISTE ALTROVE?
+   · HANDOFF/  -> SI, su E: in FILE X CLAUDE.MD\HANDOFF (277 file, superset).
+       Confronto per nome file, repo -> E:: UN SOLO file del repo manca su E:
+         `_SUPERATO__ROADMAP_2026-07-24.txt`
+       Tutti gli altri 176 hanno un omonimo su E:. (Confronto per NOME, non per byte.)
+   · tools/lint_canonici.py  ->  /!\ RETTIFICA A UNA DICHIARAZIONE DEL CONGEDO 05/08.
+       Il congedo lo dava in "copia unica fuori dal repo". FALSIFICATO a fonte:
+       esiste una SECONDA copia in
+         E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD\tools\lint_canonici.py
+       e le due sono BYTE-IDENTICHE, sha256
+         25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206
+       ricerca: `find /e -name 'lint_canonici.py'` su TUTTO il volume E:.
+       /!\ La correzione non annulla il rischio, lo SPOSTA: le due copie stanno
+           ENTRAMBE dentro una radice Drive (radice 6 e radice 2). Zero copie fuori.
+   · i 2 .md di radice -> SI, su E: in
+       FILE X CLAUDE.MD\GRAFICA\B7\  (entrambi, per nome)
+
+B) IGNORATI — 424 file, ripartiti
+   -------------------------------------------------------------------------
+   231  core_engine/build/ (983 KB) + core_engine/build2/ (27 MB)
+        => ARTEFATTI DI BUILD CMake. RIGENERABILI. Non contenuto.
+   172  ARCHIVIO.MD/   (196 file in totale sul disco, 8,0 MB)
+        => CONTENUTO REALE E NON RIGENERABILE. Archivio storico BOX1/BOX2/BOX3/BOX5
+           e briefing per data.
+    16  _cc_processo/  (184 KB)  => dichiarato "scarti di lavorazione" dal .gitignore
+     3  ipa-fase-d/, ipa-fase-d-v2/, ipa-fase-d-v3/  (3,0 MB ciascuna, 9 MB totali)
+        => IPA di build storiche. Rigenerabili solo ricompilando a quei commit.
+     1  .claude/settings.local.json  (1,0 KB)
+     1  Claude Setup.exe  (7,0 MB)  => installer di terze parti, riscaricabile
+
+   ESISTE ALTROVE?  -- IL REPERTO PIU' SERIO DI QUESTO GIRO
+   · ARCHIVIO.MD/  ->  **NO, NON INTERAMENTE. 81 FILE ESISTONO IN UN SOLO POSTO.**
+       Misura: la cartella `ARCHIVIO.MD` NON esiste su E: (`ls -d` -> exit 2).
+       Non mi sono fermato al nome della cartella, ho cercato il CONTENUTO:
+         - indice di tutti i nomi file presenti su E:  -> 38 152 nomi distinti
+         - nomi distinti dentro ARCHIVIO.MD/           ->    192
+         - nomi di ARCHIVIO.MD/ ASSENTI da tutto E:    ->     81
+       fonte: `find /e -type f -printf '%f\n' | sort -u` confrontato con
+              `find ARCHIVIO.MD -type f -printf '%f\n' | sort -u` via `comm -23`.
+       Gli 81 sono le archiviazioni piu' antiche (BOX1/BOX2/BOX3 di aprile 2026:
+       BOX1_14_04_2026, BOX3_V10..V24, BOX1_memoria_*, BOX2_istruzioni_*, ecc.).
+       Controprova sul solo BOX3: 87 file `BOX3_V*.md` nel repo contro 60 su E:,
+       e su E: sono sparsi in cartelle diverse, non in un mirror dell'archivio.
+       => Questi 81 file: non su github (ignorati), non su E:, dentro la radice Drive.
+          Prima di questo giro erano a UNA copia sola.
+   · _cc_processo/, .claude/, ipa-fase-d*/ -> NON verificati su E: uno per uno;
+       messi comunque in salvo dalla Parte 2 (che copia tutto).
+
+C) NAS — NON VERIFICABILE
+   -------------------------------------------------------------------------
+   `ls -d /z` -> exit 2. L'unita' Z: NON e' montata adesso.
+   Nella tabella `media` di Drive (misurata in A59) risulta un
+   media_id='NAS-2072495902', name='Z:\', device_type=3, capacity=0.
+   => Non posso affermare NE' che il NAS contenga copie NE' che non le contenga.
+      DICHIARATO NON VERIFICABILE, non colmato per inferenza.
+
+
+================================================================================
+PARTE 2 — MESSA IN SALVO
+================================================================================
+
+DESTINAZIONE SCELTA E DICHIARATA:
+    F:\QBEATS_PREFLIGHT_A61_2026-08-06
+
+PERCHE' QUESTO PATH E' FUORI DA ENTRAMBE LE RADICI DRIVE — verificato a fonte, non assunto:
+  la tabella `roots` di root_preference_sqlite.db, RILETTA DOPO la copia, da' due radici:
+      root_id=2  'FILE X CLAUDE.MD'  E:\HOBBY\MUSICA - BATTERIA -SISTA\Q-BEATS\FILE X CLAUDE.MD
+      root_id=6  'Q-BEATS'           C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS
+  query mirata `SELECT ... FROM roots WHERE last_seen_absolute_path LIKE 'F:%'` -> 0 righe.
+  Controprova indipendente: `find F:\QBEATS_PREFLIGHT_A61_2026-08-06 -maxdepth 1
+  -name '.tmp.drive*'` -> VUOTO (nelle due radici vere quel marcatore c'e', qui no).
+  In piu' F: e' un DISCO FISICO DIVERSO sia dal repo (C:) sia dal mirror (E:).
+
+COSA E' STATO COPIATO — ho copiato l'INTERO repo, non il solo elenco del non-coperto:
+  e' un SUPERSET del richiesto, rende la verifica uniforme, e mette in salvo anche `.git`.
+  UNICA esclusione: `.tmp.driveupload/` — e' la cartella di staging di Drive, fatta di
+  hard-link a file gia' presenti altrove nell'albero: fuori da Drive non significa nulla.
+
+COMANDO: robocopy <src> <dst> /E /XD <src>\.tmp.driveupload /COPY:DAT /DCOPY:DAT /R:1 /W:1
+  esito robocopy: Directory 519 (517 copiate, 2 ignorate) · File 1660 copiati ·
+                  Byte 98,62 MB · NON RIUSCITA: 0 · NON CORRISPONDENTI: 0
+  exit code 1 = SUCCESSO ("uno o piu' file copiati"). L'errore in robocopy e' >= 8.
+
+RISULTATO NUMERICO:
+  file  : 1660 sorgente  ->  1660 destinazione
+  byte  : 103 418 214    ->  103 418 214
+  fonte: `find ... -printf '%s\n' | awk '{s+=$1} END {print s}'` sui due lati
+
+VERIFICA A DUE FORME — ENTRAMBE SUPERATE:
+
+  FORMA 1 — sha256 DI OGNI SINGOLO FILE
+    manifest sorgente    : 1660 righe
+    manifest destinazione: 1660 righe
+    `diff` fra i due manifest: 0 righe di differenza
+    E l'impronta DEI MANIFEST STESSI coincide:
+      e5bf33c58e0c03661ec99a1f6016ed5997439d379e4cbcba52ef30aa50427032
+    (stessa impronta dei due manifest => coincidono sia l'INSIEME dei percorsi sia
+     il contenuto di ogni file; una sola delle due cose non basterebbe)
+
+  FORMA 2 — CONFRONTO BINARIO RICORSIVO
+    `diff -r --brief --exclude='.tmp.driveupload' <src> <dst>`  ->  0 righe.
+    Questa forma LEGGE I BYTE, non si fida delle impronte: e' la controprova alla
+    lezione "impronta != completezza".
+
+  => 1660 file, 103 418 214 byte, ZERO differenze su entrambe le forme.
+
+
+================================================================================
+PARTE 4 — CONFERMA GITHUB
+================================================================================
+
+master locale = origin/master = remoto. TUTTI E TRE:
+    25056b66eda40ad76d91a886ace442b7064ca900
+fonte: `git rev-parse master` / `git rev-parse origin/master` / `git ls-remote origin master`
+(preceduti da `git fetch origin`)
+
+NESSUN COMMIT LOCALE FUORI DA GITHUB:
+  `git log --oneline --all --not --remotes`  ->  OUTPUT VUOTO.
+  Significa: ogni commit raggiungibile da un qualunque ref locale e' anche su un ramo remoto.
+  13 rami locali, tutti con upstream configurato, nessuno "ahead" (`git branch -vv`);
+  l'unico marcatore di divergenza e' `fix/bug-2b-visual-section-sync [behind 3]`, che e'
+  INDIETRO, non avanti. `git stash list` -> vuoto.
+
+COSA NON E' SU GITHUB — dichiarazione esplicita:
+  1. 176 file NON TRACCIATI          (HANDOFF/ 173 · tools/ 1 · 2 .md di radice)
+  2. 424 file IGNORATI               (ARCHIVIO.MD/ · core_engine/build+build2 ·
+                                      _cc_processo/ · ipa-fase-d*/ · .claude/ ·
+                                      Claude Setup.exe)
+     = 600 file di contenuto reale fuori da github, su 802 totali.
+       Solo 202 file su 802 (il 25%) sono su github.
+  3. Metadati locali di git non replicati dal remoto: il REFLOG e gli OGGETTI DANGLING
+     (200 oggetti visti da `git fsck`, fra cui 9 commit). Non sono "contenuto" e non
+     servono a ricostruire master, ma sono l'unica rete di recupero locale e vivono
+     solo in .git/. Sono inclusi nella copia della Parte 2.
+
+  DI QUESTI, IL SOTTOINSIEME CRITICO: gli 81 file di ARCHIVIO.MD/ che prima di oggi
+  esistevano in una sola copia (ne' github, ne' E:, ne' NAS verificabile).
+
+
+================================================================================
+NOTA DI PERIMETRO
+================================================================================
+NESSUNA modifica sotto ios_app/. NESSUN commit. NESSUN push. NESSUNA cancellazione.
+NESSUNA modifica alle impostazioni di sistema o di Google Drive — le impostazioni di
+Drive NON sono state toccate: sono state solo LETTE, e su una COPIA del database.
+Scritture di questo giro, entrambe autorizzate:
+  1. F:\QBEATS_PREFLIGHT_A61_2026-08-06\   (copia di sicurezza)
+  2. questo referto in HANDOFF\ + mirror E:
+
+Nessuna raccomandazione: la rimozione della radice dalla sincronizzazione e' azione
+di Mauro, dopo il parere del referee.
+
+
+DICHIARAZIONE STANDARD
+Ho letto i file VERI a HEAD 25056b66eda40ad76d91a886ace442b7064ca900 e misurato il
+sistema live, non a memoria. Ogni affermazione porta il comando da cui viene.
+HEAD, albero e i tre sha256 di stato sono stati RIMISURATI a fine giro e sono invariati.
+Dove non ho fonte l'ho scritto: il NAS (Z: non montata) e' NON VERIFICABILE, e il
+confronto HANDOFF repo-vs-E: e' per NOME FILE, non per byte — dichiarato, non spacciato
+per un confronto di contenuto.

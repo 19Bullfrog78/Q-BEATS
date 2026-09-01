@@ -1,0 +1,117 @@
+diff --git a/ios_app/QBeats/UI/AppRootView.swift b/ios_app/QBeats/UI/AppRootView.swift
+index 53bc5ad..a0b9598 100644
+--- a/ios_app/QBeats/UI/AppRootView.swift
++++ b/ios_app/QBeats/UI/AppRootView.swift
+@@ -34,7 +34,14 @@ struct AppRootView: View {
+                     HomeRootView(onOpenQStage: { screen = .qStage },
+                                  onOpenQLive: { screen = .qLive })
+                 case .qStage:
+-                    QStageRootView(onExit: { screen = .home })
++                    // Specchio di `.qLive`. Le closure `{ screen = .home }` / `{ screen = .qLive }`
++                    // vivono SOLO qui (E2, `Screen` private enum). `.qLive` ESPLICITO, non un toggle.
++                    // ASIMMETRIA AUDIO VOLUTA — NON "correggere": entrare in `.qLive` NON ferma il
++                    // click (solo promemoria DND, `.onChange(of: screen)` sotto); USCIRE da `.qLive`
++                    // lo ferma. È il modello ratificato «sessione ≡ stanza» (BOX3 V96 punto (d)):
++                    // lo stop vive al bordo-stanza, non sulla navigazione.
++                    QStageRootView(onExit: { screen = .home },
++                                   onSwitchToLive: { screen = .qLive })
+                         .environmentObject(audioEngine)
+                 case .qLive:
+                     // Nodo A — specchio di `.qStage`. QLiveRootView possiede il seam
+diff --git a/ios_app/QBeats/UI/QStage/ShowsListView.swift b/ios_app/QBeats/UI/QStage/ShowsListView.swift
+index 6ca1513..cf637a1 100644
+--- a/ios_app/QBeats/UI/QStage/ShowsListView.swift
++++ b/ios_app/QBeats/UI/QStage/ShowsListView.swift
+@@ -49,6 +49,9 @@ private let showsLogger = Logger(subsystem: "com.bullfrog.qbeats", category: "Sh
+ 
+ struct ShowsListView: View {
+     let onExit: () -> Void
++    /// Switch di stanza verso Q-Live: closure DISTINTA da onExit (RoomSwitchBar.onSwitch).
++    /// Iniettata da AppRootView attraverso QStageRootView (`screen` resta private, E2).
++    let onSwitchToLive: () -> Void
+     @ObservedObject private var store = QBeatsStore.shared
+ 
+     // ⚠️ LOCALE (Q15: solo l'ordine è condiviso; la search NO). Vive qui, non nello store.
+@@ -81,9 +84,8 @@ struct ShowsListView: View {
+                     onHome: onExit,
+                     variant: .full,
+                     onSwitch: {
+-                        // TEMPORANEO — GATE S3. A S4 diventa lo switch reale verso Q-Live (SCALETTA:130).
+-                        // Sonda del gate device (4 tocchi sopra): tap sulla pill Q-Live (inattiva) DEVE loggare.
+-                        showsLogger.notice("[GATE-S3] RoomSwitchBar → Q-Live tapped (temporaneo; switch reale a S4)")
++                        showsLogger.notice("[NAV] Q-Stage → Q-Live (RoomSwitchBar)")
++                        onSwitchToLive()
+                     }
+                 )
+ 
+diff --git a/ios_app/QBeats/UI/QStageRootView.swift b/ios_app/QBeats/UI/QStageRootView.swift
+index 413bde5..ce7e011 100644
+--- a/ios_app/QBeats/UI/QStageRootView.swift
++++ b/ios_app/QBeats/UI/QStageRootView.swift
+@@ -7,8 +7,13 @@ import SwiftUI
+ /// PRIMA FETTA: completa solo la tab Songs; Shows e Media sono placeholder.
+ /// Nav-bar nativa nascosta ovunque: si usano header custom (stile app, cfr. HomeRootView).
+ /// `onExit()` torna alla Home (commutazione di schermata in AppRootView).
++/// Possiede DUE seam: `onExit()` → Home, `onSwitchToLive()` → Q-Live (specchio di QLiveRootView).
+ struct QStageRootView: View {
+     let onExit: () -> Void
++    /// Switch di stanza → Q-Live. Iniettata da AppRootView
++    /// (`{ screen = .qLive }` ESPLICITO, non un toggle).
++    /// Specchio di `QLiveRootView.onSwitchToStage`.
++    let onSwitchToLive: () -> Void
+     @State private var tab: Tab = .songs
+ 
+     private enum Tab: Hashable { case songs, shows, media }
+@@ -19,7 +24,7 @@ struct QStageRootView: View {
+                 .tabItem { Label("Songs", systemImage: "music.note.list") }
+                 .tag(Tab.songs)
+ 
+-            ShowsListView(onExit: onExit)
++            ShowsListView(onExit: onExit, onSwitchToLive: onSwitchToLive)
+                 .tabItem { Label("Shows", systemImage: "rectangle.stack") }
+                 .tag(Tab.shows)
+ 
+
+=== git status --porcelain (dopo la creazione di questo file) ===
+ M ios_app/QBeats/UI/AppRootView.swift
+ M ios_app/QBeats/UI/QStage/ShowsListView.swift
+ M ios_app/QBeats/UI/QStageRootView.swift
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21.txt
+?? HANDOFF/BOX5v27-LIBROv39_DIFF_2026-07-21_rev2.txt
+?? HANDOFF/DIFF_BUGS_v34_TD-peer-reconnect-button_2026-07-11_v2.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19.txt
+?? HANDOFF/DIFF_BUGS_v40_2026-07-19_rev2.txt
+?? HANDOFF/DIFF_BUGS_v42_2026-07-22.txt
+?? HANDOFF/DIFF_FIX-PILL_2026-07-22.txt
+?? HANDOFF/DIFF_GIRO_DOC_2026-07-17.txt
+?? HANDOFF/DIFF_LIBRO_v37_2026-07-19.txt
+?? HANDOFF/DIFF_N0_seam-onExit_2026-07-17.txt
+?? HANDOFF/DIFF_N1a_scaffold-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_N1b_flip-qLive_2026-07-17.txt
+?? HANDOFF/DIFF_S4a_2026-07-18.txt
+?? HANDOFF/DOC_BOX3_V97_2026-07-18.txt
+?? HANDOFF/DOC_BUGS_v39_2026-07-18.txt
+?? HANDOFF/DOC_LIBRO_v36_2026-07-18.txt
+?? HANDOFF/ESITO_COMMIT_BUGS_v40_2026-07-19.txt
+?? HANDOFF/ESITO_GIRODOC_FOLLOWER-GREGARIO_2026-07-19.txt
+?? HANDOFF/HANDOFF_CC_2026-07-18_S4a-girodoc-freeze.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_CHIUSURA_definitivo.txt
+?? HANDOFF/HANDOFF_CC_2026-07-19_giro-doc-follower-gregario.txt
+?? HANDOFF/HANDOFF_CC_2026-07-22_chiusura-giro-doc.txt
+?? HANDOFF/PIANO_S4_2026-07-18.txt
+?? HANDOFF/VERIFICA_R1_2026-07-18.txt
+?? HANDOFF/VERIFICA_S4a_TOKEN_2026-07-18.txt
+?? HANDOFF/VERIFICA_V-DIR_2026-07-19.txt
+?? HANDOFF/VERIFICA_V-ISP_2026-07-19.txt
+?? QBEATS_A5C_PIANO_2026-07-04.md
+?? QBEATS_ATOMC_PIANO_2026-07-06.md
+
+=== OID DISCO dei tre file modificati (git hash-object --no-filters) ===
+ios_app/QBeats/UI/QStageRootView.swift  586dd3f8fe4ff5211a0dbc7b52784883203e608d
+ios_app/QBeats/UI/AppRootView.swift  a0b9598af0096f8d4606f7e6c765c474e74af1fd
+ios_app/QBeats/UI/QStage/ShowsListView.swift  b458f7e96c9a241ba15d6adcaccb60e8d6b99b7d
+
+=== byte e righe dei tre file modificati (disco) ===
+ios_app/QBeats/UI/QStageRootView.swift  1952 byte  42 righe
+ios_app/QBeats/UI/AppRootView.swift  3979 byte  79 righe
+ios_app/QBeats/UI/QStage/ShowsListView.swift  26196 byte  553 righe

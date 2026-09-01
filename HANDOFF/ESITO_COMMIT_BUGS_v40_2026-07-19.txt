@@ -1,0 +1,59 @@
+ESITO COMMIT — FILE 1 del GIRO DOC "FOLLOWER GREGARIO" — BUGS_QBEATS.md v39 → v40
+Autore CC · 2026-07-19 · doppio cancello CHIUSO (ratifica referee rev2 sha 24a82cb2… + OK Mauro).
+
+════════════════════════════════════════════════════════════════════════
+1 — COMMIT (esito)
+════════════════════════════════════════════════════════════════════════
+SHA nuovo:   284eb31790933c7055318d963fcacc227c9bb572
+AUTORE:      Mauro Martintoni <di_tutto@icloud.com>
+COMMITTER:   Mauro Martintoni <di_tutto@icloud.com>
+TRAILER:     [] (ZERO — nessun Co-Authored-By, verificato con %(trailers) = vuoto)
+MESSAGGIO:   BUGS_QBEATS.md: v40 — TD-follower-stop-propaga (§1.2) + stretta ESITO A (§1.1), decisione Follower gregario (doc-only)
+DIFFSTAT:    1 file changed, 17 insertions(+), 3 deletions(-)  — SOLO BUGS_QBEATS.md, zero codice.
+STAGING:     file-by-file (`git add BUGS_QBEATS.md`), verificato che fosse staged SOLO quel file prima del commit.
+PADRE:       fe6d34b (invariato dall'inizio sessione).
+
+════════════════════════════════════════════════════════════════════════
+2 — PROPAGAZIONE (dal BLOB committato, git show — MAI dal file di lavoro)
+════════════════════════════════════════════════════════════════════════
+FONTE (impronta canonica) = `git show HEAD:BUGS_QBEATS.md | sha256sum`:
+  b7bca81b08ac1a8a0298be1708f46d20409a30a63996fd344dc4a5c24dd9e830
+
+Destinazioni su E: (tutte scritte con `git show HEAD:BUGS_QBEATS.md > <dest>`), sha256 ai due capi:
+  [mirror vivo 1] E:\…\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS.md      → b7bca81b…e830  (era v39 9793e06d…)
+  [mirror vivo 2] E:\…\FILE X CLAUDE.MD\CC MEMORIA\BUGS_QBEATS.md       → b7bca81b…e830  (era v39 9793e06d…)
+  [snapshot v40]  E:\…\FILE X CLAUDE.MD\BUGS_QBEATS\BUGS_QBEATS40.md    → b7bca81b…e830  (NUOVO; il 40 non esisteva, guardia anti-sovrascrittura passata)
+TUTTE E TRE == FONTE (b7bca81b…e830). Struttura confermata a fonte (discovery, non a memoria):
+  2 mirror vivi + snapshot per-versione (39 era l'ultimo → creato il 40). Il REFEREE_SYNC_2026-07-12/
+  BUGS_QBEATS35.md è un one-off storico, NON toccato.
+
+════════════════════════════════════════════════════════════════════════
+3 — STATO GIT FINALE
+════════════════════════════════════════════════════════════════════════
+HEAD:    284eb31  (== log -1)
+origin/master: fe6d34b  → HEAD è AHEAD di origin di 1, BEHIND 0.
+  ⇒ COMMIT LOCALE, NON PUSHATO. Il `git push` NON era nei 4 passi ratificati dal referee per FILE 1
+    (add · commit · propagazione E:+project · poi FILE 2) → NON eseguito di mia iniziativa. Decisione
+    su quando pushare (ora, o dopo FILE 2 in un solo push) = Mauro/referee. Segnalato, non fatto.
+Working tree: tracked PULITO (nessun file di codice o doc modificato non committato).
+Untracked: 20 voci (HANDOFF/*.txt trasporti + 2 piani orfani in root) — nessuna sorpresa.
+
+════════════════════════════════════════════════════════════════════════
+4 — "PROJECT UPLOAD" — passo di MAURO (non eseguibile da CC via CLI)
+════════════════════════════════════════════════════════════════════════
+L'upload del canonico aggiornato al PROGETTO Claude (knowledge/file che semina le sessioni future) è
+un'azione dell'interfaccia claude.ai: NON la posso fare da questo ambiente. → a carico di Mauro.
+File da caricare: BUGS_QBEATS.md v40. Impronta da verificare DOPO l'upload: b7bca81b…e830 (== blob committato).
+Se per "project upload" intendevi invece un percorso su disco, dimmelo e ci scrivo io dal blob.
+
+════════════════════════════════════════════════════════════════════════
+5 — CONDIZIONE E3 (forward-reference LIBRO v37) — ANCORA APERTA
+════════════════════════════════════════════════════════════════════════
+Il ticket TD-follower-stop-propaga cita "(Semantica cross-team in LIBRO v37 Sez.2.)". LIBRO v37 NON esiste
+ancora (FILE 2 non committato). Fra questo commit e quello di FILE 2 la citazione è PENDENTE — inerente a
+"FILE 1 prima", accettato dal referee finché FILE 2 atterra IN SESSIONE. → procedo ORA a FILE 2 (LIBRO
+v36→v37), fermata separata col suo diff verbatim. Se FILE 2 slittasse fuori sessione, torno a correggere
+la citazione in BUGS prima di chiudere.
+
+FINE ESITO FILE 1. Prossimo: FILE 2 — LIBRO_MASTRO_QBEATS.md v36 → v37 (una riga Sez.2 + changelog), che
+si fermerà al proprio doppio cancello prima del commit.

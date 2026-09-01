@@ -1,0 +1,555 @@
+================================================================================
+HANDOFF CC — 2026-07-31, chiusura sessione.
+================================================================================
+[V] Scritto da CC. File untracked in HANDOFF/. In questo giro nessun canonico è
+    stato toccato, nessun commit è stato creato, nessun push è stato fatto.
+    comando: git status --porcelain ; git log -1 --format=%H
+
+CONVENZIONE DI QUESTO FILE — non è un'affermazione sul mondo, è come si legge:
+  [V] misurato IN QUESTA SESSIONE, col comando accanto. Porta la misura, non la
+      conclusione.
+  [R] ricordato, ereditato o letto da un artefatto, NON rimisurato oggi.
+  Un tag apre l'affermazione e vale fino alla riga vuota successiva; le righe di
+  continuazione sono INDENTATE e non ripetono il tag. In caso di dubbio, [R].
+  Ciò che vive in LIBRO / BUGS / BOX3 / BOX5 / SCALETTA è qui INDIRIZZATO per
+  (data + titolo) oppure per `path:riga @ commit`, mai copiato: un handoff che
+  duplica un canonico è un canonico ombra che invecchia da solo e poi vince per
+  anzianità.
+  Ogni riferimento a riga di un file TRACCIATO porta il commit; ogni riferimento
+  a riga di un file UNTRACKED porta sha256 e superficie, perché non ha blob.
+
+[V] ⚠️ PROVENIENZA DI QUESTO FILE — si legge PRIMA del resto, perché cambia il
+    peso di ogni riga che segue. La sessione che scrive questo handoff NON ha in
+    contesto il lavoro della giornata: si è aperta sul prompt di chiusura. Tutto
+    ciò che è marcato [V] è stato misurato ADESSO, a fonte, sul repo e con `gh`.
+    Nulla di ciò che riguarda il COME si è svolta la giornata — chi ha rilevato
+    che cosa, in quale ordine, con quali ABORT — è verificabile da CC: sta tutto
+    in [R], letto dai canonici e dagli artefatti su disco. Il dettaglio è al §5.
+
+────────────────────────────────────────────────────────────────────────────
+§1 · STATO DEL REPO ALLA CHIUSURA
+────────────────────────────────────────────────────────────────────────────
+[V] Le misure di questa sezione sono state prese in chiusura di sessione il
+    2026-07-31; l'orologio della macchina, interrogato durante la stessa serie,
+    rendeva `2026-07-31 18:54:13 +0200`.
+    comando: date '+%Y-%m-%d %H:%M:%S %z'
+
+[V] Radice: `C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS`
+    comando: git rev-parse --show-toplevel
+
+[V] HEAD = origin/master = `8822598801ecbf9ca1be5adbf005f904c0b45f39`, branch
+    corrente `master`.
+    comando: git rev-parse HEAD ; git rev-parse origin/master ;
+             git rev-parse --abbrev-ref HEAD
+
+[V] CI di quel commit: run `30646987338`, conclusion `success`, headSha
+    coincidente con lo sha sopra.
+    comando: gh run view 30646987338 --json databaseId,conclusion,headSha
+    (mai lo sha corto in `gh … --commit`: rende `[]` con exit 0 — BOX3_QBEATS.md,
+     punto (d) di V99)
+
+[V] Staging VUOTO: `git diff --cached --name-only` rende 0 righe.
+
+[V] Nessun file tracciato modificato: `git diff --stat` rende 0 righe.
+
+[V] Untracked: 78 voci, di cui `tools/` conta come voce unica, perché git non
+    scende dentro una cartella interamente non tracciata.
+    comando: git status --porcelain | grep -c '^??'
+    ⚠️ Questo file INCREMENTA il numero che dichiara: al momento della misura non
+    esisteva ancora. Non è una discrepanza, è il nudo che si muove mentre lo si
+    scrive; chi apre domani se lo aspetti e non lo tratti come errore.
+
+[V] Branch locali: 13. Non-merged in origin/master: 12. Merged: 1, ed è `master`.
+    Il conto CHIUDE: 12 + 1 = 13.
+    comando: git branch | wc -l ; git branch --no-merged origin/master | wc -l ;
+             git branch --merged origin/master
+
+[V] Branch remoti, esclusa la voce `HEAD ->`: 13.
+    comando: git branch -r | grep -v 'HEAD ->' | wc -l
+
+[V] Worktree DEL REPO DESKTOP: due.
+    · `C:/Users/BULLFROG/Desktop/ANTIGRAVITY/Q-BEATS` @
+      `8822598801ecbf9ca1be5adbf005f904c0b45f39` [master]
+    · `C:/Users/BULLFROG/qb_fixB` @ `add556f0d14f0f2c1c6d1b1442354aa635a70934`
+      [test/bug2b-test7-fixtures]
+    comando: git worktree list
+
+[V] Le copie di lavoro sono QUATTRO, e la topologia NON è quella che la memoria
+    di CC portava: `qb_fixA` non è un worktree del repo Desktop, è un worktree
+    del SECONDO clone.
+    · Desktop @ `8822598801ecbf9ca1be5adbf005f904c0b45f39` [master] — clone
+      principale
+    · `C:/Users/BULLFROG/qb_fixB` @ `add556f0d14f0f2c1c6d1b1442354aa635a70934`
+      [test/bug2b-test7-fixtures] — worktree del Desktop
+    · `C:/Users/BULLFROG/qb468clone` @
+      `63fc3d2c39acc956b019144553271bd802615548`
+      [fix/bug-2b-visual-section-sync], `git status --porcelain` = 0 righe
+    · `C:/Users/BULLFROG/qb_fixA` @ `b23b40e478f29cf52c22b0f8c4294279bdad279a`
+      [fix/bug-2b-ferita-a-join-al-fire] — worktree DI qb468clone
+    comando: (eseguito dentro qb_fixA) git worktree list → elenca qb468clone e
+             qb_fixA, e non elenca il Desktop
+
+[V] Versioni dei canonici lette DAI BLOB a
+    `8822598801ecbf9ca1be5adbf005f904c0b45f39`, non dal disco e non a memoria:
+    LIBRO 47 (31/07/2026) · BUGS 46 · BOX3 V99 (2026-07-22) · BOX5 V28
+    (28/07/2026) · SCALETTA 4 (30/07/2026).
+    comando: for f in … ; do git show HEAD:"$f" | head -6 |
+             grep -m1 -iE 'versione|BOX3 V' ; done
+
+[V] Ultimo commit che tocca ciascun canonico: LIBRO `8822598` · BUGS `e61efd0` ·
+    BOX3 `7c804c1` · BOX5 `0a6ebaf` · SCALETTA `a393466`.
+    comando: git log --oneline -1 -- <file>
+
+[V] Due facce, dichiarate: `LIBRO_MASTRO_QBEATS.md` su disco è CRLF — 483
+    ritorni-carrello su 483 righe — mentre il blob è LF, 483 righe. La
+    numerazione di riga coincide sulle due facce, quindi i puntatori `:NNN` di
+    questo file valgono su entrambe.
+    comando: tr -cd '\r' < LIBRO_MASTRO_QBEATS.md | wc -c ;
+             git show HEAD:LIBRO_MASTRO_QBEATS.md | wc -l
+    (il CR si misura con `tr -cd`, mai con `grep` — falso-negativo n.1, LIBRO
+     Sez.2 riga 2026-07-30)
+
+────────────────────────────────────────────────────────────────────────────
+§2 · COSA È STATO COSTRUITO OGGI — una riga per fronte, il resto è nei canonici
+────────────────────────────────────────────────────────────────────────────
+[V] ⟦S4R⟧ — commit `bfc92285d165852a9c5618786a7e95f7166025e7`, 5 file,
+    +145 / −32, autore = committer `Mauro Martintoni <di_tutto@icloud.com>`,
+    trailer `[]`; `ios_build` run `30640274249` conclusion `success`, headSha
+    coincidente. Il contenuto si legge in LIBRO Sez.2, riga `2026-07-31`
+    «⟦S4R⟧ CHIUSO — la proprietà del runner sale alla stanza»
+    (`LIBRO_MASTRO_QBEATS.md:330 @ 8822598801ecbf9ca1be5adbf005f904c0b45f39`).
+    comando: git show --stat --format='' bfc92285d165852a9c5618786a7e95f7166025e7 ;
+             git log -3 --format='%h | A=%an <%ae> | C=%cn <%ce>%n [%(trailers)]' ;
+             gh run view 30640274249 --json conclusion,headSha
+
+[V] Giro doc v47 — commit `8822598801ecbf9ca1be5adbf005f904c0b45f39`, 1 file,
+    +10 / −5, stessa autorialità e trailer `[]`; CI `30646987338` success. Il
+    contenuto si legge in LIBRO Sez.2, righe `2026-07-31` «RETTIFICA — LA
+    DISTANZA DI 2 METRI NON È MAI ESISTITA», «ORIGINE DEI 2 METRI, E CHE COSA SI
+    MARCA», «DUE BUCHI DALLA STESSA TABELLA», e nel registro alla voce 47
+    (`LIBRO_MASTRO_QBEATS.md:479 @ 8822598801ecbf9ca1be5adbf005f904c0b45f39`).
+
+[V] Impronte degli artefatti di consegna, superficie DISCO, tutti a 0
+    ritorni-carrello:
+    · `HANDOFF/DIFF_S4R-fase2_2026-07-31.txt`   10354 B · 190 righe
+      sha256 `5929ee3f6cb1f40b6cbe052f64d4518b5952832ca7298208b9f77ca378ba5aed`
+    · `HANDOFF/DIFF_S4R-fase2b_2026-07-31.txt`  12987 B · 224 righe
+      sha256 `b47783880a5dc1c22a45c065be969ba905697a2a2fb0bfe0254e6e61449d9938`
+    · `HANDOFF/DIFF_LIBRO-v47_2026-07-31.txt`   45920 B · 67 righe
+      sha256 `294899d320b2473cf1162d1cca53901c17aa689140d4911abe75a4f39b4faa4d`
+    · `HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev2.txt` 46417 B · 70 righe
+      sha256 `d24fb8188b325368747181d2110ce959065b244e27e13a8dd2aa3a467099dec1`
+    · `HANDOFF/DIFF_LIBRO-v47_2026-07-31_rev3.txt` 46424 B · 71 righe
+      sha256 `52f38fc7e31b555f58081a43e1e328d4e897d6c42c48aacef0a5e73becab58c5`
+    comando: sha256sum <f> ; stat -c%s <f> ; wc -l < <f> ; tr -cd '\r' < <f> | wc -c
+
+[V] Propagazione su E: verificata per confronto byte a byte, non per sha
+    riportato: `cmp` fra `HANDOFF/` del repo e `E:\HOBBY\MUSICA - BATTERIA
+    -SISTA\Q-BEATS\FILE X CLAUDE.MD\HANDOFF\` esce 0 su tutti e cinque gli
+    artefatti sopra, più sui due `DIFF_LIBRO-v46_2026-07-31*` e su
+    `STATO_FINALE_2026-07-31_40f099b.txt`. Anche `tools/lint_canonici.py` esce 0
+    contro `…\FILE X CLAUDE.MD\tools\`.
+    comando: cmp -s "HANDOFF/$f" "$E/HANDOFF/$f" ; echo $?
+
+[R] Lo sha256 DICHIARATO NEL MESSAGGIO al momento della consegna — quello che il
+    referee confronta prima di leggere — non è in mio possesso: non ho la chat di
+    consegna. Attesto le impronte di OGGI, non che coincidano con quelle
+    annunciate allora. Vedi §5.
+
+────────────────────────────────────────────────────────────────────────────
+§3 · MISURATO IN QUESTA SESSIONE E IN NESSUN CANONICO
+────────────────────────────────────────────────────────────────────────────
+[V] È la sezione che giustifica l'esistenza del file. Nove voci, numerate; il
+    conto chiude a nove.
+
+[V] (1) ⚠️ IL DIFF RATIFICATO NON CONTIENE TUTTO IL COMMIT — primo scarto.
+    Il commit `bfc92285d165852a9c5618786a7e95f7166025e7` tocca
+    `ios_app/QBeats/UI/Live/LiveView.swift` (2 righe di commento sostituite,
+    `| 4 +-` nello stat). Quel percorso rende 0 occorrenze in ENTRAMBI gli
+    artefatti di consegna, `DIFF_S4R-fase2_2026-07-31.txt` e
+    `DIFF_S4R-fase2b_2026-07-31.txt`. Controllo positivo con la STESSA forma e
+    sugli STESSI due file: `UI/LiveRootView.swift` rende 2 in entrambi, quindi il
+    grep aggancia. L'elenco `^diff --git` dei due artefatti rende tre percorsi
+    ciascuno, e `LiveView.swift` non è fra quelli.
+    comando: git show --stat --format='' bfc92285d165852a9c5618786a7e95f7166025e7 ;
+             grep -c 'UI/Live/LiveView.swift' <artefatto> ;
+             grep -c 'UI/LiveRootView.swift' <artefatto> ;
+             grep '^diff --git' <artefatto>
+    ⚠️ Il commit lo DICHIARA da sé nel proprio messaggio («SetlistRunner e
+    LiveView: le sole righe di commento rese false dall'atomo»): non è occulto.
+    Ma il protocollo CONSEGNA-GATE dice che l'artefatto è il diff, e l'artefatto
+    su disco non porta quella modifica. Perché non ci sia entrata: non
+    determinabile da CC — §5.
+
+[V] (2) ⚠️ SECONDO SCARTO FRA DIFF RATIFICATO E CODICE COMMESSO — il nome della
+    proprietà. A `8822598801ecbf9ca1be5adbf005f904c0b45f39` il file
+    `ios_app/QBeats/UI/QLive/QLiveRootView.swift` dichiara alla riga 74
+    `@StateObject private var roomSession = QLiveSession()`, il gate alla riga 98
+    legge `if let runner = roomSession.runner`, e la riga 67 porta un commento
+    che spiega la collisione col `session` proprio di `LiveView`. L'artefatto
+    ratificato porta `session`: `roomSession` vi rende 0 occorrenze, controllo
+    positivo `session` sullo stesso file → 10. Il messaggio di commit dichiara il
+    cambio; l'artefatto no.
+    comando: git show HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift |
+               grep -n 'roomSession' ;
+             grep -c 'roomSession' HANDOFF/DIFF_S4R-fase2b_2026-07-31.txt ;
+             grep -c 'session'     HANDOFF/DIFF_S4R-fase2b_2026-07-31.txt
+    In nessun canonico: LIBRO r.330 descrive il gate e lo slot, non il nome della
+    proprietà né lo scarto.
+
+[V] (3) ⚠️ LE DUE RUN F1 CITATE DA LIBRO HANNO CONCLUSION `failure`. Sia
+    `30639169986` (branch `s4r/fase2b-build-check`, headSha
+    `bfc92285d165852a9c5618786a7e95f7166025e7`) sia la baseline `30638276963`
+    (branch `master`, headSha `40f099bb28ad87627e3c6df926993a3df297df90`)
+    rendono `"conclusion":"failure"`. Il workflow si chiama «F1 — Build Check
+    (zero errors, zero warnings)»: con 6 warning il verde non è raggiungibile per
+    costruzione. LIBRO r.330 e la voce 47 del registro (r.479), allo stesso
+    commit, citano quelle run per «Errors 0, 6 warning identici alla baseline» e
+    NON dichiarano un success — quindi non sono false. Ma chi verifica a fonte
+    legge `failure` e, senza il nome del workflow, conclude che il cancello sia
+    caduto.
+    comando: gh run view 30639169986 --json name,conclusion,headBranch,headSha
+    Che quelle due run siano `failure` non è agli atti in nessun canonico.
+
+[V] (4) Il branch `s4r/fase2b-build-check`, che ha portato la run F1, NON esiste
+    più su origin: `git ls-remote --heads origin` non rende alcuna riga
+    contenente `s4r`. Il branch di lancio del cancello è sparito, la run resta.
+    comando: git ls-remote --heads origin | grep -i s4r
+
+[V] (5) `tools/lint_canonici.py` è INVARIATO rispetto al mattino: sha256
+    `25c6abe5dfdef6eac4708c18025fb8269029bd0a16b445dc925438a0c9a2d206`, 12076 B,
+    242 righe, superficie disco — identico al valore dichiarato in
+    `HANDOFF/STATO_FINALE_2026-07-31_40f099b.txt` r.39 (file untracked, sha256
+    `69c31c856eae42d0244323ac23e66dc482d0f3b73887d21b8cfcd2e426d44231`,
+    superficie disco). Lo strumento ha smesso di cambiare. È ancora untracked:
+    due commit sono passati senza portarlo dentro.
+    comando: sha256sum tools/lint_canonici.py ; git status --porcelain | grep tools
+
+[V] (6) IL «CATALOGO DEI DIFETTI» NON HA UNA CASA. LIBRO r.479 scrive «È il
+    difetto 7 del catalogo»; `tools/lint_canonici.py` (untracked, sha256
+    `25c6abe5…`, superficie disco) alle righe 14-31 mappa C1←difetto 7,
+    C2←difetto 6, C3←difetto 2, C4←difetto 5, C5←difetto 12. Una numerazione che
+    arriva almeno a 12, mentre la voce 46 del registro (r.470 è la voce 38; la
+    voce 46 è a r.478) ne elenca SETTE. La ricerca delle tre forme, girata
+    verbatim da radice repo, rende 8 riscontri su 5 file una volta esclusi i
+    documenti che si limitano a CITARE le forme mentre le cercano — questa
+    consegna compresa, che le cita e quindi si conta da sé. Gli 8 sono: LIBRO
+    r.479 (uno) · le righe 14, 29, 130 e 157 di `tools/lint_canonici.py`
+    (quattro) · i tre `DIFF_LIBRO-v47_2026-07-31*.txt` (tre), che portano la
+    stringa perché sono il diff della riga 479, non una casa autonoma. Il conto
+    chiude: 1 + 4 + 3 = 8. Il totale GREZZO, senza esclusione, è più alto e NON
+    è stabile: cresce a ogni documento che nomini queste forme, quindi si rilegge
+    a fonte e non si cita a memoria. Il catalogo a cui LIBRO e il lint si
+    riferiscono non sta in nessun canonico.
+    comando: grep -rn "difetto 12\|catalogo dei difetti\|difetto 7"
+             --include=*.md --include=*.txt --include=*.py .
+             conteggi sulla stessa forma: `| wc -l` per i riscontri ·
+             `| cut -d: -f1 | sort -u` per i file · l'esclusione con
+             `| grep -v <nome del documento che cita>`.
+
+[V] (7) `qb468clone` @ `63fc3d2c39acc956b019144553271bd802615548` NON è
+    raggiungibile da origin/master: `git merge-base --is-ancestor` esce con 1.
+    Conferma misurata di ciò che la memoria portava come nota ereditata: quel
+    clone è fuori catena.
+    comando: git merge-base --is-ancestor 63fc3d2c39acc956b019144553271bd802615548
+             origin/master ; echo $?
+
+[V] (8) Fuori da `HANDOFF/` ci sono TRE voci untracked, e il conto chiude:
+    `QBEATS_A5C_PIANO_2026-07-04.md`, `QBEATS_ATOMC_PIANO_2026-07-06.md` e
+    `tools/`. I due piani stanno SCIOLTI nella root del repo invece che in
+    `HANDOFF/`: è la stessa forma della recidiva del 17/07 già a verbale, su file
+    più vecchi che quella correzione non aveva raccolto.
+    comando: git status --porcelain | grep '^??' | grep -v '^?? HANDOFF/'
+
+[V] (9) `HANDOFF/` del repo contiene 79 voci, `…\FILE X CLAUDE.MD\HANDOFF\` su
+    E: ne contiene 117. I due numeri differiscono. ⚠️ Se uno dei due insiemi
+    contenga l'altro NON è stato misurato, e non lo dichiaro: 79 < 117 non è una
+    prova di inclusione.
+    comando: ls HANDOFF/ | wc -l ; ls "$E/HANDOFF" | wc -l
+
+[V] ⚠️ SULLA COMPLETEZZA DI QUESTO ELENCO — il conto chiude su nove voci, ma
+    chiude rispetto alle misure che ho eseguito. NON dichiaro l'elenco completo
+    in senso assoluto: sarebbe una conclusione, non una misura. Ciò che non ho
+    misurato sta al §5.
+
+────────────────────────────────────────────────────────────────────────────
+§4 · TICKET E PENDENZE APERTE — elenco, non trattazione
+────────────────────────────────────────────────────────────────────────────
+[V] Ogni voce porta titolo, dove sta la misura, e chi decide. I corpi stanno in
+    BUGS e nei canonici, non qui.
+
+[V] BOX3 fermo a V99 del 2026-07-22 · la stringa `2026-07-3` rende 0 riscontri
+    nel blob a `8822598801ecbf9ca1be5adbf005f904c0b45f39`, controllo positivo
+    stessa forma `2026-07-2` → 7 · decide Mauro sull'apertura del giro BOX3.
+    comando: git show HEAD:BOX3_QBEATS.md | grep -c '2026-07-3'
+
+[V] Marcature in coda — quattro, tutte ancora da fare, ciascuna verificata a
+    fonte adesso, tutte a `8822598801ecbf9ca1be5adbf005f904c0b45f39`:
+    · `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md:144` porta ancora «RATIFICA NON
+      ANCORA ATTERRATA IN LIBRO — pendenza aperta»; `2026-07-31` rende 0
+      riscontri in quel file.
+    · `BUGS_QBEATS.md:126` porta ancora «freeze del disegno ATTESO da CD» e
+      «Nessuna implementazione prima del freeze»; `:128` ancora «bloccato sul
+      freeze CD». `2026-07-31` rende 0 riscontri in tutto BUGS.
+    · `BOX3_QBEATS.md:30` porta ancora il puntatore `:12-13`, quello che tronca
+      `store: .shared`.
+    · La voce 38 del registro di LIBRO (`LIBRO_MASTRO_QBEATS.md:470`) NON è
+      marcata: `2026-07-31` rende 0 riscontri su quella riga, controllo positivo
+      stessa forma su `:292` → 1.
+    Le prime tre sono disposte da LIBRO v46, riga `2026-07-31` «TRE CLAUSOLE DI
+    SCRITTURA» (`:328`); la quarta da v47, riga «ORIGINE DEI 2 METRI» (`:332`).
+    decide: referee per la forma, Mauro per l'OK al giro.
+    comando: git show HEAD:<file> | sed -n '<n>p' ;
+             git show HEAD:<file> | grep -c '2026-07-31'
+
+[V] I sette rilievi del 31/07 — sono INCISI, non pendenti: il registro di LIBRO,
+    voce 46 (`:478`), li elenca, cinque di CC e due del referee, e 5 + 2 = 7.
+    Ciò che resta aperto è la loro COPERTURA automatica: `tools/lint_canonici.py`
+    (untracked, sha256 `25c6abe5…`, superficie disco) copre il conteggio dei pipe
+    (C1), il puntatore corpo↔fonte (C2), la forma «giorni trascorsi» (C3) e i
+    sostitutivi tipografici (C5); su C4 STAMPA e non si pronuncia — lo dichiara
+    da sé alle righe 163-168. Restano senza controllo i due rilievi di tipo
+    «numero asserito e mai misurato», il conteggio dei commit e quello delle
+    righe. decide: referee.
+
+[V] Porta a senso unico che vincola ⟦S5⟧ · LIBRO Sez.2 riga `2026-07-31` «ORDINE
+    DEGLI ATOMI §6 EMENDATO» (`LIBRO_MASTRO_QBEATS.md:329 @
+    8822598801ecbf9ca1be5adbf005f904c0b45f39`), MOTIVO 4: nessuna sessione
+    multi-device e nessuna data con band su una build che contenga ⟦S5⟧ finché
+    ⟦S-EXIT⟧ non è chiuso device. Non è pendente come decisione — è ratificato —
+    ma morde alla prima build che contenga ⟦S5⟧. decide: nessuno, si rispetta.
+
+[V] `tools/lint_canonici.py` · untracked, invariato dal mattino (§3 voce 5),
+    dichiarato NON-NORMATIVO ai sensi di R-γ nelle proprie righe 2-7. Il giro doc
+    che doveva portarlo dentro non l'ha portato. decide: Mauro, sul se e quando
+    tracciarlo.
+
+[V] Triage `qb468clone` · secondo clone completo su
+    `C:/Users/BULLFROG/qb468clone`, branch `fix/bug-2b-visual-section-sync` @
+    `63fc3d2c39acc956b019144553271bd802615548`, albero pulito (porcelain 0
+    righe), fuori catena master (§3 voce 7), e con appeso il worktree `qb_fixA` @
+    `b23b40e478f29cf52c22b0f8c4294279bdad279a`. decide: Mauro.
+
+[V] Debito dei 12 branch non-merged · elenco e conto misurati al §1. Triage
+    per-branch, mai alla cieca. decide: Mauro.
+
+[R] Debiti nominati in sessioni precedenti e NON verificati oggi — si scrivono
+    come non verificati, non come aperti, ed è la stessa clausola che l'handoff
+    del mattino portava in coda al proprio §7: riclassificazione commerciale
+    TD#17 · build Distribution mai tentata · TD-qlive-exit-unconfirmed-stop, metà
+    pre-esistente. Su nessuno dei tre ho cercato una riga che li chiuda.
+
+[R] Buchi dichiarati e rinviati da v47, da disporre in un giro proprio:
+    tipografia (SF Pro contro Inter + JetBrains Mono) e famiglia di dispositivo.
+    Stanno per esteso in LIBRO Sez.2 riga `2026-07-31` «DUE BUCHI DALLA STESSA
+    TABELLA» (`:333`); non li ho rimisurati. decide: referee + Mauro.
+
+[R] Censimento dei mirror del LIBRO su E:, misurato ma NON concluso e BLOCCATO
+    dal referee — sta in `HANDOFF/STATO_FINALE_2026-07-31_40f099b.txt` §6 (file
+    untracked, sha256 `69c31c85…`, superficie disco). Non l'ho ripreso.
+
+────────────────────────────────────────────────────────────────────────────
+§5 · ⚠️ CIÒ CHE NON HO VERIFICATO
+────────────────────────────────────────────────────────────────────────────
+[V] LA VOCE PRINCIPALE, ed è strutturale: non ho in contesto la sessione di
+    lavoro che ha prodotto ⟦S4R⟧ e i giri v46 e v47. Questa sessione si è aperta
+    sul prompt di chiusura. Non posso quindi attestare nulla di ciò che è
+    accaduto nella conversazione: non i tre ABORT, non chi ha rilevato quale dei
+    sette difetti, non il momento della ratifica del referee, non che cosa sia
+    stato allegato alla chat e in quale forma. Tutto questo l'ho LETTO dai
+    canonici e dagli artefatti, e sta in [R].
+
+[R] Di conseguenza non so se i due scarti del §3, voci (1) e (2), siano stati
+    portati al referee dopo la ratifica del diff e da lui accettati, oppure siano
+    passati senza che nessuno li vedesse. Il commit li dichiara nel proprio
+    messaggio; l'artefatto no. Chi ha la chat lo sa. NON DETERMINABILE da CC.
+
+[R] Non ho verificato lo sha256 annunciato nei messaggi di consegna contro quello
+    dei file: non ho i messaggi. Ho verificato solo che i file di oggi esistano,
+    con quali impronte, e che le due superfici coincidano per `cmp`.
+
+[V] `cmp` e `sha256sum` provano che i due lati sono lo STESSO file — non che il
+    file sia INTERO rispetto a ciò che si intendeva scrivere. Una scrittura
+    troncata rende un'impronta vera. Per gli artefatti di oggi non ho rigenerato
+    nulla per confronto.
+
+[V] Dei 79 file di `HANDOFF/` ne ho aperti due per intero —
+    `STATO_FINALE_2026-07-31_40f099b.txt` e `DIFF_S4R-fase2b_2026-07-31.txt` — e
+    di altri due ho letto solo le prime righe: `DIFF_S4R-fase2_2026-07-31.txt` e
+    `DIFF_LIBRO-v47_2026-07-31_rev3.txt`. Dei rimanenti non attesto nulla, né
+    contenuto né intestazione.
+
+[R] Non ho verificato il freeze CD `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-
+    Play.html`: né il suo sha256, né che sia ancora identico al blob citato in
+    LIBRO riga «⟦S-EXIT⟧». Quella misura appartiene al giro di v46 e la riporto
+    come ricordata, non come rifatta.
+
+[R] Non ho verificato niente sul device. ⟦S4R⟧ non è chiuso device e questo file
+    non aggiunge nulla su quel fronte.
+
+[R] Delle quattro copie di `QBEATS_CC_Allineamento_29_04_2026*.md` ho solo
+    constatato con `find` che sotto `ARCHIVIO.MD/` esistono quattro file con quel
+    nome. Non ne ho letto il §3, non ne ho confrontato i byte, non ho verificato
+    lo sha256 citato in LIBRO riga «ORIGINE DEI 2 METRI».
+
+[R] Non ho verificato lo stato di CI dei commit precedenti a
+    `bfc92285d165852a9c5618786a7e95f7166025e7` oltre a quelli che `gh run list
+    -L 8` ha reso da sé, e non ho verificato che la run `30640274249` abbia
+    prodotto una IPA installabile.
+
+[R] Non ho girato `tools/lint_canonici.py` sui canonici. L'ho girato solo su
+    questo file, come cancello di consegna.
+
+[V] La nota di memoria di CC che descrive `qb_fixA` come worktree del repo
+    Desktop è contraddetta dalla misura al §1: è un worktree di `qb468clone`. La
+    memoria va corretta, e in questo giro non l'ho corretta.
+
+[R] Le altre note di memoria lette in apertura non sono state verificate contro
+    il loro oggetto, tranne dove il §1 e il §3 lo dicono esplicitamente.
+
+────────────────────────────────────────────────────────────────────────────
+§6 · ROUTING
+────────────────────────────────────────────────────────────────────────────
+[V] ⚠️ Il nome di un modello invecchia; il criterio no. Sotto sta il criterio, e
+    accanto il nome che oggi lo soddisfa: il nome si rilegge prima di usarlo, il
+    criterio si applica.
+
+[R] Criterio 1 — scrittura su un canonico, e ogni atomo il cui unico cancello è
+    la LETTURA UMANA del diff: il tier più capace disponibile. Oggi si chiama
+    Opus 5. La ragione non è la lunghezza del lavoro: è che sotto quegli atomi
+    non esiste rete a runtime, come dice LIBRO Sez.2 riga `2026-07-31` «GATE DI
+    ⟦S4R⟧ RI-DICHIARATO» (`LIBRO_MASTRO_QBEATS.md:326 @
+    8822598801ecbf9ca1be5adbf005f904c0b45f39`), punto (3). Dove il device non può
+    falsificare, l'unico filtro è la qualità della lettura.
+
+[R] Criterio 2 — misura meccanica ripetitiva, con comando già deciso e forma già
+    dichiarata: basta il tier intermedio. Oggi si chiama Sonnet 5. ⚠️ Vale solo
+    se la FORMA della misura è già stata scelta da chi lavora al criterio 1:
+    scegliere la forma è lavoro da criterio 1, eseguirla no.
+
+[R] Criterio 3 — il tier veloce, oggi Haiku 4.5, non tocca nulla che finisca in
+    un canonico, in un diff di consegna, o in un numero che qualcuno citerà.
+
+[V] Per questo file ho applicato il criterio 1: misure a fonte, lettura di
+    canonici lunghi, e una scrittura che deve reggere il lint e la rilettura.
+
+[R] Regola di condotta già a verbale: CC apre OGNI risposta indicando il modello
+    più adatto al compito, e il perché. Vale anche per la sessione che riprende
+    da qui.
+
+────────────────────────────────────────────────────────────────────────────
+§7 · IL PROSSIMO FRONTE
+────────────────────────────────────────────────────────────────────────────
+[V] Per ordine, il prossimo è ⟦S5⟧. L'ordine emendato è inciso in LIBRO Sez.2
+    riga `2026-07-31` «ORDINE DEGLI ATOMI §6 EMENDATO»
+    (`LIBRO_MASTRO_QBEATS.md:329 @ 8822598801ecbf9ca1be5adbf005f904c0b45f39`):
+    S4 ✅ → ⟦S4K⟧ ✅ → ⟦S4R⟧ → ⟦S5⟧ → ⟦S-EXIT⟧ → ⟦S4L⟧ → ⟦S6⟧. ⟦S4L⟧ è
+    SOSPESO su tre pendenze, elencate nella stessa riga.
+
+[V] Perché ⟦S5⟧ e non ⟦S-EXIT⟧: la stessa riga, MOTIVO 2, dispone che il gate
+    device di ⟦S5⟧ sia IL gate nominato della proprietà del runner, quella che
+    ⟦S4R⟧ non ha potuto provare. Rinviare ⟦S5⟧ significa lasciare ⟦S4R⟧ non
+    validato e costruire sopra uno strato non provato.
+
+[V] COSA DEVE SUCCEDERE PRIMA — una precondizione tecnica è scritta dentro il
+    codice, non in un documento: `ios_app/QBeats/UI/QLive/QLiveRootView.swift:157
+    @ 8822598801ecbf9ca1be5adbf005f904c0b45f39` incide «⟦S5⟧ NON parte senza
+    questo empty-state», e l'empty-state della pagina metronomo è materia CD,
+    senza freeze. Serve una consegna di CD. ⚠️ NON ho censito se ne esistano
+    altre della stessa natura: questa l'ho trovata, non ho cercato le altre.
+    comando: git show HEAD:ios_app/QBeats/UI/QLive/QLiveRootView.swift |
+             grep -n 'NON parte senza'
+
+[V] Le altre precondizioni note sono di processo e stanno al §4: le quattro
+    marcature in coda, e il vincolo a senso unico che morde nel momento in cui
+    ⟦S5⟧ entra in una build.
+
+[R] ⛔ NON DECIDO IO che il prossimo giro sia ⟦S5⟧, né che si apra prima un giro
+    doc per le marcature. L'ordine è ratificato, ma l'apertura del fronte è di
+    Mauro e la forma dell'atomo è del referee. Qui è dichiarato PENDENTE e
+    attribuito, non deciso.
+
+[R] ⚠️ Se il fronte che si apre è ⟦S5⟧, vale ciò che valeva per ⟦S4R⟧ e che
+    l'handoff del mattino scriveva al proprio §7: se esiste già un prompt scritto
+    per quell'atomo, ce l'ha Mauro e va CHIESTO, non riscritto e non riassunto.
+    Se esista, non lo so e non l'ho verificato.
+
+────────────────────────────────────────────────────────────────────────────
+CODA — CANCELLO, CONTI, E CIÒ CHE NON SONO RIUSCITO A MISURARE
+────────────────────────────────────────────────────────────────────────────
+[V] Cancello passato prima della consegna: `PYTHONIOENCODING=utf-8 python
+    tools/lint_canonici.py --libero HANDOFF/HANDOFF_CC_2026-07-31.txt`. L'esito
+    numerico sta nel messaggio di consegna, non qui: un file che dichiara il
+    proprio esito lo dichiara al momento sbagliato, perché è scritto prima che il
+    controllo giri.
+
+[V] Clausole (1) e (2) del prompt, verificate a mano perché il lint non le copre:
+    · (1) niente duplicati di canonico — ogni fatto che vive in LIBRO / BUGS /
+      BOX3 / BOX5 / SCALETTA è qui INDIRIZZATO per data + titolo o per
+      `path:riga @ commit`, e nessuna riga di Sez.2 è ricopiata.
+    · (2) ogni affermazione porta il proprio tag, e in caso di dubbio ho messo
+      [R].
+
+[V] Conteggio delle righe senza tag — si dichiara la FORMA accanto al numero,
+    perché sullo stesso file le due forme rendono numeri diversi e nessuna delle
+    due da sola è la risposta:
+    · forma «affermazioni»: righe che asseriscono qualcosa e non aprono con [V] o
+      [R] il proprio blocco. È la forma che la regola dei tag intende.
+    · forma «righe fisiche»: righe che non cominciano per `[V]` o `[R]`.
+      Comprende separatori, titoli di sezione, righe di continuazione indentate,
+      righe di comando e righe vuote — cioè quasi tutto ciò che non è un capo di
+      blocco. Un numero grande qui non significa nulla senza la scomposizione.
+    Entrambi i numeri, misurati sul file finito, stanno nel messaggio di consegna.
+    comando: grep -c '^\[[VR]\]' <file> ; grep -vc '^\[[VR]\]' <file> ;
+             grep -c '^$' <file>
+
+[V] ⚠️ NON DETERMINABILE DA CC — lo dichiaro invece di ometterlo:
+    · se i due scarti diff↔commit del §3, voci (1) e (2), siano stati visti e
+      accettati da qualcuno.
+    · se gli sha256 annunciati alla consegna coincidessero con quelli di oggi.
+    · quale sia il «catalogo dei difetti» a cui LIBRO r.479 e il lint si
+      riferiscono, e dove viva.
+    · perché `HANDOFF/` del repo e quello su E: portino un numero diverso di file.
+    · se esista già un prompt scritto per il prossimo atomo.
+
+────────────────────────────────────────────────────────────────────────────
+DEBITO REGISTRATO — due voci con un nome, perché non evaporino
+────────────────────────────────────────────────────────────────────────────
+[V] Non le risolvo qui. Le registro con un nome proprio, così che chiunque le
+    ritrovi possa cercarle per stringa invece che ricordarsele.
+
+[V] DEBITO «D-F1-ROSSO-PER-COSTRUZIONE» — il cancello F1 non può rendere verde.
+    Il workflow si chiama «F1 — Build Check (zero errors, zero warnings)» e vive
+    in `.github/workflows/f1_build_check.yml`. Le due run che LIBRO r.330 cita
+    rendono entrambe `conclusion` = `failure`: `30639169986`, branch
+    `s4r/fase2b-build-check`, headSha `bfc92285d165852a9c5618786a7e95f7166025e7`;
+    e la baseline `30638276963`, branch `master`, headSha
+    `40f099bb28ad87627e3c6df926993a3df297df90`.
+    comando: gh run view <id> --json name,conclusion,headBranch,headSha
+
+[R] Sul perché quel rosso sia strutturale e non un guasto: la baseline porta 6
+    warning accettati — lo leggo in LIBRO Sez.2 riga `2026-07-31` «⟦S4R⟧ CHIUSO»
+    e nella voce 47 del registro, non l'ho contato io sul log di build. Se il
+    numero di warning accettati è diverso da zero e il cancello pretende zero,
+    il cancello è rosso per costruzione: non separa più il buono dal cattivo, e
+    un cancello che è sempre rosso smette di essere letto. Osservazione tecnica
+    MIA, dichiarata come tale. Le due vie sono azzerare i warning oppure
+    rinominare il controllo per ciò che misura davvero; scegliere fra le due non
+    tocca a me. decide: referee per la forma, Mauro per l'apertura del giro.
+
+[V] DEBITO «D-HANDOFF-INCLUSIONE-NON-MISURATA» — due cartelle diverse, direzione
+    ignota. Misurato oggi, al momento di questa consegna: `HANDOFF/` del repo
+    porta 81 voci, `…\FILE X CLAUDE.MD\HANDOFF\` su E: ne porta 119.
+    comando: ls HANDOFF/ | wc -l ; ls "$E/HANDOFF" | wc -l
+    ⚠️ I due numeri si muovono a OGNI consegna — questa li ha già spostati da
+    80 e 118 — quindi si rileggono a fonte e non si citano a memoria. Ciò che
+    NON si muove, e che è il debito vero, è che i due lati DIFFERISCONO e che la
+    direzione dell'inclusione non è mai stata misurata: non so se il repo sia
+    contenuto in E:, se E: sia contenuto nel repo, o se ciascuno porti file che
+    l'altro non ha. 81 < 119 non è una prova di inclusione. Finché quella
+    direzione non è misurata, E: NON è una copia di sicurezza del repo: è una
+    seconda cartella con un nome simile. decide: Mauro.
+
+================================================================================
+FINE HANDOFF.
+================================================================================

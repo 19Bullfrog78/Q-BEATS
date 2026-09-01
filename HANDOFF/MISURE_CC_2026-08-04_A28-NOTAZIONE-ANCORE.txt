@@ -1,0 +1,272 @@
+MISURE CC — 2026-08-04 — giro QB-2026-08-03-A28-REGISTRO-VERSIONI-E-NOTAZIONE
+REPERTO: la NOTAZIONE delle ancore di commit non è normalizzata,
+         e finché non lo è nessun controllo automatico può essere completo.
+
+⛔ QUESTO FILE NON NORMALIZZA NULLA. È un deposito di misure.
+   La regola sulla notazione la ratifica Mauro in un atomo suo.
+
+================================================================
+1. IL FATTO — due conteggi sullo stesso file, con lo stesso scopo
+================================================================
+Bersaglio: `BUGS_QBEATS.md` (working tree, giro A25/A26/A28).
+Scopo: censire le ancore di commit presenti.
+
+  pattern «@ seguito da 40 esadecimali»   → 5 ancore distinte
+  pattern «qualunque 40 esadecimali»      → 17 stringhe distinte
+
+Lo stesso file, la stessa domanda, due risposte che differiscono di TRE VOLTE.
+
+⚠️ E il caso che contava di più stava nella differenza. L'ancora
+`899be2ce1da81f0e4a6280904d8d18087a8c1074` — l'unica ancora di BLAME
+esplicitamente dichiarata in tutto il file, oggetto della verifica C10.1 del
+giro A27 — **NON compariva nel primo conteggio.** Un censimento delle ancore
+di blame condotto col primo pattern avrebbe reso ZERO, con exit 0, su un file
+che ne contiene una.
+
+================================================================
+2. LE TRE NOTAZIONI IN USO, con un esempio reale ciascuna
+================================================================
+(a) `@ ` + hash nudo
+    BUGS_QBEATS.md:132 @ 0ee9543d45d638df061c5a48872aaefeb8a88f26
+
+(b) `@ ` + hash fra backtick   ← il backtick spezza il pattern (a)
+    Store/QBeatsStore.swift:120` @ `8fa50189b13f49ba3b291510f7d1a388d75b5909
+
+(c) due punti + hash            ← nessuna chiocciola, sfugge ad (a) e (b)
+    (blame, invariato dal 21/05): `899be2ce1da81f0e4a6280904d8d18087a8c1074
+
+Nessuna delle tre è sbagliata. Nessuna è dichiarata canonica. Convivono nello
+stesso documento, spesso nella stessa sezione.
+
+================================================================
+3. LA CONSEGUENZA — riguarda uno strumento che ESISTE GIÀ
+================================================================
+`tools/lint_canonici.py` (12076 byte, 31/07) oggi esegue quattro famiglie di
+controlli — C1 conteggio pipe, C2 puntatori `:NNN` con riscontro nel corpo,
+C3 forma «giorni trascorsi», C5 apostrofi sostitutivi — ciascuna con il
+proprio controllo positivo. Delle ancore di commit **non controlla nulla**:
+l'unico 40-esadecimale nel sorgente sta in un commento e in una `print`, non
+in un pattern.
+
+⇒ Il momento per decidere la notazione è ADESSO, PRIMA che un controllo sulle
+  ancore entri nel linter. Se entrasse oggi, entrerebbe con una sola delle tre
+  forme e nascerebbe **incompleto per costruzione**, con l'aggravante che
+  produrrebbe zeri verdi: il modo peggiore di essere incompleto.
+
+  ⛔ Prima la notazione, poi il linter.
+
+⚠️ Nota a favore del linter, misurata in questo stesso giro: il suo controllo
+  C1 (conteggio pipe) è esattamente ciò che ha intercettato un difetto reale
+  qui — la riga di registro `| 49 |` era stata scritta con `| 47 |` dentro il
+  testo della cella, due pipe che markdown avrebbe letto come separatori,
+  rompendo la tabella. Misurato: riga 47 → 5 pipe, riga 49 → 7 pipe, riga 50
+  → 5 pipe. Corretto prima della consegna. Lo strumento funziona: è il suo
+  perimetro a non coprire ancora le ancore.
+
+================================================================
+4. IL SECONDO TRABOCCHETTO — uno sha256 troncato è indistinguibile
+================================================================
+Un pattern «40 esadecimali» aggancia anche i primi 40 caratteri di uno SHA256.
+Due casi REALI, entrambi trovati in `BUGS_QBEATS.md` durante il censimento:
+
+  0c4433675f4d68fe3056e6b93c237116e75a7762
+    → NON è un commit. È il prefisso di
+      sha256 0c4433675f4d68fe3056e6b93c237116e75a776282a04b8ee0f6876485ab71ad
+      dell'impronta di `HANDOFF/MISURE_CC_2026-07-30_R1-ACCERTAMENTI.txt`
+
+  3b9b2007589741c476fd859dd6e0a683a437972c
+    → NON è un commit. È il prefisso di
+      sha256 3b9b2007589741c476fd859dd6e0a683a437972c41c9bc308bc59929d2224a28
+      dell'impronta di `HANDOFF/MISURE_CC_2026-08-01_Q1-Q3.txt`
+
+⚠️ PERCHÉ È PERICOLOSO, e non solo rumoroso: chi ci prova `git cat-file -e`
+  ottiene un fallimento legittimo — quell'oggetto in git non esiste, perché
+  non è un oggetto git. La conclusione naturale e SBAGLIATA è «ancora
+  falsificata». È la stessa firma diagnostica delle quattro ancore realmente
+  rotte di Fase 1-bis (giro A25), ma la causa è di tutt'altra natura: lì un
+  indirizzo scaduto, qui un identificatore che non è mai stato un indirizzo.
+
+⇒ Un controllo automatico deve poter distinguere le due cose PRIMA di
+  emettere un verdetto, altrimenti produce falsi allarmi su impronte sane e
+  li produce con l'aria di un accertamento.
+
+================================================================
+5. LIMITI DICHIARATI
+================================================================
+- Il censimento è COMPLETO PER ENUMERAZIONE, PARZIALE PER VERIFICA: delle 24
+  ancore distinte dei due file in sospeso ne sono state APERTE 7. Le altre
+  sono classificate dal linguaggio che le introduce («Misurato sul blob a
+  HEAD…», «blame…»), non aprendole.
+- Le tre notazioni sono quelle TROVATE. Non è escluso che ne esistano altre
+  in file non ispezionati (BOX3, BOX5, LIBRO, commenti `.swift`).
+- Il perimetro misurato è `BUGS_QBEATS.md` + `HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md`.
+  Gli altri canonici NON sono stati censiti in questo giro.
+- Non è stato verificato se il conteggio 5-contro-17 si riproduca sugli altri
+  canonici: è plausibile ma NON misurato.
+
+================================================================
+6. DIFETTO PIPE NELLE RIGHE DI REGISTRO — aggiunta del giro A29
+================================================================
+Materia distinta da quella delle ancore, depositata qui perché emersa dalla
+stessa misura e perché riguarda lo stesso strumento.
+
+6.1 — IL CASO INTERCETTATO (non committato)
+  Giro A28, riga di registro `49` in scrittura: conteneva la citazione della
+  voce 47 in forma tabellare dentro il testo della cella. Due pipe di troppo.
+  Intercettata PRIMA della consegna dal conteggio pipe — la stessa forma di
+  controllo che `tools/lint_canonici.py` chiama C1.
+    misura: voce 47 → 5 pipe · voce 49 → 7 pipe · voce 50 → 5 pipe
+  Corretta riformulando in «la voce **47**», che è già lo stile che la voce
+  47 usa per sé («la voce 43 del registro»). Dopo la correzione: 5/5/5.
+
+6.2 — LO STESSO DIFETTO, GIÀ COMMITTATO, IN DUE RIGHE
+  Misurato a HEAD `c1556e57b1a81fafa7973b8647741ede9c92e6cf`, con controllo
+  positivo sulle vicine sane:
+    voce 43 →  5 pipe  (4 celle — forma sana)
+    voce 44 →  5 pipe  (4 celle — forma sana)
+    voce 45 → 13 pipe  → 8 colonne in più
+    voce 46 → 11 pipe  → 6 colonne in più
+    voce 47 →  5 pipe  (4 celle — forma sana)
+
+6.3 — ⚠️ LE DUE RIGHE HANNO CAUSE DIVERSE, e la differenza è operativa
+  Inventario per posizione di ciascuna pipe (a HEAD):
+
+  voce 46 — 5 strutturali + 6 incorporate, tutte CITAZIONI DI RIGHE DI
+    REGISTRO: «questa stessa tabella, riga `| 45 |`» · «La riga `| 45 |` NON
+    si tocca» · «la falsificazione vive qui, in `| 46 |`».
+    ⇒ è ESATTAMENTE l'errore fatto in 6.1, e la stessa riformulazione lo
+      risolverebbe senza toccare nulla di ciò che la riga sostiene.
+
+  voce 45 — 5 strutturali + 8 incorporate, tutte ALTERNANZE DENTRO CODE SPAN,
+    cioè pattern di ricerca citati verbatim:
+      `CFBundleVersion|CURRENT_PROJECT_VERSION|MARKETING_VERSION`  (2)
+      `Crashlytics|Sentry|Bugsnag|MetricKit|NSSetUncaughtExceptionHandler` (4)
+      `background|HOME|ScenePhase`                                  (2)
+    ⇒ NON è una citazione di tabella: sono i pattern su cui la riga dichiara
+      di aver misurato «0 righe». Riformularli cambierebbe che cosa la misura
+      dice di aver cercato.
+
+  ⚠️ RETTIFICA A31 — LA VOCE 45 NON HA UNA CURA INDIVIDUATA.
+    Una prima stesura di questa sezione (giro A29) concludeva che «la
+    riparazione compatibile col significato è l'escape `\|`». ⛔ RITIRATA.
+    Obiezione del referee, accolta: quei pattern sono FATTI DA RIVERIFICARE, e
+    in questo progetto si riverifica con `grep`. Un `\|` inciso dentro un
+    pattern documentato fa sì che chi riesegue la misura cercando la stringa
+    letterale NON LA TROVI — falso zero da filtro, cioè la famiglia di guasti
+    più costosa dell'intero corpus, e per giunta introdotta nell'atto di
+    riparare. In più il linter non sa leggere l'escape.
+    ⇒ Per la voce 45 NESSUNA DELLE DUE STRADE È PULITA: né riformulare (altera
+      ciò che la misura dice di aver cercato) né sfuggire con `\|` (rompe la
+      riverifica e resta invisibile al linter). È una DIVERGENZA APERTA, di
+      categoria diversa dalla voce 46, e la decisione è di Mauro.
+    ⛔ La voce 46 NON è in discussione: lì la riformulazione resta sicura,
+      perché ciò che si tocca è una citazione di tabella e non un pattern di
+      ricerca.
+
+6.4 — DIVERGENZA REGISTRATA (non conclusione)
+  · Posizione CC (giro A28): trattandosi di contenuto già committato, si
+    marca e non si corregge.
+  · Posizione referee (giro A29): «si marca, non si corregge» protegge il
+    SIGNIFICATO, non la TIPOGRAFIA. Criterio proposto: se la modifica cambia
+    ciò che la riga SOSTIENE è riscrittura e si marca; se cambia solo COME
+    VIENE RESA è riparazione e si fa. Una pipe di troppo non altera una
+    ratifica: le impedisce di mostrarsi.
+  ⛔ Le due posizioni sono registrate come divergenza. Nessuna delle due è
+    ratificata qui. Il fatto misurato in 6.3 è materiale PER quella decisione
+    e non la anticipa: mostra che il criterio, se adottato, si applica in
+    modo diverso alle due righe — riformulazione per la 46, escape per la 45.
+
+6.5 — CONSEGUENZA PER IL LINTER
+  `tools/lint_canonici.py` ha già il controllo C1 (conteggio pipe), ma NON lo
+  applica alle righe del registro versioni. Se lo facesse, le voci 45 e 46
+  suonerebbero — oggi non suona nulla, e le due righe restano rotte in
+  silenzio in un canonico.
+
+6.6bis — RIMANDO: vedi la sezione 7, aggiunta il 04/08 nel giro A35, su due
+  strumenti di misura che mentono. Vale la stessa avvertenza del 6.6.
+
+6.6 — ⚠️ QUESTO REPERTO NON FA ESISTERE UN DEBITO
+  Questo file è UNTRACKED, come tutto ciò che sta in `HANDOFF/` salvo quattro
+  eccezioni. Un debito che vive solo in un reperto untracked **non esiste
+  operativamente**: non è opponibile, non entra in nessun giro, e sparisce
+  con la cartella. Perché questa materia esista va incisa in un CANONICO, in
+  un atomo suo. Finché non accade, quanto scritto qui è una misura, non un
+  impegno — ed è precisamente la forma di perdita che il precedente E3 ha
+  già documentato una volta.
+
+================================================================
+7. DUE STRUMENTI DI MISURA CHE MENTONO — aggiunta del giro A35 (04/08)
+================================================================
+Materia distinta da quella delle ancore e da quella delle pipe. Depositata
+qui perché è dello stesso genere: non un errore di ragionamento, ma uno
+strumento che risponde con sicurezza a una domanda diversa da quella posta.
+
+7.1 — `grep -c $'\r'` NON CONTA I CR
+  In quel contesto `$'\r'` non viene interpretato come carattere CR: il
+  pattern collassa sulla lettera **r**, e il comando conta le righe che
+  contengono una «r». In un testo italiano sono quasi tutte.
+
+  CONTROPROVA SULLO STESSO FILE, misurata il 04/08 su `BUGS_QBEATS.md`:
+      tr -cd '\r' < BUGS_QBEATS.md | wc -c   ->   0      (verita')
+      grep -c $'\r' BUGS_QBEATS.md           ->   1039   (bugia)
+      wc -l < BUGS_QBEATS.md                 ->   1039   (= numero di righe)
+  Il valore falso coincide col numero totale di righe: rende «tutte le righe
+  hanno un CR» esattamente quando i CR sono ZERO. È il caso peggiore, perche'
+  la risposta sbagliata ha la forma di una risposta plausibile.
+
+  DANNO REALE PRODOTTO OGGI, registrato per intero:
+  su questa misura CC ha dichiarato che «il blob non e' LF, porta CR su tutte
+  le righe» e ha usato quella conclusione per CONTRADDIRE un'istruzione
+  corretta del referee sull'uso di `git show` in propagazione. L'istruzione
+  non era del referee soltanto: e' una REGOLA CANONICA gia' incisa in
+  `LIBRO_MASTRO_QBEATS.md:336` («Per i file TRACCIATI la fonte e' il blob …
+  mai dal disco»). ⇒ Uno strumento rotto ha prodotto la contraddizione di un
+  canonico, non di un'opinione.
+
+  ⚠️ **IL PUNTO DA INCIDERE NON E' L'ERRORE: LA REGOLA ESISTEVA GIA'.**
+  `tr -cd '\r' | wc -c` era gia' prescritto come forma obbligatoria, e
+  `grep -c $'\r'` gia' censito come falso negativo documentato n.1. Non e'
+  mancata la regola: e' mancato il suo arrivo nel momento in cui serviva.
+  ⇒ Una regola scritta che non raggiunge il punto d'uso NON PROTEGGE.
+    Questa deve finire **dentro `tools/lint_canonici.py`**, dove non serve
+    ricordarsene — e' lo stesso argomento della sezione 3 di questo reperto,
+    e vale a maggior ragione qui.
+
+7.2 — `sed` NON E' TRASPARENTE AI CR, in questo ambiente
+  · in USCITA li toglie: `git show <blob> | sed -n '4p' | od -c` ha reso una
+    riga terminata da `\n`, facendo sembrare LF un blob di cui non si stava
+    affatto misurando la faccia. La verifica corretta e' passata da
+    `head -c N | od -c` sui byte grezzi, senza sed nella catena.
+  · in INGRESSO ne puo' scrivere: nella preparazione del commit ① un
+    `sed -i "4s|.*|…\r|"` ha inciso un CR letterale in fondo alla riga 4 del
+    working tree. Innocuo nel risultato — `core.autocrlf=true` lo ha
+    normalizzato in ingresso e il blob committato ha `CR=0`, verificato con
+    `od -c` — ma e' stato scritto senza volerlo.
+  ⇒ REGOLA: **`sed` non entra mai in una catena di misura che riguardi i
+    fine-riga**, ne' come lettore ne' come scrittore.
+
+7.3 — PERIMETRO ESATTO DELLE «DUE FACCE» — misurato, non assunto
+  `git ls-files --eol` + `git check-attr text`, il 04/08 a HEAD
+  `ea3f94a4a11153a2f4c9f08ab8e1cd73d55d00ae`, con `core.autocrlf=true`:
+
+    i/lf  w/crlf  attr/          LIBRO_MASTRO_QBEATS.md     <- DUE FACCE, attive
+    i/lf  w/lf    attr/          BUGS_QBEATS.md             <- due facce POSSIBILI
+    i/lf  w/lf    attr/-text     BOX3_QBEATS.md
+    i/lf  w/lf    attr/-text     BOX5_QBEATS.md
+    i/lf  w/lf    attr/-text     HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+    i/lf  w/lf    attr/-text     HANDOFF/NODO_A_PIANO_2026-07-10.md
+
+  ⇒ `.gitattributes` porta `HANDOFF/** -text`, piu' `BOX3_QBEATS.md -text`,
+    `BOX5_QBEATS.md -text`, `DESIGN/** -text`. Per TUTTI questi la
+    conversione e' disattivata: **una faccia sola, il problema non esiste**.
+  ⇒ Restano scoperti, con `text` unspecified e quindi soggetti ad autocrlf,
+    **soltanto `BUGS_QBEATS.md` e `LIBRO_MASTRO_QBEATS.md`**.
+  ⚠️ Distinzione che serve a non sbagliare la prossima volta: LIBRO ha le due
+    facce **attive adesso** (CR=500 su 500 righe sul disco, blob a LF); BUGS
+    e' momentaneamente a LF sul disco perche' cosi' e' stato scritto in
+    questo giro, ma il suo `attr` non lo protegge — tornera' CRLF al primo
+    checkout, ed e' esattamente cio' che l'avviso di git annunciava
+    («LF will be replaced by CRLF the next time Git touches it»).
+  ⛔ La SCALETTA **non** e' interessata: sta sotto `HANDOFF/**`. Chi
+    generalizzasse «BUGS e LIBRO hanno due facce» a tutti i canonici
+    sbaglierebbe perimetro in eccesso.
