@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V41 — 2026-08-31
+**Versione:** V42 — 2026-09-01
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -715,6 +715,8 @@ sul riflesso: assenti.
 ⇒ **Un mandato che colloca R-δ soltanto in coda e' DIFETTOSO.** CC deposita
 comunque alla produzione, e lo dichiara nel referto.
 
+⛔ **UN COMMIT CHE CAMBIA UN CANONICO NON È COMPLETO FINCHÉ LA SUA STAMPA NON È SU E:.** La tabella del §2 dà l'indirizzo dei canonici su `E:`, ma fino al 01/09/2026 **nessuna riga diceva QUANDO** — l'elenco del §1-bis nominava referto, diff, stampa, congedo e contratto, e **non i canonici**. ⇒ **Indirizzo senza innesco: dipendeva dal fatto che qualcuno se lo ricordasse.** **Caso che l'ha prodotta, misurato:** il 01/09/2026 otto commit hanno portato LIBRO da v70 a v74, BUGS da v78 a v80 e SCALETTA da v16 a v18; **su `E:` non è arrivata nessuna stampa**, e l'ultima restava LIBRO v70 del 31/08 — rilevato da Mauro, non dal referee, che per otto giri non se n'era accorto. **Regola:** ogni giro che porta un canonico a una versione nuova produce **nello stesso giro** la stampa d'archivio di quella versione su `E:`, nella cartella che il §2 gli assegna. **Una versione senza la sua stampa è un giro non finito**, e va dichiarata come tale nel referto. ⚠️ La stampa segue la regola (a) di questo capitolo: nel nome va la **data che il documento dichiara di sé**, non quella del commit, perché lo sha7 identifica già il commit.
+
 ### 2 · DOVE VA COSA, PER NATURA
 
 | natura | su C: (repo) | su E: (archivio) |
@@ -1148,6 +1150,13 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 - 🚨 **COLLISIONE rilevata da CC e NON risolta:** «END SHOW» è insieme l'**etichetta di stato** della striscia viva a fine scaletta (decisione 10) e il **pulsante distruttivo** del dettaglio (decisione (d) del 27/08) — stessa schermata, stesse due parole, due significati. Contando il titolo della schermata di fine scaletta dentro il player, i sensi sono **tre**. Stessa forma di collisione che il 26/08 ha portato a rinominare «Mode» in «Role».
 - ⛔ **Il puntatore all'indietro da «Vista LISTA» NON è stato messo, ed è una MISURA non una dimenticanza:** inserire una riga in quel capitolo sposterebbe di +1 dodici citazioni nude a BOX5, **due delle quali stanno nel sorgente Swift** (`QLiveShowDetailView.swift` cita `BOX5:458` in due punti, e il mandato era di sola lettura sotto `ios_app/`). Va fatto nello stesso passaggio che ripara quelle citazioni.
 - ✅ **Misurato prima e dopo aver scritto: l'innesto in coda NON sposta alcuna citazione nuda.** Le undici righe-bersaglio citate dal corpus (`:253 :324 :328 :331 :354 :390 :401 :404 :458 :532 :562`) sono state confrontate una a una col blob committato: **tutte invariate**. Zero righe esistenti riscritte o cancellate.
+
+**Delta V42 vs V41:**
+
+- **NUOVA CLAUSOLA in §1-bis del capitolo R-δ: un commit che cambia un canonico non è completo finché la sua stampa non è su `E:`.** L'indirizzo dei canonici (§2) non aveva mai un innesco esplicito — l'elenco del §1-bis nominava referto, diff, stampa, congedo e contratto, **mai i canonici**. Caso che l'ha prodotta: otto commit del 01/09 hanno portato LIBRO da v70 a v74, BUGS da v78 a v80 e SCALETTA da v16 a v18, e nessuna stampa era arrivata su `E:` — rilevato da Mauro, non dal referee.
+- **Conseguenza dello stesso giro: prodotte su `E:` le nove stampe arretrate** — LIBRO v71-v74, BUGS v79-v80, SCALETTA v17-v18, BOX5 questa stessa V42 — coppie versione→commit e percorsi completi nel referto del mandato.
+- ⚠️ **L'inserimento in §1-bis (sopra `### 2`) sposta di due righe tutto ciò che lo segue nel capitolo R-δ.** Sette citazioni **nude** puntavano a righe ≥718: `LIBRO:366`·`:391`(×2)·`:395`·`:476` e `BUGS:360`·`:810`·`:1658`, verso i bersagli `:739-744`·`:930`·`:938`·`:940`. **Non aggiornate: ANCORATE** a `bce44bf` (R-δ.7: il numero non si tocca, l'ancora lo rende immune), stessa forma già usata per `SCALETTA:329`.
+- ✅ **Misurato prima di scrivere questo blocco: nessun'altra citazione nuda a `BOX5_QBEATS.md` supera la riga 940** — quindi l'innesto in coda che segue (questo stesso blocco Delta) non ne tocca nessuna. Controllo positivo: la stessa sonda vede le citazioni sotto soglia (`:68`, `:83`, `:324`, `:331`, `:354`) e le lascia intatte.
 
 ---
 
