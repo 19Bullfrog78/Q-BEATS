@@ -22,6 +22,9 @@ struct FineSetlistView: View {
     /// per la decisione: è presa. Resta aperto il solo DISEGNO del piede con un
     /// pulsante unico, che la stessa riga dichiara non ratificato.
     /// ⚠️ Il testo sopra resta come fu scritto: era vero fino al 07/08.
+    /// ✅ ESEGUITO 01/09/2026 (mandato A309): il bottone RESTART SETLIST e il suo
+    /// `.buttonStyle` sono stati rimossi da questo file. Resta aperto il disegno
+    /// del piede con un pulsante solo — non ratificato — e il collaudo su device.
     let onBackToShows: () -> Void
 
     var body: some View {
@@ -36,8 +39,6 @@ struct FineSetlistView: View {
                 VStack(spacing: 12) {
                     Button("BACK TO SHOWS") { onBackToShows() }
                         .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
-                    Button("RESTART SETLIST") { /* restart setlist — Fase successiva */ }
-                        .buttonStyle(OverlayStopButtonStyle(primary: false, scaleFactor: scaleFactor))
                 }
             }
             .padding(.horizontal, 40)
