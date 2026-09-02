@@ -1,0 +1,73 @@
+DIFF A314 — 02/09/2026 — CC
+base: c504ee4d9a0d1fd2986c64718e65a58b5ecb55d9
+doc-only, zero codice. File toccati: BOX5_QBEATS.md (modificato) + due file nuovi non tracciati.
+
+================ BOX5_QBEATS.md ================
+diff --git a/BOX5_QBEATS.md b/BOX5_QBEATS.md
+index a04623d..65bd13e 100644
+--- a/BOX5_QBEATS.md
++++ b/BOX5_QBEATS.md
+@@ -1,5 +1,5 @@
+ # Q-BEATS — BOX 5 — Specifiche e Contratti
+-**Versione:** V42 — 2026-09-01
++**Versione:** V43 — 2026-09-02
+ 
+ > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
+ 
+@@ -1018,7 +1018,7 @@ cio' che deve contenere.**
+ | **STDERR SOFFOCATO** | P1 | `2>/dev/null` su un comando che l'ambiente **rifiuta**: `--jq` su un errore rende stringa vuota, e la variabile vuota diventa «ASSENTE» | ⛔ **mai `2>/dev/null` su una sonda il cui esito finisce in un referto**; un risultato **vuoto** e un comando **rifiutato** devono restare distinguibili | `HANDOFF/CONGEDO_CC_2026-08-26_A220.md` §1.2 (righe 105-126) e §8 (riga 350) |
+ | **RIGHE INVECE DI OCCORRENZE** | P2 | `grep` conta **RIGHE**, non occorrenze: una stringa spezzata da un a-capo **non esiste** per `grep`, e su un documento mandato a capo a 76 colonne ogni frase lunga può nascondersi in mezzo | contare sul **testo appiattito** (`tr '\n' ' '`), oppure scegliere stringhe **copiate da una riga sola** | `HANDOFF/CONGEDO_CC_2026-08-26_A220.md:439` («sesta faccia») |
+ | **PATTERN DEGENERE** | P3 | `grep -c $'\r'` su un file **senza CR** rende **il numero totale delle righe**, non zero: il pattern matcha ogni riga. ⚠️ Anche la forma ancorata `$'\r$'` mente allo stesso modo | confrontare l'esito col **totale** delle righe: se coincide, il filtro non ha filtrato | `LIBRO_MASTRO_QBEATS.md:352` (06/08/2026, «FALSO-*POSITIVO* DA FILTRO — PRIMA DELLA SUA SERIE») |
+-| **PARAMETRO IGNORATO IN SILENZIO** | P3 | l'API di GitHub Actions accetta parametri **sconosciuti senza errore** e li **scarta**: `?conclusion=success` non filtra nulla e la risposta rende l'insieme intero | **quadratura**: enumerare le classi e verificare che la somma torni col totale non filtrato | **misurato qui il 26/08/2026 — prima incisione** |
++| **PARAMETRO IGNORATO IN SILENZIO** | P3 | l'API di GitHub Actions accetta parametri **sconosciuti senza errore** e li **scarta**: `?conclusion=success` non filtra nulla e la risposta rende l'insieme intero | **quadratura**: enumerare le classi e verificare che la somma torni col totale non filtrato ⚠️ **QUALIFICA 02/09/2026 (ratificata Mauro):** la quadratura è **necessaria e non sufficiente** — **un totale che torna non prova l'insieme.** Somme uguali si ottengono anche da insiemi diversi: la quadratura smaschera il filtro che non ha filtrato, ma non garantisce né che le classi enumerate siano quelle giuste né che siano tutte. ⇒ **Chi quadra dichiara SU QUALI CLASSI ha quadrato**, o il totale che torna è solo un numero che rassicura. | **misurato qui il 26/08/2026 — prima incisione** |
+ | **POSITIVO DI FORMA SBAGLIATA** | P2 | la sonda ha un controllo positivo, **e il positivo non è della stessa forma dell'oggetto cercato** ⇒ il positivo vede, la sonda no, e lo zero passa per misura. Due casi misurati il 29/08: **(1)** `= SetlistRunner(` rende zero perché il runner nasce nella forma `install(SetlistRunner(` — il positivo era un'altra costruzione, non un'altra *forma* di costruzione; **(2)** cercare un pannello per **modificatore di sistema** (`confirmationDialog` · `.alert(` · `.sheet(`) in un'app che i pannelli **li disegna a mano** (`ZStack` + velo) — il positivo era un modificatore, l'oggetto è una vista | **il positivo si sceglie nella STESSA FORMA di ciò che si cerca**, non nella stessa famiglia: se cerchi una stringa di UI, il positivo è una stringa di UI che sai esistere; se cerchi una vista fatta a mano, il positivo è una vista fatta a mano | **misurato qui il 29/08/2026 (A258, A260) — prima incisione** |
+ | **ASSENZA DALLA PROPRIA VISTA** | P2 | l'osservatore **non può vedere** il supporto dove l'oggetto vive, e legge il proprio zero come inesistenza. Non è una sonda mal scritta: è una sonda **giusta puntata dove l'oggetto non è**. Tre occorrenze: `git log --grep` su ID **mai committati** (rende zero per costruzione, ed è stato usato come controllo positivo) · `git grep` sugli **untracked** · un mount che espone «Il mio Drive» e **non** «Il mio computer», dove vive il riflesso | **dichiarare «invisibile da qui», MAI «non esiste»**, e nominare il supporto che non si è potuto interrogare. Un secondo supporto, o un secondo osservatore, prima di concludere | **§7 della Costituzione** (`FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md`) ne porta la METÀ SIMMETRICA («niente fonte verificabile, non entra»); questa è **la metà mancante** — vedi la nota sotto |
+ 
+@@ -1352,3 +1352,42 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra
+ 
+ **7 · IL TEST DA APPLICARE A OGNI STATO CHE SI DISEGNA:** se questo stato si apre e l'utente **cambia idea**, con quale gesto esce — **e QUEL GESTO È COSTRUITO?** ⛔ **«Disegnato» non è una risposta.** *(CD. È il test che avrebbe intercettato `TD-show-non-abbandonabile` prima del device.)*
+ 
++### R-δ.11 — CANCELLO: UNA CITAZIONE NUOVA PORTA L'ANCORA, E L'ANCORA DEVE RISOLVERE (ratificata Mauro 02/09/2026)
++
++⛔ **QUESTO CAPITOLO NON SCRIVE UNA REGOLA NUOVA.** La regola esiste dal 02/08 e non si riscrive: `LIBRO_MASTRO_QBEATS.md:344 @ c504ee4d9a0d1fd2986c64718e65a58b5ecb55d9` dispone «ogni rimando nuovo nomina il documento; se porta un numero di riga, porta `@ <commit a 40>`», ed è a sua volta estensione ai documenti della regola ratificata il 01/08 per i sorgenti, `LIBRO_MASTRO_QBEATS.md:335 @ 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc`. Il 18/08 è stata registrata **viva e non onorata** (`LIBRO_MASTRO_QBEATS.md:359 @ c504ee4d9a0d1fd2986c64718e65a58b5ecb55d9`), con divieto esplicito di riscriverla. ⇒ **Qui non si ripete: le si dà il morso.**
++
++⛔ **CANCELLO — DUE CLAUSOLE.**
++**(1) PRESENZA.** Non si scrive in un canonico una citazione `FILE:riga` **nuova** priva di `@ <commit a 40>`.
++**(2) RISOLUZIONE.** Non basta che l'ancora ci sia: **il commit citato deve contenere ciò che la citazione afferma**, e chi scrive lo verifica **prima** di consegnare. Un'ancora che non risolve è peggio di una citazione nuda — la nuda si vede, **l'ancora falsa sembra rigore.**
++Se un mandato detta una citazione che viola l'una o l'altra, **CC si ferma e lo dichiara**, e la parte restante del mandato non parte. Vale anche quando la citazione è dettata dal referee.
++
++🚨 **PERCHÉ LA CLAUSOLA (2) È OBBLIGATORIA: questa regola nasce dal fallimento della propria prima stesura.** La prima versione di questo capitolo, scritta il 01/09, chiedeva **soltanto** la clausola (1). **Non avrebbe intercettato il difetto trovato il 02/09**, ed è questo: il mandato incaricato di dare il morso alla regola portava una citazione **ancorata e rotta** — `LIBRO_MASTRO_QBEATS.md:344 @ 7ec6c1b86a7acb869c1f927fa4833374ffabb0cc` — copiata da un canonico e mai verificata. **Misurato dal referee il 02/09:** a quel commit la riga citata **non esiste** — la riga 344 è un separatore, e il testo citato rende **zero** sul file appiattito, con controllo positivo passato su un caso noto. Il commit `7ec6c1b8` è quello del **censimento contenuto dentro la riga**, non quello in cui la riga vive. ⇒ Una guardia che verifica la **presenza** dell'ancora invece della sua **risoluzione** controlla l'ingresso e non il risultato: è la R-δ.12, Clausola A, violata dal documento stesso che la detta.
++
++✅ **Il fatto che regge, e il suo limite dichiarato:** la regola esiste dal 02/08; il 18/08 è stata registrata viva e non onorata; e il **primo tentativo di darle il morso** — il mandato del 02/09 — ha **propagato una citazione rotta presa da un canonico**, terza mano nota della stessa citazione. ⛔ **Quanto il difetto sia diffuso NON è misurato**, e nessuno lo dichiari misurato citando questa riga.
++
++⚠️ **UN CANONICO NON È UNA FONTE PER LE PROPRIE CITAZIONI.** Una citazione letta in un canonico si verifica come ogni altra, e con **più** cura, non con meno: **è nei canonici che le citazioni rotte si nascondono meglio, perché nessuno le sospetta.**
++
++⛔ **Non autorizza nessun giro di riparazione.** Le citazioni esistenti sono storia: si marcano e non si riscrivono, come già dispone la riga del 18/08 citata sopra. Il cancello vale **da qui in avanti**.
++
++⚠️ **Perimetro:** vale sulle citazioni a **documenti** e a **sorgenti**. Non vale sui rimandi interni al documento che si sta scrivendo, che si risolvono da soli.
++
++### R-δ.12 — LA GUARDIA SI VERIFICA SUL RISULTATO, E IL PUNTO D'INSERIMENTO SI DESCRIVE (ratificata Mauro 02/09/2026)
++
++**Due clausole, un capitolo solo: sono lo stesso difetto visto da due lati.** Chi scrive il mandato indica una posizione con un dato che non la garantisce; chi esegue la verifica con una guardia che non la controlla. Separarle produce due regole che nessuno collega.
++
++**CLAUSOLA A — la guardia.** ⛔ **Una guardia si verifica sul RISULTATO che produce, non sull'ingresso che riceve.**
++**Perché, misurato (A304-v5, 01/09, misura di CC nel suo congedo A313 §6):** una guardia sull'ancora d'inserimento **sarebbe passata** mentre la premessa era già falsa. Il testo della riga-ancora combaciava ancora, ma non era più l'ultima riga: l'inserimento sarebbe finito nel posto sbagliato **con la guardia verde**. Verificava l'**identità** quando serviva la **posizione**.
++⇒ **Una guardia verde non dice che stai facendo la cosa giusta: dice che la cosa che ha guardato è come se l'aspettava.** Prima di fidarsene si dichiara **a quale domanda risponde davvero**, non quale domanda si credeva di averle fatto.
++⚠️ Identità-contro-riga, identità-contro-posizione e presenza-contro-risoluzione non sono tre regole: sono tre modi in cui fallisce questa.
++
++**CLAUSOLA B — il punto d'inserimento.** ⛔ **Un punto d'inserimento si DESCRIVE, non si indica.**
++Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: resta sintatticamente valido mentre punta altrove, e non produce nessun errore. Si descrive per relazione a un contenuto stabile — «in coda al capitolo X», «immediatamente prima dell'intestazione Y» — e chi esegue verifica **che il risultato sia finito dove doveva**, non che il numero esistesse.
++
++### R-δ.13 — DAVANTI A UN NUMERO CHE NON TORNA SI CHIEDE «COSA LO SPIEGHEREBBE» (ratificata Mauro 02/09/2026)
++
++⛔ **REGOLA:** davanti a un numero che non torna, la domanda non è «mi impedisce di procedere?» ma **«cosa lo spiegherebbe?»**. La prima archivia, la seconda misura.
++
++**Perché, misurato il 01/09 — due scarti che sembravano conflitti e non lo erano:** 204 contro 205 righe di Sezione 2 del LIBRO (una conta l'intestazione, l'altra no); 577 contro 578 righe dello stesso file (una conta l'elemento vuoto finale). ⚠️ L'identità del file fra le due misure fu dichiarata da chi le riconciliò e **non è stata rimisurata qui**: quel che questa riga afferma è la meccanica delle convenzioni, non l'impronta.
++
++⇒ **Corollario:** quando due misure attente differiscono di **esattamente uno**, si sospetta la **convenzione** prima del file.
++⚠️ Il corollario NON dice che ogni scarto sia una convenzione. Uno scarto può essere reale, e allora la domanda «cosa lo spiegherebbe» è ciò che lo porta a galla invece di seppellirlo.
+
+================ FILE NUOVI (untracked) ================
+A  HANDOFF/MISURE_CC_2026-09-01_A312-R-DELTA-INNESCO-E-STAMPE-ARRETRATE.md   (referto di ieri, deposito arretrato)
+A  HANDOFF/MISURE_CC_2026-09-02_A314-TRE-CAPITOLI-R-DELTA-E-DUE-MISURE.md    (referto di questo giro)
+A  HANDOFF/DIFF_TRE-CAPITOLI-R-DELTA-E-QUALIFICA-QUADRATURA_A314_2026-09-02_CC.txt  (questo diff)
