@@ -1,5 +1,5 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V43 — 2026-09-02
+**Versione:** V44 — 2026-09-02
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1391,3 +1391,14 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 
 ⇒ **Corollario:** quando due misure attente differiscono di **esattamente uno**, si sospetta la **convenzione** prima del file.
 ⚠️ Il corollario NON dice che ogni scarto sia una convenzione. Uno scarto può essere reale, e allora la domanda «cosa lo spiegherebbe» è ciò che lo porta a galla invece di seppellirlo.
+
+### R-δ.14 — OGNI COMMIT CHE CAMBIA UN CANONICO NE AVANZA IL NUMERO DI VERSIONE (ratificata Mauro 02/09/2026)
+
+⛔ **REGOLA:** un commit che modifica un canonico — LIBRO, BUGS, BOX3, BOX5, SCALETTA — ne avanza il numero di versione **di uno**, anche se la modifica è una sola marcatura o una sola riga. **Un numero identifica un contenuto e uno solo.** La stampa su `E:` prescritta da §1-bis porta quel numero nuovo. ⛔ Due contenuti diversi sotto lo stesso numero non sono ammessi in nessun canonico, nemmeno «per una correzione dentro la stessa versione».
+
+**Perché:** il numero di versione è **la chiave con cui Mauro segue i documenti**. Il commit nel nome della stampa disambigua per una macchina, non per una persona: chi sceglie «il v74» per nome prende quello che trova — famiglia «trappola per nome-file», già censita in `BUGS_QBEATS.md`.
+
+**Caso che l'ha prodotta, misurato dal referee sul deposito pubblico il 02/09/2026:** `c69dc2c` (01/09) ha modificato `LIBRO_MASTRO_QBEATS.md` e `BUGS_QBEATS.md` lasciando i numeri a 74 e 80 (`LIBRO_MASTRO_QBEATS.md:5 @ 1996476ca85ace86f6c255c74853dc67287bb706` e `BUGS_QBEATS.md:3 @ 1996476ca85ace86f6c255c74853dc67287bb706`). Le stampe su `E:` prodotte nello stesso giro erano ai commit precedenti, `bce44bf` e `388e577` (`HANDOFF/MISURE_CC_2026-09-01_A312-R-DELTA-INNESCO-E-STAMPE-ARRETRATE.md:60 @ 1996476ca85ace86f6c255c74853dc67287bb706` e `HANDOFF/MISURE_CC_2026-09-01_A312-R-DELTA-INNESCO-E-STAMPE-ARRETRATE.md:62 @ 1996476ca85ace86f6c255c74853dc67287bb706`): il referto, nato **prima** del commit, aveva scelto correttamente «l'ultimo commit sotto l'etichetta», e il commit del suo stesso mandato ha reso falsa quella scelta nell'atto di atterrare. Risultato: `E:` porta due «v74» (356.502 e 356.717 byte) e due «v80» (500.659 e 500.788 byte) con contenuti diversi, e il Project di Claude ha ricevuto i vecchi. Rilevato da Mauro, che su `E:` non vedeva le stampe di `c69dc2c` né di `1996476`. ⚠️ Mancava anche `BOX5_V43_2026-09-02_1996476.md`: il giro A314 ha violato §1-bis il giorno dopo la sua incisione. Le tre stampe sono state prodotte il 02/09 da blob, sha256 verificate contro il deposito pubblico. ⚠️ **In che cosa consistesse la modifica, misurato dal referee sul patch pubblico il 02/09/2026:** `c69dc2cde678431caf1e590be3492e3c66ba2f17` ha cambiato il testo di **sette righe** — **quattro nel LIBRO e tre in BUGS** — inserendovi **otto ancore** `@ <commit a 40>` su citazioni che erano nude, in onore di R-δ.11 clausola (1). ⛔ **In questi due file: zero righe aggiunte, zero rimosse, nessun'altra modifica.** 🚨 **Nello stesso commit BOX5 FU portata da V41 a V42** — riga di testa sostituita, misurata nel patch: **due canonici su tre restarono indietro, e la differenza non fu una scelta, fu il fatto che nessuna regola la imponeva.** ⇒ Un commit che ripara soltanto citazioni cambia comunque il testo, e chi cerca «il v74» per nome prende quello che trova.
+
+⇒ **Corollario 1:** il criterio «ultimo commit sotto l'etichetta» del referto A312 **decade**: con questa regola ogni etichetta ha un commit solo.
+⇒ **Corollario 2:** le stampe con numero duplicato già su `E:` **restano agli atti**: non si cancellano e non si rinominano, perché a una stampa non si cambia il numero che il blob porta dentro. Il numero si avanza **nel canonico, con un commit** — ed è ciò che fa il commit di questa V44, portando LIBRO a v75 e BUGS a v81 a contenuto invariato.
