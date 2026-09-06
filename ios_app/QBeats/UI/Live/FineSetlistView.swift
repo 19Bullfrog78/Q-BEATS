@@ -23,25 +23,36 @@ struct FineSetlistView: View {
     /// pulsante unico, che la stessa riga dichiara non ratificato.
     /// ⚠️ Il testo sopra resta come fu scritto: era vero fino al 07/08.
     /// ✅ ESEGUITO 01/09/2026 (mandato A309): il bottone RESTART SETLIST e il suo
-    /// `.buttonStyle` sono stati rimossi da questo file. Resta aperto il disegno
-    /// del piede con un pulsante solo — non ratificato — e il collaudo su device.
+    /// `.buttonStyle` sono stati rimossi da questo file.
+    /// ✅ DISEGNO RATIFICATO 05/09/2026 (mandato A318): `LIBRO_MASTRO_QBEATS.md`
+    /// Sezione 2, riga `2026-09-05` contiene il disegno del piede a un pulsante
+    /// per intero — è la fonte, non il foglio CD. Vestito qui (mandato A319).
     let onBackToShows: () -> Void
 
     var body: some View {
         ZStack {
             Color(hex: "#0e0e10").ignoresSafeArea()
-            VStack(spacing: 24) {
-                Text("END SHOW")
-                    .font(.jbMono(.bold, size: 28 * scaleFactor))
-                    .foregroundColor(.white)
-                    .tracking(2)
 
-                VStack(spacing: 12) {
-                    Button("BACK TO SHOWS") { onBackToShows() }
-                        .buttonStyle(OverlayStopButtonStyle(primary: true, scaleFactor: scaleFactor))
+            // Colonna unica: il titolo prende lo spazio che avanza SOPRA il
+            // pulsante (non l'intero schermo) — il pulsante occupa il proprio
+            // spazio nel flusso, non è sovrapposto. Zero spacing fra i due:
+            // altrimenti lo spazio di sistema fra i figli sposta il baricentro.
+            VStack(spacing: 0) {
+                VStack {
+                    Spacer()
+                    Text("END SHOW")
+                        .font(.custom("Inter-Black", size: 46 * scaleFactor))
+                        .foregroundColor(.white)
+                        .tracking(3)
+                    Spacer()
                 }
+                .padding(.bottom, 26)
+
+                Button("BACK TO SHOWS") { onBackToShows() }
+                    .buttonStyle(EndShowButtonStyle(scaleFactor: scaleFactor))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
             }
-            .padding(.horizontal, 40)
         }
     }
 }

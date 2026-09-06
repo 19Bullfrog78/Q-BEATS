@@ -50,3 +50,28 @@ struct OverlayStopButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
 }
+
+/// Disegno ratificato 05/09/2026 (mandato A318) — `LIBRO_MASTRO_QBEATS.md`
+/// Sezione 2, riga `2026-09-05`, è la fonte per intero. Usato solo dal piede
+/// di `FineSetlistView` (END SHOW): azione primaria unica, non lo stop
+/// dell'overlay in pausa — per questo è uno stile a sé e non un caso di
+/// `OverlayStopButtonStyle`, che resta invariato.
+struct EndShowButtonStyle: ButtonStyle {
+    let scaleFactor: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.jbMono(.bold, size: 14 * scaleFactor))
+            .tracking(2.4)
+            .textCase(.uppercase)
+            .foregroundColor(Color(hex: "#0e0e10"))
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                LinearGradient(colors: [Color(hex: "#f5b820"), Color(hex: "#e0a010")],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .cornerRadius(14)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+    }
+}
