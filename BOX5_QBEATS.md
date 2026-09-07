@@ -1,5 +1,6 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V44 — 2026-09-02
+**Versione:** V45 — 2026-09-06
+**Decisione:** 2026-09-06 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1197,6 +1198,8 @@ Fonte: documento di chiusura del 26/08 di CD, **revisione 2** (la prima è marca
 | **17** | **`List view` = `Chart Mode`.** Nome vecchio della stessa cosa, non un elenco di canzoni | ✅ regge |
 | **18** | **Barra delle stanze: centrata** (decisione Mauro 19/08, riemessa) | ✅ regge |
 
+📌 **MARCATURA 07/09/2026 (mandato A322) — I NOMI DELLE VISTE, E PERCHÉ I FOGLI PORTANO ANCORA QUELLI VECCHI.** Il rinomino del 26/08 è **`Auto view` → `Q-LIVE MODE`** e **`List view` → `CHART MODE`**, ed **era già inciso qui** — decisione **11** (la coppia) e decisione **17** (`List view` = nome vecchio della stessa cosa). ⚠️ **Non è stato riscritto niente: mancava la nota che segue, non il rinomino.** ⛔ **Il freeze normativo `DESIGN/QLive_Nav/2026-08-06_QLive-Shows_FREEZE-CONSOLIDATO_390x844__rev3-NORMATIVA.html` porta ancora i nomi vecchi, ed è CORRETTO che li porti:** è del **06/08**, cioè **venti giorni prima** della decisione del 26/08 che li ha cambiati. Un documento non è sbagliato perché è più vecchio di una decisione — **lo è solo se qualcuno lo legge come se fosse più nuovo**. ⇒ **Chi legge quel freeze traduca i nomi**: dove dice `List view` intende `CHART MODE`, dove dice `Auto view` intende `Q-LIVE MODE`. ⛔ **Il file HTML NON si tocca:** è normativo, e un giro di documenti non modifica i fogli di CD.
+
 #### 1.1 · La copy della conferma — 26/08, supera quella congelata il 18/07
 
 «Stop & Exit» e «Stop & Switch» non tornano più: non esiste più uno «switch», e le due porte che nominavano sono chiuse.
@@ -1244,6 +1247,8 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 | **dalle card** | nessuno show in corso | lista + **avvio da una canzone a scelta** |
 | **dal player** | show attivo | lista + salto + **RESTART** + **RESUME** + **END SHOW** |
 | **dal bivio** | show fermo | lista + salto + **RESUME** + **END SHOW** |
+
+🚨 **MARCATURA 07/09/2026 (mandato A322) — `RESUME` È BLOCCATO, E QUESTA TABELLA È INDIETRO. Zero parole riscritte sopra: si marca.** Le due righe qui sopra offrono `RESUME` in **due facce su tre**, ma il **§D del foglio CD rev3 del 28/08 lo VIETA**, ed è **posteriore** alle decisioni del 27/08 incise in questo capitolo. Il divieto è già inciso nel sorgente, `ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift:484-487`, verbatim: «⛔ RESUME NON C'È E NON È UNA DIMENTICANZA: bloccato dal §D del rev3 (28/08) — "finché l'esecutore non onora la sezione, Resume from [section] non va a schermo. Non 'con copy più prudente': assente" — e "la terza faccia eredita il blocco". Costruirlo è un difetto.» ⇒ **Chi legge questa tabella e costruisce `RESUME` introduce un difetto.** ⛔ **Le righe NON si cancellano:** restano perché la decisione del 27/08 fu presa davvero, e perché **il blocco è una condizione, non un ritiro** — cade il giorno in cui l'esecutore onora la sezione. ⇒ **Resta una decisione aperta per Mauro:** far cadere la condizione costruendo l'onoraggio della sezione, oppure ritirare `RESUME` dal modello.
 
 ⛔ **Nella terza faccia NON c'è RESTART**, ed è voluto: **butterebbe via il punto che l'utente sta cercando di non perdere**.
 
@@ -1311,6 +1316,8 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 ---
 
 ### 4 · VINCOLO APERTO — la riga ambra ha perso il suo innesco
+
+🟢 **MARCATURA 07/09/2026 (mandato A322) — LA RIGA AMBRA È COSTRUITA. Il titolo qui sopra dice «VINCOLO APERTO, non cosa fatta»: era vero quando fu scritto, oggi non più. Zero parole riscritte: si marca.** Misurato alla fonte in `ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift:556-561`, dentro `endShowRow`: la sottoriga esiste, nasce dal **§B del foglio CD del 29/08**, ed è condizionata a **`audioEngine.linkIsConnected`** con **due varianti di testo** scelte da `audioEngine.isPlaying` — «The show is playing now · this will stop other devices too» se sta suonando, «This will stop other devices too» altrimenti; `nil` se Link è spento. ⚠️ **HA UN INNESCO SU DUE, e il secondo manca.** Il §4 qui sotto ne dichiara due: **END SHOW dal dettaglio** — costruito, è questo — e **END SHOW dal bivio** — **non costruito, perché il bivio a tre vie non esiste**. ⇒ Finché il bivio non c'è, chi arriva a END SHOW da quella strada **non riceve l'avviso**, e il vincolo resta aperto per metà. ⛔ Non cancellare il §4: la metà mancante è ancora in mano a CD.
 
 🚨 **Non è una decisione, ed è la ragione per cui sta qui.** La riga *«This will stop the other devices too»* viveva **dentro l'alert della decisione 16**. Quell'alert, dopo il bivio a tre vie, **non ha più un innesco**.
 
@@ -1402,3 +1409,31 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 
 ⇒ **Corollario 1:** il criterio «ultimo commit sotto l'etichetta» del referto A312 **decade**: con questa regola ogni etichetta ha un commit solo.
 ⇒ **Corollario 2:** le stampe con numero duplicato già su `E:` **restano agli atti**: non si cancellano e non si rinominano, perché a una stampa non si cambia il numero che il blob porta dentro. Il numero si avanza **nel canonico, con un commit** — ed è ciò che fa il commit di questa V44, portando LIBRO a v75 e BUGS a v81 a contenuto invariato.
+
+---
+
+### R-δ.15 — IL CAMPO DI TESTA PORTA LA DATA DELLA DECISIONE, NON QUELLA DEL DEPOSITO (ratificata Mauro 06/09/2026)
+
+**La regola.** Il campo di testa dei canonici non si chiama più «Ultima modifica»: si chiama **`Decisione:`** e porta **il giorno in cui la decisione è stata presa**. ⛔ **La data del deposito NON si scrive**: vive in git, ed è lì che si va a leggerla.
+
+**Perché.** Il campo faceva **due lavori con un nome solo**. «Ultima modifica» dice, alla lettera, *quando il file è cambiato* — ma è sempre stato riempito col **giorno del lavoro**. Finché il nome prometteva una cosa e il contenuto ne portava un'altra, ogni lettura rendeva bugiarda l'altra, e nessuno poteva dire se una riga fosse giusta o sbagliata.
+
+**Il caso che l'ha prodotta, misurato il 06/09/2026 su tre gambe concordi** (oggetto commit in locale · run CI · feed del deposito):
+
+| commit | data reale | LIBRO dichiarava | BUGS dichiarava | BOX5 dichiarava |
+|---|---|---|---|---|
+| `d61e823` | 2026-09-03 | v75 → 2026-09-02 | v81 → 2026-09-02 | V44 → 2026-09-02 |
+| `3329f865` | 2026-09-04 | v76 → 2026-09-03 | v82 → 2026-09-03 | — |
+| `871de34` | 2026-09-06 | v77 → 2026-09-05 | v83 → 2026-09-05 | — |
+
+**Sei teste su sei, e otto nomi di stampa su otto, scostati di ESATTAMENTE un giorno, sempre nello stesso verso, mai un'eccezione.** ⇒ **Non era un errore sparso: era una pratica non scritta.** Un errore ripetuto sei volte identico, da mani diverse e in sessioni diverse, non è un errore.
+
+⚠️ **Le stampe su `E:` non sbagliavano da sole: copiavano fedelmente la testa.** Un errore solo, propagato — non due.
+
+⇒ **Corollario 1 — le date già scritte NON si correggono.** Sotto questa lettura erano già giuste, e riscriverle renderebbe sbagliate sei teste, otto nomi di stampa e ogni citazione che le riprende. **Il costo della rettifica è più alto del difetto.**
+
+⇒ **Corollario 2 — una marcatura che NOMINA un commit non è coperta dal Corollario 1.** Se il testo dice «quel commit è del ⟨data⟩», la data appartiene al commit e non al campo: è verificabile, e se è falsa **si corregge**. È esattamente ciò che è stato fatto il 07/09 nella coda di `LIBRO_MASTRO_QBEATS.md` v77, dove la marcatura DATE dava `3329f865` al 2026-09-05 mentre il suo author date misurato è `Fri, 4 Sep 2026 16:52:13 +0200`.
+
+⇒ **Corollario 3 — le righe di Sezione 2 del LIBRO e i registri NON si toccano.** Portano la data della decisione, che è ciò che questa regola prescrive: erano già conformi prima di essere scritte.
+
+**Come si applica:** al primo commit che tocca un canonico, la sua testa prende il nome nuovo. Non si fa un giro apposta per rinominare i campi dei canonici non toccati.
