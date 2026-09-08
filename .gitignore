@@ -91,3 +91,26 @@ ARCHIVIO.MD/
 
 # Scarti di lavorazione CC (diff / verifiche / fixture usa-e-getta)
 /_cc_processo/
+
+# ============================================================
+# Documenti di lavoro fuori dal deposito
+# Ratificato in LIBRO_MASTRO_QBEATS.md Sezione 2, riga 2026-09-08
+# (decisione di Mauro del 07/09/2026): congedi, referti e diff
+# vivono in HANDOFF/ ma non vanno resi pubblici sul deposito.
+# Restano su C: e su E:, e si identificano per impronta sha256.
+# I documenti gia' committati restano dove sono: la storia non si
+# riscrive.
+#
+# NB: si esclude 'HANDOFF/*' e NON 'HANDOFF/'. Con la forma cartella
+# git non discende nella directory e le due negazioni qui sotto non
+# avrebbero effetto.
+#
+# DUE SOLE ECCEZIONI, nominate nella riga 2026-09-08:
+#  - la SCALETTA, che e' un canonico e vive qui per collocazione
+#    storica (il suo trasloco e' un lavoro a se');
+#  - l'indice degli ID, che e' il ricambio della contromisura del
+#    2026-09-01 e deve restare visibile dal deposito pubblico.
+# ============================================================
+HANDOFF/*
+!HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
+!HANDOFF/INDICE_ID_MANDATI.md
