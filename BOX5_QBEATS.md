@@ -1,6 +1,6 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V46 — 2026-09-07
-**Decisione:** 2026-09-07 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
+**Versione:** V47 — 2026-09-08
+**Decisione:** 2026-09-08 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -38,7 +38,7 @@ Tutto il resto invariato da V27.
 
 - **BOX3 e BOX5 escono dai «canonici NON tracciati» ed entrano nei TRACCIATI** — commit `edaa80f`, 21/07/2026. Da lì vivono in root come `BOX3_QBEATS.md` e `BOX5_QBEATS.md`, tracciati in git, con `-text` in `.gitattributes`. Si modificano **in place**: il diff si legge riga per riga e le versioni precedenti stanno nella storia git, non in un file separato. Il bullet «Canonici NON tracciati» del Delta V26 è riscritto di conseguenza e resta valido per la sola SCALETTA. Per BOX3/BOX5 vale ora la **prescrizione** del bullet «Canonici TRACCIATI» — estrarre dal blob con `git show <commit>:<path>`, mai copiare dal file di lavoro — ma **non la motivazione scritta lì**: vedi la rettifica qui sotto.
 
-- **RETTIFICA 21/07/2026 — il messaggio di commit di `edaa80f` motiva male il proprio vincolo.** Quel messaggio afferma che seguire il vecchio bullet «Canonici NON tracciati» produrrebbe, per BOX3/BOX5, la corruzione silenziosa descritta nel bullet dei tracciati. **È falso, e la rettifica vive qui perché un messaggio di commit è pushato e non si corregge.** Quella corruzione nasce dal divario CRLF-su-disco / LF-nel-blob, che è reale per `LIBRO_MASTRO_QBEATS.md` e `BUGS_QBEATS.md` ma **non esiste per BOX3 e BOX5**: lo stesso commit `edaa80f` ha messo `-text` su entrambi, e disco e blob coincidono al byte (verificato). Una copia dal disco non li corromperebbe. Il difetto reale del vecchio bullet era un altro, e regge: dichiarava «non esiste blob» — falso da `edaa80f` — e prescriveva una verifica d'impronta sorgente↔destinazione **non ancorata a un commit**, cioè una copia di cui non si sa a quale stato del documento corrisponda. Il vincolo di `edaa80f` era giusto; la ragione scritta accanto no.
+- **RETTIFICA 21/07/2026 — il messaggio di commit di `edaa80f` motiva male il proprio vincolo.** Quel messaggio afferma che seguire il vecchio bullet «Canonici NON tracciati» produrrebbe, per BOX3/BOX5, la corruzione silenziosa descritta nel bullet dei tracciati. **È falso, e la rettifica vive qui perché un messaggio di commit è pushato e non si corregge.** Quella corruzione nasce dal divario CRLF-su-disco / LF-nel-blob, che è reale per `LIBRO_MASTRO_QBEATS.md` e `BUGS_QBEATS.md` ma **non esiste per BOX3 e BOX5**: lo stesso commit `edaa80f` ha messo `-text` su entrambi, e disco e blob coincidono al byte (verificato). Una copia dal disco non li corromperebbe. Il difetto reale del vecchio bullet era un altro, e regge: dichiarava «non esiste blob» — falso da `edaa80f` — e prescriveva una verifica d'impronta sorgente↔destinazione **non ancorata a un commit**, cioè una copia di cui non si sa a quale stato del documento corrisponda. Il vincolo di `edaa80f` era giusto; la ragione scritta accanto no. ⚠️ **STALE dal 2026-08-30.** Il commit `b962c48` estende `.gitattributes` con `-text` anche a `BUGS_QBEATS.md` e `LIBRO_MASTRO_QBEATS.md`: **da quella data disco e blob coincidono su entrambi, CR 0.** Verificato alla punta in `A331`. La riga resta come scritta — si marca, non si riscrive.
 
 - **Formato dei canonici propagati a E:/project — nome PER VERSIONE, con data e commit di estrazione in coda** (ratificato Mauro 21/07/2026). Forma: `BOX3_V98_2026-07-22_edaa80f.md`. Due motivi, entrambi vincolanti. **(1)** Su E: il file è una **stampa**, non l'originale: il nome per-versione lo distingue a colpo d'occhio dal file a nome fisso che vive nel repo, ed evita di ricostruire su E: la trappola-per-nome che ha già prodotto le due `SCALETTA` omonime e divergenti. **(2)** Il commit in coda rende la stampa **verificabile**: la sua impronta deve coincidere con quella del blob a quel commit, e il controllo resta eseguibile con un comando anche fra anni. ⚠️ **L'archivio esistente non si tocca:** i file da V8 a V97 restano col nome che hanno.
 
@@ -47,7 +47,7 @@ Tutto il resto invariato da V26.
 **Delta V26 vs V25:**
 
 - **Formato dei canonici propagati a E:/project — due regimi, secondo il tracciamento git.**
-  · **Canonici TRACCIATI** (`BUGS_QBEATS.md`, `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/**`): lo snapshot si produce ESTRAENDO DAL BLOB GIT (`git show <commit>:<path>`), MAI con Copy-Item dal file di lavoro. Il file di lavoro in root è CRLF, il blob è LF: i 32 snapshot storici su E: sono tutti LF, e una copia dal disco produrrebbe l'unico CRLF in mezzo a 32 LF — corruzione invisibile, scoperta mesi dopo. La verifica confronta l'impronta con quella del BLOB, non con quella del file su disco.
+  · **Canonici TRACCIATI** (`BUGS_QBEATS.md`, `LIBRO_MASTRO_QBEATS.md`, `HANDOFF/**`): lo snapshot si produce ESTRAENDO DAL BLOB GIT (`git show <commit>:<path>`), MAI con Copy-Item dal file di lavoro. Il file di lavoro in root è CRLF, il blob è LF: i 32 snapshot storici su E: sono tutti LF, e una copia dal disco produrrebbe l'unico CRLF in mezzo a 32 LF — corruzione invisibile, scoperta mesi dopo. La verifica confronta l'impronta con quella del BLOB, non con quella del file su disco. ⚠️ **STALE dal 2026-08-30.** Il commit `b962c48` estende `.gitattributes` con `-text` anche a `BUGS_QBEATS.md` e `LIBRO_MASTRO_QBEATS.md`: **da quella data disco e blob coincidono su entrambi, CR 0.** Verificato alla punta in `A331`. La riga resta come scritta — si marca, non si riscrive.
   · **Canonici NON tracciati** (dal 21/07/2026 la sola SCALETTA — vive fuori da git): l'estrazione da git è IMPOSSIBILE, non esiste blob. La copia dal disco è l'unica via → la verifica è un confronto d'impronta sorgente↔destinazione (stesso sha256 alle due estremità), e il formato del file sorgente È il formato canonico per definizione. ⚠️ **Limite noto del regime, ed è la ragione per cui se ne esce appena possibile:** un'impronta sorgente↔destinazione non è ancorata a un commit, quindi certifica che la copia è fedele ma NON a quale stato del documento corrisponda. **BOX3 e BOX5 sono usciti da questa categoria con `edaa80f` (21/07/2026)** e seguono ora il bullet «Canonici TRACCIATI» qui sopra — con la qualificazione della RETTIFICA nel Delta V27: ne vale la **prescrizione** (estrarre dal blob), non la **motivazione** CRLF/LF, che per loro non si applica.
   ⚠️ **MARCATURA 21/08/2026 — QUESTO BULLET E' SCADUTO, E LO ERA GIA' QUANDO FU SCRITTO.** ⛔ **Non si riscrive: si marca qui.** La SCALETTA — unico soggetto rimasto a questo regime — **e' TRACCIATA dal commit `fe6d34b` del 18/07/2026** («SCALETTA_ATOMI_S6 tracciata in git, cambio di regime, contenuto invariato»), cioe' **tre giorni PRIMA** di `edaa80f` (21/07/2026), in occasione del quale questa frase fu scritta. ⇒ La clausola «dal 21/07/2026 la sola SCALETTA — vive fuori da git» **era gia' falsa nel momento in cui e' stata incisa**. **[M] Verificato a fonte il 21/08/2026:** `git ls-files` rende tracciati **tutti e cinque** i canonici — LIBRO, BUGS, BOX3, BOX5, SCALETTA. ⇒ **Il regime «canonici NON tracciati» non ha piu' alcun soggetto**, e la sua prescrizione — copia dal disco con confronto d'impronta — **non si applica oggi a nulla**. ⚠️ **[A] Il difetto non fu la scadenza, fu la fretta:** la frase enunciava una regola su un file di cui non era stato misurato il tracciamento, tre giorni dopo che era cambiato.
   · **Regola generale:** non si dichiara mai una propagazione «verde» senza aver confrontato un'impronta con la sorgente giusta per il regime del file. Nato 17/07/2026, dopo che un prompt di propagazione diceva «Copy-Item dal disco» per un file tracciato e sarebbe passato verde producendo corruzione silenziosa.
@@ -1444,3 +1444,25 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 ⇒ **Corollario 3 — le righe di Sezione 2 del LIBRO e i registri NON si toccano.** Portano la data della decisione, che è ciò che questa regola prescrive: erano già conformi prima di essere scritte.
 
 **Come si applica:** al primo commit che tocca un canonico, la sua testa prende il nome nuovo. Non si fa un giro apposta per rinominare i campi dei canonici non toccati.
+
+### R-δ.16 — L'INDICE DEGLI ID SI SCRIVE QUANDO L'ID SI ASSEGNA, NON QUANDO SI CENSISCE
+
+🚨 **Un elenco che non si aggiorna e' peggio di nessun elenco:** da' una risposta sbagliata con l'aria di essere autorevole.
+
+**Misurato l'08/09/2026, due ore dopo l'istituzione:** l'indice si e' fermato ad `A332` e non ha registrato `A333`, assegnato subito dopo.
+
+⇒ **Ogni mandato scrive la propria riga in `HANDOFF/INDICE_ID_MANDATI.md` come PRIMO ATTO dopo il cancello ID**, prima di qualunque altra sezione. ⇒ **Chi assegna un ID fuori da un mandato lo fa scrivere li' nel primo mandato utile.**
+
+⛔ Un ID assente dall'indice NON e' un ID libero: e' un ID non registrato. Il cancello resta obbligatorio.
+
+⚠️ **Difetto di progettazione del referee**, non di chi ha costruito l'indice: istituito senza la regola di manutenzione.
+
+### R-δ.17 — DOPO `A332` IL CANCELLO ID HA UNA GAMBA IN MENO, E L'INDICE LA SOSTITUISCE
+
+🚨 **La gamba «nome file nel deposito» rende ZERO per qualunque ID di `HANDOFF/`**, controlli positivi compresi. **Non e' una sonda rotta:** e' la conseguenza strutturale della riga `2026-09-08` di `LIBRO` Sez.2, che ha tolto quella cartella dal tracciamento. Misurato da CC in `A334`: `A323` e `A324` rendono zero su quella gamba e positivo su disco e nell'indice.
+
+⛔ **Uno zero su quella gamba NON dice «ID libero»: non dice niente.**
+
+⇒ **Le gambe vive del cancello sono ora: il disco (nome e contenuto) e `HANDOFF/INDICE_ID_MANDATI.md`.** L'indice e' tracciato apposta per questo: e' l'unica gamba che un referee possa girare da solo.
+
+⚠️ **Un referee che legge solo il deposito e' cieco sugli ID:** senza l'indice non avrebbe piu' nessuna gamba. E l'indice vale solo se R-δ.16 viene rispettata.
