@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 84
-**Decisione:** 2026-09-06 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste.
+**Versione:** 85
+**Decisione:** 2026-09-08 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste.
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -810,6 +810,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ⚠️ **OPZIONE APERTA E NON MISURATA, registrata perche' non si perda:** invece di elencare i file uno a uno si potrebbe scrivere **`*.md -text`**, che coprirebbe anche il `.md` in radice e ogni futuro canonico senza toccare i sorgenti. ⛔ **Non e' stata misurata** — non si sa quanti `.md` tracciati risulterebbero modificati — e **una regola non misurata non si incide**: e' proposta di CC, respinta dal referee in `A285` proprio per questo, e resta da valutare in un giro suo.
 - **Stato: PROPOSTA di severita' 🟠 OPEN MEDIA / ⚠️ NON BLOCCANTE PALCO — il valore lo assegna MAURO, non e' assegnato qui.** Motivo della proposta: non impedisce di suonare e non tocca il binario, ma **corrompe lo strumento con cui il progetto verifica se stesso**, ed e' gia' costato tempo una volta. **Dominio:** CC.
 - **Aperto in `A287`.** Misure in `A283` (perimetro e laboratorio) e `A285` (cura provata sui due canonici).
+- ⚠️ **PERIMETRO RISTRETTO, marcato 2026-09-08 (`A334`):** la lacuna su `LIBRO_MASTRO_QBEATS.md` e `BUGS_QBEATS.md` **e' chiusa dal 2026-08-30**, commit `b962c48`. Il ticket resta aperto sul suo territorio proprio — i sorgenti — che e' **contiguo ma non identico**. ⚠️ **Il ticket resta una PROPOSTA non assegnata: decide Mauro.** ⚠️ **Un terzo file a due facce, trovato in `A332` e non riparato:** `.gitignore`, LF nel blob e CRLF sul disco, non coperto da `.gitattributes`.
 
 ### TD-f1-senza-baseline-chiama-nuovi-i-warning-vecchi — lo script del build check dichiara «nuovi» sei warning preesistenti (🟠 OPEN MEDIA / difetto di STRUMENTO, non di prodotto)
 
