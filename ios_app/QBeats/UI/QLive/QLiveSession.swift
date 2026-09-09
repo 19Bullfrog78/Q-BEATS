@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os
 
 /// Contenitore-sessione della stanza Q-Live — forma B, ratificata in
 /// `LIBRO_MASTRO_QBEATS.md:285 @ 40f099bb28ad87627e3c6df926993a3df297df90`.
@@ -73,6 +74,10 @@ final class QLiveSession: ObservableObject {
     /// (`.onReceive(audioEngine.linkStartedSubject)`) vive ANCORA in `LiveView`
     /// e muore ANCORA con la schermata. `TD-follower-parte-cieco` NON è chiuso
     /// da questa mossa: serve il mandato successivo.
+    /// ⚠️ MARCATURA A337 (09/09/2026) — LA MOSSA (b) E' FATTA: l'ascoltatore vive
+    ///    qui, `attachDirectorPlay(audioEngine:)`, nel cassetto della stanza, e
+    ///    muore con lei. Le tre righe qui sopra restano come storia: si marcano,
+    ///    non si riscrivono. `TD-follower-parte-cieco` resta da collaudare su device.
     ///
     /// Il VINCOLO DI PROPAGAZIONE qui sopra vale identico per questo campo:
     /// `let` NON pubblicato — il contenitore continua a notificare solo la
@@ -80,6 +85,101 @@ final class QLiveSession: ObservableObject {
     /// (`@ObservedObject`, passata esplicita al montaggio), MAI attraverso il
     /// contenitore.
     let liveSession = LiveSession()
+
+    // MARK: - A337 — L'ascolto del Play del Direttore vive nella STANZA
+
+    /// ⟦A337⟧ (09/09/2026) — Cassetto delle iscrizioni della stanza. Fino a
+    /// questo mandato il contenitore non aveva sottoscrizioni proprie (misura
+    /// A336 §2.6). Vive quanto `QLiveSession`, cioe' quanto la stanza
+    /// (`@StateObject` di `QLiveRootView`): all'uscita dalla stanza il `Set`
+    /// muore e cancella la sottoscrizione. Nessun `AnyCancellable` manuale.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// Guardia ESPLICITA della sottoscrizione — modello `beatTickSubscribed`
+    /// (`SetlistRunner.swift`). ⛔ NON usare `cancellables.isEmpty` come
+    /// guardia: e' fragile se domani il cassetto ospita altro.
+    private var directorPlaySubscribed = false
+
+    /// ⟦A337⟧ — TRASLOCO: l'ascolto del Play del Direttore era
+    /// `.onReceive(audioEngine.linkStartedSubject)` in `LiveView`, legato alla
+    /// vita della SCHERMATA (cartello A242 qui sopra, «LA MOSSA (b)»): col
+    /// player chiuso moriva, il Play del Direttore avviava l'audio del Follower
+    /// (`AudioEngine`, callback Link: `engine.start()` poi `send()`) e nessuno
+    /// consegnava la struttura al motore — `TD-follower-parte-cieco-a-player-
+    /// chiuso`. Da oggi l'ascolto vive QUI e muore con la STANZA.
+    ///
+    /// Il motore entra come PARAMETRO, idioma di `endShow(audioEngine:)`: la
+    /// stanza non lo conserva. Chiamata idempotente: la guardia booleana la
+    /// rende inerte dalla seconda volta in poi. Chiamante unico:
+    /// `QLiveRootView`, closure `onStart` del dettaglio — sincrona, senza
+    /// attese, come impone ⟦S5b⟧ `Cond (a)`.
+    ///
+    /// ⚠️ LA GUARDIA `session.playbackState != .playing` NON E' STATA
+    ///    TRASLOCATA, ed e' una scelta misurata (referto A337, §2):
+    ///    (1) la deduplica «una orchestrazione per Play» e' gia' garantita dal
+    ///    gate del motore `_linkStartEmitInFlight`, alzato prima del `send()`
+    ///    e abbassato nello stesso `main.async` che fa `isPlaying = true` —
+    ///    senza buco; (2) a player chiuso quella guardia era INERTE (il mirror
+    ///    di `$playbackState` vive in `LiveView`) e DANNOSA: da A242 la
+    ///    sessione sopravvive al player, e un `.playing` stantio avrebbe
+    ///    bloccato la ri-orchestrazione dopo uno stop/play del Direttore.
+    ///    La sola condizione sotto cui orchestrare e' sbagliato e' «nessuno
+    ///    show in stanza»: e' la guardia in `orchestrateDirectorPlay`.
+    /// ⛔ Non basare mai questa guardia su «il motore sta suonando»: al
+    ///    `send()` `engine.start()` e' gia' stato chiamato, ritornerebbe
+    ///    sempre in anticipo.
+    func attachDirectorPlay(audioEngine: AudioEngine) {
+        guard !directorPlaySubscribed else { return }
+        audioEngine.linkStartedSubject
+            .sink { [weak self, weak audioEngine] _ in
+                guard let self, let audioEngine else { return }
+                self.orchestrateDirectorPlay(audioEngine: audioEngine)
+            }
+            .store(in: &cancellables)
+        directorPlaySubscribed = true
+        os_log("[Q-BEATS][A337] ascolto Play-Direttore ATTACCATO alla stanza - runner:%{public}@",
+               log: .default, type: .default, runner == nil ? "nil" : "presente")
+    }
+
+    /// ⟦A337⟧ — L'ORCHESTRAZIONE, copiata dal CODICE VIVO di `LiveView` (non
+    /// dal suo cartello, che descriveva ancora due rami con `startSetlist`):
+    /// TRE rami, A240 + A267-rev2. ⛔ I rami NON si unificano: con sezione 0 e
+    /// `currentSection` irrisolvibile `startCurrentSong` porta a fineSetlist
+    /// immediato e `startCurrentSection` al fallback 0/0 — divergono, e la
+    /// decisione non e' di questo file. ⛔ `startSetlist` non si chiama: zero
+    /// chiamanti dal 28/08.
+    /// Legge `runner` e `liveSession` ALL'ATTO DI AGIRE, come `leavePlayer()`
+    /// in `QLiveRootView`: non e' un'osservazione, il VINCOLO DI PROPAGAZIONE
+    /// in testa a questo file non e' toccato.
+    private func orchestrateDirectorPlay(audioEngine: AudioEngine) {
+        let session = liveSession
+        guard let runner else {
+            os_log("[Q-BEATS][A337] Play-Direttore ricevuto - GUARDIA BLOCCA: runner nil (nessuno show in stanza) - sessione:%{public}@",
+                   log: .default, type: .default, String(describing: session.playbackState))
+            return
+        }
+        os_log("[Q-BEATS][A337] Play-Direttore ricevuto - GUARDIA PASSA: runner presente - sessione:%{public}@ songIdx:%d sectionIdx:%d",
+               log: .default, type: .default,
+               String(describing: session.playbackState), runner.currentSongIdx, runner.currentSectionIdx)
+        let ramo: String
+        if case .standby = session.playbackState {
+            if runner.currentSectionIdx > 0 {
+                ramo = "standby+sezione>0 -> startCurrentSection"
+                runner.startCurrentSection(audioEngine: audioEngine, session: session)
+            } else {
+                ramo = "standby+sezione0 -> startCurrentSong"
+                runner.startCurrentSong(audioEngine: audioEngine, session: session)
+            }
+        } else {
+            ramo = "altrimenti -> startCurrentSection"
+            runner.startCurrentSection(audioEngine: audioEngine, session: session)
+        }
+        let sezione = runner.currentSection
+        os_log("[Q-BEATS][A337] ramo:%{public}@ - struttura: canzone:%{public}@ sezione:%{public}@ battute:%d bpb:%d",
+               log: .default, type: .default, ramo,
+               session.currentSongName, session.currentSectionName,
+               Int(sezione?.repetitions ?? 0), Int(sezione?.beatsPerBar ?? 0))
+    }
 
     /// ⟦S5b⟧ — MUTATORE DELLO SLOT: la porta che ⟦S4R⟧ aveva lasciato mancante
     /// APPOSTA (:12-15). È il solo punto in cui il runner entra nella stanza.

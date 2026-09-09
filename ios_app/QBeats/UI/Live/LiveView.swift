@@ -207,6 +207,8 @@ struct LiveView: View {
                             // e Follower INSIEME, A267-rev2, ⟦SOL-C⟧) — il limite
                             // strutturale dell'allineamento è dichiarato nel
                             // cartello lì.
+                            // ⚠️ A337 (09/09/2026): quell'observer non e' piu' in
+                            //    questa vista — vive in `QLiveSession.attachDirectorPlay`.
                             if runner.currentSectionIdx > 0 {
                                 runner.startCurrentSection(audioEngine: audioEngine, session: session)
                             } else {
@@ -279,6 +281,8 @@ struct LiveView: View {
                 //      session.playbackState = .playing (via runner →
                 //      audioEngine.start → audioEngine.$playbackState
                 //      observer riga ~165) → questa view scompare;
+                //      ⚠️ A337 (09/09/2026): l'«observer più sotto» e' TRASLOCATO
+                //      in `QLiveSession` — vedi la marcatura in fondo a questo body.
                 //  (b) tap START LOCAL → callback `onStartLocal` qui sotto
                 //      → runner.startSetlist standalone;
                 //  (c) tap CANCEL → `onExit()` in WaitingForDirectorView
@@ -676,6 +680,20 @@ struct LiveView: View {
                 }
             }
         }
+        // ⚠️ MARCATURA A337 (09/09/2026) — L'OBSERVER DESCRITTO NEL CARTELLO QUI
+        //    SOTTO NON VIVE PIU' IN QUESTA VISTA. `.onReceive(audioEngine.
+        //    linkStartedSubject)` e la sua closure a tre rami sono TRASLOCATE
+        //    nella stanza — `QLiveSession.attachDirectorPlay(audioEngine:)` —
+        //    e muoiono con lei, non con la schermata: col player chiuso il Play
+        //    del Direttore ora trova chi consegna la struttura al motore
+        //    (`TD-follower-parte-cieco-a-player-chiuso`). La guardia
+        //    `session.playbackState != .playing` NON e' stata traslocata: a
+        //    player chiuso il mirror di `$playbackState` qui sopra non gira, e
+        //    da A242 la sessione sopravvive — un `.playing` stantio avrebbe
+        //    bloccato la ri-orchestrazione. Deduplica: gate del motore
+        //    `_linkStartEmitInFlight` (referto A337 §1). Il cartello sotto resta
+        //    come storia: si marca, non si riscrive. Il mirror `$playbackState`
+        //    (`.onReceive` piu' sopra) NON e' toccato — atomo a se'.
         // CD-6 / Bug 4 fix (28/05/2026) — Observer Opzione C orchestrazione
         // cross-device. AudioEngine emette `linkStartedSubject` dal callback
         // Link `set_start_stop_callback` (chiamata a `link_engine_set_start_stop_callback` in AudioEngine.swift)
@@ -701,47 +719,6 @@ struct LiveView: View {
         // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
         // (subscription legata al lifetime della view), nessun
         // `AnyCancellable` manuale necessario.
-        .onReceive(audioEngine.linkStartedSubject) { _ in
-            guard session.playbackState != .playing else { return }
-            // Cambio-canzone cross-device (buco copertura Opzione C/CD-6):
-            // in .standby il Follower ha currentSongIdx già avanzato →
-            // startCurrentSong preserva la canzone corrente; startSetlist
-            // la resetterebbe a songIdx 0 (Song A). Vedi BUGS_QBEATS.md.
-            if case .standby = session.playbackState {
-                // ⚠️ A267-rev2 (30/08/2026) — STESSA REGOLA DEL TAP SUL VELO
-                // (cartello A267 sopra): sezione conservata >0 = rientro dopo
-                // STOP a metà canzone → si riprende da lì; sezione 0 = standby
-                // fra due canzoni o ingresso fresco → dalla canzone, come oggi.
-                // Decisione Mauro 30/08: Direttore e Follower INSIEME.
-                // 🚨 QUESTA CORREZIONE ALLINEA I DUE APPARECCHI PERCHÉ FANNO LO
-                // STESSO CONTO, NON PERCHÉ SI PARLINO ⟦SOL-C⟧: nessuna API Link
-                // trasporta l'indice di sezione — i runner contano i beat
-                // ciascuno per sé, e coincidono solo se partiti insieme sulla
-                // stessa struttura e fermati insieme dallo stop di banda.
-                // NON regge se un apparecchio si aggancia in ritardo o rientra
-                // dopo una caduta di rete. Riparazione strutturale: Soluzione C
-                // — protocollo proprietario master/client (LIBRO:212,
-                // 20/05/2026, attiva).
-                // ⛔ I due rami di questo observer NON collassano in uno: con
-                // sezione 0 e `currentSection` irrisolvibile le due partenze
-                // divergono (`startCurrentSong` → fineSetlist immediato ·
-                // `startCurrentSection` → fallback 0/0 e riparte dalla prima
-                // canzone). Non unificare senza decisione.
-                if runner.currentSectionIdx > 0 {
-                    runner.startCurrentSection(audioEngine: audioEngine, session: session)
-                } else {
-                    runner.startCurrentSong(audioEngine: audioEngine, session: session)
-                }
-            } else {
-                // ⚠️ A240 — era `startSetlist` (il commento qui sopra e il blocco
-                //    Q-D3 più su lo descrivono ancora così — testo invariato): il
-                //    Follower fermo a metà show perdeva il punto SENZA toccare
-                //    nulla quando il Direttore premeva Play (A239, sito 5). RULING
-                //    del referee: conserva canzone e sezione; fallback 0/0 dentro
-                //    `startCurrentSection` se l'indice non si risolve.
-                runner.startCurrentSection(audioEngine: audioEngine, session: session)
-            }
-        }
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {

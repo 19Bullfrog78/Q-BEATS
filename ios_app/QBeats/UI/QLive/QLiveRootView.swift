@@ -245,6 +245,14 @@ struct QLiveRootView: View {
                             roomSession.install(SetlistRunner(setlist: show,
                                                               store: QBeatsStore.shared))
                         }
+                        // ⟦A337⟧ (09/09/2026) — L'ASCOLTO DEL PLAY DEL DIRETTORE SI
+                        //    ATTACCA ALLA STANZA QUI, non nel player: idempotente
+                        //    (guardia booleana in `QLiveSession`), sincrono e senza
+                        //    attese — l'invariante ⟦S5b⟧ `Cond (a)` qui sopra resta
+                        //    intatta. Il motore entra per parametro, idioma di
+                        //    `endShow(audioEngine:)`. Muore col cassetto della
+                        //    stanza, cioe' col `switch` di `AppRootView`.
+                        roomSession.attachDirectorPlay(audioEngine: audioEngine)
                         navigate(to: .metronome)
                     },
                     // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio
