@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 // MARK: - QLiveShowDetailView — Q-Live › Show Detail (frame ③, read-only) · ⟦S5a⟧
 //
@@ -213,16 +214,39 @@ struct QLiveShowDetailView: View {
             // `segment`, RoomSwitchBar.swift:65-66) ma è un parametro non-opzionale: passata
             // una closure vuota. `onSwitch` resta al suo default no-op ⇒ INERTE come richiesto.
             RoomSwitchBar(active: .qLive, onHome: {}, variant: .segMini)
-            HStack {
-                backButton
-                Spacer()
+            // ⟦A341⟧ (09/09/2026) — PORTA UNO: A SHOW VIVO LA FRECCIA NON C'E'.
+            //    Ratifiche: BOX5 decisione 8 («nel dettaglio entrato dal player la
+            //    freccia non c'e'», REGGE), BOX5 §(e) 27/08 («la via di ritorno non
+            //    e' la freccia: e' il comando di ripresa»), Mauro 09/09 al referee
+            //    («una stanza, due entrate, mobili diversi»). A show vivo la via di
+            //    ritorno e' il tasto BACK TO SHOW che gia' esiste piu' sotto; a show
+            //    morto resta «‹ Shows» → lista, com'e'. `onBack`, `backButton`,
+            //    `minHeight: 44` e `.contentShape` NON sono toccati. L'ordine dei
+            //    figli dello ZStack (segmento, POI back) e' invariato: quando il back
+            //    manca resta il solo segmento inerte, che non riceve alcuna uscita.
+            if !isShowLive {
+                HStack {
+                    backButton
+                    Spacer()
+                }
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 54)
         .padding(.horizontal, 14)
+        // ⟦A341⟧ strumentazione (2), passiva, solo os_log: al montaggio della navbar
+        //    dice se la freccia c'e'. Controllo positivo del collaudo: a show morto
+        //    deve leggersi «freccia:SI».
+        .onAppear {
+            os_log("[Q-BEATS][A341] dettaglio navbar montata - isShowLive:%{public}@ freccia:%{public}@",
+                   log: .default, type: .default,
+                   isShowLive ? "true" : "false", isShowLive ? "NO" : "SI")
+        }
     }
 
+    // ⚠️ MARCATURA A341 (09/09/2026) — «unica uscita» vale a SHOW MORTO: a show vivo
+    //    la navbar non monta questo back (vedi `navbar`), e l'uscita dalla schermata
+    //    e' il tasto BACK TO SHOW. Il blocco sotto resta come scritto: si marca.
     // Back «Shows» — unica uscita dalla schermata. Hit-area ≥44pt (vincolo globale): il
     // padding verticale sta DENTRO la label del Button, così il GESTO lo copre — lezione del
     // gate device S3 fallito su `RoomSwitchBar` (`RoomSwitchBar.swift:152-164`: un

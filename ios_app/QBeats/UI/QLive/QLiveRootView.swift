@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 /// Contenitore di Q-Live (performance) — specchio esatto di `QStageRootView`.
 /// È la RADICE in-tree di Q-Live: raggiunta per commutazione di schermata da
@@ -111,6 +112,10 @@ struct QLiveRootView: View {
         page = newPage
     }
 
+    /// ⚠️ MARCATURA A341 (09/09/2026) — DA OGGI LA NAVIGAZIONE NON E' PIU' «IDENTICA»
+    ///    e la condizione non e' piu' «una sola»: a show vivo la freccia va a `.detail`,
+    ///    non a `.shows`. Le righe qui sotto restano vere per il ramo `.fineSetlist`,
+    ///    che e' INVARIATO. I tre rami e le loro ragioni stanno dentro il metodo.
     /// ⟦PORTA-RIENTRO⟧ ② — USCITA dal player verso l'imbuto interno. Sostituisce
     /// la closure nuda `{ navigate(to: .shows) }` che stava al sito di montaggio:
     /// la navigazione è IDENTICA, si aggiunge una sola condizione.
@@ -143,10 +148,51 @@ struct QLiveRootView: View {
     ///    `link_engine_stop` — nessun evento alla band. Non si ferma niente che
     ///    stia suonando, perché non c'è.
     private func leavePlayer() {
-        if case .fineSetlist = roomSession.liveSession.playbackState {
+        let stato = roomSession.liveSession.playbackState
+        // Ramo 1 — FINE SCALETTA: INVARIATO (lastra ⑮→⑯ di CD). Chiude lo show e
+        // porta alla lista; tutto il cartello qui sopra vale per questo ramo.
+        if case .fineSetlist = stato {
             roomSession.endShow(audioEngine: audioEngine)
+            os_log("[Q-BEATS][A341] freccia player - stato:%{public}@ runner:chiuso ramo:fineSetlist -> shows",
+                   log: .default, type: .default, String(describing: stato))
+            navigate(to: .shows)
+            return
         }
-        navigate(to: .shows)
+        // ⟦A341⟧ (09/09/2026) — PORTA DUE: A SHOW VIVO LA FRECCIA DEL PLAYER HA UNA
+        //    DESTINAZIONE SOLA, I DETTAGLI. Ratifiche: LIBRO:379 (29/08, col click che
+        //    suona la freccia ha una destinazione: i dettagli); LIBRO:404 (03/09, «se
+        //    lo show e' attivo la casa non esiste, l'uscita non esiste»); Mauro 09/09
+        //    al referee («una stanza, due entrate, mobili diversi»). Vale per OGNI
+        //    stato dello show: che suona, in attesa fra due canzoni (BOX5 §2(f):
+        //    l'attesa conta come «gira»), e anche FERMO dopo STOP.
+        // ⚠️ TAPPA DICHIARATA, NON REGOLA — lo STOP: la destinazione ratificata dopo
+        //    uno STOP e' il bivio (LIBRO:383), che arriva col passo 2 di questo lavoro.
+        //    Nel frattempo il dettaglio e' onesto: BACK TO SHOW riporta al player
+        //    fermo, PLAY riparte da canzone e sezione.
+        // COME SI ARRIVA ALLA PAGINA GIUSTA — NESSUN SECONDO CANALE: il ramo `.detail`
+        //    legge `selectedSetlist` (:48), che ha UN solo scrittore (:179, il tocco
+        //    sulla riga della lista) e dentro il cui `if let` il runner e' nato
+        //    (`onStart`). A runner vivo la lista e' irraggiungibile — le sole vie
+        //    verso `.shows` passano da `endShow`, che svuota lo slot prima — quindi
+        //    `selectedSetlist` non puo' cambiare: E' lo show del runner, invariante
+        //    PER NAVIGAZIONE, non per dato. ⛔ Chi aprisse una via nuova verso
+        //    `.shows` a runner vivo romperebbe questa garanzia. Misura: A341 §2.
+        // Lettura di `runner` ALL'ATTO DI AGIRE, come la riga di `playbackState` sopra
+        //    e come `orchestrateDirectorPlay` (A337): non e' un'osservazione
+        //    attraverso il contenitore.
+        if roomSession.runner != nil {
+            os_log("[Q-BEATS][A341] freccia player - stato:%{public}@ runner:presente ramo:show-vivo -> detail",
+                   log: .default, type: .default, String(describing: stato))
+            navigate(to: .detail)
+        } else {
+            // Ramo DIFENSIVO, mai vivo nel codice (A341 §3): il player monta solo nel
+            // gate `if let runner`, e i due chiamanti di `endShow` navigano a `.shows`
+            // nella stessa closure sincrona. Se questa riga compare nel log, qualcuno
+            // ha aperto una via nuova.
+            os_log("[Q-BEATS][A341] freccia player - stato:%{public}@ runner:nil ramo:difensivo -> shows",
+                   log: .default, type: .default, String(describing: stato))
+            navigate(to: .shows)
+        }
     }
 
     /// ⟦PORTA-RIENTRO⟧ ② — END SHOW ESPLICITO. Seam separato da `onExit`, e la
@@ -329,6 +375,8 @@ struct QLiveRootView: View {
                 //    («TERZO inoltro dello stesso seam», `LiveView.swift`), e con un
                 //    seam solo non c'è modo di distinguere «me ne vado» da «lo show
                 //    è finito».
+                //    ⚠️ A341 (09/09/2026): da oggi `leavePlayer()` ha TRE rami, non «una
+                //    condizione e nient'altro» — a show vivo porta a `.detail`.
                 LiveView(onExit: { leavePlayer() },
                          onEndShow: { endShowAndLeave() },
                          session: roomSession.liveSession)
