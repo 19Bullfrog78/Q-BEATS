@@ -47,6 +47,13 @@ struct QLiveRootView: View {
     @State private var page: QLivePage = .shows
     /// Show selezionata per il dettaglio — il payload separato di cui sopra (:42-43). ⟦S5a⟧.
     @State private var selectedSetlist: Setlist? = nil
+    /// ⟦A343⟧ (10/09/2026) — IL BIVIO A TRE VIE: aperto/chiuso, e i due dati che
+    /// mostra, risolti ALL'ATTO DI AGIRE in `leavePlayer()` dal runner. Non e' una
+    /// pagina (`QLivePage` resta a tre casi): e' un overlay sulla pagina `.metronome`,
+    /// e si chiude in `navigate(to:)` a OGNI uscita da quella pagina.
+    @State private var bivioAperto = false
+    @State private var bivioCanzone = ""
+    @State private var bivioMeta = ""
 
     /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
     /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
@@ -109,6 +116,12 @@ struct QLiveRootView: View {
     /// Porta UNICA di mutazione di `page`: nessuna assegnazione diretta fuori
     /// da qui. A S4b ha zero chiamanti (la porta è installata per S5/S6).
     private func navigate(to newPage: QLivePage) {
+        // ⟦A343⟧ — il bivio non sopravvive alla pagina `.metronome`: OGNI uscita passa
+        //    da questa porta unica, quindi e' l'unico punto che lo chiude per
+        //    costruzione. `.onChange(of: page)` e' vietato anche inerte (decisione CD
+        //    18/07, qui sopra); questa riga NON e' uno stop audio e non tocca il
+        //    transport — abbassa un bit di stato della stanza.
+        if newPage != .metronome { bivioAperto = false }
         page = newPage
     }
 
@@ -116,6 +129,8 @@ struct QLiveRootView: View {
     ///    e la condizione non e' piu' «una sola»: a show vivo la freccia va a `.detail`,
     ///    non a `.shows`. Le righe qui sotto restano vere per il ramo `.fineSetlist`,
     ///    che e' INVARIATO. I tre rami e le loro ragioni stanno dentro il metodo.
+    /// ⚠️ A343 (10/09/2026): QUATTRO rami — a show FERMO (`.stopped`) la freccia apre
+    ///    il bivio e NON naviga. Passo 2a; il velo e RESUME sono mandati loro.
     /// ⟦PORTA-RIENTRO⟧ ② — USCITA dal player verso l'imbuto interno. Sostituisce
     /// la closure nuda `{ navigate(to: .shows) }` che stava al sito di montaggio:
     /// la navigazione è IDENTICA, si aggiunge una sola condizione.
@@ -158,6 +173,35 @@ struct QLiveRootView: View {
             navigate(to: .shows)
             return
         }
+        // ⟦A343⟧ (10/09/2026) — PASSO 2a: A SHOW FERMO LA FRECCIA APRE IL BIVIO A TRE
+        //    VIE (LIBRO:383, 30/08, scelta di Mauro; frame ① del foglio CD 30/08).
+        //    Chiude la TAPPA dichiarata da A341 qui sotto. Il bivio NON e' una pagina:
+        //    e' un overlay sulla pagina `.metronome`, il player fermo resta sotto —
+        //    qui NON si naviga. Solo `.stopped`: `.overlayStop` e' un caso distinto e
+        //    va al dettaglio come prima; `.fineSetlist` e' gia' uscito sopra.
+        //    I dati mostrati vengono dal RUNNER — `currentSong`/`currentSection`, lo
+        //    stesso indice da cui `startCurrentSection` riparte — letti ALL'ATTO DI
+        //    AGIRE, come `runner` qui sotto; mai dal mirror della schermata
+        //    (`liveSession.currentSongName`/`currentTimeSig`, che segue la vista e
+        //    deriva il tempo da un'euristica). Forma della riga meta: l'idioma del
+        //    dettaglio (`QLiveShowDetailView.swift:484`), che e' gia' «121 · 6/8» del
+        //    frame. Se la sezione non si risolve, la riga resta vuota: non si inventa.
+        if case .stopped = stato, let runner = roomSession.runner {
+            let canzone = runner.currentSong?.name ?? ""
+            let meta: String
+            if let sez = runner.currentSection {
+                meta = "\(sez.name) \u{00B7} \(Int(sez.bpm.rounded())) \u{00B7} \(sez.beatsPerBar)/\(sez.beatUnit)"
+            } else {
+                meta = ""
+            }
+            bivioCanzone = canzone
+            bivioMeta = meta
+            bivioAperto = true
+            os_log("[Q-BEATS][A343] bivio APERTO - stato:%{public}@ canzone:%{public}@ meta:%{public}@ sottoriga:%{public}@",
+                   log: .default, type: .default,
+                   String(describing: stato), canzone, meta, audioEngine.linkIsConnected ? "si" : "no")
+            return
+        }
         // ⟦A341⟧ (09/09/2026) — PORTA DUE: A SHOW VIVO LA FRECCIA DEL PLAYER HA UNA
         //    DESTINAZIONE SOLA, I DETTAGLI. Ratifiche: LIBRO:379 (29/08, col click che
         //    suona la freccia ha una destinazione: i dettagli); LIBRO:404 (03/09, «se
@@ -169,6 +213,9 @@ struct QLiveRootView: View {
         //    uno STOP e' il bivio (LIBRO:383), che arriva col passo 2 di questo lavoro.
         //    Nel frattempo il dettaglio e' onesto: BACK TO SHOW riporta al player
         //    fermo, PLAY riparte da canzone e sezione.
+        // ⚠️ MARCATURA A343 (10/09/2026) — TAPPA CHIUSA: il ramo `.stopped` apre il
+        //    bivio (qui sotto, prima del ramo show-vivo). Le quattro righe qui sopra
+        //    restano come storia: si marcano, non si riscrivono.
         // COME SI ARRIVA ALLA PAGINA GIUSTA — NESSUN SECONDO CANALE: il ramo `.detail`
         //    legge `selectedSetlist` (:48), che ha UN solo scrittore (:179, il tocco
         //    sulla riga della lista) e dentro il cui `if let` il runner e' nato
@@ -377,10 +424,72 @@ struct QLiveRootView: View {
                 //    è finito».
                 //    ⚠️ A341 (09/09/2026): da oggi `leavePlayer()` ha TRE rami, non «una
                 //    condizione e nient'altro» — a show vivo porta a `.detail`.
+                //    A343 (10/09/2026): QUATTRO — a show fermo apre il bivio, non naviga.
                 LiveView(onExit: { leavePlayer() },
                          onEndShow: { endShowAndLeave() },
                          session: roomSession.liveSession)
                     .environmentObject(runner)
+                    // ⟦A343⟧ — IL BIVIO A TRE VIE, overlay sul player fermo (frame ① del
+                    //    foglio CD 30/08). Il player resta montato sotto; la vista riceve
+                    //    stringhe gia' risolte in `leavePlayer()` e non legge il motore.
+                    //    ⚠️ RETTIFICA 1 (10/09/2026): le righe sotto sulla sottoriga sono SUPERATE —
+                    //    la sottoriga NON si costruisce (CD 30/08 :351, due gambe, la seconda non
+                    //    leggibile). Vedi il cartello accanto a `endShowSubline: nil`. Restano
+                    //    come storia: si marcano, non si riscrivono.
+                    //    La sottoriga ambra segue la REGOLA DEL DETTAGLIO — compare con
+                    //    `linkIsConnected`, stato da `isPlaying`, mai `isShowLive`
+                    //    (`QLiveShowDetailView.swift:548-563`, codice `:581-585`) — scritta
+                    //    qui una seconda volta perche' nel dettaglio vive dentro un
+                    //    `private var` non riusabile; NON e' una terza regola. ⚠️ Copy dal
+                    //    frame ① (`CD:220`): «the other devices», una parola in piu' del
+                    //    dettaglio (29/08 §B) — discordanza di CD, referto A343 §5(b). Lo
+                    //    stato «playing» non ha copy nel frame: si riusa quella del
+                    //    dettaglio (`:583`), ramo irraggiungibile per costruzione (il bivio
+                    //    apre solo su `.stopped`). La radice osserva gia' il motore (A254):
+                    //    i due segnali qui sono vivi. Le tre uscite: X → resta sul player
+                    //    fermo · SHOW DETAILS → `.detail` · END SHOW → `endShowAndLeave()`,
+                    //    che si CHIAMA e non si modifica.
+                    .overlay {
+                        if bivioAperto {
+                            QLiveBivioView(
+                                songName: bivioCanzone,
+                                meta: bivioMeta,
+                                // ⟦A343 · RETTIFICA 1⟧ (10/09/2026) — LA SOTTORIGA NON SI COSTRUISCE.
+                                //    Foglio CD 30/08, MISURE :351, verbatim: «Condizionata, e la
+                                //    condizione ha due gambe: apparecchio collegato E sincronizzazione
+                                //    Start/Stop accesa. La seconda oggi non e' leggibile ⇒ finche' non
+                                //    lo e', la riga non si costruisce: assenza silenziosa, mai allarme
+                                //    mezzo armato.» Misura del referee, confermata da CC: la seconda
+                                //    gamba non e' esposta a Swift — `LinkEngine.mm` ha solo il callback
+                                //    (:22-23, :503-514), nessun getter; zero simboli `startStopSync`
+                                //    in `ios_app/*.swift`. Il getter e' un atomo di Layer 2, mandato suo.
+                                //    ⚠️ Il dettaglio (`QLiveShowDetailView.swift:548-585`) porta la
+                                //    regola VECCHIA a una gamba (`linkIsConnected` + `isPlaying`): va
+                                //    allineato quando la seconda gamba sara' leggibile — ticket nel
+                                //    prossimo giro di documenti. Lo slot `endShowSubline` resta: e' il
+                                //    contratto del frame ① (la vista gestisce gia' 64/56), non una
+                                //    predisposizione. Il log «sottoriga:si/no» qui sopra e'
+                                //    strumentazione, non una riga a schermo: resta.
+                                endShowSubline: nil,
+                                onClose: {
+                                    os_log("[Q-BEATS][A343] bivio uscita X -> resta sul player fermo",
+                                           log: .default, type: .default)
+                                    bivioAperto = false
+                                },
+                                onShowDetails: {
+                                    os_log("[Q-BEATS][A343] bivio uscita SHOW DETAILS -> detail",
+                                           log: .default, type: .default)
+                                    bivioAperto = false
+                                    navigate(to: .detail)
+                                },
+                                onEndShow: {
+                                    os_log("[Q-BEATS][A343] bivio uscita END SHOW -> endShowAndLeave",
+                                           log: .default, type: .default)
+                                    bivioAperto = false
+                                    endShowAndLeave()
+                                })
+                        }
+                    }
             } else {
                 // COMMENTO DI GUARDIA (forma D1-SPLIT): l'incisione sta dove un
                 // futuro lettore cablerebbe per errore.
