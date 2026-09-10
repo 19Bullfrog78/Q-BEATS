@@ -153,6 +153,23 @@ struct QLiveShowDetailView: View {
     /// (`QLiveRootView.endShowAndLeave()` → `QLiveSession.endShow(audioEngine:)`).
     let onEndShow: () -> Void
 
+    /// ⟦A345⟧ (10/09/2026) — LA TERZA FACCIA (BOX5 «MODELLO DI SESSIONE Q-LIVE» §2(b): dal
+    /// bivio, show fermo). Due valori semplici risolti alla PORTA (`QLiveRootView`,
+    /// `onShowDetails` del bivio): la faccia la decide da dove si entra, non una rilettura
+    /// del motore qui. `resumeSectionName` e' il nome della sezione corrente del runner
+    /// all'atto di aprire la faccia; vuoto se non si risolve ⇒ RESUME non si costruisce
+    /// (garanzia contro la bugia, foglio CD 30/08 :369, applicata al tasto: mai «from»
+    /// vuoto, mai RESUME nudo) e resta il BACK TO SHOW di oggi.
+    /// ⚠️ POSIZIONE: in coda, dopo `onEndShow` — l'ordine di dichiarazione E' la firma
+    /// dell'init memberwise (vedi `isShowLive`), e il sito di montaggio passa gli argomenti
+    /// in quest'ordine.
+    let isThirdFace: Bool
+    let resumeSectionName: String
+    /// ⟦A345⟧ — RESUME: la foglia dice soltanto «l'utente ha premuto RESUME»; chi riparte
+    /// (stato, runner, motore) e chi naviga e' la stanza (`QLiveRootView`, `onResume`),
+    /// come per `onStart` e `onEndShow`.
+    let onResume: () -> Void
+
     /// A253 — il motore, DICHIARATO e non iniettato: arriva da
     /// `AppRootView.swift:53`, iniettato su `QLiveRootView` un livello sopra
     /// (catena provata nel cartello del gate `.metronome` di quel file). Serve
@@ -167,6 +184,17 @@ struct QLiveShowDetailView: View {
 
     @ObservedObject private var store = QBeatsStore.shared
 
+    /// ⟦A345⟧ — QUANDO RESUME C'E': terza faccia · sezione nominabile · l'apparecchio comanda
+    /// il trasporto. Il terzo termine e' il predicato del PLAY (`TransportView.swift:59`,
+    /// `currentLinkMode == .collaborativa` ⇒ Follower): RESUME e' un PLAY e obbedisce alla
+    /// stessa regola — letto qui a render per decidere la veste (idioma di `endShowRow`, che
+    /// gia' legge `audioEngine` per i suoi due segnali) e RILETTO all'atto di agire nella
+    /// stanza. In pratica il Follower non arriva mai a questa faccia (il bivio non gli si
+    /// apre, `QLiveRootView.leavePlayer()`): questa e' la seconda serratura, non la prima.
+    private var showsResume: Bool {
+        isThirdFace && !resumeSectionName.isEmpty && audioEngine.currentLinkMode != .collaborativa
+    }
+
     var body: some View {
         // `scaleFactor` — pattern ratificato `BOX5_QBEATS.md:47`, identico a `LiveView.swift:87`:
         // calcolato nel `GeometryReader` e PASSATO come parametro, mai catturato implicitamente.
@@ -179,9 +207,25 @@ struct QLiveShowDetailView: View {
                 navbar
                 dhead(resolved, scaleFactor: scaleFactor)
                 content(resolved)
-                startfoot(resolved)
+                // ⟦A345⟧ — la lamella: nella terza faccia con RESUME, `resumeFoot`; altrimenti
+                //    `startfoot`, INVARIATO (facce 1 e 2; e la terza senza sezione nominabile o
+                //    su un Follower: resta il BACK TO SHOW di oggi).
+                if showsResume {
+                    resumeFoot
+                } else {
+                    startfoot(resolved)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // ⟦A345⟧ strumentazione (2), passiva: quale faccia si e' montata, se RESUME c'e' e
+            //    con quale sezione. Faccia 3 = dal bivio · 2 = show vivo dal player · 1 = dalle
+            //    card.
+            .onAppear {
+                os_log("[Q-BEATS][A345] dettaglio montato - faccia:%{public}@ resume:%{public}@ sezione:%{public}@",
+                       log: .default, type: .default,
+                       isThirdFace ? "3" : (isShowLive ? "2" : "1"),
+                       showsResume ? "SI" : "NO", resumeSectionName)
+            }
         }
         .background(Color(hex: "#0e0e10").ignoresSafeArea())
     }
@@ -509,6 +553,17 @@ struct QLiveShowDetailView: View {
     //    (28/08) — «finché l'esecutore non onora la sezione, Resume from
     //    [section] non va a schermo. Non "con copy più prudente": assente» — e
     //    «la terza faccia eredita il blocco». Costruirlo è un difetto.
+    // ⚠️ MARCATURA A345 (10/09/2026) — LA CONDIZIONE DEL §D E' CADUTA, E RESUME C'E' — nella
+    //    SOLA terza faccia (`resumeFoot`, piu' sotto). Il §D bloccava «finche' l'esecutore non
+    //    onora la sezione»: da A240 (28/08) la ripartenza e' `startCurrentSection`, che conserva
+    //    canzone E sezione; la sezione nasce da UN solo indice (`SetlistRunner`
+    //    `currentSongIdx`/`currentSectionIdx`) e il nome e la ripartenza leggono lo stesso —
+    //    congedo referee 10/09 §5; prova device di Mauro 10/09, giro 3, verbatim: «mi sono
+    //    fermato a meta' del BRIDGE 3/4, riparte dal primo beat del BRIDGE 3/4». BOX5 «MODELLO
+    //    DI SESSIONE Q-LIVE» §2(b): la terza faccia offre lista + salto + RESUME + END SHOW; la
+    //    marcatura A322 sotto quella tabella dice che il blocco era una CONDIZIONE, non un
+    //    ritiro. Le quattro righe qui sopra restano come storia: si marcano, non si riscrivono.
+    //    `startfoot` qui sotto e' INVARIATO: e' la lamella delle facce 1 e 2.
     private func startfoot(_ resolved: (songs: [Song], missingIDs: [UUID])) -> some View {
         VStack(spacing: 10) {
             if isShowLive {
@@ -619,6 +674,108 @@ struct QLiveShowDetailView: View {
             )
             // Hit-area: il GESTO copre l'intera riga (56/64 ≥ 44) — lezione del
             // gate device S3: il `.contentShape` sta DENTRO la label del Button
+            // (`RoomSwitchBar.swift:152-164`).
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - ⟦A345⟧ Lamella della TERZA FACCIA — frame ③ del foglio CD 30/08
+    // (`DESIGN/QLive_Nav/2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html`,
+    // 59.659 byte, sha256 0b11c2263e977bde1d5665feabb10e0953a227f4837d8462683518e8558e5c3f;
+    // `.vstack` :115 · markup :267-271 · MISURE :353). END SHOW — scaffale — RESUME. Solo qui:
+    // `startfoot` (facce 1 e 2) e' INVARIATO.
+
+    /// `.vstack` (:115): padding 12 18 20 · gap 10 · lo stesso gradiente di `startfoot`.
+    /// ⚠️ Il top e' 12, non i 14 di `startfoot` (che vengono dal freeze `.startfoot :265`): CD ha
+    ///    disegnato due contenitori diversi, si costruiscono diversi. Ordine (:268-270): END SHOW
+    ///    (`endShowRow`, INVARIATO — stessa voce, stessa sottoriga a una gamba, ticket doc gia'
+    ///    aperto) · `.gsep.shelfv` · RESUME (`.vrow.res`). Nessun BACK TO SHOW e nessun START:
+    ///    nel frame ③ non ci sono, e RESUME stesso riporta al player.
+    private var resumeFoot: some View {
+        VStack(spacing: 10) {
+            endShowRow
+            resumeShelf
+            resumeRow
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+        .background(
+            LinearGradient(
+                stops: [
+                    .init(color: Color(hex: "#0e0e10"), location: 0.0),
+                    .init(color: Color(hex: "#0e0e10"), location: 0.66),
+                    .init(color: Color(hex: "#0e0e10").opacity(0), location: 1.0)
+                ],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+        )
+    }
+
+    /// `.gsep.shelfv` (:125, :128) — 1px · rgba(255,255,255,0.13) · margin 10 −18. Full-bleed
+    /// fuori dal padding 18 del contenitore: l'idioma della mensola del bivio
+    /// (`QLiveBivioView.swift:180-186`, padding negativo, compilato dalla CI di A343). Salto
+    /// **41** = gap 10 + margin 10 + linea 1 + margin 10 + gap 10. ⚠️ MISURE :352-353 scrivono
+    /// «39»: vince il CSS, che e' cio' che CD ha disegnato; la discordanza va al giro CD.
+    private var resumeShelf: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.13))
+            .frame(height: 1)
+            .padding(.horizontal, -18)
+            .padding(.vertical, 10)
+    }
+
+    /// `.vrow.res` (:116, :120) — h 66 · radius 15 · gap 11 · padding 0/16 · JB Mono 13.5 700
+    /// ls 2.2 UPPERCASE · gradiente 150° #e8571c→#c8360a · bianco · ombra 0 8 24 rgba(212,63,0,
+    /// .42) · inset 0 1 0 rgba(255,180,140,.3). Sottoriga `.vrow em` (:122): JB Mono 10 600
+    /// ls 1.1 · rgba(255,255,255,0.80) · `text-transform:none` ⇒ il nome della sezione com'e'
+    /// (l'ambra di :124 e' SOLO `.vrow.end em`). Copy dal markup :270: «Resume» (reso maiuscolo
+    /// da `.vrow`) e «from ⟨sezione⟩». Si costruisce SOLO con `resumeSectionName` non vuoto
+    /// (`showsResume`): mai «from» vuoto.
+    private var resumeRow: some View {
+        Button(action: onResume) {
+            HStack(spacing: 11) {
+                // glifo (:270): viewBox 24, «M7 4.5l12 7.5-12 7.5z», riempito currentColor
+                // (bianco), reso 17×17. ⛔ NON `PlayGlyphShape` (:773-785, «M7 5l12 7-12 7z»,
+                // 16×16): CD li ha disegnati diversi.
+                ResumeGlyphShape()
+                    .fill(Color.white)
+                    .frame(width: 17, height: 17)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("RESUME")
+                        .font(.jbMono(.bold, size: 13.5))
+                        .tracking(2.2)
+                        .foregroundColor(.white)
+                    Text("from \(resumeSectionName)")
+                        .font(.jbMono(.semibold, size: 10))
+                        .tracking(1.1)
+                        .foregroundColor(Color.white.opacity(0.80))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .frame(height: 66)
+            // Gradiente e inset-highlight: la STESSA resa del tasto grande (:684-711) e del SHOW
+            // DETAILS del bivio (`QLiveBivioView.swift:159-169`); 150° → topLeading/bottomTrailing
+            // e' l'approssimazione gia' dichiarata a :699-702. L'ombra e' piu' profonda del
+            // `.ret`: 0 8px 24px .42 → `radius: 12, y: 8` (convenzione blur/2 di :703 e
+            // `QLiveBivioView.swift:100-102`), colore `QStageTheme.orange` = #d43f00 = rgba(212,63,0).
+            .background(
+                LinearGradient(colors: [Color(hex: "#e8571c"), Color(hex: "#c8360a")],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+            )
+            .shadow(color: QStageTheme.orange.opacity(0.42), radius: 12, x: 0, y: 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .strokeBorder(Color(hex: "#ffb48c").opacity(0.3), lineWidth: 1)
+                    .mask(VStack(spacing: 0) { Rectangle().frame(height: 2); Spacer(minLength: 0) })
+            )
+            // Hit-area: 66 ≥ 44; il `.contentShape` sta DENTRO la label del Button
             // (`RoomSwitchBar.swift:152-164`).
             .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         }
@@ -779,6 +936,22 @@ private struct PlayGlyphShape: Shape {
         path.move(to: pt(7, 5))
         path.addLine(to: pt(19, 12))
         path.addLine(to: pt(7, 19))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// ⟦A345⟧ — glifo `.vrow.res` (foglio CD 30/08, markup :270, viewBox 24×24, reso 17×17):
+// «M7 4.5l12 7.5-12 7.5z», riempito. ⛔ Path DIVERSO da `PlayGlyphShape` qui sopra
+// («M7 5l12 7-12 7z»): CD li ha disegnati diversi, si costruiscono diversi.
+private struct ResumeGlyphShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let scale = rect.width / 24
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * scale, y: rect.minY + y * scale) }
+        var path = Path()
+        path.move(to: pt(7, 4.5))
+        path.addLine(to: pt(19, 12))
+        path.addLine(to: pt(7, 19.5))
         path.closeSubpath()
         return path
     }

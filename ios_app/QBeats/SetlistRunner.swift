@@ -365,6 +365,12 @@ final class SetlistRunner: ObservableObject {
         //    END SHOW, sopra la pausa a metà sezione e sopra l'attesa del Direttore.
         //    L'elenco dei permessi ha un solo membro, e così resta corretto anche se
         //    domani se ne aggiunge un nono.
+        //    ⚠️ MARCATURA A345 (10/09/2026) — IL NONO E' ARRIVATO: `.starting` (avvio
+        //    comandato, motore non ancora in moto — `Models/LivePlaybackState.swift`,
+        //    cartello li'). I casi sono NOVE; «OTTO casi» sopra resta come storia. La
+        //    lista di permessi qui sotto NON cambia, ed e' esattamente il motivo per cui
+        //    fu scritta come permessi: da `.starting` non si arma, e il velo non copre
+        //    un click che sta partendo (RESUME dalla terza faccia, a player chiuso).
         if case .stopped = session.playbackState, let song = currentSong {
             session.playbackState = .standby(nextSongName: song.name)
         }

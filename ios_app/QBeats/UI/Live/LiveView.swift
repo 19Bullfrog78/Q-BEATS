@@ -372,6 +372,12 @@ struct LiveView: View {
             // 0 = trattini (BarCounterView) / nessun LED (MetSlotStripView).
             session.currentBar = 0
             session.beatActive = 0
+            // ⟦A345⟧ strumentazione (4), passiva: lo stato della sessione al montaggio, PRIMA
+            //    che `primeDisplay` possa armare. Dopo RESUME deve leggersi `starting` o
+            //    `playing`, MAI `stopped`: e' il criterio di collaudo di A345.
+            os_log("[Q-BEATS][A345] player montato - sessione PRIMA di primeDisplay:%{public}@ isPlaying:%{public}@",
+                   log: .default, type: .default,
+                   String(describing: session.playbackState), audioEngine.isPlaying ? "true" : "false")
             runner.primeDisplay(session: session)
             // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
             // Override il sync da audioEngine sopra: la setlist caricata è "verità"
@@ -485,6 +491,21 @@ struct LiveView: View {
                 //      romperebbe ⟦S5b⟧ senza toccarne una riga.
                 switch session.playbackState {
                 case .standby, .fineSetlist:
+                    return
+                //  (3) ⟦A345⟧ (10/09/2026) — IL TERZO MOTIVO: L'AVVIO COMANDATO DA FUORI DAL
+                //      PLAYER. RESUME (terza faccia del dettaglio) scrive `.starting` sulla
+                //      sessione e chiama `startCurrentSection` a player CHIUSO; il motore
+                //      pubblica `.playing` in un `main.async` dalla coda audio
+                //      (`AudioEngine.swift:1034-1036`), quindi al montaggio questa
+                //      sottoscrizione riceve ancora `.stopped`. Senza questa riga quel
+                //      `.stopped` scriverebbe sopra `.starting` e, se `onAppear` arriva dopo,
+                //      `primeDisplay` (:375) armerebbe il velo per un fotogramma sopra un
+                //      click che sta partendo. Stessa protezione di (2), per uno stato in
+                //      piu': `.playing` arrivera' da questo stesso `onReceive` (`case .playing`
+                //      sotto) e chiudera' lo stato. Il log e' passivo: segnale (5) di A345.
+                case .starting:
+                    os_log("[Q-BEATS][A345] guardia specchio: scartato .stopped del motore su sessione .starting",
+                           log: .default, type: .default)
                     return
                 default:
                     break

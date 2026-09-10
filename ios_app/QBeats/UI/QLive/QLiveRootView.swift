@@ -54,6 +54,17 @@ struct QLiveRootView: View {
     @State private var bivioAperto = false
     @State private var bivioCanzone = ""
     @State private var bivioMeta = ""
+    /// ⟦A345⟧ (10/09/2026) — IL SEGNO DELLA TERZA FACCIA. La faccia la decide la PORTA
+    /// (BOX5 «MODELLO DI SESSIONE Q-LIVE» §2(b): «da dove si entra»), non una rilettura
+    /// del motore dentro il dettaglio. Lo alza SOLO `onShowDetails` del bivio, DOPO
+    /// `navigate(to: .detail)` nella stessa closure sincrona, leggendo dal runner il nome
+    /// della sezione corrente all'atto di agire; `navigate(to:)` lo abbassa a OGNI
+    /// chiamata (stessa forma di `bivioAperto`), quindi le altre due porte verso `.detail`
+    /// (il tocco sulla lista e la freccia a show vivo) e ogni uscita da `.detail` lo
+    /// trovano basso per costruzione. Al dettaglio arrivano due valori semplici, mai il
+    /// contenitore (VINCOLO DI PROPAGAZIONE, `QLiveSession.swift:26-38`).
+    @State private var terzaFaccia = false
+    @State private var terzaFacciaSezione = ""
 
     /// Contenitore-sessione della stanza — forma B, `LIBRO_MASTRO_QBEATS.md:285`.
     /// Possiede lo SLOT del runner: VUOTO in ⟦S4R⟧, si riempie allo Start ⟦S5⟧.
@@ -122,6 +133,10 @@ struct QLiveRootView: View {
         //    18/07, qui sopra); questa riga NON e' uno stop audio e non tocca il
         //    transport — abbassa un bit di stato della stanza.
         if newPage != .metronome { bivioAperto = false }
+        // ⟦A345⟧ — il segno della terza faccia cade a ogni passaggio dalla porta unica;
+        //    chi lo vuole alto lo alza DOPO aver navigato (solo `onShowDetails`, sotto).
+        terzaFaccia = false
+        terzaFacciaSezione = ""
         page = newPage
     }
 
@@ -131,6 +146,9 @@ struct QLiveRootView: View {
     ///    che e' INVARIATO. I tre rami e le loro ragioni stanno dentro il metodo.
     /// ⚠️ A343 (10/09/2026): QUATTRO rami — a show FERMO (`.stopped`) la freccia apre
     ///    il bivio e NON naviga. Passo 2a; il velo e RESUME sono mandati loro.
+    /// ⚠️ A345 (10/09/2026): il ramo del bivio ha una condizione di RUOLO — il Follower a
+    ///    show fermo va a `.detail` (faccia 2), non al bivio. RESUME e' nato (terza
+    ///    faccia, `onResume` sotto); il velo (2c) resta mandato suo.
     /// ⟦PORTA-RIENTRO⟧ ② — USCITA dal player verso l'imbuto interno. Sostituisce
     /// la closure nuda `{ navigate(to: .shows) }` che stava al sito di montaggio:
     /// la navigazione è IDENTICA, si aggiunge una sola condizione.
@@ -186,7 +204,18 @@ struct QLiveRootView: View {
         //    deriva il tempo da un'euristica). Forma della riga meta: l'idioma del
         //    dettaglio (`QLiveShowDetailView.swift:484`), che e' gia' «121 · 6/8» del
         //    frame. Se la sezione non si risolve, la riga resta vuota: non si inventa.
-        if case .stopped = stato, let runner = roomSession.runner {
+        //    ⚠️ MARCATURA A345 (10/09/2026) — il bivio si apre SOLO se l'apparecchio comanda il
+        //    trasporto: predicato del PLAY (`TransportView.swift:59`). Il Follower cade nel ramo
+        //    show-vivo qui sotto (ratifica Mauro 09/09 (c): a show attivo ha la sola freccia
+        //    verso i Dettagli, e li' END SHOW e BACK TO SHOW). Il testo sopra resta come scritto.
+        // ⟦A345⟧ — CHI COMANDA IL TRASPORTO, letto all'atto di agire: e' la regola del PLAY
+        //    (`TransportView.swift:59`: `currentLinkMode == .collaborativa` ⇒ Follower, che al
+        //    Play non parte e aspetta il Direttore). RESUME e' un PLAY e obbedisce alla stessa
+        //    regola, e il bivio che porta a RESUME pure. Standalone e Direttore comandano
+        //    (ratifica (a): «non vale in standalone»). Il badge del player aggiunge
+        //    `linkEnabled` (`LiveView.swift:124`): e' veste, non regola — qui vale la regola.
+        let comandaTrasporto = audioEngine.currentLinkMode != .collaborativa
+        if case .stopped = stato, let runner = roomSession.runner, comandaTrasporto {
             let canzone = runner.currentSong?.name ?? ""
             let meta: String
             if let sez = runner.currentSection {
@@ -201,6 +230,15 @@ struct QLiveRootView: View {
                    log: .default, type: .default,
                    String(describing: stato), canzone, meta, audioEngine.linkIsConnected ? "si" : "no")
             return
+        }
+        // ⟦A345⟧ — IL FOLLOWER A SHOW FERMO: niente bivio, va ai Dettagli (faccia 2: END SHOW +
+        //    BACK TO SHOW), come a show che suona. Fino a oggi apriva il bivio: lo STOP del
+        //    Direttore ferma anche il suo motore (`AudioEngine.swift:550-552`) e lo specchio
+        //    porta la sessione a `.stopped` (`LiveView.swift:492`) — contraddiceva la ratifica
+        //    (c). Strumentazione (1), passiva; poi cade nel ramo show-vivo qui sotto, INVARIATO.
+        if case .stopped = stato, roomSession.runner != nil {
+            os_log("[Q-BEATS][A345] freccia player - stato:%{public}@ ruolo:follower ramo:show-vivo -> detail (niente bivio)",
+                   log: .default, type: .default, String(describing: stato))
         }
         // ⟦A341⟧ (09/09/2026) — PORTA DUE: A SHOW VIVO LA FRECCIA DEL PLAYER HA UNA
         //    DESTINAZIONE SOLA, I DETTAGLI. Ratifiche: LIBRO:379 (29/08, col click che
@@ -355,7 +393,62 @@ struct QLiveRootView: View {
                     // stanza. Un tap, NESSUNA conferma (§C del 29/08: da fuori lo
                     // show non sta sotto le mani, la sottoriga ha già detto cos'è
                     // vivo; un «sei sicuro?» addestrerebbe a spingere via i popup).
-                    onEndShow: { endShowAndLeave() }
+                    onEndShow: { endShowAndLeave() },
+                    // ⟦A345⟧ (10/09/2026) — LA TERZA FACCIA (dal bivio, show fermo): due valori
+                    //    semplici risolti alla porta (`onShowDetails` del bivio, sotto).
+                    isThirdFace: terzaFaccia,
+                    resumeSectionName: terzaFacciaSezione,
+                    // ⟦A345⟧ — RESUME: fa ripartire il click da canzone e sezione con la STESSA
+                    //    strada del PLAY dopo STOP (`SetlistRunner.startCurrentSection`, A240,
+                    //    collaudo device 28/08 e 10/09) e riporta al player (BOX5 §2(g): RESUME
+                    //    «sposta lo SHOW» e vive nel dettaglio; il click si regola nel player).
+                    //    ⛔ NON `AudioEngine.resumeFromCurrentSection()`: e' la strada del
+                    //    pannello superato (BOX5 §3, A260), salta il runner e scrive `.countIn`
+                    //    senza suonarlo (LIBRO:393). Nessun count-in qui: ratificato (LIBRO:166
+                    //    punto 3, :392) e mai costruito (TD-countin-ratificato-mai-costruito) —
+                    //    una sola strada di ripresa = un solo posto dove un giorno si costruira'.
+                    //    LETTURE ALL'ATTO DI AGIRE (come `leavePlayer()`): runner presente ·
+                    //    predicato del PLAY (`TransportView.swift:59`) · `audioEngine.isPlaying`.
+                    //    · Follower, oppure motore gia' in moto → SOLO navigazione al player:
+                    //      niente avvio, niente `.starting`.
+                    //    · altrimenti, in quest'ORDINE, nella stessa closure sincrona e con nulla
+                    //      in mezzo: `.starting` → `startCurrentSection` → `navigate(.metronome)`.
+                    //      `.starting` va scritto PRIMA dell'avvio: nel caso degenere
+                    //      `prepareAndStartCurrentSection` scrive `.fineSetlist`
+                    //      (`SetlistRunner.swift:203-210`) e una scrittura successiva lo
+                    //      cancellerebbe. E' lo stato che tiene il velo lontano dal player che
+                    //      si rimonta: `primeDisplay` arma solo da `.stopped`
+                    //      (`SetlistRunner.swift:368`) e la guardia di `LiveView` scarta il
+                    //      `.stopped` iniziale del motore su `.starting` (referto A345 §2.2,
+                    //      scelta G1). Chi lo spegne: lo specchio del motore (`.playing`) o
+                    //      `endShow` (`.stopped`). Strumentazione (3): stato letto, ramo, stato
+                    //      scritto. Il log sta DOPO `navigate`, cosi' fra avvio e navigazione
+                    //      non c'e' nemmeno una riga.
+                    onResume: {
+                        let follower = audioEngine.currentLinkMode == .collaborativa
+                        let inMoto = audioEngine.isPlaying
+                        guard let runner = roomSession.runner else {
+                            // Ramo DIFENSIVO, mai vivo nel codice: la terza faccia nasce dal bivio,
+                            // che esige il runner (`leavePlayer()`). Se compare nel log, qualcuno
+                            // ha aperto una via nuova.
+                            os_log("[Q-BEATS][A345] RESUME - runner:nil ramo:difensivo -> shows",
+                                   log: .default, type: .default)
+                            navigate(to: .shows)
+                            return
+                        }
+                        if follower || inMoto {
+                            navigate(to: .metronome)
+                            os_log("[Q-BEATS][A345] RESUME - isPlaying:%{public}@ follower:%{public}@ ramo:solo-navigazione stato-scritto:nessuno -> metronome",
+                                   log: .default, type: .default,
+                                   inMoto ? "true" : "false", follower ? "true" : "false")
+                            return
+                        }
+                        roomSession.liveSession.playbackState = .starting
+                        runner.startCurrentSection(audioEngine: audioEngine, session: roomSession.liveSession)
+                        navigate(to: .metronome)
+                        os_log("[Q-BEATS][A345] RESUME - isPlaying:false follower:false ramo:avvio stato-scritto:starting songIdx:%d sectionIdx:%d -> metronome",
+                               log: .default, type: .default, runner.currentSongIdx, runner.currentSectionIdx)
+                    }
                 )
             } else {
                 EmptyView()
@@ -481,6 +574,16 @@ struct QLiveRootView: View {
                                            log: .default, type: .default)
                                     bivioAperto = false
                                     navigate(to: .detail)
+                                    // ⟦A345⟧ — LA PORTA DECIDE LA FACCIA: il segno si alza DOPO
+                                    //    `navigate` (che lo abbassa), nella stessa closure sincrona —
+                                    //    SwiftUI non ridisegna fra due assegnazioni sincrone. Il nome
+                                    //    della sezione viene dal RUNNER all'atto di agire — lo stesso
+                                    //    indice da cui `startCurrentSection` riparte, come `bivioMeta`
+                                    //    in `leavePlayer()`; se non si risolve resta vuoto e il
+                                    //    dettaglio NON costruisce RESUME (garanzia contro la bugia,
+                                    //    foglio CD 30/08 :369, applicata al tasto).
+                                    terzaFaccia = true
+                                    terzaFacciaSezione = roomSession.runner?.currentSection?.name ?? ""
                                 },
                                 onEndShow: {
                                     os_log("[Q-BEATS][A343] bivio uscita END SHOW -> endShowAndLeave",
