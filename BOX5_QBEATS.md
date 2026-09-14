@@ -1,6 +1,6 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V47 — 2026-09-08
-**Decisione:** 2026-09-08 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
+**Versione:** V48 — 2026-09-11
+**Decisione:** 2026-09-11 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -90,6 +90,8 @@ Tutto il resto invariato da V22: identità progetto (iPhone + iPad universal por
 | **Layout strategy v1** | **Stesso layout componenti per tutti i device (Strada A — scaling proporzionale). Font/spacing ≥ 20pt tramite `pt_originale * scaleFactor` con `scaleFactor = geo.size.width / 390` (V23). Strada B (layout iPad dedicato multipanel) rimandata a v2 reale** |
 | Repository | `github.com/19Bullfrog78/Q-BEATS` |
 
+⚠️ **MARCATURA 14/09/2026 (mandato A348) — LA RIGA «Layout strategy v1» QUI SOPRA È SUPERATA, non cancellata.** Decisione di Mauro dell'11/09/2026, verbatim: «IPAD però è DA FARE A PARTE NON PUO PRENDERSI I CONNATATI DI IPHONE 13. DEFINITO IL FORMATO PER IPHONE DEFINIREMO IL FORMATO PER IPAD.» ⇒ L'iPad si fa a parte, dopo l'iPhone; la Strada A resta la storia di come si è arrivati fin qui. LIBRO v82, Sez.2 riga `2026-09-11`. La scala di palco (capitolo «Token visivi») è **solo iPhone** per la stessa ragione.
+
 **Attori:**
 - **Mauro** — supervisore, decisore, tester su device (Windows-only, debug via iMazing Console)
 - **Claude referee** — arbitro tecnico senior, review ogni decisione architetturale
@@ -152,6 +154,32 @@ LAYER 1 — Core Audio C-API + C++ DSP Engine      ✅ CHIUSO
 ## Token visivi — UNICA FONTE DI VERITÀ
 
 (invariato da V22)
+
+⚠️ **Da V48 questo capitolo ha la sua prima voce vera.** «(invariato da V22)» qui sopra resta come storia: i token di V22 non sono stati toccati; la scala di palco qui sotto li **supera dove si mette mano** (regola 2.7), non li riscrive.
+
+### SCALA DI PALCO — P = 17, SOLO iPHONE (ratificata Mauro 11/09/2026 · incisa A348, 14/09/2026)
+
+**Criterio:** il COMFORT a 30 cm, device in funzione, musicista che suona — non la leggibilità minima. Nasce dalla richiesta di Mauro del 10/09 e da due prove sue su iPhone 13 con schede di CD; i numeri di Mauro (prova 2, a gradini, 11/09, verbatim): «1. etichetta 21 · 2. riga mista 17 · 3. riga lunga 17 · 4. eticheta tasto 17» — **pavimenti, non tetti**. Le ratifiche 2.1-2.7 per intero: LIBRO v82, Sez.2, riga `2026-09-11` «LA SCALA DI PALCO».
+
+**Pavimento P = 17 su base 390. Le scritte in maiuscolo spaziato grigio salgono a 21** (1,25 × 17 = 21,25 → 21): la regola segue lo STILE, non il ruolo. **Perimetro** (Mauro, 11/09): dentro Q-Live vale piena, lista degli show compresa; in Q-Stage, editor e impostazioni basta 17 e non si applica il 21, perché lì il telefono è in mano e non sull'asta. **Applicazione:** dove si mette mano, non come passata su tutta l'app.
+
+| Token — dove vive | Formula | px | Famiglia · peso | Spaziatura | Colore |
+|---|---|---|---|---|---|
+| **STAGE-SECONDARY** — sottoriga ambra, etichette di tasto in minuscolo, note | 1,00 × 17 | **17** | JetBrains Mono 500-700 | 0,3 | bianco 0,60 |
+| **STAGE-CAPS** — occhielli, gesto del velo, chrome della testata | 1,25 × 17 = 21,25 | **21** | JetBrains Mono 600 | 1,5 | bianco 0,60 |
+| **STAGE-BODY** — nomi delle canzoni, azioni nei pannelli | 1,25 × 17 = 21,25 | **21** | Inter 600 | −0,1 | bianco 0,82 |
+| **STAGE-DATA** — contatore, BPM, metrica | 1,25 × 17 = 21,25 | **21** | JetBrains Mono 500 | 0,6 | bianco 0,82 |
+| **STAGE-TITLE** — nome dello show nel dettaglio, titolo del popover | 2,00 × 17 | **34** | Inter 800 | −0,6 | bianco pieno |
+| **STAGE-NEXT** — la sezione che viene dopo, pavimento del gigante | 2,60 × 17 = 44,2 | **44** | Inter 900 | −1,2 | bianco pieno |
+| **STAGE-HERO** — nome di sezione in play, nome canzone sul velo | 4,00 × 17 | **68** | Inter 900 | −1,6 | bianco pieno |
+
+- **Arrotondamento** all'intero più vicino (0,5 va in su). **Contrasto minimo 4,5:1** sul fondo reale `#0e0e10`; misurati nel foglio: 0,60 = 7,26:1 · 0,82 = 12,97:1 · bianco = 19,29:1.
+- **Regola del gigante:** ≤ 12 caratteri una riga (HERO scende da 68 fin dove serve, mai sotto 44) · ≥ 13 caratteri due righe a 44 · oltre 25 caratteri ellissi.
+- **Fra device (solo iPhone):** `dimensione = max(pavimento, base × scaleFactor)`, `scaleFactor = larghezza / 390` (Delta V23, righe 68-69 di questo documento). iPhone SE e mini (375): vince il pavimento. Plus e Max (428-430): vince la misura scalata (17 × 1,103 = 18,75 → 19).
+- **Le distanze crescono col pavimento:** k = 17/13 = 1,308. Lo scaffale ratificato **41 diventa 54** (Mauro, 11/09 — chiude la «domanda aperta ②» del foglio CD). Vale per ogni distanza incisa quando il pavimento era 13. ⚠️ **Decisione del referee (A348, 3.5): lo scaffale della LAMELLA è 41, non 39.** Misura: il foglio CD del 30/08 (`DESIGN/QLive_Nav/2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html`) scrive **41** per lo scaffale del bivio (`:348`) e **39** per la lamella delle facce 2 e 3 (`:352-353`).
+- **Etichette dei tasti:** minuscolo grassetto a 17, parole corte («Kill», non «Kill base») — il caso che Mauro ha provato.
+
+**Fonte:** foglio CD `2026-09-11_QLive_LA-TABELLA-FINALE__P17-e-le-maiuscole-a-21__1860x3440.html` (mandato CD `QB-2026-09-11-CD5-TABELLA-FINALE`), letto da CC il 14/09/2026 su Drive — cartella `Qbeats_IN_CD`, id `1bs0YWxdQRsMB_EUrq-IXB-fshhoA1Lbb`, 38.233 byte per Drive, caricato il 13/09 alle 17:26 UTC; **non presente su `E:` né in `DESIGN/`**; sha256 `270af77c…abadb4c1` **riportata dal mandato, non rimisurata da CC** (nessuna copia byte-esatta su disco). Verificato da CC valore per valore contro il foglio: **coincide**. Entra nel deposito con mandato separato. ⚠️ Il foglio dichiara (§5.4) una **mano non sua** — l'arrotondamento 19/24/29 — ⇒ R-δ.19. ⚠️ Il foglio afferma che la data dello show sta dentro `Setlist.name` citando CLAUDE.md §4: **falso**, `Setlist` ha `date: Date` separato (`Models/Setlist.swift:5-6` @ `84e21ee1`) e `CLAUDE.md` non lo dice (né è una fonte: `CLAUDE.md:7`).
 
 ---
 
@@ -375,6 +403,8 @@ Aspetto:
 - Background semi-trasparente `Color.black.opacity(0.65)` (intenzionale — overlay stop intermedio)
 - Bottoni con `OverlayStopButtonStyle`: JBMono bold, **15pt * scaleFactor**
 
+📌 **MARCATURA 14/09/2026 (mandato A348) — COS'È DAVVERO `OverlayStopView`, misurato a `84e21ee1`.** **NON è il pannello dell'autostop di fine sezione** (affermazione del referee in chat, smentita dalla misura e incisa qui come misura): è il **pannello superato della decisione 7** (capitolo «MODELLO DI SESSIONE Q-LIVE», §3 «LE TRE SORTI DELLA DECISIONE 7», A260). Catena unica: `AudioEngine.handleStop()` (`AudioEngine.swift:1279`) → `.pausedAwaitingChoice` (`:1288`, unico scrittore) → `LiveView.swift:536-537` → `session.playbackState = .overlayStop` → `OverlayStopView` (`LiveView.swift:220-221`). Chi chiama `handleStop()`: **solo** il pedale MIDI «stop» (`executeMIDIAction`, `AudioEngine.swift:1667`) e `DebugView.swift:187`. Il pulsante STOP del transport non ci arriva. Il suo bottone «Riprendi da X» chiama `resumeFromCurrentSection()` (`OverlayStopView.swift:17`), la strada vietata — vedi «Invarianti tecnici Layer 3», riga «RESUME».
+
 ### Overlay Fine Setlist
 
 `FineSetlistView` mostra "FINE SETLIST" + 2 bottoni "TORNA A SETLIST" / "RICOMINCIA".
@@ -385,6 +415,8 @@ Aspetto:
 ### Stati Vista LIVE
 
 (invariati da V19)
+
+📌 **MARCATURA 14/09/2026 (mandato A348) — GLI STATI DEL PLAYER SONO NOVE.** `.starting` — avvio comandato, motore non ancora in moto (G1, A345, commit `84e21ee1`) — si aggiunge agli otto di V19: `Models/LivePlaybackState.swift:4-49` conta **nove** `case`. Definizione e transizioni: LIBRO v82, Sez.1 «Stati LiveSession». ⚠️ Il mandato A348 (3.2) chiedeva di aggiornare «ovunque BOX5 dica otto»: **misurato, questo documento non lo dice da nessuna parte**; l'enumerazione vive nel LIBRO ed è lì che la riga è stata aggiunta. RESUME dopo `.starting`: `runner.startCurrentSection`, mai `resumeFromCurrentSection()` — «Invarianti tecnici Layer 3».
 
 ### Comportamenti ratificati Vista LIVE — V21
 
@@ -574,6 +606,10 @@ Voci aperte. Nessuna di queste è stata riempita con un'ipotesi plausibile: dove
 | Count-in BPM | Prima sezione canzone target — ⛔ **MARCATURA 30/08/2026 (A290): QUESTA RIGA DA SOLA DIREBBE IL FALSO A METÀ SHOW.** La regola è cambiata con la ratifica di Mauro del 30/08: vale **la sezione che il conto introduce**, non la prima della canzone. All'inizio della canzone le due coincidono, e lì questa riga resta esatta. Sede della ratifica: `BOX5_QBEATS.md:938` e la marcatura che la segue. ⚠️ **Questa riga è una SECONDA SEDE di D9, trovata rimisurando il 30/08:** la «sede unica» dichiarata a r.920 vale per l'etichetta `D9`, non per il suo contenuto. |
 | TempoMap | Campo opzionale in BacktrackFile. `nil` = BPM fisso invariato |
 | La backtrack comanda | In modalità adaptive la sorgente di verità è la TempoMap, non il BPM utente |
+| **RESUME = `runner.startCurrentSection`** | **V48** — Decisione referee (A348, 3.1): la ripartenza da STOP è `SetlistRunner.startCurrentSection(audioEngine:session:)` (`SetlistRunner.swift:173`), che conserva canzone e sezione (A240, A345). **MAI** `AudioEngine.resumeFromCurrentSection()` (`AudioEngine.swift:1303-1310`): è la strada del pannello superato (decisione 7, A260) — salta il runner, scrive `.countIn` e chiama `startCountIn(for:)`, che è un guscio su `start()` (`:1617-1619`): il count-in non suona. Chiamanti residui a `84e21ee1`: `OverlayStopView.swift:17`, `DebugView.swift:198`. |
+| **Chi comanda il trasporto = il predicato del PLAY** | **V48** — Decisione referee (A348, 3.3): la regola è `audioEngine.currentLinkMode == .collaborativa` ⇒ Follower (`TransportView.swift:59` @ `84e21ee1`). Il badge «FOLLOWER» di `LiveView` aggiunge la guardia `linkEnabled` (`LiveView.swift:124-128`): **è veste, non regola**. Ratifiche di Mauro 09-11/09: il trasporto è del Direttore (LIBRO v82, Sez.2). |
+| **Il velo NON porta righe di count-in finché il count-in non suona** | **V48** — Decisione referee (A348, 3.6): in nessun caso. Misura: `startCountIn(for:)` è un guscio che chiama `start()` (`AudioEngine.swift:1617-1619` @ `84e21ee1`, «L3 stub»): il conto alla rovescia non è costruito, quindi lo slot D del velo resta assente in tutti e tre i casi (foglio CD LA-TABELLA-FINALE, lastra «VELO», «slot D assente»). Coerente con `TD-countin-ratificato-mai-costruito`. |
+| **Consegna dello stato del motore PRIMA di `onAppear` — MISURA, non garanzia** | **V48** — Emersa dal collaudo A345 (10/09/2026, esito riportato dal referee in A348, 5.3): su quell'iPhone, al montaggio del player, la riga della guardia («guardia specchio: scartato .stopped del motore su sessione .starting») **precede** quella del montaggio («player montato») **5 volte su 5**. ⛔ **Un apparecchio solo, un iOS solo, Apple non lo documenta: non è un ordine su cui costruire.** `.starting` resta la garanzia. |
 
 ---
 
@@ -1170,6 +1206,8 @@ sopra. **Si nomina qui per indirizzo e si lascia aperto.**
 
 ## MODELLO DI SESSIONE Q-LIVE — ratificato in chat da Mauro 26/08 e 27/08/2026, MAI VISTO SU DEVICE
 
+✅ **MARCATURA 14/09/2026 (mandato A348) — «MAI VISTO SU DEVICE» NON È PIÙ VERO: il titolo resta come storia.** Collaudi su device di Mauro del 10/09/2026, esiti riportati dal referee (A347/A348; i log iMazing li ha letti il referee riga per riga, CC non li ha visti): **A341** (`5ca0c5f`, due porte a show vivo) 4/4 la mattina · **A343** (`c6df789`, bivio a tre vie) sei giri su sei, 16:32-17:01, END SHOW dal pannello alle 17:01:41 · **A345** (`84e21ee1`, RESUME terza faccia + `.starting` + Follower sul bivio) in due parti la sera: 5 RESUME su 3 sezioni con «starting» 5/5, guardia 5/5, nessun velo, contatore giusto; poi iPhone Direttore + iPad Follower, freccia del Follower a show fermo → dettagli, niente RESUME (log iPad 19:48:44), e **il RESUME del Direttore fa ripartire anche il Follower** (osservazione di Mauro, non misura: il log iPad non la mostra). Ticket chiuso in BUGS 86: `TD-follower-parte-cieco-a-player-chiuso`. Collaudi aperti su quei commit: **nessuno**.
+
 ### Perché questo capitolo esiste, e cosa è costato non averlo
 
 ⛔ **Questo modello è vissuto per un giorno intero soltanto dentro due chat e un documento su Drive.** Nessun canonico lo conteneva.
@@ -1257,6 +1295,8 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 
 🚨 **MARCATURA 07/09/2026 (mandato A322) — `RESUME` È BLOCCATO, E QUESTA TABELLA È INDIETRO. Zero parole riscritte sopra: si marca.** Le due righe qui sopra offrono `RESUME` in **due facce su tre**, ma il **§D del foglio CD rev3 del 28/08 lo VIETA**, ed è **posteriore** alle decisioni del 27/08 incise in questo capitolo. Il divieto è già inciso nel sorgente, `ios_app/QBeats/UI/QLive/QLiveShowDetailView.swift:484-487`, verbatim: «⛔ RESUME NON C'È E NON È UNA DIMENTICANZA: bloccato dal §D del rev3 (28/08) — "finché l'esecutore non onora la sezione, Resume from [section] non va a schermo. Non 'con copy più prudente': assente" — e "la terza faccia eredita il blocco". Costruirlo è un difetto.» ⇒ **Chi legge questa tabella e costruisce `RESUME` introduce un difetto.** ⛔ **Le righe NON si cancellano:** restano perché la decisione del 27/08 fu presa davvero, e perché **il blocco è una condizione, non un ritiro** — cade il giorno in cui l'esecutore onora la sezione. ⇒ **Resta una decisione aperta per Mauro:** far cadere la condizione costruendo l'onoraggio della sezione, oppure ritirare `RESUME` dal modello.
 
+✅ **MARCATURA 14/09/2026 (mandato A348) — IL DIVIETO SU RESUME DEL 28/08 (§D del foglio CD rev3) CADE. La tabella §2(b) torna vera in tutte e tre le righe; la marcatura A322 qui sopra resta come storia.** Decisione del referee (A348, 3.4): la condizione posta da CD — «finché l'esecutore non onora la sezione» — **è soddisfatta** da A240 (`d0225ef`, 28/08: la ripartenza conserva canzone e sezione) e da A345 (`84e21ee1`, 10/09: RESUME dalla terza faccia riparte da canzone e sezione, collaudato device il 10/09 sera — 5 RESUME su 3 sezioni, esito riportato dal referee). RESUME è `runner.startCurrentSection` — «Invarianti tecnici Layer 3», V48.
+
 ⛔ **Nella terza faccia NON c'è RESTART**, ed è voluto: **butterebbe via il punto che l'utente sta cercando di non perdere**.
 
 ⚠️ **Rettifica di percorso, incisa perché non sembri una svista.** Una formulazione intermedia del 27/08 diceva che dalla terza faccia **non si potesse chiudere lo show**, con la motivazione che *«chiuderlo era possibile un istante prima»*, al bivio. ⇒ **Quella motivazione cade**, e cade **per la decisione (d)**, non per distrazione: da quando END SHOW vive nel dettaglio in **tutte** le facce, la terza non fa eccezione.
@@ -1320,6 +1360,8 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 
 ⚠️ **E RESTA VERO CHE L'OVERLAY ESISTE NEL CODICE**, irraggiungibile dal transport e raggiungibile da una schermata di debug e da un'azione MIDI assegnabile dall'utente. **Superata la decisione, il codice non è sparito** — ed è ora un difetto con un ticket suo (`TD-restart-song-falsa-ricevuta`, BUGS), non un pezzo di un lavoro futuro.
 
+📌 **MARCATURA 14/09/2026 (mandato A348):** la catena completa che accende quell'overlay, misurata a `84e21ee1`, sta nel capitolo «Vista LIVE — Spec complete», sezione «Overlay Stop (pausedAwaitingChoice)»: solo pedale MIDI «stop» e `DebugView`. Non è il pannello dell'autostop di fine sezione.
+
 ---
 
 ### 4 · VINCOLO APERTO — la riga ambra ha perso il suo innesco
@@ -1344,6 +1386,8 @@ Con Link Start/Stop acceso **e almeno un collegato**, si aggiunge la riga ambra 
 ⇒ **Stessa schermata, stesse due parole, due significati.** ⚠️ **È la stessa forma di collisione che il 26/08 ha portato a rinominare «Mode» in «Role» e «List view» in «Chart Mode».**
 
 ⛔ **Inciso come aperto, non risolto: decidono CD e Mauro.** ⚠️ E fuori dal dettaglio le stesse due parole sono **già** il titolo della schermata di fine scaletta dentro il player: **contando quella, i sensi sono tre.**
+
+✅ **MARCATURA 14/09/2026 (mandato A348) — RISOLTA DA MAURO (09-11/09/2026): «END SHOW» in due sensi sulla stessa schermata POSSONO COESISTERE.** Verbatim: «non mi sembra molto ambiguo». Il testo sopra resta come scritto. LIBRO v82, Sez.2, riga (g).
 
 
 ---
@@ -1466,3 +1510,20 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 ⇒ **Le gambe vive del cancello sono ora: il disco (nome e contenuto) e `HANDOFF/INDICE_ID_MANDATI.md`.** L'indice e' tracciato apposta per questo: e' l'unica gamba che un referee possa girare da solo.
 
 ⚠️ **Un referee che legge solo il deposito e' cieco sugli ID:** senza l'indice non avrebbe piu' nessuna gamba. E l'indice vale solo se R-δ.16 viene rispettata.
+
+
+### R-δ.18 — OGNI ESITO DI COLLAUDO VA SCRITTO A CC (ratificata Mauro 10/09/2026, incisa A348)
+
+🚨 **Un esito di collaudo che vive solo in chat non esiste per chi scrive i canonici.** Il 10/09/2026 Mauro ha collaudato su device quattro commit (A341, A343, A345 in due parti); gli esiti sono rimasti nella chat del referee e **CC, la sera stessa, ha scritto nel congedo A346 «collaudo DA FARE»** — falso nei fatti, vero per la sua vista. Riparato da A347 (marcatura) e da questa versione.
+
+⇒ **Ogni esito di collaudo va scritto a CC, con un mandato breve o dentro il mandato successivo.** Chi lo riceve lo registra come **RIPORTATO** (non misurato) con la fonte: chi ha collaudato, quando, su quale commit, e chi ha letto i log.
+
+⇒ La forma vera, quando un esito non è arrivato, è **«esito non arrivato a CC»**, mai «collaudo non fatto»: l'assenza in una vista parziale non è un'assenza nei fatti (tassonomia dei difetti di misura, P2).
+
+### R-δ.19 — UNA MODIFICA NON ATTRIBUIBILE IN UN FOGLIO CD SI DICHIARA E SI RIMISURA (ratificata Mauro 11/09/2026, incisa A348)
+
+🚨 **Nei fogli di CD compaiono modifiche che CD non ha fatto e non sa attribuire.** Misurato nel foglio LA-TABELLA-FINALE dell'11/09: l'arrotondamento 19/24/29 con la sua regola esplicita (§5.4 «mano non mia») e una riga nel design system di CD (firma del foglio); le icone SVG sono **riportate dal referee in A348, non nel foglio letto da CC**. CD scrive «Chi l'ha fatta non lo so: non vedo l'autore di una modifica». **Mauro dichiara di non aver mai toccato un file.**
+
+⇒ **Ogni modifica non attribuibile va DICHIARATA da CD nel foglio, e RIMISURATA prima che il contenuto entri in un canonico.** Un valore che nessuno sa chi ha scritto non è ratificato finché qualcuno non lo rimisura e lo firma.
+
+⇒ Applicata qui: la tabella P = 17 è entrata nel capitolo «Token visivi» dopo il confronto valore per valore di CC contro il foglio (14/09/2026); la regola d'arrotondamento è quella dichiarata da CD, verificata su 21,25 → 21 e 44,2 → 44.

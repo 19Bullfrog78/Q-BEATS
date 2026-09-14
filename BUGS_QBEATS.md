@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 85
-**Decisione:** 2026-09-08 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste.
+**Versione:** 86
+**Decisione:** 2026-09-11 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste.
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -326,7 +326,9 @@ Regole di ripetizione dichiarate PRIMA di provare. Osservazione: compare «Bar 1
 - ⚠️ **Materia adiacente a ⟦S-EXIT⟧**, il cui contratto CD del 18/07 **esclude esplicitamente il player** — `DESIGN/QLive_Nav/2026-07-18_QLive-Exit-in-Play.html:366`, verbatim: «Sfondi = **lista** e **dettaglio** (il player non ha uscita-stanza)»; e `:212`: «sui **DUE sfondi con barra stanze**: **lista** e **dettaglio**. Il **player (metronomo) non ha barra stanze**». ⇒ questa uscita non è coperta da nessun disegno esistente.
 - **Gravità: 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — ratificata da Mauro 22/08/2026.** La conseguenza è **identica a quella di `TD-direttore-parte-da-bar2`**: teleprompter e click raccontano sezioni diverse davanti alla band. Con un'aggravante: bar2 è intermittente, **questo si riproduce a comando**. E l'app non oppone **alcuna difesa** — un tocco di distrazione e ci sei dentro, in silenzio. ⛔ **La gravità NON si abbassa perché serve una svista dell'utente:** su un palco, sotto pressione, dimenticare STOP è esattamente ciò che succede, e uno strumento professionale non può avere una trappola muta a un tocco di distanza. Non è «sgraziato ma funziona»: **è rotto quando scatta.**
 
-### TD-follower-parte-cieco-a-player-chiuso — col player chiuso il Follower parte al Play del Direttore, ma senza struttura (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — ratificata da Mauro 27/08/2026)
+### TD-follower-parte-cieco-a-player-chiuso — col player chiuso il Follower parte al Play del Direttore, ma senza struttura (🟢 **CHIUSO — collaudo device Mauro 10/09/2026**; era 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO, ratificata da Mauro 27/08/2026)
+
+> ✅ **CHIUSURA 14/09/2026 (A348). Il testo sotto resta come fu scritto: si marca, non si riscrive.** La causa è stata rimossa da **A337/A338** (`d5c997a`, 09/09/2026: l'ascolto del Direttore trasloca in `QLiveSession`, fuori dalla vista che si smonta) e il difetto è stato **collaudato su device da Mauro il 10/09/2026**: il congedo del referee del 10/09 sera, §6, lo dà «chiuso a codice e device». ⚠️ **I dettagli di quel collaudo non li ha visti questo referee, e CC non ha visto nessun log:** esito RIPORTATO (A347, A348), non misurato. ⛔ Il marcatore di bloccante è stato **tolto dal titolo di proposito**, come per `TD-stop-perde-il-punto`: finché resta, ogni censimento dei bloccanti conta un ticket chiuso. Regola nata da questo giro: **R-δ.18** (BOX5 V48) — ogni esito di collaudo va scritto a CC.
 
 - **Sintomo.** Follower in modo Link «Follower», player **non a schermo**. Il Direttore preme Play. **Il click parte e suona, ma non segue lo show**: nessuna sezione caricata, contatore delle battute che non si chiude e avanza oltre il totale, nome canzone vuoto. ⚠️ **Non è silenzio: è peggio del silenzio**, perché sul palco sembra che il sistema abbia risposto.
 
@@ -412,6 +414,16 @@ Regole di ripetizione dichiarate PRIMA di provare. Osservazione: compare «Bar 1
 - **PROPOSTA DI GRAVITA': 🔴 OPEN ALTA / ⚠️ NON BLOCCANTE PALCO — gravita' proposta dal referee, non ancora ratificata da Mauro.** Motivo: **l'app funziona** — non e' un guasto osservabile in esecuzione. Cio' che e' compromesso e' **margine** (tempi di esecuzione non rappresentativi) e **superficie** (una schermata di sviluppo e un pannello ritirato, raggiungibili sul palco).
 - **LIMITE — [M]/[A].** Tutto quanto sopra e' **lettura di file di build e di codice** a `HEAD d0225ef`. ⛔ **Nessuna misura su device, nessun log di build letto, nessun cronometro:** che i tempi cambino fra Debug e Release e' **[A]**, ed e' proprio la riga di lavoro aperta al terzo punto.
 
+### TD-follower-trova-il-velo-del-direttore — il Follower che rientra nel player a show fermo trova il velo del Direttore, «tocca per partire» (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.2).** Non è un difetto nuovo del codice: è il codice di sempre, che le ratifiche di Mauro del 09-11/09 (LIBRO v82, Sez.2: perimetro del Follower a show attivo · criterio generale del perimetro — «il tocco sul velo» è fra le cose TOLTE al Follower) hanno reso difetto.
+- **Sintomo, osservato su device il 10/09/2026 (esito riportato dal referee, non visto da CC):** iPad Follower, show fermo, rientro nel player: compare il velo del Direttore con il gesto «tocca per partire». Log iPad delle 19:49:19: sessione «stopped» prima di `primeDisplay`.
+- **Perché, misurato a `84e21ee1`:** per il Follower l'ingresso nel player è **solo navigazione** — «niente avvio, niente `.starting`» (`QLiveRootView.swift:412-413`); la sessione resta `.stopped`, e `primeDisplay` **arma solo da `.stopped`** (`SetlistRunner.swift:340`, commento `:359`; il commento a `QLiveRootView.swift:420-421` cita `:368`, che a `84e21ee1` è la marcatura A345 sul nono stato). Il velo non guarda il ruolo: è il perimetro (d) **non costruito**.
+- **Cosa deve succedere:** al Follower a show fermo il velo non si mostra e il tocco non fa partire nulla; il suo perimetro è la freccia → Dettagli, e lì END SHOW e il rientro. Il RESUME lo dà il Direttore, e fa ripartire anche il Follower (LIBRO v82, Sez.2, riga (f)).
+- **Collegamenti:** `TD-follower-stop-propaga` (stesso perimetro, verso opposto: mandare invece di ricevere) · `TD-emerg-bottone-morto` (EMERG resta al Follower per ratifica dell'11/09).
+- **Fix:** NON progettato. Nessuna riga di codice in A348.
+- **Dominio:** CC (codice) su disegno CD del perimetro Follower (mandato suo).
+
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
 
 > 🚨 **MARCATURA 29/08/2026 (A249) — QUESTA INTESTAZIONE MENTE SU UN TICKET, E IL CENSIMENTO DEI BLOCCANTI NE DIPENDE.** `TD-fineshow-bottoni-morti`, più sotto **in questa sezione**, porta **nel titolo il marcatore di gravità-palco** (scritto per esteso lì, non qui — ⛔ **e non si ripete in questa riga di proposito: ripeterlo falserebbe il censimento che questa riga esiste per riparare**) con **severità assegnata da Mauro il 04/08/2026**. ⇒ **Chi conta i bloccanti per SEZIONE ne trova SEI: sono SETTE.** Il ticket **denuncia da solo la propria collocazione**, e lo faceva già prima di questa marcatura. ⛔ **Rimedio scelto: si marca l'intestazione, NON si sposta il ticket** — spostarlo romperebbe ogni citazione alla sua posizione, e il registro storico non si riscrive. ✅ **LA REGOLA CHE NE ESCE, e ha TRE clausole perché due non bastano: i bloccanti si contano per CONTENUTO, mai per sezione — **(1)** cercando il marcatore, **(2)** escludendo la negazione («NON bloccante»), **(3)** escludendo i ticket il cui titolo è 🟢 CHIUSO, il cui CORPO conserva il marcatore come **storia** e non come stato. E la somma si quadra col totale dei titoli.** ⚠️ **Misurato il 29/08 su questo stesso file:** la sonda a due clausole rende **9** ticket; quella a tre rende **7**, che è il numero vero. I due di scarto sono `TD-stop-perde-il-punto` (chiuso, marcatore nel corpo) e — prima che questa riga fosse riscritta — **questa marcatura stessa**, che citando il marcatore per esteso lo attribuiva al ticket che la precede.
@@ -476,7 +488,10 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ⚠️ **RELAZIONE CON UNA DECISIONE GIÀ RATIFICATA, e cambia la lettura di questo ticket:** la **decisione D15** di Mauro (23/08, riconfermata 24/08, `LIBRO_MASTRO_QBEATS.md` Sezione 2) dispone che **«LOOP ∞» SI ELIMINA dall'editor delle sezioni**, con ticket dedicato `TD-loop-infinito-da-rimuovere`. ⇒ L'eliminazione **non è una probabilità: è già decisa**. ⛔ **Ma i due ticket NON si fondono:** D15 toglie il **controllo dall'editor**, e **non** toglie `repetitions = -1` dai **dati già esistenti né dai file importati** — che restano una via d'ingresso al caso cieco.
 - ⚠️ **RIVALUTAZIONE:** se il loop **non** viene eliminato, questo ticket **torna sul tavolo di Mauro**.
 - **Stato:** 🟠 OPEN MEDIA / **NON** bloccante palco — **rischio accettato da Mauro 29/08/2026**. **Dominio:** CC (Layer 1) + CD (la didascalia `LOOP`, Firma E).
-### TD-follower-stop-propaga — Lo stop di un Follower parla a Link come quello del Direttore (asimmetria start/stop)
+### TD-follower-stop-propaga — Lo stop di un Follower parla a Link come quello del Direttore (asimmetria start/stop) (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — alzato il 14/09/2026 da A348 sulle ratifiche di Mauro del 09-11/09; era 🟠 OPEN MEDIA dal 19/07)
+
+🚨 **MARCATURA 14/09/2026 (mandato A348) — SALE A 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Il testo sotto resta come fu scritto il 19/07: si marca, non si riscrive.** Il mandato A348 (6.1) chiedeva di aprire un ticket nuovo, «IL FOLLOWER CHE SI FERMA FERMA ANCHE GLI ALTRI FOLLOWER»: **è questo ticket**, aperto il 19/07 su misura a `fe6d34b`; CC non lo duplica e lo alza qui. **Misura alla punta `84e21ee1`:** `stopSync()` (`AudioEngine.swift:1681`) emette `link_engine_stop` **senza guardia di ruolo** (`:1700-1701` → `LinkEngine.mm:485-495` → `ABLLinkSetIsPlaying(state, false, hostTime)`). Chi riceve: **il Direttore ignora** (`AudioEngine.swift:539`, `if engine._linkMode == .direttore { return }`), **gli altri Follower obbediscono** (`:550-551`, `engine.stop()`) — se Start/Stop Sync è acceso (`Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h:18-20`: «only shared with other peers when start/stop synchronization is enabled»). ⚠️ Nel mandato le righe `:539` e `:550-551` seguivano la citazione di `LinkEngine.mm`: **stanno in `AudioEngine.swift`** (a `LinkEngine.mm:539` e `:550-551` ci sono commenti sul timebase). **Perché sale:** le ratifiche di Mauro del 09-11/09 (LIBRO v82, Sez.2: il trasporto è del Direttore · perimetro del Follower · «tutto quello che incide verso l'esterno del device viene tolto») rendono questo codice **una violazione di perimetro ratificato**, non più un latente condizionato a un'impostazione. ⇒ **Il Follower non deve MANDARE stop, e deve continuare a RICEVERE quelli del Direttore** — l'asimmetria `:539`/`:550-551` È il comando, non un difetto da pareggiare (lo riconosce anche CD nel foglio LA-TABELLA-FINALE dell'11/09, §5.1). ⚠️ Nel foglio CD LA-SCALA-DI-PALCO dell'11/09 c'era una prescrizione opposta, **ritirata da CD stesso**: non seguirla. ⛔ Resta in §1.2 per posizione — spostarlo farebbe slittare le righe di tutto ciò che sta sotto e romperebbe le citazioni `FILE:riga`; **conta come 🔴**. Fix: NON progettato, nessuna riga di codice in A348.
+
 - **Fatto (verificato a fonte 19/07 — `VERIFICA_V-DIR_2026-07-19`, HEAD `fe6d34b`, sha `99ea6ce1…28ff5f`):** NESSUN ramo di modalità fra `AudioEngine.swift:1078` (`stop()`) e `:1645` (`link_engine_stop`) — l'unica Link-call sul percorso è `:1645`, sotto le sole guardie `guard self.isRunning` (`:1638`) + `if let lh = linkEngineHandle` (`:1644`). `linkEngineHandle` è creato INCONDIZIONATAMENTE (`:409`, unico assegnamento non-nil; mai riportato a nil di runtime) → un Follower ha l'handle esattamente come un Direttore. Corpo C `link_engine_stop` (`LinkEngine.mm:485-496`) senza modalità: `ABLLinkSetIsPlaying(state, false, …)` e basta.
 - **Asimmetria (il cuore del ticket):** l'AVVIO verso Link è differenziato per ruolo/scenario — Direttore `link_engine_start_at_beat_zero` (`:991`, force-timeline, gattato da `(peersCount==0 && !probe.isPlaying) || _linkMode == .direttore` a `:971`); Follower `link_engine_join_running_session` (`:757`, funzione DEDICATA che NON sovrascrive la timeline, `LinkEngine.mm:474-476`); resume `link_engine_start_at_beat` (`:951`). Lo STOP no: una sola porta (`:1645`), ZERO nozione di ruolo. Start gattato, stop non gattato.
 - **Perché NON si vede a 2 device [INFERENZA da ordine del codice, NON osservata su device]:** il Direttore IGNORA l'inbound start/stop dai peer — `AudioEngine.swift:533` `if engine._linkMode == .direttore { return }`. Con 1 Direttore + 1 Follower, lo stop del Follower PARTE comunque (`:1645`, non-gattato) ma l'unico altro peer è il Direttore, che lo ignora → *sembra* «il Follower ferma solo sé stesso». Con un SECONDO Follower lo stop del primo lo raggiungerebbe (segue a `:545` `engine.stop()`). Etichetta onesta: inferenza dall'ordine del codice, da confermare su device (vedi Prova).
@@ -834,6 +849,27 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - 🚨 **METÀ DI QUESTO DIFETTO NON È RIPARABILE OGGI, ed è la ragione per cui il ticket nasce già con una dipendenza:** **il bivio a tre vie NON È COSTRUITO**. La gamba «show che gira → dettaglio» si può fare subito; la gamba «show fermo → bivio» **richiede prima il bivio**. ⇒ Chiudere questo ticket per metà è possibile e utile; chiuderlo del tutto **dipende da un lavoro che non esiste ancora**.
 - ⚠️ **Collegato al vincolo aperto della riga ambra** (`BOX5_QBEATS.md` §4 del capitolo): anche quello ha **un innesco su due**, e il secondo è lo stesso bivio mancante. **Due debiti diversi, la stessa causa.**
 - **Stato: PROPOSTA di severità 🟠 OPEN MEDIA — ma CC dichiara che è un candidato 🔴 BLOCCANTE PALCO, e il valore lo assegna Mauro, non è assegnato qui.** Motivo della proposta al rialzo: la decisione che lo genera è **esplicitamente una regola di palco**, motivata dal costo di un errore mentre si suona; se il criterio è quello, una porta aperta per errore a show vivo appartiene alla 1.1. **Dominio:** CD (il bivio) + CC (la gamba del dettaglio).
+
+### TD-waiting-for-director-start-local-da-togliere — `WaitingForDirectorView` con «START LOCAL» è ancora nell'app, e il Follower ci arriva premendo PLAY (🟠 OPEN MEDIA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.3).** Contro la ratifica di Mauro del 10/09 **«NIENTE START LOCAL»** (LIBRO v82, Sez.2, riga `2026-09-10`), che supera la ratifica del 27/05 (LIBRO Sez.1, riga `START LOCAL`, cella marcata).
+- **Misurato a `84e21ee1`:** il Follower che preme PLAY entra in `.waitingForDirector` (`TransportView.swift:59-66`, `audioEngine.currentLinkMode == .collaborativa`); `LiveView.swift:295` monta `WaitingForDirectorView`, che offre il tasto `START LOCAL` (`WaitingForDirectorView.swift:61`) → `onStartLocal` → `runner.startCurrentSection`. È il Follower che **parte da solo**: esattamente ciò che Mauro ha respinto («MEGLIO UN END SHOW E IL FOLLOWER SI FERMA»).
+- ⛔ **Sparirà quando PLAY lascerà il Follower (criterio del perimetro, 11/09) — ma va TOLTA esplicitamente, non lasciata irraggiungibile:** un percorso morto nel codice torna vivo al primo refactor e non lo vede nessuno. Con la vista cade anche `CANCEL` (LIBRO Sez.1, riga `CANCEL`, 27/05), non ancora marcata: decide Mauro.
+- **Collegamenti:** `TD-follower-trova-il-velo-del-direttore` · voce «WAITING FOR DIRECTOR entra al Play con Ableton Link OFF» in §1.3 (stessa vista, altro innesco).
+- **Fix:** NON progettato. **Dominio:** CC.
+
+### TD-pedale-midi-play-senza-runner — il pedale MIDI PLAY/PAUSE accende il motore senza runner (🟠 OPEN MEDIA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.4).** **Misurato a `84e21ee1`:** `executeMIDIAction(.playPause)` fa `if isPlaying { stop() } else { start() }` (`AudioEngine.swift:1664-1665`) — `start()` **nudo**: nessun `SetlistRunner`, nessuna sezione caricata, nessuno stato `.starting`. È lo stesso modo di partire «cieco» di `TD-follower-parte-cieco-a-player-chiuso` (chiuso), riaperto da un altro innesco.
+- **Conseguenza:** il click parte e suona, ma non segue lo show; il contatore non si chiude. Dal pedale — cioè l'uso mani-libere sul palco.
+- **Collegamenti:** voce «MIDI azioni-contenuto non cablate a L3» in §1.2 · `TD-bivio-stantio-da-click-esterno` (stesso innesco, altro effetto).
+- **Fix:** NON progettato. **Dominio:** CC.
+
+### TD-bivio-stantio-da-click-esterno — se il click riparte da fuori (pedale MIDI) il pannello resta «SHOW STOPPED» (🟠 OPEN MEDIA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.5).** **Misurato a `84e21ee1`:** `bivioAperto` (`QLiveRootView.swift:54`) va a `true` in un solo punto (`:228`) e cade **solo** con le sue tre uscite (`:570`, `:575`, `:591`) e con `navigate` (`:135`). Un avvio del motore che non passa da quelle uscite — il pedale MIDI PLAY/PAUSE, `AudioEngine.swift:1664-1665` — lascia il bivio aperto sopra un click che suona: il pannello dice «SHOW STOPPED» e lo show va.
+- **Collegamenti:** `TD-pedale-midi-play-senza-runner` (l'innesco) · bivio costruito da A343 (`c6df789`), collaudato il 10/09 sei giri su sei — nessuno dei sei con un pedale.
+- **Fix:** NON progettato (il bivio deve cadere anche sullo specchio del motore, non solo sulle sue uscite — da decidere). **Dominio:** CC.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -1199,6 +1235,23 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ⚠️ **Non è una riscrittura da fare alla cieca:** il commento contiene anche affermazioni che REGGONO (l'azzeramento al montaggio esiste davvero, `:369-370`). Va corretta **la parte sul quando i numeri tornano**, non buttato il blocco.
 - **Dominio:** CC (proposta di riscrittura del commento) → Mauro (OK), **tocca codice: non è doc-only**.
 
+### TD-riga-ambra-una-parola-persa — l'app scrive «This will stop other devices too», i canonici «This will stop the other devices too» (🟡 OPEN BASSA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.6).** **Misurato a `84e21ee1`:** `QLiveShowDetailView.swift:638-639` — `"The show is playing now · this will stop other devices too"` / `"This will stop other devices too"`. I canonici dicono **«the»**: `BOX5_QBEATS.md:1223` (modello di sessione, §1.1, copy dell'alert) e `LIBRO_MASTRO_QBEATS.md:379` («NON cade la riga ambra “This will stop the other devices too”»). Il foglio CD del 30/08 (`DESIGN/QLive_Nav/2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html:351`) e LA-TABELLA-FINALE dell'11/09 portano anch'essi «the». ⚠️ Le righe di BOX5 e LIBRO citate sono quelle di V47/v81: dopo V48/v82 slittano.
+- **Fix:** una parola, ma tocca codice: non in A348. **Dominio:** CC, copy di CD.
+
+### TD-rientro-dal-dettaglio-nome-back-to-show-vs-return — il rientro dal dettaglio si chiama «BACK TO SHOW» nell'app, RETURN nel LIBRO (🟡 OPEN BASSA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.7).** **Misurato a `84e21ee1`:** `QLiveShowDetailView.swift:835` — `Text(isShowLive ? "BACK TO SHOW" : "START SHOW")`. `LIBRO_MASTRO_QBEATS.md:372` @ v81 (approvazione Mauro del 25/08) chiama il rientro **RETURN** — ordine «STOP · RESTART SONG · RETURN» — con **«BACK IN»** come via d'uscita già approvata se al collaudo si confonde con RESTART SONG. **«BACK TO SHOW»** (`LIBRO:374` @ v81, firma B del 28/08) è invece **la porta della faccia 1 a slot pieno**, che dal 06/09 («SHOW VIVO = LA LISTA NON SI VEDE») **non ha più una schermata**: il nome è sopravvissuto alla sua porta e si è posato sul rientro.
+- **Cosa decidere (Mauro, con CD):** il rientro si chiama RETURN (o BACK IN), e «BACK TO SHOW» si ritira dal codice.
+- **Fix:** una stringa, tocca codice: non in A348. **Dominio:** CD (nome) → CC.
+
+### TD-sottoriga-ambra-dettaglio-a-una-gamba — la sottoriga ambra del dettaglio compare su una condizione sola, il foglio CD ne prescrive due (🟡 OPEN BASSA — aperto 14/09/2026, A348)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.8).** **Misurato a `84e21ee1`:** 4 occorrenze di `linkIsConnected` in `QLiveShowDetailView.swift` (`:177`, `:604`, `:609`, `:636` — la quarta è il predicato: `let subline: String? = audioEngine.linkIsConnected …`). Il foglio CD del 30/08 (`DESIGN/QLive_Nav/2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html:351`) prescrive **due gambe**: «apparecchio collegato E sincronizzazione Start/Stop accesa» — e dichiara la seconda «oggi non leggibile». La seconda gamba non è esposta a Swift (BOX5, «LIMITI DELLA LIBRERIA LINK»): la riga è a una gamba **per limite noto**, non per svista; il debito è che il canonico non lo dice.
+- **Nota dal foglio CD dell'11/09 (§5.1):** «sul Follower nessuna sottoriga ambra» — coerente col perimetro dell'11/09.
+- **Fix:** NON progettato. **Dominio:** CC (misura) → CD (se la regola cambia).
+
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
 Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
@@ -1262,6 +1315,16 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 - ⚠️ **Reperto collaterale, non il difetto di questo ticket:** l'etichetta del pulsante loop è un **segnaposto dichiarato** — il commento accanto dice che il collegamento allo stato reale del loop arriverà con la fase Backtrack. ⇒ Quel pulsante non solo non fa niente: **non sa nemmeno dire in che stato sarebbe**.
 
 - **Limite della misura. [M]** Lettura di codice a `HEAD 51baaf0`, **non collaudo su device**. Nessuno ha premuto i tre pulsanti durante uno show vero. Il fatto misurato è che i corpi sono vuoti; che l'utente ci creda è **[A]**, non osservato.
+
+### TD-frame-3-debiti-navbar-stopped-e-selettore — nel frame ③ la navbar porta una spia «Stopped» e un selettore di stanze, la riga corrente dice «▸ STOPPED», e il salto di canzone non è disegnato (🟡 OPEN BASSA — aperto 14/09/2026, A348, dominio CD)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.9).** Quattro debiti del frame ③ (terza faccia del dettaglio, show fermo), già elencati nel congedo CC `A346` §5 e mai tracciati: **(1)** la navbar porta una spia «Stopped»; **(2)** il selettore di stanze è ancora montato nelle facce vive — a `84e21ee1` il codice monta sempre il segmento **inerte** (`QLiveShowDetailView.swift:256`, `.segMini[active:.qLive]` INERTE), mentre il foglio CD del 30/08 (`…IL-VELO-DICE-DA-DOVE…html:354`) lo vuole «ASSENTE, fuori da entrambe le facce vive»; **(3)** la riga corrente «▸ STOPPED»; **(4)** il salto di canzone.
+- **Dominio:** CD (disegno) → CC. **Fix:** nessuno in A348.
+
+### TD-faccia-2-dettaglio-scaffale-restart-rientro — la faccia 2 del dettaglio (show attivo) ha tre voci da chiudere: scaffale, RESTART SONG, nome del rientro (🟡 OPEN BASSA — aperto 14/09/2026, A348, dominio CD)
+
+- **Aperto il 14/09/2026 (mandato A348, 6.10).** **Scaffale:** il foglio CD del 30/08 scrive 39 per la lamella (`…IL-VELO-DICE-DA-DOVE…html:352-353`) e 41 per il bivio (`:348`); il referee decide **41** (BOX5 V48, «SCALA DI PALCO»), e con P = 17 le distanze scalano a **54** (k = 1,308, Mauro 11/09). **RESTART SONG:** presente in faccia 2 per BOX5 §2(b) e nel foglio (`:352`, «RESTART SONG 56»); `TD-restart-song-falsa-ricevuta` (§1.1) racconta il suo stato a codice. **Nome del rientro:** RETURN / BACK IN / «BACK TO SHOW» — `TD-rientro-dal-dettaglio-nome-back-to-show-vs-return` (§1.3).
+- **Dominio:** CD → Mauro. **Fix:** nessuno in A348.
 
 ## 🚢 1.5 — PREREQUISITI DI DISTRIBUZIONE (bloccano la SPEDIZIONE, non il palco)
 
