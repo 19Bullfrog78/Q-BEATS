@@ -1676,6 +1676,9 @@ Per data di chiusura, decrescente.
 
 # Sezione 5 — Storico versioni file
 
+🚨 **QUESTO REGISTRO NON È PIÙ MANTENUTO RIGA PER RIGA DA DOPO LA VERSIONE 81 (2026-09-05) — dichiarato A349, 14/09/2026.** La testa del documento è oggi alla **v86** (2026-09-11): cinque versioni (82-86) non hanno una riga qui sotto. Non è un buco nuovo: la pratica reale, da settimane, è aggiornare solo la testa — **incisa qui ora, non ricostruita a ritroso**. Stessa dichiarazione fatta in `LIBRO_MASTRO_QBEATS.md`, Sezione 6 (fermo a v68, mandato A349): non è una coincidenza, è la stessa pratica sui due canonici. ⇒ **Per lo stato vivo del documento, il campo `Versione` / `Decisione` in testa fa fede**, non questa tabella. Le righe 1-81 sotto restano storia autentica fino al punto in cui si fermano.
+
+
 | Versione | Data | Autore | Modifiche principali |
 |---|---|---|---|
 | 1 | 2026-05-26 sera | CC chat principale 26/05 sera | Creazione iniziale del file. Aggregazione esaustiva da `project_qbeats.md` (memoria CC), `LIBRO_MASTRO_QBEATS.md` v10 (libro mastro), `BOX3 V67`, memorie `feedback_qbeats_*.md`. Sezione 1 bug aperti (3 categorie: bloccanti palco, non bloccanti pre-v1, backlog). Sezione 2 bug chiusi storici. Sezione 3 bug scartati/smentiti. Sezione 4 diagnostiche aperte (Sessione 1 in attesa test device). Sezione 5 storico. Bug aggregati: 3 bloccanti palco (TD #A, TD beat drop, TD #17), 3 non bloccanti pre-v1 (TD #34, TD #39 sospeso, three-band v2), 14 backlog, ~20 chiusi, ~13 scartati. |
