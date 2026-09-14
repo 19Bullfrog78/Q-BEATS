@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-BEATS — LA SCALA DI PALCO
+ ID MANDATO  QB-2026-09-11-CD4-SCALA-DI-PALCO
+ NOME FILE   2026-09-11_QLive_LA-SCALA-DI-PALCO__il-comfort-decide-il-pavimento__quattro-correzioni-e-la-scala-intera__1860x4350.html
+ DATA        11/09/2026 — dichiarata dal mio orologio.
+ SUPERA      2026-09-11_QLive_IL-FOLLOWER-NON-TOCCA-IL-TRASPORTO... sul punto 12
+             e sulle correzioni 5.1-5.4. Il resto di quel foglio REGGE.
+ ⛔ NESSUNA schermata ridisegnata. Il player verra' rifatto (Mauro, 27/08).
+    Qui si fissa solo la scala su cui il player nuovo verra' disegnato.
+ ⛔ Le due lastre del punto ③ sono DIMOSTRAZIONI della scala, non proposte
+    di layout: stessa geometria dell'11/09, solo la scala cambia.
+ ⛔ Nessun numero entra nei canonici prima della prova di Mauro.
+ NOTA CSS  Tutte le classi che vivono SOLO dentro i telefoni 390x844 sono
+           limitate a ".frame ...". Motivo: tre collisioni di classe in due
+           fogli (.idx, .cap, .hit) nascevano da classi corte non limitate,
+           condivise fra il foglio di carta e i telefoni dentro il foglio.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<title>Q-BEATS · CD · La scala di palco · 11/09/2026</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--paper:#e9e5dd;--ink:#16181c;--ok:#17702c;--flag:#b1281f;--amber:#f5b820;--amber-d:#8a6206;--qlive-bg:#0e0e10;--qlive-surf:#16161a;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--paper);width:1860px;height:4350px;position:relative;-webkit-font-smoothing:antialiased}
+a{color:var(--flag);text-decoration:none}a:hover{color:#7d1a14}
+@keyframes qb-standby{0%,100%{opacity:1}50%{opacity:0.45}}
+.btitle{position:absolute;left:96px;top:30px;width:940px;color:var(--ink)}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--ok)}
+.btitle h1{font-size:29px;font-weight:900;letter-spacing:-0.8px;margin-top:8px;line-height:1.12}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:rgba(0,0,0,0.64);margin-top:10px;letter-spacing:0.2px;text-wrap:pretty}
+.btitle p b{color:var(--ink)}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.btitle .no{color:var(--flag);font-weight:700}
+.idbox{margin-top:13px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.4);border-radius:11px;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.7)}
+.idbox b{color:#0a2e13}
+.verb{margin-top:13px;background:rgba(245,184,32,0.14);border:1px solid rgba(138,98,6,0.45);border-radius:11px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.62;color:rgba(0,0,0,0.72)}
+.verb h3{font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--amber-d);margin-bottom:8px}
+.verb q{quotes:none;display:block;font-weight:700;color:#4a3503;font-size:11.5px;line-height:1.55;margin-bottom:8px}
+.verb b{color:var(--ink)}
+.testata{position:absolute;left:1076px;top:30px;width:688px;background:linear-gradient(160deg,#1a1e16,#141712);color:var(--paper);border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:17px 19px 19px}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--ink);background:linear-gradient(150deg,#5fe07a,#28cd41);padding:4px 9px;border-radius:6px}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.3px;color:#8fe0a0}
+.testata .anc b{color:#fff}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09)}
+.trow:first-of-type{border-top:0}
+.trow .k{flex:0 0 116px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#7fe093}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.58;color:rgba(255,255,255,0.84);text-wrap:pretty}
+.trow .v b{color:#fff}.trow .v .no{color:#ff9a8a;font-weight:700}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a}
+.trow.stop .k{color:#ff9a8a}
+.trow.am .k{color:#ffd35a}
+.sec{position:absolute;width:1668px;left:96px}
+.sech{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:rgba(0,0,0,0.62);margin-bottom:13px}
+.pan{background:#fff;border:1px solid rgba(0,0,0,0.11);border-radius:15px;padding:19px 22px 21px}
+.pan h3{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink);margin-bottom:11px}
+.pan h3.am{color:var(--amber-d)}
+.pan h3.fl{color:var(--flag)}
+.pan p{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.68;color:rgba(0,0,0,0.72);text-wrap:pretty;margin-bottom:9px}
+.pan p:last-child{margin-bottom:0}
+.pan p b{color:var(--ink)}
+.pan code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.pan .no{color:var(--flag);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.rule{margin:11px 0;background:rgba(245,184,32,0.14);border:1px solid rgba(138,98,6,0.42);border-left:4px solid var(--amber);border-radius:11px;padding:13px 15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#42300a}
+.rule b{color:#241a03}
+.rule code{background:rgba(0,0,0,0.08);padding:1px 5px;border-radius:4px}
+.warn{margin:11px 0 0;background:rgba(177,40,31,0.07);border:1px solid rgba(177,40,31,0.38);border-radius:11px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.72)}
+.warn b{color:#4d0f0a}
+.ok{margin:11px 0 0;background:rgba(23,112,44,0.08);border:1px solid rgba(23,112,44,0.35);border-radius:11px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgba(0,0,0,0.72)}
+.ok b{color:#0a2e13}
+table.lad{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:6px}
+table.lad th,table.lad td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(0,0,0,0.09)}
+table.lad th:first-child,table.lad td:first-child{text-align:left}
+table.lad thead th{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,0,0,0.62);border-bottom:2px solid rgba(0,0,0,0.22)}
+table.lad thead th.c{color:var(--amber-d);background:rgba(245,184,32,0.16)}
+table.lad td.c{background:rgba(245,184,32,0.10);font-weight:700;color:#42300a}
+table.lad tbody th{text-align:left;font-size:11.5px;font-weight:700;color:var(--ink);padding:9px 10px;border-bottom:1px solid rgba(0,0,0,0.09)}
+table.lad tbody th i{display:block;font-style:normal;font-size:10px;font-weight:400;color:rgba(0,0,0,0.5);letter-spacing:0.2px;margin-top:2px}
+table.lad tr.flo th,table.lad tr.flo td{background:rgba(23,112,44,0.09);font-weight:700}
+table.lad tr.tetto td{color:rgba(0,0,0,0.62)}
+table.lad tr.tetto td.hit{color:var(--flag);font-weight:700}
+table.lad td.k{font-weight:400;color:rgba(0,0,0,0.5)}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:400px;flex-wrap:wrap}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4)}
+.flbl .b.am{color:var(--amber-d);background:rgba(245,184,32,0.18);border-color:rgba(138,98,6,0.45)}
+.flbl .t{color:rgba(0,0,0,0.6)}
+.frame{position:absolute;width:390px;height:844px;background:var(--qlive-bg);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(0,0,0,0.14)}
+.frame.pick{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 3px rgba(245,184,32,0.75)}
+.fr{--p:13px;--k:1}
+.frame .sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff}
+.frame .sb .r{display:flex;gap:7px;align-items:center;font-size:12px;letter-spacing:1px}
+.frame .plhead{flex:0 0 66px;height:66px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.07)}
+.frame .hit{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;color:var(--text2r);font-size:19px}
+.frame .plmid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center}
+.frame .shname{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,0.34);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frame .leds{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:8px}
+.frame .leds i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.14)}
+.frame .leds i.on{background:var(--live-l)}
+.frame .bvbody{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 calc(26px*var(--k));text-align:center}
+.frame .occ{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r)}
+.frame .hero{font-weight:900;font-size:min(calc(var(--p)*4),68px);line-height:1.04;letter-spacing:-1.6px;color:#fff;margin-top:calc(11px*var(--k))}
+.frame .datarow{font-family:'JetBrains Mono',monospace;font-size:calc(var(--p)*1.25);font-weight:500;letter-spacing:0.6px;color:rgba(255,255,255,0.82);margin-top:calc(13px*var(--k))}
+.frame .picks{width:100%;display:flex;flex-direction:column;gap:calc(11px*var(--k));margin-top:calc(34px*var(--k))}
+.frame .pk{height:calc(58px*var(--k));border-radius:calc(15px*var(--k));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(3px*var(--k))}
+.frame .pk.pri{background:linear-gradient(150deg,#e8571c,#c8360a);box-shadow:0 5px 16px rgba(212,63,0,0.30)}
+.frame .pk.alt{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14)}
+.frame .pk .l{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff}
+.frame .pk.alt .l{color:rgba(255,255,255,0.82)}
+.frame .pk .s{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:400;letter-spacing:0.3px;color:rgba(255,255,255,0.78)}
+.frame .pk.alt .s{color:var(--text2r)}
+.frame .velo{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 calc(26px*var(--k));text-align:center}
+.frame .vnm{font-weight:900;font-size:min(calc(var(--p)*4),68px);line-height:1.04;letter-spacing:-1.6px;color:#fff;margin-top:calc(11px*var(--k));animation:qb-standby 2.2s ease-in-out infinite}
+.frame .vhint{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);margin-top:calc(26px*var(--k))}
+.frame .vcin{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);margin-top:calc(9px*var(--k))}
+.frame .vlink{margin-top:calc(26px*var(--k));display:flex;flex-direction:column;align-items:center;gap:calc(5px*var(--k))}
+.frame .vlink .s{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber)}
+.frame .vlink .c{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:500;letter-spacing:0;color:var(--text2r)}
+.frame .tstrip{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:calc(14px*var(--k));padding:0 18px calc(22px*var(--k))}
+.frame .ebtn{width:98px;min-height:62px;border-radius:15px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 6px}
+.frame .ebtn .g{font-size:18px;color:#fff;line-height:1}
+.frame .ebtn .l{font-family:'JetBrains Mono',monospace;font-size:var(--p);font-weight:700;letter-spacing:1.5px;color:var(--text2r);line-height:1.12;text-align:center}
+.frame .navbar{flex:0 0 54px;height:54px;display:flex;align-items:center;justify-content:center;padding:0 14px}
+.frame .navbar i{width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22)}
+div.cap{position:absolute;width:390px;font-family:'JetBrains Mono',monospace}
+div.cap .cn{font-size:11.5px;font-weight:800;letter-spacing:0.4px;color:var(--ink);margin-bottom:7px}
+div.cap .cs{font-size:10.5px;line-height:1.6;color:rgba(0,0,0,0.66);text-wrap:pretty}
+div.cap .cs b{color:var(--ink)}
+div.cap .cs code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px}
+.ms{margin-top:5px}
+.m{display:flex;gap:10px;padding:7px 0;border-top:1px solid rgba(0,0,0,0.09);font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;color:rgba(0,0,0,0.7)}
+.m:first-of-type{border-top:0}
+.m .g2{flex:0 0 150px;font-weight:700;color:var(--ink)}
+.m .d{flex:1;text-wrap:pretty}
+.m .d b{color:var(--ink)}
+.m .d code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px}
+.sigil{position:absolute;left:96px;width:1668px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.62;color:rgba(0,0,0,0.55);border-top:1px solid rgba(0,0,0,0.18);padding-top:13px;text-wrap:pretty}
+.sigil b{color:var(--ink)}
+.sigil code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="btitle">
+<div class="kick">CD → CC · Q-BEATS · Q-LIVE · scala tipografica di palco</div>
+<h1>La scala di palco: il comfort decide il pavimento,<br />e il pavimento decide tutto il resto.</h1>
+<p><b>Data dichiarata dal mio orologio: 11/09/2026.</b> Questo foglio <b>supera l'11/09 sul punto 12</b> (la regola dei 30 cm) e sulle <b>correzioni 5.1–5.4</b>. Il resto di quel foglio <b>regge e non è ridisegnato</b>.</p>
+<p><b class="no">⛔ Nessuna schermata ridisegnata in questo giro.</b> Il player verrà rifatto (Mauro, 27/08: grafica rifatta, console essenziale, mixer con un pulsante suo). Qui si fissa <b>solo la scala</b> su cui il player nuovo verrà disegnato. Le due lastre del punto ③ sono <b>dimostrazioni della scala</b> — stessa geometria dell'11/09, cambia solo la grandezza — <b>non</b> proposte di layout.</p>
+<div class="idbox"><b>🔎 Integrità del mandato <code>QB-2026-09-11-CD4-SCALA-DI-PALCO</code>:</b> sezioni <b>da 1 a 7 tutte presenti</b>, chiude con <code>FINE MANDATO QB-2026-09-11-CD4-SCALA-DI-PALCO</code>. <b>Nessun taglio.</b> Mandati precedenti non evasi: <b>annullati</b>.</div>
+<div class="verb">
+<h3>L'esito della prova — verbatim, 11/09</h3>
+<q>«Leggo tutto tranne quelle piccole ad esempio "occhiello del bivio" ma noto che tutti i font di tutte le categorie sono cmq troppo piccoli e poco confortevoli alla vista. Serve tutto più grande.»</q>
+<b>⇒ <code>STAGE-SECONDARY</code> a 13 pt NON passa.</b> Si legge, ma non è comodo. E la frase non parla di una riga: parla di <b>tutte le categorie</b>. Perciò non alzo un valore: <b>rialzo la scala</b>.
+</div>
+</div>
+
+<div class="testata">
+<div class="fh"><span class="seal">risposte misurate</span><span class="anc">mandato <b>CD4-SCALA-DI-PALCO</b> · punti 5.1–5.4 + 6</span></div>
+<div class="trow stop"><div class="k">5.1 · scaleFactor</div><div class="v"><b class="no">Corretto.</b> «13 × sF» era sbagliato: su un iPhone largo 375 fa <b>12,5</b>, sotto il pavimento. ⇒ La regola si scrive <code>dimensione = max(pavimento, base × scaleFactor)</code>: <b>mai sotto il pavimento</b>; dove la superficie scala, vale <b>il maggiore</b> fra pavimento e misura scalata. Su iPad (768 pt) sF = 1,969 ⇒ vince la misura scalata; su iPhone SE (375) sF = 0,962 ⇒ vince il pavimento.</div></div>
+<div class="trow stop"><div class="k">5.2 · «punti già fisici»</div><div class="v"><b class="no">Ritirata.</b> La mia stessa tabella la smentiva: <b>iPad mini 0,1558 mm/pt</b>, sotto l'iPhone 13 a <b>0,1656</b>. La frase è <b>via</b>. I valori per apparecchio entrano <b>solo</b> con la pagina ufficiale Apple come fonte — e qui non ce l'ho. La regola 5.1 non poggia più su quella frase: poggia sul <b>tetto minimo</b>.</div></div>
+<div class="trow stop"><div class="k">5.3 · pannello ⓵ C</div><div class="v"><b class="no">Via.</b> L'ultima frase («è ciò che fa entrare la riga ambra su una riga sola») era il residuo dell'errore corretto in ⑬. Cancellata, non riscritta: non serviva a niente.</div></div>
+<div class="trow am"><div class="k">5.4 · KILL BASE</div><div class="v"><b>Dichiarato, ④ non ridisegnata.</b> <code>KILL BASE</code> <b>non è trasporto</b>: ferma solo la base registrata <b>di quel device</b> (<code>AudioEngine.swift:1578-1585</code>, <code>stopBacktrack</code>). ⇒ Sta nella famiglia di <b>muto, mixer ed EMERG</b>, e la domanda <b>④/⑤</b> lo comprende già.</div></div>
+<div class="trow"><div class="k">6 · la mia Ⓝ</div><div class="v"><b>Chiuso, nessuna lastra da cambiare.</b> Il Direttore non si ferma mai (ignora start/stop altrui, <code>AudioEngine.swift:539</code>); gli <b>altri Follower invece sì</b>, se in Link è accesa la sincronizzazione Start/Stop (<code>ABLLink.h:18-20</code>; <code>AudioEngine.swift:550-551</code>). È <b>contro la regola di Mauro</b> ⇒ va corretto <b>nel codice</b>. Dopo la correzione, sul Follower <b>la sottoriga ambra non va mai</b>. <b>Dipendenza dichiarata a CC</b>, non un disegno.</div></div>
+</div>
+
+<div class="sec" style="top:580px">
+<div class="sech">⓪ Cambia il criterio — e cambia anche chi decide</div>
+<div class="two">
+<div class="pan">
+<h3>Il mio 0,30° era una soglia. Serviva un comfort.</h3>
+<p><b>Cosa avevo misurato: la leggibilità al colpo d'occhio.</b> 0,30° di altezza-maiuscola a 30 cm è il bordo basso della banda in cui una scritta <b>si riconosce</b>. L'avevo scelto <b>apposta</b> sul bordo basso, per non appiattire la gerarchia: se la riga secondaria cresce, si avvicina al dato gigante e la schermata perde la sua voce principale.</p>
+<p><b>Cosa ha misurato Mauro: il comfort.</b> Leggere <b>senza sforzo</b>, a 30 cm, <b>suonando</b>, per un concerto intero. Sono due cose diverse, e la seconda è quella che conta: sul palco non devi <b>riconoscere</b> la riga, devi <b>non accorgerti</b> di averla letta.</p>
+<div class="rule"><b>⇒ Il valore non si calcola più a tavolino: lo sceglie Mauro sul device</b>, da una scala a gradini. <b>L'angolo resta come modo di scriverlo, non come modo di sceglierlo</b>: serve a far sopravvivere il numero al cambio di apparecchio, non a decidere quale numero sia.</div>
+</div>
+<div class="pan">
+<h3 class="am">Perimetro: tutta Q-Live. E perché è giusto che lo sia.</h3>
+<p><b>«Tutti i font di tutte le categorie».</b> È la lettura del referee, e la condivido: non è un difetto di una riga, è il <b>pavimento</b> che è basso. Se alzo solo gli occhielli, la schermata diventa sbilanciata — righe secondarie grandi come i nomi delle canzoni, e la gerarchia crolla.</p>
+<p><b>Il perimetro è Q-Live intera</b> — bivio, velo, player, lista, pulsantiera, mixer. <b>Fuori dal play</b> (Shows, Q-Stage, Editor, Settings) la distanza di lettura è <b>60 cm a mano ferma</b>, non 30 cm suonando: là il pavimento è un'altra cosa e <b>non lo tocco in questo giro</b>.</p>
+<div class="ok"><b>Se Mauro restringe il perimetro</b>, cambia <b>dove si applica</b> la scala, <b>non la scala</b>: i rapporti fra i livelli restano quelli del punto ①. È il motivo per cui la scala è scritta come <b>funzione del pavimento</b> e non come sei numeri fissi.</div>
+</div>
+</div>
+</div>
+
+<div class="sec" style="top:960px">
+<div class="sech">① La scala non va inventata: c'è già, ed è ancorata a 13</div>
+<div class="pan">
+<h3>La scoperta, rileggendo il mio foglio dell'11/09</h3>
+<p><b>I valori dell'11/09 sono già una scala su base 13.</b> Non l'avevo fatto di proposito, ed è la cosa più utile che ho trovato in questo giro: il gigante sta a <b>52 = 4 × 13</b>, il titolo del popover a <b>26 = 2 × 13</b>, il NEXT a <b>34 ≈ 2,6 × 13</b>, i nomi delle canzoni e il bar counter a <b>16 ≈ 1,25 × 13</b>, il pavimento a <b>13 = 1 × 13</b>. <b>La scala esiste, è pulita, e il suo ancoraggio è esattamente il numero che Mauro ha bocciato.</b></p>
+<div class="rule"><b>⇒ Non serve una scala nuova: serve spostarne l'àncora.</b> Scelto il gradino <b>P</b>, il fattore è <code>k = P / 13</code> e <b>ogni livello si ricalcola da lì</b>. I rapporti — 1 · 1,25 · 2 · 2,6 · 4 — non cambiano: sono già quelli che Mauro ha guardato per mesi e non ha mai contestato. Contestava <b>la grandezza</b>, non <b>le proporzioni</b>.<br /><br /><b>⭐ Arrotondamento dichiarato: all'intero più vicino</b> (0,5 va in su). Serve dirlo perché senza la regola la tabella non si può ricontrollare — e <b>è la regola che tiene fermo l'ancoraggio a 13</b>: il NEXT di oggi è <b>34</b>, e <code>2,6 × 13 = 33,8</code> ⇒ fa 34 <b>solo</b> arrotondando al più vicino. Troncando darebbe 33, un valore che nel foglio dell'11/09 <b>non esiste</b>.</div>
+<table class="lad">
+<thead><tr><th>Livello — a cosa serve</th><th class="k">×</th><th>13<i></i></th><th>15</th><th class="c">17</th><th>19</th><th class="c">21</th><th>23</th></tr></thead>
+<tbody>
+<tr class="flo"><th>STAGE-SECONDARY — il pavimento<i>occhielli · gesti · etichette di tasto · sottoriga ambra · chrome</i></th><td class="k">1,00</td><td>13</td><td>15</td><td class="c">17</td><td>19</td><td class="c">21</td><td>23</td></tr>
+<tr><th>STAGE-BODY — corpo<i>nomi delle canzoni in lista e nel dettaglio · nomi di sezione</i></th><td class="k">1,25</td><td>16</td><td>19</td><td class="c">21</td><td>24</td><td class="c">26</td><td>29</td></tr>
+<tr><th>STAGE-DATA — il dato vivo<i>bar counter · BPM · metrica — mono, cifre tabulari</i></th><td class="k">1,25</td><td>16</td><td>19</td><td class="c">21</td><td>24</td><td class="c">26</td><td>29</td></tr>
+<tr><th>STAGE-TITLE — titolo<i>nome dello show nel dettaglio · titolo del popover</i></th><td class="k">2,00</td><td>26</td><td>30</td><td class="c">34</td><td>38</td><td class="c">42</td><td>46</td></tr>
+<tr><th>STAGE-NEXT — il prossimo<i>nome della sezione che viene dopo, in penombra</i></th><td class="k">2,60</td><td>34</td><td>39</td><td class="c">44</td><td>49</td><td class="c">55</td><td>60</td></tr>
+<tr class="tetto"><th>STAGE-HERO — il gigante<i>nome di sezione in play · nome canzone sul velo — Inter 900</i></th><td class="k">4,00</td><td>52</td><td>60</td><td class="c">68</td><td class="hit">68 ⛔</td><td class="c hit">68 ⛔</td><td class="hit">68 ⛔</td></tr>
+</tbody>
+</table>
+<div class="warn"><b>⛔ Il gigante è l'unico livello con un tetto, e non gliel'ho messo io: gliel'ho misurato.</b> Larghezza utile <b>390 − 2×26 = 338 px</b>. Inter 900, avanzamento medio ≈ <b>0,60 em</b>. Il nome più lungo dello show di prova è <b>«Kerosene»</b>, 8 caratteri ⇒ <code>8 × 0,60 × 68 = 326 px</code> su 338 <b>ci sta</b>; a <b>76</b> fa <b>365 px</b> e <b>va a capo o si taglia</b>. ⇒ <b>Regola: <code>gigante = min(4 × P, quanto sta su una riga sola)</code>, e comunque mai sotto <code>2,6 × P</code>.</b> Da <b>P = 19</b> in su il gigante <b>smette di seguire la scala</b>: è limitato dal <b>nome più lungo</b>, non dal comfort. Il restringimento automatico a una riga sola è quindi <b>obbligatorio</b>, non un abbellimento.</div>
+</div>
+</div>
+
+<div class="sec" style="top:1708px">
+<div class="sech">② Dove la grandezza non basta — e quanto costa il comfort</div>
+<div class="two">
+<div class="pan">
+<h3>Tre canali che non consumano pixel</h3>
+<p><b>Più il pavimento sale, meno spazio resta per distinguere i livelli con la grandezza.</b> Lo schermo è 390 e non cresce. Quindi la gerarchia va portata anche dove i pixel non si pagano:</p>
+<p><b>① Peso e famiglia.</b> Mono contro proporzionale è un salto di voce che costa <b>zero</b>: <code>SECONDARY</code> = JetBrains Mono 600, <code>BODY</code> = Inter 600, <code>HERO</code> = Inter 900. Due scritte della <b>stessa</b> grandezza in famiglie diverse si leggono come due livelli diversi.</p>
+<p><b>② Spazio.</b> Le distanze interne scalano con <code>k</code>, altrimenti a 21 pt le righe si toccano e il guadagno di comfort si perde in affollamento. <b>Le fasce fisse invece NON scalano</b>: barra di stato 44, navbar 54, bersaglio di tocco <b>44 pt</b> — quello è <b>ergonomia della mano</b>, non della vista (LIBRO r.348 CD-Q8 · minimo HIG). Alzare il pavimento del testo <b>non</b> autorizza a toccarlo.</p>
+<p><b>③ Colore di ruolo.</b> Arancio in play, ambra fuori dal play, rosso per fermare: invariati. <b class="no">Il contrasto non si baratta con la grandezza</b> — pavimento <b>4,5:1</b>, obiettivo <b>7:1</b> sul testo che porta azione (ratificato 20/07). Una scritta più grande e più spenta è un <b>peggioramento travestito</b>.</p>
+</div>
+<div class="pan">
+<h3 class="fl">Il prezzo, detto prima e non dopo</h3>
+<p><b>Il comfort si paga in righe per schermata.</b> È l'unico effetto collaterale vero, e va sul tavolo <b>adesso</b>, perché è una scelta di Mauro e non mia.</p>
+<div class="m" style="border-top:1px solid rgba(0,0,0,0.14);padding-top:9px"><div class="g2">altezza di una riga</div><div class="d"><code>padding 12×k + corpo×1,2 + 1 px di filo</code></div></div>
+<div class="m"><div class="g2">P = 13 (oggi)</div><div class="d">12+12+19+1 = <b>44 px</b> ⇒ nei ~220 px di lista <b>5 canzoni</b></div></div>
+<div class="m"><div class="g2">P = 17</div><div class="d">16+16+25+1 = <b>58 px</b> ⇒ <b>3,8 canzoni</b> (3 intere + una che sporge, e la sporgenza è il segnale che si scorre)</div></div>
+<div class="m"><div class="g2">P = 21</div><div class="d">19+19+31+1 = <b>70 px</b> ⇒ <b>3,1 canzoni</b></div></div>
+<div class="warn" style="margin-top:13px"><b>⇒ Da 13 a 21 si perdono quasi due canzoni a schermata.</b> Su uno show da 5 pezzi non cambia niente; su uno da 18 vuol dire <b>scorrere sempre</b>. ⇒ <b>Se il gradino scelto è ≥ 19, la lista lunga ha bisogno della sua regola</b> (fascia fissa in cima con <b>NOW</b> sempre visibile, il resto che scorre sotto) — è già uno dei tre pattern di sistema del <b>29/06</b>, e a quel punto <b>non è più opzionale</b>. Non la disegno qui: la dichiaro come <b>conseguenza</b> del gradino.</div>
+<div class="warn" style="margin-top:11px"><b>⇒ Secondo prezzo, trovato disegnando le lastre — e lo dichiaro invece di nasconderlo.</b> <b>Le etichette dei tasti non stanno più su una riga.</b> <code>KILL BASE</code> sono 9 caratteri: a <b>17</b> chiede ≈ <b>105 px</b> di solo testo contro gli <b>84</b> utili dentro un tasto da 98 (<code>98 − 2×6 di padding − 2×1 di bordo</code>) ⇒ <b>va a capo</b> (lo vedi nelle due lastre del bivio: è voluto, non è un difetto di stampa). Allargare i tasti non salva: a <b>21</b> i tre tasti allargati chiedono ≈ <b>429 px</b> su <b>390</b>. ⇒ <b>Da P ≥ 17 la fascia transport ha tre uscite, e vanno scelte, non subite:</b> ① etichette più corte (<code>KILL</code> invece di <code>KILL BASE</code>) · ② etichetta su due righe con il tasto più alto (quello che vedi qui) · ③ solo icona, con l'etichetta che compare al tocco lungo. <b>È una scelta tua</b>, e il player nuovo la deve fare <b>prima</b> di essere disegnato — non dopo.</div>
+<div class="ok"><b>Il mio candidato è 17.</b> Motivo, non gusto: <b>0,39°</b> è il bordo <b>alto</b> della banda raccomandata per il <b>testo continuo</b> (0,35°–0,40°) — cioè il punto in cui una riga secondaria si legge come si legge un libro, non come si decifra un'insegna. Costa <b>una</b> canzone a schermata e <b>non</b> tocca il tetto del gigante (68 = 4 × 17 esatto). <b>Ma la prova la fa Mauro, e il numero è suo.</b></div>
+</div>
+</div>
+</div>
+
+<div class="sec" style="top:2420px">
+<div class="sech">③ Le due lastre, a due gradini — solo per far vedere</div>
+</div>
+
+<div class="flbl" style="left:96px;top:2470px"><span class="b am">BIVIO · gradino 17</span><span class="t">il mio candidato</span></div>
+<div class="flbl" style="left:516px;top:2470px"><span class="b">BIVIO · gradino 21</span><span class="t">più grande</span></div>
+<div class="flbl" style="left:936px;top:2470px"><span class="b am">VELO · gradino 17</span><span class="t">il mio candidato</span></div>
+<div class="flbl" style="left:1356px;top:2470px"><span class="b">VELO · gradino 21</span><span class="t">gigante al tetto</span></div>
+
+<div class="frame fr pick" style="left:96px;top:2520px;--p:17px;--k:1.31">
+<div class="sb"><span>9:41</span><span class="r">▮▮▮ ◗</span></div>
+<div class="plhead"><div class="hit">‹</div><div class="plmid"><div class="shname">Assago 20 Jul</div></div><div class="leds"><i class="on"></i><i></i><i></i></div><div class="hit"></div></div>
+<div class="bvbody">
+<div class="occ">Show stopped</div>
+<div class="hero">Circuz</div>
+<div class="datarow">Bridge · 121 · 6/8</div>
+<div class="picks">
+<div class="pk pri"><span class="l">Resume from Bridge</span><span class="s">section 4 of 7</span></div>
+<div class="pk alt"><span class="l">Start from top</span><span class="s">count-in 2 bars</span></div>
+</div>
+</div>
+<div class="tstrip"><div class="ebtn"><span class="g">▲</span><span class="l">Emerg</span></div><div class="ebtn"><span class="g">◼</span><span class="l">Kill base</span></div><div class="ebtn"><span class="g">☰</span><span class="l">List</span></div></div>
+<div class="navbar"><i></i></div>
+</div>
+
+<div class="frame fr" style="left:516px;top:2520px;--p:21px;--k:1.62">
+<div class="sb"><span>9:41</span><span class="r">▮▮▮ ◗</span></div>
+<div class="plhead"><div class="hit">‹</div><div class="plmid"><div class="shname">Assago 20 Jul</div></div><div class="leds"><i class="on"></i><i></i><i></i></div><div class="hit"></div></div>
+<div class="bvbody">
+<div class="occ">Show stopped</div>
+<div class="hero">Circuz</div>
+<div class="datarow">Bridge · 121 · 6/8</div>
+<div class="picks">
+<div class="pk pri"><span class="l">Resume from Bridge</span><span class="s">section 4 of 7</span></div>
+<div class="pk alt"><span class="l">Start from top</span><span class="s">count-in 2 bars</span></div>
+</div>
+</div>
+<div class="tstrip"><div class="ebtn"><span class="g">▲</span><span class="l">Emerg</span></div><div class="ebtn"><span class="g">◼</span><span class="l">Kill base</span></div><div class="ebtn"><span class="g">☰</span><span class="l">List</span></div></div>
+<div class="navbar"><i></i></div>
+</div>
+
+<div class="frame fr pick" style="left:936px;top:2520px;--p:17px;--k:1.31">
+<div class="sb"><span>9:41</span><span class="r">▮▮▮ ◗</span></div>
+<div class="velo">
+<div class="occ">Resume from Bridge</div>
+<div class="vnm">Circuz</div>
+<div class="vhint">Tap anywhere</div>
+<div class="vcin">Count-in · 2 bars</div>
+<div class="vlink"><span class="s">Link · 2 peers</span><span class="c">director</span></div>
+</div>
+<div class="tstrip"><div class="ebtn"><span class="g">▲</span><span class="l">Emerg</span></div></div>
+<div class="navbar"><i></i></div>
+</div>
+
+<div class="frame fr" style="left:1356px;top:2520px;--p:21px;--k:1.62">
+<div class="sb"><span>9:41</span><span class="r">▮▮▮ ◗</span></div>
+<div class="velo">
+<div class="occ">Resume from Bridge</div>
+<div class="vnm">Circuz</div>
+<div class="vhint">Tap anywhere</div>
+<div class="vcin">Count-in · 2 bars</div>
+<div class="vlink"><span class="s">Link · 2 peers</span><span class="c">director</span></div>
+</div>
+<div class="tstrip"><div class="ebtn"><span class="g">▲</span><span class="l">Emerg</span></div></div>
+<div class="navbar"><i></i></div>
+</div>
+
+<div class="cap" style="left:96px;top:3394px">
+<div class="cn">Cosa guardare nel bivio</div>
+<div class="cs">A <b>17</b> l'occhiello <code>Show stopped</code> e le etichette dei tasti stanno alla stessa grandezza della riga <code>Bridge · 121 · 6/8</code> meno un livello: si leggono <b>senza cercarle</b>. A <b>21</b> si leggono meglio ancora, ma le due scelte diventano <b>alte</b> e il gigante non cresce più (è al tetto): la schermata si sbilancia <b>verso il basso</b>. ⚠️ <b>Guarda la fascia in fondo:</b> <code>KILL BASE</code> è andato su <b>due righe</b> in tutt'e due le lastre. <b>È voluto</b> — è il secondo prezzo del pavimento più alto, spiegato in §②: da P ≥ 17 le etichette dei tasti vanno accorciate, mandate a capo o sostituite da sole icone. <b>Scelta tua, prima del ridisegno.</b></div>
+</div>
+<div class="cap" style="left:936px;top:3394px">
+<div class="cs" style="margin-top:0"><div class="cn">Cosa guardare nel velo</div>Il velo è il caso <b>peggiore</b> per il tetto del gigante: il nome della canzone è la cosa più grande dell'app. A <b>21</b> il gigante è <b>identico</b> a quello di <b>17</b> — <b>68 in entrambi</b> — mentre tutto il resto è cresciuto. ⇒ <b>La distanza fra il gigante e le righe intorno si accorcia</b>, e a quel punto la voce principale la porta il <b>peso</b> (Inter 900 contro mono 600), non la grandezza. È esattamente il punto ② in pratica.</div>
+</div>
+
+<div class="sec" style="top:3632px">
+<div class="sech">④ Misure di tutto quello che è nuovo · ⑤ cosa entra nei canonici, e quando</div>
+<div class="two">
+<div class="pan">
+<h3>④ MISURE</h3>
+<div class="ms">
+<div class="m"><div class="g2">scheda a gradini</div><div class="d"><code>390 × 844</code> di finestra, contenuto <b>più alto: scorre</b> · gradini <b>13·15·17·19·21·23</b>, passo <b>2</b> · quattro tipi di scritta + <b>tre pannelli d'insieme</b> (15/17/21) · chrome della scheda a <b>17 pt</b>, niente sotto, <b>tranne</b> le righe di prova a 13 e 15</div></div>
+<div class="m"><div class="g2">angoli dei gradini</div><div class="d">altezza-maiuscola a 30 cm, base 390 (0,1656 mm/pt, cap ≈ 0,73 em): <b>13 → 0,30°</b> · 15 → 0,35° · <b>17 → 0,39°</b> · 19 → 0,44° · 21 → 0,48° · 23 → 0,53°</div></div>
+<div class="m"><div class="g2">fattore di scala</div><div class="d"><code>k = P / 13</code> · rapporti <b>1 · 1,25 · 2 · 2,6 · 4</b>, <b>arrotondati all'intero più vicino</b> — non miei: già nei valori dell'11/09</div></div>
+<div class="m"><div class="g2">tetto del gigante</div><div class="d"><b>68 pt</b>, misurato su «Kerosene» (8 car.) in 338 px utili ⇒ <code>min(4×P, una riga sola)</code>, mai sotto <code>2,6×P</code></div></div>
+<div class="m"><div class="g2">costo in righe</div><div class="d">riga di lista <b>44 → 58 → 70 px</b> per P = 13/17/21 ⇒ <b>5 → 3,8 → 3,1</b> canzoni per schermata</div></div>
+<div class="m"><div class="g2">non scalano</div><div class="d">bersaglio di tocco <b>44 pt</b> · barra di stato <b>44</b> · navbar <b>54</b> — ergonomia della mano</div></div>
+<div class="m"><div class="g2">lastre ③</div><div class="d">4 × <code>390 × 844</code> a grandezza vera · scala parametrica in CSS (<code>--p</code>, <code>--k</code>): la regola è <b>nel file</b>, non solo nella tabella</div></div>
+<div class="m"><div class="g2">tasti transport</div><div class="d"><code>KILL BASE</code> (9 car.) chiede ≈ <b>105 px</b> a P = 17 contro <b>84</b> utili (<code>98 − 2×6 padding − 2×1 bordo</code>) ⇒ va a capo, <b>voluto</b> nelle lastre · tasto <code>98 × min 62</code>, cresce in altezza · tre tasti allargati a P = 21 ≈ <b>429 px</b> su <b>390</b>: <b>non ci stanno</b> ⇒ tre uscite in §②</div></div>
+<div class="m"><div class="g2">igiene CSS</div><div class="d">tutte le classi dei telefoni limitate a <code>.frame …</code> (34 regole) ⇒ chiude la famiglia di collisioni <code>.idx</code> / <code>.cap</code> / <code>.hit</code>, <b>tre in due fogli</b>: erano classi corte condivise fra il foglio di carta e i telefoni dentro il foglio</div></div>
+</div>
+</div>
+<div class="pan">
+<h3 class="am">⑤ Cosa entra nei canonici, e quando</h3>
+<p><b class="no">⛔ Adesso: niente.</b> Il mandato è esplicito e sono d'accordo: nessun numero entra nei canonici prima della prova di Mauro. Quello che c'è qui è una <b>scala misurata e ricontrollabile</b>, non un token.</p>
+<div class="rule"><b>La sequenza, in tre mosse:</b><br />① Mauro apre la scheda a gradini sull'iPhone 13 e dice <b>un numero</b> — «da quale gradino in su leggo comodo».<br />② Io riscrivo la tabella del punto ① con quel pavimento e <b>solo allora</b> propongo i sei token a <code>BOX5</code>: <code>STAGE-SECONDARY</code> · <code>STAGE-BODY</code> · <code>STAGE-DATA</code> · <code>STAGE-TITLE</code> · <code>STAGE-NEXT</code> · <code>STAGE-HERO</code>.<br />③ Il player nuovo (grafica rifatta, console essenziale, mixer col suo pulsante) <b>nasce già su quella scala</b> — che è il motivo per cui questo giro viene <b>prima</b> del ridisegno e non dopo.</div>
+<p><b>Resta aperta una cosa sola, e non è tipografica:</b> se il gradino scelto è <b>≥ 19</b>, la <b>lista lunga</b> ha bisogno della fascia fissa con <b>NOW</b> (pattern del 29/06). Diventa obbligatoria <b>per conseguenza aritmetica</b>, non per scelta di stile — e a quel punto la disegno.</p>
+<div class="ok"><b>Per CC, una sola dipendenza da questo foglio</b> (punto 6): il Follower deve <b>ignorare</b> gli start/stop in arrivo come già fa il Direttore (<code>AudioEngine.swift:539</code> contro <code>550-551</code>), altrimenti «il Follower si ferma, lui solo» <b>non è vero</b> quando in Link è accesa la sincronizzazione Start/Stop. <b>Nessun disegno dipende da questa correzione</b>: la sottoriga ambra sul Follower non c'è comunque.</div>
+</div>
+</div>
+</div>
+
+<div class="sigil" style="top:4227px">
+<b>CD · 11/09/2026</b> · mandato <b>QB-2026-09-11-CD4-SCALA-DI-PALCO</b> · questo foglio <b>supera</b> <code>2026-09-11_QLive_IL-FOLLOWER-NON-TOCCA-IL-TRASPORTO…</code> sul <b>punto 12</b> e sulle <b>correzioni 5.1–5.4</b>; tutto il resto di quel foglio <b>regge</b> · scheda a gradini depositata come file a sé: <code>2026-09-11_SCHEDA-GRADINI__SCALA-DI-PALCO__390x844.html</code> · <b>una domanda sola per Mauro: da quale gradino in su leggi comodo?</b><br />
+⛔ Nessuna schermata ridisegnata. ⛔ Nessun numero nei canonici prima della prova. ⛔ Le lastre del punto ③ dimostrano la scala, non propongono layout. ⛔ Valori per apparecchio: solo con la pagina ufficiale Apple come fonte — <b>l'iPad mini nella tabella dell'11/09 resta senza fonte e quindi fuori</b>.
+</div>
+
+</body>
+</html>

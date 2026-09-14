@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ ══════════════════════════════════════════════════════════════════════════════
+ CD · Q-LIVE — IL FOLLOWER NON TOCCA IL TRASPORTO, E LE SCRITTE SI LEGGONO A 30 CM
+ ID MANDATO 	QB-2026-09-10-CD2-GIRO-UNICO — sezioni 0→14 tutte presenti, chiude
+            	con FINE MANDATO. Nessun taglio: integrità dichiarata.
+ NOME FILE 	2026-09-11_QLive_IL-FOLLOWER-NON-TOCCA-IL-TRASPORTO__dodici-risposte-quattordici-lastre-e-la-regola-dei-30-cm__2300x8730.html
+ DATA      	11/09/2026 — dichiarata dal mio orologio.
+ MISURA    	foglio 2300×8730, dichiarato = misurato nel CSS di body.
+ SUPERA    	2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE...html sui punti 3, 4 e 5.
+            	Il resto di quel foglio REGGE e non è ridisegnato.
+ ALLINEA   	2026-08-29_..._USCITA-DA-UNO-SHOW-VIVO... §B (copy ambra, punto 6).
+ ⛔ ZERO token nuovi tranne UNO, ed è quello chiesto dal punto 12: STAGE-SECONDARY.
+ ⛔ TRE elementi nuovi, dichiarati: riga-regola nella fascia transport (8.1) ·
+    slot E del velo (9) · stato vuoto della lista (10). Nessun altro.
+ ⛔ FUORI PERIMETRO, riprodotto da BOX5 e NON disegnato qui: slot metronomo ·
+    bar counter · micro/macro bar · teleprompter · Chart Mode · salto di canzone ·
+    faccia 1 · fine scaletta · la pulsantiera oltre il punto 8.1.
+ ℹ️ Contrasti e angoli CALCOLATI sui token e sulle specifiche dei device,
+    NON misurati su apparecchio. La prova su device è la lastra ⑭.
+ ══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="design_doc_mode" content="canvas" />
+<title>Q-BEATS · Il Follower non tocca il trasporto + la regola dei 30 cm · 11/09</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--qlive-bg:#0e0e10;--qlive-surf:#16161a;--qlive-bd:rgba(255,255,255,0.09);--qlive-pick:#181519;--text2:rgba(255,255,255,0.55);--text2r:rgba(255,255,255,0.60);--text3:rgba(255,255,255,0.30);--live:#d43f00;--live-l:#ff8a5c;--amber:#f5b820;--stop:#ff3b30;--linkg:#00c96e;--line:rgba(255,255,255,0.08);--paper:#e8e4db;--ink:#16140f;--ok:#0d6b2b;--flag:#b1281f;--warn:#8a5a00;--disabled:0.38}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--paper);width:2300px;height:8730px;position:relative;-webkit-font-smoothing:antialiased}
+a{color:#9a6800;text-decoration:none}a:hover{color:#c48a10}
+@keyframes qb-standby{0%,100%{opacity:1}50%{opacity:0.45}}
+@keyframes qb-pulse{0%,100%{opacity:1}50%{opacity:0.34}}
+.btitle{position:absolute;left:96px;top:30px;width:1150px;color:var(--ink)}
+.btitle .kick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--ok)}
+.btitle h1{font-size:29px;font-weight:900;letter-spacing:-0.8px;margin-top:8px;line-height:1.12}
+.btitle p{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:rgba(0,0,0,0.64);margin-top:10px;letter-spacing:0.2px;text-wrap:pretty}
+.btitle p b{color:var(--ink)}
+.btitle code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.btitle .no{color:var(--flag);font-weight:700}
+.idbox{margin-top:13px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.4);border-radius:11px;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#14471f;text-wrap:pretty}
+.idbox b{color:#0a2e13}
+.fix{margin-top:13px;background:rgba(177,40,31,0.06);border:1px solid rgba(177,40,31,0.4);border-radius:11px;padding:12px 14px}
+.fix h3{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--flag);margin-bottom:8px}
+.fix .r{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.58;color:rgba(0,0,0,0.7);padding:6px 0;border-top:1px solid rgba(177,40,31,0.2);text-wrap:pretty}
+.fix .r:first-of-type{border-top:0;padding-top:0}
+.fix .r b{color:#4d0f0a}
+.fix .r s{color:rgba(0,0,0,0.42)}
+.testata{position:absolute;left:1296px;top:30px;width:908px;background:linear-gradient(160deg,#1a1e16,#141712);color:var(--paper);border:1px solid rgba(40,205,65,0.35);border-radius:16px;padding:17px 20px;box-shadow:0 10px 30px rgba(0,0,0,0.18)}
+.testata .fh{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+.testata .seal{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--ink);background:linear-gradient(150deg,#5fe07a,#28cd41);padding:5px 11px;border-radius:7px}
+.testata .anc{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.3px;color:#8fe0a0}
+.testata .anc b{color:#fff}
+.trow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,0.09)}
+.trow:first-of-type{border-top:0}
+.trow .k{flex:0 0 138px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#7fe093}
+.trow .v{flex:1;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.58;color:rgba(255,255,255,0.84);text-wrap:pretty}
+.trow .v b{color:#fff}.trow .v .no{color:#ff9a8a;font-weight:700}
+.trow .v code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;color:#ffd35a}
+.trow.stop .k{color:#ff9a8a}
+.trow.am .k{color:#ffd35a}
+.sech{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:rgba(0,0,0,0.45)}
+.flbl{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.4px;display:flex;align-items:center;gap:7px;width:430px;flex-wrap:wrap}
+.flbl .b{display:inline-flex;padding:3px 9px;border-radius:7px;color:#c0431a;background:rgba(212,63,0,0.12);border:1px solid rgba(212,63,0,0.4)}
+.stt{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px}
+.stt.nw{color:var(--ok);background:rgba(40,205,65,0.14);border:1px solid rgba(40,205,65,0.45)}
+.stt.q{color:var(--warn);background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5)}
+.stt.ko{color:var(--flag);background:rgba(177,40,31,0.08);border:1px solid rgba(177,40,31,0.45)}
+.frame{position:absolute;width:390px;height:844px;border-radius:42px;border:1px solid rgba(255,255,255,0.10);overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,0.42);display:flex;flex-direction:column;background:var(--qlive-bg)}
+.frame.nw{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(40,205,65,0.5)}
+.frame.am{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(245,184,32,0.6)}
+.frame.old{box-shadow:0 26px 64px rgba(0,0,0,0.42),0 0 0 2px rgba(0,0,0,0.18)}
+.sb{height:44px;flex:0 0 44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#fff}
+.sb .r{display:flex;gap:7px;align-items:center;font-size:12px;letter-spacing:1px}
+.plhead{flex:0 0 66px;height:66px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.07)}
+.hit{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center}
+.sq{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09)}
+.sq.armed{background:rgba(212,63,0,0.16);border-color:rgba(255,138,92,0.6)}
+.plmid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center}
+.shname{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,0.34);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.plright{display:flex;align-items:center;gap:2px;flex:0 0 auto}
+.leds{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:8px}
+.leds i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.07)}
+.leds i.link{background:var(--linkg);box-shadow:0 0 4px var(--linkg)}
+.leds i.dead{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14)}
+.pbody{flex:1;position:relative;background:var(--qlive-bg);overflow:hidden;display:flex;flex-direction:column}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.70)}
+.pop{position:absolute;left:18px;right:18px;top:132px;background:var(--qlive-surf);border:1px solid rgba(255,255,255,0.13);border-radius:22px;padding:20px 17px 17px;box-shadow:0 22px 54px rgba(0,0,0,0.62)}
+.popx{position:absolute;right:-12px;top:-12px;width:44px;height:44px;border-radius:50%;background:#1e1e23;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.5)}
+.popk{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--text2)}
+.popk.n13{font-size:13px;font-weight:600;letter-spacing:1.5px;color:var(--text2r)}
+.popnm{font-size:26px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-top:7px;line-height:1.1}
+.popmt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px;margin-top:6px}
+.popmt.n13{font-size:13px}
+.popact{margin-top:17px;display:flex;flex-direction:column;gap:9px}
+.velo{position:absolute;inset:0;background:var(--qlive-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 26px;text-align:center}
+.vlbl{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r)}
+.vnm{font-weight:900;font-size:52px;line-height:1.04;letter-spacing:-1.6px;color:#fff;margin-top:11px;animation:qb-standby 2.2s ease-in-out infinite}
+.vhint{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);margin-top:26px}
+.vcin{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);margin-top:9px}
+.vlink{margin-top:26px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.vlink .s{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber)}
+.vlink .c{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0;color:var(--text2r)}
+.vl{flex:1;display:flex;flex-direction:column}
+.metslots{height:78px;flex:0 0 78px;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 24px}
+.metslots i{flex:1;height:34px;border-radius:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08)}
+.metslots i.acc{background:rgba(40,205,65,0.22);border-color:rgba(40,205,65,0.6)}
+.metslots i.beat{background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.9)}
+.barc{height:64px;flex:0 0 64px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:rgba(255,255,255,0.82);letter-spacing:0.4px}
+.microbar{height:30px;flex:0 0 30px;display:flex;gap:3px;padding:0 24px;align-items:center}
+.microbar i{flex:1;height:5px;border-radius:2px;background:rgba(255,255,255,0.10)}
+.microbar i.done{background:rgba(255,255,255,0.55)}
+.tele{height:280px;flex:0 0 280px;display:flex;align-items:center;justify-content:center;padding:0 20px}
+.tele b{font-weight:900;font-size:56px;letter-spacing:-1.8px;color:#fff;line-height:1}
+.macro{height:16px;flex:0 0 16px;display:flex;gap:4px;padding:0 24px;align-items:center}
+.macro i{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.10)}
+.macro i.done{background:var(--live-l)}
+.nextz{height:80px;flex:0 0 80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.nextz .k{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;color:rgba(255,255,255,0.32);text-transform:uppercase}
+.nextz .n{font-weight:800;font-size:34px;color:rgba(255,255,255,0.45);letter-spacing:-0.8px}
+.hstrip{height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center}
+.hstrip i{width:32px;height:3px;border-radius:1.5px;background:rgba(255,255,255,0.20)}
+.tstrip{height:170px;flex:0 0 170px;display:flex;align-items:center;gap:14px;padding:0 18px 22px}
+.tstrip.mid{justify-content:center}
+.trule{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);line-height:1.45;flex:1;min-width:0}
+.tstrip.mid .trule{flex:0 0 auto;text-align:center}
+.ebtn{width:98px;height:62px;border-radius:15px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
+.ebtn .g{font-size:18px;color:#fff;line-height:1}
+.ebtn .l{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--text2r)}
+.navbar{flex:0 0 54px;height:54px;display:flex;align-items:center;position:relative;padding:0 14px}
+.spia{min-height:44px;display:flex;align-items:center;gap:8px}
+.spia i{width:9px;height:9px;border-radius:50%;background:var(--live-l);box-shadow:0 0 0 4px rgba(212,63,0,0.20);flex:0 0 auto}
+.spia b{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--live-l)}
+.spia.playing i{animation:qb-pulse 1.5s ease-in-out infinite}
+.spia.stopped i{background:transparent;border:1.6px solid rgba(255,138,92,0.78);box-shadow:none}
+.spia.stopped b{color:rgba(255,138,92,0.78)}
+.dhead{padding:8px 18px 14px}
+.dhead .nm{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1.12}
+.dhrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.dhead .mt{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2r);letter-spacing:0.3px;margin-top:7px}
+.ro{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2r);border:1px solid rgba(255,255,255,0.16);border-radius:7px;padding:4px 8px;display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
+.songlist{padding:2px 16px 0;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden}
+.songrow{display:flex;align-items:center;gap:10px;padding:12px 6px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.songrow .crail{width:4px;align-self:stretch;border-radius:3px;flex:0 0 auto;margin:6px 0;background:transparent}
+.songrow .crail.pending{background:rgba(255,255,255,0.22)}
+.songrow .idx{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--live-l);width:19px;text-align:right;flex:0 0 auto}
+.songrow .nm{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:-0.2px;flex:1;min-width:0}
+.songrow .met{font-family:'JetBrains Mono',monospace;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;flex:0 0 auto}
+.songrow.now{background:rgba(212,63,0,0.10);border-radius:10px;border-bottom-color:transparent;margin:0 -4px;padding-left:10px}
+.songrow.now .nm{color:#fff}
+.nowtag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.5px;padding:2px 7px;border-radius:5px;background:rgba(212,63,0,0.18);color:var(--live-l);border:1px solid rgba(212,63,0,0.4);flex:0 0 auto}
+.vstack{flex:0 0 auto;padding:12px 18px 20px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(to top,var(--qlive-bg) 66%,rgba(14,14,16,0))}
+.vrow{height:56px;border-radius:15px;display:flex;align-items:center;gap:11px;padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase}
+.vrow.ret{background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;box-shadow:0 6px 20px rgba(212,63,0,0.4),inset 0 1px 0 rgba(255,180,140,0.3)}
+.vrow.end{background:transparent;border:1px solid rgba(255,59,48,0.52);color:#ff8a80}
+.vrow.end.sub{height:64px}
+.vrow .rl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vrow em{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.1px;text-transform:none;color:#ffd35a;display:flex;align-items:center;gap:5px}
+.vrow em.n13{font-size:13px;font-weight:500;letter-spacing:0}
+.gsep{height:1px;background:var(--line);margin:4px 0;flex:0 0 auto}
+.gsep.shelf{margin:11px -17px;background:rgba(255,255,255,0.13)}
+.gsep.shelfv{margin:10px -18px;background:rgba(255,255,255,0.13)}
+.roombar{height:54px;flex:0 0 54px;display:flex;align-items:center;justify-content:center;padding:0 14px;position:relative}
+.homebtn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;color:var(--text2r);position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px}
+.roomseg{display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:4px;gap:3px}
+.roomseg .opt{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:9px;color:var(--text3);min-height:34px;display:inline-flex;align-items:center}
+.roomseg .opt.live-on{color:#fff;background:rgba(212,63,0,0.24);border:1px solid rgba(212,63,0,0.5)}
+.scrhead{display:flex;align-items:baseline;justify-content:space-between;padding:8px 18px 12px}
+.scrhead h1{font-size:29px;font-weight:800;letter-spacing:-0.6px;color:#fff;line-height:1}
+.scrhead .cnt{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2r);letter-spacing:0.4px}
+.searchrow{display:flex;gap:8px;padding:0 16px 12px}
+.search{flex:1;height:44px;border-radius:12px;background:var(--qlive-surf);border:1px solid var(--qlive-bd);display:flex;align-items:center;gap:9px;padding:0 12px;color:var(--text2r)}
+.search .ph{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.3px}
+.cardlist{flex:1;overflow:hidden;padding:0 16px 4px;display:flex;flex-direction:column;gap:12px;position:relative}
+.card{background:var(--qlive-surf);border:1px solid var(--qlive-bd);border-radius:16px;padding:15px 15px 14px;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);position:relative}
+.card.pick{border-color:rgba(212,63,0,0.42);background:var(--qlive-pick)}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.card .nm{font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.15}
+.card .mt{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2r);letter-spacing:0.3px;margin-top:5px}
+.prev{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.45;color:var(--text2r);margin-top:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dots{width:44px;height:44px;margin:-9px -9px 0 0;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text2r);flex:0 0 auto;font-size:17px}
+.gosplit{margin-top:13px;height:52px;border-radius:14px;display:flex;overflow:hidden;box-shadow:0 5px 16px rgba(212,63,0,0.30)}
+.gosplit .main{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase}
+.gosplit .sep{width:1.5px;background:rgba(0,0,0,0.30)}
+.gosplit .alt{width:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(150deg,#e8571c,#c8360a);color:#fff}
+.gosplit .alt.hot{background:linear-gradient(150deg,#f0703a,#d1450f)}
+.gosplit .alt .t{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;opacity:0.9}
+.gosplit.dead{box-shadow:none;opacity:var(--disabled)}
+.gosplit.dead .main,.gosplit.dead .alt{background:rgba(255,255,255,0.05);border:1px solid var(--line)}
+.pop2{margin-top:11px;background:#1d1d22;border:1px solid rgba(255,255,255,0.14);border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.5)}
+.pop2 .r{display:flex;align-items:center;gap:12px;padding:9px 15px;min-height:62px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.pop2 .r:last-child{border-bottom:0}
+.pop2 .r .ic{width:22px;flex:0 0 auto;color:var(--text2r);display:flex;align-items:center;justify-content:center;font-size:15px}
+.pop2 .r.on .ic{color:var(--live-l)}
+.pop2 .r .tx{flex:1;min-width:0}
+.pop2 .r .n{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.1px}
+.pop2 .r .d{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--text2r);margin-top:3px;letter-spacing:0}
+.pop2 .r .ck{width:18px;flex:0 0 auto;color:var(--live-l);font-size:14px}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:0 30px;text-align:center}
+.empty .e1{font-size:20px;font-weight:700;color:rgba(255,255,255,0.86);letter-spacing:-0.2px}
+.empty .e2{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--text2r);letter-spacing:0.2px}
+.metrofab{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 0 26px}
+.metrofab .c{width:60px;height:60px;border-radius:50%;background:rgba(212,63,0,0.14);border:1.5px solid rgba(212,63,0,0.5);display:flex;align-items:center;justify-content:center;color:var(--live-l);font-size:24px}
+.metrofab .l{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;color:var(--text2r);text-transform:uppercase}
+.pv{flex:1;display:flex;flex-direction:column;padding:14px 0 0;overflow:hidden}
+.calib{position:relative;height:20px;margin-bottom:5px}
+.calib .bar{position:absolute;left:0;right:0;top:9px;height:2px;background:var(--amber)}
+.calib .t{position:absolute;top:3px;width:2px;height:14px;background:var(--amber)}
+.pvnote{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.45;color:var(--amber);text-align:center;padding:0 16px 11px}
+.pvpair{padding:8px 16px;border-top:1px solid rgba(255,255,255,0.07)}
+.pvk{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(255,255,255,0.26);margin-bottom:5px}
+.o9{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--text2)}
+.o11{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2r);letter-spacing:0.3px}
+.o10dim{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.2px;text-transform:uppercase;color:var(--text3)}
+.o8{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2r)}
+.o10a{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.1px;color:#ffd35a}
+.n13{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2r);margin-top:4px}
+.n13.plain{text-transform:none;letter-spacing:0;font-weight:400}
+.n13.amb{color:#ffd35a;text-transform:none;letter-spacing:0;font-weight:500}
+.n13.b7{font-weight:700}
+.pvfoot{margin-top:auto;padding:11px 16px 18px;border-top:1px solid rgba(255,255,255,0.09);font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:var(--text2r)}
+.pvfoot b{color:#fff}
+.cap{position:absolute;width:430px}
+.cap .cn{font-size:15px;font-weight:800;letter-spacing:-0.2px;color:var(--ink)}
+.cap .cs{font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.55;color:rgba(0,0,0,0.58);margin-top:5px;text-wrap:pretty}
+.cap .cs b{color:var(--ink)}
+.cap .cs code{background:rgba(0,0,0,0.06);padding:0 4px;border-radius:3px}
+.cap .ms{margin-top:9px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.12)}
+.cap .m{display:flex;gap:8px;align-items:baseline;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;color:rgba(0,0,0,0.66);padding:2px 0}
+.cap .m .g{flex:0 0 118px;font-weight:800;color:var(--ink)}
+.cap .m .d{flex:1;text-wrap:pretty}
+.cap .m .d b{color:var(--ink)}
+.cap .no{margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;color:#7a1c14;background:rgba(177,40,31,0.07);border:1px solid rgba(177,40,31,0.4);border-radius:8px;padding:8px 10px;text-wrap:pretty}
+.cap .no b{color:#4d0f0a}
+.cap .no code{background:rgba(0,0,0,0.07);padding:0 4px;border-radius:3px}
+.cap .ok{margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;color:#14471f;background:rgba(40,205,65,0.09);border:1px solid rgba(40,205,65,0.4);border-radius:8px;padding:8px 10px;text-wrap:pretty}
+.cap .ok b{color:#0a2e13}
+.cap .wa{margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;color:#6b4300;background:rgba(245,184,32,0.14);border:1px solid rgba(245,184,32,0.5);border-radius:8px;padding:8px 10px;text-wrap:pretty}
+.cap .wa b{color:#3d2600}
+.pan{position:absolute;background:#fffdf7;border:1px solid rgba(0,0,0,0.13);border-radius:16px;padding:18px 20px;box-shadow:0 8px 22px rgba(0,0,0,0.08);color:var(--ink)}
+.pan h3{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:var(--ok);margin-bottom:12px}
+.pan h3.st{color:var(--flag)}
+.pan h3.am{color:var(--warn)}
+.pan p{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.62;color:rgba(0,0,0,0.7);text-wrap:pretty}
+.pan p b{color:var(--ink)}
+.pan p+p{margin-top:9px}
+.pan code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px}
+.pan .no{color:var(--flag);font-weight:700}
+.rule{margin-top:12px;padding:12px 14px;background:rgba(40,205,65,0.08);border:1px solid rgba(40,205,65,0.38);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#14471f;text-wrap:pretty}
+.rule b{color:#0a2e13}
+.trap{margin-top:12px;padding:12px 14px;background:rgba(177,40,31,0.07);border:1px solid rgba(177,40,31,0.4);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#7a1c14;text-wrap:pretty}
+.trap b{color:#4d0f0a}
+.warn{margin-top:12px;padding:12px 14px;background:rgba(245,184,32,0.13);border:1px solid rgba(245,184,32,0.5);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#6b4300;text-wrap:pretty}
+.warn b{color:#3d2600}
+.mtab{width:100%;border-collapse:collapse;margin-top:4px}
+.mtab th{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--ok);text-align:left;padding:7px 9px;border-bottom:1px solid rgba(0,0,0,0.16)}
+.mtab td{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:rgba(0,0,0,0.7);padding:8px 9px;border-bottom:1px solid rgba(0,0,0,0.08);vertical-align:top;text-wrap:pretty}
+.mtab td b{color:var(--ink)}
+.mtab td code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px}
+.mtab tr.hl td{background:rgba(40,205,65,0.07)}
+.mtab tr.no td{background:rgba(177,40,31,0.06)}
+.mtab .num{color:var(--ink);font-weight:800}
+.g1{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.1);align-items:flex-start}
+.g1:first-of-type{border-top:0;padding-top:2px}
+.g1 .k{flex:0 0 46px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:var(--warn);background:rgba(245,184,32,0.16);border:1px solid rgba(245,184,32,0.5);border-radius:6px;text-align:center;padding:2px 0}
+.g1 .t{flex:1;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.58;color:rgba(0,0,0,0.7);text-wrap:pretty}
+.g1 .t b{color:var(--ink)}
+.g1 .t .h{display:block;font-size:11.5px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.idxpan{position:absolute;background:#fffdf7;border:1px solid rgba(0,0,0,0.13);border-radius:16px;padding:13px 18px 11px;box-shadow:0 8px 22px rgba(0,0,0,0.08);color:var(--ink)}
+.idxpan h3{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:var(--ok);margin-bottom:4px}
+.idxpan .sub{font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:rgba(0,0,0,0.62);margin-bottom:7px;text-wrap:pretty}
+.idxpan .sub b{color:var(--ink)}
+.idxg{display:grid;grid-template-columns:repeat(4,1fr);gap:0 16px}
+.idxg .i{display:flex;gap:7px;align-items:baseline;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.4;border-top:1px solid rgba(0,0,0,0.09);padding:5px 0}
+.idxg .i .n{flex:0 0 16px;font-weight:800;color:var(--ink);font-size:12px}
+.idxg .i .x{flex:1;color:rgba(0,0,0,0.68)}
+.idxg .i .p{flex:0 0 auto;font-weight:800;color:#c0431a;font-size:9.5px}
+.foot{position:absolute;left:96px;width:2108px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.75;color:rgba(0,0,0,0.55);border-top:1px solid rgba(0,0,0,0.14);padding-top:16px;text-wrap:pretty}
+.foot b{color:var(--ink)}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#e8e4db">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#e8e4db"></rect><rect x="14" y="22" width="26" height="42" rx="5" fill="#16161a"></rect><rect x="52" y="22" width="26" height="42" rx="5" fill="#16161a"></rect><path d="M44 43h4" stroke="#c0431a" stroke-width="3"></path><rect x="18" y="40" width="18" height="3" rx="1.5" fill="rgba(255,255,255,0.35)"></rect><rect x="56" y="38" width="18" height="6" rx="3" fill="#f5b820"></rect><rect x="14" y="72" width="64" height="4" rx="2" fill="#b1281f"></rect></svg>
+</template>
+
+<div class="btitle">
+<div class="kick">CD · Q-Live › Follower · velo · lista · tipografia di palco · 11/09/2026</div>
+<h1>Il Follower non tocca il trasporto — e le scritte si leggono a 30 cm</h1>
+<p><b>Data dichiarata dal mio orologio: 11/09/2026.</b> Questo foglio <b>supera il 30/08 sui punti 3, 4 e 5</b>, <b>allinea</b> la copy del punto 6, e <b>aggiunge</b> le lastre che mancavano: il Follower in tutte le sue schermate — anche a collegamento caduto — la lista dopo Remove, le parole inglesi del chooser, e <b>una regola sola</b> per la grandezza delle scritte secondarie.</p>
+<p><b>Quattordici lastre a grandezza vera, zero JavaScript.</b> Dove la scelta è di Mauro ho messo <b>due lastre affiancate</b> (④⑤), come ⑬ⓐ/ⓑ del 06/09. Dove una fonte tace ho scritto <b>una riga</b>, non un'ipotesi — sono marcate in rosso sotto le lastre.</p>
+<p>⛔ <b>Gerarchia rispettata:</b> vince LIBRO, poi i fogli ratificati; il prototipo 06/09 non è normativo e qui non viene citato come prova di niente. ⛔ <b>Zero token nuovi tranne uno</b>, ed è quello che il punto 12 chiede: <code>STAGE-SECONDARY</code>. ⛔ <b>Tre elementi nuovi</b>, tutti richiesti dal mandato e tutti dichiarati: la riga-regola nella fascia transport (8.1) · lo slot del collegamento nel velo (9) · lo stato vuoto della lista (10).</p>
+<div class="idbox"><b>🔎 Integrità del mandato <code>QB-2026-09-10-CD2-GIRO-UNICO</code>:</b> sezioni <b>da 0 a 14 tutte presenti</b>, chiude con <code>FINE MANDATO QB-2026-09-10-CD2-GIRO-UNICO</code>. <b>Nessun taglio.</b> ⇒ Preso atto anche del punto 13: <b>START LOCAL, Ⓓ, Ⓑ, Ⓒ e M1 non sono riaperti qui</b>, e non tocco salto di canzone, faccia 1, Chart Mode, striscia viva, fine scaletta, né la pulsantiera oltre il punto 8.1.</div>
+<div class="fix">
+<h3>⚠️ quattro cose mie, sbagliate — corrette qui, prima che qualcuno le usi</h3>
+<div class="r"><b>La fonte del count-in.</b> Il 30/08 ho scritto che il count-in non entra mai in un velo di ripresa e l'ho fondato su un <s>«invariante §7 e §13 di CLAUDE.md»</s>. ⛔ <b><code>CLAUDE.md</code> è un file mio, lato CD: non è un canonico e nel deposito non esiste.</b> <b>LIBRO dice il contrario</b> — e per decisione di Mauro. ⇒ Cadono la mia riga ② e la «prova strutturale». <b>Ho citato come vincolo di progetto un appunto di lavoro.</b></div>
+<div class="r"><b>Lo scaffale della lamella.</b> Scrivevo <s>«39»</s>: il mio stesso CSS misura <b>41</b> in <i>tutte e due</i> le sedi (<code>gap 10 + 10 + 1 + 10 + 10</code>). La tabella l'aveva scritto a mano accanto a un disegno che diceva un'altra cosa. ⇒ <b>Uno scaffale, un numero: 41.</b> Non cambio il CSS, cambio la tabella.</div>
+<div class="r"><b>La conseguenza, che è più grave delle due.</b> Difendevo la robustezza dei tre casi del velo dicendo che <i>«si distinguono per una riga che non c'è»</i>. Con LIBRO e col punto 4, <b>quella riga non c'è in nessuno dei tre</b> ⇒ <b>i tre casi si distinguono SOLO per le parole.</b> È esattamente la ragione per cui la regola del punto 12 non è cosmetica: <b>è l'unica cosa che regge la differenza.</b></div>
+<div class="r"><b>La larghezza della riga ambra — e questa l'ho sbagliata OGGI, dentro questo foglio.</b> Avevo scritto che a 13 pt la sottoriga di <code>END SHOW</code> entrava <s>su una riga sola</s>, calcolando <s>294 pt</s> di spazio disponibile. <b>Misurati: 257</b> ⇒ <b>va su due righe.</b> Non fa danno (la voce resta alta 64), ma <b>l'avevo dichiarato al contrario.</b> ⇒ È il difetto inciso in LIBRO il 31/08: <b>un valore calcolato è un valore non misurato, anche quando ci va vicino.</b> <b>Da qui in avanti tutte le larghezze di questo foglio sono misurate sul disegno reso a grandezza vera</b>, non contate a tavolino.</div>
+</div>
+</div>
+
+<div class="testata">
+<div class="fh"><span class="seal">✅ dodici risposte · una per punto</span><span class="anc">supera <b>30/08</b> su <b>3·4·5</b> · allinea <b>29/08 §B</b> su <b>6</b> · lastre nuove su <b>8·9·10·11·12</b></span></div>
+<div class="trow"><div class="k">1 · RESUME ⑬ⓐ</div><div class="v"><b>Preso atto.</b> ⑬ⓐ è la terza faccia, ⑬ⓑ va in soffitta, cadono i buchi Ⓐ e ③. ⭐ <b>Una conseguenza che va detta:</b> se la garanzia del <code>:369</code> scatta e <code>RESUME</code> non compare, la faccia 3 resterebbe con <b>il solo END SHOW</b> — cioè senza una via che non distrugge. ⇒ <b>In quel caso lo slot di RESUME lo prende <code>RETURN</code></b>, non il vuoto. Esiste già, costa zero.</div></div>
+<div class="trow"><div class="k">2 · solo chi comanda</div><div class="v"><b>Preso atto</b>, con tre ricadute disegnate: <b>(a)</b> sul Follower la faccia 3 perde <code>RESUME</code> ⇒ <b>faccia 2 e faccia 3 diventano una lastra sola</b> (⑦); <b>(b)</b> il PLAY/RESUME del Direttore fa ripartire il Follower ⇒ <b>il velo del Follower non ha gesto</b>, e lo dice (⑥); <b>(c)</b> a show fermo la freccia del Follower va ai dettagli ⇒ <b>il bivio non esiste sul Follower.</b></div></div>
+<div class="trow stop"><div class="k">3 · vale LIBRO</div><div class="v"><b>Preso atto, ed è un mio errore di fonte.</b> Cadono la riga ② del <code>:383</code> e la prova strutturale del <code>:368</code>. Restano il <b>discriminante</b> (esiste un punto di ripresa nella canzone corrente) e la <b>garanzia</b> del <code>:369</code>. ⇒ Il count-in <b>entra</b> nella ripresa, col conto della <b>sezione che introduce</b> (LIBRO <code>:166</code> e <code>:392</code>).</div></div>
+<div class="trow am"><div class="k">4 · oggi niente D</div><div class="v"><b>Preso atto e disegnato.</b> <b>Velo di oggi = tre righe in tutti e tre i casi</b> (lastre ① e ②): lo slot D <b>non va a schermo</b> finché il conto non suona. <b>Velo di domani = quattro righe in tutti i casi, ripresa compresa</b> (lastra ③). ⇒ Annunciare un conto che non suona è la stessa bugia della targhetta «N on Link».</div></div>
+<div class="trow stop"><div class="k">5 · lo scaffale è 41</div><div class="v"><b>41, e vale in tutte e due le sedi</b> — bivio <b>e</b> lamella. Il CSS era già coerente (<code>9+11+1+11+9</code> nel bivio, <code>10+10+1+10+10</code> nella lamella): la tabella aveva sbagliato l'addizione. <span class="no">Non cambio il CSS.</span> ⇒ <b>Uno scaffale, un numero.</b> Semplifica anche chi costruisce.</div></div>
+<div class="trow am"><div class="k">6 · la copy ambra</div><div class="v"><b>Preso atto: vale <code>the other devices</code>.</b> Porto la variante a show vivo alla stessa forma: <b><code>The show is playing now · this will stop the other devices too</code></b>. <b>E porto una misura che va con la regola del 12:</b> alla nuova grandezza la riga <b>va su due righe</b> — <b>281 pt misurati su 257 disponibili</b> — e <b>la voce resta alta 64</b>. ⚠️ <b>Avevo scritto il contrario prima di misurare</b>: vedi la lastra ⑬.</div></div>
+<div class="trow"><div class="k">7 · il rientro</div><div class="v"><b>Preso atto: <code>RETURN</code>.</b> Disegnato così sul Follower (lastra ⑦), e con la via d'uscita già approvata (<code>BACK IN</code>) se al collaudo si confonde con <code>RESTART SONG</code> — che però <b>sul Follower non c'è</b>, quindi lì il rischio di confusione <b>non esiste proprio</b>.</div></div>
+<div class="trow"><div class="k">8 · il Follower</div><div class="v"><b>Quattro disegni, tutti qui.</b> <b>8.1</b> la fascia transport resta, <b>i suoi tasti no</b> (④⑤) · <b>8.2</b> il velo dice <code>THE DIRECTOR STARTS</code> (⑥), <b>col rilievo che hai chiesto</b> sulla sezione nominata · <b>8.3</b> il dettaglio è <b>una lastra sola</b> (⑦) · <b>8.4</b> muto, mixer <b>ed EMERG</b> sono la stessa domanda: <b>due lastre affiancate</b>, sceglie Mauro.</div></div>
+<div class="trow am"><div class="k">9 · scollegato</div><div class="v"><b>Disegnato nei due stati</b> (⑥ collegato · ⑧ nessuno collegato). <b>Due stati e nessun terzo:</b> niente «riconnessione», niente rotella, <span class="no">nessun tempo</span> — perché il tempo non è misurato. <b>Nessuna porta nuova verso END SHOW:</b> si passa dalla freccia, dal dettaglio e dallo scaffale, che esistono già.</div></div>
+<div class="trow"><div class="k">10 · dopo Remove</div><div class="v"><b>Disegnata</b> (⑨ la lista meno uno · ⑩ il caso in cui era l'ultimo). <b>Senza animazione</b>, e dico perché. <b>La lista non si muove sotto il dito.</b> Vuoto = <code>No shows in Q-Live · N shows are in Q-Stage</code> (QL-SHOWS-05), <span class="no">mai</span> <code>No shows yet</code>.</div></div>
+<div class="trow"><div class="k">11 · il chooser</div><div class="v"><b>Deciso</b> (lastra ⑪): <code>Q-LIVE MODE · one section · it keeps count</code> e <code>CHART MODE · every section · like paper</code>. ⛔ <b>Scarto la mia resa del 06/09</b> <code>it counts for you</code>: in inglese vuol dire anche «<i>vale per te</i>» — è ambigua, e una riga ambigua a 30 cm non si rilegge.</div></div>
+<div class="trow am"><div class="k">12 · 30 cm</div><div class="v"><b>Una regola, un token: <code>STAGE-SECONDARY</code>.</b> <b>0,30° di altezza-maiuscola a 30 cm</b> ⇒ sull'iPhone 13 fa <b>13 pt sulla base 390</b>. <span class="no">Non</span> si moltiplica per <code>scaleFactor</code>: è un <b>pavimento</b>, non una misura. Peso <b>600–700</b>, spaziatura <b>1,5 solo sulle maiuscole</b>. ⛔ <b>La deroga di contrasto è ritirata</b> — era mia. Prova su iPhone: lastra ⑭.</div></div>
+</div>
+
+<div class="idxpan" style="left:96px;top:690px;width:1150px;">
+<h3>Indice — quattordici lastre, e a quale punto rispondono</h3>
+<div class="sub">Tutte a <b>grandezza vera 390×844</b>. Le due affiancate ④⑤ sono <b>una scelta di Mauro</b>, non due proposte: si guardano, si sceglie. ⑫ è una <b>fotografia di oggi</b>, non una proposta.</div>
+<div class="idxg">
+<div class="i"><span class="n">①</span><span class="x">Velo oggi · ripresa</span><span class="p">3·4</span></div>
+<div class="i"><span class="n">②</span><span class="x">Velo oggi · partenza</span><span class="p">3·4</span></div>
+<div class="i"><span class="n">③</span><span class="x">Velo domani · col conto</span><span class="p">3·4</span></div>
+<div class="i"><span class="n">④</span><span class="x">Follower ⓐ · coi locali</span><span class="p">8.1·8.4</span></div>
+<div class="i"><span class="n">⑤</span><span class="x">Follower ⓑ · la (c) alla lettera</span><span class="p">8.1·8.4</span></div>
+<div class="i"><span class="n">⑥</span><span class="x">Velo del Follower · collegato</span><span class="p">8.2</span></div>
+<div class="i"><span class="n">⑦</span><span class="x">Dettaglio del Follower</span><span class="p">8.3</span></div>
+<div class="i"><span class="n">⑧</span><span class="x">Follower · nessuno collegato</span><span class="p">9</span></div>
+<div class="i"><span class="n">⑨</span><span class="x">Lista dopo Remove · meno uno</span><span class="p">10</span></div>
+<div class="i"><span class="n">⑩</span><span class="x">Era l'ultimo · lista vuota</span><span class="p">10</span></div>
+<div class="i"><span class="n">⑪</span><span class="x">Chooser · le parole inglesi</span><span class="p">11</span></div>
+<div class="i"><span class="n">⑫</span><span class="x">Bivio oggi · 9·11·10 pt</span><span class="p">12</span></div>
+<div class="i"><span class="n">⑬</span><span class="x">Bivio con la regola · 13 pt</span><span class="p">12</span></div>
+<div class="i"><span class="n">⑭</span><span class="x">La prova dei 30 cm</span><span class="p">12</span></div>
+<div class="i"><span class="n">·</span><span class="x">+ 5 pannelli: MISURE del velo · la regola · la tabella · cosa esce · il bilancio</span></div>
+</div>
+</div>
+
+<div class="sech" style="left:96px;top:920px;">Punti 3 e 4 — il velo: com'è oggi (tre righe) e com'è domani (quattro)</div>
+
+<div class="flbl" style="left:96px;top:956px;"><span class="b">① VELO OGGI · ripresa</span><span class="stt nw">supera 30/08 ④</span></div>
+<div class="frame nw" style="left:96px;top:1006px;" data-screen-label="01 — velo del player oggi, caso ripresa: tre righe, niente count-in">
+  <div class="sb"><span>21:43</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="velo"><div class="vlbl">Resume from Bridge</div><div class="vnm">Circuz</div><div class="vhint">Tap anywhere</div></div></div>
+</div>
+<div class="cap" style="left:96px;top:1866px;">
+<div class="cn">① Il velo di oggi, caso ripresa</div>
+<div class="cs"><b>Supera il frame ④ del 30/08.</b> Lo slot D non c'è, e questa volta <b>non c'è nemmeno il tratteggio</b>: il 30/08 lo disegnava vuoto per dire «qui non ci va niente». Con LIBRO quel «niente» è <b>temporaneo, non strutturale</b> ⇒ un posto tenuto caldo si disegna solo se è <b>tuo</b>, e questo è di domani.</div>
+<div class="ms">
+<div class="m"><span class="g">slot A</span><span class="d"><code>Resume from ⟨section⟩</code> · mono <b>13</b> · 600 · spaziatura 1,5 · maiuscole · <code>--text2r</code> ⇒ <b>7,26:1</b></span></div>
+<div class="m"><span class="g">slot B</span><span class="d">Inter <b>900</b> · 52 × scaleFactor · −1,6 · bianco ⇒ 19,4:1 · pulse 2,2 s</span></div>
+<div class="m"><span class="g">slot C</span><span class="d"><code>Tap anywhere</code> · mono <b>13</b> · 600 · 1,5 · <code>--text2r</code> ⇒ <b>7,26:1</b> — <b>era .30 = 2,63:1</b></span></div>
+<div class="m"><span class="g">salti</span><span class="d">A→B <b>11</b> · B→C <b>26</b> — invariati dal 30/08</span></div>
+</div>
+<div class="ok"><b>Il verbo resta fuori dal velo</b> e <code>TAP ANYWHERE</code> resta una stringa sola per tutti i casi: quella parte del 30/08 <b>regge</b> e non la ritocco. Cambia la <b>grandezza</b>, non la parola.</div>
+</div>
+
+<div class="flbl" style="left:656px;top:956px;"><span class="b">② VELO OGGI · partenza</span><span class="stt nw">supera 30/08 ⑤</span></div>
+<div class="frame nw" style="left:656px;top:1006px;" data-screen-label="02 — velo del player oggi, caso partenza: tre righe, il count-in non si annuncia">
+  <div class="sb"><span>21:37</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="velo"><div class="vlbl">Next:</div><div class="vnm">Roxanne</div><div class="vhint">Tap anywhere</div></div></div>
+</div>
+<div class="cap" style="left:656px;top:1866px;">
+<div class="cn">② Il velo di oggi, caso partenza</div>
+<div class="cs"><b>Supera il frame ⑤ del 30/08</b>, che qui portava <code>Count-in · 2 bars</code>. <b>Esce anche di lì</b>: il conto non suona in <b>nessuno</b> dei tre punti ratificati — <code>startCountIn(for:)</code> scarta la sezione e fa ripartire e basta. ⇒ <b>Un velo che promette due battute mute è peggio di un velo che tace.</b></div>
+<div class="ms">
+<div class="m"><span class="g">slot A</span><span class="d"><code>Next:</code> · stessa misura di ① — <b>una sola forma per tutti i casi</b></span></div>
+<div class="m"><span class="g">casi 2 e 3</span><span class="d"><b>stessa lastra</b>: cambia solo quale canzone sta nel nome. Invariato dal 30/08</span></div>
+</div>
+<div class="no"><b>Quel che si perde, e lo dico io.</b> Senza lo slot D <b>i tre casi non hanno più una differenza strutturale</b>: si distinguono per <b>due parole in una riga da 13 pt</b>. ⇒ La riga A <b>non è più un'etichetta</b>, è l'unica cosa che dice dove sei — motivo per cui la deroga di contrasto su di essa non tornerà mai.</div>
+</div>
+
+<div class="flbl" style="left:1216px;top:956px;"><span class="b">③ VELO DOMANI · ripresa col conto</span><span class="stt q">quando il conto esisterà</span></div>
+<div class="frame am" style="left:1216px;top:1006px;" data-screen-label="03 — velo del player domani, caso ripresa con il count-in della sezione che introduce">
+  <div class="sb"><span>21:43</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="velo"><div class="vlbl">Resume from Bridge</div><div class="vnm">Circuz</div><div class="vhint">Tap anywhere</div><div class="vcin">Count-in · 1 bar</div></div></div>
+</div>
+<div class="cap" style="left:1216px;top:1866px;">
+<div class="cn">③ Il velo di domani — la lastra che il 30/08 dichiarava impossibile</div>
+<div class="cs">Il 30/08 scriveva: «<i>se un giorno il velo in ripresa mostrasse il count-in, il modello si è rotto</i>». <b>Era sbagliato</b>, e questa lastra è la forma corretta: il conto <b>entra</b> nella ripresa (LIBRO <code>:166</code> punto 3, ratificato 21/05 Q3=A, allargato il 30/08).</div>
+<div class="ms">
+<div class="m"><span class="g">slot D</span><span class="d"><code>Count-in · N bar(s)</code> · mono <b>13</b> · 600 · 1,5 · <code>--text2r</code> ⇒ <b>7,26:1</b>. Salto C→D <b>9</b></span></div>
+<div class="m"><span class="g">il contenuto</span><span class="d"><b>Quante battute</b>, e basta. <b>Non</b> il tempo, <b>non</b> la metrica</span></div>
+<div class="m"><span class="g">innesco</span><span class="d">solo se <code>countIn &gt; 0</code> — in tutti e tre i casi, <b>ripresa compresa</b></span></div>
+</div>
+<div class="wa"><b>Perché il velo NON scrive il tempo del conto.</b> Con <code>D9</code> cambiata (LIBRO 30/08 ①) velocità e metrica si prendono <b>dalla sezione che il conto introduce</b> — a 90 in 3/4 fa <b>3-2-1</b>, a 130 in 4/4 fa <b>4-3-2-1</b>. ⇒ Quel dato <b>si sente</b>: metterlo anche a schermo è la seconda copia della stessa notizia, che il 30/08 ho già rifiutato una volta. <b>Il velo dice quanto dura, l'orecchio fa il resto.</b></div>
+</div>
+
+<div class="pan" style="left:1776px;top:1006px;width:428px;">
+<h3>MISURE · il velo, oggi e domani</h3>
+<table class="mtab">
+<tr><th style="width:70px">Slot</th><th style="width:92px">Oggi</th><th>Domani</th></tr>
+<tr><td><b>A</b> relazione</td><td><code>Resume from ⟨s⟩</code> / <code>Next:</code></td><td>invariato</td></tr>
+<tr><td><b>B</b> nome</td><td>canzone corrente / successiva</td><td>invariato</td></tr>
+<tr><td><b>C</b> gesto</td><td><code>Tap anywhere</code></td><td>invariato</td></tr>
+<tr class="no"><td><b>D</b> conto</td><td><b>ASSENTE</b> in tutti e tre i casi</td><td><code>Count-in · N bar(s)</code> se <code>countIn&gt;0</code>, <b>tutti e tre</b></td></tr>
+</table>
+<div class="rule"><b>⛔ Il discriminante non cambia</b> ed è già nel codice: <b>«esiste un punto di ripresa dentro la canzone corrente»</b> — sì → caso ripresa, no → caso partenza. <b>Non chiedo un dato nuovo</b>, chiedo di leggere quello che decide già il ramo.</div>
+<div class="trap">🚨 <b>La garanzia del <code>:369</code> regge, e ora ha un secondo mestiere.</b> Se il nome della sezione <b>non si risolve</b>, il velo <span class="no">non scrive</span> <code>Resume from —</code>: <b>ricade sul caso partenza</b>. ⭐ <b>E la stessa garanzia governa il tasto</b> (punto 1): se la sezione non si nomina, <code>RESUME</code> non compare — <b>e al suo posto va <code>RETURN</code></b>, perché una faccia col solo <code>END SHOW</code> è una stanza senza uscita che non distrugga.</div>
+<div class="warn"><b>Il cambio di grandezza vale già qui.</b> Le tre lastre del velo sono disegnate <b>alla nuova regola</b> (13 pt): sono le prime a mostrarla, e sono anche il caso in cui serve di più — <b>il velo è l'unica schermata dove la riga secondaria è la sola che dice dove sei.</b></div>
+</div>
+
+<div class="sech" style="left:96px;top:2260px;">Punto 8 — il Follower: il suo player (due versioni da scegliere), il suo velo, il suo dettaglio</div>
+
+<div class="flbl" style="left:96px;top:2296px;"><span class="b">④ FOLLOWER ⓐ · con i comandi locali</span><span class="stt q">sceglie Mauro</span></div>
+<div class="frame am" style="left:96px;top:2346px;" data-screen-label="04 — player del Follower versione A, con muto mixer ed EMERG">
+  <div class="sb"><span>21:44</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Roxanne · 138 · 4/4</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="vl">
+    <div class="metslots"><i class="acc"></i><i></i><i class="beat"></i><i></i></div>
+    <div class="barc">Bar 3 of 8</div>
+    <div class="microbar"><i class="done"></i><i class="done"></i><i class="done"></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="tele"><b>CHORUS</b></div>
+    <div class="macro"><i class="done"></i><i class="done"></i><i></i><i></i><i></i></div>
+    <div class="nextz"><span class="k">Next:</span><span class="n">Solo</span></div>
+    <div class="hstrip"><i></i></div>
+    <div class="tstrip"><span class="trule">Transport ·<br />Director only</span><div class="ebtn"><span class="g">⚑</span><span class="l">Emerg</span></div></div>
+  </div></div>
+</div>
+<div class="cap" style="left:96px;top:3206px;">
+<div class="cn">④ Player del Follower — ⓐ tiene i comandi che toccano solo le sue orecchie</div>
+<div class="cs"><b>8.1 + 8.4 sono la stessa lastra</b>, perché sono la stessa domanda: quanto della pulsantiera sopravvive. <b>I tre tasti di trasporto escono in ogni caso</b> (regola (a)); restano in discussione <b>muto · mixer · EMERG</b>, che non toccano né lo show né il sincronismo.</div>
+<div class="ms">
+<div class="m"><span class="g">griglia</span><span class="d"><b>identica</b> a quella del Direttore (BOX5, Grid verticale fissa): 78·64·30·280·16·80·16·<b>170</b></span></div>
+<div class="m"><span class="g">fascia 21%</span><span class="d"><b>conservata</b> a 170 pt, <b>senza tasti</b>: porta una riga sola</span></div>
+<div class="m"><span class="g">riga-regola</span><span class="d"><code>TRANSPORT · DIRECTOR ONLY</code> · mono <b>13</b> · 700 · 1,5 · <code>--text2r</code>. <b>233 pt misurati su 240</b> ⇒ entrerebbe su una riga: <b>la mando a capo di proposito</b>, 7 pt non sono un margine</span></div>
+<div class="m"><span class="g">EMERG</span><span class="d">98×62 · radius 15 · etichetta <b>13</b> × scaleFactor · resta in <b>basso-destra</b> (CD-4)</span></div>
+<div class="m"><span class="g">muto</span><span class="d">in alto a destra, glyph 13 × sF (BOX5) — <b>presente</b></span></div>
+<div class="m"><span class="g">maniglia</span><span class="d">32×3 a .20 — <b>presente</b>, perché il mixer c'è</span></div>
+</div>
+<div class="ok"><b>Perché la fascia resta anche senza tasti, e non è pigrizia.</b> ① È la <b>zona morta sotto il pollice</b> che protegge il teleprompter dai tocchi di striscio. ② Toglierla sposterebbe la <b>sezione gigante</b> 170 pt più in basso ⇒ <b>sullo stesso palco i due apparecchi mostrerebbero la stessa canzone in due posti diversi.</b> ③ «L'app va toccata il meno possibile» (06/09).</div>
+</div>
+
+<div class="flbl" style="left:656px;top:2296px;"><span class="b">⑤ FOLLOWER ⓑ · la (c) alla lettera</span><span class="stt q">sceglie Mauro</span></div>
+<div class="frame am" style="left:656px;top:2346px;" data-screen-label="05 — player del Follower versione B, nient'altro che la freccia">
+  <div class="sb"><span>21:44</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Roxanne · 138 · 4/4</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div></div></div>
+  <div class="pbody"><div class="vl">
+    <div class="metslots"><i class="acc"></i><i></i><i class="beat"></i><i></i></div>
+    <div class="barc">Bar 3 of 8</div>
+    <div class="microbar"><i class="done"></i><i class="done"></i><i class="done"></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="tele"><b>CHORUS</b></div>
+    <div class="macro"><i class="done"></i><i class="done"></i><i></i><i></i><i></i></div>
+    <div class="nextz"><span class="k">Next:</span><span class="n">Solo</span></div>
+    <div class="hstrip"></div>
+    <div class="tstrip mid"><span class="trule">Transport · Director only</span></div>
+  </div></div>
+</div>
+<div class="cap" style="left:656px;top:3206px;">
+<div class="cn">⑤ Player del Follower — ⓑ «nient'altro», preso alla lettera</div>
+<div class="cs">Stessa griglia, stessa riga-regola <b>centrata</b>. <b>Escono anche</b> il muto, la maniglia del mixer e <code>EMERG</code>. La schermata del Follower diventa <b>un leggio e basta</b>: nessun bersaglio, nessun gesto, niente da colpire per sbaglio con la bacchetta.</div>
+<div class="ms">
+<div class="m"><span class="g">muto</span><span class="d"><b>assente</b> — il Follower non può abbassarsi il click nelle cuffie</span></div>
+<div class="m"><span class="g">maniglia</span><span class="d"><b>assente</b> — senza mixer non ha niente da annunciare</span></div>
+<div class="m"><span class="g">EMERG</span><span class="d"><b>assente</b> — il Follower non può passare a Chart Mode dal player</span></div>
+<div class="m"><span class="g">fascia 21%</span><span class="d">conservata, riga-regola <b>centrata</b></span></div>
+</div>
+<div class="wa"><b>Le due facce della stessa scelta, e non ne nascondo nessuna.</b> <b>Per ⓐ:</b> un batterista che non può abbassarsi il click in cuffia sul palco è in una condizione peggiore, e quei tre controlli <b>non toccano nessun altro apparecchio</b>. <b>Per ⓑ:</b> ogni bersaglio in più su uno schermo che sta a 30 cm da due bacchette è un rischio, e la regola di Mauro del 09/09 finiva con una parola sola — «<i>Nient'altro</i>». ⇒ <b>Non scelgo io.</b></div>
+<div class="no"><b>⚠️ Una cosa che il mandato non dice e che va decisa insieme a questa:</b> <code>EMERG</code> sta <b>dentro</b> la fascia transport (BOX5) ma <b>non è trasporto</b> — è un cambio di vista, e tocca solo gli occhi del Follower. ⇒ L'ho messo nella <b>stessa domanda</b> di muto e mixer invece di farlo cadere in silenzio con gli altri tre tasti. <b>Se Mauro sceglie ⓐ ma vuole EMERG fuori, è una terza combinazione</b> e basta dirlo.</div>
+</div>
+
+<div class="flbl" style="left:1216px;top:2296px;"><span class="b">⑥ VELO DEL FOLLOWER · collegato</span><span class="stt nw">8.2</span></div>
+<div class="frame nw" style="left:1216px;top:2346px;" data-screen-label="06 — velo del Follower con almeno un apparecchio collegato">
+  <div class="sb"><span>21:45</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="velo"><div class="vlbl">Resume from Bridge</div><div class="vnm">Circuz</div><div class="vhint">The director starts</div></div></div>
+</div>
+<div class="cap" style="left:1216px;top:3206px;">
+<div class="cn">⑥ Il velo del Follower — il gesto non è suo, e lo dice</div>
+<div class="cs"><b><code>TAP ANYWHERE</code> sul Follower mente</b>: il tocco non è suo. Al suo posto <b>una riga che nomina la regola, non uno stato</b> — resta vera anche se il Direttore non c'è. ⭐ <b>Un lavoro per riga, esattamente come sul Direttore:</b> lo slot A dice <i>cosa succede</i>, lo slot C dice <i>chi lo fa</i>.</div>
+<div class="ms">
+<div class="m"><span class="g">slot C</span><span class="d"><code>The director starts</code> · mono <b>13</b> · 600 · 1,5 · maiuscole · <code>--text2r</code></span></div>
+<div class="m"><span class="g">slot E</span><span class="d"><b>assente</b> quando almeno un apparecchio è collegato — il positivo vive già sul LED</span></div>
+<div class="m"><span class="g">gesto</span><span class="d"><b>nessuno</b>: la lastra non è un bersaglio. La freccia in fascia resta viva</span></div>
+</div>
+<div class="no">🚨 <b>Il rilievo che hai chiesto, e lo faccio grosso.</b> <b>Questa lastra NOMINA la sezione</b> (<code>Resume from Bridge</code>) e <b>oggi nessun log lo prova</b>: il Follower calcola la sua posizione facendo lo stesso conto (⟦SOL-C⟧), e quel conto <b>regge solo finché i due sono partiti insieme sulla stessa struttura</b>. ⇒ <b>Da misurare PRIMA che si costruisca.</b> Se non si risolve, vale la garanzia del <code>:369</code> senza cambiare una riga: <b>ricade su <code>Next:</code></b>. ⚠️ <b>E oggi il difetto è peggio del dubbio:</b> il Follower che rientra a show fermo trova il velo <b>identico a quello del Direttore</b> (log iPad 10/09, 19:49:19) — cioè legge <code>Tap anywhere</code> e tocca a vuoto.</div>
+</div>
+
+<div class="flbl" style="left:1776px;top:2296px;"><span class="b">⑦ DETTAGLIO DEL FOLLOWER</span><span class="stt nw">8.3 · una lastra sola</span></div>
+<div class="frame nw" style="left:1776px;top:2346px;" data-screen-label="07 — dettaglio del Follower, faccia 2 e faccia 3 nella stessa lastra">
+  <div class="sb"><span>21:46</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="navbar"><div class="spia playing"><i></i><b>Playing</b></div></div>
+  <div class="dhead"><div class="dhrow"><div class="nm">Assago 20 Jul</div><span class="ro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M8.5 11V8a3.5 3.5 0 017 0v3" stroke="currentColor" stroke-width="2"></path></svg>read-only</span></div><div class="mt">5 songs · 21 min</div></div>
+  <div class="songlist">
+    <div class="songrow now"><span class="crail pending"></span><span class="idx">1</span><span class="nm">Circuz</span><span class="nowtag">▸ NOW</span><span class="met">121 · 6/8</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">2</span><span class="nm">Roxanne</span><span class="met">138 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">3</span><span class="nm">Siderale</span><span class="met">96 · 3/4</span></div>
+    <div class="songrow"><span class="crail pending"></span><span class="idx">4</span><span class="nm">Kerosene</span><span class="met">128 · 4/4</span></div>
+    <div class="songrow"><span class="crail"></span><span class="idx">5</span><span class="nm">Fondale</span><span class="met">104 · 4/4</span></div>
+  </div>
+  <div class="vstack">
+    <div class="vrow end"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>End show</div>
+    <div class="gsep shelfv"></div>
+    <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Return</div>
+  </div>
+</div>
+<div class="cap" style="left:1776px;top:3206px;">
+<div class="cn">⑦ Dettaglio del Follower — sì, faccia 2 e faccia 3 sono una lastra sola</div>
+<div class="cs"><b>La risposta a 8.3 è sì, e la ragione è aritmetica:</b> tolte <code>RESTART SONG</code> e <code>RESUME</code> — <b>entrambe trasporto</b> — alla faccia 2 e alla faccia 3 resta <b>la stessa coppia</b>. ⇒ <b>Una lastra, e l'unica cosa che cambia è una parola nella spia:</b> <code>Playing</code> ↔ <code>Stopped</code> (pallino pieno pulsante ↔ anello fermo).</div>
+<div class="ms">
+<div class="m"><span class="g">lamella</span><span class="d"><b>due mensole</b>: <code>END SHOW</code> 56 — <b>scaffale 41</b> — <code>RETURN</code> 56 pieno. Chiude · esce</span></div>
+<div class="m"><span class="g">END SHOW</span><span class="d"><b>56</b>, non 64: <b>oggi la sottoriga non c'è</b> (vedi sotto) — altezza variabile già dichiarata il 30/08</span></div>
+<div class="m"><span class="g">spia</span><span class="d">mono <b>13</b> · 700 · 1,5 — target 44 invariato</span></div>
+<div class="m"><span class="g">assenti</span><span class="d">transport · <code>RESTART SONG</code> · <code>RESUME</code> · selettore stanze · freccia verso la lista</span></div>
+</div>
+<div class="no"><b>⚠️ Una domanda che spetta a Mauro, e non la decido io:</b> con il collegamento in piedi, <b><code>END SHOW</code> premuto sul Follower ferma anche il Direttore?</b> Le fonti tacciono. ⇒ Oggi la sottoriga ambra <b>non si costruisce comunque</b> (la sua seconda gamba non è leggibile, BOX5 ②), quindi la lastra è giusta così; ma <b>il giorno che si costruisce quella riga bisogna sapere se dice il vero anche da qui.</b></div>
+</div>
+
+<div class="sech" style="left:96px;top:3720px;">Punti 9, 10 e 11 — il collegamento caduto, la lista dopo Remove, le parole inglesi</div>
+
+<div class="flbl" style="left:96px;top:3756px;"><span class="b">⑧ FOLLOWER · nessuno collegato</span><span class="stt q">punto 9</span></div>
+<div class="frame am" style="left:96px;top:3806px;" data-screen-label="08 — velo del Follower senza nessun apparecchio collegato">
+  <div class="sb"><span>21:47</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="dead"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="velo"><div class="vlbl">Resume from Bridge</div><div class="vnm">Circuz</div><div class="vhint">The director starts</div><div class="vlink"><span class="s">No device connected</span><span class="c">nothing will start from here</span></div></div></div>
+</div>
+<div class="cap" style="left:96px;top:4666px;">
+<div class="cn">⑧ Il Follower a collegamento caduto — informato, fermo, senza scorciatoie</div>
+<div class="cs"><b>Nessuna partenza locale, in nessuna forma</b> (Mauro, 10/09). ⇒ Lo schermo <b>non suggerisce altre strade</b>: né spegnere Link, né ripartire da solo. <code>START LOCAL</code> e la schermata <code>WAITING FOR DIRECTOR</code> <b>non vengono riusate</b> — ma <b>le parole sopravvivono</b>, perché il concetto è vero: qui si aspetta. <b>Sparisce l'escamotage, non la spiegazione.</b></div>
+<div class="ms">
+<div class="m"><span class="g">slot E riga 1</span><span class="d"><code>No device connected</code> · mono <b>13</b> · 700 · 1,5 · maiuscole · ambra <code>#f5b820</code> ⇒ <b>12,6:1</b></span></div>
+<div class="m"><span class="g">slot E riga 2</span><span class="d"><code>nothing will start from here</code> · mono <b>13</b> · 500 · <b>spaziatura 0</b> · minuscolo · <code>--text2r</code> ⇒ <b>7,26:1</b></span></div>
+<div class="m"><span class="g">salto C→E</span><span class="d"><b>26</b> — lo stesso respiro di B→C: il blocco di stato è un secondo tempo, non una postilla</span></div>
+<div class="m"><span class="g">LED</span><span class="d">il verde di Link <b>si spegne</b>: il positivo e il negativo vivono sullo stesso segno, mai su due</span></div>
+<div class="m"><span class="g">uscita</span><span class="d">freccia in fascia → dettaglio → <code>END SHOW</code> sullo scaffale. <b>Tre passi, tutti già esistenti</b></span></div>
+</div>
+<div class="ok"><b>Perché è così e non altrimenti.</b> ① <b>Nomina la conseguenza, non lo stato altrui:</b> l'app sa solo «c'è almeno un altro apparecchio, sì o no» (<code>LinkEngine.mm:56-57</code>) — <b>non sa chi manca</b>, e con tre apparecchi il Direttore può andarsene e la risposta resta «sì». ⇒ <span class="no">vietato</span> scrivere «il Direttore non c'è». ② <b>Due stati e nessun terzo:</b> niente «riconnessione in corso», niente rotella, niente conto alla rovescia — <b>quanto passa fra la caduta vera e il «no» non è misurato</b>, e su un tempo che non conosco non disegno. ③ <b>Nessuna porta nuova verso <code>END SHOW</code></b>: metterlo sul velo vorrebbe dire appoggiare il comando irreversibile sulla superficie più grande e più sfiorata dello schermo.</div>
+</div>
+
+<div class="flbl" style="left:656px;top:3756px;"><span class="b">⑨ LISTA DOPO REMOVE · meno uno</span><span class="stt nw">buco ④ chiuso</span></div>
+<div class="frame nw" style="left:656px;top:3806px;" data-screen-label="09 — lista Q-Live subito dopo la conferma di Remove, uno show in meno">
+  <div class="sb"><span>21:11</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="roombar"><div class="homebtn">⌂</div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">3 shows</span></div>
+  <div class="searchrow"><div class="search"><span class="ph">⌕  Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card pick"><div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots">⋮</div></div><div class="prev">Circuz, Vertigine, Siderale, Kerosene, Fondale</div><div class="gosplit"><div class="main">▶ Start show</div><div class="sep"></div><div class="alt">☰<span class="t">view</span></div></div></div>
+    <div class="card"><div class="chead"><div><div class="nm">Cortile Estate</div><div class="mt">6 songs · 24 min</div></div><div class="dots">⋮</div></div><div class="prev">Nebbia Bassa, Circuz, Aria Ferma, Fondale, Siderale, Kerosene</div><div class="gosplit dead"><div class="main">▶ Start show</div><div class="sep"></div><div class="alt">☰<span class="t">view</span></div></div></div>
+  </div>
+  <div class="metrofab"><div class="c">◭</div><div class="l">Metronome</div></div>
+</div>
+<div class="cap" style="left:656px;top:4666px;">
+<div class="cn">⑨ La lista «meno uno» — l'alert si chiude e la lista è già più corta</div>
+<div class="cs">Lo show tolto stava <b>in seconda posizione</b>. <code>Festa BCC Romagna</code> non c'è più; <code>Cortile Estate</code> è salito al suo posto; il contatore è passato da <code>4 shows</code> a <code>3 shows</code>.</div>
+<div class="ms">
+<div class="m"><span class="g">animazione</span><span class="d"><b>NESSUNA</b> — decisione dichiarata, motivi sotto</span></div>
+<div class="m"><span class="g">scorrimento</span><span class="d">le card sotto salgono di <b>altezza card + 12</b> di gap. <b>Nessun auto-scroll, nessuna compensazione</b></span></div>
+<div class="m"><span class="g">contatore</span><span class="d">cambia <b>con</b> la lista, nello stesso fotogramma, senza transizione propria</span></div>
+<div class="m"><span class="g">meta e anteprima</span><span class="d"><b>13</b> (erano 10,5 e 11) per la regola del punto 12</span></div>
+</div>
+<div class="ok"><b>Perché senza animazione, e non è pigrizia.</b> ① <b>§6: animazioni solo se comunicano stato</b> — qui lo stato l'ha già comunicato un <b>alert modale bloccante</b> che nominava lo show per esteso. ② Un collasso animato <b>invita l'occhio a seguire il buco</b>, e il buco è l'unica cosa che non serve guardare. ③ <b>Remove è inerte a sessione armata</b> (QL-SHOWS-04): non c'è un caso di palco in cui questa transizione debba rassicurare qualcuno di fretta. ⚠️ <b>L'alternativa considerata e scartata:</b> una dissolvenza breve aiuterebbe chi ha sbagliato bersaglio — ma il popup ha <b>già</b> fatto leggere il nome. <b>Reversibile: se al collaudo sembra brusca, si aggiunge.</b></div>
+<div class="no">⛔ <b>Nelle viste di Q-Live <code>Remove</code> non esiste ancora</b> (contratto BOX5 QL-SHOWS-01…06). Questa lastra disegna <b>dove si arriva</b>, non promette che ci si arrivi oggi.</div>
+</div>
+
+<div class="flbl" style="left:1216px;top:3756px;"><span class="b">⑩ ERA L'ULTIMO · lista vuota</span><span class="stt nw">QL-SHOWS-05</span></div>
+<div class="frame nw" style="left:1216px;top:3806px;" data-screen-label="10 — lista Q-Live vuota dopo aver tolto l ultimo show">
+  <div class="sb"><span>21:12</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="roombar"><div class="homebtn">⌂</div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1></div>
+  <div class="empty"><div class="e1">No shows in Q-Live</div><div class="e2">7 shows are in Q-Stage</div></div>
+  <div class="metrofab"><div class="c">◭</div><div class="l">Metronome</div></div>
+</div>
+<div class="cap" style="left:1216px;top:4666px;">
+<div class="cn">⑩ Quando quello tolto era l'ultimo — il terzo stato vuoto</div>
+<div class="cs"><b>Contratto BOX5, QL-SHOWS-05</b>, verbatim: «<code>No shows in Q-Live · N shows are in Q-Stage</code>», <b>vietato</b> <code>No shows yet</code>. ⇒ La lista vuota <b>non dice che non hai niente</b>: dice <b>dove sono le tue cose</b>. È la differenza fra un vicolo cieco e un'indicazione.</div>
+<div class="ms">
+<div class="m"><span class="g">riga 1</span><span class="d"><code>No shows in Q-Live</code> · Inter <b>700</b> · 20 · bianco .86</span></div>
+<div class="m"><span class="g">riga 2</span><span class="d"><code>N shows are in Q-Stage</code> · mono <b>13</b> · 500 · spaziatura 0 · <code>--text2r</code> ⇒ <b>7,26:1</b></span></div>
+<div class="m"><span class="g">posizione</span><span class="d">centrata nell'area delle card, gap <b>9</b></span></div>
+<div class="m"><span class="g">contatore</span><span class="d"><b>esce</b> dalla testata: <code>0 shows</code> accanto a «nessuno show» è la stessa notizia due volte</span></div>
+<div class="m"><span class="g">FAB metronomo</span><span class="d"><b>resta</b>: il metronomo non dipende dagli show</span></div>
+</div>
+<div class="wa"><b>Una decisione mia, impatto medio, dichiarata: la barra di ricerca ESCE.</b> Un campo di ricerca sopra una lista vuota <b>contraddice la riga che spiega il vuoto</b> — suggerisce «forse è solo filtrata». ⇒ Se togliendola si perde qualcosa, si rimette: è reversibile e non sposta nient'altro.</div>
+<div class="no">⚠️ <b>Il vuoto DA RICERCA è un altro stato e NON è disegnato qui.</b> «Nessun risultato per <i>xyz</i>» ha bisogno del campo (per svuotarlo) e di parole diverse. <b>Nessuna fonte lo definisce</b> ⇒ una riga, non un'ipotesi.</div>
+</div>
+
+<div class="flbl" style="left:1776px;top:3756px;"><span class="b">⑪ CHOOSER · le parole inglesi</span><span class="stt nw">buco ⑥ chiuso</span></div>
+<div class="frame nw" style="left:1776px;top:3806px;" data-screen-label="11 — chooser sulla card con le sottorighe inglesi decise">
+  <div class="sb"><span>21:09</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="roombar"><div class="homebtn">⌂</div><div class="roomseg"><div class="opt">Q-Stage</div><div class="opt live-on">Q-Live</div></div></div>
+  <div class="scrhead"><h1>Shows</h1><span class="cnt">4 shows</span></div>
+  <div class="searchrow"><div class="search"><span class="ph">⌕  Search shows</span></div></div>
+  <div class="cardlist">
+    <div class="card pick"><div class="chead"><div><div class="nm">Milano Assago 20 Jul</div><div class="mt">5 songs · 21 min</div></div><div class="dots">⋮</div></div>
+      <div class="pop2">
+        <div class="r on"><span class="ic">▤</span><div class="tx"><div class="n">Q-LIVE MODE</div><div class="d">one section · it keeps count</div></div><span class="ck">✓</span></div>
+        <div class="r"><span class="ic">☰</span><div class="tx"><div class="n">CHART MODE</div><div class="d">every section · like paper</div></div></div>
+      </div>
+      <div class="gosplit"><div class="main">▶ Start show</div><div class="sep"></div><div class="alt hot">☰<span class="t">view</span></div></div></div>
+    <div class="card"><div class="chead"><div><div class="nm">Festa BCC Romagna</div><div class="mt">8 songs · 32 min</div></div><div class="dots">⋮</div></div><div class="prev">Aria Ferma, Circuz, Nebbia Bassa, Vertigine, Kerosene</div><div class="gosplit dead"><div class="main">▶ Start show</div><div class="sep"></div><div class="alt">☰<span class="t">view</span></div></div></div>
+  </div>
+</div>
+<div class="cap" style="left:1776px;top:4666px;">
+<div class="cn">⑪ Le due sottorighe — decise, e con il motivo dello scarto</div>
+<div class="cs">La coppia è costruita su <b>un contrasto minimo sulla prima parola</b> (<code>one</code> ↔ <code>every</code>) e <b>un contrasto di mestiere sulla seconda</b> (<i>conta lui</i> ↔ <i>è carta</i>). ⇒ Si distinguono <b>alla prima sillaba</b>, che è quello che serve a chi sceglie al buio dieci secondi prima di attaccare.</div>
+<div class="ms">
+<div class="m"><span class="g">Q-LIVE MODE</span><span class="d"><code>one section · it keeps count</code></span></div>
+<div class="m"><span class="g">CHART MODE</span><span class="d"><code>every section · like paper</code></span></div>
+<div class="m"><span class="g">sottoriga</span><span class="d">mono <b>13</b> · 500 · spaziatura 0 · minuscolo · <code>--text2r</code> (era 9,5)</span></div>
+<div class="m"><span class="g">riga</span><span class="d"><code>min-height</code> 56 → <b>62</b>: la sottoriga più grande alza la voce, non il pannello</span></div>
+</div>
+<div class="no"><b>Scartata: <code>it counts for you</code></b> — la mia resa del 06/09, ed è la traduzione letterale di «conta lui». ⛔ In inglese vuol dire <b>anche</b> «<i>vale per te / fa fede per te</i>»: due sensi in quattro parole. <b>Una riga che si può rileggere in due modi, a 30 cm, non si rilegge affatto.</b> ⇒ <code>it keeps count</code> ha un senso solo. <b>Scartata anche <code>like the paper sheet</code>:</b> più lunga e ridondante col nome del modo, che <i>è già</i> «chart».</div>
+<div class="wa"><b>Una lettura di perimetro che dichiaro invece di applicare in silenzio.</b> Il punto 12 nomina <b>quattro</b> superfici (player, bivio, dettaglio, velo) e <b>il chooser non è fra quelle</b>; ma le parole di Mauro erano «<i>le schermate di palco</i>», e <b>in Q-Live si è sul palco per definizione</b>. ⇒ Ho applicato il pavimento anche qui, alla lista e alla card. <b>Se il perimetro erano le quattro alla lettera, ditelo e lo stringo</b> — cambia solo un numero.</div>
+</div>
+
+<div class="sech" style="left:96px;top:5230px;">Punto 12 — la regola dei 30 cm, vista addosso al bivio, e la prova da fare sull'iPhone</div>
+
+<div class="flbl" style="left:96px;top:5266px;"><span class="b">⑫ BIVIO OGGI · 9 · 11 · 10 pt</span><span class="stt ko">com'è adesso</span></div>
+<div class="frame old" style="left:96px;top:5316px;" data-screen-label="12 — bivio a tre vie con le grandezze di oggi">
+  <div class="sb"><span>21:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="scrim"></div>
+    <div class="pop"><div class="popx"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.82)" stroke-width="1.7" stroke-linecap="round"></path></svg></div>
+      <div class="popk">Show stopped</div><div class="popnm">Circuz</div><div class="popmt">Bridge · 121 · 6/8</div>
+      <div class="popact">
+        <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>Show details</div>
+        <div class="gsep shelf"></div>
+        <div class="vrow end sub"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="rl">End show<em>This will stop the other devices too</em></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap" style="left:96px;top:6176px;">
+<div class="cn">⑫ Com'è adesso — e quanto vale in gradi</div>
+<div class="cs">Le tre scritte secondarie stanno a <b>9 · 11 · 10 pt</b>. In altezza-maiuscola, a 30 cm, fanno <b>0,21° · 0,25° · 0,23°</b>. ⇒ <b>Sotto la soglia</b> anche per etichette brevi in maiuscolo ad alto contrasto, e molto sotto quella del testo che si legge davvero.</div>
+<div class="ms">
+<div class="m"><span class="g">occhiello</span><span class="d"><code>Show stopped</code> 9 · 800 · 2,4 · <code>--text2</code></span></div>
+<div class="m"><span class="g">riga sezione</span><span class="d"><code>Bridge · 121 · 6/8</code> 11 · 400</span></div>
+<div class="m"><span class="g">sottoriga ambra</span><span class="d">10 · 600 · spaziatura 1,1</span></div>
+<div class="m"><span class="g">scaffale</span><span class="d"><b>41</b> — corretto, era scritto 41 nel bivio e 39 nella lamella</span></div>
+</div>
+<div class="no"><b>Questa lastra non è una proposta: è una fotografia.</b> Serve solo per stare accanto alla ⑬ e far vedere che <b>la regola non sposta il disegno.</b></div>
+</div>
+
+<div class="flbl" style="left:656px;top:5266px;"><span class="b">⑬ BIVIO CON LA REGOLA · 13 pt</span><span class="stt nw">+8 px, tutto qui</span></div>
+<div class="frame nw" style="left:656px;top:5316px;" data-screen-label="13 — bivio a tre vie con il pavimento tipografico applicato">
+  <div class="sb"><span>21:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="plhead"><div class="hit"><div class="sq armed"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="#ff8a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="plmid"><div class="shname">Milano Assago 20 Jul</div></div><div class="plright"><div class="leds"><i class="link"></i><i></i><i></i></div><div class="hit"><div class="sq"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 8v4h3l4 3V5L6 8H3z" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"></path><path d="M13 7c1.2 1 1.5 4 0 6" stroke="rgba(255,255,255,0.65)" stroke-width="1.3" stroke-linecap="round"></path></svg></div></div></div></div>
+  <div class="pbody"><div class="scrim"></div>
+    <div class="pop"><div class="popx"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.82)" stroke-width="1.7" stroke-linecap="round"></path></svg></div>
+      <div class="popk n13">Show stopped</div><div class="popnm">Circuz</div><div class="popmt n13">Bridge · 121 · 6/8</div>
+      <div class="popact">
+        <div class="vrow ret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>Show details</div>
+        <div class="gsep shelf"></div>
+        <div class="vrow end sub"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M10 8l-4 4 4 4M6 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="rl">End show<em class="n13">This will stop the other devices too</em></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap" style="left:656px;top:6176px;">
+<div class="cn">⑬ La stessa lastra con il pavimento — costa otto pixel</div>
+<div class="cs"><b>Il risultato più utile di tutto il punto 12:</b> applicare la regola al bivio <b>non sposta il disegno</b>. Il pannello cresce di <b>~8 px</b>, il salto dello scaffale resta <b>41</b>, i due bottoni restano dove erano, l'ordine non cambia. ⇒ <b>La regola non è un redesign: è una taratura.</b></div>
+<div class="ms">
+<div class="m"><span class="g">occhiello</span><span class="d">9 → <b>13</b>, peso 800 → <b>600</b>, spaziatura 2,4 → <b>1,5</b> · <code>--text2</code> → <code>--text2r</code></span></div>
+<div class="m"><span class="g">riga sezione</span><span class="d">11 → <b>13</b> · spaziatura invariata (è minuscolo misto)</span></div>
+<div class="m"><span class="g">sottoriga ambra</span><span class="d">10 → <b>13</b>, spaziatura 1,1 → <b>0</b></span></div>
+<div class="m"><span class="g">END SHOW</span><span class="d"><b>64 invariato</b> — ma la sottoriga <b>va su due righe</b>: 281 pt misurati su <b>257</b>. Il contenuto (17+3+34 = <b>54</b>) sta dentro i 64</span></div>
+<div class="m"><span class="g">costo</span><span class="d">altezza del pannello <b>+8 px</b>. La sottoriga ambra passa a <b>due righe</b> dentro la stessa voce. <b>Nient'altro si muove</b></span></div>
+</div>
+<div class="ok"><b>L'aritmetica della riga ambra — misurata sul disegno a grandezza vera, e mi smentisce.</b> A 13 pt senza spaziatura la stringa misura <b>281 pt</b> e ne ha <b>257</b> ⇒ <b>va a capo, su due righe.</b> ⛔ <b>Avevo scritto che entrava su una riga sola: avevo sbagliato la larghezza disponibile</b> (294 invece di 257). <b>Lo lascio scritto invece di aggiustarlo in silenzio.</b> ⭐ <b>La notizia buona è doppia:</b> la voce <b>resta 64</b> (17+3+34 = 54 ci stanno dentro), e <b>due righe corte si leggono meglio di una lunga</b> a colpo d'occhio. ⇒ <b>La clausola sulla spaziatura resta, ma per la sua ragione vera:</b> le maiuscole si separano per essere riconosciute una per una, una frase in minuscolo ha già le sue forme. Senza spaziatura la riga misura <b>281 invece di 320</b> e <b>si spezza una volta sola e bene</b>, invece di spezzarsi male.</div>
+<div class="wa"><b>E la forma a show vivo, misurata anche quella:</b> <code>The show is playing now · this will stop the other devices too</code> — 61 caratteri — misura <b>484 pt</b> su 257 ⇒ <b>due righe, esattamente come la forma corta</b>. ⇒ <b>La voce resta 64 in tutti e due i casi</b>, e l'altezza variabile dichiarata il 30/08 <b>qui non serve</b>. ⚠️ Oggi <b>nessuna delle due è costruita</b>: la condizione ha due gambe e la seconda l'app non può leggerla (BOX5, LIMITI DELLA LIBRERIA LINK ②).</div></div>
+</div>
+
+<div class="flbl" style="left:1216px;top:5266px;"><span class="b">⑭ LA PROVA DEI 30 CM</span><span class="stt q">da fare su iPhone 13</span></div>
+<div class="frame am" style="left:1216px;top:5316px;" data-screen-label="14 — card di prova della leggibilita a 30 cm, sei coppie oggi contro la regola">
+  <div class="sb"><span>21:50</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+  <div class="pv">
+    <div class="calib"><span class="t" style="left:0"></span><span class="bar"></span><span class="t" style="right:0"></span></div>
+    <div class="pvnote">CALIBRAZIONE — se la barra tocca <b>tutti e due</b> i bordi dello schermo, la pagina è a grandezza vera. Se non li tocca, hai zoomato.</div>
+    <div class="pvpair"><div class="pvk">occhiello del bivio</div><div class="o9">Show stopped</div><div class="n13">Show stopped</div></div>
+    <div class="pvpair"><div class="pvk">riga sezione del bivio</div><div class="o11">Bridge · 121 · 6/8</div><div class="n13 plain">Bridge · 121 · 6/8</div></div>
+    <div class="pvpair"><div class="pvk">velo · da dove riparte</div><div class="o9">Resume from Bridge</div><div class="n13">Resume from Bridge</div></div>
+    <div class="pvpair"><div class="pvk">velo · il gesto (anche il contrasto)</div><div class="o10dim">Tap anywhere</div><div class="n13">Tap anywhere</div></div>
+    <div class="pvpair"><div class="pvk">etichetta di un tasto</div><div class="o8">Emerg</div><div class="n13 b7">Emerg</div></div>
+    <div class="pvpair"><div class="pvk">sottoriga ambra di END SHOW</div><div class="o10a">This will stop the other devices too</div><div class="n13 amb">This will stop the other devices too</div></div>
+    <div class="pvfoot"><b>Tieni un foglio A4 per il lato lungo fra l'occhio e lo schermo: sono 29,7 cm.</b> Luci basse, schermo alla luminosità da palco, bacchette in mano. <b>Suona una battuta e leggi.</b> In ogni coppia: sopra com'è oggi, sotto come sarebbe.</div>
+  </div>
+</div>
+<div class="cap" style="left:1216px;top:6176px;">
+<div class="cn">⑭ La prova, senza strumenti da sviluppatore</div>
+<div class="cs">Questa lastra è depositata <b>anche come file a sé</b>, 390×844, da aprire sul telefono: <code>2026-09-11_PROVA-30cm__STAGE-SECONDARY__390x844.html</code>. <b>Su iPhone 13 in verticale, in Safari, senza zoomare, un punto della pagina è un punto dello schermo</b> — quindi quello che si legge lì è esattamente quello che si leggerà nell'app.</div>
+<div class="ms">
+<div class="m"><span class="g">1</span><span class="d">apri il file sul <b>telefono</b>, in <b>verticale</b>, <b>senza zoomare</b></span></div>
+<div class="m"><span class="g">2</span><span class="d">guarda la barra ambra in cima: deve <b>toccare i due bordi</b>. Se no, hai zoomato</span></div>
+<div class="m"><span class="g">3</span><span class="d">luci basse, luminosità da palco, telefono <b>dove sta sul palco</b></span></div>
+<div class="m"><span class="g">4</span><span class="d"><b>foglio A4 per il lato lungo</b> fra occhio e schermo = <b>29,7 cm</b>. È il righello</span></div>
+<div class="m"><span class="g">5</span><span class="d">suona una battuta vera e <b>leggi senza fermarti</b>. Sopra = oggi, sotto = la regola</span></div>
+<div class="m"><span class="g">controprova</span><span class="d">se hai un righello: la barra ambra deve misurare <b>6,46 cm</b></span></div>
+</div>
+<div class="ok"><b>La quarta coppia prova due cose insieme:</b> <code>Tap anywhere</code> oggi sta a <b>10 pt e 2,63:1</b>, sotto a <b>13 pt e 7,26:1</b>. ⇒ Se a 30 cm la riga di sopra sparisce e quella di sotto si legge, <b>la deroga di contrasto è morta con la prova, non con un'opinione</b> — e la deroga era mia.</div>
+<div class="wa"><b>⛔ <code>STAGE-SECONDARY</code> entra in BOX5 solo DOPO questa prova.</b> Finché Mauro non l'ha fatta, la regola è una <b>proposta misurata</b>, non un token. È il motivo per cui le lastre di questo foglio la mostrano già: <b>si giudica guardandola, non leggendone il numero.</b></div>
+</div>
+
+<div class="sech" style="left:96px;top:6850px;">La regola per esteso, la tabella delle conseguenze, e cosa esce da qui</div>
+
+<div class="pan" style="left:96px;top:6890px;width:1040px;">
+<h3 class="am">⓪ LA REGOLA — un token solo, e non è un numero: è un angolo</h3>
+<p><b>Il numero da solo non si difende e invecchia male.</b> Un pavimento in punti vale su un apparecchio e su una distanza; cambiato uno dei due, non vale più. ⇒ <b>La regola è angolare, e la distanza sta scritta dentro:</b></p>
+<div class="rule"><b>⭐ <code>STAGE-SECONDARY</code> — le scritte secondarie delle schermate di Q-Live hanno un'altezza-maiuscola di almeno <b>0,30°</b> a <b>30 cm</b>.</b> Sull'iPhone 13 quell'angolo fa <b>13 pt sulla base 390</b>. <b>Peso</b> JetBrains Mono <b>600</b> (700 per la riga più importante della schermata; <b>800 è fuori</b>). <b>Spaziatura</b> <b>1,5 pt</b> sulle maiuscole, <b>0</b> sulle frasi in minuscolo. <b>Contrasto</b> pavimento <b>4,5:1</b>, obiettivo <b>7:1</b>, <span class="no">nessuna deroga</span>.</div>
+<p><b>L'aritmetica, perché sia ricontrollabile e non creduta.</b> iPhone 13: 1170 px a 460 ppi = <b>64,6 mm</b> di schermo su <b>390 pt</b> ⇒ <b>0,1656 mm per punto</b>. L'altezza delle maiuscole di Inter e JetBrains Mono è ≈ <b>0,73 em</b>. ⇒ 13 pt danno maiuscole alte <b>1,57 mm</b>, che a <b>300 mm</b> sottendono <b>0,300°</b>. <b>Oggi</b>: 8 pt = <b>0,18°</b> · 9 pt = <b>0,21°</b> · 10 pt = <b>0,23°</b> · 11 pt = <b>0,25°</b>.</p>
+<p><b>Perché 0,30° e non di più.</b> Le raccomandazioni per il <b>testo continuo</b> stanno intorno a <b>0,35°–0,40°</b>: portare lì una riga secondaria la farebbe grande quasi quanto il BPM e <b>appiattirebbe la gerarchia</b> della schermata. Per <b>etichette brevi, in maiuscolo, ad alto contrasto, lette a colpo d'occhio</b> la soglia sta più in basso, verso <b>0,20°–0,25°</b> — ed è esattamente <b>la forbice in cui l'app sta oggi</b>: sul confine, non dentro. ⇒ <b>0,30° è il primo valore che sta comodamente sopra la soglia del colpo d'occhio senza entrare nel territorio del testo da leggere.</b></p>
+<div class="warn"><b>⚠️ <code>scaleFactor</code>: NO, e la ragione è che i punti sono già fisici.</b> Su un apparecchio più grande <b>un punto è più grande</b>, non più piccolo — e <b>30 cm sono 30 cm su tutti e due</b>. ⇒ Il pavimento <b>non si moltiplica</b>: 13 pt fissi. Dove la superficie <b>già</b> scala (tutta la Vista LIVE, BOX5 V23) il valore sale sopra il pavimento da solo, e va bene: <b>è un pavimento, non una misura</b>. ⭐ <b>Conseguenza pratica che vale oro:</b> il bivio e il dettaglio, che oggi usano punti fissi, <b>NON devono ricevere <code>scaleFactor</code></b> — la regola non chiede lavoro di impianto, chiede un numero.</div>
+<div class="rule"><b>Tenuta su tutti i device di destinazione, a 13 pt fissi.</b> iPhone 13 (0,1656 mm/pt) <b>0,300°</b> · iPad 9,7" e iPad Pro 12,9" (0,1924) <b>0,349°</b> · iPad mini 8,3" (0,1558) <b>0,282°</b> — <b>il caso più stretto, e resta sopra la soglia del colpo d'occhio.</b> ⚠️ <b>La forbice è del 20% e la dichiaro invece di inseguirla:</b> chiuderla vorrebbe dire una tabella di valori per apparecchio, cioè esattamente le «correzioni scritta per scritta» che il punto 12 vieta.</div>
+<div class="trap">🚨 <b>La deroga di contrasto degli slot C e D è RITIRATA, ed era mia.</b> La difendevo dicendo che quelle righe «<b>insegnano, non abilitano</b>»: chi non le legge tocca comunque e funziona. ⛔ <b>Non è più vero, e a romperla è stata una lastra di questo foglio:</b> sul Follower lo slot C <b>non insegna</b> — spiega <b>perché il tuo tocco non fa niente</b>. Una riga che spiega un'inerzia è <b>l'unica cosa che sta fra l'utente e la conclusione «è rotto»</b>. ⇒ <code>--text3</code> (.30 = 2,63:1) esce dalle schermate di palco. <b>Non è una tesi nuova: è la mia deroga, uccisa dal mio disegno.</b></div>
+</div>
+
+<div class="pan" style="left:1176px;top:6890px;width:1028px;">
+<h3 class="am">⓪bis LA TABELLA — cosa cambia, scritta per scritta</h3>
+<table class="mtab">
+<tr><th style="width:196px">Scritta</th><th style="width:74px">Oggi</th><th style="width:62px">Regola</th><th>Conseguenza misurata</th></tr>
+<tr><td><b>Etichette della pulsantiera</b><br /><code>RubberBtnView.label</code></td><td>8 × sF</td><td class="num">13 × sF</td><td><b>+62%.</b> <code>EMERG</code> a 13 con spaziatura 1,5 misura <b>47 pt</b> in un tasto da ~88 ⇒ <b>entra</b>. ⚠️ Da riverificare su device con i nomi veri dei tasti.</td></tr>
+<tr class="hl"><td><b>Occhiello del bivio</b><br /><code>Show stopped</code></td><td>9 fisso</td><td class="num">13 fisso</td><td>Peso <b>800 → 600</b>, spaziatura <b>2,4 → 1,5</b>. Il pannello cresce di ~5 px.</td></tr>
+<tr><td><b>Riga sezione del bivio</b><br /><code>Bridge · 121 · 6/8</code></td><td>11 fisso</td><td class="num">13 fisso</td><td>+2 pt, +3 px di altezza. È <b>la riga che Mauro cita come già grande</b>, e cambia lo stesso: un pavimento che non tocca il caso migliore non è un pavimento.</td></tr>
+<tr><td><b>Velo · slot A</b></td><td>9 × sF</td><td class="num">13 × sF</td><td>Peso 800 → 600. <code>Resume from Bridge</code> = <b>167 pt misurati</b> su 336 ⇒ entra larghissimo.</td></tr>
+<tr class="hl"><td><b>Velo · slot C</b></td><td>10 · <b>.30</b></td><td class="num">13 · <b>.60</b></td><td><b>Il contrasto passa da 2,63:1 a 7,26:1.</b> È il cambiamento che si vede di più delle due.</td></tr>
+<tr class="no"><td><b>Velo · slot D</b></td><td>9,5</td><td>—</td><td><b>Esce oggi</b> (punto 4). Quando il conto esisterà <b>rientra a 13</b>, non a 9,5.</td></tr>
+<tr><td><b><code>from ⟨sezione⟩</code></b> sotto RESUME</td><td>10</td><td class="num">13</td><td>Spaziatura a <b>0</b> (è minuscolo). La voce <code>RESUME</code> passa da <b>66 a 70</b>.</td></tr>
+<tr class="hl"><td><b>Sottoriga ambra di END SHOW</b></td><td>10 · sp. 1,1</td><td class="num">13 · sp. 0</td><td><b>Misurato:</b> <b>281 pt su 257</b> disponibili ⇒ <b>due righe</b> — forma corta <b>e</b> forma a show vivo (<b>484 pt</b>). <b>La voce resta 64 in tutti e due i casi.</b> ⚠️ Oggi nessuna delle due è costruita.</td></tr>
+<tr><td><b>Spia</b> <code>Playing</code>/<code>Stopped</code></td><td>9</td><td class="num">13</td><td>Target 44 <b>invariato</b> (era già hit-target). Sul Follower è <b>l'unica cosa che distingue due stati</b> ⇒ è la riga che guadagna di più.</td></tr>
+<tr><td><b>Meta del dettaglio</b> · <b>chip</b> read-only</td><td>11 · 8,5</td><td class="num">13 · 13</td><td>Il chip passa a <b>109 pt misurati</b>; col titolo su una riga entra (196 + 109 = <b>305</b> su 352). ⚠️ <b>Con titolo a due righe vale l'ancoraggio rev6</b> (A144).</td></tr>
+<tr><td><b>Righe della lista canzoni</b> · indice e metrica</td><td>12 · 12</td><td class="num">13 · 13</td><td>+1 pt. La riga cresce di ~2 px: con 5 canzoni sono 10 px, assorbiti dallo scorrimento.</td></tr>
+<tr><td><b>Lista Shows</b> · contatore, meta, anteprima</td><td>11 · 10,5 · 11</td><td class="num">13</td><td>L'anteprima resta a <b>due righe</b> (<code>line-clamp: 2</code>): più grande, non più lunga.</td></tr>
+<tr><td><b>Sottorighe del chooser</b></td><td>9,5</td><td class="num">13</td><td>Riga da <b>56 a 62 misurati</b>. La sottoriga occupa <b>218 pt su 228</b>: entra, <b>ma con dieci punti di margine</b> — un nome di modo più lungo andrebbe a capo. Il pannello cresce di 12 px e resta ancorato alla card.</td></tr>
+<tr><td><b>Etichette dei canali del mixer</b></td><td>9 × sF</td><td class="num">13 × sF</td><td><code>BACKT</code> a 13 = <b>47 pt misurati</b> su una colonna da ~88 ⇒ entra.</td></tr>
+</table>
+<div class="warn"><b>⚠️ Da dove vengono questi numeri, detto con precisione.</b> Le <b>larghezze</b> e le <b>altezze</b> sono <b>misurate sul disegno di questo foglio, reso a grandezza vera 390×844</b> — non calcolate a tavolino: il primo giro le aveva calcolate e <b>una era sbagliata</b> (vedi la lastra ⑬). ⛔ <b>Restano misure su un disegno in un browser, non su SwiftUI su un apparecchio:</b> i caratteri sono gli stessi (Inter e JetBrains Mono), il motore di composizione no. Gli <b>angoli</b> e i <b>contrasti</b> sono invece <b>calcolati</b> sulle specifiche dei device e sui token. ⇒ <b>Nessuno di questi numeri va inciso in un canonico prima della prova della lastra ⑭</b> — è la stessa clausola che ho chiesto per i contrasti del 25/08, e vale contro di me.</div>
+</div>
+
+<div class="pan" style="left:96px;top:7830px;width:1040px;">
+<h3 class="st">⓵ COSA ESCE DA QUI — e cosa resta aperto</h3>
+<p><b>Da incidere (tocca a CC / al referee, non a me):</b></p>
+<div class="g1"><div class="k">A</div><div class="t"><span class="h">Il velo non annuncia un conto che non suona</span>Lo slot D <b>non va a schermo</b> finché <code>startCountIn(for:)</code> scarta la sezione. Quando il ticket <code>TD-countin-ratificato-mai-costruito</code> si chiude, <b>lo slot torna in tutti e tre i casi</b>, col conto della sezione che introduce. <b>Una riga sola, e vale nei due sensi.</b></div></div>
+<div class="g1"><div class="k">B</div><div class="t"><span class="h">Se la sezione non si nomina, il posto non resta vuoto</span>Il velo <b>ricade su <code>Next:</code></b> (già inciso) e la faccia 3 <b>mette <code>RETURN</code> al posto di <code>RESUME</code></b> (nuovo). ⇒ <b>Nessuna schermata viva resta con il solo comando che distrugge.</b></div></div>
+<div class="g1"><div class="k">C</div><div class="t"><span class="h">La spaziatura è delle maiuscole, non delle frasi</span>Regola tipografica generale, non una deroga locale: le maiuscole si separano per essere riconosciute una per una, una frase in minuscolo ha già le sue forme. <b>È ciò che fa entrare la riga ambra su una riga sola.</b></div></div>
+<div class="g1"><div class="k">D</div><div class="t"><span class="h">Un pavimento si scrive in gradi e in distanza, non in punti</span><code>STAGE-SECONDARY</code> = <b>0,30° a 30 cm</b>; «13 pt» è la sua istanza sulla base 390. ⇒ Il giorno che arriva un apparecchio nuovo <b>non si rinegozia la regola: si rifà la divisione.</b></div></div>
+<p style="margin-top:12px"><b>Aperto, e non lo chiudo io:</b></p>
+<div class="g1"><div class="k">Ⓜ</div><div class="t"><span class="h">Muto, mixer ed EMERG sul Follower</span>Lastre ④ e ⑤, <b>a grandezza vera</b>. Una domanda sola per tre controlli, perché sono la stessa famiglia: toccano le orecchie del Follower, non lo show.</div></div>
+<div class="g1"><div class="k">Ⓝ</div><div class="t"><span class="h">END SHOW dal Follower ferma anche gli altri?</span>Nessuna fonte lo dice. Oggi non si nota perché la sottoriga ambra non è costruita; <b>il giorno che si costruisce, la risposta deve esistere prima.</b></div></div>
+<div class="g1"><div class="k">Ⓞ</div><div class="t"><span class="h">Il velo del Follower può nominare la sezione?</span>⟦SOL-C⟧ regge <b>solo</b> se i due apparecchi sono partiti insieme sulla stessa struttura. <b>Da misurare prima di costruire</b> — e finché non è misurato, la garanzia del <code>:369</code> copre il caso senza codice nuovo.</div></div>
+<div class="g1"><div class="k">Ⓟ</div><div class="t"><span class="h">Il perimetro della regola: quattro superfici o tutta Q-Live?</span>Ho letto le parole di Mauro («schermate di palco») più larghe dei quattro esempi del mandato, e l'ho <b>dichiarato sulla lastra ⑪</b>. <b>Se il perimetro era stretto, si stringe cambiando un numero.</b></div></div>
+</div>
+
+<div class="pan" style="left:1176px;top:7830px;width:1028px;">
+<h3>⓶ IL BILANCIO DEGLI ELEMENTI — perché il conto torni</h3>
+<p><b>Il mandato concede un token nuovo e nessun altro.</b> Lo rispetto, ma <b>un token non è un elemento</b>, e tre elementi nuovi li ho messi. ⇒ Li conto qui, uno per uno, con la fonte che li chiede — così nessuno debba scoprirli leggendo il disegno.</p>
+<table class="mtab">
+<tr><th style="width:210px">Elemento nuovo</th><th style="width:120px">Chiesto da</th><th>Di cosa è fatto</th></tr>
+<tr class="hl"><td><b>Riga-regola nella fascia transport</b><br /><code>TRANSPORT · DIRECTOR ONLY</code></td><td>punto <b>8.1</b></td><td>Tipografia esistente (<code>STAGE-SECONDARY</code>) su geometria esistente (la fascia 21%). <b>Nessun contenitore nuovo, nessun colore nuovo.</b> Sostituisce quattro tasti con una frase.</td></tr>
+<tr class="hl"><td><b>Slot E del velo</b><br /><code>No device connected</code></td><td>punto <b>9</b></td><td>Due righe di testo nel velo esistente, ambra già in tavolozza. <b>Compare solo nel caso negativo</b>; nel positivo non c'è niente da disegnare perché il LED lo dice già.</td></tr>
+<tr class="hl"><td><b>Stato vuoto della lista</b><br /><code>No shows in Q-Live</code></td><td>punto <b>10</b> + QL-SHOWS-05</td><td>Due righe centrate. <b>La copy è del contratto</b>, non mia: l'ho messa in tipografia, non inventata.</td></tr>
+<tr class="no"><td colspan="3"><b>NON sono elementi nuovi, e lo dichiaro perché potrebbero sembrarlo:</b> le lastre ④⑤ del player riproducono la <b>Vista LIVE di BOX5</b> (slot metronomo, contatore, barre, teleprompter, zona NEXT) — sono <b>citate, non disegnate</b>, e stanno lì solo perché la fascia transport non si giudica sospesa nel vuoto. <b>Se una misura di quelle zone diverge da BOX5, vince BOX5.</b></td></tr>
+</table>
+<div class="rule"><b>⭐ E una cosa che NON ho fatto, che vale come le altre.</b> Sul Follower sarebbe stato comodo <b>spegnere i tasti del trasporto invece di toglierli</b>: layout identico, zero decisioni. ⛔ <b>Vietato da CD-Q7</b>, e per una ragione che a 30 cm si vede: un tasto di gomma spento <b>somiglia ancora a un tasto</b>, e sotto pressione si preme. ⇒ <b>Un tasto che non fa niente non si spegne: si toglie, e al suo posto si scrive perché.</b></div>
+<div class="trap">🚨 <b>Difetto di oggi, non di disegno, e va a ticket.</b> Il Follower che rientra nel player a show fermo <b>vede il velo del Direttore</b> — <code>Tap anywhere</code> — e tocca a vuoto (log iPad 10/09, 19:49:19). <b>È una bugia in esecuzione adesso</b>, indipendente da tutto ciò che questo foglio propone, e non aspetta la regola dei 30 cm per essere riparata.</div>
+</div>
+
+<div class="foot" style="top:8566px;">
+<b>CD · 11/09/2026 · mandato <code>QB-2026-09-10-CD2-GIRO-UNICO</code>.</b> <b>Supera</b> <a href="../../../30_08_2026/DESIGN/QLive_Player/2026-08-30_QLive-Player_IL-VELO-DICE-DA-DOVE__END-SHOW-sullo-scaffale-e-sei-decisioni-incise__390x844.html">30/08 · Il velo dice da dove</a> sui punti <b>3, 4 e 5</b> — il resto di quel foglio <b>regge e non è ridisegnato</b> · <b>allinea</b> <a href="../../../29_08_2026/2026-08-29_QLive-Player_USCITA-DA-UNO-SHOW-VIVO__e-il-contatore-senza-fonte.html">29/08 §B</a> sulla copy ambra · <b>fonti canoniche</b> <code>LIBRO_MASTRO</code> (<code>:166</code> · <code>:372</code> · <code>:374</code> · <code>:379</code> · <code>:392</code> e le ratifiche del 30/08) e <code>BOX5</code> (Vista LIVE · Transport · QL-SHOWS-01…06 · LIMITI DELLA LIBRERIA LINK) · <b>prova su device</b> <code>2026-09-11_PROVA-30cm__STAGE-SECONDARY__390x844.html</code> · indice: <a href="../../../../Q-BEATS%20-%20Stato%20Attuale.html">Q-BEATS — Stato Attuale</a><br />
+Nessun codice Swift in questo foglio: verdetti di disegno, non implementazione. Annotazioni in italiano, <b>testo a schermo in inglese</b> (§6, ratifica 27/06). <b>Contrasti e angoli calcolati</b> sui token e sulle specifiche dei device, <b>non misurati su apparecchio</b> — e <code>STAGE-SECONDARY</code> entra in BOX5 <b>solo dopo la prova di Mauro</b>. Peso in byte e impronta sha256 <b>presi prima del trasporto</b>: nella nota <code>MISURA</code> depositata insieme a questo foglio.
+</div>
+
+</body>
+</html>
