@@ -1,6 +1,6 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V48 — 2026-09-11
-**Decisione:** 2026-09-11 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git.
+**Versione:** V49 — 2026-09-15
+**Decisione:** 2026-09-15 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⇒ **V49 — SOLO testata, zero contenuto nuovo, mandato A352**: allinea il numero di versione al contenuto già entrato con A351 (15/09/2026 — R-δ.20, canale di trasporto Drive), che l'aveva cambiata senza alzare `Versione` — contro R-δ.14, già ratificata, non una regola nuova.
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1460,6 +1460,8 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 
 ⇒ **Corollario 1:** il criterio «ultimo commit sotto l'etichetta» del referto A312 **decade**: con questa regola ogni etichetta ha un commit solo.
 ⇒ **Corollario 2:** le stampe con numero duplicato già su `E:` **restano agli atti**: non si cancellano e non si rinominano, perché a una stampa non si cambia il numero che il blob porta dentro. Il numero si avanza **nel canonico, con un commit** — ed è ciò che fa il commit di questa V44, portando LIBRO a v75 e BUGS a v81 a contenuto invariato.
+
+🚨 **MARCATURA 15/09/2026 (mandato A352) — RECIDIVA: LIBRO E BUGS (A349, 14/09) E BOX5 (A351, 15/09) HANNO DISATTESO QUESTA REGOLA, GIÀ RATIFICATA.** Zero parole riscritte sopra: si marca. A349 ha cambiato LIBRO (Sez.1 + Sez.6) e BUGS (Sez.5) lasciando `Versione` a 82 e 86; A351 ha cambiato BOX5 (R-δ.20) lasciandola a V48 — nei tre casi con un solo commit ciascuno, la stessa forma di `c69dc2c` sopra. Sanato da A352, portando LIBRO a v83, BUGS a v87, BOX5 a V49, a contenuto invariato — stesso rimedio del Corollario 2.
 
 ---
 

@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 86
-**Decisione:** 2026-09-11 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste.
+**Versione:** 87
+**Decisione:** 2026-09-15 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste. ⇒ **v87 — SOLO testata, zero contenuto nuovo, mandato A352**: allinea il numero di versione al contenuto già entrato con A349 (14/09/2026 — Sezione 5 chiusa come registro non più mantenuto riga per riga), che l'aveva cambiata senza alzare `Versione` — contro R-δ.14, già ratificata, non una regola nuova.
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 

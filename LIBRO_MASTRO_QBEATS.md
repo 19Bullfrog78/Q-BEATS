@@ -2,8 +2,8 @@
 
 > ⚠️ **Rename storico 26/05/2026 sera tardi**: questo file si chiamava `STATO_QBEATS.md` da v1 (21/05/2026) a v10 (26/05/2026 sera). Rinominato a `LIBRO_MASTRO_QBEATS.md` in v11 per chiarezza scopo — "STATO" era ambiguo (3 file diversi descrivono "stato"). La storia git è preservata via `git mv`. BOX3/SINTESI archivi storici che citano "STATO_QBEATS.md" NON sono stati aggiornati per veridicità archeologica.
 
-**Versione:** 82 (2026-09-11)
-**Decisione:** 2026-09-11 (v82 — **Sez.1 +1 riga e 1 cella di stato marcata, Sez.2 +11 righe, doc-only, zero codice**: le ratifiche di Mauro del 09-11/09/2026, riportate a CC dal referee (mandato A348) — il trasporto è del Direttore · si parte dal primo standby · NIENTE START LOCAL · il perimetro del Follower a show attivo · il criterio generale del perimetro («tutto quello che incide verso l'esterno del device viene tolto») · il comando del Direttore fa ripartire anche il Follower · «END SHOW» in due sensi coesiste · l'iPad si fa a parte; la SCALA DI PALCO P = 17 (tabella dei token in BOX5 V48); due regole di processo (ogni esito di collaudo va scritto a CC · una modifica non attribuibile in un foglio CD si dichiara e si rimisura). Ogni riga porta la fonte; le misure sono alla punta `84e21ee1`.)
+**Versione:** 83 (2026-09-15)
+**Decisione:** 2026-09-15 (v83 — **SOLO testata, zero contenuto nuovo, mandato A352**: allinea il numero di versione al contenuto già entrato con A349 (14/09/2026 — Sez.1 riga `.stoppedMidSong` marcata falsa dalla nascita, Sez.6 chiusa come registro non più mantenuto riga per riga), che aveva cambiato Sez.1 e Sez.6 senza alzare `Versione` — contro R-δ.14, già ratificata, non una regola nuova. Il contenuto descritto sopra, per v82, resta quello vero: qui cambia solo il numero che lo identifica.)
 **Edit author:** CC — mandati A176 + A178 + A180 + A181 + A182 + A184 + A185 + A186 + A187, 22/08/2026 · A190 + A198 + A199 + A200, 23/08/2026 · A218 + A221, 26/08/2026 · A249 + A260 + A261, 29/08/2026
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
