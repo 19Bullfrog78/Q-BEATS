@@ -1527,3 +1527,15 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 ⇒ **Ogni modifica non attribuibile va DICHIARATA da CD nel foglio, e RIMISURATA prima che il contenuto entri in un canonico.** Un valore che nessuno sa chi ha scritto non è ratificato finché qualcuno non lo rimisura e lo firma.
 
 ⇒ Applicata qui: la tabella P = 17 è entrata nel capitolo «Token visivi» dopo il confronto valore per valore di CC contro il foglio (14/09/2026); la regola d'arrotondamento è quella dichiarata da CD, verificata su 21,25 → 21 e 44,2 → 44.
+
+### R-δ.20 — UN FILE CONSEGNATO DA CD SI PRENDE DAL CLIENT DRIVE DI SISTEMA, NON DAGLI STRUMENTI MCP (misurata A350, 14/09/2026, incisa A351)
+
+🚨 **I due strumenti MCP di Drive non trasportano byte: li riscrivono.** `read_file_content` restituisce testo con escape markdown (`\<`, `\#`, `\_`); `download_file_content` restituisce un base64 che andrebbe ritrascritto. In entrambi i casi il file che arriva è passato dallo scritto di chi trasporta, e **non è più quel file** — la stessa classe di guasto di [[feedback_qbeats_transito_modello_altera_apostrofi|il transito nel contesto-modello che altera gli apostrofi]], qui applicata ai byte.
+
+⇒ **Su questa macchina Google Drive per desktop monta `I:`**, e `I:\Il mio Drive\Qbeats_IN_CD\` è la cartella dove CD deposita i suoi fogli. Un file consegnato da CD si prende da lì con **una copia di sistema** (`shutil.copyfile`, `cp`, Esplora risorse) — mai leggendo il contenuto e riscrivendolo. L'impronta si **rimisura dopo** la copia, non si assume da quella dichiarata prima del trasporto.
+
+⚠️ **Non è la stessa cartella del §4 sopra.** `I:\Il mio Drive\Qbeats\` (senza `_IN_CD`) resta quello che il §4 dichiara: un albero **non piu' una destinazione**, su cui non si scrive. `Qbeats_IN_CD` è una cartella diversa, e questa regola riguarda **solo la lettura** da lì — mai la scrittura.
+
+⛔ **Non cambia la regola del 30/08** (LIBRO, riga `2026-08-30`: Drive è un canale di consegna, non un archivio di riferimento; da Drive si verifica la sostanza, l'identità byte per byte no; nessuna ratifica passa da un confronto di byte che ha attraversato Drive). Quella resta intera: riguarda **la verifica** che regge una ratifica. Questa regola riguarda solo **il modo di prendere i byte** quando servono per un deposito.
+
+⇒ **Provato in A350:** sei file, peso = metadato Drive su 6/6, due letture identiche per ciascuno, CR 0, NUL 0; impronta dichiarata da CD prima del trasporto coincidente **per intero** su due file e **sui caratteri dichiarati** su due (i restanti due senza impronta dichiarata, misurati al trasporto). ⚠️ Non prova che il canale sia infallibile — un guasto intermittente non si smentisce coi successi ([[feedback_qbeats_assenza_prova_non_prova_assenza]]): prova che quei sei file erano quelli di CD.
