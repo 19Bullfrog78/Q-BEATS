@@ -1,6 +1,6 @@
 # Q-BEATS — BOX 5 — Specifiche e Contratti
-**Versione:** V49 — 2026-09-15
-**Decisione:** 2026-09-15 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⇒ **V49 — SOLO testata, zero contenuto nuovo, mandato A352**: allinea il numero di versione al contenuto già entrato con A351 (15/09/2026 — R-δ.20, canale di trasporto Drive), che l'aveva cambiata senza alzare `Versione` — contro R-δ.14, già ratificata, non una regola nuova.
+**Versione:** V50 — 2026-09-15
+**Decisione:** 2026-09-15 — ⚠️ **il campo porta il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⇒ **V50 — R-δ.21 (il congedo di CC lo scrive CC, da solo) + apertura della lista CONTROLLO PRE-COMMIT (primo controllo: il numero di versione, R-δ.14), mandato A353.**
 
 > **Regola di aggiornamento:** aggiornare BOX5 quando cambiano spec, modello dati, token visivi, o invarianti Layer 3. NON aggiornare per avanzamento build o fix — quello va in BOX3.
 
@@ -1541,3 +1541,25 @@ Un numero di riga passato a chi esegue è un dato che **decade in silenzio**: re
 ⛔ **Non cambia la regola del 30/08** (LIBRO, riga `2026-08-30`: Drive è un canale di consegna, non un archivio di riferimento; da Drive si verifica la sostanza, l'identità byte per byte no; nessuna ratifica passa da un confronto di byte che ha attraversato Drive). Quella resta intera: riguarda **la verifica** che regge una ratifica. Questa regola riguarda solo **il modo di prendere i byte** quando servono per un deposito.
 
 ⇒ **Provato in A350:** sei file, peso = metadato Drive su 6/6, due letture identiche per ciascuno, CR 0, NUL 0; impronta dichiarata da CD prima del trasporto coincidente **per intero** su due file e **sui caratteri dichiarati** su due (i restanti due senza impronta dichiarata, misurati al trasporto). ⚠️ Non prova che il canale sia infallibile — un guasto intermittente non si smentisce coi successi ([[feedback_qbeats_assenza_prova_non_prova_assenza]]): prova che quei sei file erano quelli di CD.
+
+### R-δ.21 — IL CONGEDO DI CC LO SCRIVE CC, DA SOLO (ratificata referee 15/09/2026, incisa A353)
+
+⛔ **Decide CC quando serve, cosa ci mette e come lo organizza.** Né Mauro né il referee gli dettano il contenuto, la forma, il tono o cosa tenere dentro e cosa lasciare fuori. Non si chiede il permesso e non si manda in visione.
+
+⛔ **Il referee non rivede la scelta di cosa scrivere.** Interviene su una cosa sola: se misura che il congedo afferma il falso, lo dice, e CC corregge nel mandato successivo. Non è una revisione del contenuto: è §7 della Costituzione, «FONTE O NIENTE» (`FILE.MD/QBEATS_SYSTEM_PROMPT_V5_21_06_2026.md`) — vale su ogni documento, e il congedo non fa eccezione.
+
+⚠️ **Caso che l'ha prodotta:** il congedo `A346` dichiarava «non chiesto e non ratificato» il RESUME del Direttore che fa ripartire il Follower; era falso, e CC non poteva saperlo perché la ratifica non era ancora nel LIBRO — corretto in `A347`, incisa la ratifica in `A348`.
+
+⇒ **Cosa resta addosso al congedo, perché vale su tutto ciò che CC scrive, non perché è un congedo:**
+
+1. ogni valore porta una fonte apribile (§7 Costituzione);
+2. il congedo è un **puntatore**, non una fonte: lo stato del progetto (versioni, punta, cosa è in corso) vive nei canonici e si misura da lì, non si tiene nel congedo — [[feedback_qbeats_stato_corrente_puntatore_non_copia]];
+3. ciò che CC non ha potuto verificare si dichiara come non verificato, e non si lascia passare per misurato;
+4. CC non vede i device: gli esiti dei collaudi arrivano dal referee (regola 10/09/2026, LIBRO, riga `2026-09-10`; R-δ.18). Su un commit di cui non ha notizia scrive «nessuna notizia», mai «collaudo da fare»;
+5. il congedo prende un ID e si deposita sulle due gambe nell'istante in cui esiste (§1-bis); nessun ID candidato scritto per esteso (R-δ.9).
+
+### CONTROLLO PRE-COMMIT — lista viva, si aggiunge qui (aperta A353, 15/09/2026)
+
+🚨 **Sede nuova: nessuna lista di controlli pre-commit esisteva in un canonico.** I controlli vivevano sparsi nei mandati, riscritti ogni volta — la stessa lacuna che R-δ §1-bis aveva chiuso per le stampe su `E:`. Qui si accumula, non si riscrive: un controllo nuovo si aggiunge in coda alla lista.
+
+1. **Il numero di versione (R-δ.14).** Un canonico è cambiato in questo commit: il suo campo `Versione` si è alzato nello stesso commit? ⚠️ **Perché in lista:** la regola esisteva già ed è stata rotta due volte — `c69dc2c` il 01/09/2026, poi `A349`/`A351` il 14-15/09/2026 (sanate da `A352`). Mancava il controllo, non la regola.
