@@ -105,6 +105,23 @@ struct StandbyOverlayView: View {
                 capsLine(decision.gestureLine, size: capsSize, maxLines: 1)
                     .padding(.top, QLiveStage.Veil.gapNameToGesture)
 
+                // ── A360 — Slot E, solo sul Follower senza nessun apparecchio collegato
+                //    (lastra ⑧ del foglio CD 11/09, `.vlink`): «No device connected» in
+                //    STAGE-CAPS ambra, «nothing will start from here» in STAGE-SECONDARY,
+                //    minuscola come è scritta. C→E e il salto fra le due righe sono le
+                //    distanze della lastra × k (`QLiveStage.Veil`). Nessun tocco, nessuna
+                //    scorciatoia, nessun invito a spegnere Link: due righe e basta. Quando
+                //    la decisione cambia (un apparecchio si collega) le righe spariscono. ──
+                if decision.showsNoDeviceLines {
+                    VStack(spacing: QLiveStage.Veil.gapStatusLines) {
+                        capsLine(StandbyOverlayDecision.noDeviceLine, size: capsSize, maxLines: 1,
+                                 color: QLiveStage.Veil.statusAmber)
+                        secondaryLine(StandbyOverlayDecision.nothingStartsLine,
+                                      size: QLiveStage.scaled(QLiveStage.Secondary.size, scaleFactor))
+                    }
+                    .padding(.top, QLiveStage.Veil.gapGestureToStatus)
+                }
+
                 Spacer()
             }
         }
@@ -113,13 +130,28 @@ struct StandbyOverlayView: View {
 
     /// STAGE-CAPS: JetBrains Mono 600 · spaziatura 1,5 · MAIUSCOLE · bianco 0,60.
     /// Le maiuscole le mette la vista (stile), non il dato (copy dei fogli CD).
-    private func capsLine(_ text: String, size: CGFloat, maxLines: Int) -> some View {
+    /// A360 — `color` esiste per la riga 1 dello slot E, ambra: il resto è identico.
+    private func capsLine(_ text: String, size: CGFloat, maxLines: Int,
+                          color: Color = Color.white.opacity(QLiveStage.Caps.opacity)) -> some View {
         Text(text)
             .font(.jbMono(QLiveStage.Caps.weight, size: size))
             .tracking(QLiveStage.Caps.tracking)
-            .foregroundColor(Color.white.opacity(QLiveStage.Caps.opacity))
+            .foregroundColor(color)
             .textCase(.uppercase)
             .lineLimit(maxLines)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
+            .frame(maxWidth: .infinity)
+    }
+
+    /// A360 — STAGE-SECONDARY: JetBrains Mono 500 · spaziatura 0,3 · bianco 0,60, senza
+    /// maiuscole (la riga 2 dello slot E è minuscola nella lastra ⑧, `.vlink .c`).
+    private func secondaryLine(_ text: String, size: CGFloat) -> some View {
+        Text(text)
+            .font(.jbMono(QLiveStage.Secondary.weight, size: size))
+            .tracking(QLiveStage.Secondary.tracking)
+            .foregroundColor(Color.white.opacity(QLiveStage.Secondary.opacity))
+            .lineLimit(1)
             .multilineTextAlignment(.center)
             .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
             .frame(maxWidth: .infinity)

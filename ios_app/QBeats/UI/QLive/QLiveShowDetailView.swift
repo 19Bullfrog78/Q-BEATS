@@ -191,8 +191,10 @@ struct QLiveShowDetailView: View {
     /// gia' legge `audioEngine` per i suoi due segnali) e RILETTO all'atto di agire nella
     /// stanza. In pratica il Follower non arriva mai a questa faccia (il bivio non gli si
     /// apre, `QLiveRootView.leavePlayer()`): questa e' la seconda serratura, non la prima.
+    /// ⚠️ A360 (16/09/2026) — il terzo termine è la regola `FollowerDecision` (ruolo E Link
+    ///    acceso dall'utente), la stessa della fascia e del velo: il testo sopra resta.
     private var showsResume: Bool {
-        isThirdFace && !resumeSectionName.isEmpty && audioEngine.currentLinkMode != .collaborativa
+        isThirdFace && !resumeSectionName.isEmpty && !audioEngine.followerDecision.isFollower
     }
 
     var body: some View {
@@ -632,8 +634,13 @@ struct QLiveShowDetailView: View {
     //    dal dettaglio dello show B con lo show A vivo, END SHOW chiude lo show
     //    DI STANZA — cioè A — senza dirlo. Stesso limite del bottone BACK TO
     //    SHOW, girato a CD, non risolto qui.
+    // ⚠️ A360 (16/09/2026) — SUL FOLLOWER LA SOTTORIGA NON COMPARE: dopo A360 il Follower
+    //    non manda STOP a Link da nessuna porta (`AudioEngine.stopSync`), quindi il suo END
+    //    SHOW ferma solo il proprio apparecchio e «this will stop other devices too»
+    //    direbbe il falso — la categoria che il §D del rev3 esiste per vietare. La riga
+    //    resta com'è a chi comanda il trasporto. Il testo sopra resta come scritto.
     private var endShowRow: some View {
-        let subline: String? = audioEngine.linkIsConnected
+        let subline: String? = (audioEngine.linkIsConnected && !audioEngine.followerDecision.isFollower)
             ? (audioEngine.isPlaying
                 ? "The show is playing now \u{00B7} this will stop other devices too"
                 : "This will stop other devices too")

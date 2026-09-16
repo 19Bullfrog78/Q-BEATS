@@ -13,11 +13,13 @@ final class StandbyOverlayDecisionTests: XCTestCase {
     private func decision(sectionIdx: Int,
                           sectionName: String = "Bridge",
                           songName: String = "Circuz",
-                          isFollower: Bool = false) -> StandbyOverlayDecision {
+                          isFollower: Bool = false,
+                          nobodyConnected: Bool = false) -> StandbyOverlayDecision {
         StandbyOverlayDecision(currentSectionIdx: sectionIdx,
                                currentSectionName: sectionName,
                                songName: songName,
-                               isFollower: isFollower)
+                               isFollower: isFollower,
+                               nobodyConnected: nobodyConnected)
     }
 
     // MARK: - Sezione 0: partenza
@@ -120,5 +122,32 @@ final class StandbyOverlayDecisionTests: XCTestCase {
     func testSongNameIsKeptAsWritten() {
         let d = decision(sectionIdx: 0, songName: "Circuz")
         XCTAssertEqual(d.songName, "Circuz")   // niente maiuscolo forzato: lo decide la vista, non il dato
+    }
+
+    // MARK: - A360 — slot E: Follower senza nessun apparecchio collegato (lastra ⑧)
+
+    func testFollowerWithNobodyConnectedShowsTheTwoLines() {
+        let d = decision(sectionIdx: 3, sectionName: "Bridge", isFollower: true, nobodyConnected: true)
+        XCTAssertTrue(d.showsNoDeviceLines)
+        // Le tre righe restano quelle di sempre: lo slot E si aggiunge, non sostituisce.
+        XCTAssertEqual(d.relationLine, "Resume from Bridge")
+        XCTAssertEqual(d.songName, "Circuz")
+        XCTAssertEqual(d.gestureLine, "The director starts")
+        XCTAssertEqual(StandbyOverlayDecision.noDeviceLine, "No device connected")
+        XCTAssertEqual(StandbyOverlayDecision.nothingStartsLine, "nothing will start from here")
+    }
+
+    func testFollowerWithSomeoneConnectedHasNoSlotE() {
+        let d = decision(sectionIdx: 0, isFollower: true, nobodyConnected: false)
+        XCTAssertFalse(d.showsNoDeviceLines)
+        XCTAssertEqual(d.gestureLine, "The director starts")
+    }
+
+    func testWhoCommandsTheTransportNeverGetsSlotE() {
+        // La garanzia sta nel dato: anche se il chiamante passasse «nessuno collegato»
+        // a chi comanda il trasporto, le due righe non vanno a schermo.
+        let d = decision(sectionIdx: 0, isFollower: false, nobodyConnected: true)
+        XCTAssertFalse(d.showsNoDeviceLines)
+        XCTAssertEqual(d.gestureLine, "Tap anywhere")
     }
 }

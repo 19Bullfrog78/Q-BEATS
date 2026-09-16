@@ -16,6 +16,10 @@ import Foundation
 // (`ios_app/project.yml`, target QBeatsTests). Niente SwiftUI, niente motore:
 // «Follower» lo calcola il chiamante con la regola incisa in BOX5
 // (`audioEngine.currentLinkMode == .collaborativa`), e qui arriva come booleano.
+// ⚠️ MARCATURA A360 (16/09/2026) — «Follower» arriva ancora come booleano, ma chi lo
+//    calcola è `FollowerDecision` (ruolo E Link acceso dall'utente), non più il solo
+//    ruolo. Con `nobodyConnected` (Follower senza nessun apparecchio collegato) il velo
+//    aggiunge le due righe della lastra ⑧ del foglio CD 11/09 (`.vlink .s`, `.vlink .c`).
 struct StandbyOverlayDecision: Equatable {
 
     /// Regola del gigante (BOX5 «SCALA DI PALCO» · foglio CD 11/09 LA-TABELLA-FINALE §③):
@@ -38,6 +42,10 @@ struct StandbyOverlayDecision: Equatable {
     static let nextLine = "Next:"
     static let tapGesture = "Tap anywhere"
     static let directorGesture = "The director starts"
+    // A360 — slot E della lastra ⑧: riga 1 in STAGE-CAPS ambra (maiuscole dalla vista),
+    // riga 2 in STAGE-SECONDARY, minuscola come è scritta.
+    static let noDeviceLine = "No device connected"
+    static let nothingStartsLine = "nothing will start from here"
 
     /// C'è un punto di ripresa nella canzone corrente (indice di sezione > 0).
     /// È il dato che sceglie la ripartenza — `startCurrentSection` contro
@@ -57,8 +65,13 @@ struct StandbyOverlayDecision: Equatable {
     let nameForm: NameForm
     /// Riga C — gesto: «Tap anywhere» oppure «The director starts».
     let gestureLine: String
+    /// A360 — slot E: le due righe della lastra ⑧ vanno a schermo. Solo sul Follower
+    /// (la garanzia sta qui, non nel chiamante): a chi comanda il trasporto lo slot non
+    /// compare mai, qualunque cosa dica il collegamento.
+    let showsNoDeviceLines: Bool
 
-    init(currentSectionIdx: Int, currentSectionName: String, songName: String, isFollower: Bool) {
+    init(currentSectionIdx: Int, currentSectionName: String, songName: String,
+         isFollower: Bool, nobodyConnected: Bool) {
         let hasResumePoint = currentSectionIdx > 0
         // Garanzia contro la bugia (foglio CD 11/09, lastra ①): se il nome della
         // sezione non si risolve, il velo NON scrive «Resume from —» — ricade
@@ -73,6 +86,7 @@ struct StandbyOverlayDecision: Equatable {
         self.songName = songName
         self.nameForm = Self.nameForm(for: songName)
         self.gestureLine = isFollower ? Self.directorGesture : Self.tapGesture
+        self.showsNoDeviceLines = isFollower && nobodyConnected
     }
 
     /// Caratteri, non byte: `String.count` conta i grafemi.

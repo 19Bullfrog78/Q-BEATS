@@ -214,7 +214,9 @@ struct QLiveRootView: View {
         //    regola, e il bivio che porta a RESUME pure. Standalone e Direttore comandano
         //    (ratifica (a): «non vale in standalone»). Il badge del player aggiunge
         //    `linkEnabled` (`LiveView.swift:124`): e' veste, non regola — qui vale la regola.
-        let comandaTrasporto = audioEngine.currentLinkMode != .collaborativa
+        // ⚠️ A360 (16/09/2026) — la regola del PLAY è `FollowerDecision` (ruolo E Link acceso
+        //    dall'utente), non più il solo `currentLinkMode`: il testo sopra resta come scritto.
+        let comandaTrasporto = !audioEngine.followerDecision.isFollower
         if case .stopped = stato, let runner = roomSession.runner, comandaTrasporto {
             let canzone = runner.currentSong?.name ?? ""
             let meta: String
@@ -425,7 +427,8 @@ struct QLiveRootView: View {
                     //      scritto. Il log sta DOPO `navigate`, cosi' fra avvio e navigazione
                     //      non c'e' nemmeno una riga.
                     onResume: {
-                        let follower = audioEngine.currentLinkMode == .collaborativa
+                        // A360 — stessa regola della fascia e del velo (`FollowerDecision`).
+                        let follower = audioEngine.followerDecision.isFollower
                         let inMoto = audioEngine.isPlaying
                         guard let runner = roomSession.runner else {
                             // Ramo DIFENSIVO, mai vivo nel codice: la terza faccia nasce dal bivio,
@@ -484,6 +487,10 @@ struct QLiveRootView: View {
                 //    CANCEL non dice nulla. Restare in stanza è corretto e qui
                 //    NON si cambia: si DICHIARA che la scelta è inferita, e la
                 //    ratifica spetta a ⟦S-EXIT⟧.
+                //    ⚠️ MARCATURA A360 (16/09/2026) — il CANCEL non esiste più:
+                //    `WaitingForDirectorView` è uscita dal codice (LIBRO `2026-09-10`
+                //    «NIENTE START LOCAL»). Il leaf è uno solo, `LiveHeaderView`;
+                //    la scelta inferita qui sopra non ha più oggetto.
                 //
                 // `audioEngine` NON si re-inietta, e NON è un'omissione:
                 //  · iniettato a `AppRootView.swift:53 @

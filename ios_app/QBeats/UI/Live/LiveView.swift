@@ -7,6 +7,8 @@ struct LiveView: View {
     /// Nodo A — seam di RITORNO fornito dal presenter (AppRootView →
     /// QLiveRootView, gate .metronome — back INTERNO, non uscita-stanza). Ai 2 leaf:
     /// LiveHeaderView (back) e WaitingForDirectorView (CANCEL).
+    /// ⚠️ MARCATURA A360 (16/09/2026) — il leaf è UNO: `WaitingForDirectorView` (e il suo
+    ///    CANCEL) è uscita dal codice. Resta `LiveHeaderView` (back).
     let onExit: () -> Void
     /// ⟦PORTA-RIENTRO⟧ ② — seam di FINE SHOW, distinto da `onExit`.
     ///
@@ -122,9 +124,14 @@ struct LiveView: View {
     /// Fase 6-7-bis.
     private var linkRoleBadge: String? {
         guard audioEngine.linkEnabled else { return nil }
+        // A360 — la PAROLA «FOLLOWER» la decide la regola (`FollowerDecision`: ruolo E Link
+        // acceso dall'utente), come la fascia e il velo; la VISIBILITÀ del badge resta
+        // quella di sempre (`linkEnabled`, la veste). Un ruolo Follower con Link spento
+        // dall'utente si comporta da Solo e si chiama SOLO.
+        if audioEngine.followerDecision.isFollower { return "FOLLOWER" }
         switch audioEngine.currentLinkMode {
         case .direttore:     return "DIRECTOR"
-        case .collaborativa: return "FOLLOWER"
+        case .collaborativa: return "SOLO"   // A360: Follower senza Link dell'utente = Solo
         case .standalone:    return "SOLO"   // naming Decisione 2 CD; badge visibile solo se linkEnabled (guard :63)
         }
     }
@@ -231,11 +238,21 @@ struct LiveView: View {
                     //    ramo `.background`) e al rientro un Follower leggerebbe «Tap
                     //    anywhere». Il nome della sezione viene dal runner, lo stesso
                     //    oggetto che `startCurrentSection` fa suonare.
+                    // ⚠️ A360 (16/09/2026) — IL RUOLO NON È PIÙ IL SOLO `currentLinkMode`: è
+                    //    `FollowerDecision` (ruolo E Link acceso DALL'UTENTE — l'interruttore
+                    //    dell'app, quello del background, entra per essere ignorato). La
+                    //    clausola «SENZA linkEnabled» qui sopra resta rispettata nel motivo:
+                    //    al rientro dal background un Follower legge ancora «The director
+                    //    starts». Con Link spento dall'utente l'apparecchio è Solo in tutto:
+                    //    «Tap anywhere» e il tocco fa partire. `nobodyConnected` porta al velo
+                    //    le due righe della lastra ⑧ (Follower senza nessuno collegato).
+                    let rule = audioEngine.followerDecision
                     let veil = StandbyOverlayDecision(
                         currentSectionIdx: runner.currentSectionIdx,
                         currentSectionName: runner.currentSection?.name ?? "",
                         songName: nextSong,
-                        isFollower: audioEngine.currentLinkMode == .collaborativa)
+                        isFollower: rule.isFollower,
+                        nobodyConnected: rule.nobodyConnected)
                     VStack(spacing: 0) {
                         // Il velo si ferma SOTTO la testata (decisione 13): la fascia
                         // resta scoperta e freccia e muto arrivano ai loro `Button`.
@@ -249,7 +266,13 @@ struct LiveView: View {
                             .contentShape(Rectangle())
                             .onTapGesture { veilTapped(veil) }
                     }
-                    .onAppear { veilShown(veil) }
+                    .onAppear { veilShown(veil, rule) }
+                    // A360 — strumentazione passiva: lo slot E compare o sparisce mentre il
+                    // velo è a schermo (un apparecchio si collega o se ne va).
+                    .onChange(of: veil.showsNoDeviceLines) { shows in
+                        os_log("[Q-BEATS][A360] velo - slot E (nessuno collegato):%{public}@",
+                               log: .default, type: .default, shows ? "si" : "no")
+                    }
                 }
 
                 if case .overlayStop(let sec, let song) = session.playbackState {
@@ -326,22 +349,17 @@ struct LiveView: View {
                 //      (deviazione esplicita da CD-Q2=B "→ Select Setlist"
                 //      — Select Setlist non esiste ancora, F2.3 aperto;
                 //      ratificata 28/05/2026).
-                if case .waitingForDirector = session.playbackState {
-                    WaitingForDirectorView(scaleFactor: scaleFactor, onExit: onExit) {
-                        // START LOCAL — utente decide di partire standalone
-                        // ignorando l'attesa Director. Nessun guard idempotenza
-                        // esplicito: WaitingForDirectorView è renderizzata
-                        // SOLO in `.waitingForDirector`, quindi questa
-                        // closure scatta solo in quello stato.
-                        // ⚠️ A240 — era `startSetlist`: azzerava il punto anche
-                        //    quando l'attesa seguiva uno STOP a metà show (A239,
-                        //    sito 3). RULING del referee: «si riparte da dov'eri»
-                        //    non cambia a seconda di chi preme. Il blocco CD-6 qui
-                        //    sopra descrive ancora le partenze vecchie — testo
-                        //    invariato, vale questa marcatura.
-                        runner.startCurrentSection(audioEngine: audioEngine, session: session)
-                    }
-                }
+                // ⛔ A360 (16/09/2026) — LA VISTA WAITING FOR DIRECTOR NON SI MONTA PIÙ, E NON
+                //    ESISTE PIÙ: `WaitingForDirectorView.swift` è cancellato, START LOCAL e
+                //    CANCEL con lui, e `.waitingForDirector` è uscito da `LivePlaybackState`.
+                //    Il Follower non ha PLAY (`TransportView`, fascia del Follower), quindi
+                //    nessuno arriva più all'attesa; il velo dice «The director starts» e, senza
+                //    nessun apparecchio collegato, «No device connected · nothing will start
+                //    from here» (lastra ⑧). LIBRO `2026-09-10` «NIENTE START LOCAL»: a
+                //    collegamento caduto il Follower aspetta, informato, o chiude con END SHOW.
+                //    Il cartello CD-6 qui sopra resta come storia: si marca, non si riscrive.
+                //    Qui stava: `if case .waitingForDirector = session.playbackState {
+                //    WaitingForDirectorView(...) { runner.startCurrentSection(...) } }`.
 
                 VStack(spacing: 0) {
                     Spacer()
@@ -780,13 +798,23 @@ struct LiveView: View {
     // MARK: - A355 — il velo: strumentazione passiva e tocco, fuori dal body
 
     /// A ogni comparsa del velo: ruolo, caso, indice di sezione, nome vuoto sì/no.
-    private func veilShown(_ veil: StandbyOverlayDecision) {
+    /// A360 — e la regola con i suoi quattro ingressi, così il collaudo legge da dove
+    /// viene il ruolo (ruolo scelto, Link dell'utente, interruttore dell'app, collegato).
+    private func veilShown(_ veil: StandbyOverlayDecision, _ rule: FollowerDecision) {
         os_log("[Q-BEATS][A355] velo - ruolo:%{public}@ caso:%{public}@ sectionIdx:%d nomeVuoto:%{public}@",
                log: .default, type: .default,
                veil.isFollower ? "follower" : "comanda",
                veil.hasResumePoint ? "ripresa" : "partenza",
                runner.currentSectionIdx,
                veil.sectionNameIsBlank ? "si" : "no")
+        os_log("[Q-BEATS][A360] velo - regola: ruolo:%{public}@ linkUtente:%{public}@ linkApp:%{public}@ collegato:%{public}@ -> follower:%{public}@ nessunoCollegato:%{public}@",
+               log: .default, type: .default,
+               String(describing: rule.role),
+               rule.userLinkEnabled ? "acceso" : "spento",
+               rule.appLinkEnabled ? "acceso" : "spento",
+               rule.anyPeerConnected ? "si" : "no",
+               rule.isFollower ? "si" : "no",
+               rule.nobodyConnected ? "si" : "no")
     }
 
     /// Al tocco sul velo. Chi comanda il trasporto (Direttore, Solo) riparte dal

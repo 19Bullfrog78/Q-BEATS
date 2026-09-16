@@ -21,7 +21,14 @@ enum LivePlaybackState: Equatable {
     //    l'observer sceglie `startCurrentSong` (standby) o `startCurrentSection`
     //    (conserva il punto); START LOCAL chiama `startCurrentSection`.
     //    Testo sopra invariato.
-    case waitingForDirector
+    // ⛔ A360 (16/09/2026) — `.waitingForDirector` È USCITO. Il Follower non ha più PLAY
+    //    (LIBRO `2026-09-11` «CRITERIO GENERALE DEL PERIMETRO DEL FOLLOWER»), quindi
+    //    nessuno scrive più questo stato; con lui escono `WaitingForDirectorView`, START
+    //    LOCAL e il suo CANCEL (LIBRO `2026-09-10` «NIENTE START LOCAL»; ticket
+    //    `TD-waiting-for-director-start-local-da-togliere`: tolta, non lasciata
+    //    irraggiungibile). Il velo del Follower dice «The director starts» e, senza nessun
+    //    apparecchio collegato, «No device connected · nothing will start from here»
+    //    (A355 + A360). Le sedici righe qui sopra restano come storia: si marcano.
     // ⟦A345⟧ (10/09/2026) — AVVIO COMANDATO, MOTORE NON ANCORA IN MOTO. Nono caso,
     //    senza payload: la verita' dei millisecondi fra il comando di avvio e la
     //    prima parola del motore. `start()` differisce tutto a `audioQueue.async`

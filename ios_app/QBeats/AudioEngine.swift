@@ -35,6 +35,19 @@ class AudioEngine: ObservableObject {
     @Published var clickStatus : String  = "non caricato"
     @Published var currentBPM: Double = 120.0
     @Published var linkEnabled: Bool = false
+    // A360 (16/09/2026) — L'INTERRUTTORE DI LINK DELL'UTENTE, e solo quello.
+    // `linkEnabled` qui sopra è scritto da DUE mani: dal callback del pannello Link
+    // (l'utente: il callback di `link_engine_set_is_enabled_callback` registrato in
+    // `init`) e da `setLinkEnabled` (l'app: `QBeatsApp` in background a
+    // click fermo, `SettingsView` alla chiusura del pannello, `DebugView`). Il ruolo
+    // Follower (`FollowerDecision`) deve leggere la mano dell'UTENTE — `ABLLinkIsEnabled`,
+    // «only controllable by the user via the Link settings dialog» (ABLLink.h) — e non
+    // cambiare quando l'app va in background e torna. Questo mirror lo scrive SOLO il
+    // callback `link_engine_set_is_enabled_callback` (utente nel pannello, e la
+    // riconciliazione all'avvio in `link_engine_activate` che passa dallo stesso
+    // callback). `setLinkEnabled` non lo tocca: `ABLLinkSetActive` non muove
+    // `ABLLinkIsEnabled`. Copia su audioQueue: `_linkUserEnabledQ`.
+    @Published private(set) var linkUserEnabled: Bool = false
     @Published var linkIsConnected: Bool = false
     @Published var linkPeers: Int = 0
     @Published var isWaitingForLinkDownbeat: Bool = false
@@ -53,6 +66,21 @@ class AudioEngine: ObservableObject {
     // con `currentBPM`, `currentAccentPattern`, `currentSectionRepetitions`
     // già esistenti nel file (linea "current* = mirror UI di stato audio").
     @Published var currentLinkMode: LinkMode = .standalone
+
+    // A360 — LA REGOLA DEL FOLLOWER, letta da tutti i punti della mappa (fascia, velo,
+    // badge, freccia del player, RESUME, riga ambra del dettaglio, pedale MIDI):
+    // Follower = ruolo `.collaborativa` E Link acceso dall'utente. L'interruttore
+    // dell'app entra per essere ignorato (background e ritorno non cambiano il ruolo);
+    // «almeno un collegato» decide lo slot E del velo. Solo main: legge i mirror
+    // @Published. Su audioQueue lo stop del motore usa la forma nuda
+    // (`FollowerDecision.isFollower(role:userLinkEnabled:)`) sulle copie di coda.
+    var followerDecision: FollowerDecision {
+        FollowerDecision(role: currentLinkMode,
+                         userLinkEnabled: linkUserEnabled,
+                         appLinkEnabled: linkEnabled,
+                         anyPeerConnected: linkIsConnected)
+    }
+
     @Published var isPlaying   : Bool    = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
@@ -281,6 +309,9 @@ class AudioEngine: ObservableObject {
     private var subdivPlayhead       : Int = -1
     private var _clickMuted: Bool = false   // accesso SOLO su audioQueue
     private var _linkMode: LinkMode = .standalone   // accesso SOLO su audioQueue
+    // A360 — copia su audioQueue di `linkUserEnabled` (la mano dell'utente): la legge
+    // `stopSync()` dentro `audioQueue.sync` per decidere se lo stop parte verso Link.
+    private var _linkUserEnabledQ: Bool = false   // accesso SOLO su audioQueue
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
     // DEFAULT DEVE COINCIDERE con @Published var beatsPerBar (didSet non scatta in init)
     private var _beatsPerBarQ: UInt32 = 4   // accesso SOLO su audioQueue
@@ -474,6 +505,17 @@ class AudioEngine: ObservableObject {
                 engine.audioQueue.async { [weak engine] in
                     guard let engine = engine,
                           let lh = engine.linkEngineHandle else { return }
+                    // A360 — la mano dell'UTENTE: è l'unico punto che scrive il mirror
+                    // `linkUserEnabled` (e la sua copia di coda). LinkKit chiama questo
+                    // callback solo dal pannello Link (e all'avvio, per il valore
+                    // persistito): `setLinkEnabled` — l'app, in background — non passa di qui.
+                    engine._linkUserEnabledQ = isEnabled
+                    DispatchQueue.main.async {
+                        engine.linkUserEnabled = isEnabled
+                    }
+                    os_log("[Q-BEATS][A360] Link dell'utente:%{public}@ (pannello Link / avvio) - ruolo:%{public}@",
+                           log: .default, type: .default,
+                           isEnabled ? "acceso" : "spento", String(describing: engine._linkMode))
                     if isEnabled {
                         let isConn = link_engine_is_connected(lh)
                         DispatchQueue.main.async {
@@ -872,6 +914,61 @@ class AudioEngine: ObservableObject {
                 return
             }
 
+            // A361 (16/09/2026) — LA DECISIONE D'AVVIO DEL FOLLOWER, PRIMA DI TUTTO.
+            // Questo è il punto unico di avvio del motore: ogni innesco (Play del
+            // Direttore via callback, runner, pedale, ripresa dopo un'interruzione di
+            // sistema, cambio di configurazione, reset dei servizi media, risveglio,
+            // recupero pendente, schermata di debug) passa di qui, e la regola sta qui —
+            // non porta per porta. Il Follower (ruolo E Link acceso dall'utente,
+            // `FollowerDecision`) non manda avvio a Link: entra SOLO in una sessione che
+            // suona (`joinRunningSession`, il ramo condiviso di sempre), anche se l'innesco
+            // portava un beat di ripresa; altrimenti il motore NON parte (`stayStopped`).
+            // Da un Follower non escono mai `link_engine_start_at_beat_zero` né
+            // `link_engine_start_at_beat`. Chi comanda il trasporto (Direttore, Solo) parte
+            // come oggi, ripresa compresa. Tipo puro `FollowerStartDecision` (Models/), col
+            // suo banco.
+            // ⚠️ A362 — «almeno un collegato» (`link_engine_num_peers`) NON decide: è la spia
+            //    dei collegati, che può restare indietro (`TD-link-indicator-stale`); prima di
+            //    A361 un Follower con la spia a zero e la sessione che suona entrava comunque
+            //    nel ramo condiviso. Si legge solo per la riga di log.
+            let startDecision: FollowerStartDecision = {
+                var connected = false
+                var sessionPlaying = false
+                if let lh = self.linkEngineHandle {
+                    let probe = link_engine_probe_session(lh, mach_absolute_time(),
+                                                          Double(self._beatsPerBarQ))
+                    connected = link_engine_num_peers(lh) > 0
+                    sessionPlaying = probe.isPlaying
+                }
+                return FollowerStartDecision(role: self._linkMode,
+                                             userLinkEnabled: self._linkUserEnabledQ,
+                                             anyPeerConnected: connected,
+                                             sessionPlaying: sessionPlaying,
+                                             isResume: resumeAtBeat != nil)
+            }()
+            if startDecision.outcome == .stayStopped {
+                os_log("[Q-BEATS][A361] avvio NON eseguito - apparecchio Follower senza sessione che suona - collegato:%{public}@ sessione:%{public}@ ripresa:%{public}@ - motore fermo",
+                       log: .default, type: .default,
+                       startDecision.anyPeerConnected ? "si" : "no",
+                       startDecision.sessionPlaying ? "si" : "no",
+                       startDecision.isResume ? "si" : "no")
+                DispatchQueue.main.async {
+                    // Coerenza del player: mai «playing» a motore spento (dopo un'interruzione
+                    // il motore resta a `.playing` finché qualcuno non lo allinea) e mai un
+                    // Play del Direttore inghiottito dal gate anti double-emit.
+                    self.playbackState = .stopped
+                    self._linkStartEmitInFlight = false
+                }
+                return
+            }
+            if startDecision.outcome == .joinRunningSession {
+                os_log("[Q-BEATS][A361] avvio del Follower - entra nella sessione che suona (join) - ripresa:%{public}@ (beat di ripresa ignorato)",
+                       log: .default, type: .default, startDecision.isResume ? "si" : "no")
+            }
+            // Il beat di ripresa e' di chi comanda il trasporto: il Follower entra sempre come
+            // partenza fresca (`usesResumeBeat` e' falso per costruzione sul Follower).
+            let resumeBeatForStart: Double? = startDecision.usesResumeBeat ? resumeAtBeat : nil
+
             // Build #309: rimosso il vecchio DOWNBEAT WAIT (Opzione B) e il
             // parametro skipLinkWait. La distinzione standalone/master-con-peer/
             // follower avviene ora esplicitamente dentro il blocco do { ... }
@@ -906,7 +1003,7 @@ class AudioEngine: ObservableObject {
 #endif
 
                 if let mh = self.midiEngineHandle {
-                    let resumeBeat: Double? = resumeAtBeat
+                    let resumeBeat: Double? = resumeBeatForStart
 
                     midi_engine_sync_clock(mh, 0, mach_absolute_time(), self.sampleRate)
 
@@ -944,7 +1041,7 @@ class AudioEngine: ObservableObject {
                     // Branching corretto rispetto a #307: distingue standalone puro
                     // (peers==0) da sessione condivisa (peers>0). Lo standalone è
                     // l'unico caso in cui Q-BEATS può sovrascrivere la timeline Link.
-                    if resumeAtBeat != nil {
+                    if resumeBeatForStart != nil {
                         // RESUME: ripartiamo da snappedBeat (calcolato sopra).
                         // Q-BEATS detta la timeline a beat noto. snappedBeat è in
                         // scope sopra dentro l'`if let beat = resumeBeat`,
@@ -953,7 +1050,7 @@ class AudioEngine: ObservableObject {
                         // _startAbsoluteBeat. Offset azzerato.
                         self.startBeatOffset = 0
                         let beatsPerBarD = Double(self._beatsPerBarQ)
-                        let relativePhase = (resumeAtBeat ?? 0.0) - self._startAbsoluteBeat
+                        let relativePhase = (resumeBeatForStart ?? 0.0) - self._startAbsoluteBeat
                         let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
                         let snappedBeatLocal = self._startAbsoluteBeat + snappedRelative
                         self.linkSyncSkipBuffers = 3
@@ -978,7 +1075,14 @@ class AudioEngine: ObservableObject {
                             peersCount = link_engine_num_peers(lh)
                         }
 
-                        if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
+                        // A361 — il Follower e' gia' stato deciso in testa a `start()`: se e'
+                        // qui, entra nella sessione che suona (join) e basta, qualunque cosa
+                        // dica `peersCount` (A362: la spia dei collegati non decide). Il ramo
+                        // standalone/Direttore e il ramo condiviso di chi comanda restano
+                        // quelli di sempre.
+                        if startDecision.outcome == .joinRunningSession {
+                            self.armSharedJoin(retriesLeft: AudioEngine.kSharedJoinMaxRearms)
+                        } else if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
                             // === STANDALONE PURO o DIRETTORE (sorgente unica autoritativa) ===
                             // Bug 2.b ramo X — sorgente autoritativa parte da bar 1: nessun
                             // offset d'ingresso. Garantisce Director/standalone bit-identici.
@@ -1066,7 +1170,7 @@ class AudioEngine: ObservableObject {
                 // valore verrà sovrascritto al fire del work item (vedi flow sopra),
                 // perché il primo sample reale parte a futureHostTime, non a "now".
                 // Per standalone resta corretto.
-                if resumeAtBeat == nil, let mh = self.midiEngineHandle {
+                if resumeBeatForStart == nil, let mh = self.midiEngineHandle {
                     let hostTimeAtFirstSample = mach_absolute_time()
                                                 + self.outputLatencyTicks
                                                 + self.bufferDurationTicks
@@ -1660,6 +1764,23 @@ class AudioEngine: ObservableObject {
 
     // Chiamare SOLO su main thread.
     private func executeMIDIAction(_ action: MIDIAction) {
+        // A360 (16/09/2026) — SUL FOLLOWER IL PEDALE NON AVVIA, NON FERMA E NON SPOSTA LO
+        // SHOW, e non ferma la base (KILL BASE, se assegnato). Resta il muto.
+        // A361 — anche il tap tempo non fa niente: `tapTempo()` → `setBPM` →
+        // `link_engine_set_bpm`, cioe' un tempo che dal Follower uscirebbe verso Link.
+        // Stessa regola della fascia e del velo (`followerDecision`); Direttore e Solo non
+        // cambiano in niente. Elenco per azione nel referto A361.
+        if followerDecision.isFollower {
+            switch action {
+            case .playPause, .stop, .nextSection, .prevSection, .nextSong, .startSong,
+                 .loopToggle, .stopBacktrack, .tapTempo:
+                os_log("[Q-BEATS][A360] pedale MIDI %{public}@ ignorato - apparecchio Follower",
+                       log: .default, type: .default, action.rawValue)
+                return
+            case .muteClickToggle:
+                break
+            }
+        }
         switch action {
         case .playPause:
             if isPlaying { stop() } else { start() }
@@ -1697,8 +1818,26 @@ class AudioEngine: ObservableObject {
             bt = self.beatTotal
             
             // Build #309: notifica Link che la riproduzione è ferma — API semantica.
+            // A360 (16/09/2026) — IL FOLLOWER NON MANDA STOP A LINK, DA NESSUNA PORTA.
+            // Questa è l'UNICA riga da cui uno stop esce dall'apparecchio (mappa A360 §3):
+            // ogni `stop()`, `handleStop()`, fine canzone, fine scaletta, END SHOW, uscita
+            // dalla stanza e pedale MIDI passano di qui. La regola sta QUI e non tasto per
+            // tasto, così una porta aggiunta domani non la riapre. Il Follower continua a
+            // RICEVERE lo stop del Direttore (callback di `link_engine_set_start_stop_callback`
+            // in `init`, ramo `!isPlaying && engine.isPlaying`) e a fermarsi in locale; il
+            // Direttore continua a ignorare quelli dei peer (stesso callback, guardia
+            // `engine._linkMode == .direttore`). Ratifiche: LIBRO
+            // `2026-09-09/11` «IL TRASPORTO È DEL DIRETTORE» · `2026-09-11` «CRITERIO
+            // GENERALE DEL PERIMETRO DEL FOLLOWER»; ticket `TD-follower-stop-propaga`.
+            // Regola nuda su copie di coda: ruolo E Link acceso dall'utente
+            // (`FollowerDecision`). Il ponte (`link_engine_stop`) non si tocca.
             if let lh = linkEngineHandle {
-                link_engine_stop(lh, mach_absolute_time())
+                if FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
+                    os_log("[Q-BEATS][A360] stop NON inviato a Link - apparecchio Follower (ruolo:collaborativa linkUtente:acceso) - il motore si ferma solo in locale",
+                           log: .default, type: .default)
+                } else {
+                    link_engine_stop(lh, mach_absolute_time())
+                }
             }
             // QA-1 drift analysis reset
             self.qa1BeatCounter  = 0

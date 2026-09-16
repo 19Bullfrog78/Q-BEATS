@@ -21,6 +21,10 @@ enum QLiveTheme {
 // BOX5: un posto solo. ⛔ Non è la scala intera: un token si aggiunge qui quando una
 // vista lo usa (STAGE-SECONDARY, STAGE-BODY, STAGE-DATA, STAGE-TITLE non ci sono
 // perché il velo non li usa). Grandezze in punti su base 390, pavimento P = 17.
+// ⚠️ MARCATURA A360 (16/09/2026) — STAGE-SECONDARY è entrato (`Secondary`, sotto): lo usa
+//    la riga 2 dello slot E del velo (lastra ⑧). Gli altri tre restano fuori, per la
+//    stessa ragione di prima. I token del velo li usa ora anche la fascia del Follower
+//    (`TransportView`, riga-regola in STAGE-CAPS): il posto resta uno.
 // Fra apparecchi vale `dimensione = max(pavimento, base × scaleFactor)` (BOX5, riga
 // «Fra device»): `scaled(_:_:)` qui sotto. Sull'iPad è la stessa legge provvisoria del
 // resto della Vista LIVE — l'iPad si fa a parte (LIBRO, riga 2026-09-11 «L'iPAD SI FA
@@ -47,6 +51,17 @@ enum QLiveStage {
     enum Next {
         static let size: CGFloat = 44
     }
+    /// STAGE-SECONDARY — sottoriga ambra, etichette di tasto in minuscolo, note.
+    /// 1,00 × 17 = 17 · JetBrains Mono 500-700 · spaziatura 0,3 · bianco 0,60 (BOX5, tabella
+    /// P = 17). A360: la riga 2 dello slot E del velo (lastra ⑧ `.vlink .c`: peso 500,
+    /// minuscolo come è scritta). Il peso 500 è `JetBrainsMono-Medium`, già registrato
+    /// (`Font+JBMono.swift`, `project.yml`).
+    enum Secondary {
+        static let size: CGFloat = 17
+        static let weight: Font.Weight = .medium
+        static let tracking: CGFloat = 0.3
+        static let opacity: Double = 0.60
+    }
     /// Il velo: distanze e margine della lastra ① (foglio CD 11/09
     /// IL-FOLLOWER-NON-TOCCA-IL-TRASPORTO, `.vnm` margin-top 11 · `.vhint` margin-top 26),
     /// riportate al pavimento 17 con k = 17/13 = 1,308 (BOX5, «Le distanze crescono col
@@ -57,6 +72,14 @@ enum QLiveStage {
         static let gapRelationToName: CGFloat = (11 * k).rounded()
         /// B→C: 26 × k = 34,01 → 34.
         static let gapNameToGesture: CGFloat = (26 * k).rounded()
+        /// A360 — slot E della lastra ⑧ (`.vlink`): C→E `margin-top:26px` («lo stesso respiro
+        /// di B→C») × k = 34,01 → 34; fra le due righe `gap:5px` × k = 6,54 → 7.
+        static let gapGestureToStatus: CGFloat = (26 * k).rounded()
+        static let gapStatusLines: CGFloat = (5 * k).rounded()
+        /// A360 — l'ambra della riga 1 dello slot E (`.vlink .s`, `#f5b820`): già in uso
+        /// (`LiveHeaderView` muto, `TransportView` lampo di KILL BASE). Nessun colore nuovo:
+        /// solo un nome per un valore che c'era.
+        static let statusAmber = Color(hex: "#f5b820")
         static let horizontalMargin: CGFloat = 26
         /// Pulsazione del nome, invariata (BOX5 «Overlay Standby»).
         static let pulsePeriod: Double = 2.2
