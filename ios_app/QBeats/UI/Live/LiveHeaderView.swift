@@ -23,6 +23,14 @@ struct LiveHeaderView: View {
     /// qui, solo render del testo se non-nil.
     let linkRoleBadge: String?
 
+    /// A355 (15/09/2026) — In attesa (velo) il CENTRO e i LED scendono con il resto
+    /// della schermata (il valore lo decide `LiveView`: 10%); la FRECCIA e il MUTO
+    /// restano pieni e toccabili, perché il velo si ferma sotto la testata (BOX5
+    /// «MODELLO DI SESSIONE Q-LIVE», decisione 13; LIBRO riga 2026-09-09/11 «PERIMETRO
+    /// DEL FOLLOWER A SHOW ATTIVO»: solo la freccia verso i Dettagli). 1.0 fuori
+    /// dall'attesa.
+    let contentOpacity: Double
+
     var body: some View {
         HStack(spacing: 8) {
 
@@ -77,6 +85,8 @@ struct LiveHeaderView: View {
                     .font(.jbMono(.regular, size: 15 * scaleFactor))
                     .foregroundColor(Color.white.opacity(0.50))
             }
+            .opacity(contentOpacity)
+            .animation(.easeInOut(duration: 0.3), value: contentOpacity)
 
             Spacer()
 
@@ -116,6 +126,8 @@ struct LiveHeaderView: View {
                         .shadow(color: Color(hex: "#f5b820"), radius: 3)
                 }
             }
+            .opacity(contentOpacity)
+            .animation(.easeInOut(duration: 0.3), value: contentOpacity)
 
             // ── Mute click button ──
             // Attivo: speaker.wave.2.fill bianco — Muto: speaker.slash.fill ambra

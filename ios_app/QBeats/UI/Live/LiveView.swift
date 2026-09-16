@@ -150,71 +150,106 @@ struct LiveView: View {
                     return false
                 }()
 
+                // A355 (15/09/2026) — L'ALTEZZA DELLA TESTATA È UNA: la usa la testata,
+                // e la usa il velo per fermarsi sotto di lei (decisione 13, BOX5
+                // «MODELLO DI SESSIONE Q-LIVE» §1).
+                let headerHeight = geo.size.height * 0.08
+                // A355 — in attesa il corpo scende al 10% come prima; la testata riceve
+                // lo stesso valore e lo applica SOLO al centro e ai LED: freccia e muto
+                // restano pieni e toccabili (`LiveHeaderView.contentOpacity`).
+                let standbyOpacity: Double = isStandby ? 0.10 : 1.0
+
                 VStack(spacing: 0) {
-                    LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge)
-                        .frame(height: geo.size.height * 0.08)
-                    MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
-                        .frame(height: geo.size.height * 0.10)
-                    BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
-                        .frame(height: geo.size.height * 0.08)
-                    MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
-                        .frame(height: geo.size.height * 0.04)
+                    LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge, contentOpacity: standbyOpacity)
+                        .frame(height: headerHeight)
                     VStack(spacing: 0) {
-                        TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
-                            .frame(height: geo.size.height * 0.35)
-                        MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                            .frame(height: geo.size.height * 0.02)
-                        POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                        MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                             .frame(height: geo.size.height * 0.10)
-                        HandleStripView()
-                            .frame(height: geo.size.height * 0.02)
-                    }
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 10)
-                            .onEnded { value in
-                                if value.translation.height > 15 {
-                                    session.showMixer = true
+                        BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
+                            .frame(height: geo.size.height * 0.08)
+                        MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
+                            .frame(height: geo.size.height * 0.04)
+                        VStack(spacing: 0) {
+                            TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
+                                .frame(height: geo.size.height * 0.35)
+                            MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+                                .frame(height: geo.size.height * 0.02)
+                            POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                                .frame(height: geo.size.height * 0.10)
+                            HandleStripView()
+                                .frame(height: geo.size.height * 0.02)
+                        }
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 10)
+                                .onEnded { value in
+                                    if value.translation.height > 15 {
+                                        session.showMixer = true
+                                    }
                                 }
-                            }
-                    )
-                    TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
-                        .frame(height: geo.size.height * 0.21)
+                        )
+                        TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+                            .frame(height: geo.size.height * 0.21)
+                    }
+                    .opacity(standbyOpacity)
+                    .animation(.easeInOut(duration: 0.3), value: isStandby)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
-                .opacity(isStandby ? 0.10 : 1.0)
-                .animation(.easeInOut(duration: 0.3), value: isStandby)
 
                 if case .standby(let nextSong) = session.playbackState {
-                    StandbyOverlayView(nextSongName: nextSong, scaleFactor: scaleFactor)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
-                            // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
-                            // riparte da sezione 8 battito 1» (= opzione B di A240;
-                            // foglio CD 27/08 «alla sezione, non alla battuta»).
-                            // Uno standby con sezione conservata >0 esiste SOLO al
-                            // rientro dopo uno STOP a metà canzone: `primeDisplay`
-                            // arma da .stopped SENZA toccare gli indici. L'ingresso
-                            // fresco (runner appena installato, indici 0/0) e lo
-                            // standby fra due canzoni (il ramo standby di
-                            // `makeSectionEndedClosure` azzera la sezione PRIMA di
-                            // armare) hanno sempre sezione 0 e restano sul ramo che
-                            // azzera — comportamento invariato per costruzione.
-                            // L'observer `linkStartedSubject` più sotto segue la
-                            // STESSA regola dal 30/08 (decisione Mauro: Direttore
-                            // e Follower INSIEME, A267-rev2, ⟦SOL-C⟧) — il limite
-                            // strutturale dell'allineamento è dichiarato nel
-                            // cartello lì.
-                            // ⚠️ A337 (09/09/2026): quell'observer non e' piu' in
-                            //    questa vista — vive in `QLiveSession.attachDirectorPlay`.
-                            if runner.currentSectionIdx > 0 {
-                                runner.startCurrentSection(audioEngine: audioEngine, session: session)
-                            } else {
-                                runner.startCurrentSong(audioEngine: audioEngine, session: session)
-                            }
-                        }
+                    // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
+                    // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
+                    // riparte da sezione 8 battito 1» (= opzione B di A240;
+                    // foglio CD 27/08 «alla sezione, non alla battuta»).
+                    // Uno standby con sezione conservata >0 esiste SOLO al
+                    // rientro dopo uno STOP a metà canzone: `primeDisplay`
+                    // arma da .stopped SENZA toccare gli indici. L'ingresso
+                    // fresco (runner appena installato, indici 0/0) e lo
+                    // standby fra due canzoni (il ramo standby di
+                    // `makeSectionEndedClosure` azzera la sezione PRIMA di
+                    // armare) hanno sempre sezione 0 e restano sul ramo che
+                    // azzera — comportamento invariato per costruzione.
+                    // L'observer `linkStartedSubject` più sotto segue la
+                    // STESSA regola dal 30/08 (decisione Mauro: Direttore
+                    // e Follower INSIEME, A267-rev2, ⟦SOL-C⟧) — il limite
+                    // strutturale dell'allineamento è dichiarato nel
+                    // cartello lì.
+                    // ⚠️ A337 (09/09/2026): quell'observer non e' piu' in
+                    //    questa vista — vive in `QLiveSession.attachDirectorPlay`.
+                    // ⚠️ A355 (15/09/2026) — IL RAMO NON SI DECIDE PIÙ QUI, E NON SI
+                    //    DECIDE DA SOLO. `runner.currentSectionIdx > 0` lo leggeva il
+                    //    tocco e basta, e il velo non diceva niente: ora indice e nome
+                    //    della sezione corrente, nome della canzone e ruolo entrano UNA
+                    //    volta in `StandbyOverlayDecision` (Models/, testato nel banco),
+                    //    e da lì escono sia le tre righe a schermo sia il ramo del tocco
+                    //    (`veilTapped`, sotto). La regola A267 qui sopra vale identica:
+                    //    è solo letta da un posto solo. Il ruolo è la regola incisa
+                    //    `currentLinkMode == .collaborativa` (BOX5 «Chi comanda il
+                    //    trasporto», = `TransportView`), SENZA `linkEnabled`: l'app
+                    //    spegne Link da sola in background a click fermo (`QBeatsApp`,
+                    //    ramo `.background`) e al rientro un Follower leggerebbe «Tap
+                    //    anywhere». Il nome della sezione viene dal runner, lo stesso
+                    //    oggetto che `startCurrentSection` fa suonare.
+                    let veil = StandbyOverlayDecision(
+                        currentSectionIdx: runner.currentSectionIdx,
+                        currentSectionName: runner.currentSection?.name ?? "",
+                        songName: nextSong,
+                        isFollower: audioEngine.currentLinkMode == .collaborativa)
+                    VStack(spacing: 0) {
+                        // Il velo si ferma SOTTO la testata (decisione 13): la fascia
+                        // resta scoperta e freccia e muto arrivano ai loro `Button`.
+                        // Uno `Spacer` non intercetta i tocchi; sotto la testata il
+                        // velo li prende tutti (`contentShape`), anche sul Follower,
+                        // perché i tasti al 10% non devono riceverli. La testata entra
+                        // anche nel velo, che ne toglie l'altezza al proprio spazio in
+                        // alto: le tre righe restano dove stavano col velo intero (A356).
+                        Spacer().frame(height: headerHeight)
+                        StandbyOverlayView(decision: veil, scaleFactor: scaleFactor, headerHeight: headerHeight)
+                            .contentShape(Rectangle())
+                            .onTapGesture { veilTapped(veil) }
+                    }
+                    .onAppear { veilShown(veil) }
                 }
 
                 if case .overlayStop(let sec, let song) = session.playbackState {
@@ -740,6 +775,45 @@ struct LiveView: View {
         // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
         // (subscription legata al lifetime della view), nessun
         // `AnyCancellable` manuale necessario.
+    }
+
+    // MARK: - A355 — il velo: strumentazione passiva e tocco, fuori dal body
+
+    /// A ogni comparsa del velo: ruolo, caso, indice di sezione, nome vuoto sì/no.
+    private func veilShown(_ veil: StandbyOverlayDecision) {
+        os_log("[Q-BEATS][A355] velo - ruolo:%{public}@ caso:%{public}@ sectionIdx:%d nomeVuoto:%{public}@",
+               log: .default, type: .default,
+               veil.isFollower ? "follower" : "comanda",
+               veil.hasResumePoint ? "ripresa" : "partenza",
+               runner.currentSectionIdx,
+               veil.sectionNameIsBlank ? "si" : "no")
+    }
+
+    /// Al tocco sul velo. Chi comanda il trasporto (Direttore, Solo) riparte dal
+    /// ramo che il punto di ripresa decide — nessuna seconda condizione. Il
+    /// Follower non fa partire niente: il tocco sul velo gli è tolto (LIBRO
+    /// 2026-09-11 «CRITERIO GENERALE DEL PERIMETRO DEL FOLLOWER»), la sua uscita è
+    /// la freccia (LIBRO 2026-09-09/11 «PERIMETRO DEL FOLLOWER A SHOW ATTIVO») e il
+    /// RESUME glielo dà il Direttore (LIBRO 2026-09-09/11 «IL COMANDO DEL DIRETTORE
+    /// FA RIPARTIRE ANCHE IL FOLLOWER»; il ramo sta in `QLiveSession.orchestrateDirectorPlay`).
+    private func veilTapped(_ veil: StandbyOverlayDecision) {
+        let ramo: String
+        if veil.isFollower {
+            ramo = "nessuna azione"
+        } else if veil.hasResumePoint {
+            ramo = "sezione"
+        } else {
+            ramo = "canzone"
+        }
+        os_log("[Q-BEATS][A355] tocco sul velo - ruolo:%{public}@ ramo:%{public}@ sectionIdx:%d",
+               log: .default, type: .default,
+               veil.isFollower ? "follower" : "comanda", ramo, runner.currentSectionIdx)
+        guard !veil.isFollower else { return }
+        if veil.hasResumePoint {
+            runner.startCurrentSection(audioEngine: audioEngine, session: session)
+        } else {
+            runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        }
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {
