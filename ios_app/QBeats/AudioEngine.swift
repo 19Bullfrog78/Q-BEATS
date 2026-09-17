@@ -312,6 +312,21 @@ class AudioEngine: ObservableObject {
     // A360 — copia su audioQueue di `linkUserEnabled` (la mano dell'utente): la legge
     // `stopSync()` dentro `audioQueue.sync` per decidere se lo stop parte verso Link.
     private var _linkUserEnabledQ: Bool = false   // accesso SOLO su audioQueue
+#if DEBUG
+    // RIENTRO-P1 (A366, 17/09/2026) — INTERRUTTORE SOLO DEBUG PER LA PROVA A/B DELLA
+    // DECISIONE 9.1 (referto A364, §5.e e §9.1): «chi porta i cambi di tempo quando il
+    // Direttore tace». Acceso (default) = comportamento di oggi: il Follower scrive il tempo
+    // su Link al proprio confine di sezione (W2). Spento = il Follower salta W2.
+    // ⛔ ESISTE SOLO SOTTO `#if DEBUG`: in Release W2 resta identico a oggi, e nessuna
+    //    decisione di prodotto lo legge. Non è una regola: è uno strumento di misura, da
+    //    togliere quando Mauro ha deciso la 9.1.
+    // Il valore NON si conserva: vive finché l'app non si chiude, e nasce sempre acceso.
+    // Due copie, come `linkUserEnabled`/`_linkUserEnabledQ`: questo mirror lo legge la
+    // `DebugView` su main; la copia di coda qui sotto la legge `scheduleNextBuffer` su
+    // audioQueue. Tutte e due le scrive solo `setDebugFollowerBoundaryTempoWrite`.
+    @Published private(set) var debugFollowerBoundaryTempoWrite: Bool = true
+    private var _debugFollowerBoundaryTempoWriteQ: Bool = true   // accesso SOLO su audioQueue
+#endif
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
     // DEFAULT DEVE COINCIDERE con @Published var beatsPerBar (didSet non scatta in init)
     private var _beatsPerBarQ: UInt32 = 4   // accesso SOLO su audioQueue
@@ -393,6 +408,14 @@ class AudioEngine: ObservableObject {
     private(set) var startBeatOffset: Int = 0
     // Opzione B — Link downbeat wait (accesso SOLO su audioQueue)
     private var pendingLinkStart: DispatchWorkItem? = nil
+    // RIENTRO-P1 (17/09/2026) — GENERAZIONE DELL'INGRESSO PENDENTE (accesso SOLO su
+    // audioQueue). Ogni armamento di `armSharedJoin` e ogni annullo (`cancelPendingJoin`)
+    // la alzano di uno; il work item cattura il valore con cui è nato e al fuoco lo
+    // ricontrolla: se non coincide è un fuoco ORFANO e non tocca né il motore né Link.
+    // Nasce dal collaudo del 17/09/2026 (referto A364, §3.d e §4.3): un cambio di
+    // configurazione durante l'attesa d'ingresso lasciava DUE work item armati, e il
+    // secondo fuoco azzerava il seme appena scritto dal primo.
+    private var joinGeneration: Int = 0
     // Build 303 — salta sync Link nei primi 3 buffer dopo fresh play
     private var linkSyncSkipBuffers: Int = 0
     // L1.b sync investigation — conta 3 buffer dopo cambio BPM per log DIRECTOR-ASSERT
@@ -579,6 +602,14 @@ class AudioEngine: ObservableObject {
                 // stop accettava start da peer Collab via START LOCAL (CD-6).
                 // Lettura _linkMode da non-audioQueue: Swift enum è safe per lettura concorrente.
                 if engine._linkMode == .direttore { return }
+                // RIENTRO-P1 (f) — SONDA: a ogni scatto del callback avvio/stop il Follower
+                // logga l'ora dell'ultimo avvio/stop che Link riporta. Solo lettura, solo
+                // log. Va su audioQueue perché le letture App-thread di Link di questo file
+                // vivono tutte lì. È un `async` senza attesa: il cartello qui sotto vieta di
+                // chiamare `stop()` DA DENTRO audioQueue, non di accodarle un lavoro.
+                engine.audioQueue.async {
+                    engine.logTransportStampIfFollower(isPlaying ? "callback avvio" : "callback stop")
+                }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
@@ -713,6 +744,21 @@ class AudioEngine: ObservableObject {
 
     private func armSharedJoin(retriesLeft: Int) {
         guard let lh = self.linkEngineHandle else { return }
+        // RIENTRO-P1 (a) — UN SOLO INGRESSO PENDENTE ALLA VOLTA. Prima di armare si annulla
+        // quello che c'era (fino a oggi l'assegnazione più sotto lo SOVRASCRIVEVA senza
+        // annullarlo: l'annullo viveva solo in `stopSync`) e si alza la generazione: un work
+        // item nato prima, se mai scattasse, si scarta da solo al fuoco. Quando a ri-armare
+        // è il work item stesso (ramo «fire NON su barra»), `pendingLinkStart` è già nil.
+        self.pendingLinkStart?.cancel()
+        self.joinGeneration += 1
+        let generation = self.joinGeneration
+        // RIENTRO-P1 (e) — W4: il Follower entra in una sessione che suona GIÀ (A361), quindi
+        // al fuoco non scrive «si suona» su Link (`link_engine_join_running_session` →
+        // `ABLLinkSetIsPlaying`): il valore non cambierebbe, ma l'ora dello stato avvio/stop
+        // sì, per tutti. Chi comanda il trasporto ed entra in una sessione condivisa (Solo con
+        // Link acceso) scrive come oggi. Regola e banco: `FollowerLinkWriteDecision`.
+        let writesPlayToLink = FollowerLinkWriteDecision.writesIsPlayingAtJoin(
+            role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ)
         // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
         // Q-BEATS si adegua alla timeline Link esistente: quantized
         // launch al prossimo downbeat via join_running_session.
@@ -769,6 +815,12 @@ class AudioEngine: ObservableObject {
             self.isWaitingForLinkDownbeat = true
         }
 
+        // RIENTRO-P1 (f) — SONDA, prima dell'ingresso del Follower: l'ora dell'ultimo
+        // avvio/stop che Link riporta ADESSO. La lettura gemella sta in fondo al work item.
+        if !writesPlayToLink {
+            self.logTransportStamp("prima dell'ingresso")
+        }
+
         // ROTTA α (Build #307→#309): l'annuncio Link è DENTRO
         // il work item. Se l'utente preme stop prima del fire,
         // pendingLinkStart?.cancel() impedisce ogni
@@ -778,6 +830,20 @@ class AudioEngine: ObservableObject {
         let lhCaptured = self.linkEngineHandle
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            // RIENTRO-P1 (a) — FUOCO SCARTATO. Questo work item vale solo se è ancora
+            // l'ULTIMO armato (la generazione con cui è nato è quella corrente) e se il
+            // motore è ancora in moto. Se no è un fuoco orfano — un arresto che non passa
+            // da `stopSync`, o un secondo armamento, sono arrivati nel frattempo — e qui
+            // si esce PRIMA di toccare Link, il DSP, il seme e `_startAbsoluteBeat`.
+            guard generation == self.joinGeneration, self.isRunning else {
+                os_log("[Q-BEATS][RIENTRO-P1] fuoco scartato - generazione:%d attuale:%d motore:%{public}@",
+                       log: .default, type: .default,
+                       generation, self.joinGeneration, self.isRunning ? "in moto" : "fermo")
+                return
+            }
+            // È in esecuzione: non è più «pendente» (e un ri-armo qui sotto non ha niente
+            // da annullare).
+            self.pendingLinkStart = nil
             // === Ferita A — RI-VALIDAZIONE AL FIRE (stato post-setup/post-rezero) ===
             // Il target calcolato all'arm vale solo se, ADESSO, cade ancora su
             // un confine di barra dello stato corrente della sessione. Se nel
@@ -806,7 +872,13 @@ class AudioEngine: ObservableObject {
                 self.isWaitingForLinkDownbeat = false
             }
             if let lh = lhCaptured {
-                link_engine_join_running_session(lh, futureHostTime)
+                if writesPlayToLink {
+                    link_engine_join_running_session(lh, futureHostTime)
+                } else {
+                    // RIENTRO-P1 (e) — W4: vedi `writesPlayToLink` in testa ad `armSharedJoin`.
+                    os_log("[Q-BEATS][RIENTRO-P1] ingresso del Follower - 'si suona' NON scritto su Link (W4) - la sessione suona gia'",
+                           log: .default, type: .default)
+                }
             }
             if let h = self.metronomeHandle {
                 metronome_reset_for_start(h, 0.0)
@@ -878,6 +950,11 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
                    log: .default, type: .default,
                    self._startAbsoluteBeat)
+            // RIENTRO-P1 (f) — SONDA, dopo l'ingresso del Follower: se l'ora è la stessa letta
+            // «prima dell'ingresso», l'ingresso non l'ha toccata (è quello che W4 tolta promette).
+            if !writesPlayToLink {
+                self.logTransportStamp("dopo l'ingresso")
+            }
 
 #if QB_DIAG_SPY
             // SPIA passiva — TRE sorgenti all'aggancio (campo concomitante,
@@ -898,6 +975,62 @@ class AudioEngine: ObservableObject {
         }
         self.pendingLinkStart = work
         self.audioQueue.asyncAfter(deadline: .now() + delaySeconds, execute: work)
+    }
+
+    // RIENTRO-P1 (a) — L'ANNULLO DELL'INGRESSO PENDENTE, per gli arresti che NON passano da
+    // `stopSync`. Chiamare SOLO su audioQueue.
+    // `stopSync` annulla da sé (e resta com'è). Ma tre percorsi mettono `isRunning = false`
+    // senza passarci — inizio di un'interruzione (`handleInterruption`, `.began`), cambio di
+    // configurazione del motore (`handleEngineConfigChange`), cambio di topologia
+    // (`handleRouteChange`, ramo `modeChanged`) — e fino a oggi lasciavano il work item
+    // armato: scattava a motore fermo, oppure in doppio col work item dell'avvio successivo
+    // (collaudo 17/09/2026, giro G3, 10:19:39-41: due «downbeat raggiunto» con un
+    // «seed SKIP» in mezzo; referto A364, §3.d e §4.3).
+    // Alza la generazione: anche un work item che `cancel()` non facesse in tempo a fermare
+    // si scarta da solo al fuoco. Abbassa `isWaitingForLinkDownbeat`, come fa `stopSync`.
+    private func cancelPendingJoin(reason: String) {
+        guard let pending = self.pendingLinkStart else { return }
+        pending.cancel()
+        self.pendingLinkStart = nil
+        self.joinGeneration += 1
+        os_log("[Q-BEATS][RIENTRO-P1] ingresso pendente annullato - motivo:%{public}@ generazione:%d",
+               log: .default, type: .default, reason, self.joinGeneration)
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = false
+        }
+    }
+
+    // RIENTRO-P1 (f) — SONDA DI SOLA LETTURA: l'ora dell'ultimo avvio/stop che Link riporta
+    // (`ABLLinkTimeForIsPlaying`), nell'orologio di questo apparecchio. Chiamare SOLO su
+    // audioQueue. Si LOGGA e basta: nessuna decisione legge questo valore in questo passo.
+    // Serve a misurare su device la domanda rimasta aperta nel referto A364 (§3.k, §4.2): sul
+    // Follower, l'ora che arriva col Play del Direttore resta quella dopo l'ingresso?
+    // `trascorsi_ms` è «adesso − ora»: negativo se l'ora è nel futuro.
+    private func logTransportStamp(_ context: String) {
+        guard let lh = self.linkEngineHandle else { return }
+        var sessionPlaying = false
+        let stamp = link_engine_time_for_is_playing(lh, &sessionPlaying)
+        let now = mach_absolute_time()
+        let elapsedMs: Double
+        if stamp == 0 {
+            elapsedMs = 0.0
+        } else if now >= stamp {
+            elapsedMs = self.machTicksToSeconds(now - stamp) * 1000.0
+        } else {
+            elapsedMs = -self.machTicksToSeconds(stamp - now) * 1000.0
+        }
+        os_log("[Q-BEATS][RIENTRO-P1] ora ultimo avvio/stop - contesto:%{public}@ sessioneSuona:%d oraLink:%llu adesso:%llu trascorsi_ms:%.1f",
+               log: .default, type: .default,
+               context, sessionPlaying ? 1 : 0, stamp, now, elapsedMs)
+    }
+
+    // RIENTRO-P1 (f) — la stessa sonda, per il callback avvio/stop: logga solo sul Follower
+    // (ruolo E Link acceso dall'utente, copie di coda — `FollowerDecision`). Chiamare SOLO su
+    // audioQueue.
+    private func logTransportStampIfFollower(_ context: String) {
+        guard FollowerDecision.isFollower(role: self._linkMode,
+                                          userLinkEnabled: self._linkUserEnabledQ) else { return }
+        self.logTransportStamp(context)
     }
 
     func start(resumeAtBeat: Double? = nil) {
@@ -1070,9 +1203,13 @@ class AudioEngine: ObservableObject {
                                                      phaseAtHost: 0.0,
                                                      tempo: 0.0)
                         var peersCount: UInt32 = 0
+                        // RIENTRO-P1 (c) — l'interruttore dell'APP (`enabled_`): lo spengono sia
+                        // l'utente dal pannello Link sia l'app in secondo piano.
+                        var linkOn = false
                         if let lh = self.linkEngineHandle {
                             probe = link_engine_probe_session(lh, hostNow, quantum)
                             peersCount = link_engine_num_peers(lh)
+                            linkOn = link_engine_is_enabled(lh)
                         }
 
                         // A361 — il Follower e' gia' stato deciso in testa a `start()`: se e'
@@ -1080,9 +1217,27 @@ class AudioEngine: ObservableObject {
                         // dica `peersCount` (A362: la spia dei collegati non decide). Il ramo
                         // standalone/Direttore e il ramo condiviso di chi comanda restano
                         // quelli di sempre.
-                        if startDecision.outcome == .joinRunningSession {
+                        // RIENTRO-P1 (c) — la scelta fra i tre rami esce dal tipo puro
+                        // `FreshStartBranchDecision` (Models/, col suo banco). La tabella è quella
+                        // di sempre — `(peersCount == 0 && !probe.isPlaying) || .direttore` —
+                        // con UNA riga in più: A LINK SPENTO SI VA SEMPRE NEL RAMO STANDALONE.
+                        // `peersCount` è il contatore C++ `numPeers_`, che quando l'utente spegne
+                        // Link dal pannello resta a 1 (collaudo 17/09/2026, giro G7): senza questa
+                        // riga un apparecchio che suona da solo passava dal ramo condiviso.
+                        let branch = FreshStartBranchDecision(
+                            followerJoins: startDecision.outcome == .joinRunningSession,
+                            role: self._linkMode,
+                            linkEnabled: linkOn,
+                            anyPeerConnected: peersCount > 0,
+                            sessionPlaying: probe.isPlaying)
+                        if branch.linkOffOverridesStalePeers {
+                            os_log("[Q-BEATS][RIENTRO-P1] Link spento - ramo standalone (la tabella di sempre avrebbe scelto il ramo condiviso: peers:%u sessione:%d)",
+                                   log: .default, type: .default,
+                                   peersCount, probe.isPlaying ? 1 : 0)
+                        }
+                        if branch.outcome == .followerJoin {
                             self.armSharedJoin(retriesLeft: AudioEngine.kSharedJoinMaxRearms)
-                        } else if (peersCount == 0 && !probe.isPlaying) || self._linkMode == .direttore {
+                        } else if branch.outcome == .standaloneOrDirector {
                             // === STANDALONE PURO o DIRETTORE (sorgente unica autoritativa) ===
                             // Bug 2.b ramo X — sorgente autoritativa parte da bar 1: nessun
                             // offset d'ingresso. Garantisce Director/standalone bit-identici.
@@ -1207,6 +1362,23 @@ class AudioEngine: ObservableObject {
     }
 
     func setBPM(_ bpm: Double) {
+        applyBPM(bpm, orchestratedSectionStart: false)
+    }
+
+    // RIENTRO-P1 (e) — W1: IL TEMPO DI SEZIONE ALL'AVVIO ORCHESTRATO.
+    // Unico chiamante: `SetlistRunner.prepareAndStartCurrentSection` (ogni avvio e ogni
+    // ripartenza di sezione guidati dal runner). Fa tutto ciò che fa `setBPM` — DSP, mirror
+    // `_audioBPM`, ri-àncora MIDI, `currentBPM` — ma SUL FOLLOWER NON SCRIVE IL TEMPO SU LINK:
+    // all'ingresso il Follower prende il tempo della sessione, non lo dà. Fino a oggi lo
+    // scriveva a ogni Play del Direttore e a ogni rientro, anche dalla sezione sbagliata
+    // (collaudo 17/09/2026, giro G3; referto A364, §3.f e §5.e). Direttore, Solo e ruolo
+    // Follower con Link spento dall'utente scrivono come oggi: `FollowerLinkWriteDecision`.
+    // ⚠️ `setBPM` qui sopra NON cambia (metronomo di Q-Studio, tap tempo): scrive sempre.
+    func setSectionBPM(_ bpm: Double) {
+        applyBPM(bpm, orchestratedSectionStart: true)
+    }
+
+    private func applyBPM(_ bpm: Double, orchestratedSectionStart: Bool) {
         guard let h = metronomeHandle else { return }
         audioQueue.async {
             // Task D — Annulla cambio BPM schedulato non ancora scattato.
@@ -1234,10 +1406,58 @@ class AudioEngine: ObservableObject {
                 midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             if let lh = self.linkEngineHandle {
-                link_engine_set_bpm(lh, bpm)
+                // RIENTRO-P1 (e) — W1: vedi `setSectionBPM`.
+                if orchestratedSectionStart,
+                   !FollowerLinkWriteDecision.writesTempoAtOrchestratedStart(
+                        role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
+                    os_log("[Q-BEATS][RIENTRO-P1] tempo di sezione %.1f impostato in locale - NON scritto su Link (W1) - apparecchio Follower",
+                           log: .default, type: .default, bpm)
+                } else {
+                    link_engine_set_bpm(lh, bpm)
+                }
             }
             DispatchQueue.main.async { self.currentBPM = bpm }
         }
+    }
+
+#if DEBUG
+    // RIENTRO-P1 (A366) — il comando dell'interruttore solo DEBUG «Follower: tempo al confine
+    // (W2)» (`DebugView`). Chiamabile da qualunque thread: il mirror si scrive su main, la
+    // copia di coda su audioQueue con un `async` — nessun lock, e niente sul percorso audio
+    // oltre alla lettura di un Bool già sulla coda. Cartello completo sulla dichiarazione di
+    // `debugFollowerBoundaryTempoWrite`.
+    func setDebugFollowerBoundaryTempoWrite(_ enabled: Bool) {
+        os_log("[Q-BEATS][RIENTRO-P1] interruttore DEBUG 'Follower: tempo al confine (W2)' -> %{public}@",
+               log: .default, type: .default, enabled ? "acceso" : "spento")
+        DispatchQueue.main.async { self.debugFollowerBoundaryTempoWrite = enabled }
+        audioQueue.async { self._debugFollowerBoundaryTempoWriteQ = enabled }
+    }
+#endif
+
+    // RIENTRO-P1 (A366) — W2 SI SALTA? Chiamare SOLO su audioQueue, dal ramo del cambio di
+    // sezione di `scheduleNextBuffer`, subito prima di `link_engine_set_bpm_and_beat_at_time`.
+    // In Release rende SEMPRE falso: W2 resta identica a oggi, per tutti i ruoli.
+    // In DEBUG rende vero in UN caso solo: apparecchio Follower (ruolo E Link acceso
+    // dall'utente, copie di coda — `FollowerDecision`) E interruttore spento. Direttore e Solo
+    // non sono toccati, qualunque cosa dica l'interruttore. E logga l'esito a ogni confine,
+    // con ruolo, bpm e stato dell'interruttore: è la riga che la prova A/B deve leggere.
+    private func followerBoundaryTempoWriteSkipped(bpm: Double) -> Bool {
+#if DEBUG
+        let isFollower = FollowerDecision.isFollower(role: self._linkMode,
+                                                     userLinkEnabled: self._linkUserEnabledQ)
+        let switchOn = self._debugFollowerBoundaryTempoWriteQ
+        let skipped = isFollower && !switchOn
+        os_log("[Q-BEATS][RIENTRO-P1] W2 %{public}@ - ruolo:%{public}@ follower:%{public}@ bpm:%.1f interruttore:%{public}@",
+               log: .default, type: .default,
+               skipped ? "saltata" : "eseguita",
+               String(describing: self._linkMode),
+               isFollower ? "si" : "no",
+               bpm,
+               switchOn ? "acceso" : "spento")
+        return skipped
+#else
+        return false
+#endif
     }
 
     // === L1.a — Caricamento sezione + closure end-of-section ===
@@ -1931,6 +2151,9 @@ class AudioEngine: ObservableObject {
                 self.pendingResumeBeat = nil
                 return
             }
+            // RIENTRO-P1 (d) — subito dopo `setCategory`, con `do/catch` proprio: un
+            // fallimento qui NON deve far scattare il ramo Pending qui sopra.
+            self.applyNoSystemAlertInterruptionsPreference(session, site: "riattivazione")
 
             // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive.
             // mode passato dal call site quando noto; nil = rileva ora.
@@ -2024,10 +2247,36 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // RIENTRO-P1 (d) — LA PREFERENZA APPLE «NIENTE INTERRUZIONI DAGLI AVVISI DI SISTEMA».
+    // `AVAudioSession.setPrefersNoInterruptionsFromSystemAlerts(_:)`, iOS/iPadOS 14.5+ (il
+    // target è 16.0: nessun controllo di versione). Documentazione Apple, riletta il
+    // 17/09/2026: con le chiamate in arrivo mostrate a BANNER «prevents the system from
+    // interrupting the audio session with incoming call notifications … The system only
+    // interrupts the audio session if the user accepts the call»; e «This preference has
+    // no effect if the device uses the full-screen display style». Apple la indica per le
+    // app «that you use for music performance».
+    // ⛔ NON ferma Siri, né le sveglie, né la chiamata a schermo intero o ACCETTATA: toglie
+    //    un'interruzione sola, quella dello squillo a banner.
+    // Si imposta subito dopo `setCategory`, nei due punti che la impostano (`setupSession`
+    // e `activateSessionAndStart`), per tutti i ruoli. `do/catch` proprio: un errore qui si
+    // logga e basta, non ferma né l'avvio della sessione né una ripresa.
+    private func applyNoSystemAlertInterruptionsPreference(_ session: AVAudioSession, site: String) {
+        do {
+            try session.setPrefersNoInterruptionsFromSystemAlerts(true)
+            os_log("[Q-BEATS][RIENTRO-P1] preferenza niente-interruzioni-dagli-avvisi impostata - punto:%{public}@",
+                   log: .default, type: .default, site)
+        } catch {
+            os_log("[Q-BEATS][RIENTRO-P1] preferenza niente-interruzioni-dagli-avvisi NON impostata - punto:%{public}@ errore:%{public}@",
+                   log: .default, type: .error, site, error.localizedDescription)
+        }
+    }
+
     private func setupSession() {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .default, options: [])
+            // RIENTRO-P1 (d) — subito dopo `setCategory` (il `do/catch` è dentro la funzione).
+            applyNoSystemAlertInterruptionsPreference(session, site: "setupSession")
             try session.setPreferredSampleRate(sampleRate)
             try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
             // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive
@@ -2635,7 +2884,12 @@ class AudioEngine: ObservableObject {
                         // stesso session commit). Risolve drift sistemico 0.02-0.09
                         // beat ai cambi BPM (test L2.b 15/05/2026 sera, riprodotto
                         // su Tick e Metronome Pro, numeri identici entro 20%).
-                        if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle {
+                        // RIENTRO-P1 (A366) — la terza condizione è l'interruttore SOLO DEBUG
+                        // della prova A/B (decisione 9.1): in Release rende sempre falso e
+                        // questo blocco è quello di sempre; in DEBUG salta W2 solo sul Follower
+                        // con l'interruttore spento. Vedi `followerBoundaryTempoWriteSkipped`.
+                        if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle,
+                           !self.followerBoundaryTempoWriteSkipped(bpm: pending) {
                             let sampleOffset = UInt32(offset)
                             let nanosOffset = Double(sampleOffset) / self.sampleRate * 1.0e9
                             let ticksOffset = UInt64(nanosOffset * Double(self.machTimebase.denom) / Double(self.machTimebase.numer))
@@ -2881,6 +3135,9 @@ class AudioEngine: ObservableObject {
                 self.isAudioInterrupted = true
                 self.isRunning          = false
                 shouldStop              = true
+                // RIENTRO-P1 (a) — questo arresto non passa da `stopSync`: se l'interruzione
+                // cade durante l'attesa d'ingresso, l'ingresso pendente si annulla QUI.
+                self.cancelPendingJoin(reason: "inizio interruzione")
             }
             guard shouldStop else { return }
             playerNode.stop()
@@ -3099,6 +3356,9 @@ class AudioEngine: ObservableObject {
                 self.isRunning = false
                 self.playerNode.stop()
                 self.engine.stop()
+                // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso
+                // pendente, se c'è, si annulla qui.
+                self.cancelPendingJoin(reason: "cambio di topologia")
 
                 self.rebuildGraph(for: detectedMode)
                 self.applyChannelRouting(for: detectedMode)
@@ -3214,6 +3474,10 @@ class AudioEngine: ObservableObject {
 
             self.isRunning = false
             self.playerNode.stop()
+            // RIENTRO-P1 (a) — arresto che non passa da `stopSync`. È il caso del collaudo
+            // del 17/09/2026 (G3, 10:19:39): cambio di configurazione durante l'attesa
+            // d'ingresso, e il riavvio qui sotto armava un SECONDO ingresso accanto al primo.
+            self.cancelPendingJoin(reason: "cambio di configurazione")
 
             // 1. Graph rebuild
             self.rebuildGraph(for: self.detectAudioMode())

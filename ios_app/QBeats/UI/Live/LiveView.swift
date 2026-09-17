@@ -733,6 +733,11 @@ struct LiveView: View {
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
         }
+        // RIENTRO-P1 (b) — il contatore durante il giro d'attesa d'ingresso: vedi
+        // `joinWaitChanged`, fuori dal body.
+        .onReceive(audioEngine.$isWaitingForLinkDownbeat) { waiting in
+            joinWaitChanged(waiting)
+        }
         // P2 — Fade SINCRONIZZATO segmento+LED a fine sezione NATURALE (autostop L1.a).
         // sectionHold=true tiene acceso il segmento durante la finestra di fade
         // (override del gate state==.playing). Dopo durata-beat al BPM corrente,
@@ -793,6 +798,29 @@ struct LiveView: View {
         // SwiftUI `.onReceive(...)` gestisce automaticamente il cancellable
         // (subscription legata al lifetime della view), nessun
         // `AnyCancellable` manuale necessario.
+    }
+
+    // MARK: - RIENTRO-P1 (b) — il contatore durante il giro d'attesa d'ingresso
+
+    /// Collaudo del 17/09/2026 su `c21fbef`, giro G2 e (parole di Mauro): il Direttore ferma
+    /// a «8 di 12» e riparte; per tutto il giro d'attesa l'iPad mostra ancora «8 di 12», poi
+    /// entra e mostra «2 di 12». Causa, misurata (referto A364, §5.k): durante l'attesa
+    /// d'ingresso non arrivano tick, e `session.currentBar` conserva l'ultimo valore — lo
+    /// specchio di `.stopped` qui sopra spegne solo `beatActive`.
+    /// ⇒ Quando il motore dichiara l'attesa (`isWaitingForLinkDownbeat` vero, scritto da
+    /// `AudioEngine.armSharedJoin`) contatore e LED si SPENGONO e l'ancora si invalida:
+    /// trattini, cioè la resa «spento» che questa vista usa già (⟦DISPLAY-FIRMA-A⟧, verdetto
+    /// CD 28/08: `current == 0` ⇒ «—»). Al primo tick dell'ingresso il ramo `tickN == 1` del
+    /// tick handler riconquista l'ancora con `startBeatOffset` e scrive il numero vero.
+    /// Solo Layer 3: nessuna riga del motore cambia per questo. L'emissione di
+    /// sottoscrizione e il ritorno a falso non fanno niente.
+    private func joinWaitChanged(_ waiting: Bool) {
+        guard waiting else { return }
+        os_log("[Q-BEATS][RIENTRO-P1] giro d'attesa d'ingresso - contatore e LED spenti (era battuta:%d)",
+               log: .default, type: .default, session.currentBar)
+        session.currentBar = 0
+        session.beatActive = 0
+        barAnchorValid = false
     }
 
     // MARK: - A355 — il velo: strumentazione passiva e tocco, fuori dal body

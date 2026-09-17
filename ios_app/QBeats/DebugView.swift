@@ -294,6 +294,21 @@ struct DebugView: View {
                     ))
                 }
 
+                // --- RIENTRO-P1 (A366) — PROVA A/B SUL TEMPO AL CONFINE DI SEZIONE (W2) ---
+                // Strumento di misura per la decisione 9.1 (referto A364): acceso = oggi (il
+                // Follower scrive il tempo su Link al proprio confine di sezione), spento = il
+                // Follower salta quella scrittura. Tocca SOLO il Follower; nasce acceso a ogni
+                // avvio dell'app e non si conserva. Tutta questa vista è `#if DEBUG`.
+                SwiftUI.Section("RIENTRO-P1 · prova A/B") {
+                    Toggle("Follower: tempo al confine (W2)", isOn: Binding(
+                        get: { audioEngine.debugFollowerBoundaryTempoWrite },
+                        set: { audioEngine.setDebugFollowerBoundaryTempoWrite($0) }
+                    ))
+                    Text("Acceso = comportamento di oggi. Spento = il Follower non scrive il tempo su Link al cambio di sezione. Direttore e Solo non cambiano. Torna acceso a ogni avvio dell'app.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+
                 // --- BACKTRACK ---
                 SwiftUI.Section("Backtrack (Fase 1.3)") {
                     Button("Arm Test Backtrack") {

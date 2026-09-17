@@ -529,6 +529,31 @@ double link_engine_beat_at_time(LinkEngineHandle handle,
     return beat;
 }
 
+// === RIENTRO-P1 (17/09/2026) — SONDA DI SOLA LETTURA sull'ora dell'ultimo avvio/stop ===
+// ABLLink.h: «Get the time at which a transport start/stop occurs». Misura da fare su
+// device (referto A364, §3.k e §4.2): che cosa riporta questa ora sul Follower quando
+// arriva il Play del Direttore, e se cambia dopo un ingresso. In questo passo il valore
+// si LOGGA soltanto (AudioEngine, etichetta [Q-BEATS][RIENTRO-P1]): nessuna decisione
+// lo legge.
+// ⛔ Nessun commit: lo stato catturato è un'istantanea (ABLLink.h, CaptureAppSessionState:
+// «stores a snapshot of the current Link state») e qui non si modifica niente, quindi non
+// c'è niente da consegnare alla sessione. È la sola funzione di questo ponte che legge
+// senza committare, di proposito: una sonda non deve poter scrivere.
+// Guardia enabled_ come le sorelle: a Link spento rende 0 e «non suona».
+uint64_t link_engine_time_for_is_playing(LinkEngineHandle handle,
+                                         bool*            outIsPlaying) {
+    if (outIsPlaying) *outIsPlaying = false;
+    if (!handle) return 0;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return 0;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    uint64_t timeForIsPlaying = ABLLinkTimeForIsPlaying(state);
+    if (outIsPlaying) *outIsPlaying = ABLLinkIsPlaying(state);
+    return timeForIsPlaying;
+}
+
 bool link_engine_sync_phase(LinkEngineHandle handle,
                             uint64_t hostTimeAtOutput,
                             double   currentBeatPosition,

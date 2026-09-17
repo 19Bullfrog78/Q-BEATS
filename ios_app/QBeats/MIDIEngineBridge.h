@@ -207,6 +207,17 @@ double link_engine_beat_at_time(LinkEngineHandle handle,
                                 uint64_t hostTime,
                                 double quantum);
 
+// === RIENTRO-P1 (17/09/2026) — SONDA DI SOLA LETTURA sull'ora dell'ultimo avvio/stop ===
+// Rende ABLLinkTimeForIsPlaying (ABLLink.h: «Get the time at which a transport
+// start/stop occurs»), in mach ticks dell'orologio locale, e in *outIsPlaying lo stato
+// ABLLinkIsPlaying letto dallo STESSO capture. Non scrive niente e non committa niente.
+// A Link spento (enabled_ falso) rende 0 e *outIsPlaying = false.
+// Serve a MISURARE su device che cosa riporta Link dopo un riaggancio (referto A364,
+// §3.k e §4.2): in questo passo il valore si logga soltanto, nessuna decisione lo legge.
+// Chiamare da audioQueue, come le altre letture App-thread di questo ponte.
+uint64_t link_engine_time_for_is_playing(LinkEngineHandle handle,
+                                         bool*            outIsPlaying);
+
 #ifdef __cplusplus
 }
 #endif

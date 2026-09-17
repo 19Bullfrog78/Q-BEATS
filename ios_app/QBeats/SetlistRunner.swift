@@ -198,6 +198,10 @@ final class SetlistRunner: ObservableObject {
     ///   1. setBeatsPerBar  2. setAccentPattern  3. loadSection  4. setBPM  5. start
     /// loadSection PRIMA di setBPM: registra la nuova sezione e la closure
     /// (race-safe rispetto al drain della sezione precedente).
+    /// ⚠️ MARCATURA RIENTRO-P1 (17/09/2026) — il passo 4 oggi si chiama `setSectionBPM`:
+    ///    stesso posto nell'ordine e stessi effetti locali di `setBPM`, ma sul Follower il
+    ///    tempo NON viene scritto su Link (cartello in `AudioEngine.setSectionBPM`). Le
+    ///    righe qui sopra restano come scritte: si marca, non si riscrive.
     private func prepareAndStartCurrentSection(audioEngine: AudioEngine,
                                                 session: LiveSession) {
         guard let section = currentSection else {
@@ -270,7 +274,10 @@ final class SetlistRunner: ObservableObject {
         audioEngine.loadSection(beatsPerBar: section.beatsPerBar,
                                 repetitions: section.repetitions,
                                 onEnd: closure)
-        audioEngine.setBPM(section.bpm)
+        // RIENTRO-P1 (e) — W1: era `setBPM`. Il tempo di sezione all'avvio orchestrato passa
+        // da `setSectionBPM`: identico per Direttore e Solo; sul Follower resta locale e non
+        // viene scritto su Link (la regola sta nel motore, non qui).
+        audioEngine.setSectionBPM(section.bpm)
 
         // Strada A — Seed del meccanismo seamless: pre-load sezione N+1
         // SOLO se esiste nella stessa canzone. Se nextSection == nil
