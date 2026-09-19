@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 88
-**Decisione:** 2026-09-16 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste. ⇒ **v88 — mandato A358: chiude `TD-follower-trova-il-velo-del-direttore` con gli esiti di collaudo del commit `515e755` (A355+A356+A357), marca la sua riga «Cosa deve succedere» (diceva che al Follower il velo non si mostra — costruito invece: tolto solo il tocco), e apre due ticket PROPOSTA sulle osservazioni di Mauro (scala di palco non applicata a freccia testata e sottoriga RESUME; lampo player-poi-velo all'ingresso).**
+**Versione:** 89
+**Decisione:** 2026-09-18 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste. ⇒ **v89 — mandato A368 (19/09/2026): collaudi del 17-18/09 su `c21fbef` e `7bb5e94`. Chiude `TD-follower-stop-propaga`, `TD-waiting-for-director-start-local-da-togliere` e «WAITING FOR DIRECTOR entra al Play con Ableton Link OFF». Mette in Sez.2, sotto «Settembre 2026», tre ticket nati chiusi (doppio aggancio, contatore nel giro d'attesa, ramo condiviso a Link spento). Apre dieci ticket con gravità PROPOSTA (decide Mauro), fra cui il seme d'ingresso e il Follower bloccato dopo il ritorno del peer. Scarta il WARN «aggancio non su downbeat» (Sez.3). Aggiunge in Sez.4 le misure WAV del 18/09. Marca otto ticket. Sposta due ticket di A358 da §1.5 in coda a §1.3.**
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -260,6 +260,8 @@ Documento di riferimento **UNICO** per tutti i bug e tech debt (TD) Q-BEATS. Agg
   - ⛔ **La gravità NON è assegnata, e la scala dei bug NON si applica a un lavoro da progettare.** Non abbassata: dichiarata **non pertinente**. La riga «PROPOSTA» del titolo **resta dov'è**.
   - ✅ **Ciò che NON scade:** il fatto che oggi il pulsante sia **premibile e inerte durante uno show**. Quello è vero adesso e resta vero finché la console non cambia.
 
+- ⚠️ **MARCATURA 19/09/2026 (A368) — SUL FOLLOWER LA FASCIA HA DUE ELEMENTI, E EMERG È UNO DEI DUE. Zero parole riscritte sopra: si marca.** Da `c21fbef` (A360) la fascia del Follower porta solo la riga «TRANSPORT · DIRECTOR ONLY» ed EMERG: al Follower restano muto, mixer ed EMERG (LIBRO Sez.2, riga `2026-09-11`). [M] EMERG è ancora inerte alla punta `7bb5e94`: `TransportView.swift:214-218`, con la closure vuota a `:220`.
+
 ### TD-direttore-parte-da-bar2 — il conteggio del Direttore parte da 2 e disallinea il Follower (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO)
 - **Osservato:** Mauro, 21/08/2026, collaudo device. iPhone Direttore, iPad Follower, Ableton Link attivo su entrambi, setlist debug «TEST SETLIST L.1b».
 - ⛔ **GRAVITÀ E CAUSA SONO REGISTRI SEPARATI — NON UNIRLI.**
@@ -427,6 +429,65 @@ Regole di ripetizione dichiarate PRIMA di provare. Osservazione: compare «Bar 1
 - **Fix:** NON progettato. Nessuna riga di codice in A348.
 - **Dominio:** CC (codice) su disegno CD del perimetro Follower (mandato suo).
 
+### TD-seme-d-ingresso-e-il-tempo-d-attesa — il Follower che entra in una sessione che suona conta la battuta dal tempo che ha aspettato, non da dove sta la band (🔴 OPEN ALTA / ⚠️ NON BLOCCANTE PALCO — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Fatto [M] (A364 §3.a; 13 ingressi su 13 il 17/09 mattina):**
+  - A ogni avvio l'orologio MIDI riparte da zero.
+  - Il seme d'ingresso si legge da quell'orologio: `startBeat = midi_engine_get_beat_at_time(mh, futureHostTime + outputLatencyTicks + bufferDurationTicks)` (`AudioEngine.swift:901-903` @ `7bb5e94`), poi arrotondato alla battuta (`:918`). La formula è identica a `c21fbef` (`:829-831`, `:846`).
+  - Quindi `startBeat` = battiti trascorsi da `start()` = attesa + latenza.
+- **Effetto:** il seme è giusto solo quando il Follower parte insieme al Direttore. Al rientro a metà canzone vale 0 o 4, qualunque sia la battuta vera.
+  - [R] Sintomo, G3 del 17/09: «s sul battito, n sulla posizione».
+  - [M] Nel log di G3 Follower e Direttore finiscono anche in due canzoni diverse (A364 §3.e).
+- **Perché non si legge da Link [M]:** Link condivide la fase, non il numero della battuta. Il valore del battito è proprio di ogni istanza; la sua fase rispetto al quantum è condivisa fra i collegati (`ABLLink.h:280-283`, in parafrasi; A364 §4.1). Il punto esatto va contato.
+- ⚠️ **NON è chiuso dal passo 1.** I congedi del referee del 17 e del 18/09 lo davano chiuso [R]. A365 ha tolto solo l'azzeramento del seme da parte di un secondo fuoco (A365 §3.a; ticket nato chiuso `TD-follower-doppio-aggancio`, Sez.2). Il collaudo atteso diceva che il rientro da Siri non cambia (A365 §7.6).
+- **Cura:** passo 2, con conteggio silenzioso, rientro esatto e seme esatto (A364 §5.b, §5.c, §5.i).
+- **Osservazione aperta (19/09/2026, A368), da tracciare nel passo 2 — il valore di «downbeat raggiunto».**
+  - [M] Le righe «downbeat raggiunto» (`:946-952`) scrivono `startBeat`. Nel log dell'iPad del 17/09 sera sono 14:
+    - **12** coincidono con **1024 campioni** (21,33 ms a 48 kHz) al BPM dell'ultima riga `bpm:` del log: 0,0320 a 90, 0,0356 a 100, 0,0391 a 110, 0,0498 a 140.
+    - **2** no: uno 0,0356 dopo `bpm:90` e uno 0,0480 dopo `bpm:100`. Non è verificato se il sequencer avesse in quel momento un altro tempo.
+  - [M] Il 18/09 il valore è 0,0356 in 7 log su 7.
+  - [M] Quello scarto non è `outputLatencyTicks + bufferDurationTicks`: la somma fa 15,17 ms, identica nei due giorni, ed è lo scarto della riga WARN (Sez.3).
+  - [A] Meccanismo:
+    - `scheduleNextBuffer` riancora l'orologio MIDI a ogni buffer: `midi_engine_sync_clock(mh, bufferCount * bufferSize, mach_absolute_time(), …)` (`:2700-2703`).
+    - Al fuoco partono tre buffer (`:938-940`).
+    - La lettura (`MIDIEngine.mm:379-394`) non proietta oltre l'ultima àncora quando l'istante chiesto le sta prima (`:385`).
+    - Quindi 1024 campioni sono due buffer.
+  - **Da stabilire:**
+    - Il commento di `:941-944` chiama quel valore «il valore corretto» del primo campione reale; la misura dice due buffer. Quale dei due sia giusto non è stabilito.
+    - `_startAbsoluteBeat` fa da riferimento allo snap della ripresa (`:1148-1152`, `:1186-1188`).
+    - `_startAbsoluteBeat` si scrive anche a `:1332`, nella partenza fresca: lì lo stesso effetto non è misurato.
+- **Collegamenti:**
+  - `TD-follower-rejoin`: il seme «rete portante» di Bug 2.b.
+  - Il WARN «aggancio non su downbeat» in Sez.3: falso allarme per costruzione.
+  - `TD-follower-doppio-aggancio`, in Sez.2.
+- **Fix:** passo 2. **Dominio:** CC.
+
+### TD-follower-bloccato-dopo-il-ritorno-del-peer — riacceso il Wi-Fi dell'iPad, il Follower non parte più al Play del Direttore finché non si fa END SHOW su tutti e due (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Racconto di Mauro, 18/09, senza log [R], verbatim:** «se porto entambi i device su Test song A ma dimentico ipad senza wifi lui correttamente mi dice "No device connected" allora io accendo il wifi la scritta da ipad sparisce [...] se clicco su direttore per partire il follower non parte [...] anche se sono entrambi connessi il follower non parte. per farlo partire normalmente devo fare end show su entrambe i device entrare sul setlist certo che entrambi abbiamo il peer e allora questo blocco non c'e'». La stessa sera erano stati fatti i giri di rete persa a metà canzone, G62 e G63 [R].
+- **Candidati — nessuno tracciato:**
+  - **(1) Ipotesi di Mauro:** un meccanismo che aspetta la fine della canzone. Da verificare:
+    - la regola del 17/09 sulla rete persa (LIBRO Sez.2, riga `2026-09-17`) è il passo 4, non costruito (A364 §10);
+    - A364 §11 segnala una corsa stretta a fine canzone fra lo stop del Direttore e la chiusura del Follower.
+  - **(2) [A] La copia della sessione sull'iPad resta «si suona».**
+    - Il Wi-Fi era rimasto spento, verosimilmente dal giro di rete persa a metà canzone.
+    - Dal 16/09 il Follower non manda stop a Link (A360), e lo stop del Direttore non gli è arrivato.
+    - Al Play del Direttore, visto dall'iPad, lo stato va da vero a vero. Il callback avvio/stop scatta solo quando lo stato cambia (`ABLLink.h:96`), quindi non scatta.
+    - Coerente con lo sblocco: END SHOW del Direttore manda uno stop.
+    - Rischio già scritto nel congedo del referee del 16/09, §2 [R].
+    - Che cosa faccia Link quando due pezzi di sessione si ricongiungono non è scritto nell'intestazione (A364 §5.f).
+  - **(3) L'ipotesi del referee del 18/09 [R]**, «nessuno collegato» letto al montaggio del velo, non regge: i collegati non entrano nell'esito della decisione d'avvio (`Models/FollowerStartDecision.swift`: campo solo per il log `:48-49`, esito `:66-72`, marcatura A362 `:20-22`).
+- **Riproduzione candidata [A]:**
+  1. Il Follower suona.
+  2. A metà canzone si spegne il Wi-Fi dell'iPad.
+  3. Il Direttore finisce la canzone, o si ferma.
+  4. END SHOW e START SHOW su tutti e due, con l'iPad ancora senza Wi-Fi.
+  5. Si riaccende il Wi-Fi.
+  6. Play del Direttore.
+- **Prova che decide:** al Play del Direttore, nel log dell'iPad c'è o no «[RIENTRO-P1] ora ultimo avvio/stop - contesto:callback avvio» (`AudioEngine.swift:611`, formato `:1022`)? Tre avvertenze:
+  - «velo - regola» (`LiveView.swift:838`) si scrive solo quando il velo compare (`veilShown`);
+  - la riga che segue il collegamento è «velo - slot E» (`:273`);
+  - un Play fermato dal lucchetto (`AudioEngine.swift:619`, `_linkStartEmitInFlight`) non lascia righe.
+- **Fix:** da tracciare nel passo 2, prima di toccare il velo. **Dominio:** CC.
+
 ## ⚠️ 1.2 — Non bloccanti palco, da chiudere pre-release v1 (🟠 OPEN MEDIA)
 
 > 🚨 **MARCATURA 29/08/2026 (A249) — QUESTA INTESTAZIONE MENTE SU UN TICKET, E IL CENSIMENTO DEI BLOCCANTI NE DIPENDE.** `TD-fineshow-bottoni-morti`, più sotto **in questa sezione**, porta **nel titolo il marcatore di gravità-palco** (scritto per esteso lì, non qui — ⛔ **e non si ripete in questa riga di proposito: ripeterlo falserebbe il censimento che questa riga esiste per riparare**) con **severità assegnata da Mauro il 04/08/2026**. ⇒ **Chi conta i bloccanti per SEZIONE ne trova SEI: sono SETTE.** Il ticket **denuncia da solo la propria collocazione**, e lo faceva già prima di questa marcatura. ⛔ **Rimedio scelto: si marca l'intestazione, NON si sposta il ticket** — spostarlo romperebbe ogni citazione alla sua posizione, e il registro storico non si riscrive. ✅ **LA REGOLA CHE NE ESCE, e ha TRE clausole perché due non bastano: i bloccanti si contano per CONTENUTO, mai per sezione — **(1)** cercando il marcatore, **(2)** escludendo la negazione («NON bloccante»), **(3)** escludendo i ticket il cui titolo è 🟢 CHIUSO, il cui CORPO conserva il marcatore come **storia** e non come stato. E la somma si quadra col totale dei titoli.** ⚠️ **Misurato il 29/08 su questo stesso file:** la sonda a due clausole rende **9** ticket; quella a tre rende **7**, che è il numero vero. I due di scarto sono `TD-stop-perde-il-punto` (chiuso, marcatore nel corpo) e — prima che questa riga fosse riscritta — **questa marcatura stessa**, che citando il marcatore per esteso lo attribuiva al ticket che la precede.
@@ -491,7 +552,9 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ⚠️ **RELAZIONE CON UNA DECISIONE GIÀ RATIFICATA, e cambia la lettura di questo ticket:** la **decisione D15** di Mauro (23/08, riconfermata 24/08, `LIBRO_MASTRO_QBEATS.md` Sezione 2) dispone che **«LOOP ∞» SI ELIMINA dall'editor delle sezioni**, con ticket dedicato `TD-loop-infinito-da-rimuovere`. ⇒ L'eliminazione **non è una probabilità: è già decisa**. ⛔ **Ma i due ticket NON si fondono:** D15 toglie il **controllo dall'editor**, e **non** toglie `repetitions = -1` dai **dati già esistenti né dai file importati** — che restano una via d'ingresso al caso cieco.
 - ⚠️ **RIVALUTAZIONE:** se il loop **non** viene eliminato, questo ticket **torna sul tavolo di Mauro**.
 - **Stato:** 🟠 OPEN MEDIA / **NON** bloccante palco — **rischio accettato da Mauro 29/08/2026**. **Dominio:** CC (Layer 1) + CD (la didascalia `LOOP`, Firma E).
-### TD-follower-stop-propaga — Lo stop di un Follower parla a Link come quello del Direttore (asimmetria start/stop) (🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO — alzato il 14/09/2026 da A348 sulle ratifiche di Mauro del 09-11/09; era 🟠 OPEN MEDIA dal 19/07)
+### TD-follower-stop-propaga — Lo stop di un Follower parla a Link come quello del Direttore (asimmetria start/stop) (🟢 **CHIUSO — collaudo Mauro 17/09/2026, riportato dal referee**; era 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO, alzato il 14/09/2026 da A348 sulle ratifiche di Mauro del 09-11/09; era 🟠 OPEN MEDIA dal 19/07)
+
+> ✅ **CHIUSURA 19/09/2026 (A368). Il testo sotto resta come fu scritto: si marca, non si riscrive.** Fix: commit `c21fbef` (A360 §1.1), la guardia in `stopSync`: sul Follower, cioè ruolo Follower **e** Link acceso dall'utente (`FollowerDecision`), lo stop non va a Link e il log lo dice («stop NON inviato a Link», `AudioEngine.swift:2056` @ `7bb5e94`). [R] Collaudo di Mauro con iPhone Direttore e iPad Follower: G2 d e G5 b del 17/09, superati. [M] Log dell'iPad del 17/09 sera (`7bb5e94`): **9 righe «stop NON inviato a Link» su 9 stop locali dell'iPad, nessuno inviato a Link.** Accanto ci sono 10 callback stop del Direttore visti dall'iPad; la differenza è spiegata nel referto A368 §3.B. [A] Il callback ferma solo un motore che suona (`AudioEngine.swift:623`). ⚠️ **Non provato:** un secondo Follower, perché tre apparecchi non ci sono (Mauro, 18/09). La «Prova da fare» qui sotto resta una prova da fare, non un difetto aperto.
 
 🚨 **MARCATURA 14/09/2026 (mandato A348) — SALE A 🔴 OPEN ALTA / 🚨 BLOCCANTE PALCO. Il testo sotto resta come fu scritto il 19/07: si marca, non si riscrive.** Il mandato A348 (6.1) chiedeva di aprire un ticket nuovo, «IL FOLLOWER CHE SI FERMA FERMA ANCHE GLI ALTRI FOLLOWER»: **è questo ticket**, aperto il 19/07 su misura a `fe6d34b`; CC non lo duplica e lo alza qui. **Misura alla punta `84e21ee1`:** `stopSync()` (`AudioEngine.swift:1681`) emette `link_engine_stop` **senza guardia di ruolo** (`:1700-1701` → `LinkEngine.mm:485-495` → `ABLLinkSetIsPlaying(state, false, hostTime)`). Chi riceve: **il Direttore ignora** (`AudioEngine.swift:539`, `if engine._linkMode == .direttore { return }`), **gli altri Follower obbediscono** (`:550-551`, `engine.stop()`) — se Start/Stop Sync è acceso (`Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h:18-20`: «only shared with other peers when start/stop synchronization is enabled»). ⚠️ Nel mandato le righe `:539` e `:550-551` seguivano la citazione di `LinkEngine.mm`: **stanno in `AudioEngine.swift`** (a `LinkEngine.mm:539` e `:550-551` ci sono commenti sul timebase). **Perché sale:** le ratifiche di Mauro del 09-11/09 (LIBRO v82, Sez.2: il trasporto è del Direttore · perimetro del Follower · «tutto quello che incide verso l'esterno del device viene tolto») rendono questo codice **una violazione di perimetro ratificato**, non più un latente condizionato a un'impostazione. ⇒ **Il Follower non deve MANDARE stop, e deve continuare a RICEVERE quelli del Direttore** — l'asimmetria `:539`/`:550-551` È il comando, non un difetto da pareggiare (lo riconosce anche CD nel foglio LA-TABELLA-FINALE dell'11/09, §5.1). ⚠️ Nel foglio CD LA-SCALA-DI-PALCO dell'11/09 c'era una prescrizione opposta, **ritirata da CD stesso**: non seguirla. ⛔ Resta in §1.2 per posizione — spostarlo farebbe slittare le righe di tutto ciò che sta sotto e romperebbe le citazioni `FILE:riga`; **conta come 🔴**. Fix: NON progettato, nessuna riga di codice in A348.
 
@@ -534,6 +597,11 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Scope:** indicatore **binario** (verde = peer presente, spento = nessun peer); obiettivo = il Direttore vede l'aggancio. Distinto da `TD linkPeers` (Sez.2): qui il problema è il **booleano stale**.
 - **Stato:** 🔵 **COSMETICO — SOSPESO (24/06).** Non bloccante: **il peer NON viene perso**, la sync è sempre corretta — è **solo l'indicatore**, intermittente (prova 24/06: regolare anche col Direttore acceso dopo il Follower; trigger ignoto). Sintomo + recovery **device-confermati 23/06** (resta ground truth). Meccanismo LinkKit = **ipotesi**; questa build **non logga il read vivo** → un eventuale fix va deciso solo dopo un diagnostico (FASE 0). **NON 🟢 CHIUSO, NON inseguito ora:** lavoro fatto (ricognizione + review + direzione fix 129-133 + lean "Mondo 1") **agganciato qui** → se diventa più che cosmetico si riparte da lì. Decisione 24/06: energie su fronti core (Control Center audio). Workaround utente → INFORMATION (Pre-volo).
 - **Dominio:** CC.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — IL CONTATORE CHE RESTA INDIETRO È UNA COPIA NOSTRA, E DAL 16/09 LO LEGGONO ANCHE IL VELO E L'AVVIO. Zero parole riscritte sopra: si marca.**
+  - [M] `numPeers_` (`LinkEngine.mm:13` @ `7bb5e94`) si scrive solo nel callback `isConnected` (`:56-57`). A Link spento resta quindi all'ultimo valore: è una copia nostra, non di LinkKit. Il congedo del referee del 18/09 lo attribuiva a LinkKit [R]: falso.
+  - Il ramo d'avvio a Link spento non lo legge più (`FreshStartBranchDecision`, A365 §3.c; ticket nato chiuso `TD-ramo-condiviso-a-link-spento`, Sez.2).
+  - La decisione d'avvio del Follower non dipende dai collegati (A362).
+  - **Resta lo slot E del velo** (A360), che legge la spia: [M] `followerDecision` si costruisce con `anyPeerConnected: linkIsConnected` (`AudioEngine.swift:81` @ `7bb5e94`). Se l'indicatore resta indietro, dice «No device connected» col collegato presente, o il contrario.
 
 ### TD-control-center-slide-audio — Click rallenta durante l'ANIMAZIONE dello slide del Control Center (🔵 COSMETICO / AMBIENTALE — non bloccante / mitigato)
 - **FATTO osservato (device, Mauro 24/06, ground truth):** rallentamento del click **solo durante l'animazione dello slide** (mentre si tira giù la tendina). **Assente** a tendina **completamente aperta e ferma**; **assente** a tendina chiusa. **Recupero pulito** a tempo alla chiusura (nessuno sfasamento residuo). **Solo iPad A10 (iPad 7), NON iPhone.** **Solo con setlist LONG (9h), NON con la L1b normale.**
@@ -815,6 +883,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ✅ Il badge non è coinvolto: copre correttamente i tre ruoli e sparisce con Link spento (`LiveView.swift:66-73`).
 - **Conseguenza operativa registrata:** rende **non eseguibile** la riga ⑤ della matrice di `TD-direttore-parte-da-bar2`.
 - **Gravità: 🟠 OPEN MEDIA / ⚠️ NON BLOCCANTE PALCO — ratificata da Mauro 22/08/2026**, da chiudere PRIMA della v1. Il buco è reale, ma **si può sempre suonare da soli spegnendo Link**: misurato dal referee, con `linkEnabled == false` il ramo d'avvio `AudioEngine.swift:971` si comporta da standalone per tutte le modalità, e il badge sparisce (`LiveView.swift:66-73`, `guard audioEngine.linkEnabled`) ⇒ nessun «DIRECTOR» falso sullo schermo. È un **requisito di distribuzione** — chi sceglie Follower una volta resta con un ruolo che non sa togliersi — **non un difetto di palco**. Stessa famiglia di `TD-qlive-non-scalata-ipad`.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — LA PREMESSA DELLA GRAVITÀ È DI NUOVO VERA, IN Q-LIVE. Zero parole riscritte sopra: si marca.** La gravità poggia su «si può sempre suonare da soli spegnendo Link». Da `c21fbef` è la regola di Q-Live: `FollowerDecision`, ruolo Follower **e** Link acceso dall'utente; a Link spento l'apparecchio è Solo in tutto (A360). [R] Collaudato G7 del 17/09. Gravità invariata; parere di Mauro atteso.
 
 ### TD-eol-sorgenti-divergenti-disco-deposito — su trenta file tracciati il disco e il deposito non coincidono, e l'impronta che si dichiara dipende da quale dei due si guarda (🟠 OPEN MEDIA / ⚠️ NON BLOCCANTE PALCO — **PROPOSTA, non assegnata: decide Mauro**)
 
@@ -853,7 +922,9 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - ⚠️ **Collegato al vincolo aperto della riga ambra** (`BOX5_QBEATS.md` §4 del capitolo): anche quello ha **un innesco su due**, e il secondo è lo stesso bivio mancante. **Due debiti diversi, la stessa causa.**
 - **Stato: PROPOSTA di severità 🟠 OPEN MEDIA — ma CC dichiara che è un candidato 🔴 BLOCCANTE PALCO, e il valore lo assegna Mauro, non è assegnato qui.** Motivo della proposta al rialzo: la decisione che lo genera è **esplicitamente una regola di palco**, motivata dal costo di un errore mentre si suona; se il criterio è quello, una porta aperta per errore a show vivo appartiene alla 1.1. **Dominio:** CD (il bivio) + CC (la gamba del dettaglio).
 
-### TD-waiting-for-director-start-local-da-togliere — `WaitingForDirectorView` con «START LOCAL» è ancora nell'app, e il Follower ci arriva premendo PLAY (🟠 OPEN MEDIA — aperto 14/09/2026, A348)
+### TD-waiting-for-director-start-local-da-togliere — `WaitingForDirectorView` con «START LOCAL» è ancora nell'app, e il Follower ci arriva premendo PLAY (🟢 **CHIUSO — collaudo Mauro 17/09/2026, riportato dal referee**; era 🟠 OPEN MEDIA, aperto 14/09/2026, A348)
+
+> ✅ **CHIUSURA 19/09/2026 (A368). Il testo sotto resta come fu scritto: si marca, non si riscrive.** Fix: commit `c21fbef` (A360 §1.4). `WaitingForDirectorView.swift` è cancellato, e con lui START LOCAL, CANCEL e `.waitingForDirector`; il Follower non ha PLAY. [R] Collaudo: G2 b del 17/09, superato. [M] Alla punta `7bb5e94` il file non esiste, e «START LOCAL» non sta in nessuna stringa a schermo né in nessuna riga eseguibile. Restano **16 righe di commento** in `ios_app/` (`git grep -hI "START LOCAL" 7bb5e94 -- ios_app | wc -l`). Quasi tutte sono storia già marcata, perché le marcature A360 in `LivePlaybackState.swift`, `TransportView.swift` e `LiveView.swift` dichiarano storia il testo vicino, oppure rimandi al titolo LIBRO «NIENTE START LOCAL». **Residuo del ticket chiuso:** due punti ne parlano ancora al presente, senza marcatura. Sono `SetlistRunner.swift:168-172`, i «Chiamanti» di `startCurrentSection`, e `AudioEngine.swift:481-482`, il motivo del ramo Direttore fermo. Si marcano nel primo mandato di codice che tocca quei file: il passo 2.
 
 - **Aperto il 14/09/2026 (mandato A348, 6.3).** Contro la ratifica di Mauro del 10/09 **«NIENTE START LOCAL»** (LIBRO v82, Sez.2, riga `2026-09-10`), che supera la ratifica del 27/05 (LIBRO Sez.1, riga `START LOCAL`, cella marcata).
 - **Misurato a `84e21ee1`:** il Follower che preme PLAY entra in `.waitingForDirector` (`TransportView.swift:59-66`, `audioEngine.currentLinkMode == .collaborativa`); `LiveView.swift:295` monta `WaitingForDirectorView`, che offre il tasto `START LOCAL` (`WaitingForDirectorView.swift:61`) → `onStartLocal` → `runner.startCurrentSection`. È il Follower che **parte da solo**: esattamente ciò che Mauro ha respinto («MEGLIO UN END SHOW E IL FOLLOWER SI FERMA»).
@@ -867,12 +938,60 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Conseguenza:** il click parte e suona, ma non segue lo show; il contatore non si chiude. Dal pedale — cioè l'uso mani-libere sul palco.
 - **Collegamenti:** voce «MIDI azioni-contenuto non cablate a L3» in §1.2 · `TD-bivio-stantio-da-click-esterno` (stesso innesco, altro effetto).
 - **Fix:** NON progettato. **Dominio:** CC.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — SUL FOLLOWER IL PEDALE NON AVVIA NULLA, TAP TEMPO COMPRESO. Zero parole riscritte sopra: si marca.** Da `c21fbef` `executeMIDIAction` ignora sul Follower, con una riga di log, `.playPause`, `.stop`, `.nextSection`, `.prevSection`, `.nextSong`, `.startSong`, `.loopToggle`, `.stopBacktrack` (A360 §1.8) e `.tapTempo` (A361 §1.2); resta il muto. Il ticket resta aperto per Direttore e Solo. Non provato su device: nessun pedale.
 
 ### TD-bivio-stantio-da-click-esterno — se il click riparte da fuori (pedale MIDI) il pannello resta «SHOW STOPPED» (🟠 OPEN MEDIA — aperto 14/09/2026, A348)
 
 - **Aperto il 14/09/2026 (mandato A348, 6.5).** **Misurato a `84e21ee1`:** `bivioAperto` (`QLiveRootView.swift:54`) va a `true` in un solo punto (`:228`) e cade **solo** con le sue tre uscite (`:570`, `:575`, `:591`) e con `navigate` (`:135`). Un avvio del motore che non passa da quelle uscite — il pedale MIDI PLAY/PAUSE, `AudioEngine.swift:1664-1665` — lascia il bivio aperto sopra un click che suona: il pannello dice «SHOW STOPPED» e lo show va.
 - **Collegamenti:** `TD-pedale-midi-play-senza-runner` (l'innesco) · bivio costruito da A343 (`c6df789`), collaudato il 10/09 sei giri su sei — nessuno dei sei con un pedale.
 - **Fix:** NON progettato (il bivio deve cadere anche sullo specchio del motore, non solo sulle sue uscite — da decidere). **Dominio:** CC.
+
+### TD-follower-scrive-il-tempo-su-link — il Follower scrive il tempo nella sessione Link (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Mappa [M] (A364 §3.f; A361 §2.B e §5):** dal Follower si raggiungono quattro scritture verso Link. **W1:** il tempo a ogni avvio orchestrato (`setBPM` ← `SetlistRunner`). **W2:** il tempo al confine di sezione (`scheduleNextBuffer`). **W3:** il metronomo di Q-Studio (`setBPM` ← `ContentView`), per qualunque ruolo. **W4:** «si suona» a ogni ingresso (`link_engine_join_running_session`).
+- **Stato alla punta `7bb5e94`:** W1 e W4 sono tolte sul Follower (A365 §3.e, `FollowerLinkWriteDecision`). [M] Log dell'iPad del 17/09 sera: 11 righe «NON scritto su Link (W1)» e 14 righe «'si suona' NON scritto su Link (W4)». **W2 scrive sempre**; l'interruttore che la spegne esiste solo nella build DEBUG ed è per la prova A/B (A366). **W3 resta.**
+- **Decisione 9.1 di Mauro, 18/09** (LIBRO Sez.2, riga `2026-09-18`): «strada 2 e poi strada 3». Strada 2, da costruire nel passo 2: il Follower scrive il tempo al confine solo quando il tempo su Link è diverso da quello che deve suonare. Strada 3, nel passo 3: il conteggio silenzioso del Direttore scrive il tempo anche ad audio fermo.
+- **Esiti della prova A/B del 18/09 — misure del referee sui WAV [R]:**
+  - W2 acceso, Direttore muto (A1, A2): l'iPad cambia tempo al confine.
+  - W2 spento (B1, B2): l'iPad resta a 100 BPM; dopo la chiusura di Siri sul Direttore fa 501 · 430 · 270 ms e torna a 600.
+  - Rete persa: con W2 spento (G62) l'iPad resta fisso a 600,72 ms mentre l'iPhone va a 120 e 140; con W2 acceso (G63) i due click si sovrappongono.
+  - COLL (Direttore vivo, W2 acceso): nessun artefatto, un giro; il microfono non separa due click sotto circa 50 ms.
+  - Primo intervallo dopo il passaggio 100→120: 508-509 ms in A1, A2, G63 e COLL; 501 in G62.
+- **Aperti nel ticket:**
+  - [A] Con Direttore e Follower allineati, la doppia scrittura dello stesso tempo sullo stesso confine è il caso normale, non il raro.
+  - [A] 508 contro 501: l'istante che W2 stima (`AudioEngine.swift:2901-2902`) cadrebbe sotto la soglia dell'assert del Direttore (0,04 battiti, `LinkEngine.mm:749`). Da verificare con le righe «[LINK] Phase sync» al confine (A366 §4).
+- **Fix:** strada 2 nel passo 2. **Dominio:** CC.
+
+### TD-media-reset-del-direttore-ferma-la-band — il reset dei servizi audio sul Direttore manda uno stop a Link e riparte da zero (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Fatto [M], alla punta `7bb5e94`:** `handleMediaReset` (`AudioEngine.swift:3414-3432`) chiama `stopSync()` (`:3416`). Sul Direttore la guardia di A360 non si applica: lo stop va a Link e i Follower si fermano. Poi `activateSessionAndStart(resumeAtBeat: nil, trigger: "media_reset")` (`:3430`) riparte da zero (A364 §4.4).
+- **Contro** il principio della band (LIBRO Sez.2, riga `2026-09-17`): un apparecchio in crisi, Direttore compreso, non ferma la band.
+- **Mai provato su device.**
+- **Fix:** passo 3, con arresto locale senza stop a Link e poi rientro esatto (A364 §5.a). **Dominio:** CC.
+
+### TD-direttore-rientra-da-zero-e-sposta-la-griglia — a fine interruzione il Direttore riparte dalla prima battuta della sezione e impone la sua griglia a tutti (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Fatto [M] (A364 §3.m), alla punta `7bb5e94`:**
+  - Con Link acceso, la fine interruzione passa `resumeAtBeat: nil` (`AudioEngine.swift:3267`).
+  - `start` prende il ramo del Direttore, con `link_engine_start_at_beat_zero` (`:1260`), e il contatore di sezione riparte da zero.
+  - L'assert del Direttore sposta poi la griglia quando lo scarto supera 0,04 battiti (`LinkEngine.mm:749`), con `ABLLinkForceBeatAtTime` (`:769`). L'intestazione di Link descrive questa chiamata come una rimappatura brusca del rapporto fra battito e tempo, per tutti i collegati (`ABLLink.h:349`).
+- **Contro** la decisione di Mauro del 17/09 sulle interruzioni (LIBRO Sez.2, riga `2026-09-17`): il Direttore rientra senza alterare la sessione.
+- **Probabile firma [R], non verificata:** la coda di B1 e B2 della prova A/B del 18/09. Dopo la chiusura di Siri sul Direttore l'iPad fa 501 · 430 · 270 ms e torna a 600.
+- **Fix:** passo 3. **Dominio:** CC.
+
+### TD-link-spento-in-secondo-piano-durante-lo-show — a show vivo, un'interruzione che porta l'app in secondo piano spegne Link (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Fatto [M], alla punta `7bb5e94`:** in `.background`, con Link acceso e click fermo, l'app spegne Link (`QBeatsApp.swift:72-76`, la cura di Bug 4). A inizio interruzione il motore scrive `isPlaying = false` (A364 §3.j). Quindi col click interrotto la condizione «click fermo» è vera, e Link si spegne anche a show vivo.
+- **Coerenti con la condizione:**
+  - [R] G1 b del 17/09 sera: circa 2 s di «NO DEVICE CONNECTED» al ritorno dalla Home. [M] Nel log dell'iPad `setLinkEnabled(true)` sta alle 19:25:27, e `check 2s post-enable — isConn:true` alle 19:25:29.
+  - [R] C c del 18/09: il click non si ferma, e Link resta acceso.
+- ⚠️ Il congedo del referee del 18/09 la dava per domanda [R]: la condizione è nel codice.
+- **Fix:** passo 2 — la regola del secondo piano diventa un tipo puro, `LinkBackgroundPolicy` (A364 §5.d). **Dominio:** CC.
+
+### TD-linkkit-funzioni-app-fuori-dal-main — le funzioni di sessione «App» di LinkKit girano fuori dal thread principale (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Cosa dice l'intestazione [M]**, in parafrasi (`ABLLink.h:22-31`, `:217-228`, `:230-238`): la coppia cattura/commit «App» va usata solo dal thread principale. Modificare lo stato della sessione dal thread audio e da un thread dell'app insieme può dare comportamenti inattesi.
+- **Cosa fa il ponte [M] (A366 §3.3-3.4):** delle funzioni «App», 10 sono vive e nessuna gira sul main per costruzione: nove girano su `audioQueue`, una su una coda globale. La coppia «Audio» non ha chiamanti vivi.
+- **Nella stessa voce:**
+  - **(1)** Il commit dopo una sola lettura. La riga di casa «commit obbligatorio anche in lettura» sta in `link_engine_sync_phase`, ma l'intestazione non lo impone (A365 §3.f).
+  - **(2)** `link_engine_beat_at_time` (`LinkEngine.mm:520-530`) non ha la guardia `enabled_` delle sorelle, e non ha chiamanti (A364 §11).
+- **Collegato a:** TD #34, la race sul callback start/stop.
+- **Da decidere prima del passo 3.** **Dominio:** CC.
 
 ## 📦 1.3 — Backlog (🟡 OPEN BASSA)
 
@@ -884,6 +1003,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Nota baseline 15/07 (device, single-device, Link attivo):** al resume da chiamata reale il click ha **mantenuto la posizione** (`INTERRUPTION ended resumeBeat:63`, riaggancio in fase) — **NON è ripartito da capo**. Distinto dal sintomo 19/06: quello richiede probabilmente il background prolungato, non la semplice interruzione breve col clock Link in moto. Verbale → changelog v36.
 - ✅ **MARCATURA 30/08/2026 (A290, corretta in A291) — IL PUNTO DI RIPARTENZA NON È PIÙ UN DIFETTO: È IL COMPORTAMENTO VOLUTO, ratificato da Mauro. Zero parole riscritte sopra: si marca.** **Misura di Mauro su device, 30/08:** chiamata in entrata durante il Play, l'audio si ferma **al primo squillo**; chiusa la chiamata, **grafica e motore rientrano ALLINEATI, dalla prima battuta della sezione in cui la chiamata è arrivata**. ⚠️ **LA DIREZIONE VA LETTA IN TRE PEZZI SEPARATI — e «superata» non è nessuno dei tre: le due misure concordano su UNA METÀ, non su tutto.** **(a) CONFERMA.** La misura del 30/08 **conferma** la nota del 15/07 qui sopra su un punto: **NON riparte da capo** — né Song 1 né sezione 0. **(b) CORREZIONE.** La misura del 30/08 **corregge** la nota del 15/07 su un altro punto: «mantenuto la posizione» vale a livello di **CANZONE e SEZIONE**, ma **NON dentro la sezione** — **battuta 8 → battuta 1**. ⇒ La nota del 15/07 non era falsa, era **più grossolana della sua stessa formulazione** — e oggi si vede **perché**. 🚨 **IL DATO CHE QUELLA NOTA CITA COME PROVA VIENE SCARTATO DAL CODICE, PROPRIO NELLA CONFIGURAZIONE CHE LA NOTA DICHIARA. Misurato a HEAD `da7deb03c491f71a684207aad10f842837c3738a`:** la nota si dichiara «device, single-device, **Link attivo**» e porta come prova `INTERRUPTION ended resumeBeat:63`. Ma `ios_app/QBeats/AudioEngine.swift:2869-2872` recita «`// 5. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer`» seguito da «`resumeAtBeat: linkWasEnabled ? nil : resumeBeat`» ⇒ **con Link attivo quel beat NON viene usato per ripartire: viene soltanto LOGGATO.** ⚠️ **E comunque non sarebbe una posizione di scaletta:** `midi_engine_get_beat_at_time` (`ios_app/QBeats/MIDIEngineBridge.h:44`) rende un battito del **motore**, non «a che battito di QUESTA canzone siamo» — è esattamente la distinzione di **`D5`** (`BOX5_QBEATS.md:930 @ bce44bfe63ed8ad0053f266144c6b6018dac09c2`). ⇒ **La nota del 15/07 poggiava su un numero che non misurava ciò che le si faceva dire.** **(c) NON RIPRODOTTO.** Il sintomo del 19/06 («la setlist riparte da capo») resta **non riprodotto e non rimisurato nella condizione che lo produsse — il background prolungato**, diversa dalla semplice chiamata. ⛔ **Non è né confermato né smentito, e non va scritto come se lo fosse.** ⛔ **Chi marcasse «superata» l'intera nota del 15/07 spegnerebbe anche la metà vera.** **Perché lo stop è di Apple e il rientro no:** la guida archiviata Apple alle sessioni audio definisce l'interruzione come «*An audio interruption is the deactivation of your app's audio session—which immediately stops your audio*» (`developer.apple.com/library/archive/documentation/Audio/Conceptual/AudioSessionProgrammingGuide/Introduction/Introduction.html`), e il suo capitolo `HandlingAudioInterruptions` assegna **all'app** «*Save state and context*», «*Restore state and context*» e «*Reactivate audio session, if appropriate for the app*». ⇒ **Apple impone lo STOP; il PUNTO DI RIPARTENZA è nostro.** ⚠️ Apple, dove fa un esempio, suggerisce di riprendere «*at the point where it stopped*»: è un **esempio, non un vincolo**, e la scelta di Mauro è deliberatamente un'altra — il che **rafforza** la ratifica invece di indebolirla, perché prova che il punto lo decidiamo noi. ⛔ **RESTA MANCANTE, e questa marcatura NON lo copre:** **(a)** il **count-in** al rientro — vedi `TD-countin-ratificato-mai-costruito` e `TD-countin-rovesciato`; **(b)** l'**innesco della schermata di standby sulla chiamata**, che oggi **non esiste**. Misurato a `da7deb0`: l'app non usa **CallKit** né **CXCallObserver** (zero occorrenze sull'intero repo, controllo positivo superato — `AVAudioSession` rende 29 righe), distingue la telefonata **per euristica** su `session.mode` (`ios_app/QBeats/AudioEngine.swift:2821-2825`), e **nessun percorso porta da `handleInterruption` (`:2717-2878`) a `.overlayStop` o a `.standby`**. ⚠️ **La voce qui sopra non nominava né (a) né (b): non li ha persi, non li ha mai avuti.** ⛔ **ERRORE DI CITAZIONE, registrato qui perché è già circolato in due messaggi e va intercettato da chi lo cerca: «Nodo A» NON COMPARE IN QUESTO TICKET.** Il mandato A289 attribuiva alla voce una clausola di autolimitazione «da rifare dopo il **Nodo A**». **Misurato: la clausola esiste ma nomina `TD#17`** — riga «**Sotto TD#17:** loggato ora, indagine nel suo turno **dopo** TD#17 — non prima», r.754 a HEAD `da7deb03c491f71a684207aad10f842837c3738a`. La sonda `Nodo A` rende **ZERO** dentro il ticket; **controllo positivo: 15 righe sul file intero**, quindi la sonda vede e lo zero è vero. ✅ **L'attribuzione era un errore del referee, riconosciuto e ratificato come tale in A291.**
 - **Dominio:** CC.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — TRE COSE CAMBIATE DOPO IL 30/08. Zero parole riscritte sopra: si marca.** **(1)** Dal Follower la ripresa non usa più il beat: entra nella sessione che suona o resta fermo (A361, A362 — `FollowerStartDecision`). **(2)** Decisione di Mauro del 17/09 (LIBRO Sez.2, riga `2026-09-17` «INTERRUZIONI»): Direttore e Follower contano in silenzio e rientrano nel punto esatto della band; il Solo resta alle regole del 30/08. **(3)** Da `7bb5e94` l'app chiede ad Apple di non essere interrotta dalle chiamate mostrate a banner: `setPrefersNoInterruptionsFromSystemAlerts(true)` (`AudioEngine.swift:2265`, A365 §3.d). Fonte Apple, letta in A364 §5.l, in parafrasi: con lo stile a banner la notifica della chiamata non interrompe la sessione audio, la interrompe solo la chiamata accettata; con lo stile a schermo intero la preferenza non ha effetto (developer.apple.com/documentation/avfaudio/avaudiosession/setprefersnointerruptionsfromsystemalerts(_:)). **Esiti del 18/09 sull'iPhone [R]:** C a e C b superati — a banner il click continua, e la chiamata rifiutata non lo ferma. C c, impostato «Schermo intero»: il click **non** si ferma allo squillo, 10 s in secondo piano, Link non spento — fuori da quanto Apple documenta. [M] Nel log `C.c.txt` nessuna riga `INTERRUPTION` e nessun `setLinkEnabled(false)`. **Non collaudate:** la chiamata che interrompe e la chiamata accettata.
 
 ### TD-editor-authoring-polish — 3 micro-attriti editor Q-Stage (🟡 OPEN BASSA / 2 CC CHIUSE device + 1 CD + 1 debito)
 - **Add Section non entra in automatico:** `SongEditorView.swift:53-59` appende `SongSection.makeDefault()` e non naviga → secondo tap necessario. Cura = push automatico (nav iOS 16). **🟢 CHIUSO — commit `5839e4f` (`.navigationDestination(isPresented:)`), device-confermato (collaudo `b1c50ab`, Mauro 30/06).**
@@ -910,7 +1030,10 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Arbitro = log iPad** (mai catturato). Test decisivo: A/B **TEST7-vs-472 stessa sessione** + log iPad (1 emissione L1 + 2 click WAV = doppio-render pre-esistente; 2 emissioni = doppio-fuoco DSP).
 - **Stato:** 🟡 OPEN BASSA. Dominio CC.
 
-### WAITING FOR DIRECTOR entra al Play con Ableton Link OFF — CONFERMATO repro device 06/07 (🟡 OPEN BASSA / flusso — fix in CD-7)
+### WAITING FOR DIRECTOR entra al Play con Ableton Link OFF — CONFERMATO repro device 06/07 (🟢 **CHIUSO — collaudo Mauro 17-18/09/2026, riportato dal referee**; era 🟡 OPEN BASSA / flusso — fix in CD-7)
+
+> ✅ **CHIUSURA 19/09/2026 (A368). Il testo sotto resta come fu scritto: si marca, non si riscrive.** La vista WAITING FOR DIRECTOR non c'è più: `WaitingForDirectorView` è uscita dal codice con `c21fbef` (A360 §1.4), e nessun Play porta a un'attesa. Chi è Follower lo decide `FollowerDecision`: ruolo Follower **e** Link acceso dall'utente; a Link spento dall'utente l'apparecchio è Solo in tutto. [R] Collaudo G7 del 17/09 e del 18/09, superato. [M] Log dell'iPad di G7 del 18/09 (`G7..txt`, ore 19:31:53): «Link spento - ramo standalone (la tabella di sempre avrebbe scelto il ramo condiviso: peers:1 sessione:0)», zero righe `[LINK][SHARED]` (positivo: 8 righe `[LINK]` nello stesso file).
+
 - **Sintomo (repro device Mauro 06/07):** in modalità `.collaborativa`/Follower, tap Play → entra in **WAITING FOR DIRECTOR anche con Ableton Link SPENTO** (blocca lo Stop→Play nei test: rientra in START LOCAL / attesa). Portando la modalità a `.direttore` (menu Ableton) **+ Link OFF** → **Play/Stop liberi**, nessuna videata di attesa. Non è un caso limite: è il default (l'app parte `.collaborativa`, `cb92faa`). Il badge FOLLOWER sparisce correttamente (NON è il problema).
 - **Causa CONFERMATA a source (06/07, verbatim `TransportView.swift:36-63`):** il gate del trigger è `else if audioEngine.currentLinkMode == .collaborativa { … session.playbackState = .waitingForDirector }` (`:38`/`:58`) — condizionato sul **LinkMode PERSISTITO**, **NON** su Link-attivo (`ABLLinkIsEnabled`) né su `linkIsConnected` (commento `:48-51` esplicito: «SENZA `&& !linkIsConnected`»). Superata l'ipotesi «da confermare al codice» della versione candidato: gate = `currentLinkMode`, confermato a source + device.
 - **Stato:** 🟡 **CONFERMATO con repro-device (06/07)** — perimetro ri-tagliato 12/06 dal ridisegno modalità (§1.4): il lato tecnico (trigger gated su `currentLinkMode` invece che su Link-attivo) è **assorbito dal fix CD-7** (default Standalone + opt-in ruoli, ratificato DIREZIONE 12/06 NON implementato → è la causa di questo bug). Non un fix isolato.
@@ -934,6 +1057,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Fix:** aggiornare copy popup con istruzione "Aereo + WiFi manuale ON" per uso live Link-friendly.
 - **Dominio:** CD per copy + CC per implementazione.
 - **Riferimento:** memoria `project_qbeats_link_aereo_popup.md`.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — IN Q-LIVE L'AVVISO NON COMPARE.** [M] Alla punta `7bb5e94` l'avviso vive solo in `ContentView.swift:85-93` (l'unico `.alert` su `shouldShowDNDReminder`), e `ContentView` si apre solo sotto `#if DEBUG` (`UI/HomeRootView.swift:45-56`). Il testo è in italiano e consiglia la modalità Aereo. Decisione di Mauro del 17/09: testo e aggancio nel brief CD del rifacimento del player; l'avviso non sostituisce la correzione (LIBRO Sez.2, riga `2026-09-17` «AVVISO AEREO / NON DISTURBARE»).
 
 ### TD #20 — Test G doc — codice difensivo non testabile
 - **Note:** codice di guard difensivo che non si può testare su device direttamente (richiede condizioni rare). Da documentare per test review futuro.
@@ -957,6 +1081,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Sintomo:** warning nelle GitHub Actions per `actions/checkout@v4` e `actions/upload-artifact@v4` su Node.js 20.
 - **Impatto:** hard fail prevedibile entro 2-3 mesi.
 - **Fix:** aggiornare actions a versioni Node.js 22.
+- ⚠️ **MARCATURA 19/09/2026 (A368) — ANCORA PRESENTE.** [M] Run `35248502725` di «iOS Signed Build» su `7bb5e94` (17/09/2026): l'annotazione di deprecazione di Node.js 20 per `actions/checkout@v4` e `actions/upload-artifact@v4` c'è ancora (A367 §3).
 
 ### TD #32 — Dual entitlements file Dev/Distribution
 - **Sintomo:** `get-task-allow=true` di TD #27 è compatibile solo con Development profile.
@@ -1255,6 +1380,33 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Nota dal foglio CD dell'11/09 (§5.1):** «sul Follower nessuna sottoriga ambra» — coerente col perimetro dell'11/09.
 - **Fix:** NON progettato. **Dominio:** CC (misura) → CD (se la regola cambia).
 
+### TD-scala-palco-manca-freccia-testata-e-resume-from — la scala di palco non è ancora applicata alla freccia della testata né alla sottoriga «from ⟨sezione⟩» di RESUME (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro** — aperto 16/09/2026, A358)
+- **Osservato da Mauro al collaudo del commit `515e755` (A355+A356+A357), riportato dal referee [R], verbatim:** (1) sulla freccia della testata del player, «si vede ma il font è troppo piccolo»; (2) sulla sottoriga «from ⟨sezione⟩» sotto RESUME (terza faccia del dettaglio), «FONT TROPPO PICCOLO».
+- **Causa:** la scala di palco (BOX5 «SCALA DI PALCO», P = 17, ratificata Mauro 11/09/2026) si applica **dove si mette mano**, non come passata su tutta l'app (`BOX5_QBEATS.md`, capitolo omonimo). La freccia della testata del player e la sottoriga di RESUME non sono fra i punti già toccati.
+- **Destinazione:** la freccia della testata va col rifacimento del player; la sottoriga «from» quando si mette mano al dettaglio. Nessuna delle due in questo ticket.
+- **Fix:** nessuno in questo mandato.
+- **Dominio:** CD (misura) → CC, quando si tocca ciascuna zona. **Stato:** PROPOSTA — decide Mauro.
+- **Spostato il 2026-09-19 (A368)** da §1.5 in coda a §1.3, la sottosezione della sua gravità (Convenzioni, workflow punto 5): era entrato in §1.5 con `3d5544d` (A358). Testo invariato.
+
+### TD-player-lampeggia-prima-del-velo-a-ingresso — per una frazione di secondo, all'ingresso nel player, si vede il player pieno prima che compaia il velo con NEXT (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro** — aperto 16/09/2026, A358)
+- **Osservato da Mauro al collaudo del commit `515e755`, riportato dal referee [R], verbatim:** «PER UN FRAZIONE DI SECONDO COMPARE PRIMA IL PLAYER E POI IL VELO CON LA SCRITTA NEXT».
+- **Cercato un ticket esistente in questo file** (`lampo`, `fotogramma`, `frazione di secondo`, `prima del velo`, `flash`): **zero righe pertinenti.** Non è un duplicato.
+- **Causa NON misurata — ipotesi del referee [R], da verificare prima di un fix:** il velo si arma in `runner.primeDisplay(session:)`, chiamato dentro `.onAppear` di `LiveView` — dopo il primo disegno della vista, che per un istante può mostrarsi senza velo; il corpo scende al 10% con un'animazione di 0,3 s (`.animation(.easeInOut(duration: 0.3), value: isStandby)`), sopra la quale il lampo si vedrebbe. **Verificato [M]: le due righe esistevano già a `ade1d91d`**, prima del lavoro sul velo — `runner.primeDisplay(session: session)` a `LiveView.swift:381` e l'animazione a `:187` — non introdotte da A355/A356/A357.
+- **Fix:** nessuno in questo mandato.
+- **Dominio:** CC. **Stato:** PROPOSTA — decide Mauro.
+- **Spostato il 2026-09-19 (A368)** da §1.5 in coda a §1.3, la sottosezione della sua gravità (Convenzioni, workflow punto 5): era entrato in §1.5 con `3d5544d` (A358). Testo invariato, salvo il titolo (marcatura qui sotto).
+- ⚠️ **MARCATURA 19/09/2026 (A368) — IL TITOLO DICEVA «per un fotogramma», ORA DICE «per una frazione di secondo».** Sono le parole di Mauro, verbatim nel primo bullet. «Un fotogramma» dichiarava una durata che nessuno ha misurato: la durata del lampo resta non misurata.
+
+### TD-callback-del-tempo-senza-ri-ancora — sul Follower il cambio di tempo ricevuto da Link fa saltare la posizione dell'orologio dei battiti (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368)
+- **Fatto [M], alla punta `7bb5e94`:** il callback del tempo, ramo non-Direttore, fa `metronome_setBPM` e `midi_engine_set_bpm` (`AudioEngine.swift:492-497`) senza la coppia leggi-posizione / riscrivi-posizione che `setBPM` fa («Strada E»). Il sequencer ricalcola i campioni per tick, e la posizione salta del rapporto fra i due tempi (A364 §4.6).
+- **Firma nei log [M] (A364 §3.g):** in G3 del 17/09 mattina le correzioni di fase di −278,42 e −234,02 battiti valgono 1392,10 × 120/100 e 1404,01 × 140/120: sono salti prodotti in casa, che l'aggancio di fase cancella al buffer successivo.
+- **Effetto [A]:** innocuo all'orecchio. Dice però che l'orologio MIDI non è un righello affidabile attraverso un cambio di tempo ricevuto.
+- **Fix:** NON progettato. **Dominio:** CC.
+
+### TD-box5-riga-appdelegate-superata — la riga BOX5 «AppDelegate — applicationDidBecomeActive» descrive una chiamata che il codice non fa più (🟡 OPEN BASSA / doc — aperto 19/09/2026, A368)
+- **Fatto [M]:** `BOX5_QBEATS.md:612` («Invarianti tecnici Layer 3», riga V20) dice che al ritorno in primo piano, con Link acceso, si ri-asserisce `setLinkEnabled(true)`. `AppDelegate.swift:15-18` @ `7bb5e94` dice che quel callback non scatta nelle app SwiftUI a scene e che la chiamata è stata tolta: la cura di Bug 4 vive in `QBeatsApp.swift`, su `scenePhase` (A364 §11).
+- **Fix:** marcare la riga BOX5 al prossimo giro di BOX5. **Dominio:** CC (doc).
+
 ## 1.4 — Backlog UX puro (📦, dominio CD)
 
 Riferimento `LIBRO_MASTRO_QBEATS.md` Sezione 3 deliverable per il dettaglio:
@@ -1329,6 +1481,11 @@ Questi NON sono bug ma deliverable UX. Listati qui per completezza visiva del ba
 - **Aperto il 14/09/2026 (mandato A348, 6.10).** **Scaffale:** il foglio CD del 30/08 scrive 39 per la lamella (`…IL-VELO-DICE-DA-DOVE…html:352-353`) e 41 per il bivio (`:348`); il referee decide **41** (BOX5 V48, «SCALA DI PALCO»), e con P = 17 le distanze scalano a **54** (k = 1,308, Mauro 11/09). **RESTART SONG:** presente in faccia 2 per BOX5 §2(b) e nel foglio (`:352`, «RESTART SONG 56»); `TD-restart-song-falsa-ricevuta` (§1.1) racconta il suo stato a codice. **Nome del rientro:** RETURN / BACK IN / «BACK TO SHOW» — `TD-rientro-dal-dettaglio-nome-back-to-show-vs-return` (§1.3).
 - **Dominio:** CD → Mauro. **Fix:** nessuno in A348.
 
+### TD-nessun-avviso-senza-collegati-mentre-suona — a show che suona, il Follower rimasto senza collegati non lo dice: lo slot E c'è solo sul velo (🟠 OPEN MEDIA — **PROPOSTA, non assegnata: decide Mauro** — aperto 19/09/2026, A368, dominio CD)
+- **Osservato [R], prova G62 del 18/09 (rete persa a metà canzone, W2 spento), misure del referee sul WAV:** l'iPad continua a suonare fisso a 600,72 ms mentre l'iPhone passa a 120 e a 140 BPM; a schermo niente lo avvisa.
+- **Fatto [M]:** l'avviso «No device connected · nothing will start from here» (slot E, A360) sta solo sul velo (`StandbyOverlayDecision.showsNoDeviceLines`): mentre il click suona non c'è nessuna riga che lo dica.
+- **Destinazione:** brief CD del rifacimento del player (parole e posto sono di CD). **Dominio:** CD → CC.
+
 ## 🚢 1.5 — PREREQUISITI DI DISTRIBUZIONE (bloccano la SPEDIZIONE, non il palco)
 
 Blocco aperto il **30/07/2026**. Nasce da un fatto nuovo messo agli atti il giorno prima e non prima: **l'app si vende** (`LIBRO_MASTRO_QBEATS.md` Sez.2, riga `2026-07-30` «L'APP SI VENDE», dichiarazione Mauro 29/07). Finché il traguardo era «suonarci sopra», nulla di quanto segue era un difetto; da quando il traguardo è «spedirla», ognuna di queste voci è una **porta chiusa fra la CI verde di oggi e una build che possa esistere sullo Store**.
@@ -1372,20 +1529,6 @@ Blocco aperto il **30/07/2026**. Nasce da un fatto nuovo messo agli atti il gior
 - **Fix:** costruire **una** build Distribution, anche solo per vedere che cosa si rompe. Non è un fix, è la misura che oggi manca. ⚠️ Mauro l'ha segnalata come «da fare presto, non dopo il §6».
 - **Stato:** 🟠 OPEN MEDIA / ⚠️ NON BLOCCANTE per il palco / 🚢 **BLOCCANTE per la distribuzione**. **Dominio:** CC (workflow) + Mauro (certificati e profilo sul portale).
 
-### TD-scala-palco-manca-freccia-testata-e-resume-from — la scala di palco non è ancora applicata alla freccia della testata né alla sottoriga «from ⟨sezione⟩» di RESUME (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro** — aperto 16/09/2026, A358)
-- **Osservato da Mauro al collaudo del commit `515e755` (A355+A356+A357), riportato dal referee [R], verbatim:** (1) sulla freccia della testata del player, «si vede ma il font è troppo piccolo»; (2) sulla sottoriga «from ⟨sezione⟩» sotto RESUME (terza faccia del dettaglio), «FONT TROPPO PICCOLO».
-- **Causa:** la scala di palco (BOX5 «SCALA DI PALCO», P = 17, ratificata Mauro 11/09/2026) si applica **dove si mette mano**, non come passata su tutta l'app (`BOX5_QBEATS.md`, capitolo omonimo). La freccia della testata del player e la sottoriga di RESUME non sono fra i punti già toccati.
-- **Destinazione:** la freccia della testata va col rifacimento del player; la sottoriga «from» quando si mette mano al dettaglio. Nessuna delle due in questo ticket.
-- **Fix:** nessuno in questo mandato.
-- **Dominio:** CD (misura) → CC, quando si tocca ciascuna zona. **Stato:** PROPOSTA — decide Mauro.
-
-### TD-player-lampeggia-prima-del-velo-a-ingresso — per un fotogramma, all'ingresso nel player, si vede il player pieno prima che compaia il velo con NEXT (🟡 OPEN BASSA — **PROPOSTA, non assegnata: decide Mauro** — aperto 16/09/2026, A358)
-- **Osservato da Mauro al collaudo del commit `515e755`, riportato dal referee [R], verbatim:** «PER UN FRAZIONE DI SECONDO COMPARE PRIMA IL PLAYER E POI IL VELO CON LA SCRITTA NEXT».
-- **Cercato un ticket esistente in questo file** (`lampo`, `fotogramma`, `frazione di secondo`, `prima del velo`, `flash`): **zero righe pertinenti.** Non è un duplicato.
-- **Causa NON misurata — ipotesi del referee [R], da verificare prima di un fix:** il velo si arma in `runner.primeDisplay(session:)`, chiamato dentro `.onAppear` di `LiveView` — dopo il primo disegno della vista, che per un istante può mostrarsi senza velo; il corpo scende al 10% con un'animazione di 0,3 s (`.animation(.easeInOut(duration: 0.3), value: isStandby)`), sopra la quale il lampo si vedrebbe. **Verificato [M]: le due righe esistevano già a `ade1d91d`**, prima del lavoro sul velo — `runner.primeDisplay(session: session)` a `LiveView.swift:381` e l'animazione a `:187` — non introdotte da A355/A356/A357.
-- **Fix:** nessuno in questo mandato.
-- **Dominio:** CC. **Stato:** PROPOSTA — decide Mauro.
-
 ### TD-icona-mai-integrata — l'app non ha icona: non è «da disegnare», è un'INTEGRAZIONE mai fatta (🟠 OPEN MEDIA / 🚢 prerequisito di distribuzione — bundle incompleto, misurato)
 - **Nel prodotto reale non c'è nulla di grafico.** Misurato il 30/07 sull'IPA della run `30463659772`, estratto e ispezionato: file il cui nome contiene `icon` → **0** · file `.png` → **0** · cataloghi compilati `.car` → **0**. Controlli positivi stessa forma stesso bundle: file **totali** → **35**, di cui `.ttf` → **22**. **Il bundle non è vuoto e non è troncato**: ci sono i 22 font (6 Inter + 16 JetBrains Mono), `click.wav`, `test_backtrack.mp3`, il binario `QBeats`, `embedded.mobileprovision`, `_CodeSignature`, `ZIPFoundation_ZIPFoundation.bundle`, `PkgInfo`, `Info.plist`. **Font, audio, binario e firma: presenti. Grafica: nessuna.**
 - **E nell'`Info.plist` binario del prodotto non c'è nemmeno la dichiarazione:** `CFBundleIcons` · `CFBundleIcons~ipad` · `CFBundleIconFiles` · `CFBundleIconName` → **4 su 4 assenti**. Ricerca larga sulla stessa lettura, chiavi che contengano `icon` in qualunque forma → **nessuna**. Controllo positivo: **36 chiavi totali** nel plist.
@@ -1402,6 +1545,35 @@ Blocco aperto il **30/07/2026**. Nasce da un fatto nuovo messo agli atti il gior
 # Sezione 2 — Bug CHIUSI (storico, non si cancellano)
 
 Per data di chiusura, decrescente.
+
+## 🟢 Settembre 2026
+
+### TD-ramo-condiviso-a-link-spento — a Link spento dall'utente, col contatore dei collegati rimasto a 1, l'avvio prendeva il ramo della sessione condivisa — 🟢 CHIUSO 18/09/2026
+- **Nato chiuso (A368):** aperto e chiuso nello stesso giro documenti; il codice è in `7bb5e94` (A365).
+- **Difetto [M] (A364 §3.h):** in G7 del 17/09 mattina (`c21fbef`), dopo lo spegnimento di Link, l'avvio passava da `[LINK][SHARED] peers:1`. `numPeers_` (`LinkEngine.mm:13`, scritto solo a `:57`) resta all'ultimo valore. Allora era innocuo; col progetto nuovo il ramo condiviso si carica di giudizi (A364 §5.m).
+- **Fix `7bb5e94` (A365 §3.c):** `FreshStartBranchDecision`. A Link spento (`link_engine_is_enabled` falso) si prende sempre il ramo standalone; a Link acceso vale la tabella di sempre.
+- **Collaudo:** [R] G7 del 18/09, superato. [M] `G7..txt`: «Link spento - ramo standalone (la tabella di sempre avrebbe scelto il ramo condiviso: peers:1 sessione:0)» alle 19:31:53, e zero righe `[LINK][SHARED]` (positivo: 8 righe `[LINK]`).
+- **Collegamento:** `TD-link-indicator-stale` (§1.2): il contatore stantio resta, come spia.
+- **Dominio:** CC.
+
+### TD-follower-doppio-aggancio — un arresto che non passava da `stopSync` lasciava armato l'ingresso del Follower, e il secondo fuoco azzerava il seme del primo — 🟢 CHIUSO 17/09/2026
+- **Nato chiuso (A368):** aperto e chiuso nello stesso giro documenti; il codice è in `7bb5e94` (A365).
+- **Difetto [M] (A364 §3.d, §4.3):** `pendingLinkStart` si annullava solo in `stopSync`. Il cambio di configurazione, l'inizio interruzione e il cambio di topologia fermavano il motore senza annullare l'ingresso armato. Log del 17/09 mattina (`c21fbef`, G3, 10:19:39): due armamenti e due fuochi; il secondo azzera il seme del primo e accoda altri tre buffer.
+- **Fix `7bb5e94` (A365 §3.a):**
+  - `armSharedJoin` annulla il work item precedente e alza `joinGeneration` (`AudioEngine.swift:753`).
+  - `cancelPendingJoin(reason:)` (`:991-995`) sta nei tre arresti senza `stopSync`.
+  - Al fuoco si controllano generazione e motore in moto: se non tornano, «fuoco scartato».
+- **Collaudo:**
+  - [R] Un solo «downbeat raggiunto» per Play, 14 su 14.
+  - [M] Log dell'iPad del 17/09 sera: 14 righe «downbeat raggiunto» e 14 righe «'si suona' NON scritto su Link (W4)», una per ingresso. «fuoco scartato» 0, «ingresso pendente annullato» 0.
+- **Dominio:** CC.
+
+### TD-contatore-vecchio-nel-giro-d-attesa — durante l'attesa d'ingresso il contatore del Follower mostrava la battuta di prima («8 di 12») — 🟢 CHIUSO 17/09/2026
+- **Nato chiuso (A368):** aperto e chiuso nello stesso giro documenti; il codice è in `7bb5e94` (A365).
+- **Difetto:** [R] osservato in G2 del 17/09 mattina (`c21fbef`). [M] Causa (A364 §5.k): durante l'attesa non arrivano tick, e `session.currentBar` conserva l'ultimo valore.
+- **Fix `7bb5e94` (A365 §3.b, solo Layer 3):** `LiveView.joinWaitChanged`. All'inizio dell'attesa contatore e LED vanno a zero, cioè ai trattini: è la resa «spento» del verdetto CD del 28/08. Al primo tick compare il numero vero.
+- **Collaudo:** [R] contatore spento nel giro d'attesa, 18 su 18. [M] Log dell'iPad del 17/09 sera: 18 righe «giro d'attesa d'ingresso - contatore e LED spenti».
+- **Dominio:** CC.
 
 ## 🟢 Agosto 2026
 
@@ -1669,6 +1841,16 @@ Per data di chiusura, decrescente.
 - ⚠️ **Ciò che del ticket resta VALIDO e non è scartato con lui:** la sua riga di metodo — «prima del backfill va misurato SE il riflesso funziona» — è corretta, ed è esattamente la misura che mancava. E il dubbio di BOX5 §R-δ.6 sulla **completezza** del riflesso **resta aperto**: A250 ha falsificato «fermo», non ha dimostrato «integro».
 - **Difetto vero emerso dal rimedio:** ticket `TD-drive-doppioni-albero-abbandonato`, §1.3.
 
+### WARN «aggancio non su downbeat» — non è un difetto: è un falso allarme per costruzione (⚫ SCARTATO 19/09/2026, A368)
+- **Origine:** la spia è nel codice dal 30/05 (`52a9fb6`). Compare in questo file il 01/06, nella faccia (A) di `TD-follower-rejoin` (riga «Dato (01/06, IPA #466…)», BUGS v6 `b128536`).
+- **Cosa misura [M]:** la riga scatta quando la frazione di `startBeat` supera 0,1 (`AudioEngine.swift:901-910` @ `7bb5e94`). `startBeat` è il tempo d'attesa più la latenza (A364 §3.a). Quindi la riga controlla se l'attesa è un numero intero di battiti, non se l'aggancio è storto. È scattata 13 volte su 13 il 17/09 mattina (A364 §3.a) e 14 su 14 il 17/09 sera ([M], log dell'iPad).
+- **Il suo scarto costante [M]:** 15,17 ms (A364 §3.a misura 15,12-15,18 ms). È `outputLatencyTicks + bufferDurationTicks` = 107.999 + 255.999 tick a 24 MHz (base dei tempi dell'iPad, TD #A).
+  - Sono valori dell'apparecchio: AVAudioSession, `outputLatency` e `ioBufferDuration`, letti all'avvio (`:1317-1318`).
+  - Il log li stampa nei campi `outLat` e `bufDur` di `[L1bSync] nextBufferOutputHostTime` (`:2622`, `:2631`), solo quando scrive W2 (`:2902`).
+  - Sono identici il 17 e il 18/09.
+- **Il valore delle righe «downbeat raggiunto» è un'altra cosa** (21,33 ms a 100 BPM): vedi `TD-seme-d-ingresso-e-il-tempo-d-attesa` (§1.1), osservazione aperta.
+- **Sparisce col seme esatto** (A364 §5.i).
+
 ---
 
 # Sezione 4 — Diagnostiche aperte / in attesa di dati
@@ -1679,6 +1861,14 @@ Per data di chiusura, decrescente.
 - **Commit `31dddbb`** (Round 2, Item 1 PARTE A): 10 log `[Q-BEATS][DIAG-A][T0]` → `[T9]` in `AudioEngine.swift`. Misurano timing dispatch chain iPad-side dal callback Link `isPlaying=true` (T0) fino all'entry primo buffer pre-roll (T9).
 - **CI:** run [`26361824809`](https://github.com/19Bullfrog78/Q-BEATS/actions/runs/26361824809) ✅ verde 50s. IPA pronto.
 - **Bloccante:** Mauro raccoglie dati su device. Senza dati nuovi non si può progettare fix TD #A né dare verdetto su TD #39.
+
+## Misure WAV del 18/09/2026 — tre osservazioni aperte (aperto 19/09/2026, A368)
+
+[R] Sono misure del referee sui WAV del 18/09 (prova A/B e giri di rete persa: A1, A2, B1, B2, G62, G63, COLL). CC non ha misurato i WAV. Gli esiti della prova A/B stanno in `TD-follower-scrive-il-tempo-su-link` (§1.2); qui restano le tre osservazioni che non hanno ancora un ticket.
+- **G62 parte da 74 invece che da 100.** Dopo il primo confine lo scarto fra iPhone e iPad cresce di 100 ms a battito (74 · 174 · 274 ms), ma parte da 74.
+- **Periodi medi lunghi dello 0,1-0,3%:** 601,2 · 501,0 · 430,0 ms; l'iPad in G62 fa 600,72. La Prova 0 si misura come scarto fra i due apparecchi nello stesso WAV, non come periodo assoluto.
+- **Un colpo anomalo a 5,4 s**, in COLL e in G63: si ripete.
+- **Limite dello strumento:** sotto circa 50 ms il microfono non separa i due click.
 
 ## Lezioni metodologiche attive (no fix prima della diagnosi)
 

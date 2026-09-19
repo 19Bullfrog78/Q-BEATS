@@ -4,7 +4,7 @@
 **Forma corretta della sonda ID:** confine su qualunque carattere non alfanumerico, `_` incluso — in PCRE `(?<![A-Za-z0-9])ID(?![A-Za-z0-9])`. ⛔ **Non usare `grep -w`:** `_` e' carattere di parola e la convenzione `PREFISSO_data_ID-titolo.md` salda l'ID al blocco data, quindi `-w` rende ZERO su ID che ci sono (misurato in `A331` su `A323`, che e' tracciato).
 ⛔ **Qui non si mette contenuto:** solo anagrafica — numero, data, titolo in una riga, dove vive. Nessun esito, nessuna misura, nessun giudizio, nessuna conclusione. Chi ha bisogno del merito di un mandato apre il suo referto.
 
-**Fondato sul censimento `A331`.** Colonna «dove vive»: `DEPOSITO+DISCO` (file tracciato e su disco) · `SOLO DISCO` (file su disco, fuori dal deposito) · `SOLO COMMIT` (nessun file: l'ID vive solo in un messaggio di commit) · `SOLO CITATO` (il numero compare dentro il nome di un file di un altro mandato, ma non e' mai stato assegnato — R-δ.8: non e' un ID occupato) · `NON ESISTE`.
+**Fondato sul censimento `A331`.** Colonna «dove vive»: `DEPOSITO+DISCO` (file tracciato e su disco) · `SOLO DISCO` (file su disco, fuori dal deposito) · `SOLO COMMIT` (nessun file: l'ID vive solo in un messaggio di commit) · `SOLO CITATO` (il numero compare dentro il nome di un file di un altro mandato, ma non e' mai stato assegnato — R-δ.8: non e' un ID occupato) · `NON ESISTE`. ⚠️ **MARCATURA 19/09/2026 (A368) — COSA VUOL DIRE `DEPOSITO+DISCO` DOPO A332.** Da A332 (LIBRO Sez.2, riga `2026-09-08`) i referti stanno solo su disco: `HANDOFF/` e' fuori dal deposito. Per gli ID successivi `DEPOSITO+DISCO` vuol dire che il LAVORO dell'ID, codice o canonici, e' nel deposito con un commit che nomina l'ID nel messaggio (A362 §5.7); i referti, quando ci sono, restano su disco. Esempio: A358, il cui lavoro e' BUGS v88, commit `3d5544d` (oggetto «A358: collaudo A355 chiuso in BUGS ...»), senza nessun referto col suo nome: resta `DEPOSITO+DISCO`.
 
 | ID | data | titolo | dove vive |
 |---|---|---|---|
@@ -256,18 +256,19 @@
 | A352 | 2026-09-15 | VERSIONI E STAMPE ALLINEATE | DEPOSITO+DISCO |
 | A353 | 2026-09-15 | IL CONGEDO E TUO | DEPOSITO+DISCO |
 | A354 | 2026-09-15 | CONGEDO CC | SOLO DISCO |
-| A355 | 2026-09-15 | IL VELO DICE DA DOVE | SOLO DISCO |
-| A356 | 2026-09-16 | VELO CORREZIONI | SOLO DISCO |
+| A355 | 2026-09-15 | IL VELO DICE DA DOVE | DEPOSITO+DISCO |
+| A356 | 2026-09-16 | VELO CORREZIONI | DEPOSITO+DISCO |
 | A357 | 2026-09-16 | VELO COMMIT | SOLO COMMIT |
 | A358 | 2026-09-16 | VELO COLLAUDO CHIUSO | DEPOSITO+DISCO |
 | A359 | 2026-09-16 | CONGEDO CC | SOLO DISCO |
-| A360 | 2026-09-16 | PERIMETRO DEL FOLLOWER | SOLO DISCO |
-| A361 | 2026-09-16 | PERIMETRO DEL FOLLOWER CORREZIONI | SOLO DISCO |
-| A362 | 2026-09-16 | PERIMETRO DEL FOLLOWER COMMIT | SOLO DISCO |
+| A360 | 2026-09-16 | PERIMETRO DEL FOLLOWER | DEPOSITO+DISCO |
+| A361 | 2026-09-16 | PERIMETRO DEL FOLLOWER CORREZIONI | DEPOSITO+DISCO |
+| A362 | 2026-09-16 | PERIMETRO DEL FOLLOWER COMMIT | DEPOSITO+DISCO |
 | A363 | 2026-09-17 | CONGEDO CC | SOLO DISCO |
 | A364 | 2026-09-17 | RIENTRO ESATTO FASE 1 MAPPA E PROGETTO | SOLO DISCO |
-| A365 | 2026-09-17 | RIENTRO ESATTO PASSO 1 IGIENE E SONDE | SOLO DISCO |
-| A366 | 2026-09-17 | RIENTRO ESATTO PASSO 1 INTERRUTTORE A-B E INVENTARIO LINKKIT | SOLO DISCO |
-| A367 | 2026-09-17 | RIENTRO ESATTO PASSO 1 COMMIT DI A365 E A366 | SOLO DISCO |
+| A365 | 2026-09-17 | RIENTRO ESATTO PASSO 1 IGIENE E SONDE | DEPOSITO+DISCO |
+| A366 | 2026-09-17 | RIENTRO ESATTO PASSO 1 INTERRUTTORE A-B E INVENTARIO LINKKIT | DEPOSITO+DISCO |
+| A367 | 2026-09-17 | RIENTRO ESATTO PASSO 1 COMMIT DI A365 E A366 | DEPOSITO+DISCO |
+| A368 | 2026-09-19 | GIRO DOCUMENTI BUGS V89 E LIBRO V84 | SOLO DISCO |
 
-**Righe: 261.**  DEPOSITO+DISCO 215 · NON ESISTE 2 · SOLO CITATO 4 · SOLO COMMIT 8 · SOLO DISCO 32
+**Righe: 262.**  DEPOSITO+DISCO 223 · NON ESISTE 2 · SOLO CITATO 4 · SOLO COMMIT 8 · SOLO DISCO 25
