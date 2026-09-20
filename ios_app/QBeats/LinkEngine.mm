@@ -539,6 +539,8 @@ double link_engine_beat_at_time(LinkEngineHandle handle,
 // «stores a snapshot of the current Link state») e qui non si modifica niente, quindi non
 // c'è niente da consegnare alla sessione. È la sola funzione di questo ponte che legge
 // senza committare, di proposito: una sonda non deve poter scrivere.
+// ⚠️ MARCATURA RIENTRO-P2A (20/09/2026) — non è più «la sola»: `link_engine_read_start_stamp`,
+//    qui sotto, legge senza committare allo stesso modo e per la stessa ragione.
 // Guardia enabled_ come le sorelle: a Link spento rende 0 e «non suona».
 uint64_t link_engine_time_for_is_playing(LinkEngineHandle handle,
                                          bool*            outIsPlaying) {
@@ -552,6 +554,38 @@ uint64_t link_engine_time_for_is_playing(LinkEngineHandle handle,
     uint64_t timeForIsPlaying = ABLLinkTimeForIsPlaying(state);
     if (outIsPlaying) *outIsPlaying = ABLLinkIsPlaying(state);
     return timeForIsPlaying;
+}
+
+// === RIENTRO-P2A (20/09/2026) — TIMBRO DELL'AVVIO, SONDA DI SOLA LETTURA ===
+// Una sola cattura, e da quella: lo stato avvio/stop, l'ora dell'avvio T e tre letture del
+// battito a T (quantum 1, quantum 1e6, quantum 0). Che cosa rende ciascuna, e da quali righe
+// del sorgente di Link si ricava, sta scritto accanto alla dichiarazione di `LinkStartStamp`
+// in MIDIEngineBridge.h.
+// ⛔ Nessun commit, come la sorella qui sopra: si legge un'istantanea e non si modifica
+//    niente. `link_engine_probe_session` e `link_engine_beat_at_time` invece committano:
+//    questa sonda non passa da loro.
+// ⛔ Chiamare SOLO da audioQueue: la cattura scrive in un membro condiviso dell'istanza
+//    ABLLink (vedi MIDIEngineBridge.h).
+LinkStartStamp link_engine_read_start_stamp(LinkEngineHandle handle) {
+    LinkStartStamp stamp = { false, false, 0, 0.0, 0.0, 0.0, 0, 0 };
+    stamp.captureHostTime = mach_absolute_time();
+    if (!handle) return stamp;
+    LinkEngine* engine = (LinkEngine*)handle;
+    stamp.numPeers = engine->numPeers_.load(std::memory_order_relaxed);
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return stamp;
+    stamp.linkEnabled = true;
+
+    constexpr double kStartStampBigQuantum = 1.0e6;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    const uint64_t startTime = ABLLinkTimeForIsPlaying(state);
+    stamp.isPlaying        = ABLLinkIsPlaying(state);
+    stamp.timeForIsPlaying = startTime;
+    stamp.beatAtStampQ1    = ABLLinkBeatAtTime(state, startTime, 1.0);
+    stamp.phaseAtStampQBig = ABLLinkPhaseAtTime(state, startTime, kStartStampBigQuantum);
+    stamp.beatAtStampQ0    = ABLLinkBeatAtTime(state, startTime, 0.0);
+    return stamp;
 }
 
 bool link_engine_sync_phase(LinkEngineHandle handle,

@@ -218,6 +218,53 @@ double link_engine_beat_at_time(LinkEngineHandle handle,
 uint64_t link_engine_time_for_is_playing(LinkEngineHandle handle,
                                          bool*            outIsPlaying);
 
+// === RIENTRO-P2A (20/09/2026) — TIMBRO DELL'AVVIO, SONDA DI SOLA LETTURA ===
+// Da UN SOLO ABLLinkCaptureAppSessionState rende lo stato avvio/stop e tre letture del
+// battito ALL'ORA DELL'AVVIO T = ABLLinkTimeForIsPlaying(state). Non scrive niente e non
+// committa niente, come `link_engine_time_for_is_playing`. In questo passo i valori si
+// loggano soltanto (AudioEngine, etichetta [Q-BEATS][RIENTRO-P2A][TIMBRO]): nessuna
+// decisione li legge. Servono a decidere, dai log di un collaudo, quale lettura resta ferma
+// per lo stesso avvio e quale cambia a ogni avvio nuovo.
+// Le tre letture, e perché tre (Ableton/link @ e9a2e41, il sorgente di LinkKit 4.0):
+//   beatAtStampQ1    = ABLLinkBeatAtTime (state, T, 1.0): battito del CLIENT agganciato
+//                      alla fase di sessione a quantum 1 (Link.ipp, `beatAtTime` →
+//                      Phase.hpp, `toPhaseEncodedBeats` → `closestPhaseMatch`: scarta di
+//                      un battito intero quando lo scarto client-sessione passa il mezzo
+//                      battito).
+//   phaseAtStampQBig = ABLLinkPhaseAtTime(state, T, 1e6): con un quantum così grande la
+//                      fase è il battito di T contato dallo ZERO DELLA SESSIONE (Link.ipp,
+//                      `phaseAtTime`; la timeline del client ha l'origine sullo zero di
+//                      sessione: ClientSessionTimelines.hpp, `updateClientTimelineFromSession`).
+//                      Se quel battito è negativo la fase rende 1e6 + battito (Phase.hpp,
+//                      `phase`: «negative beat values are handled correctly»).
+//   beatAtStampQ0    = ABLLinkBeatAtTime (state, T, 0.0): battito grezzo della timeline
+//                      del CLIENT. ⚠️ ABLLink.h non dice niente su quantum 0. Lo gestisce il
+//                      sorgente: Phase.hpp, `phase` («If the given quantum is zero, returns
+//                      zero») e `nextPhaseMatch` («If the given quantum quantum is 0, x is
+//                      returned»); Beats.hpp, `operator%` rende 0 col divisore 0;
+//                      ABLLink.mm (tag LinkKit-4.0) passa il quantum a Link senza guardie.
+// captureHostTime = mach_absolute_time() letto subito prima della cattura.
+// numPeers = il contatore del ponte (0/1, vedi `link_engine_num_peers`).
+// A Link spento (enabled_ falso) linkEnabled è false e i campi di Link restano a zero.
+// ⛔ Chiamare SOLO da audioQueue. ABLLinkCaptureAppSessionState scrive in un membro
+//    CONDIVISO dell'istanza e ne rende l'indirizzo (ABLLink.mm, tag LinkKit-4.0:
+//    `ablLink->mAppSessionState.mImpl = ...captureAppSessionState(); return
+//    &ablLink->mAppSessionState;`): una cattura da un altro thread sovrascriverebbe lo
+//    stato che audioQueue sta leggendo o per committare (`link_engine_sync_phase` e
+//    `link_engine_assert_session_state` catturano e committano a ogni buffer).
+typedef struct {
+    bool     linkEnabled;       // enabled_ del ponte
+    bool     isPlaying;         // ABLLinkIsPlaying(state)
+    uint64_t timeForIsPlaying;  // T = ABLLinkTimeForIsPlaying(state), mach ticks locali
+    double   beatAtStampQ1;     // ABLLinkBeatAtTime (state, T, 1.0)
+    double   phaseAtStampQBig;  // ABLLinkPhaseAtTime(state, T, 1e6)
+    double   beatAtStampQ0;     // ABLLinkBeatAtTime (state, T, 0.0)
+    uint64_t captureHostTime;   // mach_absolute_time() subito prima della cattura
+    uint32_t numPeers;          // numPeers_ del ponte
+} LinkStartStamp;
+
+LinkStartStamp link_engine_read_start_stamp(LinkEngineHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

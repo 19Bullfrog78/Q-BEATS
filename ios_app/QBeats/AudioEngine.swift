@@ -104,13 +104,12 @@ class AudioEngine: ObservableObject {
                 return
             }
             guard let h = metronomeHandle else { return }
-            os_log("[Q-BEATS][Bug2b-BPB] setBeatsPerBar req:%d old:%d → PUSH al motore (DSP + Link quantum)",
-                   log: .default, type: .default, Int(beatsPerBar), Int(oldValue))
             let bpb = beatsPerBar
+            let oldBpb = oldValue
             let pattern = defaultAccentPattern(for: bpb)
             let mappedPattern: [UInt8] = pattern.map { $0 > 0 ? 2 : 1 }
             DispatchQueue.main.async { self.currentAccentPattern = mappedPattern }
-            audioQueue.async { [h, pattern, bpb] in
+            audioQueue.async { [h, pattern, bpb, oldBpb] in
                 self._beatsPerBarQ = bpb
                 metronome_setBeatsPerBar(h, bpb)
                 if let lh = self.linkEngineHandle {
@@ -119,6 +118,14 @@ class AudioEngine: ObservableObject {
                 pattern.withUnsafeBufferPointer { ptr in
                     metronome_setAccentPattern(h, ptr.baseAddress, UInt32(pattern.count))
                 }
+                // RIENTRO-P2A (20/09/2026; referto A376 §2.5) — la riga «PUSH al motore» sta
+                // QUI, dopo le scritture vere e sulla loro stessa coda. Prima stava nel
+                // `didSet`, sul thread del chiamante, PRIMA che questo blocco fosse accodato:
+                // nel log compariva prima di scritture non ancora avvenute, e un
+                // `armSharedJoin` accodato prima di questo blocco leggeva ancora il
+                // `_beatsPerBarQ` vecchio con la riga già stampata. Testo della riga invariato.
+                os_log("[Q-BEATS][Bug2b-BPB] setBeatsPerBar req:%d old:%d → PUSH al motore (DSP + Link quantum)",
+                       log: .default, type: .default, Int(bpb), Int(oldBpb))
             }
         }
     }
@@ -420,6 +427,12 @@ class AudioEngine: ObservableObject {
     private var linkSyncSkipBuffers: Int = 0
     // L1.b sync investigation — conta 3 buffer dopo cambio BPM per log DIRECTOR-ASSERT
     private var _linkSyncLogBuffers: Int = 0
+    // RIENTRO-P2A (20/09/2026) — campionatore diagnostico del timbro dell'avvio (solo log):
+    // vedi `startStartStampSampler`. Il timer e l'ultimo campione scritto vivono su
+    // `startStampQueue`; su audioQueue gira solo la lettura.
+    private let startStampQueue = DispatchQueue(label: "com.bullfrog.qbeats.timbro", qos: .utility)
+    private var startStampTimer: DispatchSourceTimer? = nil
+    private var lastSampledStartStamp: StartStampSample? = nil   // accesso SOLO su startStampQueue
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
     private let backtrackPlayerNode = AVAudioPlayerNode()
@@ -503,6 +516,14 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 // Callback su main thread (LinkKit 3.2.2)
                 let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                // RIENTRO-P2A — TIMBRO a ogni fronte del collegato: che cosa riporta Link
+                // (si suona, ora dell'avvio, battito dell'avvio) nel momento in cui la
+                // connessione cade o torna, accanto a quello che crede il motore. Solo
+                // lettura, solo log. Va su audioQueue perché la cattura dello stato di Link
+                // vive lì (vedi `logStartStamp`); è un `async` senza attesa.
+                engine.audioQueue.async {
+                    engine.logStartStamp(isConnected ? "fronte-collegato-si" : "fronte-collegato-no")
+                }
                 DispatchQueue.main.async {
                     engine.linkIsConnected = isConnected
                 }
@@ -609,6 +630,10 @@ class AudioEngine: ObservableObject {
                 // chiamare `stop()` DA DENTRO audioQueue, non di accodarle un lavoro.
                 engine.audioQueue.async {
                     engine.logTransportStampIfFollower(isPlaying ? "callback avvio" : "callback stop")
+                    // RIENTRO-P2A — TIMBRO: oltre all'ora, il battito dell'avvio, da una
+                    // cattura sola (la riga RIENTRO-P1 qui sopra resta com'è, per confronto
+                    // coi collaudi già fatti: sono due catture a pochi microsecondi).
+                    engine.logStartStamp(isPlaying ? "callback-avvio" : "callback-stop")
                 }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
@@ -636,6 +661,8 @@ class AudioEngine: ObservableObject {
         if let lh = linkEngineHandle {
             link_engine_activate(lh)
         }
+        // RIENTRO-P2A — campionatore diagnostico del timbro dell'avvio (solo log).
+        startStartStampSampler()
 
         // === Task D refactor #18c — pending atomic init ===
         // Inizializzazione preliminare sample_rate nel pending atomic prima
@@ -691,6 +718,8 @@ class AudioEngine: ObservableObject {
     }
 
     deinit {
+        // RIENTRO-P2A — il campionatore del timbro si ferma col motore.
+        startStampTimer?.cancel()
         stopSync()
         // === Task D refactor #18c — Correzione 1 referee adattata a installTap ===
         // 1. stopSync() — sopra
@@ -830,6 +859,10 @@ class AudioEngine: ObservableObject {
         let lhCaptured = self.linkEngineHandle
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            // RIENTRO-P2A — L'ORA VERA DEL FUOCO, letta per prima cosa. Una lettura
+            // dell'orologio e basta: la riga [FUOCO] si scrive più sotto, a ingresso fatto
+            // (o a ri-armo fatto), per non mettere lavoro davanti al primo buffer.
+            let firedAt = mach_absolute_time()
             // RIENTRO-P1 (a) — FUOCO SCARTATO. Questo work item vale solo se è ancora
             // l'ULTIMO armato (la generazione con cui è nato è quella corrente) e se il
             // motore è ancora in moto. Se no è un fuoco orfano — un arresto che non passa
@@ -862,6 +895,11 @@ class AudioEngine: ObservableObject {
                                log: .default, type: .default,
                                distToBar, qNow, retriesLeft - 1)
                         self.armSharedJoin(retriesLeft: retriesLeft - 1)
+                        // RIENTRO-P2A — [FUOCO] anche per il fuoco che ri-arma: scritta DOPO
+                        // che il nuovo ingresso è già armato, così non gli sta davanti.
+                        self.logJoinFire(outcome: "riarmo", expected: futureHostTime,
+                                         actual: firedAt, waitSeconds: delaySeconds,
+                                         generation: generation, retriesLeft: retriesLeft)
                         return
                     }
                     os_log("[Q-BEATS][LINK][SHARED] WARN re-arm esauriti (dist:%.4f quantum:%.1f) — ingresso con comportamento pre-fix",
@@ -892,11 +930,25 @@ class AudioEngine: ObservableObject {
             // _exactNextBeatSample=0 → beat al sample 0) che fa
             // _sectionBeatCounter += 1. Seminare dopo il pre-roll = off-by-one.
             //
-            // startBeat = fase allineata alla sessione Link al momento del join
-            // (≈ bar saltati nel count-in del Director). È within-section e NON
-            // si accumula tra brani perché il Director rimappa Link a beat 0 a
-            // ogni canzone (link_engine_start_at_beat_zero, LinkEngine.mm:427-445).
-            // Variabile LOCALE: NON tocchiamo _startAbsoluteBeat (snap resume).
+            // ⚠️ RISCRITTO RIENTRO-P2A (20/09/2026; referto A376 §2.1). Il testo di prima
+            // diceva «startBeat = fase allineata alla sessione Link al momento del join»:
+            // era falso. Quello che il codice fa:
+            // `startBeat` NON viene da Link. `midi_engine_get_beat_at_time` legge il
+            // sequencer MIDI LOCALE (MIDIEngine.mm: proietta l'ora chiesta sull'ultimo punto
+            // di `midi_engine_sync_clock` e chiede `sequencer.getBeatPosition`), e `start()`
+            // quel sequencer l'ha azzerato — `midi_engine_sync_clock(mh, 0,
+            // mach_absolute_time(), …)` e `midi_engine_set_beat_position(mh, 0.0)` — PRIMA
+            // di chiamare `armSharedJoin`. Quindi `startBeat` = i battiti trascorsi da
+            // `start()` all'ora d'uscita prevista del fuoco = l'attesa d'ingresso, più la
+            // latenza d'uscita, più un buffer. Non dice a che punto della canzone è la band.
+            // Con i ri-armi le attese si sommano: il ramo «fire NON su barra» esce prima dei
+            // tre `scheduleNextBuffer` qui sotto, che sono gli unici a riancorare il
+            // sequencer; con `kSharedJoinMaxRearms` = 2 le attese sono al più tre, ciascuna
+            // di al più una battuta del quantum letto a quell'armamento.
+            // ⚠️ RISCRITTO RIENTRO-P2A. Il testo di prima diceva «Variabile LOCALE: NON
+            // tocchiamo _startAbsoluteBeat (snap resume)»: vero solo di questo blocco.
+            // `startBeat` è locale al blocco del seme, ma questo stesso work item
+            // `_startAbsoluteBeat` lo SCRIVE poco più sotto, dopo i tre `scheduleNextBuffer`.
             if let mh = self.midiEngineHandle {
                 let startBeat = midi_engine_get_beat_at_time(
                     mh,
@@ -934,14 +986,29 @@ class AudioEngine: ObservableObject {
                            offset, self._sectionTotalBeats)
                 }
             }
+            // RIENTRO-P2A — FINESTRA: quanti buffer di sospensione della correzione di fase
+            // restavano a QUESTO motore al momento dell'ingresso (li aprono lo scambio di
+            // sezione e `scheduleBPMChange`, a 100). Si legge qui perché la riga sotto li
+            // sovrascrive con 3; la riga di log si scrive dopo i tre `scheduleNextBuffer`.
+            let skipBuffersAtFire = self.linkSyncSkipBuffers
             self.linkSyncSkipBuffers = 3
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
-            // Sovrascrive _startAbsoluteBeat con il valore
-            // corretto: il primo sample audio reale parte a
-            // futureHostTime, non al mach_absolute_time() di
-            // quando è stato schedulato il work item.
+            // ⚠️ RISCRITTO RIENTRO-P2A (20/09/2026; referto A376 §2.1 e §2.4). Il testo di
+            // prima diceva «il primo sample audio reale parte a futureHostTime»: era falso.
+            // Quello che il codice fa: il primo campione esce quando GIRA questo blocco,
+            // perché `scheduleNextBuffer` consegna il buffer con
+            // `playerNode.scheduleBuffer(buffer)` SENZA `at:` — il player lo suona appena
+            // può, non a un'ora. `futureHostTime` è l'ora PREVISTA del fuoco; l'ora vera la
+            // scrive la riga [FUOCO] qui sotto.
+            // Qui `_startAbsoluteBeat` viene sovrascritto col battito del sequencer MIDI
+            // locale all'ora d'uscita prevista (`futureHostTime` + latenza + un buffer). I tre
+            // `scheduleNextBuffer` qui sopra hanno appena riancorato il sequencer ad ADESSO
+            // (`midi_engine_sync_clock`): se il fuoco è in ritardo di più di latenza + un
+            // buffer, l'ora chiesta precede l'àncora e `midi_engine_get_beat_at_time` ripiega
+            // sulla posizione corrente del sequencer (MIDIEngine.mm, guardia
+            // `hostTime < engine->lastMachTime`), che è l'inizio del terzo buffer.
             if let mh = self.midiEngineHandle {
                 self._startAbsoluteBeat = midi_engine_get_beat_at_time(
                     mh,
@@ -950,11 +1017,25 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
                    log: .default, type: .default,
                    self._startAbsoluteBeat)
+            // RIENTRO-P2A — [FUOCO]: ora prevista e ora vera del fuoco, con la differenza.
+            self.logJoinFire(outcome: "ingresso", expected: futureHostTime,
+                             actual: firedAt, waitSeconds: delaySeconds,
+                             generation: generation, retriesLeft: retriesLeft)
+            // RIENTRO-P2A — [FINESTRA]: solo se l'ingresso è caduto a finestra aperta. In
+            // questo passo si misura e basta: nessun rinvio.
+            if skipBuffersAtFire > 0 {
+                os_log("[Q-BEATS][RIENTRO-P2A][FINESTRA] ingresso-in-finestra bufferRimasti:%d generazione:%d",
+                       log: .default, type: .default, skipBuffersAtFire, generation)
+            }
             // RIENTRO-P1 (f) — SONDA, dopo l'ingresso del Follower: se l'ora è la stessa letta
             // «prima dell'ingresso», l'ingresso non l'ha toccata (è quello che W4 tolta promette).
             if !writesPlayToLink {
                 self.logTransportStamp("dopo l'ingresso")
             }
+            // RIENTRO-P2A — [TIMBRO] dopo l'ingresso (gemella di «callback-avvio»: stessa
+            // riga, una cattura sola). Per chiunque entri di qui, Follower o no: il ruolo è
+            // nella riga.
+            self.logStartStamp("dopo-ingresso")
 
 #if QB_DIAG_SPY
             // SPIA passiva — TRE sorgenti all'aggancio (campo concomitante,
@@ -1031,6 +1112,146 @@ class AudioEngine: ObservableObject {
         guard FollowerDecision.isFollower(role: self._linkMode,
                                           userLinkEnabled: self._linkUserEnabledQ) else { return }
         self.logTransportStamp(context)
+    }
+
+    // RIENTRO-P2A (20/09/2026) — [FUOCO]: ora prevista (`futureHostTime` dell'armamento) e ora
+    // vera (letta in testa al work item) del fuoco dell'ingresso, con la differenza. Solo log.
+    // Chiamare SOLO su audioQueue, a ingresso (o ri-armo) già fatto.
+    // Formato fisso, campi `chiave:valore` separati da uno spazio:
+    //   esito       ingresso | riarmo
+    //   previsto    mach ticks
+    //   vero        mach ticks
+    //   ritardo_ms  vero − previsto, in millisecondi (negativo = fuoco in anticipo)
+    //   attesa_s    l'attesa chiesta a `asyncAfter` per questo armamento, in secondi
+    //   generazione `joinGeneration` con cui il work item è nato
+    //   residui     `retriesLeft` di questo armamento
+    private func logJoinFire(outcome: String, expected: UInt64, actual: UInt64,
+                             waitSeconds: Double, generation: Int, retriesLeft: Int) {
+        let lateMs: Double
+        if actual >= expected {
+            lateMs = self.machTicksToSeconds(actual - expected) * 1000.0
+        } else {
+            lateMs = -self.machTicksToSeconds(expected - actual) * 1000.0
+        }
+        os_log("[Q-BEATS][RIENTRO-P2A][FUOCO] esito:%{public}@ previsto:%llu vero:%llu ritardo_ms:%.3f attesa_s:%.3f generazione:%d residui:%d",
+               log: .default, type: .default,
+               outcome, expected, actual, lateMs, waitSeconds, generation, retriesLeft)
+    }
+
+    // RIENTRO-P2A (20/09/2026) — [TIMBRO]: il timbro dell'avvio che Link riporta, accanto a
+    // quello che crede il motore. Solo lettura, solo log: nessuna decisione legge questi
+    // valori in questo passo. Che cosa rende ciascuna lettura di Link: MIDIEngineBridge.h,
+    // `LinkStartStamp`.
+    // I valori che si confrontano fra un campione e l'altro (l'ora della cattura no).
+    private struct StartStampSample: Equatable {
+        let linkEnabled: Bool          // interruttore dell'app (`enabled_` del ponte)
+        let sessionPlaying: Bool       // ABLLinkIsPlaying
+        let startTime: UInt64          // ABLLinkTimeForIsPlaying, mach ticks
+        let beatQ1: Double             // ABLLinkBeatAtTime (T, 1)
+        let phaseQBig: Double          // ABLLinkPhaseAtTime(T, 1e6)
+        let beatQ0: Double             // ABLLinkBeatAtTime (T, 0)
+        let peers: UInt32              // contatore del ponte (0/1)
+        let role: LinkMode             // `_linkMode`
+        let userLinkEnabled: Bool      // `_linkUserEnabledQ`
+        let engineRunning: Bool        // `isRunning`
+        let joinPending: Bool          // `pendingLinkStart != nil`
+    }
+
+    // Legge il timbro e lo stato del motore. Chiamare SOLO su audioQueue: la cattura dello
+    // stato di Link scrive in un membro condiviso dell'istanza ABLLink (MIDIEngineBridge.h,
+    // `link_engine_read_start_stamp`), e le altre catture di questo file vivono tutte qui.
+    private func readStartStamp() -> (sample: StartStampSample, capturedAt: UInt64)? {
+        guard let lh = self.linkEngineHandle else { return nil }
+        let stamp = link_engine_read_start_stamp(lh)
+        let sample = StartStampSample(linkEnabled: stamp.linkEnabled,
+                                      sessionPlaying: stamp.isPlaying,
+                                      startTime: stamp.timeForIsPlaying,
+                                      beatQ1: stamp.beatAtStampQ1,
+                                      phaseQBig: stamp.phaseAtStampQBig,
+                                      beatQ0: stamp.beatAtStampQ0,
+                                      peers: stamp.numPeers,
+                                      role: self._linkMode,
+                                      userLinkEnabled: self._linkUserEnabledQ,
+                                      engineRunning: self.isRunning,
+                                      joinPending: self.pendingLinkStart != nil)
+        return (sample, stamp.captureHostTime)
+    }
+
+    // Scrive la riga. Non legge stato del motore: chiamabile da qualsiasi coda.
+    // Formato fisso, campi `chiave:valore` separati da uno spazio, nessuno spazio nei valori:
+    //   contesto     fronte-collegato-si | fronte-collegato-no | callback-avvio |
+    //                callback-stop | dopo-ingresso | campione
+    //   link         1 = interruttore dell'app acceso; a 0 i cinque campi di Link sono zero
+    //   suona        ABLLinkIsPlaying
+    //   oraAvvio     T = ABLLinkTimeForIsPlaying, mach ticks
+    //   battitoQ1    ABLLinkBeatAtTime (T, 1)
+    //   faseQ1e6     ABLLinkPhaseAtTime(T, 1e6)
+    //   battitoQ0    ABLLinkBeatAtTime (T, 0)
+    //   adesso       mach ticks letti subito prima della cattura
+    //   trascorsi_ms adesso − oraAvvio, in millisecondi (negativo = ora nel futuro)
+    //   peers        contatore del ponte (0/1)
+    //   ruolo        `_linkMode`
+    //   linkUtente   `_linkUserEnabledQ`
+    //   motore       in-moto | fermo (`isRunning`)
+    //   ingresso     pendente | nessuno (`pendingLinkStart`)
+    private func writeStartStampLine(_ context: String, _ sample: StartStampSample,
+                                     capturedAt: UInt64) {
+        let elapsedMs: Double
+        if capturedAt >= sample.startTime {
+            elapsedMs = self.machTicksToSeconds(capturedAt - sample.startTime) * 1000.0
+        } else {
+            elapsedMs = -self.machTicksToSeconds(sample.startTime - capturedAt) * 1000.0
+        }
+        let linkOn: Int = sample.linkEnabled ? 1 : 0
+        let sessionPlaying: Int = sample.sessionPlaying ? 1 : 0
+        let userLinkOn: Int = sample.userLinkEnabled ? 1 : 0
+        let roleText: String = String(describing: sample.role)
+        let engineText: String = sample.engineRunning ? "in-moto" : "fermo"
+        let joinText: String = sample.joinPending ? "pendente" : "nessuno"
+        os_log("[Q-BEATS][RIENTRO-P2A][TIMBRO] contesto:%{public}@ link:%d suona:%d oraAvvio:%llu battitoQ1:%.6f faseQ1e6:%.6f battitoQ0:%.6f adesso:%llu trascorsi_ms:%.1f peers:%u ruolo:%{public}@ linkUtente:%d motore:%{public}@ ingresso:%{public}@",
+               log: .default, type: .default,
+               context, linkOn, sessionPlaying,
+               sample.startTime, sample.beatQ1, sample.phaseQBig, sample.beatQ0,
+               capturedAt, elapsedMs, sample.peers,
+               roleText, userLinkOn, engineText, joinText)
+    }
+
+    // La riga [TIMBRO] a un evento (fronte del collegato, callback avvio/stop, dopo
+    // l'ingresso). Chiamare SOLO su audioQueue.
+    private func logStartStamp(_ context: String) {
+        guard let read = self.readStartStamp() else { return }
+        self.writeStartStampLine(context, read.sample, capturedAt: read.capturedAt)
+    }
+
+    // RIENTRO-P2A — CAMPIONATORE DIAGNOSTICO DEL TIMBRO. Quattro volte al secondo rilegge il
+    // timbro e scrive la riga [TIMBRO] (contesto `campione`) SOLO se uno dei valori di
+    // `StartStampSample` è cambiato dall'ultimo campione scritto. Serve a vedere nei log di
+    // un collaudo due cose che nessun callback annuncia: se dopo una rete persa e ritrovata
+    // il timbro cambia anche quando il callback avvio/stop non scatta, e se resta fermo
+    // quando il Direttore forza la griglia.
+    // Dove gira: il timer e il confronto su `startStampQueue` (utility); la SOLA lettura su
+    // audioQueue — un blocco con una cattura e tre letture, senza log — perché la cattura
+    // dello stato di Link non è sicura da un altro thread (vedi `readStartStamp`). La riga,
+    // quando si scrive, si scrive su `startStampQueue`.
+    // Parte in `init` e non si ferma: il motore non sa se c'è uno show in stanza (la sessione
+    // vive sopra di lui). A Link spento i campi restano fermi e non si scrive niente.
+    private func startStartStampSampler() {
+        let timer = DispatchSource.makeTimerSource(queue: self.startStampQueue)
+        timer.schedule(deadline: .now() + 0.25, repeating: 0.25, leeway: .milliseconds(50))
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.audioQueue.async { [weak self] in
+                guard let self, let read = self.readStartStamp() else { return }
+                self.startStampQueue.async { [weak self] in
+                    guard let self else { return }
+                    guard read.sample != self.lastSampledStartStamp else { return }
+                    self.lastSampledStartStamp = read.sample
+                    self.writeStartStampLine("campione", read.sample, capturedAt: read.capturedAt)
+                }
+            }
+        }
+        timer.resume()
+        self.startStampTimer = timer
     }
 
     func start(resumeAtBeat: Double? = nil) {
