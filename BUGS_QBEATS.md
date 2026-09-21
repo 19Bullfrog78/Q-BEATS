@@ -1,7 +1,7 @@
 # BUGS_QBEATS — Tracker centralizzato bug e tech debt
 
-**Versione:** 89
-**Decisione:** 2026-09-18 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste. ⇒ **v89 — mandato A368 (19/09/2026): collaudi del 17-18/09 su `c21fbef` e `7bb5e94`. Chiude `TD-follower-stop-propaga`, `TD-waiting-for-director-start-local-da-togliere` e «WAITING FOR DIRECTOR entra al Play con Ableton Link OFF». Mette in Sez.2, sotto «Settembre 2026», tre ticket nati chiusi (doppio aggancio, contatore nel giro d'attesa, ramo condiviso a Link spento). Apre dieci ticket con gravità PROPOSTA (decide Mauro), fra cui il seme d'ingresso e il Follower bloccato dopo il ritorno del peer. Scarta il WARN «aggancio non su downbeat» (Sez.3). Aggiunge in Sez.4 le misure WAV del 18/09. Marca otto ticket. Sposta due ticket di A358 da §1.5 in coda a §1.3.**
+**Versione:** 90
+**Decisione:** 2026-09-20 — ⚠️ **il campo si chiamava «Ultima modifica» e porta ora il giorno in cui la decisione è stata presa, NON quello del deposito** (R-δ.15 in `BOX5_QBEATS.md`, ratificata Mauro 06/09/2026). La data del deposito non si scrive: vive in git. ⛔ Le date già scritte nelle teste precedenti NON sono state corrette: sotto questa lettura erano già giuste. ⇒ **v90 — mandato A380 (20/09/2026): in `TD-linkkit-funzioni-app-fuori-dal-main` aggiunge la voce (3), la conseguenza della cattura dello stato di Link dalla coda globale (POLL #293), che esisteva già prima del passo 2A. Nessun ticket nuovo. Nient'altro toccato.**
 **Autore iniziale:** CC chat principale 26/05/2026 sera
 **Repo:** `C:\Users\BULLFROG\Desktop\ANTIGRAVITY\Q-BEATS\`
 
@@ -990,6 +990,7 @@ awk -v INIZIO="$I" -v FINE="$F" '
 - **Nella stessa voce:**
   - **(1)** Il commit dopo una sola lettura. La riga di casa «commit obbligatorio anche in lettura» sta in `link_engine_sync_phase`, ma l'intestazione non lo impone (A365 §3.f).
   - **(2)** `link_engine_beat_at_time` (`LinkEngine.mm:520-530`) non ha la guardia `enabled_` delle sorelle, e non ha chiamanti (A364 §11).
+  - **(3)** ⚠️ **Aggiunta 20/09/2026 (A380) — la conseguenza della funzione che gira sulla coda globale.** Quell'una è il POLL #293 dentro `link_engine_activate` (`LinkEngine.mm:353-364` alla punta `3c5b60b`): un `dispatch_after` di 5 s su `dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)` che cattura a `:358` e committa a `:360`, una volta sola (il commento sopra dice «ogni 5s»). [M] `ABLLinkCaptureAppSessionState` non rende una copia: scrive `mAppSessionState.mImpl` e ne rende l'indirizzo (`ABLLink.mm` al tag `LinkKit-4.0`, `e326b9d02253c2303541de959f418146ff19bae7`, `:293-298`). ⇒ La cattura dalla coda globale può sovrascrivere il membro unico che `audioQueue` sta leggendo o sta per committare. Non è nata col passo 2A: è identica alla punta vecchia `c037ccb0` e a quella nuova `3c5b60b`, e A378 non aggiunge catture fuori da `audioQueue` (censimento dei siti di cattura: A379 §4). Mai osservata su device.
 - **Collegato a:** TD #34, la race sul callback start/stop.
 - **Da decidere prima del passo 3.** **Dominio:** CC.
 
