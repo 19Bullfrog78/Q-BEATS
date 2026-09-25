@@ -265,6 +265,69 @@ typedef struct {
 
 LinkStartStamp link_engine_read_start_stamp(LinkEngineHandle handle);
 
+// === A386 · FASE B2A (25/09/2026) — IL 2D NEL PONTE: QUATTRO AGGIUNTE, NESSUNA MODIFICA ===
+// Tutte dell'API dell'app (ABLLinkCaptureAppSessionState): ⛔ chiamare SOLO da audioQueue,
+// per la ragione scritta sopra a `LinkStartStamp`. Le regole che le usano stanno in
+// QBeats/Models (fase B1, commit 54247fc); qui c'è solo la lettura e la scrittura.
+
+// (1) ISTANTANEA DEL TRASPORTO: una cattura, NESSUN commit. Da qui leggono il battito di
+// trasporto a 1 s (il Direttore per ripetere, il Follower per «sentire»), il cancello della
+// mezza battuta (D6) e la falsa partenza (D7-bis).
+//   tempo              = ABLLinkGetTempo(state), il tempo di sessione.
+//   phaseAtStampQBig   = ABLLinkPhaseAtTime(state, T, 1e6): il battito di T contato dallo zero
+//                        di sessione, condiviso fra i peer (ABLLink.h: la fase rispetto al
+//                        quantum è condivisa; il valore assoluto no). Per T = ora dell'avvio
+//                        è la fase d'avvio, per T = ora dello stop la fase di stop: la loro
+//                        differenza (a giro, `FalseStartDecision.beatDelta`) è la stessa su
+//                        tutti gli apparecchi.
+//   timelineWriteCount = quante volte QUESTO apparecchio ha scritto la propria linea temporale
+//                        su Link (tempo o battito), contate dal ponte a ogni commit che le
+//                        modifica. Il campione la confronta col valore precedente: un cambio
+//                        dell'ora avvio/stop nello stesso intervallo NON è un colpo del
+//                        Direttore ma l'eco di una scrittura propria (`DirectorHeardTracker`,
+//                        `ownTimelineWriteSinceLastSample`).
+// A Link spento (enabled_ falso) linkEnabled è false e i campi di Link restano a zero.
+typedef struct {
+    bool     linkEnabled;
+    bool     isPlaying;
+    uint64_t timeForIsPlaying;
+    double   phaseAtStampQBig;
+    double   tempo;
+    uint64_t captureHostTime;
+    uint64_t timelineWriteCount;
+} LinkTransportSnapshot;
+
+LinkTransportSnapshot link_engine_read_transport_snapshot(LinkEngineHandle handle);
+
+// (2) LA RIPETIZIONE DEL DIRETTORE: una cattura, UN commit di {isPlaying catturato,
+// timeForIsPlaying catturato + shiftTicks}, nessun tocco a tempo e battito. Per Link lo stato
+// avvio/stop parte solo se è diverso da quello catturato ([R] Link.ipp:47-52) e porta come
+// timbro l'ora del commit: basta spostare l'ora di 1 ms, col segno alternato dal chiamante
+// (`DirectorReannounceDecision`), perché riparta ogni secondo senza derivare. Da fermo porta
+// l'ora dello STOP, non «adesso» (D7-bis: chi riceve una ripetizione decide la falsa partenza
+// come chi ha ricevuto lo Stop vero). `nowHostTime` si usa solo se l'ora catturata è zero
+// (nessuno stato mai scritto). Uno spostamento negativo non scende sotto zero. A Link spento
+// non fa niente (linkEnabled = false nel report).
+typedef struct {
+    bool     linkEnabled;
+    bool     isPlaying;
+    uint64_t timeBefore;
+    uint64_t timeAfter;
+} LinkReannounceReport;
+
+LinkReannounceReport link_engine_reannounce_transport(LinkEngineHandle handle,
+                                                      uint64_t nowHostTime,
+                                                      int64_t  shiftTicks);
+
+// (3) START STOP SYNC: il getter (ABLLink.h:83, «only controllable by the user via the Link
+// settings dialog») e il richiamo di cambio (ABLLink.h:164-167, sul thread principale). Senza,
+// il commit del Direttore non esce e il Follower non adotta niente ([R] Controller.hpp:443,
+// :411): la ripetizione tace e la macchina del Follower resta FUORI.
+bool link_engine_is_start_stop_sync_enabled(LinkEngineHandle handle);
+void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
+    void (*callback)(bool isEnabled, void* context),
+    void* context);
+
 #ifdef __cplusplus
 }
 #endif

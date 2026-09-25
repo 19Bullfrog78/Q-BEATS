@@ -28,6 +28,14 @@ enum PlaybackState {
     case pausedAwaitingChoice(sectionName: String, songName: String)
 }
 
+// A386 · FASE B2A (2D) — cosa la macchina del Follower chiede al runner, via la stanza
+// (`followerRunnerActionSubject` → `QLiveSession` → `SetlistRunner`).
+enum FollowerRunnerAction: Equatable {
+    /// Chiudi la canzone e arma la successiva (`armNextSong`, idempotente).
+    case armNext
+    /// D7-bis: riarma la stessa canzone (`armSong(currentSongIdx)`).
+    case rearmSame
+}
 
 class AudioEngine: ObservableObject {
     static let shared = AudioEngine()
@@ -50,6 +58,21 @@ class AudioEngine: ObservableObject {
     @Published private(set) var linkUserEnabled: Bool = false
     @Published var linkIsConnected: Bool = false
     @Published var linkPeers: Int = 0
+    // === A386 · FASE B2A (2D) — VALORI PER LO SCHERMO (B2b), SOLO MAIN ===
+    // Specchi di stato che vive su audioQueue; li scrive solo il motore, la vista li legge.
+    /// Numero di apparecchi collegati dalla notifica non documentata di LinkKit
+    /// («ABLLink.NumberOfPeersChanged»: l'`object` è un NSNumber, nessun userInfo, su main,
+    /// solo a Link acceso). `nil` = non arrivato: lo schermo lo nasconde. ⛔ Mai letto da
+    /// una decisione (D5): la sincronia usa «sento il Direttore», non i peer.
+    @Published private(set) var linkPeerCount: Int? = nil
+    /// Start Stop Sync acceso dall'utente nel pannello Link (`ABLLinkIsStartStopSyncEnabled`).
+    @Published private(set) var linkStartStopSyncEnabled: Bool = false
+    /// «Sento il Direttore» (`DirectorHeardTracker`, battito a 1 s, soglia 3 s).
+    @Published private(set) var directorHeard: Bool = false
+    /// Lo stato della macchina del Follower (`FollowerSyncDecision`) e la ragione dell'ultima
+    /// uscita FUORI (o del rifiuto di un armamento), per il velo e per `RientraProposal`.
+    @Published private(set) var followerSyncState: FollowerSyncState = FollowerSyncDecision.initial
+    @Published private(set) var followerOutReason: FollowerOutReason? = nil
     @Published var isWaitingForLinkDownbeat: Bool = false
     // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
     // `_linkMode` audio-queue per consumo da UI (LiveView calcola
@@ -220,6 +243,16 @@ class AudioEngine: ObservableObject {
     // sorgente. Q-D2/Q-D3/Q-D4 ratificati libro mastro v15.
     let linkStartedSubject = PassthroughSubject<Void, Never>()
 
+    // === A386 · FASE B2A (2D) — DUE SOGGETTI PER LA STANZA, emessi su main ===
+    /// La macchina del Follower chiede al runner di armare: la stanza (`QLiveSession`) lo
+    /// ascolta accanto a `linkStartedSubject`.
+    let followerRunnerActionSubject = PassthroughSubject<FollowerRunnerAction, Never>()
+    /// Il Direttore ha fermato a canzone in corso (D3): porta `falseStart` (D7-bis) calcolato
+    /// sui numeri di Link. Emesso PRIMA del `.stopped` del motore: la stanza decide cosa fare
+    /// del runner (`DirectorSongCloseDecision.onStop`) e scrive `.standby` prima che lo
+    /// specchio di `LiveView` veda il `.stopped`.
+    let directorStoppedSubject = PassthroughSubject<Bool, Never>()
+
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
 
@@ -244,7 +277,13 @@ class AudioEngine: ObservableObject {
             metronome_set_beat_volume(mh, s.beatVolume)
             metronome_set_subdiv_volume(mh, s.subdivVolume)
             self._clickMuted = s.clickMuted
-            self._linkMode = s.linkMode
+            // A386 · FASE B2A (2D) — un cambio di ruolo azzera la macchina del Follower.
+            if self._linkMode != s.linkMode {
+                self._linkMode = s.linkMode
+                self.followerResetQ(reason: "cambio-di-ruolo")
+            } else {
+                self._linkMode = s.linkMode
+            }
             // Layer 1 non riceve mai il mute — beat events continuano a scattare.
             self.ch1Volume = s.ch1Volume
             self.ch2Volume = s.ch2Volume
@@ -319,6 +358,28 @@ class AudioEngine: ObservableObject {
     // A360 — copia su audioQueue di `linkUserEnabled` (la mano dell'utente): la legge
     // `stopSync()` dentro `audioQueue.sync` per decidere se lo stop parte verso Link.
     private var _linkUserEnabledQ: Bool = false   // accesso SOLO su audioQueue
+    // === A386 · FASE B2A (2D) — LO STATO DEL 2D, accesso SOLO su audioQueue ===
+    // La macchina del Follower, il segnale «sento il Direttore», la ripetizione del Direttore
+    // e la fase di avvio per la falsa partenza vivono qui; gli specchi @Published sopra.
+    private var _startStopSyncEnabledQ: Bool = false
+    private var _followerSyncQ: FollowerSyncState = FollowerSyncDecision.initial
+    private var _followerOutReasonQ: FollowerOutReason? = nil
+    private var _heardTrackerQ: DirectorHeardTracker = .start
+    private var _directorHeardQ: Bool = false
+    private var _lastTimelineWriteCountQ: UInt64 = 0
+    private var _reannounceSignQ: DirectorReannounceDecision.Sign = .plus
+    private var _reannounceCountQ: UInt64 = 0
+    private var _lastReannouncedIsPlayingQ: Bool? = nil
+    private var _lastReannounceSkipQ: String? = nil
+    private var _pulseCountQ: UInt64 = 0
+    /// Fase di sessione (quantum 1e6) dell'ultimo avvio agito (Follower) o scritto (Direttore):
+    /// il primo termine della falsa partenza (D7-bis). `nil` = nessun avvio in corso.
+    private var _startPhaseQ: Double? = nil
+    /// Battiti per battuta della PRIMA sezione della canzone armata/in corso (Q10, D7-bis):
+    /// lo scrive il runner, non il motore (che al richiamo porta ancora la sezione precedente).
+    private var _songFirstBeatsPerBarQ: UInt32 = 4
+    private var transportPulseTimer: DispatchSourceTimer? = nil
+    private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
     // RIENTRO-P1 (A366, 17/09/2026) — INTERRUTTORE SOLO DEBUG PER LA PROVA A/B DELLA
     // DECISIONE 9.1 (referto A364, §5.e e §9.1): «chi porta i cambi di tempo quando il
@@ -583,12 +644,35 @@ class AudioEngine: ObservableObject {
                             }
                         }
                     } else {
+                        // A386 · FASE B2A (2D) — Link spento dall'utente: la macchina del
+                        // Follower si azzera (`reset`) e il numero dei collegati si nasconde.
+                        engine.followerResetQ(reason: "link-utente-spento")
                         DispatchQueue.main.async {
                             engine.linkEnabled = false
                             engine.linkIsConnected = false
                             engine.linkPeers = 0
+                            engine.linkPeerCount = nil
                         }
                     }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
+
+            // === A386 · FASE B2A (2D) — Start Stop Sync: il richiamo di cambio ===
+            // LinkKit lo invoca sul thread principale quando l'utente muove l'interruttore nel
+            // pannello Link (ABLLink.h:161-167). Copia di coda per le decisioni
+            // (`_startStopSyncEnabledQ`), specchio su main per lo schermo — lo schema di
+            // `_linkUserEnabledQ`/`linkUserEnabled` qui sopra. La prima lettura, col getter,
+            // sta dopo `link_engine_activate` (il richiamo arriva solo ai cambi).
+            link_engine_set_start_stop_sync_enabled_callback(lh, { isEnabled, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                engine.audioQueue.async { [weak engine] in
+                    guard let engine = engine else { return }
+                    engine._startStopSyncEnabledQ = isEnabled
+                    DispatchQueue.main.async { engine.linkStartStopSyncEnabled = isEnabled }
+                    os_log("[Q-BEATS][2D][STARTSTOPSYNC] enabled:%d (pannello Link) - ruolo:%{public}@",
+                           log: .default, type: .default,
+                           isEnabled ? 1 : 0, String(describing: engine._linkMode))
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
         }
@@ -635,6 +719,21 @@ class AudioEngine: ObservableObject {
                     // coi collaudi già fatti: sono due catture a pochi microsecondi).
                     engine.logStartStamp(isPlaying ? "callback-avvio" : "callback-stop")
                 }
+                // A386 · FASE B2A (2D) — IL CANCELLO DEL FOLLOWER. Chi è Follower (ruolo E Link
+                // acceso dall'utente) passa dalla macchina, su audioQueue, PRIMA di `engine.start()`
+                // e NON dentro `start()`, che è anche la porta del rientro dopo un'interruzione:
+                // mezza battuta (D6, `HalfBarWindow`), falsa partenza (D7-bis,
+                // `FalseStartDecision`), tabella `FollowerSyncDecision`. Chi non è Follower (Solo,
+                // o ruolo Follower con Link spento dall'utente) tiene il ramo di sempre, sotto,
+                // invariato. B2A-bis: questo richiamo gira su main, quindi la decisione si legge
+                // dalla copia di main (`followerDecision`, la stessa di `handleStop`), non dalle
+                // copie di coda; la lettura di `_linkMode` alla riga sopra è pre-esistente.
+                if engine.followerDecision.isFollower {
+                    engine.audioQueue.async {
+                        engine.followerHandleLinkTransport(isPlaying: isPlaying)
+                    }
+                    return
+                }
                 // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
                 // audioQueue.sync dentro e causerebbe deadlock.
                 DispatchQueue.main.async {
@@ -663,6 +762,15 @@ class AudioEngine: ObservableObject {
         }
         // RIENTRO-P2A — campionatore diagnostico del timbro dell'avvio (solo log).
         startStartStampSampler()
+        // A386 · FASE B2A (2D) — la prima lettura di Start Stop Sync (il richiamo arriva solo
+        // ai cambi), la notifica del numero dei collegati e il battito di trasporto a 1 s.
+        if let lh = linkEngineHandle {
+            let startStopSync = link_engine_is_start_stop_sync_enabled(lh)
+            audioQueue.async { [weak self] in self?._startStopSyncEnabledQ = startStopSync }
+            DispatchQueue.main.async { [weak self] in self?.linkStartStopSyncEnabled = startStopSync }
+        }
+        registerPeerCountNotification()
+        startTransportPulse()
 
         // === Task D refactor #18c — pending atomic init ===
         // Inizializzazione preliminare sample_rate nel pending atomic prima
@@ -720,6 +828,10 @@ class AudioEngine: ObservableObject {
     deinit {
         // RIENTRO-P2A — il campionatore del timbro si ferma col motore.
         startStampTimer?.cancel()
+        transportPulseTimer?.cancel()
+        if let observer = peerCountObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
         stopSync()
         // === Task D refactor #18c — Correzione 1 referee adattata a installTap ===
         // 1. stopSync() — sopra
@@ -1254,6 +1366,405 @@ class AudioEngine: ObservableObject {
         self.startStampTimer = timer
     }
 
+    // =====================================================================================
+    // === A386 · FASE B2A (25/09/2026) — IL 2D NEL MOTORE: BATTITO A 1 s, MACCHINA, PORTE ===
+    // =====================================================================================
+    // Le regole sono pure e testate in QBeats/Models (fase B1, commit 54247fc): qui c'è solo il
+    // collegamento. Stato su audioQueue, specchi su main, azioni sul runner via la stanza.
+    // Costituzione §4: niente di tutto questo tocca il render callback; il timer è una sorgente
+    // GCD su audioQueue; ogni cattura di Link sta su audioQueue.
+
+    /// La soglia del «sento il Direttore»: 3,0 s, provvisori (si fissano al collaudo).
+    private var heardThresholdTicks: UInt64 { secondsToMachTicks(3.0) }
+    /// Lo spostamento della ripetizione del Direttore: 1 ms.
+    private var oneMillisecondTicks: UInt64 { secondsToMachTicks(0.001) }
+    private var ticksPerSecond: Double {
+        guard machTimebase.numer > 0 else { return 0 }
+        return 1_000_000_000.0 * Double(machTimebase.denom) / Double(machTimebase.numer)
+    }
+
+    // MARK: Il battito di trasporto a 1 s (Q17): il Direttore ripete, il Follower ascolta
+
+    private func startTransportPulse() {
+        let timer = DispatchSource.makeTimerSource(queue: audioQueue)
+        timer.schedule(deadline: .now() + 1.0, repeating: 1.0, leeway: .milliseconds(50))
+        timer.setEventHandler { [weak self] in
+            self?.transportPulse()
+        }
+        timer.resume()
+        transportPulseTimer = timer
+    }
+
+    /// Su audioQueue. Una cattura (nessun commit); poi il ruolo decide cosa farne.
+    private func transportPulse() {
+        guard let lh = linkEngineHandle else { return }
+        _pulseCountQ += 1
+        let snap = link_engine_read_transport_snapshot(lh)
+        // Una scrittura propria della linea temporale fra due battiti (W2 al confine di
+        // sezione, o qualunque altra: il ponte le conta tutte) rende il prossimo cambio
+        // dell'ora un'eco, non un colpo (`DirectorHeardTracker`).
+        let ownTimelineWrite = snap.timelineWriteCount != _lastTimelineWriteCountQ
+        _lastTimelineWriteCountQ = snap.timelineWriteCount
+        if _linkMode == .direttore {
+            directorPulse(snapshot: snap)
+        } else if FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) {
+            followerPulse(snapshot: snap, ownTimelineWrite: ownTimelineWrite)
+        }
+    }
+
+    /// Il Direttore ripete il proprio stato: `DirectorReannounceDecision` decide se e con che
+    /// segno, il ponte scrive `{isPlaying catturato, ora catturata ± 1 ms}` (da fermo l'ora dello
+    /// stop). Log Q7: una riga a ogni cambio di «suona» o di motivo di salto, più una ogni 10.
+    private func directorPulse(snapshot snap: LinkTransportSnapshot) {
+        guard let lh = linkEngineHandle else { return }
+        let decision = DirectorReannounceDecision(role: _linkMode,
+                                                  userLinkEnabled: _linkUserEnabledQ,
+                                                  startStopSyncEnabled: _startStopSyncEnabledQ,
+                                                  linkEnabled: snap.linkEnabled,
+                                                  sessionPlaying: snap.isPlaying,
+                                                  capturedTime: snap.timeForIsPlaying,
+                                                  shiftTicks: oneMillisecondTicks,
+                                                  sign: _reannounceSignQ)
+        switch decision.outcome {
+        case .skip(let reason):
+            let text = describe(reason)
+            if text != _lastReannounceSkipQ {
+                _lastReannounceSkipQ = text
+                _lastReannouncedIsPlayingQ = nil
+                os_log("[Q-BEATS][2D][DIRETTORE] ripetizione FERMA motivo:%{public}@",
+                       log: .default, type: .default, text)
+            }
+        case .reannounce(let isPlaying, _):
+            _lastReannounceSkipQ = nil
+            let ms = Int64(oneMillisecondTicks)
+            let shift: Int64 = (_reannounceSignQ == .plus) ? ms : -ms
+            let report = link_engine_reannounce_transport(lh, snap.captureHostTime, shift)
+            _reannounceSignQ = decision.nextSign
+            _reannounceCountQ += 1
+            let changed = _lastReannouncedIsPlayingQ != isPlaying
+            _lastReannouncedIsPlayingQ = isPlaying
+            if changed || _reannounceCountQ % 10 == 0 {
+                os_log("[Q-BEATS][2D][DIRETTORE] ripetizione suona:%d oraPrima:%llu oraDopo:%llu segno:%{public}@ startStopSync:%d ripetizioni:%llu",
+                       log: .default, type: .default,
+                       report.isPlaying ? 1 : 0, report.timeBefore, report.timeAfter,
+                       shift >= 0 ? "+" : "-", _startStopSyncEnabledQ ? 1 : 0, _reannounceCountQ)
+            }
+        }
+    }
+
+    /// Il Follower ascolta: la coppia (suona, ora) cambia entro la soglia ⇒ «sento il Direttore».
+    /// Sul fronte del segnale, l'evento alla macchina (D1, DA SOLO, R2). Log Q7: una riga a ogni
+    /// cambio del sì/no, più una ogni 10 battiti.
+    private func followerPulse(snapshot snap: LinkTransportSnapshot, ownTimelineWrite: Bool) {
+        let sample = DirectorHeardSample(linkEnabled: snap.linkEnabled,
+                                         isPlaying: snap.isPlaying,
+                                         timeForIsPlaying: snap.timeForIsPlaying)
+        let verdict = _heardTrackerQ.observe(sample: sample,
+                                             now: snap.captureHostTime,
+                                             thresholdTicks: heardThresholdTicks,
+                                             ownTimelineWriteSinceLastSample: ownTimelineWrite)
+        _heardTrackerQ = verdict.next
+        let changed = verdict.heard != _directorHeardQ
+        _directorHeardQ = verdict.heard
+        if changed || _pulseCountQ % 10 == 0 {
+            os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d scritturaPropria:%d suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu",
+                   log: .default, type: .default,
+                   verdict.heard ? 1 : 0, verdict.hit ? 1 : 0, ownTimelineWrite ? 1 : 0,
+                   snap.isPlaying ? 1 : 0, snap.timeForIsPlaying,
+                   machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ)
+        }
+        if changed {
+            let heard = verdict.heard
+            DispatchQueue.main.async { [weak self] in self?.directorHeard = heard }
+            let running = isRunning || isAudioInterrupted
+            followerApply(.directorHeard(heard, engineRunning: running))
+        }
+    }
+
+    // MARK: Il cancello del Follower nel richiamo avvio/stop (D6, D7-bis)
+
+    /// Su audioQueue, dal richiamo di Link. Play: mezza battuta a due lati sulla misura della
+    /// canzone armata e sul tempo di sessione (Q9, Q10); accettato ⇒ si registra la fase di
+    /// avvio. Stop: falsa partenza sui battiti di sessione (D7-bis), motore in moto =
+    /// `isRunning || isAudioInterrupted` (Q11). `linkPlay` arriva alla macchina SOLO a motore
+    /// fermo (a motore in moto un Play non fa niente, come la guardia `!engine.isPlaying`).
+    private func followerHandleLinkTransport(isPlaying: Bool) {
+        guard let lh = linkEngineHandle else { return }
+        let snap = link_engine_read_transport_snapshot(lh)
+        let running = isRunning || isAudioInterrupted
+        if isPlaying {
+            if running {
+                os_log("[Q-BEATS][2D][FOLLOWER] play ignorato - motore in moto (isRunning:%d interrotto:%d)",
+                       log: .default, type: .default, isRunning ? 1 : 0, isAudioInterrupted ? 1 : 0)
+                return
+            }
+            let halfBar = HalfBarWindow.halfBarTicks(beatsPerBar: _songFirstBeatsPerBarQ,
+                                                     bpm: snap.tempo,
+                                                     ticksPerSecond: ticksPerSecond)
+            let within = HalfBarWindow.isWithin(announced: snap.timeForIsPlaying,
+                                                now: snap.captureHostTime,
+                                                halfBarTicks: halfBar)
+            let gapMs: Double
+            if snap.captureHostTime >= snap.timeForIsPlaying {
+                gapMs = machTicksToSeconds(snap.captureHostTime - snap.timeForIsPlaying) * 1000.0
+            } else {
+                gapMs = -machTicksToSeconds(snap.timeForIsPlaying - snap.captureHostTime) * 1000.0
+            }
+            os_log("[Q-BEATS][2D][FOLLOWER] play annunciata:%llu adesso:%llu scarto_ms:%.1f mezzaBattuta_ms:%.1f bpm:%.2f bpb:%u entro:%d",
+                   log: .default, type: .default,
+                   snap.timeForIsPlaying, snap.captureHostTime, gapMs,
+                   machTicksToSeconds(halfBar) * 1000.0, snap.tempo, _songFirstBeatsPerBarQ, within ? 1 : 0)
+            let transition = followerApply(.linkPlay(withinHalfBar: within))
+            if transition.action == .start {
+                _startPhaseQ = snap.phaseAtStampQBig
+                os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:play-direttore fase:%.6f oraAvvio:%llu",
+                       log: .default, type: .default, snap.phaseAtStampQBig, snap.timeForIsPlaying)
+            }
+        } else {
+            let falseStart = falseStartAgainstRegisteredStart(stopPhase: snap.phaseAtStampQBig,
+                                                              context: "stop-direttore-ricevuto")
+            _startPhaseQ = nil
+            followerApply(.linkStop(falseStart: falseStart, engineRunning: running))
+        }
+    }
+
+    /// Su audioQueue. La falsa partenza (D7-bis): `beatDelta` a giro simmetrico fra la fase di
+    /// avvio registrata e la fase dello stop, contro una battuta della prima sezione. Senza un
+    /// avvio registrato non è una falsa partenza.
+    private func falseStartAgainstRegisteredStart(stopPhase: Double, context: String) -> Bool {
+        guard let startPhase = _startPhaseQ else {
+            os_log("[Q-BEATS][2D][STOP] contesto:%{public}@ faseStop:%.6f nessun avvio registrato - falsaPartenza:0",
+                   log: .default, type: .default, context, stopPhase)
+            return false
+        }
+        let delta = FalseStartDecision.beatDelta(startPhase: startPhase, stopPhase: stopPhase, modulus: 1_000_000.0)
+        let margin = FalseStartDecision.marginBeats(beatsPerBar: _songFirstBeatsPerBarQ)
+        let falseStart = FalseStartDecision.isFalseStart(stopBeat: delta, startBeat: 0.0, marginBeats: margin)
+        os_log("[Q-BEATS][2D][STOP] contesto:%{public}@ faseAvvio:%.6f faseStop:%.6f delta_battiti:%.6f margine_battiti:%.1f falsaPartenza:%d",
+               log: .default, type: .default, context, startPhase, stopPhase, delta, margin, falseStart ? 1 : 0)
+        return falseStart
+    }
+
+    /// Su audioQueue, dopo il Play vero scritto su Link dal Direttore (battito zero): la fase di
+    /// sessione dell'avvio, primo termine della falsa partenza (D7-bis). La ripresa dopo
+    /// un'interruzione NON la registra (B2A-bis): resta la fase del Play.
+    private func registerStartPhase(context: String) {
+        guard let lh = linkEngineHandle else { return }
+        let snap = link_engine_read_transport_snapshot(lh)
+        _startPhaseQ = snap.phaseAtStampQBig
+        os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:%{public}@ fase:%.6f oraAvvio:%llu suona:%d",
+               log: .default, type: .default, context, snap.phaseAtStampQBig, snap.timeForIsPlaying, snap.isPlaying ? 1 : 0)
+    }
+
+    // MARK: La macchina del Follower: una transizione, un log, le azioni su main
+
+    /// Su audioQueue. Transizione pura (`FollowerSyncDecision`), log con evento, stati, azione
+    /// e ragione; poi su main le azioni: `start()` + `linkStartedSubject` (il ramo di sempre),
+    /// `stop()`, e le richieste al runner via la stanza. L'ordine su main è: stop, poi azione
+    /// sul runner (`.standby`), poi arriva il `.stopped` del motore, che lo specchio scarta.
+    @discardableResult
+    private func followerApply(_ event: FollowerSyncEvent) -> FollowerSyncTransition {
+        let before = _followerSyncQ
+        let transition = FollowerSyncDecision.transition(state: before, event: event)
+        _followerSyncQ = transition.state
+        if let reason = transition.outReason {
+            _followerOutReasonQ = reason
+        } else if case .out = transition.state {
+            // resta la ragione dell'ultima uscita
+        } else {
+            _followerOutReasonQ = nil
+        }
+        os_log("[Q-BEATS][2D][FOLLOWER] evento:%{public}@ stato:%{public}@->%{public}@ azione:%{public}@ ragione:%{public}@ motore:%{public}@ sento:%d",
+               log: .default, type: .default,
+               describe(event), describe(before), describe(transition.state), describe(transition.action),
+               describe(_followerOutReasonQ), isRunning ? "in-moto" : "fermo", _directorHeardQ ? 1 : 0)
+        let state = transition.state
+        let reason = _followerOutReasonQ
+        let action = transition.action
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            switch action {
+            case .none:
+                break
+            case .start:
+                // Q-D4 esteso — lo stesso lucchetto del ramo di sempre (`_linkStartEmitInFlight`).
+                if !self._linkStartEmitInFlight {
+                    self._linkStartEmitInFlight = true
+                    self.start()
+                    self.linkStartedSubject.send()
+                }
+            case .stop:
+                self.stop()
+            case .stopAndArmNext:
+                self.stop()
+                self.followerRunnerActionSubject.send(.armNext)
+            case .armNext:
+                self.followerRunnerActionSubject.send(.armNext)
+            case .stopAndRearmSame:
+                self.stop()
+                self.followerRunnerActionSubject.send(.rearmSame)
+            case .rearmSame:
+                self.followerRunnerActionSubject.send(.rearmSame)
+            }
+            self.followerSyncState = state
+            self.followerOutReason = reason
+        }
+        return transition
+    }
+
+    /// Su audioQueue. `reset` solo se c'è qualcosa da azzerare: prima di ogni show la macchina è
+    /// già FUORI non armato, e un Direttore non deve produrre righe di Follower.
+    private func followerResetQ(reason: String) {
+        _startPhaseQ = nil
+        if _followerSyncQ == FollowerSyncDecision.initial && _followerOutReasonQ == nil { return }
+        os_log("[Q-BEATS][2D][FOLLOWER] reset motivo:%{public}@", log: .default, type: .default, reason)
+        followerApply(.reset)
+    }
+
+    // MARK: Le porte (chiamabili da main): armare, fine canzone propria, Stop del musicista, reset
+
+    /// La misura della PRIMA sezione della canzone armata/in corso (la scrive il runner).
+    func setSongFirstBeatsPerBar(_ beatsPerBar: UInt32) {
+        audioQueue.async { [weak self] in
+            self?._songFirstBeatsPerBarQ = max(beatsPerBar, 1)
+        }
+    }
+
+    /// START SHOW o RIENTRA (R1): «sento il Direttore» e «la sessione è ferma» si leggono qui,
+    /// nell'istante dell'armamento, su audioQueue. Su chi non è Follower non fa niente.
+    func followerArm(source: FollowerArming.Source, songFirstBeatsPerBar: UInt32) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self._songFirstBeatsPerBarQ = max(songFirstBeatsPerBar, 1)
+            guard FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) else {
+                os_log("[Q-BEATS][2D][FOLLOWER] armamento %{public}@ senza macchina - non Follower (ruolo:%{public}@ linkUtente:%d)",
+                       log: .default, type: .default,
+                       self.describe(source), String(describing: self._linkMode), self._linkUserEnabledQ ? 1 : 0)
+                return
+            }
+            var sessionPlaying = false
+            if let lh = self.linkEngineHandle {
+                sessionPlaying = link_engine_read_transport_snapshot(lh).isPlaying
+            }
+            let arming = FollowerArming(source: source,
+                                        directorHeard: self._directorHeardQ,
+                                        sessionPlaying: sessionPlaying)
+            self.followerApply(.armed(arming))
+        }
+    }
+
+    /// La propria canzone è finita (il runner ha già armato la successiva): D2 in DA SOLO.
+    func followerOwnSongEnded() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            guard FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) else { return }
+            self.followerApply(.ownSongEnded)
+        }
+    }
+
+    /// Lo Stop del musicista (la striscia DA SOLO, B2b): il solo punto d'ingresso.
+    func followerMusicianStop() {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            guard FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) else { return }
+            self.followerApply(.musicianStop)
+        }
+    }
+
+    /// END SHOW, uscita dalla stanza (la stanza e il runner muoiono): la macchina si azzera.
+    func followerReset(reason: String) {
+        audioQueue.async { [weak self] in
+            self?.followerResetQ(reason: reason)
+        }
+    }
+
+    // MARK: La notifica del numero dei collegati (solo schermo)
+
+    /// «ABLLink.NumberOfPeersChanged» ([R] ABLLink.mm LinkKit-4.0:176-177, mandata su main
+    /// dallo stesso richiamo che decide il collegato ufficiale, solo a Link acceso): l'`object`
+    /// è un NSNumber, nessun userInfo. ⚠️ Interfaccia NON documentata: se un aggiornamento di
+    /// LinkKit la cambia, il numero resta `nil` — cioè nascosto, che è il ripiego dichiarato.
+    private func registerPeerCountNotification() {
+        peerCountObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("ABLLink.NumberOfPeersChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            let count = (note.object as? NSNumber)?.intValue
+            self?.linkPeerCount = count
+            os_log("[Q-BEATS][2D][PEERS] numero:%{public}@",
+                   log: .default, type: .default, count.map { String($0) } ?? "nil")
+        }
+    }
+
+    // MARK: Le parole dei log
+
+    private func describe(_ state: FollowerSyncState) -> String {
+        switch state {
+        case .inSync(let songClosed): return songClosed ? "IN-SYNC(chiusa)" : "IN-SYNC(aperta)"
+        case .alone: return "DA-SOLO"
+        case .out(let armed):
+            if let armed { return "FUORI(armato:\(armed))" }
+            return "FUORI"
+        }
+    }
+
+    private func describe(_ event: FollowerSyncEvent) -> String {
+        switch event {
+        case .linkPlay(let within): return within ? "play-entro-mezza-battuta" : "play-oltre-mezza-battuta"
+        case .linkStop(let falseStart, let running): return "stop(falsaPartenza:\(falseStart ? 1 : 0) motore:\(running ? "in-moto" : "fermo"))"
+        case .directorHeard(let heard, let running): return "direttore-sentito:\(heard ? 1 : 0)(motore:\(running ? "in-moto" : "fermo"))"
+        case .ownSongEnded: return "fine-canzone-propria"
+        case .musicianStop: return "stop-musicista"
+        case .armed(let arming): return "armato(\(describe(arming.source)) sento:\(arming.directorHeard ? 1 : 0) sessione:\(arming.sessionPlaying ? "in-moto" : "ferma"))"
+        case .reset: return "reset"
+        }
+    }
+
+    private func describe(_ source: FollowerArming.Source) -> String {
+        switch source {
+        case .startShow: return "start-show"
+        case .rientra(let songIdx): return "rientra:\(songIdx)"
+        }
+    }
+
+    private func describe(_ action: FollowerSyncAction) -> String {
+        switch action {
+        case .none: return "nessuna"
+        case .start: return "parti"
+        case .stop: return "fermati"
+        case .stopAndArmNext: return "fermati+arma-successiva"
+        case .armNext: return "arma-successiva"
+        case .stopAndRearmSame: return "fermati+riarma-stessa"
+        case .rearmSame: return "riarma-stessa"
+        }
+    }
+
+    private func describe(_ reason: FollowerOutReason?) -> String {
+        guard let reason else { return "-" }
+        switch reason {
+        case .playLate: return "play-oltre-mezza-battuta"
+        case .lostWhileStopped: return "non-sento-da-fermo(D1)"
+        case .lostWhileArmed(let chosen): return "non-sento-da-armato(R2 scelta:\(chosen))"
+        case .aloneSongEnded: return "fine-canzone-da-solo(D2)"
+        case .directorStoppedWhileAlone: return "direttore-fermo-da-solo(D2)"
+        case .directorFalseStartWhileAlone: return "falsa-partenza-da-solo(D7-bis)"
+        case .musicianStop: return "stop-musicista"
+        case .armRefusedNotHeard: return "armamento-rifiutato:non-sento(R1)"
+        case .armRefusedSessionPlaying: return "armamento-rifiutato:sessione-in-moto(R1)"
+        case .reset: return "reset"
+        }
+    }
+
+    private func describe(_ reason: DirectorReannounceDecision.SkipReason) -> String {
+        switch reason {
+        case .notDirector: return "non-direttore"
+        case .userLinkOff: return "link-utente-spento"
+        case .startStopSyncOff: return "start-stop-sync-spento"
+        case .linkUnavailable: return "ponte-spento"
+        }
+    }
+
     func start(resumeAtBeat: Double? = nil) {
         os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
                log: .default, type: .default,
@@ -1410,6 +1921,20 @@ class AudioEngine: ObservableObject {
                         self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
                             link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
+                            // A386 · FASE B2A-BIS (2D) — LA RIPRESA NON È UN PLAY: la fase di avvio
+                            // resta quella del Play vero (battito zero, `registerStartPhase`). Sui
+                            // Follower la ripresa non fa scattare nessun richiamo (la loro copia dice
+                            // già «suona»), quindi tengono la fase del Play originale: il Direttore
+                            // deve fare lo stesso, o uno Stop entro una battuta dalla ripresa darebbe
+                            // falsa partenza qui (riarma la stessa) e chiusura là (armano la
+                            // successiva) — D7-bis vuole la stessa formula sugli stessi numeri.
+                            if let phase = self._startPhaseQ {
+                                os_log("[Q-BEATS][2D][AVVIO] ripresa - fase di avvio invariata fase:%.6f",
+                                       log: .default, type: .default, phase)
+                            } else {
+                                os_log("[Q-BEATS][2D][AVVIO] ripresa - nessun avvio registrato",
+                                       log: .default, type: .default)
+                            }
                         }
                         self.scheduleNextBuffer()
                         self.scheduleNextBuffer()
@@ -1479,6 +2004,7 @@ class AudioEngine: ObservableObject {
                             self.linkSyncSkipBuffers = 3
                             if let lh = self.linkEngineHandle {
                                 link_engine_start_at_beat_zero(lh, hostNow)
+                                self.registerStartPhase(context: "battito-zero")
                             }
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
@@ -1822,6 +2348,20 @@ class AudioEngine: ObservableObject {
     }
 
     func handleStop() {
+        // A386 · FASE B2A (2D) — Q12: sul Follower la stessa guardia del pedale (chiamanti:
+        // pedale `.stop` e STOP della schermata di debug, tutti e due su main).
+        if followerDecision.isFollower {
+            os_log("[Q-BEATS][2D][STOP] handleStop ignorato - apparecchio Follower",
+                   log: .default, type: .default)
+            return
+        }
+        // D3: in Direttore ogni porta che ferma passa da `stop()` — niente velo UX-3.
+        if DirectorSongCloseDecision.closesSongOnStop(role: currentLinkMode, userLinkEnabled: linkUserEnabled) {
+            os_log("[Q-BEATS][2D][STOP] handleStop in Direttore -> stop() (D3, niente velo UX-3)",
+                   log: .default, type: .default)
+            stop()
+            return
+        }
         switch playbackState {
         case .playing:
             stopSync()
@@ -2244,7 +2784,24 @@ class AudioEngine: ObservableObject {
         var wasRunning = false
         var bc = 0
         var bt = 0
+        var directorStopped = false
+        var directorFalseStart = false
         audioQueue.sync {
+            // A386 · FASE B2A — Q18: uno stop durante un'interruzione CHIUDE la ripresa
+            // pendente, su tutti e due i ruoli: lo show è andato avanti (Stop del Direttore,
+            // END SHOW, uscita dalla stanza) o il musicista ha fermato, e alla fine
+            // dell'interruzione il click non deve ripartire da solo. Si azzera lo stato
+            // dell'interruzione e si alza il token, così i tentativi di ripresa già in volo si
+            // scartano da soli (`activateSessionAndStart`, «Zombie retry ucciso»); `.ended`
+            // troverà «nessuna interruzione attiva, noop».
+            if self.isAudioInterrupted {
+                self.isAudioInterrupted = false
+                self.pendingResume = false
+                self.pendingResumeBeat = nil
+                self.currentResumeToken += 1
+                os_log("[Q-BEATS][2D][STOP] stop durante un'interruzione - ripresa pendente CHIUSA - token:%d",
+                       log: .default, type: .default, self.currentResumeToken)
+            }
             pendingLinkStart?.cancel()
             pendingLinkStart = nil
             if isWaitingForLinkDownbeat {
@@ -2278,6 +2835,27 @@ class AudioEngine: ObservableObject {
                            log: .default, type: .default)
                 } else {
                     link_engine_stop(lh, mach_absolute_time())
+                    // A386 · FASE B2A — D3/D7-bis: il Direttore ha fermato a canzone in corso. La
+                    // falsa partenza si decide con la STESSA formula e sugli STESSI numeri di Link
+                    // che usano i Follower: fase di sessione dell'avvio registrata al proprio
+                    // Play (`registerStartPhase`), fase dello stop dalla cattura DOPO il proprio
+                    // stop, differenza a giro simmetrico, margine = una battuta della prima
+                    // sezione. Cosa fare del runner lo decide la stanza
+                    // (`DirectorSongCloseDecision.onStop`, su `directorStoppedSubject`).
+                    if self._linkMode == .direttore && self._linkUserEnabledQ {
+                        let snap = link_engine_read_transport_snapshot(lh)
+                        directorStopped = true
+                        if snap.linkEnabled {
+                            directorFalseStart = self.falseStartAgainstRegisteredStart(stopPhase: snap.phaseAtStampQBig,
+                                                                                        context: "stop-direttore")
+                        } else {
+                            // Ponte spento dal sistema (sfondo): l'istantanea porta zeri, niente
+                            // falsa partenza su una fase a zero. La canzone si chiude lo stesso.
+                            os_log("[Q-BEATS][2D][STOP] contesto:stop-direttore ponte spento - falsaPartenza:0",
+                                   log: .default, type: .default)
+                        }
+                        self._startPhaseQ = nil
+                    }
                 }
             }
             // QA-1 drift analysis reset
@@ -2337,6 +2915,13 @@ class AudioEngine: ObservableObject {
             self._sectionEndPending = false
             self._pendingEndClosure = nil
             self.backtrackPlayerNode.stop()
+        }
+        if directorStopped {
+            // Su main, PRIMA del `.stopped` che `stop()` accoda dopo di noi (stessa coda, FIFO).
+            let falseStart = directorFalseStart
+            DispatchQueue.main.async { [weak self] in
+                self?.directorStoppedSubject.send(falseStart)
+            }
         }
         guard wasRunning else { return }
         playerNode.stop()

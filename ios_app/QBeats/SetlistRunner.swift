@@ -30,6 +30,16 @@ final class SetlistRunner: ObservableObject {
     @Published private(set) var currentSongIdx: Int = 0
     @Published private(set) var currentSectionIdx: Int = 0
 
+    // === A386 · FASE B2A (2D) — LA CANZONE CHIUSA, E QUANTE SONO ===
+    /// Vero da quando la canzone corrente è stata chiusa (armata la successiva, o riarmata la
+    /// stessa per una falsa partenza) fino al prossimo avvio. È il cartello che rende
+    /// `armNextSong` idempotente nella corsa di fine canzone: il drain proprio e lo Stop del
+    /// Direttore arrivano in un ordine qualsiasi, e il secondo trova la canzone già chiusa
+    /// (Q21: cartello nel runner E `songClosed` nel tipo `FollowerSyncState`). Solo main.
+    private(set) var songClosed: Bool = false
+    /// Quante canzoni ha la scaletta (`DirectorSongCloseDecision`, `RientraProposal`).
+    var songCount: Int { catalog.count }
+
     // Costruita lazy al primo `prepareAndStartCurrentSection`. Riusata
     // identica per tutta la vita del runner (autopropagante).
     private var sectionEndedClosure: (() -> Void)?
@@ -116,6 +126,7 @@ final class SetlistRunner: ObservableObject {
         // durante una transizione SEAMLESS (flag true) e ora replay, evita
         // updateSessionDisplay spurio al primo tick post-replay (TD #41).
         pendingDisplayUpdate = false
+        songClosed = false
         currentSongIdx = 0
         currentSectionIdx = 0
         os_log("[Q-BEATS][L1.b] startSetlist — reset a songIdx:0 sectionIdx:0",
@@ -146,6 +157,7 @@ final class SetlistRunner: ObservableObject {
     func startCurrentSong(audioEngine: AudioEngine, session: LiveSession) {
         // Reset esplicito coerente con startSetlist (TD #41 lifecycle).
         pendingDisplayUpdate = false
+        songClosed = false
         currentSectionIdx = 0
         os_log("[Q-BEATS][L1.b] startCurrentSong — songIdx:%d sectionIdx:0",
                log: .default, type: .default, currentSongIdx)
@@ -174,6 +186,7 @@ final class SetlistRunner: ObservableObject {
         // Reset esplicito coerente con startSetlist/startCurrentSong (TD #41
         // lifecycle).
         pendingDisplayUpdate = false
+        songClosed = false
         // 🚨 GUARDIA A240, obbligatoria da mandato — da A239: se `currentSection`
         // non si risolve, `prepareAndStartCurrentSection` degenera e nessun campo
         // display si rinfresca. Con la conservazione l'indice non è più garantito
@@ -260,6 +273,11 @@ final class SetlistRunner: ObservableObject {
             sectionEndedClosure = makeSectionEndedClosure(audioEngine: audioEngine, session: session)
         }
         guard let closure = sectionEndedClosure else { return }
+
+        // A386 · FASE B2A (2D) — la misura della PRIMA sezione della canzone che parte: il
+        // motore la usa per la mezza battuta (Q10) e per il margine della falsa partenza
+        // (D7-bis), sui due ruoli. Prima del setup, così è già lì quando parte il click.
+        audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? section.beatsPerBar)
 
         // 1-4: ordine ratificato setup audio.
         audioEngine.setBeatsPerBar(section.beatsPerBar)
@@ -448,45 +466,96 @@ final class SetlistRunner: ObservableObject {
                 }
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.
 
-            } else if !self.isLastSongInSetlist {
-                // === RAMO STANDBY ===
-                self.currentSongIdx += 1
-                self.currentSectionIdx = 0
-                let nextSongName = self.currentSong?.name ?? "—"
-                os_log("[Q-BEATS][L1.b] standby — nextSong:%{public}@",
-                       log: .default, type: .default, nextSongName)
-                session.playbackState = .standby(nextSongName: nextSongName)
-                session.beatActive = 0
-                // L1.b Fix 7 — Azzera i campi display per non far apparire i
-                // dati della canzone precedente in secondo piano sotto lo
-                // standby overlay (la canzone successiva NON è ancora caricata,
-                // arriva al tap su StandbyOverlay → runner.startCurrentSong).
-                session.currentSongName = ""
-                session.currentSectionName = ""
-                session.nextSectionName = nil
-                session.nextSongName = nil
-                session.macroBarCurrent = 0
-                session.macroBarTotal = 1
-                // NESSUN sectionEndedSubject.send() — fine canzone non è fine performance.
-                // NESSUN loadSection/setBPM — il prossimo setup arriva al tap
-                // StandbyOverlay tramite runner.startCurrentSong(...).
-                // Stop pulisce stato audio (isRunning=false) — necessario perché
-                // audioEngine.start() ha guard `!isRunning` (AudioEngine.swift, in `start(resumeAtBeat:)` — per SIMBOLO).
-                // Senza questo, startCurrentSong sarebbe no-op silenzioso e la
-                // canzone successiva non partirebbe mai.
-                // NB: audioEngine.stop() dispatcha playbackState=.stopped su main,
-                // che senza il fix in LiveView.onReceive(audioEngine.$playbackState)
-                // sovrascriverebbe il .standby appena impostato.
-                audioEngine.stop()
-
             } else {
-                // === RAMO FINESETLIST ===
-                os_log("[Q-BEATS][L1.b] fineSetlist — performance terminata",
-                       log: .default, type: .default)
-                audioEngine.sectionEndedSubject.send()   // PRIMA del cambio stato
-                session.playbackState = .fineSetlist
+                // === RAMO STANDBY / FINE SCALETTA ===
+                // A386 · FASE B2A (2D) — la chiusura della canzone è UN metodo, `armNextSong`:
+                // lo stesso che chiamano lo Stop del Direttore (D3, via la stanza) e la macchina
+                // del Follower. Qui, a fine canzone propria, arma la successiva (o chiude la
+                // scaletta) e alza `songClosed`; poi ferma il motore come prima e avvisa la
+                // macchina del Follower (`ownSongEnded`: D2, a fine canzone DA SOLO -> FUORI).
+                // L'ordine resta quello di sempre: prima `.standby`, poi `stop()` — lo specchio
+                // di `LiveView` scarta il `.stopped` del motore su `.standby`. Il corpo dei due
+                // rami di prima (standby: avanza, `.standby`, campi azzerati; fineSetlist:
+                // `sectionEndedSubject` PRIMA del cambio di stato) vive in `armNextSong`.
+                self.armNextSong(audioEngine: audioEngine, session: session)
                 audioEngine.stop()
+                audioEngine.followerOwnSongEnded()
             }
         }
+    }
+
+    // MARK: - A386 · FASE B2A (2D) — chiudere la canzone, armare la successiva o una scelta
+
+    /// Chiude la canzone corrente e arma la successiva: `currentSongIdx += 1`, sezione 0,
+    /// `.standby(nextSongName:)`, campi del display azzerati — il corpo di sempre del ramo
+    /// standby di fine canzone. Se era l'ultima, chiude la scaletta (`.fineSetlist`, con
+    /// `sectionEndedSubject` PRIMA del cambio di stato, come prima). Idempotente: a canzone già
+    /// chiusa (`songClosed`) non avanza — è la corsa di fine canzone nei due ordini.
+    /// ⛔ NON ferma il motore: chi chiama decide se e quando (`stop()`).
+    func armNextSong(audioEngine: AudioEngine, session: LiveSession) {
+        guard !songClosed else {
+            os_log("[Q-BEATS][2D][RUNNER] armNextSong - canzone gia' chiusa (songIdx:%d) - nessun avanzamento",
+                   log: .default, type: .default, currentSongIdx)
+            return
+        }
+        songClosed = true
+        pendingDisplayUpdate = false
+        if !isLastSongInSetlist {
+            currentSongIdx += 1
+            currentSectionIdx = 0
+            let nextSongName = currentSong?.name ?? "—"
+            os_log("[Q-BEATS][L1.b] standby — nextSong:%{public}@",
+                   log: .default, type: .default, nextSongName)
+            os_log("[Q-BEATS][2D][RUNNER] arma la successiva songIdx:%d",
+                   log: .default, type: .default, currentSongIdx)
+            session.playbackState = .standby(nextSongName: nextSongName)
+            session.beatActive = 0
+            // L1.b Fix 7 — Azzera i campi display per non far apparire i dati della canzone
+            // precedente in secondo piano sotto lo standby overlay (la canzone successiva NON
+            // è ancora caricata, arriva al tap su StandbyOverlay → runner.startCurrentSong).
+            session.currentSongName = ""
+            session.currentSectionName = ""
+            session.nextSectionName = nil
+            session.nextSongName = nil
+            session.macroBarCurrent = 0
+            session.macroBarTotal = 1
+            audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? 4)
+        } else {
+            os_log("[Q-BEATS][L1.b] fineSetlist — performance terminata",
+                   log: .default, type: .default)
+            audioEngine.sectionEndedSubject.send()   // PRIMA del cambio stato
+            session.playbackState = .fineSetlist
+        }
+    }
+
+    /// RIENTRA (D4) e falsa partenza (D7-bis): arma l'INIZIO di una canzone scelta, qualsiasi
+    /// indice del catalogo, anche già suonato. Sezione 0, `.standby(nextSongName:)`, canzone
+    /// chiusa. Indice fuori dal catalogo: rifiuto con log, nessuna scrittura.
+    /// ⛔ Non parte niente: la partenza è il Play (del Direttore via `orchestrateDirectorPlay`,
+    /// o il tocco sul velo di chi comanda), che passa da `startCurrentSong`.
+    @discardableResult
+    func armSong(index: Int, audioEngine: AudioEngine, session: LiveSession) -> Bool {
+        guard case .arm(_) = DirectorSongCloseDecision.armSong(index: index, songCount: catalog.count) else {
+            os_log("[Q-BEATS][2D][RUNNER] armSong RIFIUTATO index:%d songs:%d",
+                   log: .default, type: .error, index, catalog.count)
+            return false
+        }
+        pendingDisplayUpdate = false
+        songClosed = true
+        currentSongIdx = index
+        currentSectionIdx = 0
+        let songName = currentSong?.name ?? "—"
+        os_log("[Q-BEATS][2D][RUNNER] armSong songIdx:%d nome:%{public}@",
+               log: .default, type: .default, index, songName)
+        session.playbackState = .standby(nextSongName: songName)
+        session.beatActive = 0
+        session.currentSongName = ""
+        session.currentSectionName = ""
+        session.nextSectionName = nil
+        session.nextSongName = nil
+        session.macroBarCurrent = 0
+        session.macroBarTotal = 1
+        audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? 4)
+        return true
     }
 }

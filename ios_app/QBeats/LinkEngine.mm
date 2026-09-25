@@ -15,6 +15,17 @@ struct LinkEngine {
     std::atomic<int64_t> pendingPhaseJump_{-1};
     std::atomic<double> phaseJumpThresholdBeats_{0.01};
     std::atomic<uint64_t> outputLatencyTicks_{0};  // unità: mach ticks
+    // === A386 · FASE B2A (25/09/2026) — IL 2D NEL PONTE ===
+    // Conta le scritture PROPRIE della linea temporale su Link (tempo o battito): ogni
+    // funzione di questo file che modifica tempo o battito prima del commit lo incrementa
+    // (set_bpm, set_bpm_audio_thread, set_bpm_at_time, set_bpm_and_beat_at_time,
+    // start_at_beat_zero, start_at_beat, assert_session_state quando forza). Atomico:
+    // la variante del thread audio lo tocca senza lock. Lo legge
+    // link_engine_read_transport_snapshot; il campione del Follower lo confronta col
+    // valore precedente (DirectorHeardTracker, ownTimelineWriteSinceLastSample).
+    std::atomic<uint64_t> timelineWrites_{0};
+    void (*startStopSyncCallback_)(bool isEnabled, void* context) = nullptr;
+    void* startStopSyncCallbackContext_ = nullptr;
     // Build #309: rimosso suppressNextIsPlayingBroadcast_ — era dead code,
     // nessun setter lo impostava mai a true.
     void (*tempoCallback_)(double bpm, void* context) = nullptr;
@@ -132,6 +143,7 @@ void link_engine_set_bpm(LinkEngineHandle handle, double bpm) {
     ABLLinkSessionStateRef state =
         ABLLinkCaptureAppSessionState(engine->link_);
     ABLLinkSetTempo(state, bpm, mach_absolute_time());
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
@@ -146,6 +158,7 @@ void link_engine_set_bpm_audio_thread(LinkEngineHandle handle, double bpm, uint6
     ABLLinkSessionStateRef state =
         ABLLinkCaptureAudioSessionState(engine->link_);
     ABLLinkSetTempo(state, bpm, hostTime);
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
     ABLLinkCommitAudioSessionState(engine->link_, state);
 }
 
@@ -160,6 +173,7 @@ void link_engine_set_bpm_at_time(LinkEngineHandle handle, double bpm, uint64_t h
     // audio locale applica al downbeat sample-accurate. Differenza vs
     // link_engine_set_bpm: solo l'argomento hostTime di ABLLinkSetTempo.
     ABLLinkSetTempo(state, bpm, hostTime);
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
@@ -202,6 +216,7 @@ void link_engine_set_bpm_and_beat_at_time(LinkEngineHandle handle,
     ABLLinkSessionStateRef state =
         ABLLinkCaptureAppSessionState(engine->link_);
     ABLLinkSetTempo(state, bpm, hostTime);
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
 
@@ -440,6 +455,7 @@ void link_engine_start_at_beat_zero(LinkEngineHandle handle,
     // la timeline condivisa (regressione #307).
     ABLLinkSetIsPlayingAndRequestBeatAtTime(
         state, true, hostTime, 0.0, quantum);
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
 
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
@@ -458,6 +474,7 @@ void link_engine_start_at_beat(LinkEngineHandle handle,
     // beat noto (es. snappedBeat per resume) mappato a hostTime.
     ABLLinkSetIsPlayingAndRequestBeatAtTime(
         state, true, hostTime, beat, quantum);
+    engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
 
     ABLLinkCommitAppSessionState(engine->link_, state);
 }
@@ -802,10 +819,94 @@ void link_engine_assert_session_state(LinkEngineHandle handle,
         ABLLinkSetTempo(state, bpm, hostTimeAtOutput);
         ABLLinkForceBeatAtTime(state, projectedBeatPosition,
                                hostTimeAtOutput, quantum);
+        engine->timelineWrites_.fetch_add(1, std::memory_order_relaxed);
         os_log(OS_LOG_DEFAULT,
                "[Q-BEATS][LINK][DIRECTOR-ASSERT] delta:%.4f bpm:%.2f beat_proj:%.4f",
                delta, bpm, projectedBeatPosition);
     }
 
     ABLLinkCommitAppSessionState(engine->link_, state);
+}
+
+// =====================================================================================
+// === A386 · FASE B2A (25/09/2026) — IL 2D NEL PONTE (dichiarazioni in MIDIEngineBridge.h) ===
+// =====================================================================================
+
+// (1) Istantanea del trasporto: una cattura, NESSUN commit. ⛔ Solo da audioQueue.
+LinkTransportSnapshot link_engine_read_transport_snapshot(LinkEngineHandle handle) {
+    LinkTransportSnapshot snap = { false, false, 0, 0.0, 0.0, 0, 0 };
+    snap.captureHostTime = mach_absolute_time();
+    if (!handle) return snap;
+    LinkEngine* engine = (LinkEngine*)handle;
+    snap.timelineWriteCount = engine->timelineWrites_.load(std::memory_order_relaxed);
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return snap;
+    snap.linkEnabled = true;
+
+    constexpr double kBigQuantum = 1.0e6;
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    const uint64_t t = ABLLinkTimeForIsPlaying(state);
+    snap.isPlaying        = ABLLinkIsPlaying(state);
+    snap.timeForIsPlaying = t;
+    snap.phaseAtStampQBig = ABLLinkPhaseAtTime(state, t, kBigQuantum);
+    snap.tempo            = ABLLinkGetTempo(state);
+    return snap;
+}
+
+// (2) La ripetizione del Direttore: una cattura, un commit, SOLO lo stato avvio/stop.
+// ⛔ Solo da audioQueue. Non incrementa timelineWrites_: la linea temporale non si tocca.
+LinkReannounceReport link_engine_reannounce_transport(LinkEngineHandle handle,
+                                                      uint64_t nowHostTime,
+                                                      int64_t  shiftTicks) {
+    LinkReannounceReport report = { false, false, 0, 0 };
+    if (!handle) return report;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return report;
+    report.linkEnabled = true;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    const bool     isPlaying = ABLLinkIsPlaying(state);
+    const uint64_t before    = ABLLinkTimeForIsPlaying(state);
+    const uint64_t base      = (before != 0) ? before : nowHostTime;
+    uint64_t after;
+    if (shiftTicks >= 0) {
+        after = base + (uint64_t)shiftTicks;
+    } else {
+        const uint64_t down = (uint64_t)(-shiftTicks);
+        after = (base >= down) ? (base - down) : 0;
+    }
+    ABLLinkSetIsPlaying(state, isPlaying, after);
+    ABLLinkCommitAppSessionState(engine->link_, state);
+
+    report.isPlaying  = isPlaying;
+    report.timeBefore = before;
+    report.timeAfter  = after;
+    return report;
+}
+
+// (3) Start Stop Sync: getter e richiamo di cambio (sul thread principale, ABLLink.h:161-167).
+bool link_engine_is_start_stop_sync_enabled(LinkEngineHandle handle) {
+    if (!handle) return false;
+    return ABLLinkIsStartStopSyncEnabled(static_cast<LinkEngine*>(handle)->link_);
+}
+
+void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
+    void (*callback)(bool isEnabled, void* context),
+    void* context) {
+    if (!handle) return;
+    LinkEngine* engine = (LinkEngine*)handle;
+    engine->startStopSyncCallback_ = callback;
+    engine->startStopSyncCallbackContext_ = context;
+    ABLLinkSetIsStartStopSyncEnabledCallback(engine->link_,
+        [](bool isEnabled, void* ctx) {
+            LinkEngine* e = (LinkEngine*)ctx;
+            os_log(OS_LOG_DEFAULT,
+                   "[Q-BEATS][LINK][STARTSTOPSYNC] enabled:%d",
+                   (int)isEnabled);
+            if (e->startStopSyncCallback_) {
+                e->startStopSyncCallback_(isEnabled, e->startStopSyncCallbackContext_);
+            }
+        },
+        (void*)engine);
 }

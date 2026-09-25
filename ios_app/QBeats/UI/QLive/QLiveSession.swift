@@ -86,6 +86,13 @@ final class QLiveSession: ObservableObject {
     /// contenitore.
     let liveSession = LiveSession()
 
+    // === A386 · FASE B2A (2D) — LA PROPOSTA DI RIENTRA, per il velo (B2b) ===
+    /// Ricalcolata a ogni transizione della macchina del Follower e a ogni azione sul runner
+    /// (`RientraProposal.propose`, coi numeri della stanza: `.standby`, indice, quante canzoni).
+    /// `.none` quando non c'è niente da proporre (D4). Solo main. È un valore della stanza,
+    /// non del runner: chi la legge osserva la stanza per QUESTO campo e basta.
+    @Published private(set) var rientraProposal: RientraProposal = .none
+
     // MARK: - A337 — L'ascolto del Play del Direttore vive nella STANZA
 
     /// ⟦A337⟧ (09/09/2026) — Cassetto delle iscrizioni della stanza. Fino a
@@ -136,6 +143,30 @@ final class QLiveSession: ObservableObject {
                 self.orchestrateDirectorPlay(audioEngine: audioEngine)
             }
             .store(in: &cancellables)
+        // A386 · FASE B2A (2D) — tre iscrizioni in più, stesse regole di vita del cassetto:
+        //  · la macchina del Follower chiede al runner di armare (`armNext`, `rearmSame`);
+        //  · il Direttore si è fermato a canzone in corso (D3/D7-bis): decide
+        //    `DirectorSongCloseDecision.onStop` coi numeri del runner;
+        //  · stato e ragione della macchina cambiano: si ricalcola la proposta di RIENTRA.
+        audioEngine.followerRunnerActionSubject
+            .sink { [weak self, weak audioEngine] action in
+                guard let self, let audioEngine else { return }
+                self.handleFollowerRunnerAction(action, audioEngine: audioEngine)
+            }
+            .store(in: &cancellables)
+        audioEngine.directorStoppedSubject
+            .sink { [weak self, weak audioEngine] falseStart in
+                guard let self, let audioEngine else { return }
+                self.handleDirectorStopped(falseStart: falseStart, audioEngine: audioEngine)
+            }
+            .store(in: &cancellables)
+        audioEngine.$followerSyncState
+            .combineLatest(audioEngine.$followerOutReason)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state, reason in
+                self?.refreshRientraProposal(state: state, reason: reason)
+            }
+            .store(in: &cancellables)
         directorPlaySubscribed = true
         os_log("[Q-BEATS][A337] ascolto Play-Direttore ATTACCATO alla stanza - runner:%{public}@",
                log: .default, type: .default, runner == nil ? "nil" : "presente")
@@ -179,6 +210,105 @@ final class QLiveSession: ObservableObject {
                log: .default, type: .default, ramo,
                session.currentSongName, session.currentSectionName,
                Int(sezione?.repetitions ?? 0), Int(sezione?.beatsPerBar ?? 0))
+    }
+
+    // MARK: - A386 · FASE B2A (2D) — armare, chiudere, proporre
+
+    /// Il PRIMO START SHOW arma la macchina del Follower (R1: solo se «sento il Direttore» e la
+    /// sessione è ferma; altrimenti FUORI con la ragione). Chiamante: `QLiveRootView`,
+    /// `onStart`, solo a slot appena riempito. Su chi non è Follower il motore lo ignora.
+    func armFollowerAtStartShow(audioEngine: AudioEngine) {
+        guard let runner else { return }
+        let bpb = runner.currentSong?.sections.first?.beatsPerBar ?? 4
+        audioEngine.followerArm(source: .startShow, songFirstBeatsPerBar: bpb)
+    }
+
+    /// RIENTRA (D4): il solo punto d'ingresso — il velo con scaletta, scelta e conferma arriva
+    /// in B2b (D5). Arma l'inizio della canzone scelta nel runner e manda `armed(rientra)` alla
+    /// macchina (R1: se rifiutato, il runner resta armato ma la macchina è FUORI con la
+    /// ragione, e un Play non fa partire niente).
+    func armRientra(songIdx: Int, audioEngine: AudioEngine) {
+        guard let runner else {
+            os_log("[Q-BEATS][2D][STANZA] RIENTRA senza runner - ignorato",
+                   log: .default, type: .default)
+            return
+        }
+        guard runner.armSong(index: songIdx, audioEngine: audioEngine, session: liveSession) else { return }
+        let bpb = runner.currentSong?.sections.first?.beatsPerBar ?? 4
+        audioEngine.followerArm(source: .rientra(songIdx: songIdx), songFirstBeatsPerBar: bpb)
+    }
+
+    /// Lo Stop del musicista sulla striscia DA SOLO: il solo punto d'ingresso (il bottone in B2b).
+    func followerMusicianStop(audioEngine: AudioEngine) {
+        audioEngine.followerMusicianStop()
+    }
+
+    private func handleFollowerRunnerAction(_ action: FollowerRunnerAction, audioEngine: AudioEngine) {
+        guard let runner else {
+            os_log("[Q-BEATS][2D][STANZA] azione del Follower senza runner - ignorata",
+                   log: .default, type: .default)
+            return
+        }
+        switch action {
+        case .armNext:
+            runner.armNextSong(audioEngine: audioEngine, session: liveSession)
+        case .rearmSame:
+            runner.armSong(index: runner.currentSongIdx, audioEngine: audioEngine, session: liveSession)
+        }
+        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason)
+    }
+
+    /// D3 / D7-bis — il Direttore ha fermato: chiude la canzone (o riarma la stessa se falsa
+    /// partenza), solo se la canzone era in corso. `songInProgress` = la sessione era
+    /// `.playing`, `.countIn` o `.starting`: a fine canzone propria il runner ha già messo
+    /// `.standby` PRIMA dello `stop()`, quindi qui non avanza una seconda volta (e
+    /// `armNextSong` è comunque idempotente).
+    private func handleDirectorStopped(falseStart: Bool, audioEngine: AudioEngine) {
+        guard let runner else { return }
+        let inProgress: Bool
+        switch liveSession.playbackState {
+        case .playing, .countIn, .starting:
+            inProgress = true
+        default:
+            inProgress = false
+        }
+        let outcome = DirectorSongCloseDecision.onStop(role: audioEngine.currentLinkMode,
+                                                       userLinkEnabled: audioEngine.linkUserEnabled,
+                                                       songInProgress: inProgress,
+                                                       falseStart: falseStart,
+                                                       currentSongIdx: runner.currentSongIdx,
+                                                       songCount: runner.songCount)
+        os_log("[Q-BEATS][2D][DIRETTORE] stop - canzoneInCorso:%d falsaPartenza:%d songIdx:%d esito:%{public}@",
+               log: .default, type: .default,
+               inProgress ? 1 : 0, falseStart ? 1 : 0, runner.currentSongIdx, String(describing: outcome))
+        switch outcome {
+        case .closeAndArmNext, .closeAndFinishSetlist:
+            runner.armNextSong(audioEngine: audioEngine, session: liveSession)
+        case .rearmSame(let songIdx):
+            runner.armSong(index: songIdx, audioEngine: audioEngine, session: liveSession)
+        case .none:
+            break
+        }
+    }
+
+    private func refreshRientraProposal(state: FollowerSyncState, reason: FollowerOutReason?) {
+        guard case .out = state, let runner else {
+            if rientraProposal != .none { rientraProposal = .none }
+            return
+        }
+        var standby = false
+        if case .standby = liveSession.playbackState { standby = true }
+        let proposal = RientraProposal.propose(reason: reason,
+                                               sessionIsStandby: standby,
+                                               currentSongIdx: runner.currentSongIdx,
+                                               songCount: runner.songCount)
+        if proposal != rientraProposal {
+            rientraProposal = proposal
+            os_log("[Q-BEATS][2D][STANZA] proposta RIENTRA songIdx:%{public}@ affidabile:%d ragione:%{public}@ standby:%d corrente:%d",
+                   log: .default, type: .default,
+                   proposal.songIdx.map { String($0) } ?? "nessuna", proposal.reliable ? 1 : 0,
+                   String(describing: reason), standby ? 1 : 0, runner.currentSongIdx)
+        }
     }
 
     /// ⟦S5b⟧ — MUTATORE DELLO SLOT: la porta che ⟦S4R⟧ aveva lasciato mancante
@@ -310,5 +440,8 @@ final class QLiveSession: ObservableObject {
         audioEngine.stop()
         runner = nil
         liveSession.playbackState = .stopped
+        // A386 · FASE B2A (2D) — END SHOW chiude lo show: la macchina del Follower si azzera
+        // (`reset`, Q12), dopo lo stop e a slot già vuoto.
+        audioEngine.followerReset(reason: "end-show")
     }
 }

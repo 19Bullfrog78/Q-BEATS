@@ -374,7 +374,14 @@ struct QLiveRootView: View {
                     // per costruire (`QLiveShowDetailView.swift`, `store`): il
                     // singleton non cambia, cambia solo chi lo chiama.
                     onStart: {
-                        if roomSession.runner == nil {
+                        // A386 · FASE B2A (2D) — il PRIMO START SHOW arma anche la macchina del
+                        //    Follower (R1: solo se «sento il Direttore» e la sessione è ferma,
+                        //    altrimenti FUORI con la ragione per il velo). A slot pieno (la stessa
+                        //    voce a show vivo) NON si riarma: da FUORI si rientra solo con RIENTRA
+                        //    (D1). L'ordine resta sincrono e senza attese (⟦S5b⟧ `Cond (a)`):
+                        //    installa, attacca, arma, naviga.
+                        let firstStart = roomSession.runner == nil
+                        if firstStart {
                             roomSession.install(SetlistRunner(setlist: show,
                                                               store: QBeatsStore.shared))
                         }
@@ -386,6 +393,9 @@ struct QLiveRootView: View {
                         //    `endShow(audioEngine:)`. Muore col cassetto della
                         //    stanza, cioe' col `switch` di `AppRootView`.
                         roomSession.attachDirectorPlay(audioEngine: audioEngine)
+                        if firstStart {
+                            roomSession.armFollowerAtStartShow(audioEngine: audioEngine)
+                        }
                         navigate(to: .metronome)
                     },
                     // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio

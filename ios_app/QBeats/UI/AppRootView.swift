@@ -72,6 +72,10 @@ struct AppRootView: View {
                 audioEngine.triggerDNDReminderIfNeeded()
             } else if previousScreen == .qLive {
                 audioEngine.stop()
+                // A386 · FASE B2A (2D) — uscire dalla stanza chiude lo show (la stanza e il runner
+                // muoiono col `switch` qui sopra): la macchina del Follower si azzera (`reset`,
+                // Q12). Non è uno Stop di canzone: è la fine dello show per questo apparecchio.
+                audioEngine.followerReset(reason: "uscita-dalla-stanza")
             }
             previousScreen = newScreen
         }
