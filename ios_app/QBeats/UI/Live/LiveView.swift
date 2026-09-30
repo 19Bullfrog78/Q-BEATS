@@ -157,6 +157,21 @@ struct LiveView: View {
             // Unica fonte di verità: ricalcolato qui, propagato come parametro
             // CGFloat a tutti i sub-view che ne hanno bisogno.
             let scaleFactor: CGFloat = geo.size.width / 390
+            // A386 · B2b (30/09/2026) — IL VELO DEL FOLLOWER: una decisione sola
+            //    (`FollowerVeilDecision`, Models/, testata), letta qui dal motore (stato,
+            //    ragione, segnale, Start Stop Sync, sessione Link in moto), dalla stanza (la
+            //    proposta) e dal runner (la scaletta). Sul Follower FUORI — Join, Out, Ready —
+            //    il player mostra la faccia del foglio CD 2D-QUATER (`FollowerOutView`) QUALUNQUE
+            //    sia lo stato della sessione dietro, `.fineSetlist` compreso (L5); IN SYNC fermo
+            //    è il velo di sempre con lo slot E (L1); in moto la fascia, grigia IN SYNC e
+            //    ambra DA SOLO (L3, `TransportView`). `nil` a chi comanda il trasporto.
+            //    Sta QUI, un livello sopra lo `ZStack`, perché la leggono sia il contenuto sia i
+            //    modificatori di strumentazione in coda allo `ZStack` (stesso ambito).
+            let followerVeil = followerVeilDecision()
+            let followerOutFace: Bool = {
+                guard let face = followerVeil?.face else { return false }
+                return face == .join || face == .out || face == .ready
+            }()
             ZStack {
                 Color(hex: "#0e0e10").ignoresSafeArea(.all)
 
@@ -169,19 +184,6 @@ struct LiveView: View {
                 // e la usa il velo per fermarsi sotto di lei (decisione 13, BOX5
                 // «MODELLO DI SESSIONE Q-LIVE» §1).
                 let headerHeight = geo.size.height * 0.08
-                // A386 · B2b (30/09/2026) — IL VELO DEL FOLLOWER: una decisione sola
-                //    (`FollowerVeilDecision`, Models/, testata), letta qui dal motore (stato,
-                //    ragione, segnale, Start Stop Sync, sessione Link in moto), dalla stanza (la
-                //    proposta) e dal runner (la scaletta). Sul Follower FUORI — Join, Out, Ready —
-                //    il player mostra la faccia del foglio CD 2D-QUATER (`FollowerOutView`) QUALUNQUE
-                //    sia lo stato della sessione dietro, `.fineSetlist` compreso (L5); IN SYNC fermo
-                //    è il velo di sempre con lo slot E (L1); in moto la fascia, grigia IN SYNC e
-                //    ambra DA SOLO (L3, `TransportView`). `nil` a chi comanda il trasporto.
-                let followerVeil = followerVeilDecision()
-                let followerOutFace: Bool = {
-                    guard let face = followerVeil?.face else { return false }
-                    return face == .join || face == .out || face == .ready
-                }()
                 // A355 — in attesa il corpo scende al 10% come prima; la testata riceve
                 // lo stesso valore e lo applica SOLO al centro e ai LED: freccia e muto
                 // restano pieni e toccabili (`LiveHeaderView.contentOpacity`).
