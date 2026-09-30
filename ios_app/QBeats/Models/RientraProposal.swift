@@ -23,7 +23,8 @@ import Foundation
 //    `.fineSetlist`, il runner ha chiuso la scaletta) — anche lostWhileStopped a fine concerto
 //    (L5). E fuori catalogo.
 // «La corrente» e' `currentSongIdx` del runner DOPO l'azione della macchina sul runner: la
-// stanza ricalcola la proposta a ogni transizione e dopo ogni azione sul runner.
+// stanza ricalcola la proposta una volta a ogni transizione, quando il motore pubblica stato e
+// ragione insieme, dopo l'azione sul runner (B2b-BIS), e all'installazione del runner.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct RientraProposal: Equatable {
 

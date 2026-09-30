@@ -202,43 +202,55 @@ struct LiveView: View {
                                         scaleFactor: scaleFactor,
                                         onTapSong: { idx in songTapped(idx) })
                     } else {
+                    // B2b-BIS — IL MARGINE DI 16 STA SUI FIGLI, NON SULLA COLONNA: lo sfondo ambra
+                    //    della fascia DA SOLO (lastra L3, `.qb-fa.so`) va da bordo a bordo come nel
+                    //    foglio (`.qb-pl` non ha margini laterali; dentro la fascia valgono i suoi:
+                    //    `padding:0 18px 24px`). Il corpo del player tiene i 16 di sempre (il
+                    //    `Group` li dà a ognuno dei quattro); la fascia del Direttore e quella
+                    //    IN SYNC del Follower li tengono uguali (16 quando non è DA SOLO): stessa
+                    //    cornice di prima, (larghezza − 32) × 21% allo stesso posto. Solo in DA SOLO
+                    //    la fascia riceve la larghezza intera.
+                    let followerAlone = followerVeil?.face == .alone
                     VStack(spacing: 0) {
-                        MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
-                            .frame(height: geo.size.height * 0.10)
-                        BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
-                            .frame(height: geo.size.height * 0.08)
-                        MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
-                            .frame(height: geo.size.height * 0.04)
-                        VStack(spacing: 0) {
-                            TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
-                                .frame(height: geo.size.height * 0.35)
-                            MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                                .frame(height: geo.size.height * 0.02)
-                            POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                        Group {
+                            MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                                 .frame(height: geo.size.height * 0.10)
-                            HandleStripView()
-                                .frame(height: geo.size.height * 0.02)
-                        }
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onEnded { value in
-                                    if value.translation.height > 15 {
-                                        session.showMixer = true
+                            BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
+                                .frame(height: geo.size.height * 0.08)
+                            MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
+                                .frame(height: geo.size.height * 0.04)
+                            VStack(spacing: 0) {
+                                TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
+                                    .frame(height: geo.size.height * 0.35)
+                                MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+                                    .frame(height: geo.size.height * 0.02)
+                                POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                                    .frame(height: geo.size.height * 0.10)
+                                HandleStripView()
+                                    .frame(height: geo.size.height * 0.02)
+                            }
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 10)
+                                    .onEnded { value in
+                                        if value.translation.height > 15 {
+                                            session.showMixer = true
+                                        }
                                     }
-                                }
-                        )
+                            )
+                        }
+                        .padding(.horizontal, 16)
                         // B2b — la fascia DA SOLO (L3) la decide la macchina, letta qui e passata
                         // come valore: la fascia resta `let audioEngine` (A361). Lo Stop a
                         // pressione va alla stanza, l'unica porta dello Stop del musicista.
                         TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
-                                      followerAlone: followerVeil?.face == .alone,
+                                      followerAlone: followerAlone,
                                       onHoldStop: { holdStopFired() })
                             .frame(height: geo.size.height * 0.21)
+                            .padding(.horizontal, followerAlone ? 0 : 16)
                     }
                     .opacity(standbyOpacity)
                     .animation(.easeInOut(duration: 0.3), value: isStandby)
-                    .padding(.horizontal, 16)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -873,15 +885,16 @@ struct LiveView: View {
     // MARK: - A386 · B2b — il velo del Follower: decisione, tocco sulla lista, Stop, strumentazione
 
     /// La decisione del velo del Follower, dallo stesso ingresso per tutte le facce: il motore
-    /// (stato della macchina, ragione, «sento il Direttore», «Searching…», Start Stop Sync,
+    /// (stato e ragione della macchina, insieme in `followerSync`; «sento il Direttore»,
+    /// «Searching…», Start Stop Sync,
     /// sessione Link in moto — tutti `@Published` osservati da questa vista), la stanza (la
     /// proposta) e il runner (la scaletta). «Show aperto» è la presenza del runner nello slot:
     /// l'unico segnale che la stanza sa dare, e dentro il player è sempre vero (gate
     /// `.metronome`). `nil` a chi comanda il trasporto: velo e fascia di sempre.
     private func followerVeilDecision() -> FollowerVeilDecision? {
         guard audioEngine.followerDecision.isFollower else { return nil }
-        return FollowerVeilDecision(state: audioEngine.followerSyncState,
-                                    reason: audioEngine.followerOutReason,
+        return FollowerVeilDecision(state: audioEngine.followerSync.state,
+                                    reason: audioEngine.followerSync.outReason,
                                     showOpen: room.runner != nil,
                                     directorHeard: audioEngine.directorHeard,
                                     searching: audioEngine.directorSearching,
@@ -914,8 +927,8 @@ struct LiveView: View {
         os_log("[Q-BEATS][2D][VELO] faccia:%{public}@ stato:%{public}@ ragione:%{public}@ slotE:%{public}@ proposta:%{public}@ forma:%{public}@ evidenziata:%{public}@ intestazione:%{public}@",
                log: .default, type: .default,
                String(describing: veil.face),
-               String(describing: audioEngine.followerSyncState),
-               String(describing: audioEngine.followerOutReason),
+               String(describing: audioEngine.followerSync.state),
+               String(describing: audioEngine.followerSync.outReason),
                veil.slotE.map { String(describing: $0) } ?? "nessuno",
                proposal.songIdx.map { String($0) } ?? "nessuna",
                String(describing: proposal.form),

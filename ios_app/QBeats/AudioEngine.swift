@@ -40,6 +40,18 @@ enum FollowerRunnerAction: Equatable {
     case armSong(songIdx: Int)
 }
 
+// A386 · B2b-BIS (2D) — STATO E RAGIONE DELLA MACCHINA DEL FOLLOWER, PUBBLICATI INSIEME.
+/// Lo specchio unico di `_followerSyncQ` e `_followerOutReasonQ` per lo schermo e la stanza: UN
+/// `@Published` (`AudioEngine.followerSync`), scritto una volta per transizione in `followerApply`,
+/// su main, DOPO le azioni sul runner. Con due `@Published` separati ogni transizione emetteva due
+/// volte, e la prima emissione portava lo stato nuovo con la ragione vecchia: la stanza calcolava
+/// una proposta falsa, con la sua riga di log (mandato del referee «A386 · B2b-BIS», 30/09/2026,
+/// §3.a, dalla ratifica della B2b).
+struct FollowerSyncSnapshot: Equatable {
+    let state: FollowerSyncState
+    let outReason: FollowerOutReason?
+}
+
 class AudioEngine: ObservableObject {
     static let shared = AudioEngine()
 
@@ -74,8 +86,10 @@ class AudioEngine: ObservableObject {
     @Published private(set) var directorHeard: Bool = false
     /// Lo stato della macchina del Follower (`FollowerSyncDecision`) e la ragione dell'ultima
     /// uscita FUORI (o del rifiuto di un armamento), per il velo e per `RientraProposal`.
-    @Published private(set) var followerSyncState: FollowerSyncState = FollowerSyncDecision.initial
-    @Published private(set) var followerOutReason: FollowerOutReason? = nil
+    /// B2b-BIS: UN valore solo (`FollowerSyncSnapshot`), scritto una volta per transizione:
+    /// nessun lettore può vedere lo stato nuovo con la ragione vecchia.
+    @Published private(set) var followerSync = FollowerSyncSnapshot(state: FollowerSyncDecision.initial,
+                                                                    outReason: nil)
     // === A386 · B2b (2D) — DUE SPECCHI IN PIÙ PER LO SLOT E DEL FOLLOWER ===
     /// «Searching…»: dal primo campione dopo che Link si accende (o dall'avvio) fino al primo
     /// verdetto — il primo colpo, o una soglia senza colpi — mai oltre la soglia
@@ -1593,6 +1607,9 @@ class AudioEngine: ObservableObject {
     /// e ragione; poi su main le azioni: `start()` + `linkStartedSubject` (il ramo di sempre),
     /// `stop()`, e le richieste al runner via la stanza. L'ordine su main è: stop, poi azione
     /// sul runner (`.standby`), poi arriva il `.stopped` del motore, che lo specchio scarta.
+    /// B2b-BIS: in coda allo stesso passo su main, lo specchio unico `followerSync` (stato e
+    /// ragione insieme, una scrittura per transizione), dopo l'azione sul runner: la stanza
+    /// ricalcola la proposta una volta, coi numeri del runner già avanzato.
     @discardableResult
     private func followerApply(_ event: FollowerSyncEvent) -> FollowerSyncTransition {
         let before = _followerSyncQ
@@ -1641,8 +1658,11 @@ class AudioEngine: ObservableObject {
                 // l'avvio al Play): stessa coda, FIFO.
                 self.followerRunnerActionSubject.send(.armSong(songIdx: songIdx))
             }
-            self.followerSyncState = state
-            self.followerOutReason = reason
+            // B2b-BIS: stato e ragione INSIEME, una volta, dopo l'azione sul runner (il `send`
+            // qui sopra è sincrono: `handleFollowerRunnerAction` è già passato). Chi ascolta
+            // (`QLiveSession`) calcola la proposta in questo stesso passo; lo schermo legge
+            // stato, ragione e proposta al ridisegno successivo, tutti e tre nuovi.
+            self.followerSync = FollowerSyncSnapshot(state: state, outReason: reason)
         }
         return transition
     }

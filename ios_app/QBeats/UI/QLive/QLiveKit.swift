@@ -103,15 +103,13 @@ enum QLiveStage {
         /// B→C: 26 × k = 34,01 → 34.
         static let gapNameToGesture: CGFloat = (26 * k).rounded()
         /// A360 — slot E della lastra ⑧ (`.vlink`): C→E `margin-top:26px` («lo stesso respiro
-        /// di B→C») × k = 34,01 → 34; fra le due righe `gap:5px` × k = 6,54 → 7.
+        /// di B→C») × k = 34,01 → 34.
         /// B2b: lo stesso posto lo prende lo slot E del foglio 2D-QUATER (L1, `.qb-sg.ok.g2`,
-        /// `--g2:34px`): la distanza coincide.
+        /// `--g2:34px`): la distanza coincide. B2b-BIS: `gapStatusLines` (fra le due righe
+        /// della lastra ⑧) e `statusAmber` (l'ambra della riga 1) sono usciti con le righe:
+        /// zero lettori (misura del referee a `272dc1f`). La marcatura in BOX5 (A360) va al
+        /// giro dei canonici.
         static let gapGestureToStatus: CGFloat = (26 * k).rounded()
-        static let gapStatusLines: CGFloat = (5 * k).rounded()
-        /// A360 — l'ambra della riga 1 dello slot E (`.vlink .s`, `#f5b820`): già in uso
-        /// (`LiveHeaderView` muto, `TransportView` lampo di KILL BASE). Nessun colore nuovo:
-        /// solo un nome per un valore che c'era.
-        static let statusAmber = Color(hex: "#f5b820")
         static let horizontalMargin: CGFloat = 26
         /// Pulsazione del nome, invariata (BOX5 «Overlay Standby»).
         static let pulsePeriod: Double = 2.2

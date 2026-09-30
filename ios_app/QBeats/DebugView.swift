@@ -793,7 +793,8 @@ struct DebugView: View {
     ///   (1) 4/4 a 121, 30 battute = 59,5 s · (2) 4/4 a 141, 35 battute = 59,6 s ·
     ///   (3) 6/8 a 101, 17 battute = 60,6 s · (4) 4/4, 15 battute a 121 (29,8 s) + 11 a 91
     ///   (29,0 s) = 58,8 s · (5) 4/4 a 110,5, 28 battute = 60,8 s.
-    /// Nomi corti (≤ 12 caratteri, una riga sul velo), col numero della canzone. Come le altre
+    /// Nomi corti (≤ 12 caratteri, una riga sul velo), col numero della canzone — B2b-BIS: la 3
+    /// era «3 Charlie 6/8», 13 caratteri; ora «3 Charly 6/8», 12. Come le altre
     /// scalette di prova: `injectTestData` sostituisce il contenuto dello store e vive solo in
     /// RAM (sparisce al kill dell'app).
     private func loadTestDataCollaudo2D() {
@@ -814,7 +815,7 @@ struct DebugView: View {
         let s3 = SongSection(name: "Tre 6/8 101", bpm: 101.0, beatsPerBar: 6, beatUnit: 8,
                              repetitions: 17, notes: "", accentPattern: [2,1,1,2,1,1],
                              subdivisionMultiplier: 1, swingRatio: 0.5)
-        let song3 = Song(id: UUID(), name: "3 Charlie 6/8", sections: [s3],
+        let song3 = Song(id: UUID(), name: "3 Charly 6/8", sections: [s3],
                          countIn: 0, backtrackFilename: nil)
 
         let s4a = SongSection(name: "Prima 121", bpm: 121.0, beatsPerBar: 4, beatUnit: 4,

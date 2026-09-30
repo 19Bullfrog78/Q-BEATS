@@ -18,7 +18,7 @@ struct TransportView: View {
 
     /// A386 · B2b (30/09/2026) — LA FASCIA DA SOLO (foglio CD 2D-QUATER, file 2, L3): `true`
     /// quando la macchina del Follower è DA SOLO. Lo decide `LiveView`, che osserva il motore
-    /// (`followerSyncState`) e lo passa come valore: questa fascia resta `let audioEngine` (A361)
+    /// (`followerSync`) e lo passa come valore: questa fascia resta `let audioEngine` (A361)
     /// e si ridisegna perché cambia il parametro, non perché osserva il motore.
     let followerAlone: Bool
     /// B2b — lo Stop a pressione della fascia DA SOLO è scattato: `LiveView` lo porta alla
@@ -237,6 +237,11 @@ struct TransportView: View {
     // prodotto), dentro la cella che il foglio gli dà. «Transport · Director only» sparisce
     // perché in DA SOLO non è più vero: c'è uno Stop. La maniglia del mixer non c'è nella
     // lastra: resta il trascinamento (`mixerDrag`).
+    // B2b-BIS — lo sfondo ambra e il bordo superiore vanno da bordo a bordo dello schermo, come
+    // nella lastra: `LiveView` dà a questa fascia la larghezza intera (il margine di 16 del
+    // player lo tengono gli altri figli e le altre due fasce); dentro valgono i margini del
+    // foglio, `stripSide` (18) ai lati e `stripBottom` (24) sotto. Su iPhone 390 lo Stop a
+    // pressione è largo 390 − 36 − 12 − 98 = 244 (foglio L3: 354 − 98 − 12).
     private var aloneStrip: some View {
         let capsSize = QLiveStage.scaled(QLiveStage.Caps.size, scaleFactor)
         let secondarySize = QLiveStage.scaled(QLiveStage.Secondary.size, scaleFactor)
