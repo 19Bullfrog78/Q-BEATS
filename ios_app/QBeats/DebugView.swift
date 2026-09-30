@@ -483,6 +483,12 @@ struct DebugView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.pink)
+                    // A386 · B2b — la scaletta del collaudo del 2D (5 canzoni da circa un minuto).
+                    Button("Carica dati test COLLAUDO 2D") {
+                        loadTestDataCollaudo2D()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.yellow)
                 }
                 #endif
 
@@ -775,6 +781,62 @@ struct DebugView: View {
                               date: Date(), songIDs: [song.id])
 
         QBeatsStore.shared.injectTestData(songs: [song], setlists: [setlist])
+    }
+
+    /// A386 · B2b (30/09/2026) — LA SCALETTA DEL COLLAUDO DEL 2D: «COLLAUDO 2D», cinque canzoni
+    /// di circa un minuto, countIn 0, BPM non interi (Costituzione §6: «testare sempre con BPM
+    /// non interi (es. 121.0)» — quattro sul modello dell'esempio, uno davvero non intero).
+    /// Durate con la semantica del motore: `bpm` = click al minuto, un click per unità di
+    /// `beatsPerBar`; `beatUnit` non entra (il DSP conta `spb = sampleRate·60/bpm` per click,
+    /// `MetronomeDSP.cpp`; `loadSection` totalizza `repetitions × beatsPerBar` battiti,
+    /// `AudioEngine.loadSection`): durata = battute × beatsPerBar × 60 / bpm.
+    ///   (1) 4/4 a 121, 30 battute = 59,5 s · (2) 4/4 a 141, 35 battute = 59,6 s ·
+    ///   (3) 6/8 a 101, 17 battute = 60,6 s · (4) 4/4, 15 battute a 121 (29,8 s) + 11 a 91
+    ///   (29,0 s) = 58,8 s · (5) 4/4 a 110,5, 28 battute = 60,8 s.
+    /// Nomi corti (≤ 12 caratteri, una riga sul velo), col numero della canzone — B2b-BIS: la 3
+    /// era «3 Charlie 6/8», 13 caratteri; ora «3 Charly 6/8», 12. Come le altre
+    /// scalette di prova: `injectTestData` sostituisce il contenuto dello store e vive solo in
+    /// RAM (sparisce al kill dell'app).
+    private func loadTestDataCollaudo2D() {
+        os_log("[DebugView] Carica dati test COLLAUDO 2D", log: .default, type: .default)
+
+        let s1 = SongSection(name: "Uno 121", bpm: 121.0, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 30, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song1 = Song(id: UUID(), name: "1 Alfa 121", sections: [s1],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s2 = SongSection(name: "Due 141", bpm: 141.0, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 35, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song2 = Song(id: UUID(), name: "2 Bravo 141", sections: [s2],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s3 = SongSection(name: "Tre 6/8 101", bpm: 101.0, beatsPerBar: 6, beatUnit: 8,
+                             repetitions: 17, notes: "", accentPattern: [2,1,1,2,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song3 = Song(id: UUID(), name: "3 Charly 6/8", sections: [s3],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s4a = SongSection(name: "Prima 121", bpm: 121.0, beatsPerBar: 4, beatUnit: 4,
+                              repetitions: 15, notes: "", accentPattern: [2,1,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4b = SongSection(name: "Seconda 91", bpm: 91.0, beatsPerBar: 4, beatUnit: 4,
+                              repetitions: 11, notes: "", accentPattern: [2,1,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song4 = Song(id: UUID(), name: "4 Delta 2sez", sections: [s4a, s4b],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s5 = SongSection(name: "Cinque 110.5", bpm: 110.5, beatsPerBar: 4, beatUnit: 4,
+                             repetitions: 28, notes: "", accentPattern: [2,1,1,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song5 = Song(id: UUID(), name: "5 Echo 110.5", sections: [s5],
+                         countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO 2D",
+                              date: Date(), songIDs: [song1.id, song2.id, song3.id, song4.id, song5.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song1, song2, song3, song4, song5], setlists: [setlist])
     }
     #endif
 }

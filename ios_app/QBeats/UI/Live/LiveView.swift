@@ -30,6 +30,14 @@ struct LiveView: View {
     //    cartello A242 lì) e questa vista la OSSERVA soltanto. ⛔ Nessun
     //    default: ogni sito di montaggio dichiara quale sessione passa.
     @ObservedObject var session: LiveSession
+    // A386 · B2b (30/09/2026) — LA STANZA, per DUE cose e basta: la proposta di RIENTRA
+    // (`rientraProposal`, un `@Published` della stanza — «chi la legge osserva la stanza per
+    // QUESTO campo e basta», referto B2A §8) e le due porte del Follower (`armRientra`,
+    // `followerMusicianStop`). ⛔ Il runner NON si legge attraverso di lei: arriva dal gate di
+    // `QLiveRootView` come `@EnvironmentObject`, qui sopra (VINCOLO DI PROPAGAZIONE,
+    // `QLiveSession.swift:26-38`). Osservarla per la sua apparizione/scomparsa del runner è
+    // l'unico altro segnale che sa dare, e qui non serve.
+    @ObservedObject var room: QLiveSession
     // L1.b — Tick di riferimento per il bar counter relativo alla sezione corrente.
     // beatTickCounter di AudioEngine cresce monotono dalla partenza; per resettare
     // il display "Battuta X di Y" ad ogni cambio sezione manteniamo qui in Layer 3
@@ -149,6 +157,21 @@ struct LiveView: View {
             // Unica fonte di verità: ricalcolato qui, propagato come parametro
             // CGFloat a tutti i sub-view che ne hanno bisogno.
             let scaleFactor: CGFloat = geo.size.width / 390
+            // A386 · B2b (30/09/2026) — IL VELO DEL FOLLOWER: una decisione sola
+            //    (`FollowerVeilDecision`, Models/, testata), letta qui dal motore (stato,
+            //    ragione, segnale, Start Stop Sync, sessione Link in moto), dalla stanza (la
+            //    proposta) e dal runner (la scaletta). Sul Follower FUORI — Join, Out, Ready —
+            //    il player mostra la faccia del foglio CD 2D-QUATER (`FollowerOutView`) QUALUNQUE
+            //    sia lo stato della sessione dietro, `.fineSetlist` compreso (L5); IN SYNC fermo
+            //    è il velo di sempre con lo slot E (L1); in moto la fascia, grigia IN SYNC e
+            //    ambra DA SOLO (L3, `TransportView`). `nil` a chi comanda il trasporto.
+            //    Sta QUI, un livello sopra lo `ZStack`, perché la leggono sia il contenuto sia i
+            //    modificatori di strumentazione in coda allo `ZStack` (stesso ambito).
+            let followerVeil = followerVeilDecision()
+            let followerOutFace: Bool = {
+                guard let face = followerVeil?.face else { return false }
+                return face == .join || face == .out || face == .ready
+            }()
             ZStack {
                 Color(hex: "#0e0e10").ignoresSafeArea(.all)
 
@@ -164,47 +187,77 @@ struct LiveView: View {
                 // A355 — in attesa il corpo scende al 10% come prima; la testata riceve
                 // lo stesso valore e lo applica SOLO al centro e ai LED: freccia e muto
                 // restano pieni e toccabili (`LiveHeaderView.contentOpacity`).
-                let standbyOpacity: Double = isStandby ? 0.10 : 1.0
+                // B2b — la stessa testata al 10% sopra la faccia FUORI del Follower (`.qb-hd.v`).
+                let standbyOpacity: Double = (isStandby || followerOutFace) ? 0.10 : 1.0
 
                 VStack(spacing: 0) {
                     LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge, contentOpacity: standbyOpacity)
                         .frame(height: headerHeight)
+                        .padding(.horizontal, 16)
+                    if followerOutFace, let followerVeil {
+                        // B2b — Join / Out / Ready con la scaletta (`.qb-ou`): dal bordo dello
+                        // schermo, coi margini del foglio (`--m:22px`), non coi 16 del player.
+                        FollowerOutView(decision: followerVeil,
+                                        songNames: runner.songNames,
+                                        scaleFactor: scaleFactor,
+                                        onTapSong: { idx in songTapped(idx) })
+                    } else {
+                    // B2b-BIS — IL MARGINE DI 16 STA SUI FIGLI, NON SULLA COLONNA: lo sfondo ambra
+                    //    della fascia DA SOLO (lastra L3, `.qb-fa.so`) va da bordo a bordo come nel
+                    //    foglio (`.qb-pl` non ha margini laterali; dentro la fascia valgono i suoi:
+                    //    `padding:0 18px 24px`). Il corpo del player tiene i 16 di sempre (il
+                    //    `Group` li dà a ognuno dei quattro); la fascia del Direttore e quella
+                    //    IN SYNC del Follower li tengono uguali (16 quando non è DA SOLO): stessa
+                    //    cornice di prima, (larghezza − 32) × 21% allo stesso posto. Solo in DA SOLO
+                    //    la fascia riceve la larghezza intera.
+                    let followerAlone = followerVeil?.face == .alone
                     VStack(spacing: 0) {
-                        MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
-                            .frame(height: geo.size.height * 0.10)
-                        BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
-                            .frame(height: geo.size.height * 0.08)
-                        MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
-                            .frame(height: geo.size.height * 0.04)
-                        VStack(spacing: 0) {
-                            TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
-                                .frame(height: geo.size.height * 0.35)
-                            MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
-                                .frame(height: geo.size.height * 0.02)
-                            POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                        Group {
+                            MetSlotStripView(pattern: accentPatternToStrings(displayAccentPattern), beatActive: session.beatActive)
                                 .frame(height: geo.size.height * 0.10)
-                            HandleStripView()
-                                .frame(height: geo.size.height * 0.02)
-                        }
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onEnded { value in
-                                    if value.translation.height > 15 {
-                                        session.showMixer = true
+                            BarCounterView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, scaleFactor: scaleFactor)
+                                .frame(height: geo.size.height * 0.08)
+                            MicroSegBarView(current: session.currentBar, total: session.totalBarsInSection, state: session.playbackState, sectionHold: sectionHold)
+                                .frame(height: geo.size.height * 0.04)
+                            VStack(spacing: 0) {
+                                TeleprompterCapsuleView(session: session, scaleFactor: scaleFactor)
+                                    .frame(height: geo.size.height * 0.35)
+                                MacroBarView(current: session.macroBarCurrent, total: session.macroBarTotal, state: session.playbackState)
+                                    .frame(height: geo.size.height * 0.02)
+                                POIView(nextSection: session.nextSectionName, nextSong: session.nextSongName, scaleFactor: scaleFactor)
+                                    .frame(height: geo.size.height * 0.10)
+                                HandleStripView()
+                                    .frame(height: geo.size.height * 0.02)
+                            }
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 10)
+                                    .onEnded { value in
+                                        if value.translation.height > 15 {
+                                            session.showMixer = true
+                                        }
                                     }
-                                }
-                        )
-                        TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+                            )
+                        }
+                        .padding(.horizontal, 16)
+                        // B2b — la fascia DA SOLO (L3) la decide la macchina, letta qui e passata
+                        // come valore: la fascia resta `let audioEngine` (A361). Lo Stop a
+                        // pressione va alla stanza, l'unica porta dello Stop del musicista.
+                        TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
+                                      followerAlone: followerAlone,
+                                      onHoldStop: { holdStopFired() })
                             .frame(height: geo.size.height * 0.21)
+                            .padding(.horizontal, followerAlone ? 0 : 16)
                     }
                     .opacity(standbyOpacity)
                     .animation(.easeInOut(duration: 0.3), value: isStandby)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 16)
 
-                if case .standby(let nextSong) = session.playbackState {
+                // B2b — sul Follower FUORI la faccia del foglio vince sul velo di standby, sul velo
+                // UX-3 e sulla schermata di fine scaletta (L5): `!followerOutFace` sui tre.
+                if case .standby(let nextSong) = session.playbackState, !followerOutFace {
                     // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
                     // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
                     // riparte da sezione 8 battito 1» (= opzione B di A240;
@@ -246,13 +299,18 @@ struct LiveView: View {
                     //    starts». Con Link spento dall'utente l'apparecchio è Solo in tutto:
                     //    «Tap anywhere» e il tocco fa partire. `nobodyConnected` porta al velo
                     //    le due righe della lastra ⑧ (Follower senza nessuno collegato).
+                    // ⚠️ A386 · B2b (30/09/2026) — `nobodyConnected` NON ENTRA PIÙ nel velo: il
+                    //    collegato di Link non decide niente sul velo del Follower. Le due righe
+                    //    della lastra ⑧ sono uscite; al loro posto lo slot E del foglio 2D-QUATER
+                    //    (L1: solo «Director signal OK»), deciso da `FollowerVeilDecision` e passato
+                    //    alla vista (`followerVeil`). Sul Follower il velo dice sempre «Next:»
+                    //    (2D-D6): lo decide `StandbyOverlayDecision`.
                     let rule = audioEngine.followerDecision
                     let veil = StandbyOverlayDecision(
                         currentSectionIdx: runner.currentSectionIdx,
                         currentSectionName: runner.currentSection?.name ?? "",
                         songName: nextSong,
-                        isFollower: rule.isFollower,
-                        nobodyConnected: rule.nobodyConnected)
+                        isFollower: rule.isFollower)
                     VStack(spacing: 0) {
                         // Il velo si ferma SOTTO la testata (decisione 13): la fascia
                         // resta scoperta e freccia e muto arrivano ai loro `Button`.
@@ -262,24 +320,22 @@ struct LiveView: View {
                         // anche nel velo, che ne toglie l'altezza al proprio spazio in
                         // alto: le tre righe restano dove stavano col velo intero (A356).
                         Spacer().frame(height: headerHeight)
-                        StandbyOverlayView(decision: veil, scaleFactor: scaleFactor, headerHeight: headerHeight)
+                        StandbyOverlayView(decision: veil, followerVeil: followerVeil,
+                                           scaleFactor: scaleFactor, headerHeight: headerHeight)
                             .contentShape(Rectangle())
                             .onTapGesture { veilTapped(veil) }
                     }
                     .onAppear { veilShown(veil, rule) }
-                    // A360 — strumentazione passiva: lo slot E compare o sparisce mentre il
-                    // velo è a schermo (un apparecchio si collega o se ne va).
-                    .onChange(of: veil.showsNoDeviceLines) { shows in
-                        os_log("[Q-BEATS][A360] velo - slot E (nessuno collegato):%{public}@",
-                               log: .default, type: .default, shows ? "si" : "no")
-                    }
+                    // ⚠️ B2b — la strumentazione A360 sullo slot E «nessuno collegato» è uscita con
+                    //    le sue righe; il cambio di faccia dello slot E del foglio lo logga
+                    //    `followerFaceChanged`, sotto.
                 }
 
-                if case .overlayStop(let sec, let song) = session.playbackState {
+                if case .overlayStop(let sec, let song) = session.playbackState, !followerOutFace {
                     OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine, scaleFactor: scaleFactor)
                 }
 
-                if case .fineSetlist = session.playbackState {
+                if case .fineSetlist = session.playbackState, !followerOutFace {
                     // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
                     // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
                     //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
@@ -377,6 +433,9 @@ struct LiveView: View {
                 .allowsHitTesting(session.showMixer)
 
             }
+            // A386 · B2b — una riga di log a ogni cambio di faccia del Follower, e alla prima.
+            .onAppear { followerFaceChanged(followerVeil) }
+            .onChange(of: followerVeil) { newVeil in followerFaceChanged(newVeil) }
         }
         .onAppear {
             // Sincronizzazione iniziale mirror UI con stato corrente AudioEngine.
@@ -821,6 +880,60 @@ struct LiveView: View {
         session.currentBar = 0
         session.beatActive = 0
         barAnchorValid = false
+    }
+
+    // MARK: - A386 · B2b — il velo del Follower: decisione, tocco sulla lista, Stop, strumentazione
+
+    /// La decisione del velo del Follower, dallo stesso ingresso per tutte le facce: il motore
+    /// (stato e ragione della macchina, insieme in `followerSync`; «sento il Direttore»,
+    /// «Searching…», Start Stop Sync,
+    /// sessione Link in moto — tutti `@Published` osservati da questa vista), la stanza (la
+    /// proposta) e il runner (la scaletta). «Show aperto» è la presenza del runner nello slot:
+    /// l'unico segnale che la stanza sa dare, e dentro il player è sempre vero (gate
+    /// `.metronome`). `nil` a chi comanda il trasporto: velo e fascia di sempre.
+    private func followerVeilDecision() -> FollowerVeilDecision? {
+        guard audioEngine.followerDecision.isFollower else { return nil }
+        return FollowerVeilDecision(state: audioEngine.followerSync.state,
+                                    reason: audioEngine.followerSync.outReason,
+                                    showOpen: room.runner != nil,
+                                    directorHeard: audioEngine.directorHeard,
+                                    searching: audioEngine.directorSearching,
+                                    startStopSyncEnabled: audioEngine.linkStartStopSyncEnabled,
+                                    linkSessionPlaying: audioEngine.linkSessionPlaying,
+                                    proposal: room.rientraProposal,
+                                    songNames: runner.songNames)
+    }
+
+    /// Il tocco su una riga della scaletta (Join o RIENTRA): arma, non parte. Va alla stanza,
+    /// l'unica porta per armarsi (`QLiveSession.armRientra` → `AudioEngine.followerArm` →
+    /// macchina, R1). ⛔ Nessuna chiamata a `start()`, `startCurrentSong` o `startCurrentSection`:
+    /// la partenza resta il Play del Direttore attraverso la macchina. La riga di log del tocco
+    /// (canzone, Join/Rejoin, esito) la scrive il motore, dove si decide.
+    private func songTapped(_ idx: Int) {
+        room.armRientra(songIdx: idx, audioEngine: audioEngine)
+    }
+
+    /// Lo Stop a pressione della fascia DA SOLO è scattato (0,6 s): alla stanza, l'unica porta
+    /// dello Stop del musicista. La macchina chiude la canzone sul runner (`stopAndArmNext`).
+    private func holdStopFired() {
+        room.followerMusicianStop(audioEngine: audioEngine)
+    }
+
+    /// Una riga a ogni cambio di faccia del Follower: faccia, stato, ragione, slot E, proposta
+    /// con la sua forma (o la canzone armata).
+    private func followerFaceChanged(_ veil: FollowerVeilDecision?) {
+        guard let veil else { return }
+        let proposal = room.rientraProposal
+        os_log("[Q-BEATS][2D][VELO] faccia:%{public}@ stato:%{public}@ ragione:%{public}@ slotE:%{public}@ proposta:%{public}@ forma:%{public}@ evidenziata:%{public}@ intestazione:%{public}@",
+               log: .default, type: .default,
+               String(describing: veil.face),
+               String(describing: audioEngine.followerSync.state),
+               String(describing: audioEngine.followerSync.outReason),
+               veil.slotE.map { String(describing: $0) } ?? "nessuno",
+               proposal.songIdx.map { String($0) } ?? "nessuna",
+               String(describing: proposal.form),
+               veil.highlightedRow.map { String($0) } ?? "nessuna",
+               veil.headingLine ?? "-")
     }
 
     // MARK: - A355 — il velo: strumentazione passiva e tocco, fuori dal body

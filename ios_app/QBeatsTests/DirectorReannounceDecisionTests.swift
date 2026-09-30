@@ -5,6 +5,7 @@ import XCTest
 // da Link, non «adesso»), segno alternato solo quando si ripete; i quattro salti (non
 // Direttore, Link dell'utente spento, Start Stop Sync spento, ponte spento). Il millisecondo e'
 // 24.000 tick (misura A382 §3.6): qui e' un numero passato, non una costante del tipo.
+// B2b (A2): il quinto salto, show chiuso — il Direttore ripete solo a show aperto.
 
 final class DirectorReannounceDecisionTests: XCTestCase {
 
@@ -12,10 +13,10 @@ final class DirectorReannounceDecisionTests: XCTestCase {
     private let ms: UInt64 = 24_000
 
     private func decide(role: LinkMode = .direttore, user: Bool = true, sss: Bool = true,
-                        link: Bool = true, playing: Bool, captured: UInt64,
+                        link: Bool = true, showOpen: Bool = true, playing: Bool, captured: UInt64,
                         sign: D.Sign) -> D {
         D(role: role, userLinkEnabled: user, startStopSyncEnabled: sss, linkEnabled: link,
-          sessionPlaying: playing, capturedTime: captured, shiftTicks: ms, sign: sign)
+          showOpen: showOpen, sessionPlaying: playing, capturedTime: captured, shiftTicks: ms, sign: sign)
     }
 
     func testRunningReannouncesPlayingAtCapturedPlusOneMillisecond() {
@@ -77,11 +78,42 @@ final class DirectorReannounceDecisionTests: XCTestCase {
         let linkOff = decide(link: false, playing: true, captured: 1, sign: .plus)
         XCTAssertEqual(linkOff.outcome, .skip(.linkUnavailable))
         XCTAssertEqual(linkOff.nextSign, .plus)
+
+        let showClosed = decide(showOpen: false, playing: true, captured: 1, sign: .minus)
+        XCTAssertEqual(showClosed.outcome, .skip(.showClosed))
+        XCTAssertEqual(showClosed.nextSign, .minus)
     }
 
     func testSkipOrderNotDirectorBeforeTheOthers() {
-        let d = decide(role: .collaborativa, user: false, sss: false, link: false,
+        let d = decide(role: .collaborativa, user: false, sss: false, link: false, showOpen: false,
                        playing: true, captured: 1, sign: .plus)
         XCTAssertEqual(d.outcome, .skip(.notDirector))
+    }
+
+    // MARK: - B2b (A2): il Direttore ripete solo a show aperto
+
+    func testShowClosedSkipsInMotionAndStopped() {
+        XCTAssertEqual(decide(showOpen: false, playing: true, captured: 1_000_000, sign: .plus).outcome,
+                       .skip(.showClosed))
+        XCTAssertEqual(decide(showOpen: false, playing: false, captured: 1_000_000, sign: .plus).outcome,
+                       .skip(.showClosed))
+    }
+
+    func testShowClosedComesAfterTheConfigurationSkips() {
+        // Una configurazione sbagliata si legge prima di uno show chiuso, che e' il caso normale.
+        XCTAssertEqual(decide(user: false, showOpen: false, playing: true, captured: 1, sign: .plus).outcome,
+                       .skip(.userLinkOff))
+        XCTAssertEqual(decide(sss: false, showOpen: false, playing: true, captured: 1, sign: .plus).outcome,
+                       .skip(.startStopSyncOff))
+        XCTAssertEqual(decide(link: false, showOpen: false, playing: true, captured: 1, sign: .plus).outcome,
+                       .skip(.linkUnavailable))
+    }
+
+    func testShowOpenAgainReannouncesFromTheCapturedTime() {
+        let closed = decide(showOpen: false, playing: false, captured: 7_000_000, sign: .plus)
+        XCTAssertEqual(closed.outcome, .skip(.showClosed))
+        let open = decide(showOpen: true, playing: false, captured: 7_000_000, sign: closed.nextSign)
+        XCTAssertEqual(open.outcome, .reannounce(isPlaying: false, at: 7_024_000))
+        XCTAssertEqual(open.nextSign, .minus)
     }
 }

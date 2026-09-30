@@ -76,6 +76,10 @@ struct AppRootView: View {
                 // muoiono col `switch` qui sopra): la macchina del Follower si azzera (`reset`,
                 // Q12). Non è uno Stop di canzone: è la fine dello show per questo apparecchio.
                 audioEngine.followerReset(reason: "uscita-dalla-stanza")
+                // A386 · B2b (A2) — e «show aperto» si abbassa QUI, in modo esplicito, accanto al
+                // reset: non affidato alla morte della stanza. Il Direttore che esce smette di
+                // ripetere il proprio stato, e i Follower vanno FUORI (Q14, regola di palco).
+                audioEngine.setShowOpen(false, origin: "uscita-dalla-stanza")
             }
             previousScreen = newScreen
         }

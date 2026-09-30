@@ -19,6 +19,12 @@ import Foundation
 //    annulla: e' la forma stessa della regola (l'ultimo colpo vero fissa l'orologio).
 // Con Link spento dall'app (`enabled_` del ponte) i campi della cattura sono zero e il segnale
 // riparte da capo: non si sente nessuno.
+//
+// B2b — «SEARCHING…» (slot E del foglio CD 2D-QUATER, correzione del referee al congedo del
+// 26/09 §3.3): non e' «nessun colpo ancora» (`lastHitAt == nil`), perche' senza Direttore
+// resterebbe per sempre. Vale dal PRIMO campione dopo che Link si accende (o dall'avvio) fino
+// al primo verdetto: il primo colpo, oppure una soglia intera senza colpi. Mai oltre la soglia.
+// `firstSampleAt` e' il tick di quel primo campione; a Link spento si azzera con tutto il resto.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct DirectorHeardSample: Equatable {
     /// `enabled_` del ponte: a `false` i due campi sotto sono zero e non dicono niente.
@@ -35,15 +41,26 @@ struct DirectorHeardTracker: Equatable {
     let lastSample: DirectorHeardSample?
     /// Il tick dell'ultimo colpo vero (`nil` = nessun colpo ancora).
     let lastHitAt: UInt64?
+    /// B2b: il tick del primo campione dopo che Link si e' acceso (o dall'avvio); da li' si cerca.
+    let firstSampleAt: UInt64?
+
+    init(lastSample: DirectorHeardSample?, lastHitAt: UInt64?, firstSampleAt: UInt64? = nil) {
+        self.lastSample = lastSample
+        self.lastHitAt = lastHitAt
+        self.firstSampleAt = firstSampleAt
+    }
 
     /// Prima di ogni cattura, e a Link spento.
-    static let start = DirectorHeardTracker(lastSample: nil, lastHitAt: nil)
+    static let start = DirectorHeardTracker(lastSample: nil, lastHitAt: nil, firstSampleAt: nil)
 
     struct Verdict: Equatable {
         /// Il segnale, adesso.
         let heard: Bool
         /// Questa cattura e' stata un colpo vero.
         let hit: Bool
+        /// B2b: si sta ancora cercando — nessun colpo ancora, e non e' passata una soglia dal
+        /// primo campione. Mai vero insieme a `heard`.
+        let searching: Bool
         /// Lo stato da tenere per la prossima cattura.
         let next: DirectorHeardTracker
     }
@@ -55,12 +72,13 @@ struct DirectorHeardTracker: Equatable {
                  thresholdTicks: UInt64,
                  ownTimelineWriteSinceLastSample: Bool) -> Verdict {
         guard sample.linkEnabled else {
-            return Verdict(heard: false, hit: false, next: .start)
+            return Verdict(heard: false, hit: false, searching: false, next: .start)
         }
         guard let previous = lastSample else {
-            // Il primo campione non e' un colpo.
+            // Il primo campione non e' un colpo: da qui si cerca, per una soglia al massimo.
             return Verdict(heard: false, hit: false,
-                           next: DirectorHeardTracker(lastSample: sample, lastHitAt: nil))
+                           searching: thresholdTicks > 0,
+                           next: DirectorHeardTracker(lastSample: sample, lastHitAt: nil, firstSampleAt: now))
         }
         let changed = previous.isPlaying != sample.isPlaying
                    || previous.timeForIsPlaying != sample.timeForIsPlaying
@@ -72,7 +90,13 @@ struct DirectorHeardTracker: Equatable {
         } else {
             heard = false
         }
-        return Verdict(heard: heard, hit: hit,
-                       next: DirectorHeardTracker(lastSample: sample, lastHitAt: hitAt))
+        let searching: Bool
+        if hitAt == nil, let first = firstSampleAt, now >= first {
+            searching = now - first < thresholdTicks
+        } else {
+            searching = false
+        }
+        return Verdict(heard: heard, hit: hit, searching: searching,
+                       next: DirectorHeardTracker(lastSample: sample, lastHitAt: hitAt, firstSampleAt: firstSampleAt))
     }
 }

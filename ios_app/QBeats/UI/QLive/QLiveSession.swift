@@ -87,10 +87,13 @@ final class QLiveSession: ObservableObject {
     let liveSession = LiveSession()
 
     // === A386 · FASE B2A (2D) — LA PROPOSTA DI RIENTRA, per il velo (B2b) ===
-    /// Ricalcolata a ogni transizione della macchina del Follower e a ogni azione sul runner
-    /// (`RientraProposal.propose`, coi numeri della stanza: `.standby`, indice, quante canzoni).
-    /// `.none` quando non c'è niente da proporre (D4). Solo main. È un valore della stanza,
-    /// non del runner: chi la legge osserva la stanza per QUESTO campo e basta.
+    /// Ricalcolata una volta a ogni transizione della macchina del Follower — dopo l'azione sul
+    /// runner, quando il motore pubblica stato e ragione insieme (`followerSync`, B2b-BIS) — e
+    /// all'installazione del runner (`RientraProposal.propose`, coi numeri della stanza: indice,
+    /// quante canzoni, scaletta finita). `.none` quando non c'è niente da proporre (D4) e da
+    /// FUORI armato (la riga evidenziata è quella armata). Solo main. È un valore della stanza,
+    /// non del runner: chi la legge osserva la stanza per QUESTO campo e basta (`LiveView`,
+    /// `room.rientraProposal`).
     @Published private(set) var rientraProposal: RientraProposal = .none
 
     // MARK: - A337 — L'ascolto del Play del Direttore vive nella STANZA
@@ -147,7 +150,8 @@ final class QLiveSession: ObservableObject {
         //  · la macchina del Follower chiede al runner di armare (`armNext`, `rearmSame`);
         //  · il Direttore si è fermato a canzone in corso (D3/D7-bis): decide
         //    `DirectorSongCloseDecision.onStop` coi numeri del runner;
-        //  · stato e ragione della macchina cambiano: si ricalcola la proposta di RIENTRA.
+        //  · stato e ragione della macchina cambiano (insieme, B2b-BIS): si ricalcola la
+        //    proposta di RIENTRA, una volta per transizione.
         audioEngine.followerRunnerActionSubject
             .sink { [weak self, weak audioEngine] action in
                 guard let self, let audioEngine else { return }
@@ -160,11 +164,19 @@ final class QLiveSession: ObservableObject {
                 self.handleDirectorStopped(falseStart: falseStart, audioEngine: audioEngine)
             }
             .store(in: &cancellables)
-        audioEngine.$followerSyncState
-            .combineLatest(audioEngine.$followerOutReason)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] state, reason in
-                self?.refreshRientraProposal(state: state, reason: reason)
+        audioEngine.$followerSync
+            .sink { [weak self, weak audioEngine] sync in
+                guard let self, let audioEngine else { return }
+                // B2b-BIS: stato e ragione arrivano INSIEME, in un valore solo, una volta per
+                // transizione e DOPO l'azione sul runner (`AudioEngine.followerApply`, su main).
+                // Era `$followerSyncState.combineLatest($followerOutReason)`: due emissioni per
+                // transizione, la prima con lo stato nuovo e la ragione vecchia, e una proposta
+                // falsa nel log. Consegna sincrona, senza `receive(on:)`: il motore pubblica già
+                // su main, e così la proposta è scritta prima che lo schermo legga lo stato nuovo.
+                // Il valore viene dal soggetto (un `@Published` emette PRIMA di scrivere la
+                // proprietà); il ruolo si legge dal motore, non cambia in quell'istante.
+                self.refreshRientraProposal(state: sync.state, reason: sync.outReason,
+                                            isFollower: audioEngine.followerDecision.isFollower)
             }
             .store(in: &cancellables)
         directorPlaySubscribed = true
@@ -214,31 +226,37 @@ final class QLiveSession: ObservableObject {
 
     // MARK: - A386 · FASE B2A (2D) — armare, chiudere, proporre
 
-    /// Il PRIMO START SHOW arma la macchina del Follower (R1: solo se «sento il Direttore» e la
-    /// sessione è ferma; altrimenti FUORI con la ragione). Chiamante: `QLiveRootView`,
-    /// `onStart`, solo a slot appena riempito. Su chi non è Follower il motore lo ignora.
-    func armFollowerAtStartShow(audioEngine: AudioEngine) {
-        guard let runner else { return }
-        let bpb = runner.currentSong?.sections.first?.beatsPerBar ?? 4
-        audioEngine.followerArm(source: .startShow, songFirstBeatsPerBar: bpb)
-    }
+    /// ⚠️ B2b (A1, Mauro 25/09/2026) — `armFollowerAtStartShow` È USCITA: START SHOW sul Follower
+    ///    non arma più la canzone 1, apre la lista d'ingresso («Join») e il tocco su una riga arma
+    ///    con la porta di RIENTRA qui sotto — una porta sola per armarsi, con R1 lì e solo lì.
 
-    /// RIENTRA (D4): il solo punto d'ingresso — il velo con scaletta, scelta e conferma arriva
-    /// in B2b (D5). Arma l'inizio della canzone scelta nel runner e manda `armed(rientra)` alla
-    /// macchina (R1: se rifiutato, il runner resta armato ma la macchina è FUORI con la
-    /// ragione, e un Play non fa partire niente).
+    /// Il tocco su una riga della scaletta — lista d'ingresso di START SHOW (A1) o RIENTRA (D4):
+    /// l'UNICA porta per armarsi, con R1 lì e solo lì. B2b (decisione del referee): la macchina
+    /// decide PRIMA, su audioQueue (`AudioEngine.followerArm`); se accetta, il motore scrive la
+    /// misura della canzone scelta nello stesso passo e chiede al runner di armarla con l'azione
+    /// `armSong` (`handleFollowerRunnerAction`, su main); se rifiuta o ignora, il runner e la
+    /// misura non si toccano — la canzone toccata di un rifiuto la porta la ragione. Un indice
+    /// fuori catalogo si rifiuta qui, prima del motore. Un tocco arma, non parte.
     func armRientra(songIdx: Int, audioEngine: AudioEngine) {
         guard let runner else {
             os_log("[Q-BEATS][2D][STANZA] RIENTRA senza runner - ignorato",
                    log: .default, type: .default)
             return
         }
-        guard runner.armSong(index: songIdx, audioEngine: audioEngine, session: liveSession) else { return }
-        let bpb = runner.currentSong?.sections.first?.beatsPerBar ?? 4
-        audioEngine.followerArm(source: .rientra(songIdx: songIdx), songFirstBeatsPerBar: bpb)
+        guard case .arm(_) = DirectorSongCloseDecision.armSong(index: songIdx, songCount: runner.songCount),
+              let bpb = runner.firstBeatsPerBar(ofSongAt: songIdx) else {
+            os_log("[Q-BEATS][2D][STANZA] tocco lista RIFIUTATO index:%d songs:%d - fuori catalogo",
+                   log: .default, type: .error, songIdx, runner.songCount)
+            return
+        }
+        // «join» dalla lista d'ingresso (ragione nulla o `reset`), «rejoin» da RIENTRA: la stessa
+        // regola del velo (`FollowerVeilDecision.isEntry`), solo per la riga di log del tocco.
+        let entry = FollowerVeilDecision.isEntry(reason: audioEngine.followerSync.outReason) ? "join" : "rejoin"
+        audioEngine.followerArm(songIdx: songIdx, songFirstBeatsPerBar: bpb, entry: entry)
     }
 
-    /// Lo Stop del musicista sulla striscia DA SOLO: il solo punto d'ingresso (il bottone in B2b).
+    /// Lo Stop del musicista sulla fascia DA SOLO (B2b: lo Stop a pressione, `HoldToStopButton`):
+    /// il solo punto d'ingresso. La macchina chiude la canzone sul runner (`stopAndArmNext`).
     func followerMusicianStop(audioEngine: AudioEngine) {
         audioEngine.followerMusicianStop()
     }
@@ -253,9 +271,16 @@ final class QLiveSession: ObservableObject {
         case .armNext:
             runner.armNextSong(audioEngine: audioEngine, session: liveSession)
         case .rearmSame:
-            runner.armSong(index: runner.currentSongIdx, audioEngine: audioEngine, session: liveSession)
+            runner.armSong(index: runner.currentSongIdx, session: liveSession)
+        case .armSong(let songIdx):
+            // B2b: l'armamento accettato dalla macchina; la misura l'ha già scritta il motore.
+            runner.armSong(index: songIdx, session: liveSession)
         }
-        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason)
+        // B2b-BIS: qui la proposta NON si ricalcola più. Ogni azione arriva dal passo su main di
+        // `AudioEngine.followerApply`, che subito dopo pubblica stato e ragione insieme
+        // (`followerSync`): è lì, e solo lì, che la stanza la ricalcola — coi numeri del runner
+        // appena avanzato. Ricalcolarla anche qui la calcolava con stato e ragione VECCHI (gli
+        // specchi non erano ancora scritti) e la scriveva due volte per transizione.
     }
 
     /// D3 / D7-bis — il Direttore ha fermato: chiude la canzone (o riarma la stessa se falsa
@@ -285,29 +310,35 @@ final class QLiveSession: ObservableObject {
         case .closeAndArmNext, .closeAndFinishSetlist:
             runner.armNextSong(audioEngine: audioEngine, session: liveSession)
         case .rearmSame(let songIdx):
-            runner.armSong(index: songIdx, audioEngine: audioEngine, session: liveSession)
+            runner.armSong(index: songIdx, session: liveSession)
         case .none:
             break
         }
     }
 
-    private func refreshRientraProposal(state: FollowerSyncState, reason: FollowerOutReason?) {
-        guard case .out = state, let runner else {
+    /// B2b: la proposta nelle tre forme del foglio (`RientraProposal.Form`); da FUORI armato è
+    /// `.none` (la riga evidenziata è quella armata, `FollowerSyncState.out(armed:)`); «dopo
+    /// l'ultima canzone» = la sessione è `.fineSetlist`. Solo sul Follower: su chi comanda il
+    /// trasporto (Direttore, Solo) la macchina non gira e la proposta non esiste — senza la
+    /// guardia, a START SHOW la stanza proporrebbe la 1 anche lì (una riga di log senza senso).
+    /// Log al cambio, con la forma.
+    private func refreshRientraProposal(state: FollowerSyncState, reason: FollowerOutReason?, isFollower: Bool) {
+        guard isFollower, case .out(let armed) = state, armed == nil, let runner else {
             if rientraProposal != .none { rientraProposal = .none }
             return
         }
-        var standby = false
-        if case .standby = liveSession.playbackState { standby = true }
+        var afterLastSong = false
+        if case .fineSetlist = liveSession.playbackState { afterLastSong = true }
         let proposal = RientraProposal.propose(reason: reason,
-                                               sessionIsStandby: standby,
                                                currentSongIdx: runner.currentSongIdx,
-                                               songCount: runner.songCount)
+                                               songCount: runner.songCount,
+                                               afterLastSong: afterLastSong)
         if proposal != rientraProposal {
             rientraProposal = proposal
-            os_log("[Q-BEATS][2D][STANZA] proposta RIENTRA songIdx:%{public}@ affidabile:%d ragione:%{public}@ standby:%d corrente:%d",
+            os_log("[Q-BEATS][2D][STANZA] proposta RIENTRA songIdx:%{public}@ forma:%{public}@ ragione:%{public}@ dopoUltima:%d corrente:%d",
                    log: .default, type: .default,
-                   proposal.songIdx.map { String($0) } ?? "nessuna", proposal.reliable ? 1 : 0,
-                   String(describing: reason), standby ? 1 : 0, runner.currentSongIdx)
+                   proposal.songIdx.map { String($0) } ?? "nessuna", String(describing: proposal.form),
+                   String(describing: reason), afterLastSong ? 1 : 0, runner.currentSongIdx)
         }
     }
 
@@ -353,8 +384,19 @@ final class QLiveSession: ObservableObject {
     ///   qui il suo ultimo riferimento forte» — è ancora esatto. È il meccanismo
     ///   con cui lo show vivo restava orfano al rientro, e non è stato tolto: è
     ///   stato reso irraggiungibile a monte.
-    func install(_ newRunner: SetlistRunner) {
+    /// ⚠️ A386 · B2b (30/09/2026) — DUE COSE IN PIÙ, e il motore entra dalla firma (invariante 2 di
+    ///    CLAUDE.md): (1) «show aperto» si alza QUI, dove il runner entra nello slot — è il dato
+    ///    che dice al Direttore di ripetere il proprio stato (A2: solo a show aperto), e si
+    ///    abbassa dove la sessione si chiude (`endShow`, e l'uscita dalla stanza in `AppRootView`),
+    ///    non nei bottoni e non alla morte dell'oggetto; (2) la proposta di RIENTRA si ricalcola
+    ///    col runner nuovo: alla riapertura di uno show nella stessa stanza la macchina non
+    ///    cambia (è già FUORI da `reset`), e senza questo la lista d'ingresso non proporrebbe la 1.
+    ///    «Installa e basta» resta vero per l'audio: non avvia, non arma.
+    func install(_ newRunner: SetlistRunner, audioEngine: AudioEngine) {
         runner = newRunner
+        audioEngine.setShowOpen(true, origin: "install")
+        refreshRientraProposal(state: audioEngine.followerSync.state, reason: audioEngine.followerSync.outReason,
+                               isFollower: audioEngine.followerDecision.isFollower)
     }
 
     /// ⟦PORTA-RIENTRO⟧ ② — IL SECONDO MUTATORE: lo slot si SVUOTA.
@@ -439,6 +481,9 @@ final class QLiveSession: ObservableObject {
     func endShow(audioEngine: AudioEngine) {
         audioEngine.stop()
         runner = nil
+        // A386 · B2b (A2) — lo show si chiude QUI: il Direttore smette di ripetere il proprio stato
+        // e, allo scadere della soglia, i Follower vanno FUORI (foglio 2D-QUATER, L5).
+        audioEngine.setShowOpen(false, origin: "end-show")
         liveSession.playbackState = .stopped
         // A386 · FASE B2A (2D) — END SHOW chiude lo show: la macchina del Follower si azzera
         // (`reset`, Q12), dopo lo stop e a slot già vuoto.
