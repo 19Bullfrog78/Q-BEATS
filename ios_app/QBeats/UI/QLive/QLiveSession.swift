@@ -165,8 +165,12 @@ final class QLiveSession: ObservableObject {
         audioEngine.$followerSyncState
             .combineLatest(audioEngine.$followerOutReason)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] state, reason in
-                self?.refreshRientraProposal(state: state, reason: reason)
+            .sink { [weak self, weak audioEngine] state, reason in
+                guard let self, let audioEngine else { return }
+                // B2b: stato e ragione arrivano dal soggetto (un `@Published` emette PRIMA di
+                // scrivere la proprietà); il ruolo si legge dal motore, non cambia in quell'istante.
+                self.refreshRientraProposal(state: state, reason: reason,
+                                            isFollower: audioEngine.followerDecision.isFollower)
             }
             .store(in: &cancellables)
         directorPlaySubscribed = true
@@ -266,7 +270,8 @@ final class QLiveSession: ObservableObject {
             // B2b: l'armamento accettato dalla macchina; la misura l'ha già scritta il motore.
             runner.armSong(index: songIdx, session: liveSession)
         }
-        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason)
+        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason,
+                               isFollower: audioEngine.followerDecision.isFollower)
     }
 
     /// D3 / D7-bis — il Direttore ha fermato: chiude la canzone (o riarma la stessa se falsa
@@ -304,9 +309,12 @@ final class QLiveSession: ObservableObject {
 
     /// B2b: la proposta nelle tre forme del foglio (`RientraProposal.Form`); da FUORI armato è
     /// `.none` (la riga evidenziata è quella armata, `FollowerSyncState.out(armed:)`); «dopo
-    /// l'ultima canzone» = la sessione è `.fineSetlist`. Log al cambio, con la forma.
-    private func refreshRientraProposal(state: FollowerSyncState, reason: FollowerOutReason?) {
-        guard case .out(let armed) = state, armed == nil, let runner else {
+    /// l'ultima canzone» = la sessione è `.fineSetlist`. Solo sul Follower: su chi comanda il
+    /// trasporto (Direttore, Solo) la macchina non gira e la proposta non esiste — senza la
+    /// guardia, a START SHOW la stanza proporrebbe la 1 anche lì (una riga di log senza senso).
+    /// Log al cambio, con la forma.
+    private func refreshRientraProposal(state: FollowerSyncState, reason: FollowerOutReason?, isFollower: Bool) {
+        guard isFollower, case .out(let armed) = state, armed == nil, let runner else {
             if rientraProposal != .none { rientraProposal = .none }
             return
         }
@@ -378,7 +386,8 @@ final class QLiveSession: ObservableObject {
     func install(_ newRunner: SetlistRunner, audioEngine: AudioEngine) {
         runner = newRunner
         audioEngine.setShowOpen(true, origin: "install")
-        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason)
+        refreshRientraProposal(state: audioEngine.followerSyncState, reason: audioEngine.followerOutReason,
+                               isFollower: audioEngine.followerDecision.isFollower)
     }
 
     /// ⟦PORTA-RIENTRO⟧ ② — IL SECONDO MUTATORE: lo slot si SVUOTA.
