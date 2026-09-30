@@ -35,6 +35,9 @@ enum FollowerRunnerAction: Equatable {
     case armNext
     /// D7-bis: riarma la stessa canzone (`armSong(currentSongIdx)`).
     case rearmSame
+    /// B2b: armamento accettato dalla lista d'ingresso o da RIENTRA — arma l'inizio della canzone
+    /// scelta (`armSong(index:)`); la misura l'ha già scritta il motore, nello stesso passo.
+    case armSong(songIdx: Int)
 }
 
 class AudioEngine: ObservableObject {
@@ -73,6 +76,14 @@ class AudioEngine: ObservableObject {
     /// uscita FUORI (o del rifiuto di un armamento), per il velo e per `RientraProposal`.
     @Published private(set) var followerSyncState: FollowerSyncState = FollowerSyncDecision.initial
     @Published private(set) var followerOutReason: FollowerOutReason? = nil
+    // === A386 · B2b (2D) — DUE SPECCHI IN PIÙ PER LO SLOT E DEL FOLLOWER ===
+    /// «Searching…»: dal primo campione dopo che Link si accende (o dall'avvio) fino al primo
+    /// verdetto — il primo colpo, o una soglia senza colpi — mai oltre la soglia
+    /// (`DirectorHeardTracker.Verdict.searching`, correzione del referee al congedo 26/09 §3.3).
+    @Published private(set) var directorSearching: Bool = false
+    /// La sessione Link è in moto («band playing — wait for the stop»): è il dato che R1 legge
+    /// all'armamento, pubblicato per lo schermo dal battito e dal richiamo avvio/stop.
+    @Published private(set) var linkSessionPlaying: Bool = false
     @Published var isWaitingForLinkDownbeat: Bool = false
     // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
     // `_linkMode` audio-queue per consumo da UI (LiveView calcola
@@ -378,6 +389,13 @@ class AudioEngine: ObservableObject {
     /// Battiti per battuta della PRIMA sezione della canzone armata/in corso (Q10, D7-bis):
     /// lo scrive il runner, non il motore (che al richiamo porta ancora la sezione precedente).
     private var _songFirstBeatsPerBarQ: UInt32 = 4
+    /// B2b (A2): «show aperto» = il runner nello slot della stanza. Lo alza `QLiveSession.install`,
+    /// lo abbassano END SHOW e l'uscita dalla stanza (`setShowOpen`). Il Direttore ripete solo a
+    /// show aperto. Copia di coda; nessuno specchio: lo legge solo `directorPulse`.
+    private var _showOpenQ: Bool = false
+    /// B2b — le copie di coda dei due specchi nuovi (`directorSearching`, `linkSessionPlaying`).
+    private var _directorSearchingQ: Bool = false
+    private var _linkSessionPlayingQ: Bool = false
     private var transportPulseTimer: DispatchSourceTimer? = nil
     private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
@@ -1421,6 +1439,7 @@ class AudioEngine: ObservableObject {
                                                   userLinkEnabled: _linkUserEnabledQ,
                                                   startStopSyncEnabled: _startStopSyncEnabledQ,
                                                   linkEnabled: snap.linkEnabled,
+                                                  showOpen: _showOpenQ,
                                                   sessionPlaying: snap.isPlaying,
                                                   capturedTime: snap.timeForIsPlaying,
                                                   shiftTicks: oneMillisecondTicks,
@@ -1466,6 +1485,15 @@ class AudioEngine: ObservableObject {
         _heardTrackerQ = verdict.next
         let changed = verdict.heard != _directorHeardQ
         _directorHeardQ = verdict.heard
+        // B2b — «Searching…» e «band playing» per lo slot E, specchiati al cambio.
+        if verdict.searching != _directorSearchingQ {
+            _directorSearchingQ = verdict.searching
+            let searching = verdict.searching
+            DispatchQueue.main.async { [weak self] in self?.directorSearching = searching }
+            os_log("[Q-BEATS][2D][FOLLOWER] cerca-il-direttore:%d battiti:%llu",
+                   log: .default, type: .default, searching ? 1 : 0, _pulseCountQ)
+        }
+        publishLinkSessionPlayingQ(snap.isPlaying)
         if changed || _pulseCountQ % 10 == 0 {
             os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d scritturaPropria:%d suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu",
                    log: .default, type: .default,
@@ -1491,6 +1519,9 @@ class AudioEngine: ObservableObject {
     private func followerHandleLinkTransport(isPlaying: Bool) {
         guard let lh = linkEngineHandle else { return }
         let snap = link_engine_read_transport_snapshot(lh)
+        // B2b — la sessione Link è in moto (o ferma) da adesso: lo slot E lo sa subito, senza
+        // aspettare il battito.
+        publishLinkSessionPlayingQ(isPlaying)
         let running = isRunning || isAudioInterrupted
         if isPlaying {
             if running {
@@ -1605,11 +1636,22 @@ class AudioEngine: ObservableObject {
                 self.followerRunnerActionSubject.send(.rearmSame)
             case .rearmSame:
                 self.followerRunnerActionSubject.send(.rearmSame)
+            case .armSong(let songIdx):
+                // B2b: arriva su main PRIMA di ogni azione decisa dopo su audioQueue (per esempio
+                // l'avvio al Play): stessa coda, FIFO.
+                self.followerRunnerActionSubject.send(.armSong(songIdx: songIdx))
             }
             self.followerSyncState = state
             self.followerOutReason = reason
         }
         return transition
+    }
+
+    /// B2b — su audioQueue: lo specchio «sessione Link in moto» per lo slot E, solo al cambio.
+    private func publishLinkSessionPlayingQ(_ playing: Bool) {
+        guard playing != _linkSessionPlayingQ else { return }
+        _linkSessionPlayingQ = playing
+        DispatchQueue.main.async { [weak self] in self?.linkSessionPlaying = playing }
     }
 
     /// Su audioQueue. `reset` solo se c'è qualcosa da azzerare: prima di ogni show la macchina è
@@ -1630,26 +1672,64 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    /// START SHOW o RIENTRA (R1): «sento il Direttore» e «la sessione è ferma» si leggono qui,
-    /// nell'istante dell'armamento, su audioQueue. Su chi non è Follower non fa niente.
-    func followerArm(source: FollowerArming.Source, songFirstBeatsPerBar: UInt32) {
+    /// Un tocco sulla lista d'ingresso (A1) o su RIENTRA (R1): «sento il Direttore» e «la sessione
+    /// è ferma» si leggono qui, nell'istante dell'armamento, su audioQueue. Su chi non è Follower
+    /// non fa niente.
+    /// B2b (decisione del referee — l'armamento cambia runner e misura SOLO se la macchina lo
+    /// accetta): la decisione viene PRIMA; accettata, la misura della canzone scelta si scrive
+    /// qui, nello stesso passo, e il runner si arma su main con l'azione `armSong` della macchina
+    /// (che arriva su main prima di ogni azione decisa dopo, per esempio l'avvio al Play);
+    /// rifiutata o ignorata, runner e misura non si toccano. Ogni Play o Stop legge la misura su
+    /// QUESTA coda, dopo questo passo: è sempre quella della canzone armata nella macchina, anche
+    /// dopo due tocchi ravvicinati, che qui si serializzano. `entry` («join» / «rejoin») serve
+    /// solo alla riga di log del tocco.
+    func followerArm(songIdx: Int, songFirstBeatsPerBar: UInt32, entry: String) {
         audioQueue.async { [weak self] in
             guard let self else { return }
-            self._songFirstBeatsPerBarQ = max(songFirstBeatsPerBar, 1)
             guard FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) else {
-                os_log("[Q-BEATS][2D][FOLLOWER] armamento %{public}@ senza macchina - non Follower (ruolo:%{public}@ linkUtente:%d)",
+                os_log("[Q-BEATS][2D][TOCCO] lista canzone:%d %{public}@ esito:ignorato - non Follower (ruolo:%{public}@ linkUtente:%d)",
                        log: .default, type: .default,
-                       self.describe(source), String(describing: self._linkMode), self._linkUserEnabledQ ? 1 : 0)
+                       songIdx, entry, String(describing: self._linkMode), self._linkUserEnabledQ ? 1 : 0)
                 return
             }
             var sessionPlaying = false
             if let lh = self.linkEngineHandle {
                 sessionPlaying = link_engine_read_transport_snapshot(lh).isPlaying
             }
-            let arming = FollowerArming(source: source,
+            self.publishLinkSessionPlayingQ(sessionPlaying)
+            let arming = FollowerArming(source: .rientra(songIdx: songIdx),
                                         directorHeard: self._directorHeardQ,
                                         sessionPlaying: sessionPlaying)
-            self.followerApply(.armed(arming))
+            let transition = self.followerApply(.armed(arming))
+            let outcome: String
+            if case .armSong(let armed) = transition.action {
+                // Accettato: la misura della canzone scelta, nello stesso passo, prima di ogni
+                // Play o Stop che la leggerà su questa coda.
+                self._songFirstBeatsPerBarQ = max(songFirstBeatsPerBar, 1)
+                outcome = "accettato(armato:\(armed) bpb:\(self._songFirstBeatsPerBarQ))"
+            } else if let reason = transition.outReason {
+                outcome = "rifiutato(\(self.describe(reason)))"
+            } else {
+                outcome = "ignorato(\(self.describe(transition.state)))"
+            }
+            os_log("[Q-BEATS][2D][TOCCO] lista canzone:%d %{public}@ esito:%{public}@",
+                   log: .default, type: .default, songIdx, entry, outcome)
+        }
+    }
+
+    /// B2b (A2) — «show aperto»: il runner sta nello slot della stanza. Lo alza
+    /// `QLiveSession.install`, lo abbassano `QLiveSession.endShow` (END SHOW) e l'uscita dalla
+    /// stanza (`AppRootView`, accanto a `followerReset`): non i bottoni, e non la morte
+    /// dell'oggetto. Il Direttore ripete il proprio stato solo a show aperto
+    /// (`DirectorReannounceDecision`, motivo di salto `showClosed`): a show chiuso, allo scadere
+    /// della soglia, i Follower vanno FUORI. Una riga di log a ogni cambio.
+    func setShowOpen(_ open: Bool, origin: String) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            guard self._showOpenQ != open else { return }
+            self._showOpenQ = open
+            os_log("[Q-BEATS][2D][SHOW] show aperto:%d origine:%{public}@ ruolo:%{public}@",
+                   log: .default, type: .default, open ? 1 : 0, origin, String(describing: self._linkMode))
         }
     }
 
@@ -1723,7 +1803,6 @@ class AudioEngine: ObservableObject {
 
     private func describe(_ source: FollowerArming.Source) -> String {
         switch source {
-        case .startShow: return "start-show"
         case .rientra(let songIdx): return "rientra:\(songIdx)"
         }
     }
@@ -1737,6 +1816,7 @@ class AudioEngine: ObservableObject {
         case .armNext: return "arma-successiva"
         case .stopAndRearmSame: return "fermati+riarma-stessa"
         case .rearmSame: return "riarma-stessa"
+        case .armSong(let songIdx): return "arma-scelta:\(songIdx)"
         }
     }
 
@@ -1750,8 +1830,8 @@ class AudioEngine: ObservableObject {
         case .directorStoppedWhileAlone: return "direttore-fermo-da-solo(D2)"
         case .directorFalseStartWhileAlone: return "falsa-partenza-da-solo(D7-bis)"
         case .musicianStop: return "stop-musicista"
-        case .armRefusedNotHeard: return "armamento-rifiutato:non-sento(R1)"
-        case .armRefusedSessionPlaying: return "armamento-rifiutato:sessione-in-moto(R1)"
+        case .armRefusedNotHeard(let chosen): return "armamento-rifiutato:non-sento(R1 scelta:\(chosen))"
+        case .armRefusedSessionPlaying(let chosen): return "armamento-rifiutato:sessione-in-moto(R1 scelta:\(chosen))"
         case .reset: return "reset"
         }
     }
@@ -1762,6 +1842,7 @@ class AudioEngine: ObservableObject {
         case .userLinkOff: return "link-utente-spento"
         case .startStopSyncOff: return "start-stop-sync-spento"
         case .linkUnavailable: return "ponte-spento"
+        case .showClosed: return "show-chiuso"
         }
     }
 

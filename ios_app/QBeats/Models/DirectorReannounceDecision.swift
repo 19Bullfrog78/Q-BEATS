@@ -11,6 +11,11 @@ import Foundation
 // piu' recente. Il millisecondo in tick lo da' il chiamante da `mach_timebase_info`.
 // Chi non ripete: chi non e' Direttore; Direttore con Link spento dall'utente; Start Stop Sync
 // spento (con lui il commit non esce, [R5]); ponte spento (`enabled_`).
+// ⚠️ B2b (A2, Mauro 25/09/2026 — «il segnale del Direttore vale solo a show aperto»): «sempre»
+//    qui sopra non vale piu'. Il Direttore ripete SOLO a show aperto (`showOpen`: il runner sta
+//    nello slot della stanza — riempito da `install`, svuotato da END SHOW e dall'uscita dalla
+//    stanza). A show chiuso salta con `showClosed`: allo scadere della soglia i Follower vanno
+//    FUORI e rientrano scegliendo la canzone. Il testo sopra resta come storia.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct DirectorReannounceDecision: Equatable {
 
@@ -25,6 +30,8 @@ struct DirectorReannounceDecision: Equatable {
         case userLinkOff
         case startStopSyncOff
         case linkUnavailable
+        /// B2b (A2): nessuno show aperto nella stanza del Direttore.
+        case showClosed
     }
 
     enum Outcome: Equatable {
@@ -41,6 +48,7 @@ struct DirectorReannounceDecision: Equatable {
          userLinkEnabled: Bool,
          startStopSyncEnabled: Bool,
          linkEnabled: Bool,
+         showOpen: Bool,
          sessionPlaying: Bool,
          capturedTime: UInt64,
          shiftTicks: UInt64,
@@ -62,6 +70,11 @@ struct DirectorReannounceDecision: Equatable {
         }
         if !linkEnabled {
             outcome = .skip(.linkUnavailable)
+            nextSign = sign
+            return
+        }
+        if !showOpen {
+            outcome = .skip(.showClosed)
             nextSign = sign
             return
         }

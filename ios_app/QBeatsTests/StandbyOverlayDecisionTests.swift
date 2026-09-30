@@ -4,6 +4,9 @@ import XCTest
 // Attesi LETTERALI: ogni caso pinna le stringhe e la forma per contenuto, mai
 // ricalcolando la regola. Le soglie del gigante (12 · 13 · 25 · 26) sono quelle
 // di BOX5 «SCALA DI PALCO» e del foglio CD 11/09 LA-TABELLA-FINALE §③.
+// B2b (A386): sul Follower il velo non scrive mai «Resume from» (2D-D6, foglio 2D-QUATER L1);
+// le due righe della lastra ⑧ («No device connected» · «nothing will start from here») sono
+// uscite: lo slot E del Follower lo decide `FollowerVeilDecision`.
 // Il banco gira in CI su ogni push (`.github/workflows/ios_build.yml`,
 // `xcodebuild test -scheme QBeatsTests`).
 
@@ -13,13 +16,11 @@ final class StandbyOverlayDecisionTests: XCTestCase {
     private func decision(sectionIdx: Int,
                           sectionName: String = "Bridge",
                           songName: String = "Circuz",
-                          isFollower: Bool = false,
-                          nobodyConnected: Bool = false) -> StandbyOverlayDecision {
+                          isFollower: Bool = false) -> StandbyOverlayDecision {
         StandbyOverlayDecision(currentSectionIdx: sectionIdx,
                                currentSectionName: sectionName,
                                songName: songName,
-                               isFollower: isFollower,
-                               nobodyConnected: nobodyConnected)
+                               isFollower: isFollower)
     }
 
     // MARK: - Sezione 0: partenza
@@ -63,13 +64,14 @@ final class StandbyOverlayDecisionTests: XCTestCase {
         XCTAssertEqual(d.relationLine, "Resume from Bridge")  // spazi ai bordi tolti, nome intatto
     }
 
-    // MARK: - Follower: il gesto non è suo, con e senza punto di ripresa
+    // MARK: - Follower: il gesto non è suo, e il velo dice sempre «Next:» (B2b)
 
-    func testFollowerWithResumePointNamesSectionAndDirector() {
+    func testFollowerWithResumePointStillSaysNextAndDirector() {
+        // B2b: sul Follower si entra solo a inizio canzone (2D-D6): mai «Resume from».
         let d = decision(sectionIdx: 3, sectionName: "Bridge", isFollower: true)
-        XCTAssertTrue(d.hasResumePoint)
+        XCTAssertTrue(d.hasResumePoint)          // il dato resta (lo leggono la strumentazione e chi comanda)
         XCTAssertTrue(d.isFollower)
-        XCTAssertEqual(d.relationLine, "Resume from Bridge")
+        XCTAssertEqual(d.relationLine, "Next:")
         XCTAssertEqual(d.gestureLine, "The director starts")
     }
 
@@ -79,6 +81,13 @@ final class StandbyOverlayDecisionTests: XCTestCase {
         XCTAssertTrue(d.isFollower)
         XCTAssertEqual(d.relationLine, "Next:")
         XCTAssertEqual(d.gestureLine, "The director starts")
+    }
+
+    func testWhoCommandsTheTransportStillGetsResumeFrom() {
+        // Il velo del Direttore non si tocca (mandato B2b §3.f).
+        let d = decision(sectionIdx: 2, sectionName: "Chorus", isFollower: false)
+        XCTAssertEqual(d.relationLine, "Resume from Chorus")
+        XCTAssertEqual(d.gestureLine, "Tap anywhere")
     }
 
     // MARK: - Regola del gigante: 12 · 13 · 25 · 26 caratteri
@@ -122,32 +131,5 @@ final class StandbyOverlayDecisionTests: XCTestCase {
     func testSongNameIsKeptAsWritten() {
         let d = decision(sectionIdx: 0, songName: "Circuz")
         XCTAssertEqual(d.songName, "Circuz")   // niente maiuscolo forzato: lo decide la vista, non il dato
-    }
-
-    // MARK: - A360 — slot E: Follower senza nessun apparecchio collegato (lastra ⑧)
-
-    func testFollowerWithNobodyConnectedShowsTheTwoLines() {
-        let d = decision(sectionIdx: 3, sectionName: "Bridge", isFollower: true, nobodyConnected: true)
-        XCTAssertTrue(d.showsNoDeviceLines)
-        // Le tre righe restano quelle di sempre: lo slot E si aggiunge, non sostituisce.
-        XCTAssertEqual(d.relationLine, "Resume from Bridge")
-        XCTAssertEqual(d.songName, "Circuz")
-        XCTAssertEqual(d.gestureLine, "The director starts")
-        XCTAssertEqual(StandbyOverlayDecision.noDeviceLine, "No device connected")
-        XCTAssertEqual(StandbyOverlayDecision.nothingStartsLine, "nothing will start from here")
-    }
-
-    func testFollowerWithSomeoneConnectedHasNoSlotE() {
-        let d = decision(sectionIdx: 0, isFollower: true, nobodyConnected: false)
-        XCTAssertFalse(d.showsNoDeviceLines)
-        XCTAssertEqual(d.gestureLine, "The director starts")
-    }
-
-    func testWhoCommandsTheTransportNeverGetsSlotE() {
-        // La garanzia sta nel dato: anche se il chiamante passasse «nessuno collegato»
-        // a chi comanda il trasporto, le due righe non vanno a schermo.
-        let d = decision(sectionIdx: 0, isFollower: false, nobodyConnected: true)
-        XCTAssertFalse(d.showsNoDeviceLines)
-        XCTAssertEqual(d.gestureLine, "Tap anywhere")
     }
 }

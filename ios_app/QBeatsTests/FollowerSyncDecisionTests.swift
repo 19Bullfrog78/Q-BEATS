@@ -6,6 +6,10 @@ import XCTest
 // ordini (un solo avanzamento), l'armamento ignorato in IN SYNC (B1-bis) e la prova per assenza
 // degli ingressi «numero di peer» e «collegato». Il banco gira in CI su ogni push
 // (`.github/workflows/ios_build.yml`, `xcodebuild test -scheme QBeatsTests`).
+// B2b (mandato A386 §3.a, §3.b, §3.d): la sorgente `startShow` e' uscita (A1); l'armamento
+// accettato porta l'azione `armSong(songIdx:)` e il rifiuto porta la canzone toccata; lo Stop
+// del Direttore in DA SOLO, la falsa partenza in DA SOLO e lo Stop del musicista chiudono la
+// canzone sul runner (`stopAndArmNext` / `stopAndRearmSame`).
 
 final class FollowerSyncDecisionTests: XCTestCase {
 
@@ -17,8 +21,8 @@ final class FollowerSyncDecisionTests: XCTestCase {
         FollowerSyncDecision.transition(state: state, event: event)
     }
 
-    private func arming(_ source: FollowerArming.Source, heard: Bool, playing: Bool) -> E {
-        .armed(FollowerArming(source: source, directorHeard: heard, sessionPlaying: playing))
+    private func arming(_ songIdx: Int, heard: Bool, playing: Bool) -> E {
+        .armed(FollowerArming(source: .rientra(songIdx: songIdx), directorHeard: heard, sessionPlaying: playing))
     }
 
     // MARK: - Stato iniziale e reset
@@ -101,23 +105,25 @@ final class FollowerSyncDecisionTests: XCTestCase {
                        T(.inSync(songClosed: true), .none))
     }
 
-    func testInSyncMusicianStopStopsAndGoesOut() {
+    func testInSyncMusicianStopStopsClosesTheSongAndGoesOut() {
+        // B2b (§3.d): non piu' il solo `stop` — la canzone fermata si chiude sul runner.
         XCTAssertEqual(t(.inSync(songClosed: false), .musicianStop),
-                       T(.out(armed: nil), .stop, .musicianStop))
+                       T(.out(armed: nil), .stopAndArmNext, .musicianStop))
+        XCTAssertEqual(t(.inSync(songClosed: true), .musicianStop),
+                       T(.out(armed: nil), .stopAndArmNext, .musicianStop))
     }
 
-    // MARK: - B1-bis: IN SYNC ignora l'armamento
+    // MARK: - B1-bis / B2b (§3.b): IN SYNC ignora l'armamento — runner e misura non si toccano
 
     func testInSyncIgnoresArmingInEveryForm() {
-        let sources: [FollowerArming.Source] = [.startShow, .rientra(songIdx: 2)]
         for songClosed in [false, true] {
-            for source in sources {
+            for songIdx in [0, 2] {
                 for heard in [false, true] {
                     for playing in [false, true] {
                         let state: S = .inSync(songClosed: songClosed)
-                        XCTAssertEqual(t(state, arming(source, heard: heard, playing: playing)),
+                        XCTAssertEqual(t(state, arming(songIdx, heard: heard, playing: playing)),
                                        T(state, .none),
-                                       "songClosed:\(songClosed) source:\(source) sentito:\(heard) sessione:\(playing)")
+                                       "songClosed:\(songClosed) songIdx:\(songIdx) sentito:\(heard) sessione:\(playing)")
                     }
                 }
             }
@@ -154,14 +160,16 @@ final class FollowerSyncDecisionTests: XCTestCase {
 
     // MARK: - DA SOLO
 
-    func testAloneDirectorStoppedGoesOutAndStops() {
+    func testAloneDirectorStoppedStopsClosesTheSongAndGoesOut() {
+        // B2b (§3.d): `stopAndArmNext`, ragione invariata.
         XCTAssertEqual(t(.alone, .linkStop(falseStart: false, engineRunning: true)),
-                       T(.out(armed: nil), .stop, .directorStoppedWhileAlone))
+                       T(.out(armed: nil), .stopAndArmNext, .directorStoppedWhileAlone))
     }
 
-    func testAloneDirectorFalseStartGoesOutWithSameSongReasonD7bis() {
+    func testAloneDirectorFalseStartStopsRearmsSameAndGoesOutD7bis() {
+        // B2b (§3.d): `stopAndRearmSame`, ragione invariata.
         XCTAssertEqual(t(.alone, .linkStop(falseStart: true, engineRunning: true)),
-                       T(.out(armed: nil), .stop, .directorFalseStartWhileAlone))
+                       T(.out(armed: nil), .stopAndRearmSame, .directorFalseStartWhileAlone))
     }
 
     func testAloneStaysAloneWhenDirectorHeardAgainD2() {
@@ -173,14 +181,15 @@ final class FollowerSyncDecisionTests: XCTestCase {
         XCTAssertEqual(t(.alone, .ownSongEnded), T(.out(armed: nil), .none, .aloneSongEnded))
     }
 
-    func testAloneMusicianStopStopsAndGoesOut() {
-        XCTAssertEqual(t(.alone, .musicianStop), T(.out(armed: nil), .stop, .musicianStop))
+    func testAloneMusicianStopStopsClosesTheSongAndGoesOut() {
+        // B2b (§3.d): lo Stop a pressione della fascia DA SOLO.
+        XCTAssertEqual(t(.alone, .musicianStop), T(.out(armed: nil), .stopAndArmNext, .musicianStop))
     }
 
     func testAloneIgnoresPlayAndArming() {
         XCTAssertEqual(t(.alone, .linkPlay(withinHalfBar: true)), T(.alone, .none))
-        XCTAssertEqual(t(.alone, arming(.startShow, heard: true, playing: false)), T(.alone, .none))
-        XCTAssertEqual(t(.alone, arming(.rientra(songIdx: 2), heard: true, playing: false)), T(.alone, .none))
+        XCTAssertEqual(t(.alone, arming(2, heard: true, playing: false)), T(.alone, .none))
+        XCTAssertEqual(t(.alone, arming(0, heard: false, playing: true)), T(.alone, .none))
     }
 
     // MARK: - FUORI non armato
@@ -197,33 +206,66 @@ final class FollowerSyncDecisionTests: XCTestCase {
         }
     }
 
-    func testOutStartShowHeardAndSessionStoppedGoesInSync() {
-        XCTAssertEqual(t(.out(armed: nil), arming(.startShow, heard: true, playing: false)),
-                       T(.inSync(songClosed: false), .none))
+    // MARK: - B2b (§3.b): i tre esiti dell'armamento — accettato, rifiutato, ignorato
+
+    func testArmingAcceptedArmsAndAsksTheRunnerToArmTheChosenSong() {
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: true, playing: false)),
+                       T(.out(armed: 4), .armSong(songIdx: 4)))
+        XCTAssertEqual(t(.out(armed: nil), arming(0, heard: true, playing: false)),
+                       T(.out(armed: 0), .armSong(songIdx: 0)))
     }
 
-    func testOutRientraHeardAndSessionStoppedArms() {
-        XCTAssertEqual(t(.out(armed: nil), arming(.rientra(songIdx: 4), heard: true, playing: false)),
-                       T(.out(armed: 4), .none))
+    func testArmingRefusedWhenDirectorNotHeardCarriesTheTappedSongR1() {
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: false, playing: false)),
+                       T(.out(armed: nil), .none, .armRefusedNotHeard(chosen: 4)))
     }
 
-    func testArmingRefusedWhenDirectorNotHeardR1() {
-        XCTAssertEqual(t(.out(armed: nil), arming(.startShow, heard: false, playing: false)),
-                       T(.out(armed: nil), .none, .armRefusedNotHeard))
-        XCTAssertEqual(t(.out(armed: nil), arming(.rientra(songIdx: 4), heard: false, playing: false)),
-                       T(.out(armed: nil), .none, .armRefusedNotHeard))
-    }
-
-    func testArmingRefusedWhenSessionPlayingR1() {
-        XCTAssertEqual(t(.out(armed: nil), arming(.startShow, heard: true, playing: true)),
-                       T(.out(armed: nil), .none, .armRefusedSessionPlaying))
-        XCTAssertEqual(t(.out(armed: nil), arming(.rientra(songIdx: 4), heard: true, playing: true)),
-                       T(.out(armed: nil), .none, .armRefusedSessionPlaying))
+    func testArmingRefusedWhenSessionPlayingCarriesTheTappedSongR1() {
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: true, playing: true)),
+                       T(.out(armed: nil), .none, .armRefusedSessionPlaying(chosen: 4)))
     }
 
     func testArmingRefusedNotHeardWinsOverSessionPlaying() {
-        XCTAssertEqual(t(.out(armed: nil), arming(.startShow, heard: false, playing: true)),
-                       T(.out(armed: nil), .none, .armRefusedNotHeard))
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: false, playing: true)),
+                       T(.out(armed: nil), .none, .armRefusedNotHeard(chosen: 4)))
+    }
+
+    func testArmingRefusedAsksNothingOfTheRunner() {
+        // Rifiutato: nessuna azione, il runner e la misura non si toccano.
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: false, playing: false)).action, .none)
+        XCTAssertEqual(t(.out(armed: nil), arming(4, heard: true, playing: true)).action, .none)
+        XCTAssertEqual(t(.out(armed: 2), arming(4, heard: false, playing: false)).action, .none)
+    }
+
+    func testArmingIgnoredInSyncAndAloneAsksNothingOfTheRunner() {
+        // Un tocco arrivato mentre passa il Play del Direttore trova la macchina gia' IN SYNC:
+        // ignorato — stato invariato, nessuna azione, nessuna ragione.
+        XCTAssertEqual(t(.inSync(songClosed: false), arming(4, heard: true, playing: false)),
+                       T(.inSync(songClosed: false), .none))
+        XCTAssertEqual(t(.inSync(songClosed: true), arming(4, heard: true, playing: false)),
+                       T(.inSync(songClosed: true), .none))
+        XCTAssertEqual(t(.alone, arming(4, heard: true, playing: false)),
+                       T(.alone, .none))
+    }
+
+    func testOnlyAnAcceptedArmingCarriesTheArmSongAction() {
+        // La misura e il runner cambiano solo con `armSong`: nessun altro evento la produce.
+        let events: [E] = [.linkPlay(withinHalfBar: true), .linkPlay(withinHalfBar: false),
+                           .linkStop(falseStart: false, engineRunning: true),
+                           .linkStop(falseStart: true, engineRunning: false),
+                           .directorHeard(true, engineRunning: false),
+                           .directorHeard(false, engineRunning: true),
+                           .ownSongEnded, .musicianStop, .reset,
+                           arming(4, heard: false, playing: false), arming(4, heard: true, playing: true)]
+        let states: [S] = [.inSync(songClosed: false), .inSync(songClosed: true), .alone,
+                           .out(armed: nil), .out(armed: 3)]
+        for state in states {
+            for event in events {
+                if case .armSong = t(state, event).action {
+                    XCTFail("armSong da \(state) con \(event)")
+                }
+            }
+        }
     }
 
     // MARK: - FUORI armato
@@ -256,10 +298,10 @@ final class FollowerSyncDecisionTests: XCTestCase {
     }
 
     func testOutArmedRearmsWithANewChoice() {
-        XCTAssertEqual(t(.out(armed: 4), arming(.rientra(songIdx: 1), heard: true, playing: false)),
-                       T(.out(armed: 1), .none))
-        XCTAssertEqual(t(.out(armed: 4), arming(.rientra(songIdx: 1), heard: true, playing: true)),
-                       T(.out(armed: nil), .none, .armRefusedSessionPlaying))
+        XCTAssertEqual(t(.out(armed: 4), arming(1, heard: true, playing: false)),
+                       T(.out(armed: 1), .armSong(songIdx: 1)))
+        XCTAssertEqual(t(.out(armed: 4), arming(1, heard: true, playing: true)),
+                       T(.out(armed: nil), .none, .armRefusedSessionPlaying(chosen: 1)))
     }
 
     func testOutArmedIgnoresOwnSongEndedAndMusicianStop() {
@@ -270,7 +312,9 @@ final class FollowerSyncDecisionTests: XCTestCase {
     // MARK: - Le tre righe della tabella del 2D
 
     func testDirectorStoppedWhileFollowerAloneStopsAndGoesOut() {
-        XCTAssertEqual(t(.alone, .linkStop(falseStart: false, engineRunning: true)).action, .stop)
+        let tr = t(.alone, .linkStop(falseStart: false, engineRunning: true))
+        XCTAssertEqual(tr.action, .stopAndArmNext)
+        XCTAssertEqual(tr.state, .out(armed: nil))
     }
 
     func testDirectorRunningSameSongFollowerAloneContinues() {
@@ -290,7 +334,7 @@ final class FollowerSyncDecisionTests: XCTestCase {
                            .linkStop(falseStart: false, engineRunning: false),
                            .directorHeard(true, engineRunning: false),
                            .ownSongEnded, .musicianStop,
-                           arming(.startShow, heard: true, playing: false),
+                           arming(0, heard: true, playing: false),
                            .reset]
         var seen = 0
         for event in events {
@@ -300,5 +344,17 @@ final class FollowerSyncDecisionTests: XCTestCase {
             }
         }
         XCTAssertEqual(seen, 7)
+    }
+
+    func testTheOnlyArmingSourceIsRientra() {
+        // B2b (A1): `startShow` e' uscito. Lo switch e' esaustivo su un caso solo: se una
+        // sorgente rientrasse, questo test non compilerebbe.
+        let source = FollowerArming.Source.rientra(songIdx: 5)
+        var chosen = -1
+        switch source {
+        case .rientra(let songIdx):
+            chosen = songIdx
+        }
+        XCTAssertEqual(chosen, 5)
     }
 }

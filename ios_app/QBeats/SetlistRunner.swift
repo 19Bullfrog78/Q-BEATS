@@ -39,6 +39,16 @@ final class SetlistRunner: ObservableObject {
     private(set) var songClosed: Bool = false
     /// Quante canzoni ha la scaletta (`DirectorSongCloseDecision`, `RientraProposal`).
     var songCount: Int { catalog.count }
+    /// B2b — i nomi della scaletta intera, nell'ordine della serata, per la lista del Follower
+    /// (Join / RIENTRA, D4: anche le canzoni già suonate).
+    var songNames: [String] { catalog.map { $0.name } }
+    /// B2b — la misura della PRIMA sezione di una canzone della scaletta, per l'armamento del
+    /// Follower (il motore la scrive nello stesso passo in cui accetta il tocco). `nil` fuori
+    /// catalogo o senza sezioni.
+    func firstBeatsPerBar(ofSongAt index: Int) -> UInt32? {
+        guard index >= 0, index < catalog.count else { return nil }
+        return catalog[index].sections.first?.beatsPerBar
+    }
 
     // Costruita lazy al primo `prepareAndStartCurrentSection`. Riusata
     // identica per tutta la vita del runner (autopropagante).
@@ -528,13 +538,19 @@ final class SetlistRunner: ObservableObject {
         }
     }
 
-    /// RIENTRA (D4) e falsa partenza (D7-bis): arma l'INIZIO di una canzone scelta, qualsiasi
-    /// indice del catalogo, anche già suonato. Sezione 0, `.standby(nextSongName:)`, canzone
-    /// chiusa. Indice fuori dal catalogo: rifiuto con log, nessuna scrittura.
+    /// RIENTRA / lista d'ingresso (D4, A1) e falsa partenza (D7-bis): arma l'INIZIO di una canzone
+    /// scelta, qualsiasi indice del catalogo, anche già suonato. Sezione 0, `.standby(nextSongName:)`,
+    /// canzone chiusa. Indice fuori dal catalogo: rifiuto con log, nessuna scrittura.
     /// ⛔ Non parte niente: la partenza è il Play (del Direttore via `orchestrateDirectorPlay`,
     /// o il tocco sul velo di chi comanda), che passa da `startCurrentSong`.
+    /// ⚠️ B2b — NON scrive più la misura sul motore, e il motore è uscito dalla firma: sul
+    ///    Follower la misura della canzone scelta la scrive il motore nello stesso passo in cui
+    ///    accetta il tocco (`AudioEngine.followerArm`), PRIMA di questa chiamata; una scrittura
+    ///    da qui, asincrona su audioQueue, potrebbe scavalcare quella di un secondo tocco già
+    ///    accettato. Per il riarmo della stessa canzone (D7-bis, Direttore e Follower) la misura
+    ///    è già quella giusta: è la canzone in corso.
     @discardableResult
-    func armSong(index: Int, audioEngine: AudioEngine, session: LiveSession) -> Bool {
+    func armSong(index: Int, session: LiveSession) -> Bool {
         guard case .arm(_) = DirectorSongCloseDecision.armSong(index: index, songCount: catalog.count) else {
             os_log("[Q-BEATS][2D][RUNNER] armSong RIFIUTATO index:%d songs:%d",
                    log: .default, type: .error, index, catalog.count)
@@ -555,7 +571,6 @@ final class SetlistRunner: ObservableObject {
         session.nextSongName = nil
         session.macroBarCurrent = 0
         session.macroBarTotal = 1
-        audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? 4)
         return true
     }
 }

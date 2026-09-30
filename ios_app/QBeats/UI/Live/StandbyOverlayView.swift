@@ -15,6 +15,11 @@ import SwiftUI
 // DEL PERIMETRO DEL FOLLOWER» · BOX5 «SCALA DI PALCO» ·
 // foglio CD 11/09 IL-FOLLOWER-NON-TOCCA-IL-TRASPORTO lastre ①②⑥ (`.vlbl`,
 // `.vnm`, `.vhint`) · LA-TABELLA-FINALE §③ e riga «velo» delle MISURE.
+// ⚠️ A386 · B2b (30/09/2026) — LO SLOT E DEL FOLLOWER È QUELLO DEL FOGLIO CD 2D-QUATER (L1,
+//    `.qb-sg.ok.g2`): sul velo IN SYNC compare solo «Director signal OK» col pallino verde,
+//    deciso da `FollowerVeilDecision` e disegnato da `FollowerSignalView`, allo stesso posto
+//    (C→E) della lastra ⑧ di A360. Le due righe «No device connected» · «nothing will start
+//    from here» sono uscite: il collegato di Link non decide più niente sul velo del Follower.
 struct StandbyOverlayView: View {
     /// Le tre righe e la forma del nome, decise in `LiveView` dallo stesso dato
     /// del tocco. Era `nextSongName: String` — il nome della sola canzone.
@@ -22,6 +27,9 @@ struct StandbyOverlayView: View {
     ///    «la canzone che parte al prossimo tocco» è vero in tutti i casi
     ///    (`SetlistRunner`, ramo standby). Cambia solo ciò che la vista riceve.
     let decision: StandbyOverlayDecision
+
+    /// B2b — sul Follower, lo slot E del foglio 2D-QUATER (L1): `nil` a chi comanda il trasporto.
+    let followerVeil: FollowerVeilDecision?
 
     /// TD #23 (17/05/2026) — fattore di scala responsive iPad v1.
     /// Ricevuto come parametro esplicito da `LiveView` per uniformità
@@ -105,21 +113,13 @@ struct StandbyOverlayView: View {
                 capsLine(decision.gestureLine, size: capsSize, maxLines: 1)
                     .padding(.top, QLiveStage.Veil.gapNameToGesture)
 
-                // ── A360 — Slot E, solo sul Follower senza nessun apparecchio collegato
-                //    (lastra ⑧ del foglio CD 11/09, `.vlink`): «No device connected» in
-                //    STAGE-CAPS ambra, «nothing will start from here» in STAGE-SECONDARY,
-                //    minuscola come è scritta. C→E e il salto fra le due righe sono le
-                //    distanze della lastra × k (`QLiveStage.Veil`). Nessun tocco, nessuna
-                //    scorciatoia, nessun invito a spegnere Link: due righe e basta. Quando
-                //    la decisione cambia (un apparecchio si collega) le righe spariscono. ──
-                if decision.showsNoDeviceLines {
-                    VStack(spacing: QLiveStage.Veil.gapStatusLines) {
-                        capsLine(StandbyOverlayDecision.noDeviceLine, size: capsSize, maxLines: 1,
-                                 color: QLiveStage.Veil.statusAmber)
-                        secondaryLine(StandbyOverlayDecision.nothingStartsLine,
-                                      size: QLiveStage.scaled(QLiveStage.Secondary.size, scaleFactor))
-                    }
-                    .padding(.top, QLiveStage.Veil.gapGestureToStatus)
+                // ── B2b — Slot E, sul Follower: «Director signal OK» col pallino verde (foglio
+                //    2D-QUATER L1, `.qb-sg.ok.g2`), allo stesso posto (C→E) della lastra ⑧ di
+                //    A360. La faccia la decide `FollowerVeilDecision`; qui si disegna. ──
+                if let followerVeil {
+                    FollowerSignalView(decision: followerVeil, scaleFactor: scaleFactor, centered: true)
+                        .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
+                        .padding(.top, QLiveStage.Veil.gapGestureToStatus)
                 }
 
                 Spacer()
@@ -131,6 +131,7 @@ struct StandbyOverlayView: View {
     /// STAGE-CAPS: JetBrains Mono 600 · spaziatura 1,5 · MAIUSCOLE · bianco 0,60.
     /// Le maiuscole le mette la vista (stile), non il dato (copy dei fogli CD).
     /// A360 — `color` esiste per la riga 1 dello slot E, ambra: il resto è identico.
+    /// B2b — lo slot E ora lo disegna `FollowerSignalView`; `color` resta col suo default.
     private func capsLine(_ text: String, size: CGFloat, maxLines: Int,
                           color: Color = Color.white.opacity(QLiveStage.Caps.opacity)) -> some View {
         Text(text)
@@ -139,19 +140,6 @@ struct StandbyOverlayView: View {
             .foregroundColor(color)
             .textCase(.uppercase)
             .lineLimit(maxLines)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
-            .frame(maxWidth: .infinity)
-    }
-
-    /// A360 — STAGE-SECONDARY: JetBrains Mono 500 · spaziatura 0,3 · bianco 0,60, senza
-    /// maiuscole (la riga 2 dello slot E è minuscola nella lastra ⑧, `.vlink .c`).
-    private func secondaryLine(_ text: String, size: CGFloat) -> some View {
-        Text(text)
-            .font(.jbMono(QLiveStage.Secondary.weight, size: size))
-            .tracking(QLiveStage.Secondary.tracking)
-            .foregroundColor(Color.white.opacity(QLiveStage.Secondary.opacity))
-            .lineLimit(1)
             .multilineTextAlignment(.center)
             .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
             .frame(maxWidth: .infinity)

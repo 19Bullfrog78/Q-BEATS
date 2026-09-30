@@ -2,61 +2,75 @@ import Foundation
 
 // === A386 · FASE B1 (2D) — RIENTRA: LA CANZONE PROPOSTA, TESTATA ===
 // RIENTRA apre sempre la scaletta intera (D4): il musicista sceglie qualsiasi canzone, anche
-// gia' suonata. Questa regola dice solo quale canzone PROPORRE preselezionata, per quanto il
-// Follower ne sa (decisione del referee, A-TER §2 e §7, con R2 e D7-bis dal mandato di fase B1):
-//  1. FUORI per un Play arrivato oltre mezza battuta sul velo della canzone N: la band sta
-//     suonando N -> si propone N+1, se esiste;
-//  2. FUORI da armato perche' il Direttore non si sente piu' (R2): la canzone che il musicista
-//     aveva scelto;
-//  3. FUORI da DA SOLO per una falsa partenza del Direttore (D7-bis, Stop entro la prima
-//     battuta dal Play): la STESSA canzone;
-//  4. altrimenti, se il runner e' in `.standby` su una canzone mai partita (tipico dopo D1 e a
-//     fine DA SOLO): quella (`currentSongIdx`);
-//  5. altrimenti la successiva a quella in cui si trova; se non esiste, nessuna proposta.
-// Armato a sessione in moto, o senza sentire il Direttore: la proposta non e' affidabile
-// (limite v1, dichiarato, non corretto). Dopo un `reset` non c'e' show: nessuna proposta.
-// «Runner in `.standby` su una canzone mai partita» = la sessione e' `.standby`: la partenza la
-// cancella (`.starting`/`.playing`), quindi `.standby` vuol dire armata e mai partita.
+// gia' suonata. Questa regola dice solo quale canzone PROPORRE preselezionata, e in quale FORMA,
+// per quanto il Follower ne sa.
+//
+// ⚠️ B2b (29-30/09/2026) — LE TRE FORME, foglio CD 2D-QUATER file 1 §0-bis, cablate 1:1 (mandato
+// A386 B2b §3.e). `reliable` e' uscito: al suo posto la forma. La tabella, ragione -> canzone:
+//  · normale («suggested», bordo pieno):
+//      playLate -> la successiva a quella sul velo (la band la sta suonando);
+//      aloneSongEnded, directorStoppedWhileAlone, musicianStop -> la successiva: il runner
+//      l'ha gia' armata (fine canzone propria; B2b, `stopAndArmNext`), quindi e' la corrente;
+//      directorFalseStartWhileAlone -> la STESSA (riarmata dal runner: la corrente);
+//      apertura dello show (ragione nulla o `reset`, la lista d'ingresso di A1) -> la 1.
+//  · ipotesi («a guess — check the band», tratteggio): SOLO dopo lostWhileStopped -> la canzone
+//    del velo (la corrente). L'app sa che il Direttore puo' aver chiuso e riaperto (A2) o la
+//    band essere andata avanti; il musicista no.
+//  · scelta tua («your pick», bordo pieno): dopo i due rifiuti (armRefusedNotHeard,
+//    armRefusedSessionPlaying) la canzone toccata, portata dalla ragione (B2b) — vince anche su
+//    una proposta normale; dopo lostWhileArmed la scelta (R2).
+//  · nessuna: dopo l'ultima canzone, qualunque sia la ragione (`afterLastSong`: la sessione e'
+//    `.fineSetlist`, il runner ha chiuso la scaletta) — anche lostWhileStopped a fine concerto
+//    (L5). E fuori catalogo.
+// «La corrente» e' `currentSongIdx` del runner DOPO l'azione della macchina sul runner: la
+// stanza ricalcola la proposta a ogni transizione e dopo ogni azione sul runner.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct RientraProposal: Equatable {
 
+    /// La forma della riga evidenziata nella scaletta (foglio §0-bis).
+    enum Form: Equatable {
+        /// «suggested» — bordo pieno ambra.
+        case normal
+        /// «a guess — check the band» — tratteggio ambra.
+        case guess
+        /// «your pick» — bordo pieno ambra: la canzone che il musicista ha toccato o scelto.
+        case yourPick
+        /// Nessuna riga evidenziata, lista in cima.
+        case none
+    }
+
     /// La canzone da preselezionare sul velo, `nil` = scaletta aperta senza preselezione.
     let songIdx: Int?
-    /// Falso quando il Follower non puo' sapere dove sta la band (limite v1).
-    let reliable: Bool
+    let form: Form
 
-    static let none = RientraProposal(songIdx: nil, reliable: true)
+    static let none = RientraProposal(songIdx: nil, form: .none)
 
     static func propose(reason: FollowerOutReason?,
-                        sessionIsStandby: Bool,
                         currentSongIdx: Int,
-                        songCount: Int) -> RientraProposal {
-        let reliable: Bool
-        switch reason {
-        case .armRefusedSessionPlaying?, .armRefusedNotHeard?:
-            reliable = false
-        default:
-            reliable = true
+                        songCount: Int,
+                        afterLastSong: Bool) -> RientraProposal {
+        guard songCount > 0, currentSongIdx >= 0, currentSongIdx < songCount else { return .none }
+        if afterLastSong { return .none }
+        func valid(_ idx: Int) -> Int? {
+            (idx >= 0 && idx < songCount) ? idx : nil
         }
-        guard songCount > 0, currentSongIdx >= 0, currentSongIdx < songCount else {
-            return RientraProposal(songIdx: nil, reliable: reliable)
+        func normal(_ idx: Int?) -> RientraProposal {
+            guard let idx = idx else { return .none }
+            return RientraProposal(songIdx: idx, form: .normal)
         }
-        func next(after idx: Int) -> Int? {
-            idx + 1 < songCount ? idx + 1 : nil
-        }
-        let idx: Int?
         switch reason {
         case nil, .reset?:
-            idx = nil
+            // La lista d'ingresso (A1): la 1, normale (punto 21 del foglio).
+            return normal(valid(0))
         case .playLate?:
-            idx = next(after: currentSongIdx)
-        case .lostWhileArmed(let chosen)?:
-            idx = (chosen >= 0 && chosen < songCount) ? chosen : nil
-        case .directorFalseStartWhileAlone?:
-            idx = currentSongIdx
-        default:
-            idx = sessionIsStandby ? currentSongIdx : next(after: currentSongIdx)
+            return normal(valid(currentSongIdx + 1))
+        case .aloneSongEnded?, .directorStoppedWhileAlone?, .musicianStop?, .directorFalseStartWhileAlone?:
+            return normal(currentSongIdx)
+        case .lostWhileStopped?:
+            return RientraProposal(songIdx: currentSongIdx, form: .guess)
+        case .lostWhileArmed(let chosen)?, .armRefusedNotHeard(let chosen)?, .armRefusedSessionPlaying(let chosen)?:
+            guard let idx = valid(chosen) else { return .none }
+            return RientraProposal(songIdx: idx, form: .yourPick)
         }
-        return RientraProposal(songIdx: idx, reliable: reliable)
     }
 }

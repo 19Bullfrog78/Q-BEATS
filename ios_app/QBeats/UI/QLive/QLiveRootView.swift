@@ -380,10 +380,17 @@ struct QLiveRootView: View {
                         //    voce a show vivo) NON si riarma: da FUORI si rientra solo con RIENTRA
                         //    (D1). L'ordine resta sincrono e senza attese (⟦S5b⟧ `Cond (a)`):
                         //    installa, attacca, arma, naviga.
+                        // ⚠️ A386 · B2b (A1, Mauro 25/09/2026) — START SHOW NON ARMA PIÙ: sul
+                        //    Follower apre la lista d'ingresso («Join», foglio CD 2D-QUATER L2) e
+                        //    il tocco su una riga arma con la porta di RIENTRA
+                        //    (`QLiveSession.armRientra`). `armFollowerAtStartShow` è uscita; il
+                        //    testo sopra resta come storia. L'ordine è ora: installa (che alza
+                        //    «show aperto» per A2 e ricalcola la proposta), attacca, naviga.
                         let firstStart = roomSession.runner == nil
                         if firstStart {
                             roomSession.install(SetlistRunner(setlist: show,
-                                                              store: QBeatsStore.shared))
+                                                              store: QBeatsStore.shared),
+                                                audioEngine: audioEngine)
                         }
                         // ⟦A337⟧ (09/09/2026) — L'ASCOLTO DEL PLAY DEL DIRETTORE SI
                         //    ATTACCA ALLA STANZA QUI, non nel player: idempotente
@@ -393,9 +400,6 @@ struct QLiveRootView: View {
                         //    `endShow(audioEngine:)`. Muore col cassetto della
                         //    stanza, cioe' col `switch` di `AppRootView`.
                         roomSession.attachDirectorPlay(audioEngine: audioEngine)
-                        if firstStart {
-                            roomSession.armFollowerAtStartShow(audioEngine: audioEngine)
-                        }
                         navigate(to: .metronome)
                     },
                     // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio
@@ -535,9 +539,16 @@ struct QLiveRootView: View {
                 //    ⚠️ A341 (09/09/2026): da oggi `leavePlayer()` ha TRE rami, non «una
                 //    condizione e nient'altro» — a show vivo porta a `.detail`.
                 //    A343 (10/09/2026): QUATTRO — a show fermo apre il bivio, non naviga.
+                // ⚠️ A386 · B2b (30/09/2026) — LA STANZA ENTRA NEL PLAYER (`room`), per DUE cose e
+                //    basta: la proposta di RIENTRA (`rientraProposal`, un `@Published` della
+                //    stanza — «chi la legge osserva la stanza per QUESTO campo», referto B2A §8)
+                //    e le due porte del Follower (`armRientra`, `followerMusicianStop`). ⛔ Il
+                //    runner NON si legge attraverso di lei: entra qui sotto, dal gate, come sempre
+                //    (VINCOLO DI PROPAGAZIONE, `QLiveSession.swift:26-38`).
                 LiveView(onExit: { leavePlayer() },
                          onEndShow: { endShowAndLeave() },
-                         session: roomSession.liveSession)
+                         session: roomSession.liveSession,
+                         room: roomSession)
                     .environmentObject(runner)
                     // ⟦A343⟧ — IL BIVIO A TRE VIE, overlay sul player fermo (frame ① del
                     //    foglio CD 30/08). Il player resta montato sotto; la vista riceve

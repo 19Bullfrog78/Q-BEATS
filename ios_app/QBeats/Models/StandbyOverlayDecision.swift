@@ -20,6 +20,16 @@ import Foundation
 //    calcola è `FollowerDecision` (ruolo E Link acceso dall'utente), non più il solo
 //    ruolo. Con `nobodyConnected` (Follower senza nessun apparecchio collegato) il velo
 //    aggiunge le due righe della lastra ⑧ del foglio CD 11/09 (`.vlink .s`, `.vlink .c`).
+// ⚠️ MARCATURA A386 · B2b (30/09/2026) — DUE COSE CAMBIANO SUL FOLLOWER, foglio CD 2D-QUATER:
+//    (1) il collegato di Link (`nobodyConnected`) non decide più niente sul velo del Follower:
+//        le righe «No device connected» e «nothing will start from here» ESCONO, e al loro
+//        posto sta lo slot E del foglio («Director signal OK» sul velo IN SYNC, L1), deciso da
+//        `FollowerVeilDecision` e passato alla vista da `LiveView`;
+//    (2) sul Follower il velo non scrive MAI «Resume from»: si entra solo a inizio canzone
+//        (2D-D6) e il foglio L1 dice «Next:». Per il Follower questo SUPERA la decisione (a) di
+//        A355 in BOX5 (la marcatura va al giro dei canonici). Il velo di chi comanda il trasporto
+//        (Direttore, Solo) non cambia: «Resume from ⟨sezione⟩» resta suo.
+//    Il testo dell'A360 qui sopra resta come storia: si marca, non si riscrive.
 struct StandbyOverlayDecision: Equatable {
 
     /// Regola del gigante (BOX5 «SCALA DI PALCO» · foglio CD 11/09 LA-TABELLA-FINALE §③):
@@ -42,10 +52,6 @@ struct StandbyOverlayDecision: Equatable {
     static let nextLine = "Next:"
     static let tapGesture = "Tap anywhere"
     static let directorGesture = "The director starts"
-    // A360 — slot E della lastra ⑧: riga 1 in STAGE-CAPS ambra (maiuscole dalla vista),
-    // riga 2 in STAGE-SECONDARY, minuscola come è scritta.
-    static let noDeviceLine = "No device connected"
-    static let nothingStartsLine = "nothing will start from here"
 
     /// C'è un punto di ripresa nella canzone corrente (indice di sezione > 0).
     /// È il dato che sceglie la ripartenza — `startCurrentSection` contro
@@ -57,7 +63,7 @@ struct StandbyOverlayDecision: Equatable {
     /// Il nome della sezione corrente, tolti gli spazi, è vuoto (lo legge la
     /// strumentazione: «nome vuoto sì/no»).
     let sectionNameIsBlank: Bool
-    /// Riga A — relazione: «Resume from ⟨sezione⟩» oppure «Next:».
+    /// Riga A — relazione: «Resume from ⟨sezione⟩» oppure «Next:». Sul Follower sempre «Next:».
     let relationLine: String
     /// Riga B — il nome della canzone, come è scritto.
     let songName: String
@@ -65,13 +71,9 @@ struct StandbyOverlayDecision: Equatable {
     let nameForm: NameForm
     /// Riga C — gesto: «Tap anywhere» oppure «The director starts».
     let gestureLine: String
-    /// A360 — slot E: le due righe della lastra ⑧ vanno a schermo. Solo sul Follower
-    /// (la garanzia sta qui, non nel chiamante): a chi comanda il trasporto lo slot non
-    /// compare mai, qualunque cosa dica il collegamento.
-    let showsNoDeviceLines: Bool
 
     init(currentSectionIdx: Int, currentSectionName: String, songName: String,
-         isFollower: Bool, nobodyConnected: Bool) {
+         isFollower: Bool) {
         let hasResumePoint = currentSectionIdx > 0
         // Garanzia contro la bugia (foglio CD 11/09, lastra ①): se il nome della
         // sezione non si risolve, il velo NON scrive «Resume from —» — ricade
@@ -80,13 +82,13 @@ struct StandbyOverlayDecision: Equatable {
         self.hasResumePoint = hasResumePoint
         self.isFollower = isFollower
         self.sectionNameIsBlank = sectionName.isEmpty
-        self.relationLine = (hasResumePoint && !sectionName.isEmpty)
+        // B2b: sul Follower mai «Resume from» (2D-D6, foglio 2D-QUATER L1: «Next:»).
+        self.relationLine = (!isFollower && hasResumePoint && !sectionName.isEmpty)
             ? Self.resumePrefix + sectionName
             : Self.nextLine
         self.songName = songName
         self.nameForm = Self.nameForm(for: songName)
         self.gestureLine = isFollower ? Self.directorGesture : Self.tapGesture
-        self.showsNoDeviceLines = isFollower && nobodyConnected
     }
 
     /// Caratteri, non byte: `String.count` conta i grafemi.

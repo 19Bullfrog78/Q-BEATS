@@ -16,6 +16,15 @@ struct TransportView: View {
     /// Propagato a tutti i `RubberBtnView` per scalare label e glyph.
     let scaleFactor: CGFloat
 
+    /// A386 · B2b (30/09/2026) — LA FASCIA DA SOLO (foglio CD 2D-QUATER, file 2, L3): `true`
+    /// quando la macchina del Follower è DA SOLO. Lo decide `LiveView`, che osserva il motore
+    /// (`followerSyncState`) e lo passa come valore: questa fascia resta `let audioEngine` (A361)
+    /// e si ridisegna perché cambia il parametro, non perché osserva il motore.
+    let followerAlone: Bool
+    /// B2b — lo Stop a pressione della fascia DA SOLO è scattato: `LiveView` lo porta alla
+    /// stanza (`QLiveSession.followerMusicianStop`), l'unica porta dello Stop del musicista.
+    let onHoldStop: () -> Void
+
     private var isCountIn: Bool {
         if case .countIn = session.playbackState { return true }
         return false
@@ -38,11 +47,19 @@ struct TransportView: View {
     // l'apparecchio ha la fascia intera e suona da solo. La forma si legge nel `body`
     // (A361: `audioEngine` è `let`, la fascia si ridisegna con la sessione; a player aperto
     // il ruolo non cambia).
+    // ⚠️ A386 · B2b (30/09/2026) — TRE FASCE: al Follower DA SOLO la fascia ambra della lastra L3
+    //    del foglio 2D-QUATER («On your own», lo Stop a pressione, EMERG com'è oggi). La fascia
+    //    IN SYNC di A360/A362 resta invariata: in moto la fascia È il segnale (grigia = IN SYNC,
+    //    ambra = da solo).
     var body: some View {
         let follower = audioEngine.followerDecision.isFollower
         Group {
             if follower {
-                followerStrip
+                if followerAlone {
+                    aloneStrip
+                } else {
+                    followerStrip
+                }
             } else {
                 commandStrip
             }
@@ -209,7 +226,60 @@ struct TransportView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: - Pezzi comuni alle due fasce (invariati nella resa)
+    // MARK: - A386 · B2b — La fascia DA SOLO (foglio 2D-QUATER, file 2, L3: `.qb-fa.so`)
+
+    // «Niente copre ciò che si legge suonando»: la fascia cambia contenuto, non posto. Sfondo
+    // ambra 0,08 e bordo superiore 2 ambra 0,55 (`.qb-fa.so`); dentro, il messaggio
+    // (`.qb-fm p`: STAGE-CAPS 700 ambra con l'icona «fino alla stanghetta»; `em`: STAGE-SECONDARY
+    // bianco 0,82, «click stops at the song's end» annuncia lo stop, L8) e la riga dei tasti
+    // (`.qb-fb`: lo Stop a pressione largo quanto resta, alto 64, e la cella di EMERG larga 98,
+    // intervallo 12). EMERG resta com'è oggi (la stessa `RubberBtnView`, inerte per scelta di
+    // prodotto), dentro la cella che il foglio gli dà. «Transport · Director only» sparisce
+    // perché in DA SOLO non è più vero: c'è uno Stop. La maniglia del mixer non c'è nella
+    // lastra: resta il trascinamento (`mixerDrag`).
+    private var aloneStrip: some View {
+        let capsSize = QLiveStage.scaled(QLiveStage.Caps.size, scaleFactor)
+        let secondarySize = QLiveStage.scaled(QLiveStage.Secondary.size, scaleFactor)
+        return VStack(spacing: 0) {
+            Rectangle()
+                .fill(QLiveStage.Follower.stripTopRule)
+                .frame(height: QLiveStage.Follower.stripTopRuleWidth)
+            VStack(alignment: .leading, spacing: QLiveStage.Follower.stripGap) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: capsSize * QLiveStage.Follower.bodyIconGapEm) {
+                        FollowerIconView(icon: .toTheBarline,
+                                         size: capsSize * QLiveStage.Follower.iconEm,
+                                         color: QLiveStage.Follower.amber)
+                        Text(FollowerVeilDecision.onYourOwnLine)
+                            .font(.jbMono(.bold, size: capsSize))
+                            .tracking(QLiveStage.Caps.tracking)
+                            .foregroundColor(QLiveStage.Follower.amber)
+                            .textCase(.uppercase)
+                            .lineLimit(1)
+                    }
+                    Text(FollowerVeilDecision.clickStopsLine)
+                        .font(.jbMono(QLiveStage.Secondary.weight, size: secondarySize))
+                        .tracking(QLiveStage.Secondary.tracking)
+                        .foregroundColor(Color.white.opacity(QLiveStage.Body.opacity))
+                        .lineLimit(1)
+                        .padding(.top, QLiveStage.Follower.stripLineTop)
+                }
+                HStack(spacing: QLiveStage.Follower.stripGap) {
+                    HoldToStopButton(scaleFactor: scaleFactor, onComplete: onHoldStop)
+                        .frame(height: QLiveStage.Follower.stopHeight)
+                    emergButton
+                        .frame(width: QLiveStage.Follower.emergWidth, height: QLiveStage.Follower.stopHeight)
+                }
+            }
+            .padding(.horizontal, QLiveStage.Follower.stripSide)
+            .padding(.bottom, QLiveStage.Follower.stripBottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .background(QLiveStage.Follower.stripFill)
+        .gesture(mixerDrag)
+    }
+
+    // MARK: - Pezzi comuni alle fasce (invariati nella resa)
 
     /// «emerg», dov'è e com'è oggi: inerte per scelta di prodotto (`TD-emerg-bottone-morto`,
     /// marcature 18/08 e 27/08); resta al Follower (LIBRO `2026-09-11`: RESTANO muto, mixer

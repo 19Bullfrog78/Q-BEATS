@@ -22,12 +22,27 @@ import Foundation
 //      chiude la canzone, in tutte le canzoni («falsa partenza»): Direttore e Follower tornano
 //      sul velo della STESSA canzone. Oltre la prima battuta vale D6: lo Stop chiude. Lo dice
 //      il chiamante con `falseStart` (`FalseStartDecision`, in battiti di sessione).
-//  R1  Ci si arma (START SHOW o RIENTRA) solo se «sento il Direttore» E la sessione e' ferma;
-//      altrimenti FUORI non armato, con la ragione per il velo.
+//  R1  Ci si arma (lista d'ingresso di START SHOW o RIENTRA) solo se «sento il Direttore» E la
+//      sessione e' ferma; altrimenti FUORI non armato, con la ragione per il velo.
 //  R2  FUORI armato che smette di sentire il Direttore -> FUORI non armato (la proposta resta
 //      la canzone scelta); FUORI armato + Stop del Direttore -> resta armato.
 //  Q11 «in moto» = isRunning || isAudioInterrupted: e' un ingresso (`engineRunning`), lo
 //      calcola il chiamante.
+//  A1  (Mauro, 25/09/2026; costruita in B2b) START SHOW sul Follower non arma: apre la lista
+//      d'ingresso («Join»), e il tocco su una riga arma con la porta di RIENTRA. La sorgente
+//      `startShow` e il suo ramo (armamento -> IN SYNC) sono usciti: si entra SOLO da FUORI
+//      armato, al Play del Direttore.
+//  B2b (decisione del referee) L'armamento accettato cambia runner e misura SOLO se la macchina
+//      lo accetta: l'azione `armSong(songIdx:)` chiede al runner di armare la canzone scelta;
+//      rifiutato o ignorato, runner e misura non si toccano. La canzone toccata di un rifiuto la
+//      porta la ragione (`armRefusedNotHeard(chosen:)`, `armRefusedSessionPlaying(chosen:)`),
+//      come `lostWhileArmed(chosen:)`.
+//  B2b (decisione del referee) Sul Follower una canzone fermata a meta' si chiude sul runner:
+//      lo Stop del Direttore in DA SOLO, la falsa partenza in DA SOLO e lo Stop del musicista
+//      (in DA SOLO e in IN SYNC) non danno piu' il solo `stop`, ma `stopAndArmNext` /
+//      `stopAndRearmSame` — lo stesso passo che IN SYNC fa gia' allo Stop del Direttore (D6: in
+//      modalita' Direttore una canzone fermata e' chiusa). Cosi' la sessione non resta mai
+//      `.stopped` a meta' canzone (congedo CC 26/09 §5.3). Ragioni invariate.
 //
 // L'armamento (`armed`) vale SOLO da FUORI: IN SYNC e DA SOLO lo ignorano (stato invariato,
 // nessuna azione; il chiamante logga). Un armamento accettato in IN SYNC riporterebbe
@@ -44,16 +59,17 @@ enum FollowerSyncState: Equatable {
     case inSync(songClosed: Bool)
     /// Il Direttore non si sente piu' a canzone in corso: finisce la canzone sulla propria copia.
     case alone
-    /// Zitto. `armed` = indice della canzone armata da RIENTRA, `nil` = non armato.
+    /// Zitto. `armed` = indice della canzone armata (lista d'ingresso o RIENTRA), `nil` = non armato.
     case out(armed: Int?)
 }
 
-/// Come ci si arma: START SHOW (la scaletta parte dalla prima canzone) o RIENTRA (una
-/// canzone scelta, anche gia' suonata — D4). `directorHeard` e `sessionPlaying` sono letti
-/// dal chiamante nell'istante dell'armamento (R1).
+/// Come ci si arma: una canzone scelta, anche gia' suonata (D4), dalla lista d'ingresso di
+/// START SHOW (A1) o da RIENTRA — e' la stessa porta. `directorHeard` e `sessionPlaying` sono
+/// letti dal chiamante nell'istante dell'armamento (R1).
 struct FollowerArming: Equatable {
     enum Source: Equatable {
-        case startShow
+        /// B2b: era `startShow` + `rientra`. START SHOW non arma piu' (A1): resta la sola porta
+        /// di RIENTRA, che la lista d'ingresso usa uguale.
         case rientra(songIdx: Int)
     }
     let source: Source
@@ -72,7 +88,7 @@ enum FollowerSyncEvent: Equatable {
     case ownSongEnded
     /// Lo Stop del musicista (la striscia DA SOLO; le porte che chiudono lo show mandano `reset`).
     case musicianStop
-    /// START SHOW o RIENTRA. Vale solo da FUORI.
+    /// Un tocco sulla lista d'ingresso o su RIENTRA. Vale solo da FUORI.
     case armed(FollowerArming)
     /// Link spento dall'utente, cambio di ruolo, END SHOW, uscita dalla stanza.
     case reset
@@ -93,6 +109,10 @@ enum FollowerSyncAction: Equatable {
     case stopAndRearmSame
     /// D7-bis a motore fermo: `runner.armSong(currentSongIdx)`.
     case rearmSame
+    /// B2b: armamento accettato da FUORI — `runner.armSong(songIdx)` a motore fermo, su main,
+    /// DOPO che il motore ha scritto la misura della canzone scelta nello stesso passo su
+    /// audioQueue. Rifiutato o ignorato: nessuna azione, runner e misura non si toccano.
+    case armSong(songIdx: Int)
 }
 
 /// Perche' si e' andati FUORI (o perche' un armamento e' stato rifiutato): il velo lo legge,
@@ -102,7 +122,7 @@ enum FollowerOutReason: Equatable {
     case playLate
     /// D1: fermo sul velo, il Direttore non si sente piu'.
     case lostWhileStopped
-    /// R2: armato da RIENTRA, il Direttore non si sente piu'. La proposta resta la scelta.
+    /// R2: armato, il Direttore non si sente piu'. La proposta resta la scelta.
     case lostWhileArmed(chosen: Int)
     /// D2: DA SOLO fino a fine canzone, poi FUORI.
     case aloneSongEnded
@@ -112,10 +132,10 @@ enum FollowerOutReason: Equatable {
     case directorFalseStartWhileAlone
     /// Lo Stop del musicista.
     case musicianStop
-    /// R1: armamento rifiutato, il Direttore non si sente.
-    case armRefusedNotHeard
-    /// R1: armamento rifiutato, la sessione e' in moto (limite v1: proposta non affidabile).
-    case armRefusedSessionPlaying
+    /// R1: armamento rifiutato, il Direttore non si sente. `chosen`: la canzone toccata (B2b).
+    case armRefusedNotHeard(chosen: Int)
+    /// R1: armamento rifiutato, la sessione e' in moto. `chosen`: la canzone toccata (B2b).
+    case armRefusedSessionPlaying(chosen: Int)
     /// `reset`: nessuno show.
     case reset
 }
@@ -192,12 +212,13 @@ enum FollowerSyncDecision {
 
         case .musicianStop:
             // In IN SYNC non c'e' un tasto Stop (le porte che chiudono lo show mandano `reset`):
-            // se una porta futura lo manda, si ferma e si esce.
-            return FollowerSyncTransition(.out(armed: nil), .stop, .musicianStop)
+            // se una porta futura lo manda, si ferma, si chiude la canzone (B2b) e si esce.
+            return FollowerSyncTransition(.out(armed: nil), .stopAndArmNext, .musicianStop)
 
         case .armed:
-            // Gia' IN SYNC: un armamento (il player che si ricarica e rimanda START SHOW, o un
-            // RIENTRA arrivato fuori tempo) non cambia niente. Il chiamante logga.
+            // Gia' IN SYNC: un armamento (un tocco sulla lista arrivato mentre passa il Play del
+            // Direttore) non cambia niente: ne' la macchina, ne' il runner, ne' la misura (B2b).
+            // Il chiamante logga.
             return unchanged
 
         case .reset:
@@ -211,21 +232,24 @@ enum FollowerSyncDecision {
         let unchanged = FollowerSyncTransition(.alone, .none)
         switch event {
         case .linkStop(let falseStart, _):
-            // D2, eccezione: il Direttore torna e si sente fermo. D7-bis: se lo Stop e' una falsa
-            // partenza, la proposta di RIENTRA sara' la stessa canzone.
-            return FollowerSyncTransition(.out(armed: nil), .stop,
-                                          falseStart ? .directorFalseStartWhileAlone
-                                                     : .directorStoppedWhileAlone)
+            // D2, eccezione: il Direttore torna e si sente fermo. B2b: la canzone fermata a meta'
+            // si chiude sul runner (arma la successiva); D7-bis: se lo Stop e' una falsa partenza
+            // si riarma la stessa, e la proposta di RIENTRA sara' la stessa canzone.
+            if falseStart {
+                return FollowerSyncTransition(.out(armed: nil), .stopAndRearmSame, .directorFalseStartWhileAlone)
+            }
+            return FollowerSyncTransition(.out(armed: nil), .stopAndArmNext, .directorStoppedWhileAlone)
         case .directorHeard:
             // D2, brutale: sentito o no, in moto o no, si finisce la canzone.
             return unchanged
         case .ownSongEnded:
             return FollowerSyncTransition(.out(armed: nil), .none, .aloneSongEnded)
         case .musicianStop:
-            return FollowerSyncTransition(.out(armed: nil), .stop, .musicianStop)
+            // B2b: lo Stop a pressione della fascia DA SOLO chiude la canzone sul runner.
+            return FollowerSyncTransition(.out(armed: nil), .stopAndArmNext, .musicianStop)
         case .linkPlay, .armed:
             // La copia di Link dice gia' «suona»: un Play non puo' arrivare; in moto non ci si
-            // arma. Il chiamante logga l'anomalia.
+            // arma (runner e misura non si toccano). Il chiamante logga l'anomalia.
             return unchanged
         case .reset:
             return FollowerSyncTransition(.out(armed: nil), .none, .reset)
@@ -268,18 +292,20 @@ enum FollowerSyncDecision {
 
     // MARK: - R1: l'armamento (solo da FUORI)
 
+    /// Accettato: FUORI armato sulla canzone scelta, e l'azione `armSong` per il runner (B2b).
+    /// Rifiutato: FUORI non armato, e la ragione porta la canzone toccata.
     private static func arm(_ arming: FollowerArming) -> FollowerSyncTransition {
+        let chosen: Int
+        switch arming.source {
+        case .rientra(let songIdx):
+            chosen = songIdx
+        }
         guard arming.directorHeard else {
-            return FollowerSyncTransition(.out(armed: nil), .none, .armRefusedNotHeard)
+            return FollowerSyncTransition(.out(armed: nil), .none, .armRefusedNotHeard(chosen: chosen))
         }
         guard !arming.sessionPlaying else {
-            return FollowerSyncTransition(.out(armed: nil), .none, .armRefusedSessionPlaying)
+            return FollowerSyncTransition(.out(armed: nil), .none, .armRefusedSessionPlaying(chosen: chosen))
         }
-        switch arming.source {
-        case .startShow:
-            return FollowerSyncTransition(.inSync(songClosed: false), .none)
-        case .rientra(let songIdx):
-            return FollowerSyncTransition(.out(armed: songIdx), .none)
-        }
+        return FollowerSyncTransition(.out(armed: chosen), .armSong(songIdx: chosen))
     }
 }

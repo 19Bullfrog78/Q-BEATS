@@ -6,6 +6,8 @@ import XCTest
 // il primo campione non e' un colpo; un cambio fra due catture lo e'; un cambio nello stesso
 // intervallo di una scrittura propria della linea temporale (W2) non lo e'; un colpo falso
 // isolato ritarda il «non sento» di una soglia e basta; a Link spento si riparte da capo.
+// B2b: «Searching…» — dal primo campione al primo verdetto (primo colpo, o una soglia senza
+// colpi), mai oltre la soglia; a Link spento e riacceso si ricomincia a cercare.
 
 final class DirectorHeardTrackerTests: XCTestCase {
 
@@ -138,5 +140,90 @@ final class DirectorHeardTrackerTests: XCTestCase {
                                    thresholdTicks: 0, ownTimelineWriteSinceLastSample: false)
         XCTAssertTrue(v.hit)
         XCTAssertFalse(v.heard)
+    }
+
+    // MARK: - B2b: «Searching…», dal primo campione al primo verdetto
+
+    func testSearchingStartsWithTheFirstSample() {
+        let v = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: 10 * second,
+                                                   thresholdTicks: threshold,
+                                                   ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(v.searching)
+        XCTAssertFalse(v.heard)
+        XCTAssertEqual(v.next.firstSampleAt, 10 * second)
+    }
+
+    func testSearchingEndsAtTheFirstHitAndNeverComesBack() {
+        let first = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: 10 * second,
+                                                       thresholdTicks: threshold,
+                                                       ownTimelineWriteSinceLastSample: false)
+        let hit = first.next.observe(sample: sample(time: 1_000 + 24_000), now: 11 * second,
+                                     thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(hit.hit)
+        XCTAssertTrue(hit.heard)
+        XCTAssertFalse(hit.searching)
+        // poi silenzio oltre la soglia: «non sento», non «cerco»
+        let lost = hit.next.observe(sample: sample(time: 1_000 + 24_000), now: 11 * second + threshold + second,
+                                    thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(lost.heard)
+        XCTAssertFalse(lost.searching)
+    }
+
+    func testSearchingEndsAfterOneThresholdWithoutHitsNeverBeyond() {
+        let start = 10 * second
+        let first = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: start,
+                                                       thresholdTicks: threshold,
+                                                       ownTimelineWriteSinceLastSample: false)
+        let still = first.next.observe(sample: sample(time: 1_000), now: start + threshold - 1,
+                                       thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(still.searching)
+        XCTAssertFalse(still.heard)
+        let over = still.next.observe(sample: sample(time: 1_000), now: start + threshold,
+                                      thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(over.searching)
+        XCTAssertFalse(over.heard)
+        let later = over.next.observe(sample: sample(time: 1_000), now: start + 2 * threshold,
+                                      thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(later.searching)
+    }
+
+    func testSearchingIsNeverTrueTogetherWithHeard() {
+        let first = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: second,
+                                                       thresholdTicks: threshold,
+                                                       ownTimelineWriteSinceLastSample: false)
+        let hit = first.next.observe(sample: sample(time: 2_000), now: 2 * second,
+                                     thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(hit.heard)
+        XCTAssertFalse(hit.searching)
+    }
+
+    func testOwnTimelineWriteWhileSearchingKeepsSearching() {
+        let first = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: second,
+                                                       thresholdTicks: threshold,
+                                                       ownTimelineWriteSinceLastSample: false)
+        let echo = first.next.observe(sample: sample(time: 9_000), now: 2 * second,
+                                      thresholdTicks: threshold, ownTimelineWriteSinceLastSample: true)
+        XCTAssertFalse(echo.hit)
+        XCTAssertTrue(echo.searching)
+        XCTAssertEqual(echo.next.firstSampleAt, second)
+    }
+
+    func testLinkOffThenOnSearchesAgain() {
+        let tracker = DirectorHeardTracker(lastSample: sample(time: 7_000), lastHitAt: 5 * second,
+                                           firstSampleAt: second)
+        let off = tracker.observe(sample: sample(time: 0, link: false), now: 6 * second,
+                                  thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(off.searching)
+        XCTAssertNil(off.next.firstSampleAt)
+        let back = off.next.observe(sample: sample(time: 12_000), now: 7 * second,
+                                    thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(back.searching)
+        XCTAssertEqual(back.next.firstSampleAt, 7 * second)
+    }
+
+    func testZeroThresholdNeverSearches() {
+        let v = DirectorHeardTracker.start.observe(sample: sample(time: 1_000), now: second,
+                                                   thresholdTicks: 0, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(v.searching)
     }
 }
