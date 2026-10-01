@@ -175,6 +175,10 @@ final class QLiveSession: ObservableObject {
                 // su main, e così la proposta è scritta prima che lo schermo legga lo stato nuovo.
                 // Il valore viene dal soggetto (un `@Published` emette PRIMA di scrivere la
                 // proprietà); il ruolo si legge dal motore, non cambia in quell'istante.
+                // ⚠️ A386 · B2c — `followerSync` porta ora anche il segnale («sento il Direttore»,
+                //    «Searching…», «band playing»): emette anche quando cambia solo quello, senza
+                //    transizione. Qui si leggono stato e ragione e basta; la proposta ricalcolata
+                //    con gli stessi ingressi è la stessa, e si scrive e si logga solo se cambia.
                 self.refreshRientraProposal(state: sync.state, reason: sync.outReason,
                                             isFollower: audioEngine.followerDecision.isFollower)
             }

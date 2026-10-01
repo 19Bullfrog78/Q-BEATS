@@ -47,9 +47,25 @@ enum FollowerRunnerAction: Equatable {
 /// volte, e la prima emissione portava lo stato nuovo con la ragione vecchia: la stanza calcolava
 /// una proposta falsa, con la sua riga di log (mandato del referee «A386 · B2b-BIS», 30/09/2026,
 /// §3.a, dalla ratifica della B2b).
+/// A386 · B2c (§3.f) — NELLO STESSO VALORE ANCHE IL SEGNALE: «sento il Direttore», «Searching…»
+/// e «band playing» (la sessione Link in moto). Fino alla B2b-BIS erano tre `@Published` a
+/// parte, scritti ognuno col suo passo su main: fra un passo e l'altro lo schermo calcolava una
+/// faccia con valori misti (collaudo, log `A386_A1_iPad.txt`: al Play la riga del velo
+/// «faccia:ready … slotE:signalOKBandPlaying» usciva prima di «inSync»). Ora stato, ragione e
+/// segnale arrivano allo schermo insieme: un valore, un'emissione per passo.
 struct FollowerSyncSnapshot: Equatable {
     let state: FollowerSyncState
     let outReason: FollowerOutReason?
+    /// «Sento il Direttore» (`DirectorHeardTracker`: battito a 1 s, soglia 3 s, e da B2c ogni Play
+    /// o Stop ricevuto dalla sessione).
+    let directorHeard: Bool
+    /// «Searching…»: dal primo campione dopo che Link si accende (o dall'avvio) fino al primo
+    /// verdetto — il primo colpo, o una soglia senza colpi — mai oltre la soglia
+    /// (`DirectorHeardTracker.Verdict.searching`, correzione del referee al congedo 26/09 §3.3).
+    let directorSearching: Bool
+    /// La sessione Link è in moto («band playing — wait for the stop»): è il dato che R1 legge
+    /// all'armamento, portato dal battito e dal richiamo avvio/stop.
+    let linkSessionPlaying: Bool
 }
 
 class AudioEngine: ObservableObject {
@@ -82,22 +98,18 @@ class AudioEngine: ObservableObject {
     @Published private(set) var linkPeerCount: Int? = nil
     /// Start Stop Sync acceso dall'utente nel pannello Link (`ABLLinkIsStartStopSyncEnabled`).
     @Published private(set) var linkStartStopSyncEnabled: Bool = false
-    /// «Sento il Direttore» (`DirectorHeardTracker`, battito a 1 s, soglia 3 s).
-    @Published private(set) var directorHeard: Bool = false
     /// Lo stato della macchina del Follower (`FollowerSyncDecision`) e la ragione dell'ultima
     /// uscita FUORI (o del rifiuto di un armamento), per il velo e per `RientraProposal`.
     /// B2b-BIS: UN valore solo (`FollowerSyncSnapshot`), scritto una volta per transizione:
     /// nessun lettore può vedere lo stato nuovo con la ragione vecchia.
+    /// B2c (§3.f): nello stesso valore anche «sento il Direttore», «Searching…» e «band playing»,
+    /// che prima erano tre `@Published` a parte (`directorHeard`, `directorSearching`,
+    /// `linkSessionPlaying`: usciti). Lo scrive solo `followerPublishQ`, una volta per passo.
     @Published private(set) var followerSync = FollowerSyncSnapshot(state: FollowerSyncDecision.initial,
-                                                                    outReason: nil)
-    // === A386 · B2b (2D) — DUE SPECCHI IN PIÙ PER LO SLOT E DEL FOLLOWER ===
-    /// «Searching…»: dal primo campione dopo che Link si accende (o dall'avvio) fino al primo
-    /// verdetto — il primo colpo, o una soglia senza colpi — mai oltre la soglia
-    /// (`DirectorHeardTracker.Verdict.searching`, correzione del referee al congedo 26/09 §3.3).
-    @Published private(set) var directorSearching: Bool = false
-    /// La sessione Link è in moto («band playing — wait for the stop»): è il dato che R1 legge
-    /// all'armamento, pubblicato per lo schermo dal battito e dal richiamo avvio/stop.
-    @Published private(set) var linkSessionPlaying: Bool = false
+                                                                    outReason: nil,
+                                                                    directorHeard: false,
+                                                                    directorSearching: false,
+                                                                    linkSessionPlaying: false)
     @Published var isWaitingForLinkDownbeat: Bool = false
     // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
     // `_linkMode` audio-queue per consumo da UI (LiveView calcola
@@ -407,9 +419,51 @@ class AudioEngine: ObservableObject {
     /// lo abbassano END SHOW e l'uscita dalla stanza (`setShowOpen`). Il Direttore ripete solo a
     /// show aperto. Copia di coda; nessuno specchio: lo legge solo `directorPulse`.
     private var _showOpenQ: Bool = false
-    /// B2b — le copie di coda dei due specchi nuovi (`directorSearching`, `linkSessionPlaying`).
+    /// B2b — le copie di coda di «Searching…» e «band playing». B2c: con `_directorHeardQ`,
+    /// `_followerSyncQ` e `_followerOutReasonQ` sono i cinque campi di `FollowerSyncSnapshot`.
     private var _directorSearchingQ: Bool = false
     private var _linkSessionPlayingQ: Bool = false
+    // === A386 · FASE B2c (2D) — DA SOLO IL FOLLOWER SUONA LA SUA CANZONE, accesso SOLO su audioQueue ===
+    /// L'orologio proprio fino all'arresto (`FollowerLinkFollowDecision`): si alza entrando in DA
+    /// SOLO (`followerTransitionQ`), lo abbassano `stopSync`, `start()` e un `reset` della
+    /// macchina. Copre la coda fra l'uscita da DA SOLO e l'arresto vero del motore, che arriva
+    /// da main.
+    private var _ownClockUntilStopQ: Bool = false
+    /// Il tempo di sessione adottato dal richiamo del tempo di Link DOPO l'ultimo tempo dato dalla
+    /// propria canzone (`applyBPM`, cambio di sezione al battere). `nil` = il tempo in corso è
+    /// della propria canzone. Alla soglia di DA SOLO dice se c'è un tempo da ridare al motore.
+    private var _linkTempoAdoptedQ: Double? = nil
+    /// Il tempo che il metronomo sta suonando ADESSO: lo scrive chi dà un tempo al DSP
+    /// (`applyBPM`, il cambio di sezione al battere, il richiamo del tempo di Link quando adotta,
+    /// il ritorno al tempo della sezione alla soglia di DA SOLO). Diverso da `_audioBPM` solo nel
+    /// battito fra lo scambio di sezione e il battere, e quando il tempo viene da Link. È il
+    /// tempo con cui si àncora la linea propria.
+    private var _engineTempoQ: Double = 120.0
+    /// LA LINEA DEL TEMPO PROPRIA (`OwnClockTimeline`): in DA SOLO prende il posto di quella di
+    /// Link nella correzione a ogni buffer, e tiene il click sull'ora dell'apparecchio anche
+    /// quando i buffer arrivano in ritardo. `nil` = da ancorare al prossimo buffer del tratto:
+    /// all'ingresso in DA SOLO e a ogni cambio di tempo della propria canzone. Attraversa
+    /// un'interruzione (è fatta di ore); la butta `stopSync`.
+    private var _ownTimelineQ: OwnClockTimeline? = nil
+    /// L'ora d'uscita del buffer in corso (`scheduleNextBuffer`), per l'ora dell'ultimo battito.
+    private var _bufferOutTicksQ: UInt64 = 0
+    /// Per la riga al secondo di DA SOLO: dove è caduto l'ultimo battito — il campione del flusso
+    /// d'uscita (indice del buffer × 512 + scostamento) e l'ora d'uscita — scritti a ogni battito;
+    /// e il riferimento (battito, campione, ora) della riga precedente, da cui si misura il tempo.
+    private var _lastBeatSampleQ: Int64 = 0
+    private var _lastBeatOutTicksQ: UInt64 = 0
+    private var _ownClockLogRefTickQ: Int = 0
+    private var _ownClockLogRefSampleQ: Int64 = 0
+    private var _ownClockLogRefOutTicksQ: UInt64 = 0
+    /// Dall'ultima riga al secondo: quanti buffer riportati sulla linea propria, il ritardo più
+    /// grande riassorbito (ms), quanti cambi di tempo di sessione ignorati.
+    private var _ownClockPinsQ: Int = 0
+    private var _ownClockMaxLagMsQ: Double = 0.0
+    private var _ownClockIgnoredTempoQ: Int = 0
+    /// B2c-BIS — il tempo della sessione Link letto dall'ultimo battito a 1 s del Follower (0 a
+    /// ponte spento). Solo per la riga di log di W2 saltata in DA SOLO: così al confine di
+    /// sezione non serve una cattura di Link in più.
+    private var _sessionTempoSeenQ: Double = 0.0
     private var transportPulseTimer: DispatchSourceTimer? = nil
     private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
@@ -595,6 +649,22 @@ class AudioEngine: ObservableObject {
                         }
                         return
                     }
+                    // A386 · FASE B2c (2D) — DA SOLO IL TEMPO DELLA SESSIONE NON ENTRA NEL MOTORE.
+                    // È una delle due strade da cui la sessione Link arriva al click del Follower
+                    // (l'altra è la correzione di fase in `scheduleNextBuffer`). La decisione è
+                    // una, pura (`FollowerLinkFollowDecision`), letta qui su audioQueue dalla copia
+                    // della macchina: Follower in DA SOLO (o nella coda prima dell'arresto) ⇒ il
+                    // cambio di tempo si ignora — niente metronomo, niente MIDI, niente
+                    // `currentBPM` — con una riga di log. IN SYNC, FUORI, Solo e ruolo Follower
+                    // con Link spento dall'utente: il blocco qui sotto, identico a prima.
+                    if !engine.followsLinkQ() {
+                        engine.logSessionTempoIgnoredQ(bpm)
+                        return
+                    }
+                    // Il tempo in corso viene dalla sessione: alla soglia di DA SOLO il motore
+                    // torna a quello della propria sezione (`followerEnterOwnClockQ`).
+                    engine._linkTempoAdoptedQ = bpm
+                    engine._engineTempoQ = bpm
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
                     }
@@ -1499,15 +1569,17 @@ class AudioEngine: ObservableObject {
         _heardTrackerQ = verdict.next
         let changed = verdict.heard != _directorHeardQ
         _directorHeardQ = verdict.heard
-        // B2b — «Searching…» e «band playing» per lo slot E, specchiati al cambio.
-        if verdict.searching != _directorSearchingQ {
+        // B2b — «Searching…» e «band playing» per lo slot E. B2c (§3.f): non si specchiano più
+        // uno per uno: si scrivono le copie di coda, e in fondo a questo passo esce UNA
+        // pubblicazione con stato, ragione e segnale insieme (`followerPublishQ`).
+        let searchingChanged = verdict.searching != _directorSearchingQ
+        if searchingChanged {
             _directorSearchingQ = verdict.searching
-            let searching = verdict.searching
-            DispatchQueue.main.async { [weak self] in self?.directorSearching = searching }
             os_log("[Q-BEATS][2D][FOLLOWER] cerca-il-direttore:%d battiti:%llu",
-                   log: .default, type: .default, searching ? 1 : 0, _pulseCountQ)
+                   log: .default, type: .default, verdict.searching ? 1 : 0, _pulseCountQ)
         }
-        publishLinkSessionPlayingQ(snap.isPlaying)
+        let playingChanged = snap.isPlaying != _linkSessionPlayingQ
+        _linkSessionPlayingQ = snap.isPlaying
         if changed || _pulseCountQ % 10 == 0 {
             os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d scritturaPropria:%d suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu",
                    log: .default, type: .default,
@@ -1515,12 +1587,18 @@ class AudioEngine: ObservableObject {
                    snap.isPlaying ? 1 : 0, snap.timeForIsPlaying,
                    machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ)
         }
+        var action: FollowerSyncAction = .none
         if changed {
-            let heard = verdict.heard
-            DispatchQueue.main.async { [weak self] in self?.directorHeard = heard }
             let running = isRunning || isAudioInterrupted
-            followerApply(.directorHeard(heard, engineRunning: running))
+            action = followerTransitionQ(.directorHeard(verdict.heard, engineRunning: running)).action
         }
+        if changed || searchingChanged || playingChanged {
+            followerPublishQ(action)
+        }
+        // B2c-BIS — il tempo di sessione di questo battito, per la riga di W2 saltata in DA SOLO.
+        _sessionTempoSeenQ = snap.tempo
+        // B2c (§3.d) — in DA SOLO, una riga al secondo col tempo misurato e la posizione di battuta.
+        logOwnClockSecondQ(sessionTempo: snap.tempo)
     }
 
     // MARK: Il cancello del Follower nel richiamo avvio/stop (D6, D7-bis)
@@ -1533,14 +1611,49 @@ class AudioEngine: ObservableObject {
     private func followerHandleLinkTransport(isPlaying: Bool) {
         guard let lh = linkEngineHandle else { return }
         let snap = link_engine_read_transport_snapshot(lh)
-        // B2b — la sessione Link è in moto (o ferma) da adesso: lo slot E lo sa subito, senza
-        // aspettare il battito.
-        publishLinkSessionPlayingQ(isPlaying)
         let running = isRunning || isAudioInterrupted
+        // A386 · B2c (§3.f) — UN PLAY O UNO STOP RICEVUTO È UN COLPO, SUBITO. Chi arriva qui è
+        // Follower, e il Follower non scrive mai lo stato avvio/stop su Link (A360 lo stop, A361
+        // l'avvio, W4 l'ingresso): questo richiamo nasce da un altro apparecchio della sessione,
+        // cioè dalla stessa cosa che il battito a 1 s chiama colpo — solo che il battito la vede
+        // fino a un secondo dopo, e in quel secondo lo schermo diceva «No director signal» con lo
+        // Stop del Direttore appena ricevuto (collaudo, log `A386_C2_iPad.txt`, 14:17:36). La
+        // cattura è la stessa letta qui sopra; diventa l'ultimo campione del segnale, e il
+        // battito successivo non conta due volte lo stesso cambio.
+        let verdict = _heardTrackerQ.observeTransportEvent(
+            sample: DirectorHeardSample(linkEnabled: snap.linkEnabled,
+                                        isPlaying: snap.isPlaying,
+                                        timeForIsPlaying: snap.timeForIsPlaying),
+            now: snap.captureHostTime,
+            thresholdTicks: heardThresholdTicks)
+        _heardTrackerQ = verdict.next
+        let heardChanged = verdict.heard != _directorHeardQ
+        _directorHeardQ = verdict.heard
+        if verdict.searching != _directorSearchingQ {
+            _directorSearchingQ = verdict.searching
+            os_log("[Q-BEATS][2D][FOLLOWER] cerca-il-direttore:%d battiti:%llu",
+                   log: .default, type: .default, verdict.searching ? 1 : 0, _pulseCountQ)
+        }
+        os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d origine:richiamo-%{public}@ suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu",
+               log: .default, type: .default,
+               verdict.heard ? 1 : 0, verdict.hit ? 1 : 0, isPlaying ? "avvio" : "stop",
+               snap.isPlaying ? 1 : 0, snap.timeForIsPlaying,
+               machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ)
+        // B2b — la sessione Link è in moto (o ferma) da adesso: lo slot E lo sa subito, senza
+        // aspettare il battito. B2c: la copia di coda si scrive qui; allo schermo arriva con stato,
+        // ragione e segnale nella pubblicazione unica che chiude questo passo.
+        _linkSessionPlayingQ = isPlaying
+        // Il fronte del segnale va alla macchina PRIMA del Play o dello Stop, come lo avrebbe
+        // mandato il battito (un «sento» non cambia stato in nessun ramo della tabella).
+        var heardAction: FollowerSyncAction = .none
+        if heardChanged {
+            heardAction = followerTransitionQ(.directorHeard(verdict.heard, engineRunning: running)).action
+        }
         if isPlaying {
             if running {
                 os_log("[Q-BEATS][2D][FOLLOWER] play ignorato - motore in moto (isRunning:%d interrotto:%d)",
                        log: .default, type: .default, isRunning ? 1 : 0, isAudioInterrupted ? 1 : 0)
+                followerPublishQ(heardAction)
                 return
             }
             let halfBar = HalfBarWindow.halfBarTicks(beatsPerBar: _songFirstBeatsPerBarQ,
@@ -1559,17 +1672,19 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default,
                    snap.timeForIsPlaying, snap.captureHostTime, gapMs,
                    machTicksToSeconds(halfBar) * 1000.0, snap.tempo, _songFirstBeatsPerBarQ, within ? 1 : 0)
-            let transition = followerApply(.linkPlay(withinHalfBar: within))
+            let transition = followerTransitionQ(.linkPlay(withinHalfBar: within))
             if transition.action == .start {
                 _startPhaseQ = snap.phaseAtStampQBig
                 os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:play-direttore fase:%.6f oraAvvio:%llu",
                        log: .default, type: .default, snap.phaseAtStampQBig, snap.timeForIsPlaying)
             }
+            followerPublishQ(heardAction, transition.action)
         } else {
             let falseStart = falseStartAgainstRegisteredStart(stopPhase: snap.phaseAtStampQBig,
                                                               context: "stop-direttore-ricevuto")
             _startPhaseQ = nil
-            followerApply(.linkStop(falseStart: falseStart, engineRunning: running))
+            let transition = followerTransitionQ(.linkStop(falseStart: falseStart, engineRunning: running))
+            followerPublishQ(heardAction, transition.action)
         }
     }
 
@@ -1610,8 +1725,21 @@ class AudioEngine: ObservableObject {
     /// B2b-BIS: in coda allo stesso passo su main, lo specchio unico `followerSync` (stato e
     /// ragione insieme, una scrittura per transizione), dopo l'azione sul runner: la stanza
     /// ricalcola la proposta una volta, coi numeri del runner già avanzato.
+    /// ⚠️ B2c (§3.f) — DUE METÀ, e questa le chiama in fila: `followerTransitionQ` (la transizione,
+    ///    lo stato di coda, la riga di log) e `followerPublishQ` (le azioni su main e la scrittura
+    ///    dello specchio). Chi in un passo solo cambia anche il segnale, o passa da due
+    ///    transizioni (il battito, il richiamo avvio/stop, il tocco sulla lista), chiama le due
+    ///    metà da sé e pubblica UNA volta. Le righe qui sopra descrivono le due metà insieme.
     @discardableResult
     private func followerApply(_ event: FollowerSyncEvent) -> FollowerSyncTransition {
+        let transition = followerTransitionQ(event)
+        followerPublishQ(transition.action)
+        return transition
+    }
+
+    /// Su audioQueue. La transizione pura, lo stato di coda e la riga di log. NON pubblica e non
+    /// agisce: il passo si chiude con `followerPublishQ`.
+    private func followerTransitionQ(_ event: FollowerSyncEvent) -> FollowerSyncTransition {
         let before = _followerSyncQ
         let transition = FollowerSyncDecision.transition(state: before, event: event)
         _followerSyncQ = transition.state
@@ -1626,52 +1754,228 @@ class AudioEngine: ObservableObject {
                log: .default, type: .default,
                describe(event), describe(before), describe(transition.state), describe(transition.action),
                describe(_followerOutReasonQ), isRunning ? "in-moto" : "fermo", _directorHeardQ ? 1 : 0)
-        let state = transition.state
-        let reason = _followerOutReasonQ
-        let action = transition.action
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            switch action {
-            case .none:
-                break
-            case .start:
-                // Q-D4 esteso — lo stesso lucchetto del ramo di sempre (`_linkStartEmitInFlight`).
-                if !self._linkStartEmitInFlight {
-                    self._linkStartEmitInFlight = true
-                    self.start()
-                    self.linkStartedSubject.send()
-                }
-            case .stop:
-                self.stop()
-            case .stopAndArmNext:
-                self.stop()
-                self.followerRunnerActionSubject.send(.armNext)
-            case .armNext:
-                self.followerRunnerActionSubject.send(.armNext)
-            case .stopAndRearmSame:
-                self.stop()
-                self.followerRunnerActionSubject.send(.rearmSame)
-            case .rearmSame:
-                self.followerRunnerActionSubject.send(.rearmSame)
-            case .armSong(let songIdx):
-                // B2b: arriva su main PRIMA di ogni azione decisa dopo su audioQueue (per esempio
-                // l'avvio al Play): stessa coda, FIFO.
-                self.followerRunnerActionSubject.send(.armSong(songIdx: songIdx))
-            }
-            // B2b-BIS: stato e ragione INSIEME, una volta, dopo l'azione sul runner (il `send`
-            // qui sopra è sincrono: `handleFollowerRunnerAction` è già passato). Chi ascolta
-            // (`QLiveSession`) calcola la proposta in questo stesso passo; lo schermo legge
-            // stato, ragione e proposta al ridisegno successivo, tutti e tre nuovi.
-            self.followerSync = FollowerSyncSnapshot(state: state, outReason: reason)
+        // B2c — entrando in DA SOLO il motore passa al proprio orologio (e ci resta fino
+        // all'arresto, o a un `reset`: `FollowerLinkFollowDecision.ownClockUntilStop`).
+        let ownClockBefore = _ownClockUntilStopQ
+        _ownClockUntilStopQ = FollowerLinkFollowDecision.ownClockUntilStop(after: event,
+                                                                          state: transition.state,
+                                                                          previous: ownClockBefore)
+        if ownClockBefore && !_ownClockUntilStopQ {
+            os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio FINITO - reset della macchina - stato:%{public}@ battito:%d buffer:%d",
+                   log: .default, type: .default,
+                   describe(transition.state), beatTickCounter, bufferCount)
+        }
+        if case .alone = transition.state, before != .alone {
+            followerEnterOwnClockQ()
         }
         return transition
     }
 
-    /// B2b — su audioQueue: lo specchio «sessione Link in moto» per lo slot E, solo al cambio.
-    private func publishLinkSessionPlayingQ(_ playing: Bool) {
-        guard playing != _linkSessionPlayingQ else { return }
-        _linkSessionPlayingQ = playing
-        DispatchQueue.main.async { [weak self] in self?.linkSessionPlaying = playing }
+    /// Su audioQueue. Chiude un passo della macchina: su main, nell'ordine, le azioni (al più
+    /// due: quella del fronte del segnale e quella del Play o dello Stop) e poi UNA scrittura
+    /// dello specchio `followerSync`, coi cinque valori letti QUI dalle copie di coda — stato,
+    /// ragione, «sento il Direttore», «Searching…», «band playing». Lo schermo non può vedere
+    /// uno di loro nuovo e gli altri vecchi (B2b-BIS per stato e ragione; B2c per il segnale).
+    private func followerPublishQ(_ first: FollowerSyncAction = .none, _ second: FollowerSyncAction = .none) {
+        let snapshot = FollowerSyncSnapshot(state: _followerSyncQ,
+                                            outReason: _followerOutReasonQ,
+                                            directorHeard: _directorHeardQ,
+                                            directorSearching: _directorSearchingQ,
+                                            linkSessionPlaying: _linkSessionPlayingQ)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.followerRun(first)
+            self.followerRun(second)
+            // B2b-BIS: dopo l'azione sul runner (il `send` di `followerRun` è sincrono:
+            // `handleFollowerRunnerAction` è già passato). Chi ascolta (`QLiveSession`) calcola
+            // la proposta in questo stesso passo; lo schermo legge stato, ragione, segnale e
+            // proposta al ridisegno successivo, tutti nuovi.
+            self.followerSync = snapshot
+        }
+    }
+
+    /// Solo main. Un'azione della macchina sul motore e sul runner (via la stanza).
+    private func followerRun(_ action: FollowerSyncAction) {
+        switch action {
+        case .none:
+            break
+        case .start:
+            // Q-D4 esteso — lo stesso lucchetto del ramo di sempre (`_linkStartEmitInFlight`).
+            if !self._linkStartEmitInFlight {
+                self._linkStartEmitInFlight = true
+                self.start()
+                self.linkStartedSubject.send()
+            }
+        case .stop:
+            self.stop()
+        case .stopAndArmNext:
+            self.stop()
+            self.followerRunnerActionSubject.send(.armNext)
+        case .armNext:
+            self.followerRunnerActionSubject.send(.armNext)
+        case .stopAndRearmSame:
+            self.stop()
+            self.followerRunnerActionSubject.send(.rearmSame)
+        case .rearmSame:
+            self.followerRunnerActionSubject.send(.rearmSame)
+        case .armSong(let songIdx):
+            // B2b: arriva su main PRIMA di ogni azione decisa dopo su audioQueue (per esempio
+            // l'avvio al Play): stessa coda, FIFO.
+            self.followerRunnerActionSubject.send(.armSong(songIdx: songIdx))
+        }
+    }
+
+    // MARK: B2c — DA SOLO il Follower suona la sua canzone: l'orologio proprio
+
+    /// Su audioQueue. La decisione unica letta dalle due strade audio (richiamo del tempo di
+    /// Link, correzione di fase in `scheduleNextBuffer`): tre confronti, nessuna allocazione,
+    /// nessuna chiamata a Link.
+    private func followsLinkQ() -> Bool {
+        FollowerLinkFollowDecision.followsLink(role: _linkMode,
+                                               userLinkEnabled: _linkUserEnabledQ,
+                                               state: _followerSyncQ,
+                                               ownClockUntilStop: _ownClockUntilStopQ)
+    }
+
+    /// Su audioQueue, alla soglia di DA SOLO. Da qui il click va «ai tempi delle sue sezioni»: se
+    /// il tempo in corso era stato adottato dalla sessione dopo l'ultimo tempo della propria
+    /// canzone, il motore torna a quello della sezione (`_audioBPM`: lo scrivono solo le strade
+    /// proprie — `applyBPM`, il cambio di sezione — mai il richiamo di Link). Stesso passo
+    /// immediato di `applyBPM`: metronomo, e sequencer MIDI ri-ancorato alla posizione di prima.
+    /// Se un cambio di sezione è già armato non si tocca niente: il tempo proprio arriva al
+    /// prossimo battere. Azzera i contatori e il riferimento della riga al secondo.
+    private func followerEnterOwnClockQ() {
+        let adopted = _linkTempoAdoptedQ
+        let restore = FollowerLinkFollowDecision.tempoToRestore(sectionTempo: _audioBPM,
+                                                                adoptedFromLink: adopted,
+                                                                sectionChangePending: _pendingBPMValue != nil)
+        if let bpm = restore {
+            if let h = metronomeHandle {
+                metronome_setBPM(h, bpm)
+            }
+            if let mh = midiEngineHandle {
+                let preChangeBeatPos = midi_engine_get_beat_position(mh)
+                midi_engine_set_bpm(mh, bpm)
+                midi_engine_set_beat_position(mh, preChangeBeatPos)
+            }
+            _linkTempoAdoptedQ = nil
+            _engineTempoQ = bpm
+            DispatchQueue.main.async { [weak self] in self?.currentBPM = bpm }
+        }
+        // La linea propria si àncora al primo buffer del tratto (`ownClockPinQ`).
+        _ownTimelineQ = nil
+        _ownClockPinsQ = 0
+        _ownClockMaxLagMsQ = 0.0
+        _ownClockIgnoredTempoQ = 0
+        _ownClockLogRefTickQ = beatTickCounter
+        _ownClockLogRefSampleQ = _lastBeatSampleQ
+        _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
+        let adoptedText: String = adopted.map { String(format: "%.4f", $0) } ?? "nessuno"
+        os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio DA ADESSO - tempoSezione:%.2f tempoAdottatoDaLink:%{public}@ tempoRidato:%d battito:%d sezione:%d/%d buffer:%d",
+               log: .default, type: .default,
+               _audioBPM, adoptedText, restore != nil ? 1 : 0,
+               beatTickCounter, _sectionBeatCounter, _sectionTotalBeats, bufferCount)
+    }
+
+    /// Su audioQueue, dal richiamo del tempo di Link: un cambio di tempo della sessione ignorato
+    /// perché il Follower è sul proprio orologio (§3.d).
+    private func logSessionTempoIgnoredQ(_ sessionBPM: Double) {
+        _ownClockIgnoredTempoQ += 1
+        os_log("[Q-BEATS][2D][DA-SOLO] tempo della sessione IGNORATO sessione:%.2f sezione:%.2f stato:%{public}@ battito:%d - il click resta sul tempo della propria canzone",
+               log: .default, type: .default,
+               sessionBPM, _audioBPM, describe(_followerSyncQ), beatTickCounter)
+    }
+
+    /// Su audioQueue, da `scheduleNextBuffer`, al posto della correzione di fase di Link: la
+    /// posizione si riporta sulla LINEA DEL TEMPO PROPRIA (`OwnClockTimeline`), non su quella di
+    /// Link, che qui non si chiama nemmeno. La meccanica è quella di IN SYNC — a ogni buffer
+    /// sequencer e metronomo vanno sul battito previsto per l'ora d'uscita, con le stesse due
+    /// chiamate — e serve alla stessa cosa: tenere il click sull'ora dell'apparecchio quando i
+    /// buffer arrivano in ritardo (collaudo dell'01/10/2026: 267 ms accumulati in venti secondi
+    /// di DA SOLO mentre si apre il Centro di Controllo). Cambia solo la linea: un'àncora e il
+    /// tempo della propria sezione, senza rete e senza altri apparecchi.
+    /// Al primo buffer del tratto la linea si àncora dove IN SYNC ha lasciato la posizione
+    /// (nessun salto), con una riga di log; dal secondo in poi si riporta e si conta. `mh` e `h`
+    /// sono gli stessi che usa il ramo di Link.
+    private func ownClockPinQ(midi mh: MIDIEngineHandle,
+                              metronome h: MetronomeHandle,
+                              hostTimeAtOutput: UInt64,
+                              currentBeat: Double) {
+        guard let timeline = _ownTimelineQ else {
+            _ownTimelineQ = OwnClockTimeline(anchorTicks: hostTimeAtOutput,
+                                             anchorBeat: currentBeat,
+                                             bpm: _engineTempoQ)
+            os_log("[Q-BEATS][2D][DA-SOLO] correzione di fase di Link NON ESEGUITA da questo buffer - linea propria ancorata ora:%llu battito:%.4f tempo:%.2f buffer:%d stato:%{public}@",
+                   log: .default, type: .default,
+                   hostTimeAtOutput, currentBeat, _engineTempoQ, bufferCount, describe(_followerSyncQ))
+            return
+        }
+        let ownBeat = timeline.beat(atTicks: hostTimeAtOutput, ticksPerSecond: ticksPerSecond)
+        midi_engine_set_beat_position(mh, ownBeat)
+        metronome_set_beat_position_time_only(h, ownBeat)
+        _ownClockPinsQ += 1
+        let lagMs = abs(OwnClockTimeline.lagMilliseconds(ownBeat: ownBeat, localBeat: currentBeat, bpm: timeline.bpm))
+        if lagMs > _ownClockMaxLagMsQ {
+            _ownClockMaxLagMsQ = lagMs
+        }
+    }
+
+    /// Su audioQueue, dal battito a 1 s. In DA SOLO, una riga al secondo per misurare il tempo
+    /// al collaudo senza le righe «Phase sync» (§3.d). Formato fisso, campi `chiave:valore`:
+    ///   tempoMisurato   battiti al minuto fra l'ultimo battito di questa riga e quello della
+    ///                   riga precedente, contati sull'ORA d'uscita dei due battiti
+    ///                   (`ClickTempoMeasure`): è il tempo che si sente. Su un secondo oscilla di
+    ///                   qualche decimo. `-` se fra le due righe non è uscito nessun battito
+    ///   tempoCampioni   lo stesso conto sui campioni consegnati al player: esatto a regime; sale
+    ///                   per un attimo quando un buffer arriva in ritardo e il click recupera
+    ///   tempoSezione    il tempo della sezione in corso della propria canzone (`_audioBPM`)
+    ///   tempoLinea      il tempo della linea propria (`OwnClockTimeline`); `-` se da ancorare
+    ///   tempoSessione   il tempo della sessione Link letto dal battito (0 a ponte spento): si
+    ///                   legge e basta, per vedere nel log che cosa viene ignorato
+    ///   battito         battiti suonati dall'avvio del motore (`beatTickCounter`)
+    ///   sezione         battito dentro la sezione / battiti della sezione
+    ///   battuta         battuta.battito dentro la sezione; `-` se la sezione non conta
+    ///   buffer          buffer consegnati dall'avvio del motore
+    ///   riportati       buffer riportati sulla linea propria dall'ultima riga
+    ///   ritardoMax_ms   il ritardo più grande dei buffer sull'ora, riassorbito dall'ultima riga
+    ///   tempiIgnorati   cambi di tempo della sessione ignorati dall'ultima riga
+    ///   motore          in-moto | interrotto | fermo
+    private func logOwnClockSecondQ(sessionTempo: Double) {
+        guard case .alone = _followerSyncQ else { return }
+        // Dopo un riavvio del motore (ripresa da un'interruzione) i contatori ripartono da zero:
+        // il riferimento vecchio non vale più.
+        if beatTickCounter < _ownClockLogRefTickQ
+            || _lastBeatSampleQ < _ownClockLogRefSampleQ
+            || _lastBeatOutTicksQ < _ownClockLogRefOutTicksQ {
+            _ownClockLogRefTickQ = beatTickCounter
+            _ownClockLogRefSampleQ = _lastBeatSampleQ
+            _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
+        }
+        let beats = beatTickCounter - _ownClockLogRefTickQ
+        let measured = ClickTempoMeasure.bpm(beats: beats,
+                                             ticks: _lastBeatOutTicksQ - _ownClockLogRefOutTicksQ,
+                                             ticksPerSecond: ticksPerSecond)
+        let measuredText: String = measured.map { String(format: "%.1f", $0) } ?? "-"
+        let bySamples = ClickTempoMeasure.bpm(beats: beats,
+                                              samples: _lastBeatSampleQ - _ownClockLogRefSampleQ,
+                                              sampleRate: sampleRate)
+        let bySamplesText: String = bySamples.map { String(format: "%.2f", $0) } ?? "-"
+        let lineText: String = _ownTimelineQ.map { String(format: "%.2f", $0.bpm) } ?? "-"
+        let position = ClickTempoMeasure.barPosition(sectionBeat: _sectionBeatCounter,
+                                                     beatsPerBar: _beatsPerBarQ)
+        let positionText: String = position.map { "\($0.bar).\($0.beatInBar)" } ?? "-"
+        let engineText: String = isRunning ? "in-moto" : (isAudioInterrupted ? "interrotto" : "fermo")
+        os_log("[Q-BEATS][2D][DA-SOLO] al-secondo tempoMisurato:%{public}@ tempoCampioni:%{public}@ tempoSezione:%.2f tempoLinea:%{public}@ tempoSessione:%.2f battito:%d sezione:%d/%d battuta:%{public}@ buffer:%d riportati:%d ritardoMax_ms:%.1f tempiIgnorati:%d motore:%{public}@",
+               log: .default, type: .default,
+               measuredText, bySamplesText, _audioBPM, lineText, sessionTempo,
+               beatTickCounter, _sectionBeatCounter, _sectionTotalBeats, positionText,
+               bufferCount, _ownClockPinsQ, _ownClockMaxLagMsQ, _ownClockIgnoredTempoQ, engineText)
+        _ownClockLogRefTickQ = beatTickCounter
+        _ownClockLogRefSampleQ = _lastBeatSampleQ
+        _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
+        _ownClockPinsQ = 0
+        _ownClockMaxLagMsQ = 0.0
+        _ownClockIgnoredTempoQ = 0
     }
 
     /// Su audioQueue. `reset` solo se c'è qualcosa da azzerare: prima di ogni show la macchina è
@@ -1716,7 +2020,9 @@ class AudioEngine: ObservableObject {
             if let lh = self.linkEngineHandle {
                 sessionPlaying = link_engine_read_transport_snapshot(lh).isPlaying
             }
-            self.publishLinkSessionPlayingQ(sessionPlaying)
+            // B2c: «band playing» si scrive sulla copia di coda e arriva allo schermo con lo stato
+            // e la ragione di questo stesso tocco, nella pubblicazione unica di `followerApply`.
+            self._linkSessionPlayingQ = sessionPlaying
             let arming = FollowerArming(source: .rientra(songIdx: songIdx),
                                         directorHeard: self._directorHeardQ,
                                         sessionPlaying: sessionPlaying)
@@ -1952,6 +2258,12 @@ class AudioEngine: ObservableObject {
                 self.clickPlayhead    = -1
                 self.accentPlayhead   = -1
                 self.subdivPlayhead   = -1
+                // A386 · B2c — ogni avvio del motore abbassa l'orologio proprio (la coda di uno
+                // stop dopo DA SOLO è finita) e azzera il campione dell'ultimo battito, che conta
+                // dal primo buffer di questo avvio. Chi è ancora DA SOLO (ripresa dopo
+                // un'interruzione) resta sul proprio orologio per lo stato della macchina.
+                self._ownClockUntilStopQ = false
+                self._lastBeatSampleQ = 0
 
                 try self.engine.start()
                 self.playerNode.reset()
@@ -2241,6 +2553,11 @@ class AudioEngine: ObservableObject {
             }
             metronome_setBPM(h, bpm)
             self._audioBPM = bpm
+            // A386 · B2c — il tempo in corso è di nuovo quello della propria canzone; una linea
+            // propria ancorata col tempo di prima non vale più.
+            self._linkTempoAdoptedQ = nil
+            self._engineTempoQ = bpm
+            self._ownTimelineQ = nil
             if let mh = self.midiEngineHandle {
                 // Strada E (Task D fix #2) — re-anchor MIDI engine beat position
                 // attraverso il cambio BPM. MIDISequencer::setBPM ricalcola
@@ -2289,12 +2606,37 @@ class AudioEngine: ObservableObject {
     // dall'utente, copie di coda — `FollowerDecision`) E interruttore spento. Direttore e Solo
     // non sono toccati, qualunque cosa dica l'interruttore. E logga l'esito a ogni confine,
     // con ruolo, bpm e stato dell'interruttore: è la riga che la prova A/B deve leggere.
+    // ⚠️ MARCATURA A386 · B2c-BIS (01/10/2026) — «In Release rende SEMPRE falso» NON VALE PIÙ.
+    //    Decisione di Mauro dell'01/10/2026: da solo il Follower non scrive niente in Link; in
+    //    sync resta la decisione 9.1. W2 si salta anche — in ogni configurazione — quando il
+    //    Follower è sul proprio orologio: DA SOLO, e la coda prima dell'arresto. La domanda «W2
+    //    si salta?» resta UNA e resta QUI, perché questo è già l'unico cancello davanti a
+    //    `link_engine_set_bpm_and_beat_at_time`: un secondo cancello accanto avrebbe messo la
+    //    stessa decisione in due posti. La regola è pura e testata
+    //    (`FollowerLinkWriteDecision.boundaryTempoWrite`), letta dalle stesse copie di coda
+    //    della macchina che leggono le due strade d'ingresso (`followsLinkQ`).
+    //    L'interruttore solo DEBUG funziona come prima e si combina: sul Follower W2 scrive
+    //    solo se lo permettono tutti e due. Fuori da DEBUG l'interruttore non esiste: vale acceso.
+    //    La riga [RIENTRO-P1] resta solo in DEBUG, col testo di prima; la sua prima parola
+    //    («saltata»/«eseguita») è l'esito VERO, anche quando a saltare è l'orologio proprio. In
+    //    quel caso esce in più, in ogni configurazione, la riga [2D][DA-SOLO] qui sotto, col
+    //    tempo della sezione nuova, il tempo della sessione letto dall'ultimo battito a 1 s
+    //    (nessuna chiamata a Link in più) e lo stato della macchina.
     private func followerBoundaryTempoWriteSkipped(bpm: Double) -> Bool {
+#if DEBUG
+        let switchOn = self._debugFollowerBoundaryTempoWriteQ
+#else
+        let switchOn = true
+#endif
+        let outcome = FollowerLinkWriteDecision.boundaryTempoWrite(role: self._linkMode,
+                                                                   userLinkEnabled: self._linkUserEnabledQ,
+                                                                   state: self._followerSyncQ,
+                                                                   ownClockUntilStop: self._ownClockUntilStopQ,
+                                                                   debugSwitchOn: switchOn)
+        let skipped = outcome != .writes
 #if DEBUG
         let isFollower = FollowerDecision.isFollower(role: self._linkMode,
                                                      userLinkEnabled: self._linkUserEnabledQ)
-        let switchOn = self._debugFollowerBoundaryTempoWriteQ
-        let skipped = isFollower && !switchOn
         os_log("[Q-BEATS][RIENTRO-P1] W2 %{public}@ - ruolo:%{public}@ follower:%{public}@ bpm:%.1f interruttore:%{public}@",
                log: .default, type: .default,
                skipped ? "saltata" : "eseguita",
@@ -2302,10 +2644,13 @@ class AudioEngine: ObservableObject {
                isFollower ? "si" : "no",
                bpm,
                switchOn ? "acceso" : "spento")
-        return skipped
-#else
-        return false
 #endif
+        if outcome == .skippedOwnClock {
+            os_log("[Q-BEATS][2D][DA-SOLO] tempo di sezione NON scritto su Link (W2) - sezione:%.2f sessione:%.2f stato:%{public}@ battito:%d - da solo il Follower non scrive in Link",
+                   log: .default, type: .default,
+                   bpm, self._sessionTempoSeenQ, self.describe(self._followerSyncQ), self.beatTickCounter)
+        }
+        return skipped
     }
 
     // === L1.a — Caricamento sezione + closure end-of-section ===
@@ -2902,6 +3247,17 @@ class AudioEngine: ObservableObject {
                 self.currentResumeToken += 1
                 os_log("[Q-BEATS][2D][STOP] stop durante un'interruzione - ripresa pendente CHIUSA - token:%d",
                        log: .default, type: .default, self.currentResumeToken)
+            }
+            // A386 · B2c — ogni arresto abbassa l'orologio proprio: da qui il motore è fermo (o lo
+            // era già), e a motore fermo il Follower FUORI segue Link come sempre
+            // (`FollowerLinkFollowDecision`). Prima del `guard` qui sotto: vale anche se il motore
+            // era già fermo. Con lui finisce la linea propria.
+            self._ownTimelineQ = nil
+            if self._ownClockUntilStopQ {
+                self._ownClockUntilStopQ = false
+                os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio FINITO - arresto del motore - stato:%{public}@ battito:%d buffer:%d",
+                       log: .default, type: .default,
+                       self.describe(self._followerSyncQ), self.beatTickCounter, self.bufferCount)
             }
             pendingLinkStart?.cancel()
             pendingLinkStart = nil
@@ -3615,6 +3971,9 @@ class AudioEngine: ObservableObject {
                                      + bufferDurationTicks
                 let currentBeat = midi_engine_get_beat_position(mh)
                 var newBeat: Double = 0.0
+                // A386 · B2c — l'ora d'uscita di questo buffer, per l'ora dell'ultimo battito
+                // (riga al secondo di DA SOLO). Una scrittura di un intero, su questa coda.
+                self._bufferOutTicksQ = hostTimeAtOutput
                 if self.linkSyncSkipBuffers > 0 {
                     self.linkSyncSkipBuffers -= 1
                     os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
@@ -3634,6 +3993,22 @@ class AudioEngine: ObservableObject {
                     }
                     link_engine_assert_session_state(lh, hostTimeAtOutput,
                                                     currentBeat, _audioBPM)
+                } else if !self.followsLinkQ() {
+                    // A386 · FASE B2c (2D) — DA SOLO LA CORREZIONE DI FASE DI LINK NON SI ESEGUE.
+                    // È la seconda delle due strade da cui la sessione Link arriva al click del
+                    // Follower, ed è quella che ne fa il tempo: in IN SYNC `link_engine_sync_phase`
+                    // (ramo qui sotto) riporta la posizione sulla linea del tempo di Link a ogni
+                    // buffer, e il click va al tempo della SESSIONE qualunque sia il tempo del
+                    // metronomo (collaudo dell'01/10/2026: 4851 correzioni su 4867 buffer, e 141
+                    // al posto di 121 dal ricollegamento). In DA SOLO — e nella coda prima
+                    // dell'arresto — Link non si chiama nemmeno: la posizione si riporta, con la
+                    // stessa meccanica, sulla LINEA DEL TEMPO PROPRIA (`ownClockPinQ`,
+                    // `OwnClockTimeline`), fatta dell'ora dell'apparecchio e del tempo della
+                    // propria sezione. Il contatore di sezione continua a contare i battiti che
+                    // escono. Decisione pura `FollowerLinkFollowDecision`, letta dalla copia di
+                    // coda della macchina.
+                    self.ownClockPinQ(midi: mh, metronome: h,
+                                      hostTimeAtOutput: hostTimeAtOutput, currentBeat: currentBeat)
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     // Bug 2.b — solo timeline a campioni: la fase di battuta resta
@@ -3722,6 +4097,15 @@ class AudioEngine: ObservableObject {
 
                 if isBeat {
                     self.beatTickCounter += 1
+                    // A386 · B2c — il campione del flusso d'uscita su cui cade questo battito
+                    // (i buffer vanno al player uno dietro l'altro: indice × 512 + scostamento;
+                    // `bufferCount` è già stato alzato per questo buffer). Lo legge la riga al
+                    // secondo di DA SOLO per misurare il tempo che esce davvero. Una scrittura
+                    // di un intero, su questa coda. E la sua ora d'uscita: l'ora d'uscita del
+                    // buffer più lo scostamento del battito dentro il buffer.
+                    self._lastBeatSampleQ = Int64(self.bufferCount - 1) * Int64(self.bufferSize) + Int64(offset)
+                    self._lastBeatOutTicksQ = self._bufferOutTicksQ
+                        + self.secondsToMachTicks(Double(offset) / self.sampleRate)
                     let tickN = self.beatTickCounter
                     DispatchQueue.main.async { [weak self] in
                         self?.beatTickSubject.send(tickN)
@@ -3768,6 +4152,14 @@ class AudioEngine: ObservableObject {
                        self.beatTickCounter == self._pendingBPMTargetTick {
                         // [Nota 1] _audioBPM PRIMA di tutto
                         self._audioBPM = pending
+                        // A386 · B2c — il DSP ha appena preso il tempo della sezione nuova: il
+                        // tempo in corso è quello della propria canzone, non uno adottato da Link.
+                        // La linea propria, se c'è, aveva il tempo di prima: si butta, e si
+                        // ri-àncora col tempo nuovo al primo buffer dopo la finestra di sospensione
+                        // del cambio di sezione (`ownClockPinQ`).
+                        self._linkTempoAdoptedQ = nil
+                        self._engineTempoQ = pending
+                        self._ownTimelineQ = nil
                         // L1.b sync investigation — abilita log DIRECTOR-ASSERT per 3 buffer
                         self._linkSyncLogBuffers = 3
 
@@ -3795,6 +4187,9 @@ class AudioEngine: ObservableObject {
                         // della prova A/B (decisione 9.1): in Release rende sempre falso e
                         // questo blocco è quello di sempre; in DEBUG salta W2 solo sul Follower
                         // con l'interruttore spento. Vedi `followerBoundaryTempoWriteSkipped`.
+                        // ⚠️ MARCATURA A386 · B2c-BIS — la stessa condizione salta W2, in ogni
+                        //    configurazione, anche quando il Follower è sul proprio orologio (DA
+                        //    SOLO, e la coda prima dell'arresto): da solo non scrive in Link.
                         if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle,
                            !self.followerBoundaryTempoWriteSkipped(bpm: pending) {
                             let sampleOffset = UInt32(offset)
