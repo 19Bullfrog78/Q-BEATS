@@ -311,9 +311,9 @@ LinkTransportSnapshot link_engine_read_transport_snapshot(LinkEngineHandle handl
 // (nessuno stato mai scritto). Uno spostamento negativo non scende sotto zero. A Link spento
 // non fa niente (linkEnabled = false nel report).
 // ⚠️ B2d: «1 ms, col segno alternato» non vale più. Il chiamante passa uno spostamento che gira
-//    su tre passi, +1 ms, −2 ms, +1 ms (`DirectorReannounceDecision`): l'ora fa T+1, T−1, T e
-//    non torna uguale prima di tre ripetizioni. Questa funzione non cambia: somma lo
-//    spostamento che riceve.
+//    su quattro passi, +1 ms, −2 ms, +3 ms, −2 ms (`DirectorReannounceDecision`): l'ora fa T+1,
+//    T−1, T+2, T e non torna uguale prima di quattro ripetizioni. Questa funzione non cambia:
+//    somma lo spostamento che riceve.
 typedef struct {
     bool     linkEnabled;
     bool     isPlaying;

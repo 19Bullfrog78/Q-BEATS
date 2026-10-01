@@ -406,7 +406,7 @@ class AudioEngine: ObservableObject {
     private var _heardTrackerQ: DirectorHeardTracker = .start
     private var _directorHeardQ: Bool = false
     private var _lastTimelineWriteCountQ: UInt64 = 0
-    /// B2d — il giro a tre valori della ripetizione (`DirectorReannounceDecision.Cycle`): prima
+    /// B2d — il giro a quattro valori della ripetizione (`DirectorReannounceDecision.Cycle`): prima
     /// era il segno alternato. Avanza solo quando il ponte ha scritto davvero.
     private var _reannounceCycleQ: DirectorReannounceDecision.Cycle = .start
     private var _reannounceCountQ: UInt64 = 0
@@ -1566,11 +1566,13 @@ class AudioEngine: ObservableObject {
     /// Il Direttore ripete il proprio stato: `DirectorReannounceDecision` decide se e con che
     /// segno, il ponte scrive `{isPlaying catturato, ora catturata ± 1 ms}` (da fermo l'ora dello
     /// stop). Log Q7: una riga a ogni cambio di «suona» o di motivo di salto, più una ogni 10.
-    /// ⚠️ B2d: il segno alternato e «± 1 ms» non valgono più. Lo spostamento gira su tre passi
-    ///    (+1 ms, −2 ms, +1 ms: l'ora fa T+1, T−1, T) e lo dà il tipo puro (`decision.shift`):
-    ///    quello provato dal banco è quello che va al ponte. Il giro avanza solo se il ponte ha
-    ///    scritto (`report.linkEnabled`): un passo contato e non scritto lascerebbe l'ora
-    ///    spostata. La riga porta in più `passo:` (0, 1, 2); quella «ogni 10» gira sui tre passi.
+    /// ⚠️ B2d: il segno alternato, «± 1 ms» e «una ogni 10» non valgono più. Lo spostamento gira
+    ///    su quattro passi (+1 ms, −2 ms, +3 ms, −2 ms: l'ora fa T+1, T−1, T+2, T) e lo dà il
+    ///    tipo puro (`decision.shift`): quello provato dal banco è quello che va al ponte. Il
+    ///    giro avanza solo se il ponte ha scritto (`report.linkEnabled`): un passo contato e non
+    ///    scritto lascerebbe l'ora spostata. La riga porta in più `passo:` (0, 1, 2, 3) ed esce
+    ///    al cambio di «suona» più una ogni 11 ripetizioni: una ogni 10, con un giro di quattro,
+    ///    mostrerebbe sempre gli stessi due passi; una ogni 11 li mostra tutti a turno.
     private func directorPulse(snapshot snap: LinkTransportSnapshot) {
         guard let lh = linkEngineHandle else { return }
         let decision = DirectorReannounceDecision(role: _linkMode,
@@ -1601,7 +1603,7 @@ class AudioEngine: ObservableObject {
             _reannounceCountQ += 1
             let changed = _lastReannouncedIsPlayingQ != isPlaying
             _lastReannouncedIsPlayingQ = isPlaying
-            if changed || _reannounceCountQ % 10 == 0 {
+            if changed || _reannounceCountQ % 11 == 0 {
                 os_log("[Q-BEATS][2D][DIRETTORE] ripetizione suona:%d oraPrima:%llu oraDopo:%llu segno:%{public}@ passo:%d startStopSync:%d ripetizioni:%llu",
                        log: .default, type: .default,
                        report.isPlaying ? 1 : 0, report.timeBefore, report.timeAfter,

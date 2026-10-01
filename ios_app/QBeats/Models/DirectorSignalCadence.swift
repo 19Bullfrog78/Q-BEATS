@@ -13,8 +13,9 @@ import Foundation
 // A 0,25 s (piu' il leeway: 0,30 s al massimo fra due letture) ogni ripetizione che arriva e'
 // vista da sola, qualunque sia la fase fra i due apparecchi; fra due colpi passa un secondo
 // piu' gli scarti, e la soglia di 3 s resta lontana due secondi. La seconda meta' e' il giro a
-// tre valori della ripetizione (`DirectorReannounceDecision`, B2d): due ripetizioni fra due
-// letture — una arrivata in ritardo insieme alla successiva — restano un cambio.
+// quattro valori della ripetizione (`DirectorReannounceDecision`, B2d): due ripetizioni fra due
+// letture — una arrivata in ritardo insieme alla successiva — restano un cambio, e cosi' la
+// ripetizione che arriva dopo una o due perse.
 // La soglia NON cambia (3,0 s, nel motore). La perdita vera si vede prima: l'ultimo colpo e'
 // letto entro 0,30 s dall'arrivo (prima: entro un secondo), e «non sento» esce alla prima
 // lettura oltre la soglia (prima: fino a un secondo dopo).

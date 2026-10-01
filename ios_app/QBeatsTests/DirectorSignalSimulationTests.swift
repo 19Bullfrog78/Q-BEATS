@@ -11,7 +11,9 @@ import XCTest
 // Due cose si possono scegliere, e sono le due meta' della correzione:
 //  · ogni quanto il Follower ascolta: 1 s (prima di B2d) o `DirectorSignalCadence` (0,25 s);
 //  · le ore che il Direttore scrive: due valori alternati (prima di B2d, `twoValueTimes`) o il
-//    giro a tre valori del tipo vero (`productionTimes`, da `DirectorReannounceDecision`).
+//    giro a quattro valori del tipo vero (`productionTimes`, da `DirectorReannounceDecision`).
+//    Il giro a tre valori (`threeValueTimes`) e' una strada scartata: sta qui solo per tenere
+//    scritto, con un test, perche' i valori sono quattro.
 // I test «…WithOneSecondListeningAndTwoValues…» tengono fermo IL DIFETTO: con la cadenza e le
 // ore di prima, lo stesso banco perde il Direttore. Sono la prova che i test di produzione
 // sarebbero rossi senza la correzione. I test «…Production…» usano le costanti e il tipo che
@@ -187,7 +189,7 @@ final class DirectorSignalSimulationTests: XCTestCase {
 
     /// LA CORREZIONE: stessi arrivi, cadenza d'ascolto e ore di produzione. Ogni ripetizione e'
     /// un colpo; mai «non sento»; fra due colpi al piu' un secondo e un quarto.
-    func testD7SchemaWithProductionListeningAndThreeValuesNeverLosesTheDirector() {
+    func testD7SchemaWithProductionListeningAndFourValuesNeverLosesTheDirector() {
         let outcome = simulate(times: productionTimes(32), arrivals: d7Arrivals(),
                                sampleTimes: grid(period: listen, offset: 15 * ms, duration: 30 * second))
         XCTAssertEqual(outcome.samples, 120)
@@ -199,7 +201,7 @@ final class DirectorSignalSimulationTests: XCTestCase {
     }
 
     /// Ognuna delle due meta', da sola, regge lo schema di D7: l'ascolto fitto vede ogni
-    /// ripetizione; il giro a tre valori rende un colpo anche due ripetizioni fra due letture
+    /// ripetizione; il giro a quattro valori rende un colpo anche due ripetizioni fra due letture
     /// (un colpo ogni due secondi: un secondo solo di margine sulla soglia).
     func testD7SchemaEachHalfOfTheFixAloneHolds() {
         let listeningOnly = simulate(times: twoValueTimes(32), arrivals: d7Arrivals(),
@@ -207,11 +209,11 @@ final class DirectorSignalSimulationTests: XCTestCase {
         XCTAssertEqual(listeningOnly.losses, 0)
         XCTAssertEqual(listeningOnly.maxGap, second + listen)
 
-        let threeValuesOnly = simulate(times: productionTimes(32), arrivals: d7Arrivals(),
-                                       sampleTimes: grid(period: second, offset: 15 * ms, duration: 30 * second))
-        XCTAssertEqual(threeValuesOnly.losses, 0)
-        XCTAssertEqual(threeValuesOnly.hits, 16)
-        XCTAssertEqual(threeValuesOnly.maxGap, 2 * second)
+        let fourValuesOnly = simulate(times: productionTimes(32), arrivals: d7Arrivals(),
+                                      sampleTimes: grid(period: second, offset: 15 * ms, duration: 30 * second))
+        XCTAssertEqual(fourValuesOnly.losses, 0)
+        XCTAssertEqual(fourValuesOnly.hits, 16)
+        XCTAssertEqual(fourValuesOnly.maxGap, 2 * second)
     }
 
     /// Lo schema di D7 dentro la macchina vera, da Ready (FUORI armato sulla canzone 1): col
@@ -264,8 +266,8 @@ final class DirectorSignalSimulationTests: XCTestCase {
         XCTAssertEqual(outcome.maxGap, 3 * second + listen)
     }
 
-    /// Col giro a tre valori le due ripetizioni arrivate insieme sono un colpo: il vuoto piu'
-    /// lungo e' di due secondi, la soglia non si tocca.
+    /// Col giro a quattro valori le due ripetizioni arrivate insieme sono un colpo: il vuoto
+    /// piu' lungo e' di due secondi, la soglia non si tocca.
     func testALateRepetitionNeverLosesTheDirectorInProduction() {
         let outcome = simulate(times: productionTimes(32), arrivals: lateArrivals(),
                                sampleTimes: grid(period: listen, offset: 0, duration: 30 * second))
@@ -275,7 +277,73 @@ final class DirectorSignalSimulationTests: XCTestCase {
         XCTAssertEqual(outcome.maxGap, 2 * second)
     }
 
-    // MARK: - 3. Tutte le fasi fra i due battiti, con lo scarto dei timer
+    // MARK: - 3. Ripetizioni perse di fila: perche' il giro ha quattro valori e non tre
+
+    /// La strada scartata: tre valori, +1 ms, −2 ms, +1 ms (T+1, T−1, T). L'ora torna uguale
+    /// alla terza ripetizione, cioe' sulla soglia di 3 s.
+    private func threeValueTimes(_ count: Int) -> [UInt64] {
+        var times: [UInt64] = []
+        var value = base
+        for index in 0..<count {
+            if index % 3 == 1 {
+                value -= 2 * ms
+            } else {
+                value += ms
+            }
+            times.append(value)
+        }
+        return times
+    }
+
+    /// Arrivi regolari, ogni secondo; le ripetizioni in `lost` non arrivano mai.
+    private func arrivals(losing lost: Set<Int>) -> [UInt64] {
+        var arrivals: [UInt64] = []
+        for n in 0..<32 {
+            let nominal: UInt64 = UInt64(n) * second
+            arrivals.append(lost.contains(n) ? UInt64.max : nominal + 240 * ms)
+        }
+        return arrivals
+    }
+
+    /// Una ripetizione persa: la successiva porta un'ora nuova, due secondi fra due colpi.
+    func testOneLostRepetitionNeverLosesTheDirectorInProduction() {
+        let outcome = simulate(times: productionTimes(32), arrivals: arrivals(losing: [6]),
+                               sampleTimes: grid(period: listen, offset: 0, duration: 30 * second))
+        XCTAssertEqual(outcome.losses, 0)
+        XCTAssertEqual(outcome.maxGap, 2 * second)
+    }
+
+    /// Due ripetizioni perse di fila: la terza arriva sulla soglia e porta un'ora che non e'
+    /// quella di prima. E' un colpo, e il Direttore non si perde.
+    func testTwoLostRepetitionsInARowAreStillHeardWhenTheThirdArrivesInProduction() {
+        let outcome = simulate(times: productionTimes(32), arrivals: arrivals(losing: [6, 7]),
+                               sampleTimes: grid(period: listen, offset: 0, duration: 30 * second))
+        XCTAssertEqual(outcome.losses, 0)
+        XCTAssertEqual(outcome.maxGap, 3 * second)
+        XCTAssertTrue(outcome.heardAtTheEnd)
+    }
+
+    /// Lo stesso caso con tre valori: la terza ripetizione riporta l'ora di tre giri prima, non
+    /// conta, ed esce «non sento» con il Direttore che e' tornato. Per questo sono quattro.
+    func testWithThreeValuesTwoLostRepetitionsInARowWouldLoseTheDirector() {
+        let outcome = simulate(times: threeValueTimes(32), arrivals: arrivals(losing: [6, 7]),
+                               sampleTimes: grid(period: listen, offset: 0, duration: 30 * second))
+        XCTAssertEqual(outcome.losses, 1)
+        XCTAssertEqual(outcome.firstLossAt, 8 * second + listen)
+        XCTAssertEqual(outcome.maxGap, 4 * second)
+    }
+
+    /// Tre ripetizioni perse di fila sono piu' di tre secondi di silenzio: e' una perdita vera,
+    /// e «non sento» esce alla soglia, come deve.
+    func testThreeLostRepetitionsInARowAreATrueLoss() {
+        let outcome = simulate(times: productionTimes(32), arrivals: arrivals(losing: [6, 7, 8]),
+                               sampleTimes: grid(period: listen, offset: 0, duration: 30 * second))
+        XCTAssertEqual(outcome.losses, 1)
+        XCTAssertEqual(outcome.firstLossAt, 8 * second + listen)
+        XCTAssertTrue(outcome.heardAtTheEnd)
+    }
+
+    // MARK: - 4. Tutte le fasi fra i due battiti, con lo scarto dei timer
 
     private struct Sweep {
         var phasesWithALoss: [Int] = []
@@ -341,7 +409,7 @@ final class DirectorSignalSimulationTests: XCTestCase {
         XCTAssertLessThan(result.worstGap, second + second / 2)
     }
 
-    // MARK: - 4. La perdita vera: il Direttore smette
+    // MARK: - 5. La perdita vera: il Direttore smette
 
     /// Il Direttore ripete undici volte e poi tace. Per ogni fase: i tick fra l'ultimo arrivo e
     /// «non sento».

@@ -38,7 +38,7 @@ import Foundation
 // conta due volte lo stesso cambio.
 //
 // ⚠️ B2d (mandato «A386 · FASE B2d») — due frasi qui sopra sono di prima. «`{vero, T ± 1 ms}`»:
-//    la ripetizione ora gira su tre valori, T+1 ms, T−1 ms, T (`DirectorReannounceDecision`).
+//    la ripetizione ora gira su quattro valori, T+1, T−1, T+2 ms, T (`DirectorReannounceDecision`).
 //    «A ogni battito» / «il battito a 1 s»: il Follower legge la coppia ogni 0,25 s
 //    (`DirectorSignalCadence`). LA REGOLA DI QUESTO TIPO NON CAMBIA: un colpo e' un cambio fra
 //    due letture. Proprio per questo, con l'ascolto a 1 s e due valori alternati, due
