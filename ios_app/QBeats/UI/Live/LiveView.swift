@@ -891,15 +891,21 @@ struct LiveView: View {
     /// proposta) e il runner (la scaletta). «Show aperto» è la presenza del runner nello slot:
     /// l'unico segnale che la stanza sa dare, e dentro il player è sempre vero (gate
     /// `.metronome`). `nil` a chi comanda il trasporto: velo e fascia di sempre.
+    /// ⚠️ A386 · B2c (§3.f) — stato, ragione, «sento il Direttore», «Searching…» e «band playing»
+    ///    si leggono da UN valore solo (`followerSync`), letto UNA volta qui: il motore lo scrive
+    ///    una volta per passo, e la faccia non si calcola più con uno di loro nuovo e gli altri
+    ///    vecchi (collaudo, log A1: «ready … signalOKBandPlaying» un fotogramma prima di «inSync»).
+    ///    Start Stop Sync resta a parte: è un interruttore dell'utente, non cambia con la macchina.
     private func followerVeilDecision() -> FollowerVeilDecision? {
         guard audioEngine.followerDecision.isFollower else { return nil }
-        return FollowerVeilDecision(state: audioEngine.followerSync.state,
-                                    reason: audioEngine.followerSync.outReason,
+        let sync = audioEngine.followerSync
+        return FollowerVeilDecision(state: sync.state,
+                                    reason: sync.outReason,
                                     showOpen: room.runner != nil,
-                                    directorHeard: audioEngine.directorHeard,
-                                    searching: audioEngine.directorSearching,
+                                    directorHeard: sync.directorHeard,
+                                    searching: sync.directorSearching,
                                     startStopSyncEnabled: audioEngine.linkStartStopSyncEnabled,
-                                    linkSessionPlaying: audioEngine.linkSessionPlaying,
+                                    linkSessionPlaying: sync.linkSessionPlaying,
                                     proposal: room.rientraProposal,
                                     songNames: runner.songNames)
     }

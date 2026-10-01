@@ -25,6 +25,17 @@ import Foundation
 // resterebbe per sempre. Vale dal PRIMO campione dopo che Link si accende (o dall'avvio) fino
 // al primo verdetto: il primo colpo, oppure una soglia intera senza colpi. Mai oltre la soglia.
 // `firstSampleAt` e' il tick di quel primo campione; a Link spento si azzera con tutto il resto.
+//
+// B2c (mandato «A386 · FASE B2c», §3.f) — UN PLAY O UNO STOP RICEVUTO E' UN COLPO, SUBITO.
+// Il battito a 1 s vede il Direttore con un ritardo fino a un secondo: al collaudo dell'01/10
+// (log `A386_C2_iPad.txt`, 14:17:36) lo Stop del Direttore appena ricevuto portava ancora
+// «No director signal», e «Director signal OK» arrivava un secondo dopo. Il richiamo avvio/stop
+// di Link su un Follower non nasce mai da una scrittura propria (il Follower non scrive lo
+// stato avvio/stop: A360 lo stop, A361 l'avvio, W4 l'ingresso): e' un altro apparecchio della
+// sessione che ha cambiato il trasporto, cioe' la stessa cosa che il battito chiama colpo.
+// `observeTransportEvent` lo registra nell'istante in cui arriva, anche senza una cattura
+// precedente, e tiene la cattura del richiamo come ultimo campione: il battito successivo non
+// conta due volte lo stesso cambio.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct DirectorHeardSample: Equatable {
     /// `enabled_` del ponte: a `false` i due campi sotto sono zero e non dicono niente.
@@ -98,5 +109,20 @@ struct DirectorHeardTracker: Equatable {
         }
         return Verdict(heard: heard, hit: hit, searching: searching,
                        next: DirectorHeardTracker(lastSample: sample, lastHitAt: hitAt, firstSampleAt: firstSampleAt))
+    }
+
+    /// B2c — un Play o uno Stop ricevuto dalla sessione Link (il richiamo avvio/stop), non scritto
+    /// da questo apparecchio: e' un colpo nell'istante in cui arriva. `sample` e' la cattura letta
+    /// nel richiamo. Si sente da subito e per una soglia, come dopo ogni colpo; non si cerca piu'.
+    /// A Link spento dall'app la cattura non dice niente e si riparte da capo, come in `observe`.
+    func observeTransportEvent(sample: DirectorHeardSample,
+                               now: UInt64,
+                               thresholdTicks: UInt64) -> Verdict {
+        guard sample.linkEnabled else {
+            return Verdict(heard: false, hit: false, searching: false, next: .start)
+        }
+        return Verdict(heard: thresholdTicks > 0, hit: true, searching: false,
+                       next: DirectorHeardTracker(lastSample: sample, lastHitAt: now,
+                                                  firstSampleAt: firstSampleAt ?? now))
     }
 }

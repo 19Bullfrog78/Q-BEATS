@@ -226,4 +226,103 @@ final class DirectorHeardTrackerTests: XCTestCase {
                                                    thresholdTicks: 0, ownTimelineWriteSinceLastSample: false)
         XCTAssertFalse(v.searching)
     }
+
+    // MARK: - B2c: un Play o uno Stop ricevuto e' un colpo, subito
+
+    func testTransportEventIsAHitEvenWithoutAPreviousSample() {
+        let v = DirectorHeardTracker.start.observeTransportEvent(sample: sample(playing: false, time: 4_000),
+                                                                 now: 10 * second, thresholdTicks: threshold)
+        XCTAssertTrue(v.hit)
+        XCTAssertTrue(v.heard)
+        XCTAssertFalse(v.searching)
+        XCTAssertEqual(v.next.lastSample, sample(playing: false, time: 4_000))
+        XCTAssertEqual(v.next.lastHitAt, 10 * second)
+        XCTAssertEqual(v.next.firstSampleAt, 10 * second)
+    }
+
+    /// Il caso del collaudo (log C2, 14:17:36): non si sentiva piu', arriva lo Stop del
+    /// Direttore — si sente nello stesso istante, senza aspettare il battito successivo.
+    func testTransportEventIsHeardAtOnceAfterALongSilence() {
+        let lastHit = 5 * second
+        let tracker = DirectorHeardTracker(lastSample: sample(playing: true, time: 7_000),
+                                           lastHitAt: lastHit, firstSampleAt: second)
+        let silent = tracker.observe(sample: sample(playing: true, time: 7_000), now: lastHit + threshold + 10 * second,
+                                     thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(silent.heard)
+        let eventAt = lastHit + threshold + 10 * second + 1
+        let v = silent.next.observeTransportEvent(sample: sample(playing: false, time: 90_000),
+                                                  now: eventAt, thresholdTicks: threshold)
+        XCTAssertTrue(v.hit)
+        XCTAssertTrue(v.heard)
+        XCTAssertEqual(v.next.lastHitAt, eventAt)
+        XCTAssertEqual(v.next.firstSampleAt, second)
+    }
+
+    func testTransportEventIsHeardForOneThresholdLikeAnyHit() {
+        let eventAt = 20 * second
+        let event = DirectorHeardTracker.start.observeTransportEvent(sample: sample(playing: true, time: 9_000),
+                                                                     now: eventAt, thresholdTicks: threshold)
+        let before = event.next.observe(sample: sample(playing: true, time: 9_000), now: eventAt + threshold - 1,
+                                        thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(before.heard)
+        XCTAssertFalse(before.hit)
+        let atEdge = event.next.observe(sample: sample(playing: true, time: 9_000), now: eventAt + threshold,
+                                        thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(atEdge.heard)
+        XCTAssertFalse(atEdge.searching)
+    }
+
+    /// La cattura del richiamo diventa l'ultimo campione: il battito successivo, con la stessa
+    /// coppia, non conta lo stesso cambio una seconda volta; una coppia nuova e' un colpo nuovo.
+    func testThePulseAfterATransportEventDoesNotCountTheSameChangeTwice() {
+        let tracker = DirectorHeardTracker(lastSample: sample(playing: true, time: 7_000), lastHitAt: nil,
+                                           firstSampleAt: second)
+        let event = tracker.observeTransportEvent(sample: sample(playing: false, time: 8_000),
+                                                  now: 30 * second, thresholdTicks: threshold)
+        let samePair = event.next.observe(sample: sample(playing: false, time: 8_000), now: 31 * second,
+                                          thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(samePair.hit)
+        XCTAssertTrue(samePair.heard)
+        XCTAssertEqual(samePair.next.lastHitAt, 30 * second)
+        let newPair = event.next.observe(sample: sample(playing: false, time: 8_000 + 24_000), now: 31 * second,
+                                         thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(newPair.hit)
+        XCTAssertEqual(newPair.next.lastHitAt, 31 * second)
+    }
+
+    func testTransportEventEndsSearching() {
+        let first = DirectorHeardTracker.start.observe(sample: sample(playing: false, time: 1_000), now: second,
+                                                       thresholdTicks: threshold,
+                                                       ownTimelineWriteSinceLastSample: false)
+        XCTAssertTrue(first.searching)
+        let event = first.next.observeTransportEvent(sample: sample(playing: true, time: 2_000),
+                                                     now: second + 1, thresholdTicks: threshold)
+        XCTAssertFalse(event.searching)
+        XCTAssertTrue(event.heard)
+        XCTAssertEqual(event.next.firstSampleAt, second)
+        // dopo il colpo non si torna a cercare, nemmeno oltre la soglia
+        let lost = event.next.observe(sample: sample(playing: true, time: 2_000), now: second + 1 + threshold,
+                                      thresholdTicks: threshold, ownTimelineWriteSinceLastSample: false)
+        XCTAssertFalse(lost.heard)
+        XCTAssertFalse(lost.searching)
+    }
+
+    func testTransportEventWithLinkOffIsNotAHitAndResets() {
+        let tracker = DirectorHeardTracker(lastSample: sample(time: 7_000), lastHitAt: 5 * second,
+                                           firstSampleAt: second)
+        let v = tracker.observeTransportEvent(sample: sample(playing: false, time: 0, link: false),
+                                              now: 6 * second, thresholdTicks: threshold)
+        XCTAssertFalse(v.hit)
+        XCTAssertFalse(v.heard)
+        XCTAssertFalse(v.searching)
+        XCTAssertEqual(v.next, .start)
+    }
+
+    func testTransportEventWithZeroThresholdIsAHitButNeverHeard() {
+        let v = DirectorHeardTracker.start.observeTransportEvent(sample: sample(time: 1_000),
+                                                                 now: second, thresholdTicks: 0)
+        XCTAssertTrue(v.hit)
+        XCTAssertFalse(v.heard)
+        XCTAssertFalse(v.searching)
+    }
 }
