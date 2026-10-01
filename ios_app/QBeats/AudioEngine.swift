@@ -433,17 +433,33 @@ class AudioEngine: ObservableObject {
     /// propria canzone (`applyBPM`, cambio di sezione al battere). `nil` = il tempo in corso è
     /// della propria canzone. Alla soglia di DA SOLO dice se c'è un tempo da ridare al motore.
     private var _linkTempoAdoptedQ: Double? = nil
-    /// Per la riga al secondo di DA SOLO: il campione del flusso d'uscita su cui è caduto l'ultimo
-    /// battito (indice del buffer × 512 + scostamento), scritto a ogni battito; e il riferimento
-    /// (battito, campione) della riga precedente, da cui si misura il tempo.
+    /// Il tempo che il metronomo sta suonando ADESSO: lo scrive chi dà un tempo al DSP
+    /// (`applyBPM`, il cambio di sezione al battere, il richiamo del tempo di Link quando adotta,
+    /// il ritorno al tempo della sezione alla soglia di DA SOLO). Diverso da `_audioBPM` solo nel
+    /// battito fra lo scambio di sezione e il battere, e quando il tempo viene da Link. È il
+    /// tempo con cui si àncora la linea propria.
+    private var _engineTempoQ: Double = 120.0
+    /// LA LINEA DEL TEMPO PROPRIA (`OwnClockTimeline`): in DA SOLO prende il posto di quella di
+    /// Link nella correzione a ogni buffer, e tiene il click sull'ora dell'apparecchio anche
+    /// quando i buffer arrivano in ritardo. `nil` = da ancorare al prossimo buffer del tratto:
+    /// all'ingresso in DA SOLO e a ogni cambio di tempo della propria canzone. Attraversa
+    /// un'interruzione (è fatta di ore); la butta `stopSync`.
+    private var _ownTimelineQ: OwnClockTimeline? = nil
+    /// L'ora d'uscita del buffer in corso (`scheduleNextBuffer`), per l'ora dell'ultimo battito.
+    private var _bufferOutTicksQ: UInt64 = 0
+    /// Per la riga al secondo di DA SOLO: dove è caduto l'ultimo battito — il campione del flusso
+    /// d'uscita (indice del buffer × 512 + scostamento) e l'ora d'uscita — scritti a ogni battito;
+    /// e il riferimento (battito, campione, ora) della riga precedente, da cui si misura il tempo.
     private var _lastBeatSampleQ: Int64 = 0
+    private var _lastBeatOutTicksQ: UInt64 = 0
     private var _ownClockLogRefTickQ: Int = 0
     private var _ownClockLogRefSampleQ: Int64 = 0
-    /// Quante correzioni di fase non eseguite e quanti cambi di tempo di sessione ignorati
-    /// dall'ultima riga al secondo; e se la riga del primo buffer senza correzione è già uscita.
-    private var _ownClockSkippedPhaseQ: Int = 0
+    private var _ownClockLogRefOutTicksQ: UInt64 = 0
+    /// Dall'ultima riga al secondo: quanti buffer riportati sulla linea propria, il ritardo più
+    /// grande riassorbito (ms), quanti cambi di tempo di sessione ignorati.
+    private var _ownClockPinsQ: Int = 0
+    private var _ownClockMaxLagMsQ: Double = 0.0
     private var _ownClockIgnoredTempoQ: Int = 0
-    private var _ownClockPhaseEdgeLoggedQ: Bool = false
     private var transportPulseTimer: DispatchSourceTimer? = nil
     private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
@@ -644,6 +660,7 @@ class AudioEngine: ObservableObject {
                     // Il tempo in corso viene dalla sessione: alla soglia di DA SOLO il motore
                     // torna a quello della propria sezione (`followerEnterOwnClockQ`).
                     engine._linkTempoAdoptedQ = bpm
+                    engine._engineTempoQ = bpm
                     if let h = engine.metronomeHandle {
                         metronome_setBPM(h, bpm)
                     }
@@ -1836,13 +1853,17 @@ class AudioEngine: ObservableObject {
                 midi_engine_set_beat_position(mh, preChangeBeatPos)
             }
             _linkTempoAdoptedQ = nil
+            _engineTempoQ = bpm
             DispatchQueue.main.async { [weak self] in self?.currentBPM = bpm }
         }
-        _ownClockSkippedPhaseQ = 0
+        // La linea propria si àncora al primo buffer del tratto (`ownClockPinQ`).
+        _ownTimelineQ = nil
+        _ownClockPinsQ = 0
+        _ownClockMaxLagMsQ = 0.0
         _ownClockIgnoredTempoQ = 0
-        _ownClockPhaseEdgeLoggedQ = false
         _ownClockLogRefTickQ = beatTickCounter
         _ownClockLogRefSampleQ = _lastBeatSampleQ
+        _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
         let adoptedText: String = adopted.map { String(format: "%.4f", $0) } ?? "nessuno"
         os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio DA ADESSO - tempoSezione:%.2f tempoAdottatoDaLink:%{public}@ tempoRidato:%d battito:%d sezione:%d/%d buffer:%d",
                log: .default, type: .default,
@@ -1859,58 +1880,95 @@ class AudioEngine: ObservableObject {
                sessionBPM, _audioBPM, describe(_followerSyncQ), beatTickCounter)
     }
 
-    /// Su audioQueue, da `scheduleNextBuffer`: la correzione di fase di questo buffer non si
-    /// esegue (non si chiede nemmeno a Link). Una riga al PRIMO buffer di ogni tratto sul proprio
-    /// orologio; gli altri si contano e il conto esce nella riga al secondo — a un buffer ogni
-    /// 10,7 ms una riga per buffer sarebbero 94 righe al secondo.
-    private func ownClockPhaseSkippedQ() {
-        _ownClockSkippedPhaseQ += 1
-        guard !_ownClockPhaseEdgeLoggedQ else { return }
-        _ownClockPhaseEdgeLoggedQ = true
-        os_log("[Q-BEATS][2D][DA-SOLO] correzione di fase NON ESEGUITA da questo buffer - buffer:%d battito:%d stato:%{public}@ - il click resta sul proprio orologio (il conto nella riga al secondo)",
-               log: .default, type: .default,
-               bufferCount, beatTickCounter, describe(_followerSyncQ))
+    /// Su audioQueue, da `scheduleNextBuffer`, al posto della correzione di fase di Link: la
+    /// posizione si riporta sulla LINEA DEL TEMPO PROPRIA (`OwnClockTimeline`), non su quella di
+    /// Link, che qui non si chiama nemmeno. La meccanica è quella di IN SYNC — a ogni buffer
+    /// sequencer e metronomo vanno sul battito previsto per l'ora d'uscita, con le stesse due
+    /// chiamate — e serve alla stessa cosa: tenere il click sull'ora dell'apparecchio quando i
+    /// buffer arrivano in ritardo (collaudo dell'01/10/2026: 267 ms accumulati in venti secondi
+    /// di DA SOLO mentre si apre il Centro di Controllo). Cambia solo la linea: un'àncora e il
+    /// tempo della propria sezione, senza rete e senza altri apparecchi.
+    /// Al primo buffer del tratto la linea si àncora dove IN SYNC ha lasciato la posizione
+    /// (nessun salto), con una riga di log; dal secondo in poi si riporta e si conta. `mh` e `h`
+    /// sono gli stessi che usa il ramo di Link.
+    private func ownClockPinQ(midi mh: MIDIEngineHandle,
+                              metronome h: MetronomeHandle,
+                              hostTimeAtOutput: UInt64,
+                              currentBeat: Double) {
+        guard let timeline = _ownTimelineQ else {
+            _ownTimelineQ = OwnClockTimeline(anchorTicks: hostTimeAtOutput,
+                                             anchorBeat: currentBeat,
+                                             bpm: _engineTempoQ)
+            os_log("[Q-BEATS][2D][DA-SOLO] correzione di fase di Link NON ESEGUITA da questo buffer - linea propria ancorata ora:%llu battito:%.4f tempo:%.2f buffer:%d stato:%{public}@",
+                   log: .default, type: .default,
+                   hostTimeAtOutput, currentBeat, _engineTempoQ, bufferCount, describe(_followerSyncQ))
+            return
+        }
+        let ownBeat = timeline.beat(atTicks: hostTimeAtOutput, ticksPerSecond: ticksPerSecond)
+        midi_engine_set_beat_position(mh, ownBeat)
+        metronome_set_beat_position_time_only(h, ownBeat)
+        _ownClockPinsQ += 1
+        let lagMs = abs(OwnClockTimeline.lagMilliseconds(ownBeat: ownBeat, localBeat: currentBeat, bpm: timeline.bpm))
+        if lagMs > _ownClockMaxLagMsQ {
+            _ownClockMaxLagMsQ = lagMs
+        }
     }
 
     /// Su audioQueue, dal battito a 1 s. In DA SOLO, una riga al secondo per misurare il tempo
     /// al collaudo senza le righe «Phase sync» (§3.d). Formato fisso, campi `chiave:valore`:
     ///   tempoMisurato   battiti al minuto fra l'ultimo battito di questa riga e quello della
-    ///                   riga precedente, contati sui campioni d'uscita (`ClickTempoMeasure`);
-    ///                   `-` se fra le due righe non è uscito nessun battito
+    ///                   riga precedente, contati sull'ORA d'uscita dei due battiti
+    ///                   (`ClickTempoMeasure`): è il tempo che si sente. Su un secondo oscilla di
+    ///                   qualche decimo. `-` se fra le due righe non è uscito nessun battito
+    ///   tempoCampioni   lo stesso conto sui campioni consegnati al player: esatto a regime; sale
+    ///                   per un attimo quando un buffer arriva in ritardo e il click recupera
     ///   tempoSezione    il tempo della sezione in corso della propria canzone (`_audioBPM`)
+    ///   tempoLinea      il tempo della linea propria (`OwnClockTimeline`); `-` se da ancorare
     ///   tempoSessione   il tempo della sessione Link letto dal battito (0 a ponte spento): si
     ///                   legge e basta, per vedere nel log che cosa viene ignorato
     ///   battito         battiti suonati dall'avvio del motore (`beatTickCounter`)
     ///   sezione         battito dentro la sezione / battiti della sezione
     ///   battuta         battuta.battito dentro la sezione; `-` se la sezione non conta
     ///   buffer          buffer consegnati dall'avvio del motore
-    ///   fasiNonEseguite correzioni di fase non eseguite dall'ultima riga
+    ///   riportati       buffer riportati sulla linea propria dall'ultima riga
+    ///   ritardoMax_ms   il ritardo più grande dei buffer sull'ora, riassorbito dall'ultima riga
     ///   tempiIgnorati   cambi di tempo della sessione ignorati dall'ultima riga
     ///   motore          in-moto | interrotto | fermo
     private func logOwnClockSecondQ(sessionTempo: Double) {
         guard case .alone = _followerSyncQ else { return }
         // Dopo un riavvio del motore (ripresa da un'interruzione) i contatori ripartono da zero:
         // il riferimento vecchio non vale più.
-        if beatTickCounter < _ownClockLogRefTickQ || _lastBeatSampleQ < _ownClockLogRefSampleQ {
+        if beatTickCounter < _ownClockLogRefTickQ
+            || _lastBeatSampleQ < _ownClockLogRefSampleQ
+            || _lastBeatOutTicksQ < _ownClockLogRefOutTicksQ {
             _ownClockLogRefTickQ = beatTickCounter
             _ownClockLogRefSampleQ = _lastBeatSampleQ
+            _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
         }
-        let measured = ClickTempoMeasure.bpm(beats: beatTickCounter - _ownClockLogRefTickQ,
-                                             samples: _lastBeatSampleQ - _ownClockLogRefSampleQ,
-                                             sampleRate: sampleRate)
-        let measuredText: String = measured.map { String(format: "%.2f", $0) } ?? "-"
+        let beats = beatTickCounter - _ownClockLogRefTickQ
+        let measured = ClickTempoMeasure.bpm(beats: beats,
+                                             ticks: _lastBeatOutTicksQ - _ownClockLogRefOutTicksQ,
+                                             ticksPerSecond: ticksPerSecond)
+        let measuredText: String = measured.map { String(format: "%.1f", $0) } ?? "-"
+        let bySamples = ClickTempoMeasure.bpm(beats: beats,
+                                              samples: _lastBeatSampleQ - _ownClockLogRefSampleQ,
+                                              sampleRate: sampleRate)
+        let bySamplesText: String = bySamples.map { String(format: "%.2f", $0) } ?? "-"
+        let lineText: String = _ownTimelineQ.map { String(format: "%.2f", $0.bpm) } ?? "-"
         let position = ClickTempoMeasure.barPosition(sectionBeat: _sectionBeatCounter,
                                                      beatsPerBar: _beatsPerBarQ)
         let positionText: String = position.map { "\($0.bar).\($0.beatInBar)" } ?? "-"
         let engineText: String = isRunning ? "in-moto" : (isAudioInterrupted ? "interrotto" : "fermo")
-        os_log("[Q-BEATS][2D][DA-SOLO] al-secondo tempoMisurato:%{public}@ tempoSezione:%.2f tempoSessione:%.2f battito:%d sezione:%d/%d battuta:%{public}@ buffer:%d fasiNonEseguite:%d tempiIgnorati:%d motore:%{public}@",
+        os_log("[Q-BEATS][2D][DA-SOLO] al-secondo tempoMisurato:%{public}@ tempoCampioni:%{public}@ tempoSezione:%.2f tempoLinea:%{public}@ tempoSessione:%.2f battito:%d sezione:%d/%d battuta:%{public}@ buffer:%d riportati:%d ritardoMax_ms:%.1f tempiIgnorati:%d motore:%{public}@",
                log: .default, type: .default,
-               measuredText, _audioBPM, sessionTempo,
+               measuredText, bySamplesText, _audioBPM, lineText, sessionTempo,
                beatTickCounter, _sectionBeatCounter, _sectionTotalBeats, positionText,
-               bufferCount, _ownClockSkippedPhaseQ, _ownClockIgnoredTempoQ, engineText)
+               bufferCount, _ownClockPinsQ, _ownClockMaxLagMsQ, _ownClockIgnoredTempoQ, engineText)
         _ownClockLogRefTickQ = beatTickCounter
         _ownClockLogRefSampleQ = _lastBeatSampleQ
-        _ownClockSkippedPhaseQ = 0
+        _ownClockLogRefOutTicksQ = _lastBeatOutTicksQ
+        _ownClockPinsQ = 0
+        _ownClockMaxLagMsQ = 0.0
         _ownClockIgnoredTempoQ = 0
     }
 
@@ -2489,8 +2547,11 @@ class AudioEngine: ObservableObject {
             }
             metronome_setBPM(h, bpm)
             self._audioBPM = bpm
-            // A386 · B2c — il tempo in corso è di nuovo quello della propria canzone.
+            // A386 · B2c — il tempo in corso è di nuovo quello della propria canzone; una linea
+            // propria ancorata col tempo di prima non vale più.
             self._linkTempoAdoptedQ = nil
+            self._engineTempoQ = bpm
+            self._ownTimelineQ = nil
             if let mh = self.midiEngineHandle {
                 // Strada E (Task D fix #2) — re-anchor MIDI engine beat position
                 // attraverso il cambio BPM. MIDISequencer::setBPM ricalcola
@@ -3156,7 +3217,8 @@ class AudioEngine: ObservableObject {
             // A386 · B2c — ogni arresto abbassa l'orologio proprio: da qui il motore è fermo (o lo
             // era già), e a motore fermo il Follower FUORI segue Link come sempre
             // (`FollowerLinkFollowDecision`). Prima del `guard` qui sotto: vale anche se il motore
-            // era già fermo.
+            // era già fermo. Con lui finisce la linea propria.
+            self._ownTimelineQ = nil
             if self._ownClockUntilStopQ {
                 self._ownClockUntilStopQ = false
                 os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio FINITO - arresto del motore - stato:%{public}@ battito:%d buffer:%d",
@@ -3875,6 +3937,9 @@ class AudioEngine: ObservableObject {
                                      + bufferDurationTicks
                 let currentBeat = midi_engine_get_beat_position(mh)
                 var newBeat: Double = 0.0
+                // A386 · B2c — l'ora d'uscita di questo buffer, per l'ora dell'ultimo battito
+                // (riga al secondo di DA SOLO). Una scrittura di un intero, su questa coda.
+                self._bufferOutTicksQ = hostTimeAtOutput
                 if self.linkSyncSkipBuffers > 0 {
                     self.linkSyncSkipBuffers -= 1
                     os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
@@ -3895,18 +3960,21 @@ class AudioEngine: ObservableObject {
                     link_engine_assert_session_state(lh, hostTimeAtOutput,
                                                     currentBeat, _audioBPM)
                 } else if !self.followsLinkQ() {
-                    // A386 · FASE B2c (2D) — DA SOLO LA CORREZIONE DI FASE NON SI ESEGUE.
+                    // A386 · FASE B2c (2D) — DA SOLO LA CORREZIONE DI FASE DI LINK NON SI ESEGUE.
                     // È la seconda delle due strade da cui la sessione Link arriva al click del
                     // Follower, ed è quella che ne fa il tempo: in IN SYNC `link_engine_sync_phase`
                     // (ramo qui sotto) riporta la posizione sulla linea del tempo di Link a ogni
                     // buffer, e il click va al tempo della SESSIONE qualunque sia il tempo del
                     // metronomo (collaudo dell'01/10/2026: 4851 correzioni su 4867 buffer, e 141
                     // al posto di 121 dal ricollegamento). In DA SOLO — e nella coda prima
-                    // dell'arresto — non si chiama nemmeno Link: sequencer e metronomo proseguono
-                    // dal punto in cui sono, al tempo della propria sezione, senza salti; il
-                    // contatore di sezione continua a contare i battiti che escono. Decisione
-                    // pura `FollowerLinkFollowDecision`, letta dalla copia di coda della macchina.
-                    self.ownClockPhaseSkippedQ()
+                    // dell'arresto — Link non si chiama nemmeno: la posizione si riporta, con la
+                    // stessa meccanica, sulla LINEA DEL TEMPO PROPRIA (`ownClockPinQ`,
+                    // `OwnClockTimeline`), fatta dell'ora dell'apparecchio e del tempo della
+                    // propria sezione. Il contatore di sezione continua a contare i battiti che
+                    // escono. Decisione pura `FollowerLinkFollowDecision`, letta dalla copia di
+                    // coda della macchina.
+                    self.ownClockPinQ(midi: mh, metronome: h,
+                                      hostTimeAtOutput: hostTimeAtOutput, currentBeat: currentBeat)
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     // Bug 2.b — solo timeline a campioni: la fase di battuta resta
@@ -3999,8 +4067,11 @@ class AudioEngine: ObservableObject {
                     // (i buffer vanno al player uno dietro l'altro: indice × 512 + scostamento;
                     // `bufferCount` è già stato alzato per questo buffer). Lo legge la riga al
                     // secondo di DA SOLO per misurare il tempo che esce davvero. Una scrittura
-                    // di un intero, su questa coda.
+                    // di un intero, su questa coda. E la sua ora d'uscita: l'ora d'uscita del
+                    // buffer più lo scostamento del battito dentro il buffer.
                     self._lastBeatSampleQ = Int64(self.bufferCount - 1) * Int64(self.bufferSize) + Int64(offset)
+                    self._lastBeatOutTicksQ = self._bufferOutTicksQ
+                        + self.secondsToMachTicks(Double(offset) / self.sampleRate)
                     let tickN = self.beatTickCounter
                     DispatchQueue.main.async { [weak self] in
                         self?.beatTickSubject.send(tickN)
@@ -4049,7 +4120,12 @@ class AudioEngine: ObservableObject {
                         self._audioBPM = pending
                         // A386 · B2c — il DSP ha appena preso il tempo della sezione nuova: il
                         // tempo in corso è quello della propria canzone, non uno adottato da Link.
+                        // La linea propria, se c'è, aveva il tempo di prima: si butta, e si
+                        // ri-àncora col tempo nuovo al primo buffer dopo la finestra di sospensione
+                        // del cambio di sezione (`ownClockPinQ`).
                         self._linkTempoAdoptedQ = nil
+                        self._engineTempoQ = pending
+                        self._ownTimelineQ = nil
                         // L1.b sync investigation — abilita log DIRECTOR-ASSERT per 3 buffer
                         self._linkSyncLogBuffers = 3
 

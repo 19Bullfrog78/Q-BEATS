@@ -18,6 +18,14 @@ enum ClickTempoMeasure {
         return Double(beats) * sampleRate * 60.0 / Double(samples)
     }
 
+    /// Lo stesso conto sull'ora dell'apparecchio: battiti al minuto fra due battiti di cui si
+    /// conosce l'ora d'uscita, in tick. E' il tempo che si sente; quello sui campioni, quando un
+    /// buffer arriva in ritardo e il click recupera, per un attimo sale.
+    static func bpm(beats: Int, ticks: UInt64, ticksPerSecond: Double) -> Double? {
+        guard beats > 0, ticks > 0, ticksPerSecond > 0, ticksPerSecond.isFinite else { return nil }
+        return Double(beats) * ticksPerSecond * 60.0 / Double(ticks)
+    }
+
     struct BarPosition: Equatable {
         /// Battuta dentro la sezione, da 1.
         let bar: Int

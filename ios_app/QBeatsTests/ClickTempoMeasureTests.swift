@@ -41,6 +41,24 @@ final class ClickTempoMeasureTests: XCTestCase {
         XCTAssertNil(ClickTempoMeasure.bpm(beats: 1, samples: 24_000, sampleRate: .infinity))
     }
 
+    // MARK: - Lo stesso conto sull'ora dell'apparecchio (24.000.000 tick al secondo)
+
+    func testTempoFromTicks() {
+        // due battiti a 121: 2 × 60 / 121 s = 23.801.653 tick
+        XCTAssertEqual(ClickTempoMeasure.bpm(beats: 2, ticks: 23_801_653, ticksPerSecond: 24_000_000.0)!,
+                       121.0, accuracy: 0.001)
+        // un battito a 120: mezzo secondo
+        XCTAssertEqual(ClickTempoMeasure.bpm(beats: 1, ticks: 12_000_000, ticksPerSecond: 24_000_000.0)!,
+                       120.0, accuracy: 1e-9)
+    }
+
+    func testNothingToMeasureFromTicks() {
+        XCTAssertNil(ClickTempoMeasure.bpm(beats: 0, ticks: 12_000_000, ticksPerSecond: 24_000_000.0))
+        XCTAssertNil(ClickTempoMeasure.bpm(beats: 1, ticks: 0, ticksPerSecond: 24_000_000.0))
+        XCTAssertNil(ClickTempoMeasure.bpm(beats: 1, ticks: 12_000_000, ticksPerSecond: 0))
+        XCTAssertNil(ClickTempoMeasure.bpm(beats: 1, ticks: 12_000_000, ticksPerSecond: .nan))
+    }
+
     // MARK: - La posizione di battuta
 
     func testBarPositionInFourFour() {
