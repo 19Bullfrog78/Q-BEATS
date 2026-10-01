@@ -460,6 +460,10 @@ class AudioEngine: ObservableObject {
     private var _ownClockPinsQ: Int = 0
     private var _ownClockMaxLagMsQ: Double = 0.0
     private var _ownClockIgnoredTempoQ: Int = 0
+    /// B2c-BIS — il tempo della sessione Link letto dall'ultimo battito a 1 s del Follower (0 a
+    /// ponte spento). Solo per la riga di log di W2 saltata in DA SOLO: così al confine di
+    /// sezione non serve una cattura di Link in più.
+    private var _sessionTempoSeenQ: Double = 0.0
     private var transportPulseTimer: DispatchSourceTimer? = nil
     private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
@@ -1591,6 +1595,8 @@ class AudioEngine: ObservableObject {
         if changed || searchingChanged || playingChanged {
             followerPublishQ(action)
         }
+        // B2c-BIS — il tempo di sessione di questo battito, per la riga di W2 saltata in DA SOLO.
+        _sessionTempoSeenQ = snap.tempo
         // B2c (§3.d) — in DA SOLO, una riga al secondo col tempo misurato e la posizione di battuta.
         logOwnClockSecondQ(sessionTempo: snap.tempo)
     }
@@ -2600,12 +2606,37 @@ class AudioEngine: ObservableObject {
     // dall'utente, copie di coda — `FollowerDecision`) E interruttore spento. Direttore e Solo
     // non sono toccati, qualunque cosa dica l'interruttore. E logga l'esito a ogni confine,
     // con ruolo, bpm e stato dell'interruttore: è la riga che la prova A/B deve leggere.
+    // ⚠️ MARCATURA A386 · B2c-BIS (01/10/2026) — «In Release rende SEMPRE falso» NON VALE PIÙ.
+    //    Decisione di Mauro dell'01/10/2026: da solo il Follower non scrive niente in Link; in
+    //    sync resta la decisione 9.1. W2 si salta anche — in ogni configurazione — quando il
+    //    Follower è sul proprio orologio: DA SOLO, e la coda prima dell'arresto. La domanda «W2
+    //    si salta?» resta UNA e resta QUI, perché questo è già l'unico cancello davanti a
+    //    `link_engine_set_bpm_and_beat_at_time`: un secondo cancello accanto avrebbe messo la
+    //    stessa decisione in due posti. La regola è pura e testata
+    //    (`FollowerLinkWriteDecision.boundaryTempoWrite`), letta dalle stesse copie di coda
+    //    della macchina che leggono le due strade d'ingresso (`followsLinkQ`).
+    //    L'interruttore solo DEBUG funziona come prima e si combina: sul Follower W2 scrive
+    //    solo se lo permettono tutti e due. Fuori da DEBUG l'interruttore non esiste: vale acceso.
+    //    La riga [RIENTRO-P1] resta solo in DEBUG, col testo di prima; la sua prima parola
+    //    («saltata»/«eseguita») è l'esito VERO, anche quando a saltare è l'orologio proprio. In
+    //    quel caso esce in più, in ogni configurazione, la riga [2D][DA-SOLO] qui sotto, col
+    //    tempo della sezione nuova, il tempo della sessione letto dall'ultimo battito a 1 s
+    //    (nessuna chiamata a Link in più) e lo stato della macchina.
     private func followerBoundaryTempoWriteSkipped(bpm: Double) -> Bool {
+#if DEBUG
+        let switchOn = self._debugFollowerBoundaryTempoWriteQ
+#else
+        let switchOn = true
+#endif
+        let outcome = FollowerLinkWriteDecision.boundaryTempoWrite(role: self._linkMode,
+                                                                   userLinkEnabled: self._linkUserEnabledQ,
+                                                                   state: self._followerSyncQ,
+                                                                   ownClockUntilStop: self._ownClockUntilStopQ,
+                                                                   debugSwitchOn: switchOn)
+        let skipped = outcome != .writes
 #if DEBUG
         let isFollower = FollowerDecision.isFollower(role: self._linkMode,
                                                      userLinkEnabled: self._linkUserEnabledQ)
-        let switchOn = self._debugFollowerBoundaryTempoWriteQ
-        let skipped = isFollower && !switchOn
         os_log("[Q-BEATS][RIENTRO-P1] W2 %{public}@ - ruolo:%{public}@ follower:%{public}@ bpm:%.1f interruttore:%{public}@",
                log: .default, type: .default,
                skipped ? "saltata" : "eseguita",
@@ -2613,10 +2644,13 @@ class AudioEngine: ObservableObject {
                isFollower ? "si" : "no",
                bpm,
                switchOn ? "acceso" : "spento")
-        return skipped
-#else
-        return false
 #endif
+        if outcome == .skippedOwnClock {
+            os_log("[Q-BEATS][2D][DA-SOLO] tempo di sezione NON scritto su Link (W2) - sezione:%.2f sessione:%.2f stato:%{public}@ battito:%d - da solo il Follower non scrive in Link",
+                   log: .default, type: .default,
+                   bpm, self._sessionTempoSeenQ, self.describe(self._followerSyncQ), self.beatTickCounter)
+        }
+        return skipped
     }
 
     // === L1.a — Caricamento sezione + closure end-of-section ===
@@ -4153,6 +4187,9 @@ class AudioEngine: ObservableObject {
                         // della prova A/B (decisione 9.1): in Release rende sempre falso e
                         // questo blocco è quello di sempre; in DEBUG salta W2 solo sul Follower
                         // con l'interruttore spento. Vedi `followerBoundaryTempoWriteSkipped`.
+                        // ⚠️ MARCATURA A386 · B2c-BIS — la stessa condizione salta W2, in ogni
+                        //    configurazione, anche quando il Follower è sul proprio orologio (DA
+                        //    SOLO, e la coda prima dell'arresto): da solo non scrive in Link.
                         if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle,
                            !self.followerBoundaryTempoWriteSkipped(bpm: pending) {
                             let sampleOffset = UInt32(offset)
