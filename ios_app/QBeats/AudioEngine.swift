@@ -58,6 +58,8 @@ struct FollowerSyncSnapshot: Equatable {
     let outReason: FollowerOutReason?
     /// «Sento il Direttore» (`DirectorHeardTracker`: battito a 1 s, soglia 3 s, e da B2c ogni Play
     /// o Stop ricevuto dalla sessione).
+    /// ⚠️ B2d: «battito a 1 s» non vale più per l'ascolto. Il Follower ascolta ogni 0,25 s col
+    ///    battito suo (`followerListenQ`, `DirectorSignalCadence`); la soglia resta 3 s.
     let directorHeard: Bool
     /// «Searching…»: dal primo campione dopo che Link si accende (o dall'avvio) fino al primo
     /// verdetto — il primo colpo, o una soglia senza colpi — mai oltre la soglia
@@ -404,7 +406,9 @@ class AudioEngine: ObservableObject {
     private var _heardTrackerQ: DirectorHeardTracker = .start
     private var _directorHeardQ: Bool = false
     private var _lastTimelineWriteCountQ: UInt64 = 0
-    private var _reannounceSignQ: DirectorReannounceDecision.Sign = .plus
+    /// B2d — il giro a tre valori della ripetizione (`DirectorReannounceDecision.Cycle`): prima
+    /// era il segno alternato. Avanza solo quando il ponte ha scritto davvero.
+    private var _reannounceCycleQ: DirectorReannounceDecision.Cycle = .start
     private var _reannounceCountQ: UInt64 = 0
     private var _lastReannouncedIsPlayingQ: Bool? = nil
     private var _lastReannounceSkipQ: String? = nil
@@ -465,6 +469,13 @@ class AudioEngine: ObservableObject {
     /// sezione non serve una cattura di Link in più.
     private var _sessionTempoSeenQ: Double = 0.0
     private var transportPulseTimer: DispatchSourceTimer? = nil
+    // === A386 · FASE B2d (2D) — L'ASCOLTO DEL FOLLOWER, accesso SOLO su audioQueue ===
+    /// Il battito d'ascolto a 0,25 s (`startFollowerListen`): sorgente GCD su audioQueue.
+    private var followerListenTimer: DispatchSourceTimer? = nil
+    /// Le letture d'ascolto fatte da Follower dall'avvio dell'app (campo `letture` dei log).
+    private var _listenCountQ: UInt64 = 0
+    /// Il conto dei vuoti dell'ascolto (`DirectorHeardGapMeter`): solo per le righe di log.
+    private var _heardGapMeterQ: DirectorHeardGapMeter = .start
     private var peerCountObserver: NSObjectProtocol? = nil   // solo main
 #if DEBUG
     // RIENTRO-P1 (A366, 17/09/2026) — INTERRUTTORE SOLO DEBUG PER LA PROVA A/B DELLA
@@ -873,6 +884,8 @@ class AudioEngine: ObservableObject {
         }
         registerPeerCountNotification()
         startTransportPulse()
+        // A386 · FASE B2d (2D) — l'ascolto del Follower a 0,25 s: parte con l'app, come il battito.
+        startFollowerListen()
 
         // === Task D refactor #18c — pending atomic init ===
         // Inizializzazione preliminare sample_rate nel pending atomic prima
@@ -931,6 +944,7 @@ class AudioEngine: ObservableObject {
         // RIENTRO-P2A — il campionatore del timbro si ferma col motore.
         startStampTimer?.cancel()
         transportPulseTimer?.cancel()
+        followerListenTimer?.cancel()
         if let observer = peerCountObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -1480,12 +1494,21 @@ class AudioEngine: ObservableObject {
     private var heardThresholdTicks: UInt64 { secondsToMachTicks(3.0) }
     /// Lo spostamento della ripetizione del Direttore: 1 ms.
     private var oneMillisecondTicks: UInt64 { secondsToMachTicks(0.001) }
+    /// B2d — oltre questo vuoto dall'ultimo colpo una ripetizione è «in ritardo» (solo log).
+    private var heardLateAfterTicks: UInt64 { secondsToMachTicks(DirectorSignalCadence.lateAfterSeconds) }
     private var ticksPerSecond: Double {
         guard machTimebase.numer > 0 else { return 0 }
         return 1_000_000_000.0 * Double(machTimebase.denom) / Double(machTimebase.numer)
     }
 
     // MARK: Il battito di trasporto a 1 s (Q17): il Direttore ripete, il Follower ascolta
+    // ⚠️ B2d (mandato «A386 · FASE B2d», 01/10/2026): «il Follower ascolta» in questo battito non
+    //    vale più. Il battito a 1 s resta com'è per il Direttore (la ripetizione) e per le cose al
+    //    secondo del Follower (`followerSecondQ`); il segnale «sento il Direttore» lo ascolta un
+    //    battito suo a 0,25 s (`startFollowerListen`, `followerListenQ`). Due orologi alla stessa
+    //    cadenza, quasi in fase, facevano cadere fra due letture zero o due ripetizioni: nessun
+    //    colpo per tre secondi a Direttore presente (collaudo dell'01/10, log `A386_D7_iPad.txt`).
+    //    I timer su audioQueue sono due: Q17 («un solo timer») è superata, da ratificare.
 
     private func startTransportPulse() {
         let timer = DispatchSource.makeTimerSource(queue: audioQueue)
@@ -1502,21 +1525,52 @@ class AudioEngine: ObservableObject {
         guard let lh = linkEngineHandle else { return }
         _pulseCountQ += 1
         let snap = link_engine_read_transport_snapshot(lh)
-        // Una scrittura propria della linea temporale fra due battiti (W2 al confine di
+        let isFollower = FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        // Una scrittura propria della linea temporale fra due letture (W2 al confine di
         // sezione, o qualunque altra: il ponte le conta tutte) rende il prossimo cambio
         // dell'ora un'eco, non un colpo (`DirectorHeardTracker`).
-        let ownTimelineWrite = snap.timelineWriteCount != _lastTimelineWriteCountQ
-        _lastTimelineWriteCountQ = snap.timelineWriteCount
+        // B2d: da Follower il conto lo tiene e lo consuma il battito d'ascolto (`followerListenQ`),
+        // che è l'unico a dare letture al segnale: due consumatori si ruberebbero il cambio. Qui
+        // lo si tiene in pari solo negli altri ruoli, così al ritorno a Follower il confronto
+        // parte da un valore vecchio al più di un secondo, come prima.
+        if !isFollower {
+            _lastTimelineWriteCountQ = snap.timelineWriteCount
+        }
         if _linkMode == .direttore {
             directorPulse(snapshot: snap)
-        } else if FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) {
-            followerPulse(snapshot: snap, ownTimelineWrite: ownTimelineWrite)
+        } else if isFollower {
+            followerSecondQ(snapshot: snap)
         }
+    }
+
+    // MARK: B2d — il battito d'ascolto del Follower a 0,25 s
+
+    /// Sorgente GCD su audioQueue, come il battito di trasporto: nessun salto di coda, ogni
+    /// cattura di Link resta su audioQueue. Periodo e leeway da `DirectorSignalCadence` (0,25 s,
+    /// 50 ms): fra due letture passano al più 0,30 s, meno della distanza fra due ripetizioni
+    /// del Direttore, quindi ogni ripetizione è letta da sola, qualunque sia la fase fra i due
+    /// apparecchi. Parte in `init` e non si ferma (l'ascolto parte con l'app); chi non è
+    /// Follower esce subito dal passo, senza catturare.
+    private func startFollowerListen() {
+        let timer = DispatchSource.makeTimerSource(queue: audioQueue)
+        let period = DirectorSignalCadence.listenPeriodSeconds
+        timer.schedule(deadline: .now() + period, repeating: period,
+                       leeway: .milliseconds(DirectorSignalCadence.listenLeewayMilliseconds))
+        timer.setEventHandler { [weak self] in
+            self?.followerListenQ()
+        }
+        timer.resume()
+        followerListenTimer = timer
     }
 
     /// Il Direttore ripete il proprio stato: `DirectorReannounceDecision` decide se e con che
     /// segno, il ponte scrive `{isPlaying catturato, ora catturata ± 1 ms}` (da fermo l'ora dello
     /// stop). Log Q7: una riga a ogni cambio di «suona» o di motivo di salto, più una ogni 10.
+    /// ⚠️ B2d: il segno alternato e «± 1 ms» non valgono più. Lo spostamento gira su tre passi
+    ///    (+1 ms, −2 ms, +1 ms: l'ora fa T+1, T−1, T) e lo dà il tipo puro (`decision.shift`):
+    ///    quello provato dal banco è quello che va al ponte. Il giro avanza solo se il ponte ha
+    ///    scritto (`report.linkEnabled`): un passo contato e non scritto lascerebbe l'ora
+    ///    spostata. La riga porta in più `passo:` (0, 1, 2); quella «ogni 10» gira sui tre passi.
     private func directorPulse(snapshot snap: LinkTransportSnapshot) {
         guard let lh = linkEngineHandle else { return }
         let decision = DirectorReannounceDecision(role: _linkMode,
@@ -1527,7 +1581,7 @@ class AudioEngine: ObservableObject {
                                                   sessionPlaying: snap.isPlaying,
                                                   capturedTime: snap.timeForIsPlaying,
                                                   shiftTicks: oneMillisecondTicks,
-                                                  sign: _reannounceSignQ)
+                                                  cycle: _reannounceCycleQ)
         switch decision.outcome {
         case .skip(let reason):
             let text = describe(reason)
@@ -1539,26 +1593,49 @@ class AudioEngine: ObservableObject {
             }
         case .reannounce(let isPlaying, _):
             _lastReannounceSkipQ = nil
-            let ms = Int64(oneMillisecondTicks)
-            let shift: Int64 = (_reannounceSignQ == .plus) ? ms : -ms
-            let report = link_engine_reannounce_transport(lh, snap.captureHostTime, shift)
-            _reannounceSignQ = decision.nextSign
+            let report = link_engine_reannounce_transport(lh, snap.captureHostTime, decision.shift)
+            // Il ponte non ha scritto (spento fra la cattura del battito e questa chiamata): il
+            // giro resta dov'è e la ripetizione non si conta.
+            guard report.linkEnabled else { return }
+            _reannounceCycleQ = decision.nextCycle
             _reannounceCountQ += 1
             let changed = _lastReannouncedIsPlayingQ != isPlaying
             _lastReannouncedIsPlayingQ = isPlaying
             if changed || _reannounceCountQ % 10 == 0 {
-                os_log("[Q-BEATS][2D][DIRETTORE] ripetizione suona:%d oraPrima:%llu oraDopo:%llu segno:%{public}@ startStopSync:%d ripetizioni:%llu",
+                os_log("[Q-BEATS][2D][DIRETTORE] ripetizione suona:%d oraPrima:%llu oraDopo:%llu segno:%{public}@ passo:%d startStopSync:%d ripetizioni:%llu",
                        log: .default, type: .default,
                        report.isPlaying ? 1 : 0, report.timeBefore, report.timeAfter,
-                       shift >= 0 ? "+" : "-", _startStopSyncEnabledQ ? 1 : 0, _reannounceCountQ)
+                       decision.shift >= 0 ? "+" : "-", decision.step ?? -1,
+                       _startStopSyncEnabledQ ? 1 : 0, _reannounceCountQ)
             }
         }
     }
 
-    /// Il Follower ascolta: la coppia (suona, ora) cambia entro la soglia ⇒ «sento il Direttore».
-    /// Sul fronte del segnale, l'evento alla macchina (D1, DA SOLO, R2). Log Q7: una riga a ogni
-    /// cambio del sì/no, più una ogni 10 battiti.
-    private func followerPulse(snapshot snap: LinkTransportSnapshot, ownTimelineWrite: Bool) {
+    /// B2d — su audioQueue, dal battito d'ascolto a 0,25 s (`startFollowerListen`). Il Follower
+    /// ascolta: la coppia (suona, ora) cambia entro la soglia ⇒ «sento il Direttore». Sul fronte
+    /// del segnale, l'evento alla macchina (D1, DA SOLO, R2). È l'ascolto che fino a B2c stava
+    /// nel battito a 1 s (`followerPulse`), con la stessa regola (`DirectorHeardTracker.observe`)
+    /// e la stessa soglia: cambia solo ogni quanto si legge. Una cattura per lettura, nessun
+    /// commit. Chi non è Follower esce prima di catturare.
+    /// Il conto delle scritture proprie della linea temporale si consuma QUI e solo qui quando
+    /// si è Follower (vedi `transportPulse`).
+    /// Log: la riga `direttore-sentito` esce a ogni cambio del sì/no, con in coda da quanto
+    /// mancava un colpo (`vuoto_ms`, `fila` = letture senza colpo di fila) e il conto delle
+    /// letture. Al posto della riga «una ogni 10 battiti» c'è il riepilogo dell'ascolto ogni 40
+    /// letture (10 s); in più una riga quando una ripetizione è in ritardo (vuoto oltre 1,5 s) e
+    /// una quando riprende (`DirectorHeardGapMeter`: conta e basta, non decide niente).
+    private func followerListenQ() {
+        guard let lh = linkEngineHandle else { return }
+        guard FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) else {
+            // Chi non è Follower non ascolta. Il conto dei vuoti (solo log) riparte da capo, così
+            // al ritorno a Follower non misura un vuoto lungo quanto il tempo passato altrove.
+            if _heardGapMeterQ != .start { _heardGapMeterQ = .start }
+            return
+        }
+        _listenCountQ += 1
+        let snap = link_engine_read_transport_snapshot(lh)
+        let ownTimelineWrite = snap.timelineWriteCount != _lastTimelineWriteCountQ
+        _lastTimelineWriteCountQ = snap.timelineWriteCount
         let sample = DirectorHeardSample(linkEnabled: snap.linkEnabled,
                                          isPlaying: snap.isPlaying,
                                          timeForIsPlaying: snap.timeForIsPlaying)
@@ -1569,31 +1646,70 @@ class AudioEngine: ObservableObject {
         _heardTrackerQ = verdict.next
         let changed = verdict.heard != _directorHeardQ
         _directorHeardQ = verdict.heard
-        // B2b — «Searching…» e «band playing» per lo slot E. B2c (§3.f): non si specchiano più
-        // uno per uno: si scrivono le copie di coda, e in fondo a questo passo esce UNA
-        // pubblicazione con stato, ragione e segnale insieme (`followerPublishQ`).
+        // B2b — «Searching…» per lo slot E. B2c (§3.f): non si specchia da solo: si scrive la
+        // copia di coda, e in fondo a questo passo esce UNA pubblicazione con stato, ragione e
+        // segnale insieme (`followerPublishQ`).
         let searchingChanged = verdict.searching != _directorSearchingQ
         if searchingChanged {
             _directorSearchingQ = verdict.searching
             os_log("[Q-BEATS][2D][FOLLOWER] cerca-il-direttore:%d battiti:%llu",
                    log: .default, type: .default, verdict.searching ? 1 : 0, _pulseCountQ)
         }
-        let playingChanged = snap.isPlaying != _linkSessionPlayingQ
-        _linkSessionPlayingQ = snap.isPlaying
-        if changed || _pulseCountQ % 10 == 0 {
-            os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d scritturaPropria:%d suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu",
+        let gap = _heardGapMeterQ.observe(linkEnabled: snap.linkEnabled,
+                                          hit: verdict.hit,
+                                          heard: verdict.heard,
+                                          now: snap.captureHostTime,
+                                          lateAfterTicks: heardLateAfterTicks,
+                                          summaryEvery: DirectorSignalCadence.summaryEverySamples)
+        _heardGapMeterQ = gap.next
+        if changed {
+            let gapText: String = gap.gapTicks.map { String(format: "%.0f", machTicksToSeconds($0) * 1000.0) } ?? "-"
+            os_log("[Q-BEATS][2D][FOLLOWER] direttore-sentito:%d colpo:%d scritturaPropria:%d suona:%d oraAvvio:%llu soglia_ms:%.0f battiti:%llu vuoto_ms:%{public}@ fila:%d letture:%llu",
                    log: .default, type: .default,
                    verdict.heard ? 1 : 0, verdict.hit ? 1 : 0, ownTimelineWrite ? 1 : 0,
                    snap.isPlaying ? 1 : 0, snap.timeForIsPlaying,
-                   machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ)
+                   machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ,
+                   gapText, gap.run, _listenCountQ)
+        }
+        if let late = gap.late {
+            os_log("[Q-BEATS][2D][ASCOLTO] ripetizione-in-ritardo vuoto_ms:%.0f fila:%d sento:%d suona:%d oraAvvio:%llu letture:%llu",
+                   log: .default, type: .default,
+                   machTicksToSeconds(late.gapTicks) * 1000.0, late.run, verdict.heard ? 1 : 0,
+                   snap.isPlaying ? 1 : 0, snap.timeForIsPlaying, _listenCountQ)
+        }
+        if let resumed = gap.resumed {
+            os_log("[Q-BEATS][2D][ASCOLTO] ripetizione-ripresa vuoto_ms:%.0f fila:%d origine:lettura sento:%d letture:%llu",
+                   log: .default, type: .default,
+                   machTicksToSeconds(resumed.gapTicks) * 1000.0, resumed.run, verdict.heard ? 1 : 0, _listenCountQ)
+        }
+        if let summary = gap.summary {
+            os_log("[Q-BEATS][2D][ASCOLTO] riepilogo campioni:%d colpi:%d senzaColpo:%d filaMax:%d vuotoMax_ms:%.0f ritardi:%d sentiti:%d sento:%d suona:%d oraAvvio:%llu periodo_ms:%.0f soglia_ms:%.0f battiti:%llu letture:%llu",
+                   log: .default, type: .default,
+                   summary.samples, summary.hits, summary.samplesWithoutHit, summary.maxRun,
+                   machTicksToSeconds(summary.maxGapTicks) * 1000.0, summary.lates, summary.heardSamples,
+                   verdict.heard ? 1 : 0, snap.isPlaying ? 1 : 0, snap.timeForIsPlaying,
+                   DirectorSignalCadence.listenPeriodSeconds * 1000.0,
+                   machTicksToSeconds(heardThresholdTicks) * 1000.0, _pulseCountQ, _listenCountQ)
         }
         var action: FollowerSyncAction = .none
         if changed {
             let running = isRunning || isAudioInterrupted
             action = followerTransitionQ(.directorHeard(verdict.heard, engineRunning: running)).action
         }
-        if changed || searchingChanged || playingChanged {
+        if changed || searchingChanged {
             followerPublishQ(action)
+        }
+    }
+
+    /// B2d — su audioQueue, dal battito a 1 s: le cose al secondo del Follower che non sono
+    /// l'ascolto, con la cadenza di prima. «Band playing» (la sessione Link in moto, per lo slot
+    /// E): la copia di coda e, se è cambiata, una pubblicazione. Il tempo di sessione per la
+    /// riga di W2 saltata. In DA SOLO la riga al secondo.
+    private func followerSecondQ(snapshot snap: LinkTransportSnapshot) {
+        let playingChanged = snap.isPlaying != _linkSessionPlayingQ
+        _linkSessionPlayingQ = snap.isPlaying
+        if playingChanged {
+            followerPublishQ()
         }
         // B2c-BIS — il tempo di sessione di questo battito, per la riga di W2 saltata in DA SOLO.
         _sessionTempoSeenQ = snap.tempo
@@ -1620,6 +1736,10 @@ class AudioEngine: ObservableObject {
         // Stop del Direttore appena ricevuto (collaudo, log `A386_C2_iPad.txt`, 14:17:36). La
         // cattura è la stessa letta qui sopra; diventa l'ultimo campione del segnale, e il
         // battito successivo non conta due volte lo stesso cambio.
+        // ⚠️ B2d: «il battito a 1 s» e «fino a un secondo dopo» qui sopra sono di prima: da B2d
+        //    le letture del segnale le fa il battito d'ascolto a 0,25 s (`followerListenQ`). Il
+        //    colpo del richiamo resta, per la stessa ragione; l'ultimo campione resta uno solo,
+        //    scritto su questa coda da qui e dall'ascolto.
         let verdict = _heardTrackerQ.observeTransportEvent(
             sample: DirectorHeardSample(linkEnabled: snap.linkEnabled,
                                         isPlaying: snap.isPlaying,
@@ -1627,6 +1747,16 @@ class AudioEngine: ObservableObject {
             now: snap.captureHostTime,
             thresholdTicks: heardThresholdTicks)
         _heardTrackerQ = verdict.next
+        // B2d — il colpo del richiamo chiude anche il vuoto in corso nel conto dell'ascolto.
+        let gap = _heardGapMeterQ.observeTransportEvent(linkEnabled: snap.linkEnabled,
+                                                        now: snap.captureHostTime)
+        _heardGapMeterQ = gap.next
+        if let resumed = gap.resumed {
+            os_log("[Q-BEATS][2D][ASCOLTO] ripetizione-ripresa vuoto_ms:%.0f fila:%d origine:richiamo-%{public}@ sento:%d letture:%llu",
+                   log: .default, type: .default,
+                   machTicksToSeconds(resumed.gapTicks) * 1000.0, resumed.run,
+                   isPlaying ? "avvio" : "stop", verdict.heard ? 1 : 0, _listenCountQ)
+        }
         let heardChanged = verdict.heard != _directorHeardQ
         _directorHeardQ = verdict.heard
         if verdict.searching != _directorSearchingQ {

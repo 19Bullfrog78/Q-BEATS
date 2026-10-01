@@ -36,6 +36,16 @@ import Foundation
 // `observeTransportEvent` lo registra nell'istante in cui arriva, anche senza una cattura
 // precedente, e tiene la cattura del richiamo come ultimo campione: il battito successivo non
 // conta due volte lo stesso cambio.
+//
+// ⚠️ B2d (mandato «A386 · FASE B2d») — due frasi qui sopra sono di prima. «`{vero, T ± 1 ms}`»:
+//    la ripetizione ora gira su tre valori, T+1 ms, T−1 ms, T (`DirectorReannounceDecision`).
+//    «A ogni battito» / «il battito a 1 s»: il Follower legge la coppia ogni 0,25 s
+//    (`DirectorSignalCadence`). LA REGOLA DI QUESTO TIPO NON CAMBIA: un colpo e' un cambio fra
+//    due letture. Proprio per questo, con l'ascolto a 1 s e due valori alternati, due
+//    ripetizioni fra due letture (o nessuna) non erano un colpo: tre letture di fila cosi' e
+//    usciva un «non sento» falso (collaudo dell'01/10, log `A386_D7_iPad.txt`). La cura sta
+//    nei due numeri che questo tipo riceve da fuori — ogni quanto si legge, e che ore scrive
+//    il Direttore — e nel banco `DirectorSignalSimulationTests`, che li prova insieme.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct DirectorHeardSample: Equatable {
     /// `enabled_` del ponte: a `false` i due campi sotto sono zero e non dicono niente.

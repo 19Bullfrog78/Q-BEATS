@@ -13,13 +13,18 @@ import SwiftUI
 // (`onTapSong` → `QLiveSession.armRientra`), che passa dalla macchina; nessuna porta di qui
 // chiama `start()`. La testata resta sopra (freccia e muto toccabili, centro al 10%, come sul
 // velo). Corpi con la legge provvisoria (`QLiveStage.scaled`), distanze e margini in punti.
+// A386 · B2d (01/10/2026) — LA RIGA ARMATA PULSA SEMPRE (lastra L7). Fino a B2c la pulsazione
+// partiva una volta sola, all'`onAppear` di questa vista, su uno stato della vista intera: la
+// vista resta la stessa fra Join, Out e Ready, quindi una riga armata DOPO la comparsa leggeva
+// lo stato già arrivato in fondo e restava ferma (collaudo D7). Ora la pulsazione appartiene al
+// nome della riga armata (`ArmedNamePulse`, in fondo al file): nasce quando la riga diventa
+// armata — in qualunque momento, anche su un'altra riga, anche dopo uno scorrimento — e muore
+// quando non lo è più. Stesso periodo, stessa ampiezza e stessa curva di prima.
 struct FollowerOutView: View {
     let decision: FollowerVeilDecision
     let songNames: [String]
     let scaleFactor: CGFloat
     let onTapSong: (Int) -> Void
-
-    @State private var pulseOpacity: Double = QLiveStage.Veil.pulseOpacityLow
 
     var body: some View {
         let wordSize = QLiveStage.scaled(QLiveStage.Word.size, scaleFactor)
@@ -96,7 +101,6 @@ struct FollowerOutView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onAppear { startPulse() }
     }
 
     // MARK: - Le righe
@@ -151,13 +155,7 @@ struct FollowerOutView: View {
         return HStack(alignment: .center, spacing: QLiveStage.Follower.rowGap) {
             rowNumber(idx, dataSize: dataSize)
             VStack(alignment: .leading, spacing: 0) {
-                Text(name)
-                    .font(.custom(QLiveStage.Body.fontName, size: bodySize))
-                    .tracking(QLiveStage.Body.tracking)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .opacity(style == .armed ? pulseOpacity : 1.0)
+                highlightedName(name, armed: style == .armed, bodySize: bodySize)
                 if let line = decision.rowLine {
                     Text(line)
                         .font(.jbMono(QLiveStage.Secondary.weight, size: secondarySize))
@@ -185,6 +183,25 @@ struct FollowerOutView: View {
         .onTapGesture { onTapSong(idx) }
     }
 
+    /// Il nome della riga evidenziata. Armata: pulsa (`ArmedNamePulse`). Proposta o ipotesi:
+    /// fermo. Sono due rami distinti apposta: quando la riga diventa armata il ramo che pulsa
+    /// NASCE (stato nuovo, la pulsazione parte), quando smette di esserlo sparisce, e con lui
+    /// la pulsazione. Con un solo testo e un'opacità condizionata non partiva e non si fermava.
+    @ViewBuilder
+    private func highlightedName(_ name: String, armed: Bool, bodySize: CGFloat) -> some View {
+        let text = Text(name)
+            .font(.custom(QLiveStage.Body.fontName, size: bodySize))
+            .tracking(QLiveStage.Body.tracking)
+            .foregroundColor(.white)
+            .lineLimit(1)
+            .truncationMode(.tail)
+        if armed {
+            text.modifier(ArmedNamePulse())
+        } else {
+            text
+        }
+    }
+
     private func rowNumber(_ idx: Int, dataSize: CGFloat) -> some View {
         Text(String(idx + 1))
             .font(.jbMono(QLiveStage.Data.weight, size: dataSize))
@@ -193,17 +210,37 @@ struct FollowerOutView: View {
             .frame(width: dataSize * QLiveStage.Follower.rowNumberWidthEm, alignment: .trailing)
     }
 
-    // MARK: - La posizione della lista (L4, L5) e la pulsazione (L7)
+    // MARK: - La posizione della lista (L4, L5)
 
     private func scroll(_ proxy: ScrollViewProxy) {
         guard !songNames.isEmpty else { return }
         let target = decision.scrollTargetRow ?? 0
         proxy.scrollTo(min(max(0, target), songNames.count - 1), anchor: .top)
     }
+}
 
-    private func startPulse() {
-        withAnimation(.easeInOut(duration: QLiveStage.Veil.pulsePeriod).repeatForever(autoreverses: true)) {
-            pulseOpacity = QLiveStage.Veil.pulseOpacityHigh
-        }
+// MARK: - La pulsazione della riga armata (L7)
+
+/// A386 · B2d — il nome della riga armata pulsa come il gigante del velo («armato, aspetta il
+/// Play»: foglio CD 2D-QUATER file 2, lastra L7, `.qb-r.ar b`). Gli stessi numeri e la stessa
+/// curva di `StandbyOverlayView`: `QLiveStage.Veil.pulsePeriod` (2,2 s per mezza corsa),
+/// opacità fra `pulseOpacityLow` (0,45) e `pulseOpacityHigh` (1,0), `easeInOut` che si ripete
+/// avanti e indietro. Pulsa solo il nome: non la sottoriga, non il bordo, non il fondo.
+/// Lo stato è di QUESTO modificatore, non della vista intera: `FollowerOutView` lo applica solo
+/// nel ramo della riga armata, quindi nasce (da 1,0, senza scatto: il nome era a 1,0 un attimo
+/// prima) ogni volta che una riga diventa armata, e sparisce quando non lo è più.
+/// L'animazione è legata al solo valore `dimmed` (`.animation(_:value:)`): non tocca nient'altro
+/// di ciò che cambia a schermo nello stesso passo. All'`onAppear` lo stato si INVERTE, non si
+/// «mette a»: se la riga esce dallo schermo e ci rientra con lo stato già cambiato, un valore
+/// uguale non farebbe ripartire niente; un valore invertito sì, sempre.
+private struct ArmedNamePulse: ViewModifier {
+    @State private var dimmed = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(dimmed ? QLiveStage.Veil.pulseOpacityLow : QLiveStage.Veil.pulseOpacityHigh)
+            .animation(.easeInOut(duration: QLiveStage.Veil.pulsePeriod).repeatForever(autoreverses: true),
+                       value: dimmed)
+            .onAppear { dimmed.toggle() }
     }
 }
