@@ -425,8 +425,9 @@ class AudioEngine: ObservableObject {
     private var _linkSessionPlayingQ: Bool = false
     // === A386 · FASE B2c (2D) — DA SOLO IL FOLLOWER SUONA LA SUA CANZONE, accesso SOLO su audioQueue ===
     /// L'orologio proprio fino all'arresto (`FollowerLinkFollowDecision`): si alza entrando in DA
-    /// SOLO (`followerTransitionQ`), lo abbassano `stopSync` e `start()`. Copre la coda fra
-    /// l'uscita da DA SOLO e l'arresto vero del motore, che arriva da main.
+    /// SOLO (`followerTransitionQ`), lo abbassano `stopSync`, `start()` e un `reset` della
+    /// macchina. Copre la coda fra l'uscita da DA SOLO e l'arresto vero del motore, che arriva
+    /// da main.
     private var _ownClockUntilStopQ: Bool = false
     /// Il tempo di sessione adottato dal richiamo del tempo di Link DOPO l'ultimo tempo dato dalla
     /// propria canzone (`applyBPM`, cambio di sezione al battere). `nil` = il tempo in corso è
@@ -1731,9 +1732,16 @@ class AudioEngine: ObservableObject {
                describe(event), describe(before), describe(transition.state), describe(transition.action),
                describe(_followerOutReasonQ), isRunning ? "in-moto" : "fermo", _directorHeardQ ? 1 : 0)
         // B2c — entrando in DA SOLO il motore passa al proprio orologio (e ci resta fino
-        // all'arresto: `FollowerLinkFollowDecision.ownClockUntilStop`).
-        _ownClockUntilStopQ = FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: transition.state,
-                                                                          previous: _ownClockUntilStopQ)
+        // all'arresto, o a un `reset`: `FollowerLinkFollowDecision.ownClockUntilStop`).
+        let ownClockBefore = _ownClockUntilStopQ
+        _ownClockUntilStopQ = FollowerLinkFollowDecision.ownClockUntilStop(after: event,
+                                                                          state: transition.state,
+                                                                          previous: ownClockBefore)
+        if ownClockBefore && !_ownClockUntilStopQ {
+            os_log("[Q-BEATS][2D][DA-SOLO] orologio proprio FINITO - reset della macchina - stato:%{public}@ battito:%d buffer:%d",
+                   log: .default, type: .default,
+                   describe(transition.state), beatTickCounter, bufferCount)
+        }
         if case .alone = transition.state, before != .alone {
             followerEnterOwnClockQ()
         }

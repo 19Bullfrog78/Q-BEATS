@@ -28,9 +28,12 @@ import Foundation
 //    stop (Stop del Direttore, Stop del musicista) il motore si ferma qualche millisecondo
 //    DOPO, da main. In quella coda lo stato dice gia' FUORI ma il motore gira ancora: senza
 //    questo ingresso la correzione di fase ripartirebbe per uno o due buffer e sposterebbe il
-//    click proprio mentre si ferma. Si alza entrando in DA SOLO e lo abbassa il motore, a ogni
-//    arresto e a ogni avvio. Lo stato da solo non distingue «FUORI fermo» da «FUORI che si sta
-//    fermando dopo DA SOLO»: per questo e' un ingresso.
+//    click proprio mentre si ferma. Si alza entrando in DA SOLO; lo abbassano il motore, a ogni
+//    arresto e a ogni avvio, e il `reset` della macchina (Link spento dall'utente, cambio di
+//    ruolo, END SHOW, uscita dalla stanza: da li' in poi o il motore e' fermo, o l'apparecchio
+//    non e' piu' Follower, e se lo ridiventa a motore in moto deve seguire Link come oggi). Lo
+//    stato da solo non distingue «FUORI fermo» da «FUORI che si sta fermando dopo DA SOLO»: per
+//    questo e' un ingresso.
 // Nessun ingresso «collegato» ne' «numero di peer»: la decisione legge la macchina e basta.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 enum FollowerLinkFollowDecision {
@@ -54,9 +57,14 @@ enum FollowerLinkFollowDecision {
         }
     }
 
-    /// L'orologio proprio dopo una transizione della macchina: si alza entrando in DA SOLO e
-    /// resta com'era per ogni altro stato (lo abbassa il motore, quando si ferma o riparte).
-    static func ownClockUntilStop(afterTransitionTo state: FollowerSyncState, previous: Bool) -> Bool {
+    /// L'orologio proprio dopo una transizione della macchina: `event` e' l'evento appena
+    /// applicato, `state` lo stato in cui ha portato. Un `reset` lo abbassa; entrare (o restare)
+    /// in DA SOLO lo alza; per ogni altro caso resta com'era (lo abbassa il motore, quando si
+    /// ferma o riparte).
+    static func ownClockUntilStop(after event: FollowerSyncEvent,
+                                  state: FollowerSyncState,
+                                  previous: Bool) -> Bool {
+        if case .reset = event { return false }
         if case .alone = state { return true }
         return previous
     }

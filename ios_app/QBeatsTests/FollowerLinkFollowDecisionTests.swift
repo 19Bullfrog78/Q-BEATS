@@ -54,14 +54,36 @@ final class FollowerLinkFollowDecisionTests: XCTestCase {
     }
 
     func testOwnClockRisesEnteringAloneAndStaysForEveryOtherState() {
-        XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: .alone, previous: false))
-        XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: .alone, previous: true))
+        let lost = FollowerSyncEvent.directorHeard(false, engineRunning: true)
+        XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(after: lost, state: .alone, previous: false))
+        XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(after: lost, state: .alone, previous: true))
         for state in states where state != .alone {
-            XCTAssertFalse(FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: state, previous: false),
+            XCTAssertFalse(FollowerLinkFollowDecision.ownClockUntilStop(after: .ownSongEnded, state: state, previous: false),
                            "stato:\(state)")
-            XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: state, previous: true),
+            XCTAssertTrue(FollowerLinkFollowDecision.ownClockUntilStop(after: .ownSongEnded, state: state, previous: true),
                           "stato:\(state)")
         }
+    }
+
+    /// Un `reset` (Link spento dall'utente, cambio di ruolo, END SHOW, uscita dalla stanza)
+    /// abbassa l'orologio proprio, da qualunque stato: se l'apparecchio ridiventa Follower a
+    /// motore in moto, segue Link come oggi.
+    func testResetLowersTheOwnClock() {
+        for state in states {
+            for previous in [false, true] {
+                XCTAssertFalse(FollowerLinkFollowDecision.ownClockUntilStop(after: .reset, state: state, previous: previous),
+                               "stato:\(state) prima:\(previous)")
+            }
+        }
+        // sulla macchina vera: DA SOLO -> reset -> FUORI non armato, orologio proprio abbassato
+        var ownClock = FollowerLinkFollowDecision.ownClockUntilStop(after: .directorHeard(false, engineRunning: true),
+                                                                    state: .alone, previous: false)
+        XCTAssertTrue(ownClock)
+        let reset = FollowerSyncDecision.transition(state: .alone, event: .reset)
+        XCTAssertEqual(reset.state, .out(armed: nil))
+        ownClock = FollowerLinkFollowDecision.ownClockUntilStop(after: .reset, state: reset.state, previous: ownClock)
+        XCTAssertFalse(ownClock)
+        XCTAssertTrue(follows(.collaborativa, true, reset.state, ownClock: ownClock))
     }
 
     /// Il giro del difetto del collaudo dell'01/10/2026, passo per passo sulla macchina vera:
@@ -72,7 +94,7 @@ final class FollowerLinkFollowDecisionTests: XCTestCase {
         var ownClock = false
         func step(_ event: FollowerSyncEvent) {
             state = FollowerSyncDecision.transition(state: state, event: event).state
-            ownClock = FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: state, previous: ownClock)
+            ownClock = FollowerLinkFollowDecision.ownClockUntilStop(after: event, state: state, previous: ownClock)
         }
         XCTAssertTrue(follows(.collaborativa, true, state, ownClock: ownClock))
         step(.directorHeard(false, engineRunning: true))
@@ -98,12 +120,13 @@ final class FollowerLinkFollowDecisionTests: XCTestCase {
 
     /// DA SOLO + Stop del Direttore: la macchina va FUORI con «fermati», il motore si ferma dopo.
     func testDirectorStopWhileAloneKeepsTheOwnClockInTheTail() {
-        var ownClock = FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: .alone, previous: false)
-        let stop = FollowerSyncDecision.transition(state: .alone,
-                                                   event: .linkStop(falseStart: false, engineRunning: true))
+        var ownClock = FollowerLinkFollowDecision.ownClockUntilStop(after: .directorHeard(false, engineRunning: true),
+                                                                    state: .alone, previous: false)
+        let stopEvent = FollowerSyncEvent.linkStop(falseStart: false, engineRunning: true)
+        let stop = FollowerSyncDecision.transition(state: .alone, event: stopEvent)
         XCTAssertEqual(stop.state, .out(armed: nil))
         XCTAssertEqual(stop.action, .stopAndArmNext)
-        ownClock = FollowerLinkFollowDecision.ownClockUntilStop(afterTransitionTo: stop.state, previous: ownClock)
+        ownClock = FollowerLinkFollowDecision.ownClockUntilStop(after: stopEvent, state: stop.state, previous: ownClock)
         XCTAssertFalse(follows(.collaborativa, true, stop.state, ownClock: ownClock))
     }
 
