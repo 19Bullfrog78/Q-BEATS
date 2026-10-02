@@ -273,6 +273,8 @@ LinkStartStamp link_engine_read_start_stamp(LinkEngineHandle handle);
 // (1) ISTANTANEA DEL TRASPORTO: una cattura, NESSUN commit. Da qui leggono il battito di
 // trasporto a 1 s (il Direttore per ripetere, il Follower per «sentire»), il cancello della
 // mezza battuta (D6) e la falsa partenza (D7-bis).
+// ⚠️ B2d: il Follower non «sente» più nel battito a 1 s: legge questa istantanea ogni 0,25 s
+//    dal battito d'ascolto (`AudioEngine.followerListenQ`), sempre su audioQueue.
 //   tempo              = ABLLinkGetTempo(state), il tempo di sessione.
 //   phaseAtStampQBig   = ABLLinkPhaseAtTime(state, T, 1e6): il battito di T contato dallo zero
 //                        di sessione, condiviso fra i peer (ABLLink.h: la fase rispetto al
@@ -308,6 +310,10 @@ LinkTransportSnapshot link_engine_read_transport_snapshot(LinkEngineHandle handl
 // come chi ha ricevuto lo Stop vero). `nowHostTime` si usa solo se l'ora catturata è zero
 // (nessuno stato mai scritto). Uno spostamento negativo non scende sotto zero. A Link spento
 // non fa niente (linkEnabled = false nel report).
+// ⚠️ B2d: «1 ms, col segno alternato» non vale più. Il chiamante passa uno spostamento che gira
+//    su quattro passi, +1 ms, −2 ms, +3 ms, −2 ms (`DirectorReannounceDecision`): l'ora fa T+1,
+//    T−1, T+2, T e non torna uguale prima di quattro ripetizioni. Questa funzione non cambia:
+//    somma lo spostamento che riceve.
 typedef struct {
     bool     linkEnabled;
     bool     isPlaying;

@@ -16,13 +16,44 @@ import Foundation
 //    nello slot della stanza — riempito da `install`, svuotato da END SHOW e dall'uscita dalla
 //    stanza). A show chiuso salta con `showClosed`: allo scadere della soglia i Follower vanno
 //    FUORI e rientrano scegliendo la canzone. Il testo sopra resta come storia.
+// ⚠️ B2d (mandato «A386 · FASE B2d», 01/10/2026) — IL GIRO HA QUATTRO VALORI, NON DUE. «Il
+//    segno si alterna … l'ora oscilla» qui sopra non vale piu'. Con due valori alternati l'ora
+//    tornava uguale ogni due ripetizioni: un Follower che fra due letture ne riceveva due (o
+//    che ne perdeva una) rileggeva il valore di prima e non contava niente — al collaudo
+//    dell'01/10 (log `A386_D7_iPad.txt`, 20:03:12 e 20:04:31) questo, con l'ascolto a 1 s, ha
+//    dato due «non sento» falsi a Direttore presente. Ora lo spostamento gira su quattro passi
+//    sull'ora catturata: +1 ms, −2 ms, +3 ms, −2 ms. Se la cattura restituisce cio' che e'
+//    stato scritto, l'ora fa T+1 ms, T−1 ms, T+2 ms, T e poi da capo: quattro valori distinti,
+//    somma zero (non deriva).
+//    PERCHE' QUATTRO E NON TRE: la soglia di «non sento» e' 3 s, cioe' tre ripetizioni. L'ora
+//    non deve tornare uguale dentro la soglia: fra due ripetizioni distanti una, due o tre
+//    posizioni e' sempre diversa. Con tre valori tornava uguale proprio alla terza: due
+//    ripetizioni perse di fila e la terza, arrivata sulla soglia, non contava. Con quattro
+//    torna uguale solo alla quarta, a soglia gia' passata.
+//    Il passo piu' piccolo resta 1 ms, quello gia' provato sugli apparecchi.
+//    L'ERRORE SULL'ORA CAMBIA, DA 1 A 2 MILLISECONDI: dopo un Play o uno Stop veri il giro
+//    riparte dal primo passo (`Cycle`, `lastPlaying`: «suona» e' cambiato rispetto all'ultima
+//    ripetizione), e l'ora ripetuta sta a +1, −1, +2, 0 ms da quella vera: entro 2 ms (prima
+//    di B2d: entro 1 ms). Se l'ora catturata cambia SENZA che cambi «suona» (due cambi di
+//    trasporto dentro lo stesso secondo, o Link che rimappa l'ora), il giro non lo sa e
+//    continua dal passo dov'era: l'ora ripetuta resta entro 3 ms da quella nuova, mai oltre.
+//    Chi legge l'ora ha tolleranze di un altro ordine: mezza battuta (`HalfBarWindow`, cento
+//    millisecondi e piu') e una battuta in battiti (`FalseStartDecision`).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct DirectorReannounceDecision: Equatable {
 
-    enum Sign: Equatable {
-        case plus
-        case minus
-        var flipped: Sign { self == .plus ? .minus : .plus }
+    /// B2d — dove si trova il giro della ripetizione. Vive nel motore, su audioQueue.
+    struct Cycle: Equatable {
+        /// Il passo che usera' la prossima ripetizione: 0, 1, 2, 3.
+        let step: Int
+        /// «Suona» scritto all'ultima ripetizione (`nil` = nessuna ripetizione ancora).
+        let lastPlaying: Bool?
+
+        /// Quanti passi ha il giro, cioe' quanti valori distinti prende l'ora: uno piu' delle
+        /// ripetizioni che stanno nella soglia di «non sento» (3 s).
+        static let length = 4
+        /// Prima di ogni ripetizione.
+        static let start = Cycle(step: 0, lastPlaying: nil)
     }
 
     enum SkipReason: Equatable {
@@ -41,8 +72,24 @@ struct DirectorReannounceDecision: Equatable {
     }
 
     let outcome: Outcome
-    /// Il segno da usare alla prossima ripetizione: si alterna SOLO quando si e' ripetuto.
-    let nextSign: Sign
+    /// Lo spostamento col segno da dare al ponte, in tick; zero quando si salta.
+    let shift: Int64
+    /// Il passo del giro usato da questa ripetizione (0, 1, 2, 3); `nil` quando si salta.
+    let step: Int?
+    /// Il giro per la prossima ripetizione: avanza SOLO quando si e' ripetuto.
+    let nextCycle: Cycle
+
+    /// Lo spostamento del passo `step` (0, 1, 2, 3) per un millisecondo di `shiftTicks` tick:
+    /// +1 ms, −2 ms, +3 ms, −2 ms. Fuori dal giro vale il passo modulo quattro.
+    static func signedShift(step: Int, shiftTicks: UInt64) -> Int64 {
+        let one = Int64(clamping: shiftTicks)
+        let position = ((step % Cycle.length) + Cycle.length) % Cycle.length
+        switch position {
+        case 0: return one
+        case 2: return 3 * one
+        default: return -2 * one
+        }
+    }
 
     init(role: LinkMode,
          userLinkEnabled: Bool,
@@ -52,40 +99,42 @@ struct DirectorReannounceDecision: Equatable {
          sessionPlaying: Bool,
          capturedTime: UInt64,
          shiftTicks: UInt64,
-         sign: Sign) {
+         cycle: Cycle) {
+        let skipReason: SkipReason?
         if role != .direttore {
-            outcome = .skip(.notDirector)
-            nextSign = sign
+            skipReason = .notDirector
+        } else if !userLinkEnabled {
+            skipReason = .userLinkOff
+        } else if !startStopSyncEnabled {
+            skipReason = .startStopSyncOff
+        } else if !linkEnabled {
+            skipReason = .linkUnavailable
+        } else if !showOpen {
+            skipReason = .showClosed
+        } else {
+            skipReason = nil
+        }
+        if let reason = skipReason {
+            outcome = .skip(reason)
+            shift = 0
+            step = nil
+            nextCycle = cycle
             return
         }
-        if !userLinkEnabled {
-            outcome = .skip(.userLinkOff)
-            nextSign = sign
-            return
-        }
-        if !startStopSyncEnabled {
-            outcome = .skip(.startStopSyncOff)
-            nextSign = sign
-            return
-        }
-        if !linkEnabled {
-            outcome = .skip(.linkUnavailable)
-            nextSign = sign
-            return
-        }
-        if !showOpen {
-            outcome = .skip(.showClosed)
-            nextSign = sign
-            return
-        }
+        // Un Play o uno Stop veri dall'ultima ripetizione: l'ora catturata e' quella vera, e il
+        // giro riparte dal primo passo (T+1 ms, T−1 ms, T+2 ms, T).
+        let transportChanged = cycle.lastPlaying != nil && cycle.lastPlaying != sessionPlaying
+        let used = transportChanged ? 0 : ((cycle.step % Cycle.length) + Cycle.length) % Cycle.length
+        let signed = DirectorReannounceDecision.signedShift(step: used, shiftTicks: shiftTicks)
         let at: UInt64
-        switch sign {
-        case .plus:
-            at = capturedTime &+ shiftTicks
-        case .minus:
-            at = capturedTime >= shiftTicks ? capturedTime - shiftTicks : 0
+        if signed >= 0 {
+            at = capturedTime &+ signed.magnitude
+        } else {
+            at = capturedTime >= signed.magnitude ? capturedTime - signed.magnitude : 0
         }
         outcome = .reannounce(isPlaying: sessionPlaying, at: at)
-        nextSign = sign.flipped
+        shift = signed
+        step = used
+        nextCycle = Cycle(step: (used + 1) % Cycle.length, lastPlaying: sessionPlaying)
     }
 }
