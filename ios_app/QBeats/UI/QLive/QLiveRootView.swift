@@ -390,6 +390,7 @@ struct QLiveRootView: View {
                         if firstStart {
                             roomSession.install(SetlistRunner(setlist: show,
                                                               store: QBeatsStore.shared),
+                                                showName: show.name,
                                                 audioEngine: audioEngine)
                         }
                         // ⟦A337⟧ (09/09/2026) — L'ASCOLTO DEL PLAY DEL DIRETTORE SI

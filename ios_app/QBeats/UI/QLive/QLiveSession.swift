@@ -96,6 +96,18 @@ final class QLiveSession: ObservableObject {
     /// `room.rientraProposal`).
     @Published private(set) var rientraProposal: RientraProposal = .none
 
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL NOME DELLO SHOW E IL RICORDO DEI COLLEGATI ===
+    /// Il nome dello show in corso, preso a `install` (lo passa `QLiveRootView` dalla `Setlist`
+    /// scelta) e lasciato a `endShow`. Il runner non lo tiene (risolve solo le canzoni, A393 §4.2):
+    /// lo tiene la stanza, come il resto della memoria dello show. `nil` = nessuno show. Solo main.
+    @Published private(set) var showName: String? = nil
+    /// «Visto collegato in questo show» per Link, Wi-Fi e MIDI (`ShowConnectionMemory`, Models/,
+    /// col suo banco): azzerato a `install` e a `endShow`, alimentato dagli specchi del motore
+    /// (`attachConnectionMemory`). Lo leggono le spie (`StatusLightsDecision`); in M1 nessuna vista.
+    @Published private(set) var connectionMemory: ShowConnectionMemory = .none
+    /// Guardia ESPLICITA della sottoscrizione — modello `directorPlaySubscribed`.
+    private var connectionMemorySubscribed = false
+
     // MARK: - A337 — L'ascolto del Play del Direttore vive nella STANZA
 
     /// ⟦A337⟧ (09/09/2026) — Cassetto delle iscrizioni della stanza. Fino a
@@ -186,6 +198,49 @@ final class QLiveSession: ObservableObject {
         directorPlaySubscribed = true
         os_log("[Q-BEATS][A337] ascolto Play-Direttore ATTACCATO alla stanza - runner:%{public}@",
                log: .default, type: .default, runner == nil ? "nil" : "presente")
+    }
+
+    // MARK: - SOLO-G1-PEZZO-1-M1 · A394 — il ricordo dei collegati vive nella STANZA
+
+    /// L'ascolto degli specchi del motore per il ricordo «visto collegato in questo show»: Link
+    /// collegato, Wi-Fi collegato, MIDI collegato (`midiDeviceConnected`, secondo commit del ramo)
+    /// e i due interruttori di Link (dell'utente e dell'app), che distinguono lo spegnimento fatto
+    /// dall'app (`ShowConnectionMemory`). Il motore entra
+    /// per parametro (idioma di `attachDirectorPlay`); gli specchi sono scritti su main, la consegna
+    /// è sincrona, senza `receive(on:)`, e i valori si leggono dal soggetto (un `@Published` emette
+    /// PRIMA di scrivere la proprietà). Idempotente: la guardia booleana la rende inerte dalla
+    /// seconda volta; muore col cassetto della stanza.
+    func attachConnectionMemory(audioEngine: AudioEngine) {
+        guard !connectionMemorySubscribed else { return }
+        Publishers.CombineLatest3(audioEngine.$linkIsConnected, audioEngine.$wifiConnected, audioEngine.$midiDeviceConnected)
+            .combineLatest(audioEngine.$linkUserEnabled, audioEngine.$linkEnabled)
+            .sink { [weak self] connected, user, app in
+                guard let self else { return }
+                let (link, wifi, midi) = connected
+                self.noteConnections(linkConnected: link, wifiConnected: wifi, midiConnected: midi,
+                                     linkUserEnabled: user, linkAppEnabled: app)
+            }
+            .store(in: &cancellables)
+        connectionMemorySubscribed = true
+        os_log("[Q-BEATS][SOLO-M1][RICORDO] ascolto dei collegati ATTACCATO alla stanza",
+               log: .default, type: .default)
+    }
+
+    /// Un passo del ricordo (`ShowConnectionMemory.updated`): si scrive e si logga solo se cambia.
+    private func noteConnections(linkConnected: Bool, wifiConnected: Bool, midiConnected: Bool,
+                                 linkUserEnabled: Bool, linkAppEnabled: Bool) {
+        let next = connectionMemory.updated(linkConnected: linkConnected,
+                                            wifiConnected: wifiConnected,
+                                            midiConnected: midiConnected,
+                                            linkUserEnabled: linkUserEnabled,
+                                            linkAppEnabled: linkAppEnabled)
+        guard next != connectionMemory else { return }
+        connectionMemory = next
+        os_log("[Q-BEATS][SOLO-M1][RICORDO] visto link:%d wifi:%d midi:%d (collegati link:%d wifi:%d midi:%d - link utente:%d app:%d)",
+               log: .default, type: .default,
+               next.linkSeen ? 1 : 0, next.wifiSeen ? 1 : 0, next.midiSeen ? 1 : 0,
+               linkConnected ? 1 : 0, wifiConnected ? 1 : 0, midiConnected ? 1 : 0,
+               linkUserEnabled ? 1 : 0, linkAppEnabled ? 1 : 0)
     }
 
     /// ⟦A337⟧ — L'ORCHESTRAZIONE, copiata dal CODICE VIVO di `LiveView` (non
@@ -396,8 +451,22 @@ final class QLiveSession: ObservableObject {
     ///    col runner nuovo: alla riapertura di uno show nella stessa stanza la macchina non
     ///    cambia (è già FUORI da `reset`), e senza questo la lista d'ingresso non proporrebbe la 1.
     ///    «Installa e basta» resta vero per l'audio: non avvia, non arma.
-    func install(_ newRunner: SetlistRunner, audioEngine: AudioEngine) {
+    func install(_ newRunner: SetlistRunner, showName: String, audioEngine: AudioEngine) {
         runner = newRunner
+        // SOLO-G1-PEZZO-1-M1 · A394 — lo show ha un nome e un ricordo nuovo dei collegati. Il ricordo
+        // riparte da zero, prende subito la lettura di adesso (gli specchi del motore, su main) e poi
+        // segue gli specchi finché la stanza vive (iscrizione idempotente: al secondo show nella
+        // stessa stanza l'ascolto c'è già, e la lettura di adesso è ciò che lo rimette in pari).
+        self.showName = showName
+        connectionMemory = .none
+        os_log("[Q-BEATS][SOLO-M1][STANZA] show installato nome:%{public}@ - ricordo azzerato",
+               log: .default, type: .default, showName)
+        noteConnections(linkConnected: audioEngine.linkIsConnected,
+                        wifiConnected: audioEngine.wifiConnected,
+                        midiConnected: audioEngine.midiDeviceConnected,
+                        linkUserEnabled: audioEngine.linkUserEnabled,
+                        linkAppEnabled: audioEngine.linkEnabled)
+        attachConnectionMemory(audioEngine: audioEngine)
         audioEngine.setShowOpen(true, origin: "install")
         refreshRientraProposal(state: audioEngine.followerSync.state, reason: audioEngine.followerSync.outReason,
                                isFollower: audioEngine.followerDecision.isFollower)
@@ -485,6 +554,11 @@ final class QLiveSession: ObservableObject {
     func endShow(audioEngine: AudioEngine) {
         audioEngine.stop()
         runner = nil
+        // SOLO-G1-PEZZO-1-M1 · A394 — lo show finisce: via il nome e il ricordo dei collegati.
+        os_log("[Q-BEATS][SOLO-M1][STANZA] show chiuso nome:%{public}@ - ricordo azzerato",
+               log: .default, type: .default, showName ?? "nil")
+        showName = nil
+        connectionMemory = .none
         // A386 · B2b (A2) — lo show si chiude QUI: il Direttore smette di ripetere il proprio stato
         // e, allo scadere della soglia, i Follower vanno FUORI (foglio 2D-QUATER, L5).
         audioEngine.setShowOpen(false, origin: "end-show")

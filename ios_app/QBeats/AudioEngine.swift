@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import Network
 import os
 import UIKit
 
@@ -112,6 +113,27 @@ class AudioEngine: ObservableObject {
                                                                     directorHeard: false,
                                                                     directorSearching: false,
                                                                     linkSessionPlaying: false)
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — WI-FI COLLEGATO, per la spia (A393 §6.2) ===
+    // Un `NWPathMonitor` costruito per il solo Wi-Fi (Apple, `init(requiredInterfaceType:)`:
+    // «Initializes a path monitor to observe a specific interface type.»), membro privato con la
+    // sua coda seriale; da lì `main.async` e questo `@Published` semplice (BOX5, «Invarianti
+    // tecnici Layer 3», riga «`@Published` assignment»). Collegato = `path.status == .satisfied`
+    // (Apple: «The path is available to establish connections and send data.»). Non è un oggetto
+    // osservabile annidato (CLAUDE.md, invariante 1). Niente ponte, niente Layer 2, niente
+    // audioQueue: il monitor consegna sulla coda che gli si dà (`start(queue:)`, in `startWifiMonitor`).
+    @Published private(set) var wifiConnected: Bool = false
+    private let wifiMonitor = NWPathMonitor(requiredInterfaceType: .wifi)
+    private let wifiQueue = DispatchQueue(label: "com.bullfrog.qbeats.wifi", qos: .utility)
+    /// La prima consegna del monitor si logga anche se non cambia niente (il copione di collaudo
+    /// vuole vedere da dove si parte); solo main.
+    private var wifiReported = false
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI COLLEGATO», per la spia (A393 §6.3) ===
+    // Vero se l'ultimo riconto del motore MIDI ha trovato almeno una sorgente fisica presente
+    // (`midi_engine_set_scan_done_callback`, registrato in `init` prima di `midi_engine_start`).
+    // Scritto solo su main dal richiamo «riconto finito», che arriva sulla coda del riconto.
+    @Published private(set) var midiDeviceConnected: Bool = false
+    /// L'ultimo numero di apparecchi scritto nel log (-1 = mai): una riga a ogni cambio, e alla prima.
+    private var midiDeviceCountReported: Int = -1
     @Published var isWaitingForLinkDownbeat: Bool = false
     // CD-Q1=B mirror UI (libro mastro v14, 28/05/2026) — Mirror @Published di
     // `_linkMode` audio-queue per consumo da UI (LiveView calcola
@@ -216,6 +238,13 @@ class AudioEngine: ObservableObject {
 
     // Beat tick discreto — PassthroughSubject, no coalescing
     let beatTickSubject = PassthroughSubject<Int, Never>()
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL LAMPO DEL PEDALE (A393 §6.4) ===
+    // Emesso sul main dentro `executeMIDIAction`, dopo il passaggio al main che c'è già
+    // (`handleMIDIInput`), solo quando l'azione agisce davvero (`MIDILampDecision`, punto 98 del
+    // foglio Solo REV17). Stessa forma del battito (BOX5 «Feedback visivo beat»): un
+    // `PassthroughSubject`, mai un `@Published` per un impulso. Porta l'azione che ha agito.
+    // In M1 nessuna vista lo ascolta ancora.
+    let midiActionLampSubject = PassthroughSubject<MIDIAction, Never>()
     private var beatTickCounter: Int = 0
 
     // === Strada A — Flag suppress per didSet di beatsPerBar ===
@@ -898,6 +927,27 @@ class AudioEngine: ObservableObject {
         setupGraph()
         // MIDI engine avvia DOPO Link e grafo audio — ordine intenzionale.
         if let mh = midiEngineHandle {
+            // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI COLLEGATO» (A393 §6.3) ===
+            // Il richiamo «riconto finito» va registrato PRIMA di midi_engine_start: il primo riconto
+            // è sincrono lì dentro (dispatch_sync sulla coda del riconto) e deve consegnare anche lui.
+            // Arriva sulla coda del riconto (`com.qbeats.midi.scan`), mai sul thread di CoreMIDI né
+            // sul render callback; da qui solo `main.async` e lo specchio `midiDeviceConnected`.
+            midi_engine_set_scan_done_callback(mh, { count, ctx in
+                guard let ctx = ctx else { return }
+                let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
+                let n = Int(count)
+                DispatchQueue.main.async {
+                    let connected = n > 0
+                    if engine.midiDeviceConnected != connected {
+                        engine.midiDeviceConnected = connected
+                    }
+                    if engine.midiDeviceCountReported != n {
+                        engine.midiDeviceCountReported = n
+                        os_log("[Q-BEATS][SOLO-M1][MIDI] apparecchi:%d collegato:%d (riconto finito)",
+                               log: .default, type: .default, n, connected ? 1 : 0)
+                    }
+                }
+            }, Unmanaged.passUnretained(self).toOpaque())
             midi_engine_start(mh)
         }
         audioQueue.sync {
@@ -925,6 +975,8 @@ class AudioEngine: ObservableObject {
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
         }
+        // SOLO-G1-PEZZO-1-M1 · A394 — il monitor del Wi-Fi parte col motore (ultimo passo di init).
+        startWifiMonitor()
     }
 
     // Aggiunge log al ring buffer visivo (ultimi 10 eventi) per la DebugView
@@ -945,6 +997,7 @@ class AudioEngine: ObservableObject {
         startStampTimer?.cancel()
         transportPulseTimer?.cancel()
         followerListenTimer?.cancel()
+        wifiMonitor.cancel()   // SOLO-G1-PEZZO-1-M1 · A394 — il monitor del Wi-Fi si ferma col motore.
         if let observer = peerCountObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -3323,6 +3376,24 @@ class AudioEngine: ObservableObject {
 
     // Chiamare SOLO su main thread.
     private func executeMIDIAction(_ action: MIDIAction) {
+        // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL LAMPO: «questa azione agisce?» ===
+        // Decide `MIDILampDecision` (Models/, col suo banco) sugli specchi di main: il ruolo del
+        // player (`PlayerRoleDecision`, composta da `FollowerDecision` e `DirectorSongCloseDecision`),
+        // il trasporto in moto (`playbackState` `.playing` o `.countIn`: la condizione di
+        // `handleStop`) e la base che suona. La base nel player non parte (A387 §2.2): solo la
+        // schermata di debug la fa suonare (`DebugView`, `playBacktrack`). Decisione di Mauro del
+        // 05/10/2026: Stop Backtrack spento, come dopo lo Stop, finché la base non arriva nel player;
+        // quindi l'ingresso è falso, con l'eccezione del debug dichiarata qui. Il comportamento delle
+        // azioni qui sotto NON cambia: si aggiunge solo il segnale, mandato dove l'azione agisce.
+        let lampRole = PlayerRoleDecision.playerRole(role: currentLinkMode, userLinkEnabled: linkUserEnabled)
+        let lampMoving = transportInMotion
+        let lampFires = MIDILampDecision.fires(action: action,
+                                               role: lampRole,
+                                               transportInMotion: lampMoving,
+                                               backtrackPlaying: false)
+        os_log("[Q-BEATS][SOLO-M1][LAMPO] azione:%{public}@ ruolo:%{public}@ in-moto:%d lampo:%d",
+               log: .default, type: .default,
+               action.rawValue, lampRole.rawValue, lampMoving ? 1 : 0, lampFires ? 1 : 0)
         // A360 (16/09/2026) — SUL FOLLOWER IL PEDALE NON AVVIA, NON FERMA E NON SPOSTA LO
         // SHOW, e non ferma la base (KILL BASE, se assegnato). Resta il muto.
         // A361 — anche il tap tempo non fa niente: `tapTempo()` → `setBPM` →
@@ -3340,6 +3411,10 @@ class AudioEngine: ObservableObject {
                 break
             }
         }
+        // SOLO-G1-PEZZO-1-M1 · A394 — il lampo, dove l'azione agisce (già su main).
+        if lampFires {
+            midiActionLampSubject.send(action)
+        }
         switch action {
         case .playPause:
             if isPlaying { stop() } else { start() }
@@ -3355,6 +3430,40 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][MIDI ACTION] %{public}@ — richiede Layer 3",
                    log: .default, type: .default, action.rawValue)
         }
+    }
+
+    // SOLO-G1-PEZZO-1-M1 · A394 — il trasporto è in moto: suona o conta. È la condizione sotto cui
+    // `handleStop` agisce (`.playing`, `.countIn`); solo main (legge lo specchio `playbackState`).
+    private var transportInMotion: Bool {
+        switch playbackState {
+        case .playing, .countIn:
+            return true
+        case .stopped, .pausedAwaitingChoice:
+            return false
+        }
+    }
+
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL MONITOR DEL WI-FI ===
+    // Apple, `NWPathMonitor.start(queue:)`: «Starts monitoring path changes, and sets a queue on
+    // which to deliver path events.» La coda è `wifiQueue`, seriale e privata; da lì solo
+    // `main.async`. Una riga di log alla prima consegna e a ogni cambio.
+    private func startWifiMonitor() {
+        wifiMonitor.pathUpdateHandler = { [weak self] path in
+            let connected = path.status == .satisfied
+            let status = String(describing: path.status)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                let changed = self.wifiConnected != connected
+                if changed { self.wifiConnected = connected }
+                if changed || !self.wifiReported {
+                    self.wifiReported = true
+                    os_log("[Q-BEATS][SOLO-M1][WIFI] collegato:%d (stato:%{public}@)",
+                           log: .default, type: .default,
+                           connected ? 1 : 0, status)
+                }
+            }
+        }
+        wifiMonitor.start(queue: wifiQueue)
     }
 
     // NON chiamare dall'interno di audioQueue (deadlock).

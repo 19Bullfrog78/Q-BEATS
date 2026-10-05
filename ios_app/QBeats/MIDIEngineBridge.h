@@ -36,6 +36,16 @@ void  midi_engine_network_enable(void* handle);
 void  midi_engine_network_disable(void* handle);
 void  midi_engine_scan_connect_ports(void* handle);
 
+// === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI collegato» ===
+// Quante sorgenti fisiche presenti (con entità e non offline; fuori la virtuale dell'app e la
+// rete MIDI) ha trovato l'ultimo riconto. Scritto sulla coda del riconto; lettura atomica.
+int   midi_engine_physical_source_count(void* handle);
+// Richiamo «riconto finito»: chiamato sulla coda del riconto alla fine di ogni riconto, anche
+// del primo dentro midi_engine_start — va registrato PRIMA. In Swift: solo main.async da lì.
+void  midi_engine_set_scan_done_callback(void* handle,
+                                         void (*callback)(int physicalSourceCount, void* userData),
+                                         void* userData);
+
 // === AGGIUNTO 6C — Link phase sync ===
 double midi_engine_get_beat_position(void* handle);
 // Restituisce la beat position proiettata a hostTime (mach_absolute_time).

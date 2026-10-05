@@ -504,7 +504,9 @@ struct LiveView: View {
                 // rientro restava quello sopravvissuto della sessione — il 3/4
                 // del video del 28/08. Stessa fonte delle due righe sopra: la
                 // sezione della posizione, non il motore.
-                session.currentTimeSig = timeSigString(for: section.beatsPerBar)
+                // SOLO-G1-PEZZO-1-M1 · A394 — la metrica dai due numeri della STESSA sezione
+                // (`MeterLabel`): i battiti applicati qui sopra sono i suoi.
+                session.currentTimeSig = MeterLabel.text(beatsPerBar: section.beatsPerBar, beatUnit: section.beatUnit)
             }
             // ⟦SYNC-ISTANTANEA⟧ A247 (29/08) — L'ANCORA SI CONQUISTA SUBITO, se
             // il motore sa dov'è. Collaudo Mauro 29/08 su ⟦DISPLAY-FIRMA-A⟧:
@@ -680,7 +682,13 @@ struct LiveView: View {
                 displayBpb = beats
                 // Pre-Play / setup / Stop / Q-Stage→LiveView: applica subito,
                 // display coerente fuori dalla finestra SEAMLESS.
-                session.currentTimeSig = timeSigString(for: beats)
+                // SOLO-G1-PEZZO-1-M1 · A394 — fuori dal moto l'unico scrittore di `beatsPerBar` è
+                // `setBeatsPerBar`, chiamato da `prepareAndStartCurrentSection` con la sezione del
+                // runner (indici già scritti, stesso giro di main): il denominatore viene da lei.
+                // Lo swap SEAMLESS non arriva qui a motore fermo: `isPlaying` scende con un
+                // `main.async` accodato DOPO il suo, da `stopSync` (referto A394).
+                session.currentTimeSig = MeterLabel.text(beatsPerBar: beats,
+                                                         beatUnit: runner.currentSection?.beatUnit ?? MeterLabel.defaultBeatUnit)
             }
         }
         .onReceive(audioEngine.$currentAccentPattern) { ap in
@@ -738,7 +746,12 @@ struct LiveView: View {
                 // tick della barretta (displayBpb) e del cambio audio (downbeat
                 // Link-synced) → header e barretta condividono un unico punto di
                 // applicazione e non possono più divergere per costruzione.
-                session.currentTimeSig = timeSigString(for: bpb)
+                // SOLO-G1-PEZZO-1-M1 · A394 — al tick che applica `pendingBpb` il runner è già
+                // sulla sezione nuova: lo swap accoda su main prima lo specchio (`beatsPerBar`) e
+                // subito dopo la closure che avanza `currentSectionIdx`, dalla stessa coda audio da
+                // cui parte questo tick (referto A394; Bug 2.b e TD #41 invariati).
+                session.currentTimeSig = MeterLabel.text(beatsPerBar: bpb,
+                                                         beatUnit: runner.currentSection?.beatUnit ?? MeterLabel.defaultBeatUnit)
                 pendingBpb = nil
             }
             if let ap = pendingAccentPattern {
@@ -1001,10 +1014,9 @@ struct LiveView: View {
         }
     }
 
-    private func timeSigString(for beats: UInt32) -> String {
-        let denom: UInt32 = (beats == 6 || beats == 12) ? 8 : 4
-        return "\(beats)/\(denom)"
-    }
+    // SOLO-G1-PEZZO-1-M1 · A394 — `timeSigString(for:)` è uscita: ricavava la metrica dal solo numero
+    // di battiti e scriveva 6/4 come «6/8» e 5/8, 7/8, 9/8, 11/8 con «/4» (A393 §2.3). La metrica la
+    // scrive `MeterLabel` (Models/, col suo banco) dai due numeri della sezione, nei tre punti di sempre.
 
 
 }

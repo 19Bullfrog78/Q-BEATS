@@ -19,6 +19,16 @@ struct MIDIEngine {
     std::vector<MIDIEndpointRef> _connectedSources;
     std::atomic<int> _physicalDestCount;
     dispatch_queue_t _scanQueue; // seriale, label "com.qbeats.midi.scan"
+    // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI COLLEGATO»: la lettura che il motore
+    // aveva e non esponeva (A393 §6.3; BOX5 «Sette regole di metodo», n. 5). Quante sorgenti
+    // fisiche presenti ha trovato l'ultimo riconto: scritto alla fine di ogni riconto, sulla coda
+    // del riconto; letto da Swift con midi_engine_physical_source_count e consegnato dal richiamo
+    // «riconto finito» (scanDoneCallback), chiamato sulla stessa coda, anche al primo riconto di
+    // midi_engine_start. ⛔ Quali sorgenti si collegano NON cambia: il conteggio è una lettura a
+    // parte, nello stesso giro.
+    std::atomic<int> _physicalSourceCount;
+    void (*scanDoneCallback)(int physicalSourceCount, void* userData);
+    void* scanDoneUserData;
 
     MIDISequencer sequencer;
     ScheduledEventBuffer outBuffer;
@@ -42,6 +52,9 @@ struct MIDIEngine {
         _inputPort = 0;
         _outputPort = 0;
         _physicalDestCount.store(0);
+        _physicalSourceCount.store(0);
+        scanDoneCallback = nullptr;
+        scanDoneUserData = nullptr;
         lastSamplePosition = 0;
         lastMachTime = 0;
         sampleRate = 48000.0;
@@ -49,6 +62,23 @@ struct MIDIEngine {
         receiveUserData = nullptr;
         _scanQueue = nullptr;
         memset(_processPacketBuffer, 0, sizeof(_processPacketBuffer));
+    }
+
+    // A394 — cosa conta come «apparecchio» (punto 98 del foglio Solo REV17: «Verde fisso = un
+    // apparecchio MIDI e' collegato»): una sorgente che
+    //  (a) ha un'entità — Apple, MIDIEndpointGetEntity: «Virtual sources and destinations don't
+    //      have entities.» (https://developer.apple.com/documentation/coremidi/midiendpointgetentity(_:_:)):
+    //      così restano fuori le sorgenti virtuali delle altre app;
+    //  (b) non è offline — Apple, kMIDIPropertyOffline: «A value of 1 indicates the device is
+    //      temporarily absent and offline, and 0 indicates the object is present.»
+    //      (https://developer.apple.com/documentation/coremidi/kmidipropertyoffline).
+    // La propria sorgente virtuale e la rete MIDI sono già fuori nel giro del riconto, come oggi.
+    static bool isPhysicalPresentSource(MIDIEndpointRef ep) {
+        MIDIEntityRef entity = 0;
+        if (MIDIEndpointGetEntity(ep, &entity) != noErr || entity == 0) return false;
+        SInt32 offline = 0;
+        if (MIDIObjectGetIntegerProperty(ep, kMIDIPropertyOffline, &offline) == noErr && offline != 0) return false;
+        return true;
     }
 
     void scanAndConnectPhysicalPorts() {
@@ -59,6 +89,7 @@ struct MIDIEngine {
         _connectedSources.clear();
 
         // Step 2 — enumera e connetti sorgenti fisiche
+        int physicalSources = 0;   // A394 — solo conteggio: non decide cosa si collega
         int srcCount = (int)MIDIGetNumberOfSources();
         for (int i = 0; i < srcCount; i++) {
             MIDIEndpointRef ep = MIDIGetSource(i);
@@ -71,6 +102,9 @@ struct MIDIEngine {
             }
             MIDIPortConnectSource(_inputPort, ep, NULL);
             _connectedSources.push_back(ep);
+            // A394 — la stessa sorgente che si collega qui sopra conta come «apparecchio» solo se
+            // ha un'entità e non è offline (isPhysicalPresentSource).
+            if (isPhysicalPresentSource(ep)) physicalSources++;
         }
 
         // Step 3 — enumera destinazioni fisiche
@@ -92,6 +126,11 @@ struct MIDIEngine {
 
         // Step 4 — aggiorna contatore con release ordering
         _physicalDestCount.store(newDestCount, std::memory_order_release);
+
+        // A394 — Step 5: il conteggio delle sorgenti fisiche presenti e il richiamo «riconto
+        // finito», sulla coda del riconto (mai sul render callback né su midiReceiveProc).
+        _physicalSourceCount.store(physicalSources, std::memory_order_release);
+        if (scanDoneCallback) scanDoneCallback(physicalSources, scanDoneUserData);
     }
 };
 
@@ -369,6 +408,24 @@ void midi_engine_scan_connect_ports(void* handle) {
     dispatch_async(engine->_scanQueue, ^{
         engine->scanAndConnectPhysicalPorts();
     });
+}
+
+// === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI collegato» ===
+int midi_engine_physical_source_count(void* handle) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return 0;
+    return engine->_physicalSourceCount.load(std::memory_order_acquire);
+}
+
+void midi_engine_set_scan_done_callback(void* handle,
+                                        void (*callback)(int physicalSourceCount, void* userData),
+                                        void* userData) {
+    MIDIEngine* engine = (MIDIEngine*)handle;
+    if (!engine) return;
+    // Registrato da AudioEngine.init PRIMA di midi_engine_start, quando la coda del riconto non
+    // esiste ancora: nessun riconto può essere in corso.
+    engine->scanDoneCallback = callback;
+    engine->scanDoneUserData = userData;
 }
 
 double midi_engine_get_beat_position(void* handle) {
