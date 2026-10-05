@@ -1,4 +1,4 @@
-BOX3 V101 — 2026-09-08 (AUTOPORTANTE — V100 aggiunge in testa SOLO UN BLOCCO DI PUNTATORI, senza censimenti; il CORPO resta quello di V99, datato 2026-07-22) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
+BOX3 V102 — Decisione: 2026-10-05 — ⇒ **V102 (mandato A395, corretto al cancello dal mandato A396): lo stato vivo al 05/10/2026 è IN CODA, nel blocco «STATO AL 05/10/2026 — V102»; solo rimandi ai canonici, nessun censimento** · (AUTOPORTANTE — V100 aggiunge in testa SOLO UN BLOCCO DI PUNTATORI, senza censimenti; il CORPO resta quello di V99, datato 2026-07-22) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
 Supersede V99 (blocco di SOLI PUNTATORI in testa, 22/08/2026 — mandato A185; ZERO riscritture: il corpo di V99 è riportato sotto INVARIATO, e la sua data resta 2026-07-22. ⛔ Il blocco NON contiene censimenti: una versione precedente ne portava due — «due ticket bloccanti palco» e un elenco dei pulsanti morti del transport — ed erano entrambi falsi. Sostituiti da indirizzi alle sedi vive): ⚠️ **«INVARIATO» si riferisce al TESTO, non alle annotazioni.** Le marcature datate che compaiono dentro il corpo sono **aggiunte posteriori, non modifiche**: la storia non si riscrive, si marca dove sta. Prassi gia' in atto prima di questa nota — vedi le marcature nel blocco di testa. ⇒ **Chi trova una marcatura datata dentro un corpo dichiarato invariato non deve concludere che il testo sia stato manomesso.** Tensione rilevata da CC in `A334` e girata al referee invece che sciolta da solo.
 
 ⚠️ QUESTO DOCUMENTO È FERMO AL 22/07/2026 (V99). Blocco di puntatori
@@ -817,3 +817,41 @@ Progetto e la copia-file letta dal referee possono divergere in ENTRAMBE le dire
 MESSAGGIO di consegna, NON inciso qui (R7 punto 1: sha256 = trasporto, mai puntatore persistente in
 un documento) — e un'impronta prova la CORRISPONDENZA fra due copie, non la COMPLETEZZA di ciò che
 è stato propagato (V98 (i)).
+
+════════════════════════════════════════════════════════════════════
+STATO AL 05/10/2026 — V102 (mandato A395, giro dei canonici)
+════════════════════════════════════════════════════════════════════
+⚠️ Il paragrafo «STATO DI QUESTO FILE: V99 canonica corrente» qui sopra è del 22/07: la versione
+corrente è nella riga 1. Questo blocco porta lo stato al 05/10 e soli rimandi: versioni, ticket e
+decisioni si leggono nei canonici, non qui.
+
+ · **Master e ultima CI** [M] (05/10): `master` = `origin/master` = `bd58f621bf60a0c19205b9019141e6290fa2a7c2`
+   (A394); CI «iOS Signed Build», run `37311486679`, verde, 324 test (referto del commit A394,
+   `HANDOFF/MISURE_CC_2026-10-05_A394-COMMIT-PLAYER-DEL-SOLO-G1-PEZZO-1-M1-SU-MASTER.md`). Chi
+   riprende rimisura: `git ls-remote origin refs/heads/master`, e la CI con lo sha a 40 (V99 (d)).
+ · **Entrato di recente, su master, in ordine:**
+   - il 2D, il Follower che perde il Direttore (A386): `54247fc` B1 → `2c01ebe` B2A → `b27c7e3`
+     LIBRO v86 → `aebc928` B2b → `164a814` B2c → `246e98d` B2d; collaudato su device il
+     30/09-01/10 e il 02/10 (LIBRO, riga `2026-10-02` «IL 2D È COSTRUITO E COLLAUDATO SU DEVICE»);
+   - `c1cc62b`, LIBRO v87: le decisioni di Mauro del 01-02/10;
+   - `c1dec22`, LIBRO v88 e BOX5 V53: la ratifica del player del Solo (Giro 1) e del foglio del
+     sync (A390, corretto al cancello da A391; LIBRO, riga `2026-10-04` «RATIFICA DEL PLAYER DEL
+     SOLO (GIRO 1) E DEL FOGLIO DEL SYNC»);
+   - `bd58f62`: M1 del pezzo 1, le regole e le letture del player del Solo (A394). A schermo cambia
+     solo la metrica in testata (BUGS v91, `TD-metrica-in-testata-dai-soli-battiti`). Il collaudo
+     di M1 si fa insieme a quello di M2, con una scaletta di prova nel Debug costruita in M2
+     (decisione del referee del 05/10, mandato A396).
+ · **In corso:** il player del Solo, Giro 1. Pezzo 1: M1 fatto; M2 e M3 si costruiscono sulla
+   Solo REV18 di CD, ratificata da Mauro il 05/10 (LIBRO v89, nello stesso commit). Poi il pezzo
+   2 e il pezzo 3. Ordine e collocazioni: SCALETTA v20, Sezione H. Decisioni del referee del 05/10:
+   BOX5 V54, capitolo «PLAYER DEL SOLO, GIRO 1 — DECISIONI DEL REFEREE DEL 05/10/2026».
+ · **Dopo:** i giri di Direttore e Follower; l'iPad, che copierà le decisioni dell'iPhone; il
+   fronte Q-Stage (SCALETTA v20, Sezione H).
+ · **Rami aperti** [M] (`git ls-remote origin`, 05/10): venti oltre a `master`. Sette si tolgono
+   dopo il commit di questo giro, ciascuno solo dopo la prova che il suo albero è quello di un
+   commit di master: `build-check/a386-b2b`, `build-check/a386-b2c`, `build-check/a386-b2d`,
+   `build-check/a394-solo-m1`, `build-check/a320-endshow-scratch`, `build-check/a378-passo-2a`,
+   `doc-check/a380-giro-documenti`; e si rimuove il worktree `qb_fixB` (il suo ramo resta). Gli
+   altri tredici restano. Mandato A396, §6.
+ · **Dove sta il resto:** bug e gravità in BUGS v91; specifiche, invarianti e regole R-δ in BOX5
+   V54; ratifiche nel LIBRO v89, che porta la ratifica della Solo REV18 (riga `2026-10-05`).
