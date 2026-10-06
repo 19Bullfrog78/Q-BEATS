@@ -85,6 +85,15 @@ struct LiveView: View {
     // P2 — Finestra "fade post-sezione naturale": acceso fra l'autostop L1.a e
     // lo spegnimento sincronizzato di segmento+LED, durata = un beat al BPM corrente.
     @State private var sectionHold: Bool = false
+    // SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — il lampo della spia MIDI (punto 98: lo spegnimento breve del pallino
+    // quando il pedale fa fare davvero qualcosa; il segnale è `midiActionLampSubject` di M1, già sul main, e il
+    // gettone scarta la riaccensione di un lampo superato da uno nuovo), la causa dell'ultimo cambio del pannello
+    // del mixer (per la riga di log: i gesti della fascia di Direttore e Follower vivono in `TransportView`, che non
+    // cambia, e qui se ne vede solo l'effetto), e se l'area di K è già stata scritta nel log.
+    @State private var midiLampOff: Bool = false
+    @State private var midiLampToken: Int = 0
+    @State private var mixerCause: String = "gesto-fascia"
+    @State private var soloAreaLogged: Bool = false
 
     // MARK: - Mirror UI per cambi sezione SEAMLESS (TD #38(a) + #40 fix, 17/05/2026)
     //
@@ -157,6 +166,29 @@ struct LiveView: View {
             // Unica fonte di verità: ricalcolato qui, propagato come parametro
             // CGFloat a tutti i sub-view che ne hanno bisogno.
             let scaleFactor: CGFloat = geo.size.width / 390
+            // SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — LA COMPOSIZIONE LA SCEGLIE LA REGOLA DEL RUOLO (A393 §12.2):
+            //    il Solo di `PlayerRoleDecision` (M1) vede K (`SoloPlayerView`, foglio Solo REV18; misure di K in
+            //    moto dalla REV9), Direttore e Follower il player di oggi. Un solo `LiveView`: specchi del motore,
+            //    ancora del battito, veli e tocchi restano qui, una volta. La geometria di K (`SoloPlayerGeometry`,
+            //    decisione D4: cornice 390 x 766, fattore unico, centrata) si calcola dall'area utile che vede questo
+            //    `GeometryReader`; il fattore entra nelle misure come parametro, non come trasformazione.
+            let playerRole = PlayerRoleDecision.playerRole(role: audioEngine.currentLinkMode,
+                                                           userLinkEnabled: audioEngine.linkUserEnabled)
+            let isSolo = playerRole == .solo
+            let soloGeometry = SoloPlayerGeometry(usableWidth: Double(geo.size.width),
+                                                  usableHeight: Double(geo.size.height))
+            // Le spie (M1: `StatusLightsDecision` sugli specchi del motore e sul ricordo della stanza, osservata qui
+            // per `connectionMemory`) e le facce della console (`SoloConsoleDecision`: `isPlaying` è l'ingresso
+            // dell'azione del tasto centrale, D5; la base nel player non suona, A387 §2.2, quindi
+            // `backtrackPlaying: false` con lo stesso motivo del lampo di M1).
+            let statusLights = StatusLightsDecision.lights(linkUserEnabled: audioEngine.linkUserEnabled,
+                                                           linkConnected: audioEngine.linkIsConnected,
+                                                           wifiConnected: audioEngine.wifiConnected,
+                                                           midiConnected: audioEngine.midiDeviceConnected,
+                                                           memory: room.connectionMemory)
+            let consoleFaces = SoloConsoleDecision.faces(transportRunning: audioEngine.isPlaying,
+                                                         backtrackPlaying: false,
+                                                         mixerOpen: session.showMixer)
             // A386 · B2b (30/09/2026) — IL VELO DEL FOLLOWER: una decisione sola
             //    (`FollowerVeilDecision`, Models/, testata), letta qui dal motore (stato,
             //    ragione, segnale, Start Stop Sync, sessione Link in moto), dalla stanza (la
@@ -173,7 +205,8 @@ struct LiveView: View {
                 return face == .join || face == .out || face == .ready
             }()
             ZStack {
-                Color(hex: "#0e0e10").ignoresSafeArea(.all)
+                // SOLO-G1-PEZZO-1-M2 · A397 — nel Solo il fondo del foglio (`--bg`), anche fuori dalla cornice (D4).
+                (isSolo ? QLiveSolo.background : Color(hex: "#0e0e10")).ignoresSafeArea(.all)
 
                 let isStandby: Bool = {
                     if case .standby = session.playbackState { return true }
@@ -190,6 +223,32 @@ struct LiveView: View {
                 // B2b — la stessa testata al 10% sopra la faccia FUORI del Follower (`.qb-hd.v`).
                 let standbyOpacity: Double = (isStandby || followerOutFace) ? 0.10 : 1.0
 
+                if isSolo {
+                    // SOLO-G1-PEZZO-1-M2 · A397 — LO SCHERMO K DEL SOLO (foglio Solo REV18; misure di K in moto dalla
+                    //    REV9): testata, riga di stato, spie, battuta e BPM, barra delle battute, sezione, Next, barra
+                    //    della canzone, console B. Sotto il velo di oggi (fino a M3) la composizione si attenua con
+                    //    `standbyOpacity` e il velo prende i tocchi, come la composizione vecchia; a `.stopped` è K
+                    //    fermo col Play (provvisorio fino a M3). Le azioni della console sono quelle di oggi della
+                    //    fascia di chi comanda (`consoleKeyTouched`); freccia e muto quelle della testata. Le battute
+                    //    delle sezioni per la barra della canzone si leggono dal runner in sola lettura (`currentSong`).
+                    //    Via, solo qui: frecce di sezione, Loop, EMERG, maniglia e trascinamenti del mixer (BOX5 V54,
+                    //    decisione 5; LIBRO 2026-10-04 «NEL SOLO, A CANZONE IN CORSO, NESSUNA MOSSA»).
+                    SoloPlayerView(session: session,
+                                   geometry: soloGeometry,
+                                   displayAccentPattern: displayAccentPattern,
+                                   sectionHold: sectionHold,
+                                   lights: statusLights,
+                                   midiLampOff: midiLampOff,
+                                   faces: consoleFaces,
+                                   clickMuted: audioEngine.appSettings.clickMuted,
+                                   barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
+                                   contentOpacity: standbyOpacity,
+                                   onExit: onExit,
+                                   onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                   onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onAppear { soloAreaShown(soloGeometry) }
+                } else {
                 VStack(spacing: 0) {
                     LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge, contentOpacity: standbyOpacity)
                         .frame(height: headerHeight)
@@ -254,6 +313,7 @@ struct LiveView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
 
                 // B2b — sul Follower FUORI la faccia del foglio vince sul velo di standby, sul velo
                 // UX-3 e sulla schermata di fine scaletta (L5): `!followerOutFace` sui tre.
@@ -417,6 +477,23 @@ struct LiveView: View {
                 //    Qui stava: `if case .waitingForDirector = session.playbackState {
                 //    WaitingForDirectorView(...) { runner.startCurrentSection(...) } }`.
 
+                if isSolo {
+                    // SOLO-G1-PEZZO-1-M2 · A397 — IL PANNELLO DEL MIXER NEL SOLO (punto 111; decisioni D1 e D2 del
+                    //    referee, 06/10): si apre e si chiude solo col tasto Mixer, e da sé quando la console sparisce
+                    //    (`mixerAutoClose`). Nessuna zona di chiusura: il tocco fuori dal pannello arriva a ciò che c'è
+                    //    sotto (freccia, muto e console funzionano; altrove non succede niente). Il tocco sul fondo del
+                    //    pannello non fa niente (`closesOnTap: false`); i cursori funzionano come oggi. Sta dove lo
+                    //    mette la geometria: bordo in basso a 622, alto 160 (l'altezza non si misura più sullo schermo),
+                    //    largo quanto la cornice. Il pannello resta quello di oggi (Mauro, 04/10: «3. ESATTO. OK»).
+                    if session.showMixer {
+                        MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
+                                         height: CGFloat(soloGeometry.mixerPanel.height), closesOnTap: false)
+                            .frame(width: CGFloat(soloGeometry.mixerPanel.width),
+                                   height: CGFloat(soloGeometry.mixerPanel.height))
+                            .offset(x: CGFloat(soloGeometry.mixerPanel.x), y: CGFloat(soloGeometry.mixerPanel.y))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                } else {
                 VStack(spacing: 0) {
                     Spacer()
                     if session.showMixer {
@@ -424,18 +501,40 @@ struct LiveView: View {
                             .frame(height: geo.size.height * 0.49)
                             .contentShape(Rectangle())
                             .onTapGesture {
+                                mixerCause = "zona-sopra"
                                 session.showMixer = false
                             }
-                        MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor)
+                        // SOLO-G1-PEZZO-1-M2 · A397 — decisione D2 (b): per Direttore e Follower il pannello è alto il
+                        //    21 % dell'altezza UTILE (BUGS, `TD-mixer-copre-endshow`, voce (a)), non dello schermo; i
+                        //    gesti non cambiano (apertura a trascinamento e a maniglia, chiusura con la zona sopra il
+                        //    pannello e col tocco sul pannello).
+                        MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
+                                         height: geo.size.height * 0.21, closesOnTap: true)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(session.showMixer)
+                }
 
             }
             // A386 · B2b — una riga di log a ogni cambio di faccia del Follower, e alla prima.
             .onAppear { followerFaceChanged(followerVeil) }
             .onChange(of: followerVeil) { newVeil in followerFaceChanged(newVeil) }
+            // SOLO-G1-PEZZO-1-M2 · A397 — la composizione scelta, alla prima e a ogni cambio; le spie alla prima e a
+            //    ogni cambio di faccia o di striscia; il pannello del mixer a ogni apertura e chiusura, con la causa;
+            //    la chiusura da sé del pannello (D2 (a): a ogni ingresso in `.standby` e in `.fineSetlist`, dove velo e
+            //    fine scaletta coprono console e fascia, e quando la fascia del Follower lascia il posto alle facce
+            //    FUORI, dove la fascia non è nell'albero); il lampo della spia MIDI.
+            .onAppear { compositionChanged(playerRole) }
+            .onChange(of: playerRole) { role in compositionChanged(role) }
+            .onAppear { statusLightsChanged(statusLights) }
+            .onChange(of: statusLights) { lights in statusLightsChanged(lights) }
+            .onChange(of: session.showMixer) { open in mixerChanged(open: open) }
+            .onChange(of: session.playbackState) { state in mixerAutoClose(for: state) }
+            .onChange(of: followerOutFace) { out in
+                if out { mixerAutoClose(cause: "follower-fuori") }
+            }
+            .onReceive(audioEngine.midiActionLampSubject) { _ in midiLampFired() }
         }
         .onAppear {
             // Sincronizzazione iniziale mirror UI con stato corrente AudioEngine.
@@ -472,6 +571,7 @@ struct LiveView: View {
             //    questa riga si rientrerebbe col mixer aperto senza capire come.
             //    Ogni ALTRO campo della sessione sopravvive DI PROPOSITO: vedi
             //    il cartello A242 in `QLiveSession.swift`.
+            mixerCause = "montaggio"
             session.showMixer = false
             // ⟦DISPLAY-FIRMA-A⟧ A5+C1+C2 — SPENTO AL MONTAGGIO. Da A242 la
             // sessione sopravvive alla schermata, quindi `currentBar` e
@@ -1001,6 +1101,107 @@ struct LiveView: View {
             runner.startCurrentSection(audioEngine: audioEngine, session: session)
         } else {
             runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        }
+    }
+
+    // MARK: - SOLO-G1-PEZZO-1-M2 · A397 — la composizione, la console, il pannello del mixer, le spie, il lampo
+
+    /// La composizione scelta dalla regola del ruolo, alla prima comparsa e a ogni cambio.
+    private func compositionChanged(_ role: PlayerRole) {
+        os_log("[Q-BEATS][SOLO-M2][COMPOSIZIONE] ruolo:%{public}@ composizione:%{public}@",
+               log: .default, type: .default, role.rawValue, role == .solo ? "K" : "oggi")
+    }
+
+    /// Area utile e fattore alla prima comparsa di K (decisione D4).
+    private func soloAreaShown(_ g: SoloPlayerGeometry) {
+        guard !soloAreaLogged else { return }
+        soloAreaLogged = true
+        os_log("[Q-BEATS][SOLO-M2][AREA] area utile:%.1fx%.1f fattore:%.4f cornice:%.1fx%.1f origine:%.1f,%.1f",
+               log: .default, type: .default,
+               g.usableWidth, g.usableHeight, g.scale, g.frame.width, g.frame.height, g.frame.x, g.frame.y)
+    }
+
+    /// Un tocco sulla console B: l'azione viene dalle stesse facce che il tocco ha visto (D5); le chiamate sono
+    /// quelle di oggi della fascia di chi comanda (`TransportView`): Stop → `audioEngine.stop()`, Play →
+    /// `runner.startCurrentSection`; il Mixer apre e chiude il pannello (D1); Kill spento e List mode non fanno
+    /// niente (Kill acceso chiamerebbe `stopBacktrack`, come oggi, ma nel Giro 1 la base nel player non suona).
+    private func consoleKeyTouched(_ key: SoloConsoleKey, faces: SoloConsoleFaces) {
+        let action = SoloConsoleDecision.action(for: key, faces: faces)
+        let keyName: String
+        switch key {
+        case .center: keyName = faces.center == .stop ? "stop" : "play"
+        case .mixer: keyName = "mixer"
+        case .kill: keyName = "kill"
+        case .listMode: keyName = "list-mode"
+        }
+        let outcome: String
+        switch action {
+        case .stop:
+            audioEngine.stop()
+            outcome = "audioEngine.stop()"
+        case .start:
+            runner.startCurrentSection(audioEngine: audioEngine, session: session)
+            outcome = "runner.startCurrentSection"
+        case .toggleMixer:
+            mixerCause = "tasto"
+            session.showMixer.toggle()
+            outcome = session.showMixer ? "pannello aperto" : "pannello chiuso"
+        case .killBacktrack:
+            audioEngine.stopBacktrack()
+            outcome = "audioEngine.stopBacktrack()"
+        case .none:
+            outcome = "nessuna azione"
+        }
+        os_log("[Q-BEATS][SOLO-M2][CONSOLE] tocco:%{public}@ esito:%{public}@",
+               log: .default, type: .default, keyName, outcome)
+    }
+
+    /// Il pannello del mixer si è aperto o chiuso: una riga con la causa (tasto, zona-sopra, montaggio, standby,
+    /// fine-scaletta, follower-fuori; gesto-fascia per la maniglia e i trascinamenti di `TransportView`, che si
+    /// vedono qui solo nell'effetto).
+    private func mixerChanged(open: Bool) {
+        os_log("[Q-BEATS][SOLO-M2][MIXER] pannello:%{public}@ causa:%{public}@",
+               log: .default, type: .default, open ? "aperto" : "chiuso", mixerCause)
+        mixerCause = "gesto-fascia"
+    }
+
+    /// D2 (a): il pannello si chiude da sé a ogni ingresso in `.standby` e in `.fineSetlist`, dove velo e fine
+    /// scaletta coprono console e fascia. In `.overlayStop` resta com'è: caso fermato e riportato nel referto (la
+    /// console resta in vista, attenuata sotto il nero .65 del pannello superato, ma non prende tocchi).
+    private func mixerAutoClose(for state: LivePlaybackState) {
+        switch state {
+        case .standby: mixerAutoClose(cause: "standby")
+        case .fineSetlist: mixerAutoClose(cause: "fine-scaletta")
+        default: break
+        }
+    }
+
+    private func mixerAutoClose(cause: String) {
+        guard session.showMixer else { return }
+        mixerCause = cause
+        session.showMixer = false
+    }
+
+    /// Le spie: una riga alla prima comparsa e a ogni cambio di faccia o di striscia.
+    private func statusLightsChanged(_ lights: StatusLights) {
+        os_log("[Q-BEATS][SOLO-M2][SPIE] link:%{public}@ wifi:%{public}@ midi:%{public}@ striscia:%{public}@",
+               log: .default, type: .default,
+               lights.link.map { String(describing: $0) } ?? "nascosta",
+               String(describing: lights.wifi),
+               String(describing: lights.midi),
+               lights.strip ?? "-")
+    }
+
+    /// Il lampo della spia MIDI (punto 98): il pallino si spegne per `QLiveSolo.Status.lampOffSeconds` e torna.
+    /// Un impulso per azione del pedale che agisce (`MIDILampDecision`, dal motore); il gettone scarta la
+    /// riaccensione di un lampo superato da uno nuovo. Niente sul thread di CoreMIDI né su audioQueue: il segnale
+    /// arriva già sul main, e lo spegnimento è un rinvio sul main, come il lampo di KILL BASE di oggi.
+    private func midiLampFired() {
+        midiLampToken += 1
+        let token = midiLampToken
+        midiLampOff = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + QLiveSolo.Status.lampOffSeconds) {
+            if midiLampToken == token { midiLampOff = false }
         }
     }
 

@@ -484,11 +484,20 @@ struct DebugView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.pink)
                     // A386 · B2b — la scaletta del collaudo del 2D (5 canzoni da circa un minuto).
-                    Button("Carica dati test COLLAUDO 2D") {
-                        loadTestDataCollaudo2D()
+                    Group {
+                        Button("Carica dati test COLLAUDO 2D") {
+                            loadTestDataCollaudo2D()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.yellow)
+                        // A397 · SOLO-G1-PEZZO-1-M2 — la scaletta del collaudo del player del Solo, Giro 1 (M1 + M2).
+                        // (Nel `Group` col tasto del 2D: la sezione aveva già dieci figli.)
+                        Button("Carica dati test COLLAUDO SOLO G1") {
+                            loadTestDataCollaudoSoloG1()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.yellow)
                 }
                 #endif
 
@@ -834,6 +843,75 @@ struct DebugView: View {
                          countIn: 0, backtrackFilename: nil)
 
         let setlist = Setlist(id: UUID(), name: "COLLAUDO 2D",
+                              date: Date(), songIDs: [song1.id, song2.id, song3.id, song4.id, song5.id])
+
+        QBeatsStore.shared.injectTestData(songs: [song1, song2, song3, song4, song5], setlists: [setlist])
+    }
+
+    /// A397 · SOLO-G1-PEZZO-1-M2 (06/10/2026) — LA SCALETTA DEL COLLAUDO DEL PLAYER DEL SOLO, GIRO 1: «COLLAUDO SOLO
+    /// G1», cinque canzoni intorno al minuto, countIn 0, nessuna base, sul modello di «COLLAUDO 2D». Dentro: le
+    /// metriche 7/8, 9/8, 11/8, 12/8, 6/4, 5/8 della lista chiusa (`TimeSignature.all`) più 4/4, 2/4 e 3/4; battute sui
+    /// tre gradini del punto 107 (fino a 16; fra 17 e 32; 64); una sezione senza nome, non la prima della sua canzone
+    /// (punto 109); un titolo più lungo di quanto tiene la testata (circa 20 caratteri a 24) e «Next song» (circa 11);
+    /// una sezione col nome su due righe (punto 51); accenti: ogni sezione col 2 sul battito 1, il 7/8 come 2+2+3, il
+    /// 5/8 come 2+3, il 9/8 e l'11/8 a gruppi di tre (accenti dentro la battuta), il 12/8 con lo 0 nel pattern (BOX5
+    /// V54, decisione 8); BPM non interi (Costituzione §6: 180,5 · 160,5 · 110,5); una canzone con tre sezioni;
+    /// l'ultima sezione dell'ultima canzone («Next» e «END SHOW»). Durate con la semantica del motore (come
+    /// «COLLAUDO 2D»): battute × beatsPerBar × 60 / bpm.
+    ///   (1) 7/8 a 161, 8 battute (20,9 s) + 9/8 a 180,5, 8 battute, senza nome (23,9 s) + 4/4 a 121, 6 battute
+    ///       (11,9 s) = 56,7 s · (2) 2/4 a 128, 64 battute = 60,0 s · (3) 12/8 a 180, 10 battute (40,0 s) + 6/4 a 150,
+    ///       8 battute (19,2 s) = 59,2 s · (4) 11/8 a 198, 8 battute (26,7 s) + 5/8 a 160,5, 18 battute (33,6 s) =
+    ///       60,3 s · (5) 4/4 a 110,5, 16 battute (34,8 s) + 3/4 a 120, 16 battute (24,0 s) = 58,8 s.
+    /// Vive in RAM e sparisce se l'app si chiude (`injectTestData` sostituisce il contenuto dello store).
+    private func loadTestDataCollaudoSoloG1() {
+        os_log("[DebugView] Carica dati test COLLAUDO SOLO G1", log: .default, type: .default)
+
+        let s1a = SongSection(name: "Intro 7/8", bpm: 161.0, beatsPerBar: 7, beatUnit: 8,
+                              repetitions: 8, notes: "", accentPattern: [2,1,2,1,2,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s1b = SongSection(name: "", bpm: 180.5, beatsPerBar: 9, beatUnit: 8,
+                              repetitions: 8, notes: "", accentPattern: [2,1,1,2,1,1,2,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s1c = SongSection(name: "Chorus", bpm: 121.0, beatsPerBar: 4, beatUnit: 4,
+                              repetitions: 6, notes: "", accentPattern: [2,1,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song1 = Song(id: UUID(), name: "1 Alfa 7/8", sections: [s1a, s1b, s1c],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s2 = SongSection(name: "Long Run 2/4", bpm: 128.0, beatsPerBar: 2, beatUnit: 4,
+                             repetitions: 64, notes: "", accentPattern: [2,1],
+                             subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song2 = Song(id: UUID(), name: "2 Bravo Sixty-Four Bars", sections: [s2],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s3a = SongSection(name: "Groove 12/8", bpm: 180.0, beatsPerBar: 12, beatUnit: 8,
+                              repetitions: 10, notes: "", accentPattern: [2,0,0,1,0,0,1,0,0,1,0,0],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s3b = SongSection(name: "Bridge attenzione vai piano", bpm: 150.0, beatsPerBar: 6, beatUnit: 4,
+                              repetitions: 8, notes: "", accentPattern: [2,1,1,1,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song3 = Song(id: UUID(), name: "3 Charlie 12/8", sections: [s3a, s3b],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s4a = SongSection(name: "Verse 11/8", bpm: 198.0, beatsPerBar: 11, beatUnit: 8,
+                              repetitions: 8, notes: "", accentPattern: [2,1,1,2,1,1,2,1,1,2,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s4b = SongSection(name: "Mid 5/8", bpm: 160.5, beatsPerBar: 5, beatUnit: 8,
+                              repetitions: 18, notes: "", accentPattern: [2,1,2,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song4 = Song(id: UUID(), name: "4 Delta 11/8", sections: [s4a, s4b],
+                         countIn: 0, backtrackFilename: nil)
+
+        let s5a = SongSection(name: "Outro 4/4", bpm: 110.5, beatsPerBar: 4, beatUnit: 4,
+                              repetitions: 16, notes: "", accentPattern: [2,1,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let s5b = SongSection(name: "Coda", bpm: 120.0, beatsPerBar: 3, beatUnit: 4,
+                              repetitions: 16, notes: "", accentPattern: [2,1,1],
+                              subdivisionMultiplier: 1, swingRatio: 0.5)
+        let song5 = Song(id: UUID(), name: "5 Echo", sections: [s5a, s5b],
+                         countIn: 0, backtrackFilename: nil)
+
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO G1",
                               date: Date(), songIDs: [song1.id, song2.id, song3.id, song4.id, song5.id])
 
         QBeatsStore.shared.injectTestData(songs: [song1, song2, song3, song4, song5], setlists: [setlist])

@@ -209,3 +209,145 @@ enum QLiveStage {
         token * max(1, scaleFactor)
     }
 }
+
+// MARK: - SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — I TOKEN DEL GIRO 1 DEL PLAYER DEL SOLO, IN UN POSTO SOLO
+// Dalla Solo REV18 (`DESIGN/QLive_Nav/2026-10-05_QLive-Player_G1-SOLO-REV18_390x844_1.html`: `:root` e i selettori
+// citati accanto a ogni valore; le misure di K in moto sono quelle della REV9, che la REV18 richiama). Corpi,
+// diametri, spessori e distanze sono in punti sulla cornice 390 x 766 del foglio: le viste del Solo li moltiplicano
+// per il fattore di `SoloPlayerGeometry` (decisione D4 del referee, 06/10/2026), MAI per `max(1, scaleFactor)`: per
+// il player del Solo quella legge provvisoria è sostituita dalla cornice. Le spaziature dei caratteri sono in em
+// (`letter-spacing` del foglio): la vista le moltiplica per il corpo già scalato. Il posto resta uno: un token si
+// aggiunge qui quando una vista lo usa.
+enum QLiveSolo {
+    // I colori del foglio (`:root`).
+    static let background = Color(hex: "#110f0e")      // --bg: il fondo, anche fuori dalla cornice
+    static let surface = Color(hex: "#1f1b18")         // --sf: tonde e quadranti
+    static let white = Color(hex: "#f5efe6")           // --w: il bianco caldo pieno
+    /// Il bianco caldo con la sua opacità: `--w86` .86 · `--w72` .72 · `--w66` .66 · `--w18` .18 · `--w12` .12 · `--w07` .07.
+    static func whiteAlpha(_ opacity: Double) -> Color { Color(hex: "#f5efe6").opacity(opacity) }
+    static let orange = Color(hex: "#ff8a5c")          // --orl: la freccia della stanza
+    static let accent = Color(hex: "#28cd41")          // --acc: l'accento del battito e il Play
+    static let link = Color(hex: "#00c96e")            // --lk: il collegato
+    static let red = Color(hex: "#ff3b30")             // --red: lo Stop
+    static let amber = Color(hex: "#f5b820")           // --amb: il muto acceso, le spie perse, la striscia
+    static let mixerPanel = Color(hex: "#16161a")      // .mxp: il pannello di oggi (QLiveTheme.surf)
+    /// Le icone dei fogli: viewBox 24, tratto 2,2 (`.ic{stroke-width:2.2}`), estremi e giunzioni arrotondati.
+    static let iconStroke: Double = 2.2
+    static let iconViewBox: Double = 24
+
+    /// Testata (`.p-hd{height:60px;gap:10px;padding:0 14px}`, `.p-rk` tonda 44 su `--sf` col filo chiaro in alto
+    /// `inset 0 1px 0 rgba(255,255,255,.055)`, `.p-hn{font:700 24px Inter;letter-spacing:-.01em;color:var(--w86)}`);
+    /// icona 24: freccia `--orl`, altoparlante `--w86`, muto acceso `--amb` (`.p-rk.mu`, punto 110).
+    enum Header {
+        static let round: Double = 44
+        static let sidePadding: Double = 14
+        static let gap: Double = 10
+        static let icon: Double = 24
+        static let titleSize: Double = 24
+        static let titleTrackingEm: Double = -0.01
+        static let titleOpacity: Double = 0.86
+        static let iconOpacity: Double = 0.86
+        static let roundHighlight: Double = 0.055
+    }
+    /// Riga di stato (`.p-rl{height:30px;gap:18px;font:600 17px Inter;color:var(--w66)}`, `.p-rl span{gap:8px}`,
+    /// `.p-rl i` pallino 10 `--lk`, `.o` = `--w18`; problema: `.ic.s` 20 e parola `--amb`; striscia `.ll`: `--amb`,
+    /// testo `--bg` 700, `border-radius:0 15px 15px 0`, margine interno 18). Il lampo del pedale (`.fl`, punto 98):
+    /// spento per il 6 % di un giro di 2 s, cioè 120 ms.
+    enum Status {
+        static let fontSize: Double = 17
+        static let opacity: Double = 0.66
+        static let gap: Double = 18
+        static let ledGap: Double = 8
+        static let led: Double = 10
+        static let ledOffOpacity: Double = 0.18
+        static let icon: Double = 20
+        static let stripRadius: Double = 15
+        static let stripPadding: Double = 18
+        static let lampOffSeconds: Double = 0.12
+    }
+    /// Le spie (`.lp i{background:var(--w07);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.1)}`; accesa `.a` =
+    /// `--acc`, `.n` = `--w`). Ø e spazio: `BeatLightsLayout` (Models/).
+    enum Lights {
+        static let offFill: Double = 0.07
+        static let offRing: Double = 1.5
+        static let offRingOpacity: Double = 0.10
+    }
+    /// Battuta e tempo (`.p-bc b{font:700 26px/1 JetBrains Mono;letter-spacing:-.02em}`, `.p-bc b span{font:600 17px
+    /// Inter;color:var(--w66);margin:0 7px}`).
+    enum BarRow {
+        static let numberSize: Double = 26
+        static let numberTrackingEm: Double = -0.02
+        static let wordSize: Double = 17
+        static let wordOpacity: Double = 0.66
+        static let wordGap: Double = 7
+    }
+    /// La barra delle battute (`.bm i{background:var(--w12)}`, `.d` = `rgba(245,239,230,.42)`, `.c` = `--w`).
+    /// Spazio, segmento e raggio: `SoloBarMeterLayout` (Models/).
+    enum BarMeter {
+        static let doneOpacity: Double = 0.42
+        static let otherOpacity: Double = 0.12
+    }
+    /// Il teleprompter (`.p-se b{font:800 42px/1.08 Inter;letter-spacing:-.035em}`, bianco pieno, centrato).
+    enum Prompter {
+        static let fontName = "Inter-ExtraBold"
+        static let fontSize: Double = 42
+        static let lineHeight: Double = 1.08
+        static let trackingEm: Double = -0.035
+    }
+    /// Next (`.p-nx{height:60px;border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--w12);gap:12px;padding:0 16px}`,
+    /// `.p-nx span{font:600 19px Inter;color:var(--w66)}`, `.p-nx b{font:700 28px Inter;letter-spacing:-.015em;
+    /// color:var(--w86)}`).
+    enum Next {
+        static let radius: Double = 16
+        static let padding: Double = 16
+        static let border: Double = 1.5
+        static let borderOpacity: Double = 0.12
+        static let gap: Double = 12
+        static let labelSize: Double = 19
+        static let labelOpacity: Double = 0.66
+        static let valueSize: Double = 28
+        static let valueTrackingEm: Double = -0.015
+        static let valueOpacity: Double = 0.86
+    }
+    /// La barra della canzone (`.p-sp{height:10px;gap:4px}`, `.p-sp i{border-radius:5px;background:var(--w12)}`,
+    /// `.d` = `rgba(245,239,230,.34)`, `u` = `rgba(245,239,230,.62)`).
+    enum SongBar {
+        static let gap: Double = 4
+        static let radius: Double = 5
+        static let doneOpacity: Double = 0.34
+        static let progressOpacity: Double = 0.62
+        static let otherOpacity: Double = 0.12
+    }
+    /// La console B (`.kB{gap:8px}` griglia 2 x 2 su 354 x 176: quadranti 173 x 84; `.q{background:var(--sf);
+    /// border-radius:20px;gap:7px;font:700 17px Inter;color:var(--w72);box-shadow:inset 0 1px 0
+    /// rgba(255,255,255,.055)}`, `.q.l{padding-right:64px}`, `.q.r{padding-left:64px}`, `.q.dead`/`.q.off{opacity:.4}`,
+    /// `.q.on{background:rgba(245,239,230,.14);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.5);color:var(--w)}`;
+    /// `.kst` Ø 128, `box-shadow:0 0 0 8px var(--bg),inset 0 0 0 2px rgba(255,59,48,.7)`, fondo rosso .16 su `--bg`,
+    /// `.kst i` quadrato 42 raggio 8 `--red`; `.kst.pl` fondo verde .14, bordo 2 `--acc`, `svg` 46 tratto 2,4
+    /// `margin-left:6px`).
+    enum Console {
+        static let gap: Double = 8
+        static let radius: Double = 20
+        static let labelSize: Double = 17
+        static let labelOpacity: Double = 0.72
+        static let icon: Double = 24
+        static let iconLabelGap: Double = 7
+        static let centerClearance: Double = 64
+        static let offOpacity: Double = 0.4
+        static let selectedFillOpacity: Double = 0.14
+        static let selectedBorder: Double = 1.5
+        static let selectedBorderOpacity: Double = 0.5
+        static let highlight: Double = 0.055
+        static let centerDiameter: Double = 128
+        static let centerRing: Double = 8
+        static let centerBorder: Double = 2
+        static let stopFillOpacity: Double = 0.16
+        static let stopBorderOpacity: Double = 0.7
+        static let stopSquare: Double = 42
+        static let stopSquareRadius: Double = 8
+        static let playFillOpacity: Double = 0.14
+        static let playTriangle: Double = 46
+        static let playStroke: Double = 2.4
+        static let playOffset: Double = 6
+    }
+}
