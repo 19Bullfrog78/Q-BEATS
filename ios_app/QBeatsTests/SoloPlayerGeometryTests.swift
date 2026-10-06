@@ -14,7 +14,11 @@ final class SoloPlayerGeometryTests: XCTestCase {
         let g = SoloPlayerGeometry(usableWidth: 390, usableHeight: 763)
         XCTAssertEqual(g.scale, 1, accuracy: 0.005)
         XCTAssertEqual(g.frame.width, 390 * g.scale, accuracy: 0.0001)
-        XCTAssertEqual(g.frame.x, 0, accuracy: 0.0001)
+        // Comanda l'altezza (763/766): la cornice è più stretta di 390 per tre millesimi e, centrata, parte a
+        // x = (390 − 390 × 0,99608) / 2 ≈ 0,76, non a 0 (prima corsa della CI, run 37448423825: il banco chiedeva 0).
+        XCTAssertEqual(g.frame.x, (390 - 390 * g.scale) / 2, accuracy: 0.0001)
+        XCTAssertLessThan(g.frame.x, 1)
+        XCTAssertEqual(g.frame.y, 0, accuracy: 0.0001)
     }
 
     func testTheFrameIsTheSheetWithoutStatusBarAndBottomInset() {
