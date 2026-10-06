@@ -2,7 +2,8 @@ import XCTest
 
 // === A394 · SOLO-G1-PEZZO-1-M1 — banco delle spie (banco Models) ===
 // Link spento dall'utente, nessuna spia «Link»; collegato, verde; mai collegato, grigio; visto e
-// perso, ambra e «Link lost»; con anche il Wi-Fi visto e perso, «Link lost · no Wi-Fi»; Wi-Fi visto
+// perso, ambra e «Link lost»; con anche il Wi-Fi visto e perso, ancora e solo «Link lost» (A397 · M2:
+// punto 112 con la decisione b) del LIBRO, «Link lost · no Wi-Fi» uscita dal codice); Wi-Fi visto
 // e perso a Link spento, ambra senza striscia; MIDI visto e perso, ambra.
 
 final class StatusLightsDecisionTests: XCTestCase {
@@ -47,11 +48,13 @@ final class StatusLightsDecisionTests: XCTestCase {
         XCTAssertEqual(l.strip, "Link lost")
     }
 
-    func testLinkLostWithWifiLostNamesTheWifi() {
+    func testLinkLostWithWifiLostKeepsTheShortStrip() {
+        // A397 · M2 — decisione b) del 05/10 (Mauro: «risposta B»): la striscia dice solo «Link lost»; il perché lo
+        // dice la spia ambra del Wi-Fi, che resta a destra con la sua faccia.
         let l = lights(link: false, wifi: false, seenLink: true, seenWifi: true)
         XCTAssertEqual(l.link, .lost)
         XCTAssertEqual(l.wifi, .lost)
-        XCTAssertEqual(l.strip, "Link lost · no Wi-Fi")
+        XCTAssertEqual(l.strip, "Link lost")
     }
 
     func testLinkLostWithWifiNeverSeenKeepsTheShortStrip() {
@@ -90,6 +93,14 @@ final class StatusLightsDecisionTests: XCTestCase {
 
     func testTheStripWords() {
         XCTAssertEqual(StatusLightsDecision.linkLostStrip, "Link lost")
-        XCTAssertEqual(StatusLightsDecision.linkLostNoWifiStrip, "Link lost · no Wi-Fi")
+    }
+
+    func testTheStripIsAlwaysTheShortOne() {
+        for wifi in [false, true] {
+            for seenWifi in [false, true] {
+                let l = lights(link: false, wifi: wifi, seenLink: true, seenWifi: seenWifi)
+                XCTAssertEqual(l.strip, "Link lost", "wifi:\(wifi) visto:\(seenWifi)")
+            }
+        }
     }
 }

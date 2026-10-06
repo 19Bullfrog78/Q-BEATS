@@ -9,8 +9,12 @@ import Foundation
 // subito anche a canzone in corso.
 // Ingressi: Link acceso dall'utente, i tre collegati, i tre ricordi (`ShowConnectionMemory`).
 // Uscite: la faccia di ogni spia; se «Link» si mostra (solo con Link acceso dall'utente); il testo
-// della striscia, solo per Link: «Link lost», oppure «Link lost · no Wi-Fi» se anche il Wi-Fi è
-// visto e perso. In M1 non la legge ancora nessuna vista.
+// della striscia, solo per Link: «Link lost». In M1 non la legge ancora nessuna vista.
+// SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — punto 112 della Solo REV18 con la decisione b) del LIBRO (riga
+// 2026-10-05 «RATIFICA DELLA SOLO REV18», Mauro: «risposta B»): la striscia dice solo «Link lost», anche col
+// Wi-Fi perso, perché il perché lo dice già la spia ambra del Wi-Fi; «Link lost · no Wi-Fi» esce dal codice e
+// dal banco. La striscia prende il posto di «Link»; Wi-Fi e MIDI restano a destra con le loro facce
+// (`SoloStatusRowView`, M2).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 enum StatusLightFace: Equatable {
     /// Verde: collegato.
@@ -33,7 +37,6 @@ struct StatusLights: Equatable {
 enum StatusLightsDecision {
 
     static let linkLostStrip = "Link lost"
-    static let linkLostNoWifiStrip = "Link lost · no Wi-Fi"
 
     /// La faccia di una spia: collegata → verde; non collegata → ambra se vista in questo show,
     /// altrimenti grigia.
@@ -53,12 +56,7 @@ enum StatusLightsDecision {
             return StatusLights(link: nil, wifi: wifi, midi: midi, strip: nil)
         }
         let link = face(connected: linkConnected, seen: memory.linkSeen)
-        let strip: String?
-        if link == .lost {
-            strip = (wifi == .lost) ? linkLostNoWifiStrip : linkLostStrip
-        } else {
-            strip = nil
-        }
+        let strip: String? = (link == .lost) ? linkLostStrip : nil
         return StatusLights(link: link, wifi: wifi, midi: midi, strip: strip)
     }
 }

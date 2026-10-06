@@ -227,13 +227,21 @@ final class QLiveSession: ObservableObject {
     }
 
     /// Un passo del ricordo (`ShowConnectionMemory.updated`): si scrive e si logga solo se cambia.
+    /// SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — il ricordo vale solo a SHOW APERTO (BOX5 V54, decisione 4):
+    /// «show aperto» è il runner nello slot della stanza, lo stesso confine di `install` (lo slot si riempie
+    /// in testa, prima della lettura di adesso) e di `endShow` (lo slot si svuota prima dell'azzeramento).
+    /// Non lo specchio `_showOpenQ` del motore: vive su audioQueue e qui, su main, non si legge. A show chiuso
+    /// ogni passo rende `.none`, quindi niente cambia e niente si logga: le righe [RICORDO] fra due show non
+    /// mentono più. Lo spegnimento di Link fatto dall'UTENTE azzera ora il ricordo di Link come quello
+    /// dell'app (decisione 3): la regola sta nel tipo puro, col suo banco.
     private func noteConnections(linkConnected: Bool, wifiConnected: Bool, midiConnected: Bool,
                                  linkUserEnabled: Bool, linkAppEnabled: Bool) {
         let next = connectionMemory.updated(linkConnected: linkConnected,
                                             wifiConnected: wifiConnected,
                                             midiConnected: midiConnected,
                                             linkUserEnabled: linkUserEnabled,
-                                            linkAppEnabled: linkAppEnabled)
+                                            linkAppEnabled: linkAppEnabled,
+                                            showOpen: runner != nil)
         guard next != connectionMemory else { return }
         connectionMemory = next
         os_log("[Q-BEATS][SOLO-M1][RICORDO] visto link:%d wifi:%d midi:%d (collegati link:%d wifi:%d midi:%d - link utente:%d app:%d)",
