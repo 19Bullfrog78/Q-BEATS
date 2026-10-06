@@ -10,6 +10,14 @@ import Foundation
 // fermo) — il ricordo di Link si azzera: al ritorno la spia è grigia finché non si ricollega, mai
 // «Link lost» per uno spegnimento fatto dall'app, che non è una perdita (A393 §6.5 e §9, caso 13).
 // È una funzione pura perché il banco la provi (il banco compila solo Models/).
+// SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — due decisioni del referee del 05/10 (BOX5 V54, capitolo «PLAYER DEL
+// SOLO, GIRO 1 — DECISIONI DEL REFEREE DEL 05/10/2026», punti 3 e 4): (3) uno spegnimento VOLUTO di Link non
+// è una perdita, anche quello fatto dall'UTENTE dal pannello Link: con l'uno o l'altro interruttore spento il
+// ricordo di Link si azzera (in M1 restava: il banco `testLinkOffByTheUserIsNotAnAppSuspension` è rovesciato in
+// `testLinkOffByTheUserForgetsLinkToo`); (4) il ricordo vale solo a SHOW APERTO: `showOpen` entra come
+// ingresso e a show chiuso il ricordo resta `.none` — fuori dallo show deve essere vuoto, o le righe [RICORDO]
+// fra due show mentono a chi legge il log del collaudo. Lo show aperto è quello della stanza: il runner nello
+// slot, lo stesso confine di `install` ed `endShow`.
 struct ShowConnectionMemory: Equatable {
     /// Link visto collegato in questo show (`linkIsConnected` vero almeno una volta).
     let linkSeen: Bool
@@ -22,15 +30,18 @@ struct ShowConnectionMemory: Equatable {
     static let none = ShowConnectionMemory(linkSeen: false, wifiSeen: false, midiSeen: false)
 
     /// Il ricordo dopo una lettura dei collegati. `linkUserEnabled`/`linkAppEnabled` sono i due
-    /// interruttori di Link (`FollowerDecision`): app spento con utente acceso = spegnimento
-    /// fatto dall'app, e il ricordo di Link si azzera invece di accumulare.
+    /// interruttori di Link (`FollowerDecision`): con uno dei due spento Link è spento di proposito, dall'utente
+    /// o dall'app, e il ricordo di Link si azzera invece di accumulare. `showOpen`: lo show è aperto nella
+    /// stanza; a show chiuso niente si ricorda.
     func updated(linkConnected: Bool,
                  wifiConnected: Bool,
                  midiConnected: Bool,
                  linkUserEnabled: Bool,
-                 linkAppEnabled: Bool) -> ShowConnectionMemory {
-        let appSuspendedLink = linkUserEnabled && !linkAppEnabled
-        let link = appSuspendedLink ? false : (linkSeen || linkConnected)
+                 linkAppEnabled: Bool,
+                 showOpen: Bool) -> ShowConnectionMemory {
+        guard showOpen else { return .none }
+        let linkSwitchedOff = !linkUserEnabled || !linkAppEnabled
+        let link = linkSwitchedOff ? false : (linkSeen || linkConnected)
         return ShowConnectionMemory(linkSeen: link,
                                     wifiSeen: wifiSeen || wifiConnected,
                                     midiSeen: midiSeen || midiConnected)
