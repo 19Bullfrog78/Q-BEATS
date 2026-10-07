@@ -94,6 +94,8 @@ struct LiveView: View {
     @State private var midiLampToken: Int = 0
     @State private var mixerCause: String = "gesto-fascia"
     @State private var soloAreaLogged: Bool = false
+    // SOLO-G1-PEZZO-1-M3 · A398 — se la riga dei caratteri del pezzo del testo è già stata scritta nel log.
+    @State private var soloFontsLogged: Bool = false
 
     // MARK: - Mirror UI per cambi sezione SEAMLESS (TD #38(a) + #40 fix, 17/05/2026)
     //
@@ -233,21 +235,86 @@ struct LiveView: View {
                     //    delle sezioni per la barra della canzone si leggono dal runner in sola lettura (`currentSong`).
                     //    Via, solo qui: frecce di sezione, Loop, EMERG, maniglia e trascinamenti del mixer (BOX5 V54,
                     //    decisione 5; LIBRO 2026-10-04 «NEL SOLO, A CANZONE IN CORSO, NESSUNA MOSSA»).
-                    SoloPlayerView(session: session,
-                                   geometry: soloGeometry,
-                                   displayAccentPattern: displayAccentPattern,
-                                   sectionHold: sectionHold,
-                                   lights: statusLights,
-                                   midiLampOff: midiLampOff,
-                                   faces: consoleFaces,
-                                   clickMuted: audioEngine.appSettings.clickMuted,
-                                   barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
-                                   contentOpacity: standbyOpacity,
-                                   onExit: onExit,
-                                   onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                   onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear { soloAreaShown(soloGeometry) }
+                    // ⚠️ SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — QUALE SCHERMO VEDE IL SOLO LO DECIDE `SoloScreenDecision`
+                    //    (Models/, col suo banco; mandato M3 §3.1): V1/V2 (`SoloVeilView`) in `.standby` con sezione 0; H
+                    //    senza la fila (`SoloResumeView`) in `.standby` con sezione conservata e a `.stopped`; V4
+                    //    (`EndShowView`) a `.fineSetlist`; K (`SoloPlayerView`) in moto; a `.overlayStop` K col pannello
+                    //    superato sopra, com'è (pezzo 2). I veli prendono il posto di K: sotto di loro K non si vede e non
+                    //    prende tocchi. «Sotto il velo di oggi (fino a M3) la composizione si attenua» e «a `.stopped` è K
+                    //    fermo col Play (provvisorio fino a M3)» qui sopra sono storia: si marcano. Le parole, il tocco e
+                    //    il tasto escono dalla stessa regola; righe e corpi dal pezzo del testo (`TextFitter`).
+                    let soloScreen = SoloScreenDecision.screen(state: session.playbackState,
+                                                               sectionIndex: runner.currentSectionIdx,
+                                                               sectionName: runner.currentSection?.name,
+                                                               currentSongName: runner.currentSong?.name,
+                                                               showName: room.showName,
+                                                               songNameInMotion: session.currentSongName,
+                                                               sectionBPM: runner.currentSection?.bpm,
+                                                               sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
+                                                               sectionBeatUnit: runner.currentSection?.beatUnit)
+                    Group {
+                        switch soloScreen.kind {
+                        case .playing, .overlayStop:
+                            SoloPlayerView(session: session,
+                                           geometry: soloGeometry,
+                                           displayAccentPattern: displayAccentPattern,
+                                           sectionHold: sectionHold,
+                                           lights: statusLights,
+                                           midiLampOff: midiLampOff,
+                                           faces: consoleFaces,
+                                           clickMuted: audioEngine.appSettings.clickMuted,
+                                           barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
+                                           contentOpacity: 1.0,
+                                           onExit: onExit,
+                                           onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
+                                .onAppear { soloAreaShown(soloGeometry) }
+                        case .veil:
+                            SoloVeilView(screen: soloScreen,
+                                         geometry: soloGeometry,
+                                         lights: statusLights,
+                                         midiLampOff: midiLampOff,
+                                         clickMuted: audioEngine.appSettings.clickMuted,
+                                         onExit: onExit,
+                                         onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                         onTap: { soloVeilTapped(soloScreen) },
+                                         onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
+                        case .resume:
+                            SoloResumeView(screen: soloScreen,
+                                           geometry: soloGeometry,
+                                           lights: statusLights,
+                                           midiLampOff: midiLampOff,
+                                           clickMuted: audioEngine.appSettings.clickMuted,
+                                           faces: consoleFaces,
+                                           onExit: onExit,
+                                           onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) },
+                                           onDeadTap: { soloVeilTapped(soloScreen) },
+                                           onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
+                        case .endShow:
+                            EndShowView(geometry: soloGeometry,
+                                        title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName),
+                                        statusRow: SoloScreenDecision.endShowStatusRow(role: playerRole),
+                                        lights: statusLights,
+                                        midiLampOff: midiLampOff,
+                                        clickMuted: audioEngine.appSettings.clickMuted,
+                                        onExit: onExit,
+                                        onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                        onBackToShows: onEndShow)
+                                .onAppear {
+                                    endShowShown(role: playerRole,
+                                                 title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName))
+                                }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        soloFontsChecked()
+                        if soloScreen.kind != .veil && soloScreen.kind != .resume { soloScreenShown(soloScreen, texts: nil) }
+                    }
+                    .onChange(of: soloScreen.kind) { kind in
+                        if kind != .veil && kind != .resume { soloScreenShown(soloScreen, texts: nil) }
+                    }
                 } else {
                 VStack(spacing: 0) {
                     LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge, contentOpacity: standbyOpacity)
@@ -317,7 +384,9 @@ struct LiveView: View {
 
                 // B2b — sul Follower FUORI la faccia del foglio vince sul velo di standby, sul velo
                 // UX-3 e sulla schermata di fine scaletta (L5): `!followerOutFace` sui tre.
-                if case .standby(let nextSong) = session.playbackState, !followerOutFace {
+                // SOLO-G1-PEZZO-1-M3 · A398 — il velo di oggi resta a Direttore e Follower: nel Solo i veli V1/V2 e H
+                //    stanno nel ramo `isSolo` qui sopra (`SoloVeilView`, `SoloResumeView`).
+                if case .standby(let nextSong) = session.playbackState, !followerOutFace, !isSolo {
                     // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
                     // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
                     // riparte da sezione 8 battito 1» (= opzione B di A240;
@@ -395,7 +464,8 @@ struct LiveView: View {
                     OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine, scaleFactor: scaleFactor)
                 }
 
-                if case .fineSetlist = session.playbackState, !followerOutFace {
+                // SOLO-G1-PEZZO-1-M3 · A398 — nel Solo la fine scaletta è V4 (`EndShowView`, nel ramo `isSolo`).
+                if case .fineSetlist = session.playbackState, !followerOutFace, !isSolo {
                     // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
                     // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
                     //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
@@ -1203,6 +1273,65 @@ struct LiveView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + QLiveSolo.Status.lampOffSeconds) {
             if midiLampToken == token { midiLampOff = false }
         }
+    }
+
+    // MARK: - SOLO-G1-PEZZO-1-M3 · A398 — gli schermi del Solo: il tocco sul velo, le righe di log
+
+    /// Il tocco sul velo: su V1/V2 fa partire la canzone con la chiamata di oggi (`runner.startCurrentSong`, come
+    /// `veilTapped`); su H non fa niente (punto 87) e si scrive solo nel log. L'esito lo decide `SoloScreen.tap`.
+    private func soloVeilTapped(_ screen: SoloScreen) {
+        switch screen.tap {
+        case .startSong:
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "runner.startCurrentSong")
+            runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        case .none:
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "nessuna azione")
+        }
+    }
+
+    /// Ogni schermo del Solo che compare: lo schermo (V, H, K, V4, overlayStop), l'indice e il nome della sezione
+    /// come è scritta, corpo e righe del nome sui veli (0 dove il nome non c'è), tempo e metrica, la testata.
+    private func soloScreenShown(_ screen: SoloScreen, texts: SoloVeilTexts?) {
+        let sectionWritten: String = screen.relationSection
+            ?? SectionNameDecision.displayName(runner.currentSection?.name ?? "", numberInSong: runner.currentSectionIdx + 1)
+        os_log("[Q-BEATS][SOLO-M3][SCHERMO] schermo:%{public}@ sezioneIdx:%d sezione:%{public}@ nomeCorpo:%d nomeRighe:%d puntini:%{public}@ tempo:%{public}@ testata:%{public}@",
+               log: .default, type: .default,
+               Self.screenName(screen.kind),
+               runner.currentSectionIdx,
+               sectionWritten,
+               texts.map { Int($0.name.size.rounded()) } ?? 0,
+               texts?.name.lineCount ?? 0,
+               (texts?.name.truncated ?? false) ? "si" : "no",
+               screen.tempoLine.isEmpty ? "-" : screen.tempoLine,
+               screen.headerTitle.isEmpty ? "-" : screen.headerTitle)
+    }
+
+    private static func screenName(_ kind: SoloScreenKind) -> String {
+        switch kind {
+        case .veil: return "V"
+        case .resume: return "H"
+        case .playing: return "K"
+        case .endShow: return "V4"
+        case .overlayStop: return "overlayStop"
+        }
+    }
+
+    /// La fine scaletta, col ruolo e con la testata (col nome dello show o senza).
+    private func endShowShown(role: PlayerRole, title: String) {
+        os_log("[Q-BEATS][SOLO-M3][FINE-SCALETTA] ruolo:%{public}@ testata:%{public}@",
+               log: .default, type: .default, role.rawValue, title.isEmpty ? "vuota" : "show:" + title)
+    }
+
+    /// Una volta per montaggio: i cinque caratteri del pezzo del testo si risolvono in CoreText (il nome PostScript
+    /// chiesto torna; `CoreTextWidthMeasurer.resolves`).
+    private func soloFontsChecked() {
+        guard !soloFontsLogged else { return }
+        soloFontsLogged = true
+        let measurer = CoreTextWidthMeasurer.shared
+        let report = SoloFonts.all.map { "\($0):\(measurer.resolves($0) ? "ok" : "MANCA")" }.joined(separator: " ")
+        os_log("[Q-BEATS][SOLO-M3][CARATTERI] %{public}@", log: .default, type: .default, report)
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {

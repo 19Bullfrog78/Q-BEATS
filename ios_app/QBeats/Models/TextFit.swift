@@ -107,6 +107,8 @@ struct FittedLine: Equatable {
 /// Il risultato: corpo scelto, righe, interlinea, altezza del blocco e linee di base (dall'alto del blocco),
 /// tutto in punti del foglio.
 struct FittedText: Equatable {
+    /// Le vesti con cui le righe sono state misurate (quelle della `TextFitSpec`): la vista scrive con queste.
+    let styles: [TextFitStyle]
     let size: Double
     let lines: [FittedLine]
     /// Interlinea × corpo: la distanza fra due linee di base e l'altezza di ogni riga.
@@ -284,7 +286,8 @@ enum TextFitter {
         let lineHeight = spec.lineHeightFactor * size
         let metricsFont = spec.styles.first?.fontName ?? ""
         let metrics = measurer.verticalMetrics(fontName: metricsFont)
-        return FittedText(size: size,
+        return FittedText(styles: spec.styles,
+                          size: size,
                           lines: out,
                           lineHeight: lineHeight,
                           height: Double(out.count) * lineHeight,
