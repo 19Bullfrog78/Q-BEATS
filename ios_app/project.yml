@@ -138,6 +138,19 @@ targets:
     sources:
       - path: QBeatsTests
       - path: QBeats/Models
+      # === A398 · SOLO-G1-PEZZO-1-M3 — i cinque caratteri in bundle fra le risorse del banco (stessa forma di
+      # `test_backtrack.mp3` nel bersaglio dell'app: `buildPhase: resources`), così il pezzo del testo (`TextFitter` +
+      # `CoreTextWidthMeasurer`) si prova coi caratteri veri (`TextFitterRealFontTests`). Solo il bersaglio dei test.
+      - path: QBeats/Fonts/Inter-Black.ttf
+        buildPhase: resources
+      - path: QBeats/Fonts/Inter-ExtraBold.ttf
+        buildPhase: resources
+      - path: QBeats/Fonts/Inter-Bold.ttf
+        buildPhase: resources
+      - path: QBeats/Fonts/Inter-SemiBold.ttf
+        buildPhase: resources
+      - path: QBeats/Fonts/JetBrainsMono-Medium.ttf
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bullfrog.qbeats.tests

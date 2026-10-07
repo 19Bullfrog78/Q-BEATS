@@ -5,7 +5,7 @@ import Foundation
 // Follower (`FollowerDecision`) lo legge, e il banco `QBeatsTests` compila SOLO
 // `QBeats/Models` (`ios_app/project.yml`, target QBeatsTests) — da `AppSettings.swift`
 // non lo avrebbe visto. `AppSettings` continua a usarlo tale e quale: stesso modulo.
-enum LinkMode: String, Codable {
+enum LinkMode: String, Codable, CaseIterable {
     case standalone      // Solo — NUOVO DEFAULT: Q-BEATS suona il proprio click, NON comanda NON segue i peer.
                          // Isolamento = Link OFF (linkEnabled default false). RUOLO scelto, ≠ stato-connessione "nessun peer".
     case direttore       // Q-BEATS sorgente unica autoritativa: detta start/stop, BPM, phase.

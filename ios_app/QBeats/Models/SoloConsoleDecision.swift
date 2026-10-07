@@ -68,7 +68,9 @@ enum SoloConsoleDecision {
         case .kill:
             return faces.killOn ? .killBacktrack : .none
         case .listMode:
-            return faces.listModeOn ? .none : .none
+            // SOLO-G1-PEZZO-1-M3 · A398 — pulizia (decisione g del cancello A397): List mode non fa niente, acceso o
+            //    spento, finché non ha una funzione; il condizionale inerte è uscito, il comportamento è lo stesso.
+            return .none
         }
     }
 }

@@ -29,7 +29,7 @@ final class StandbyOverlayDecisionTests: XCTestCase {
         let d = decision(sectionIdx: 0)
         XCTAssertFalse(d.hasResumePoint)
         XCTAssertEqual(d.relationLine, "Next:")
-        XCTAssertEqual(d.gestureLine, "Tap anywhere")
+        XCTAssertEqual(d.gestureLine, "Tap to start")   // A398: era «Tap anywhere»
         XCTAssertEqual(d.songName, "Circuz")
     }
 
@@ -39,7 +39,7 @@ final class StandbyOverlayDecisionTests: XCTestCase {
         let d = decision(sectionIdx: 3, sectionName: "Bridge")
         XCTAssertTrue(d.hasResumePoint)
         XCTAssertEqual(d.relationLine, "Resume from Bridge")
-        XCTAssertEqual(d.gestureLine, "Tap anywhere")
+        XCTAssertEqual(d.gestureLine, "Tap to start")   // A398: era «Tap anywhere»
     }
 
     // MARK: - Garanzia contro la bugia: nome vuoto o di soli spazi
@@ -87,7 +87,33 @@ final class StandbyOverlayDecisionTests: XCTestCase {
         // Il velo del Direttore non si tocca (mandato B2b §3.f).
         let d = decision(sectionIdx: 2, sectionName: "Chorus", isFollower: false)
         XCTAssertEqual(d.relationLine, "Resume from Chorus")
-        XCTAssertEqual(d.gestureLine, "Tap anywhere")
+        XCTAssertEqual(d.gestureLine, "Tap to start")   // A398: era «Tap anywhere»
+    }
+
+    // MARK: - A398: le parole del gesto e la riga di tempo e metrica
+
+    func testTheGestureWordsAreTapToStartAndTheDirectorStarts() {
+        // Chi comanda il trasporto: «Tap to start» (BOX5 V54, decisione 5; SYNC REV8 `.qb-hi.tp`); il Follower:
+        // «The director starts», com'era. «Tap anywhere» non si scrive più da nessuna parte.
+        XCTAssertEqual(StandbyOverlayDecision.tapGesture, "Tap to start")
+        XCTAssertEqual(StandbyOverlayDecision.directorGesture, "The director starts")
+        XCTAssertEqual(decision(sectionIdx: 0).gestureLine, "Tap to start")
+        XCTAssertEqual(decision(sectionIdx: 0, isFollower: true).gestureLine, "The director starts")
+        XCTAssertNotEqual(StandbyOverlayDecision.tapGesture, "Tap anywhere")
+        // «Next:» coi due punti resta per Direttore e Follower.
+        XCTAssertEqual(StandbyOverlayDecision.nextLine, "Next:")
+    }
+
+    func testTheTempoLineIsCarriedAsGivenAndEmptyMeansNone() {
+        let withTempo = StandbyOverlayDecision(currentSectionIdx: 0, currentSectionName: "Verse", songName: "Circuz",
+                                               isFollower: false, tempoLine: "121 \u{00B7} 4/4")
+        XCTAssertEqual(withTempo.tempoLine, "121 \u{00B7} 4/4")
+        let follower = StandbyOverlayDecision(currentSectionIdx: 0, currentSectionName: "Verse", songName: "Marea",
+                                              isFollower: true, tempoLine: "96 \u{00B7} 3/4")
+        XCTAssertEqual(follower.tempoLine, "96 \u{00B7} 3/4")
+        XCTAssertNil(decision(sectionIdx: 0).tempoLine)                    // non passata
+        XCTAssertNil(StandbyOverlayDecision(currentSectionIdx: 0, currentSectionName: "Verse", songName: "Circuz",
+                                            isFollower: false, tempoLine: "").tempoLine)   // vuota = nessuna riga
     }
 
     // MARK: - Regola del gigante: 12 · 13 · 25 · 26 caratteri
