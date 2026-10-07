@@ -10,8 +10,11 @@ import SwiftUI
 // Le icone: freccia (`i-bk`), altoparlante (`i-sp`), altoparlante barrato del muto acceso (`i-sm`, punto
 // 110), Mixer (`i-mx`), List mode (`i-ls`), Kill (`i-kl`), Play (`i-pl`), Link perso (`i-lo`), Wi-Fi perso
 // (`i-wo`), MIDI perso (`i-mo`, punto 113: la presa MIDI, un cerchio con cinque piedini e la tacca, barrata).
+// SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — due icone in più: la mano di «Tap to start» (`i-tp`, tratto 1,7 su 24:
+// lo dà il chiamante) e la freccia di «Back to Shows» (`M19 12H5M11 6l-6 6 6 6`, in `.ic`, tratto 2,2). I centri
+// degli archi di `i-tp` sono calcolati dalla formula degli archi SVG (F.6.5) col raggio e la corda.
 enum SoloIcon: Equatable {
-    case back, speaker, speakerMuted, mixer, listMode, kill, play, linkLost, wifiLost, midiLost
+    case back, speaker, speakerMuted, mixer, listMode, kill, play, linkLost, wifiLost, midiLost, tapHand, backArrow
 }
 
 /// I tratti (contorno) di un'icona.
@@ -118,6 +121,42 @@ struct SoloIconShape: Shape {
             p.addEllipse(in: box(3, 3, 18, 18))
             p.move(to: pt(12, 3)); p.addLine(to: pt(12, 5.6))
             p.move(to: pt(3, 3)); p.addLine(to: pt(21, 21))
+        case .backArrow:
+            // <path d="M19 12H5M11 6l-6 6 6 6"/> — l'asta e la punta
+            p.move(to: pt(19, 12)); p.addLine(to: pt(5, 12))
+            p.move(to: pt(11, 6)); p.addLine(to: pt(5, 12)); p.addLine(to: pt(11, 18))
+        case .tapHand:
+            // i-tp — le due onde del tocco: <path d="M6.6 6.2a4.2 4.2 0 0 1 8.4 0"/> centro (10.8, 6.2);
+            // <path d="M8.6 6.6a2.2 2.2 0 0 1 4.4 0"/> centro (10.8, 6.6)
+            p.move(to: pt(6.6, 6.2))
+            arc(&p, cx: 10.8, cy: 6.2, r: 4.2, from: 180, to: 360)
+            p.move(to: pt(8.6, 6.6))
+            arc(&p, cx: 10.8, cy: 6.6, r: 2.2, from: 180, to: 360)
+            // l'indice: <path d="M9.6 14V7.4a1.2 1.2 0 0 1 2.4 0V12"/> centro (10.8, 7.4)
+            p.move(to: pt(9.6, 14)); p.addLine(to: pt(9.6, 7.4))
+            arc(&p, cx: 10.8, cy: 7.4, r: 1.2, from: 180, to: 360)
+            p.addLine(to: pt(12, 12))
+            // il medio: <path d="M12 11.2a1.2 1.2 0 0 1 2.4 0V12.4"/> centro (13.2, 11.2)
+            p.move(to: pt(12, 11.2))
+            arc(&p, cx: 13.2, cy: 11.2, r: 1.2, from: 180, to: 360)
+            p.addLine(to: pt(14.4, 12.4))
+            // l'anulare: <path d="M14.4 11.8a1.2 1.2 0 0 1 2.4 0v.8"/> centro (15.6, 11.8)
+            p.move(to: pt(14.4, 11.8))
+            arc(&p, cx: 15.6, cy: 11.8, r: 1.2, from: 180, to: 360)
+            p.addLine(to: pt(16.8, 12.6))
+            // il mignolo, il palmo, il polso e il pollice:
+            // <path d="M16.8 12.4a1.2 1.2 0 0 1 2.4 0v3.4a5.6 5.6 0 0 1-5.6 5.6h-1.2a5.2 5.2 0 0 1-4.1-2l-2.6-3.3a1.25 1.25 0 0 1 1.9-1.6l2 2.1"/>
+            // centri: (18, 12.4) r 1.2; (13.6, 15.8) r 5.6 da 0° a 90°; (12.3988, 16.2) r 5.2 da 89.987° a 142.02°;
+            // (6.7411, 15.4082) r 1.25 da 146.395° a 313.403°
+            p.move(to: pt(16.8, 12.4))
+            arc(&p, cx: 18, cy: 12.4, r: 1.2, from: 180, to: 360)
+            p.addLine(to: pt(19.2, 15.8))
+            arc(&p, cx: 13.6, cy: 15.8, r: 5.6, from: 0, to: 90)
+            p.addLine(to: pt(12.4, 21.4))
+            arc(&p, cx: 12.3988, cy: 16.2, r: 5.2, from: 89.987, to: 142.02)
+            p.addLine(to: pt(5.7, 16.1))
+            arc(&p, cx: 6.7411, cy: 15.4082, r: 1.25, from: 146.395, to: 313.403)
+            p.addLine(to: pt(9.6, 16.6))
         }
         return p
     }

@@ -24,6 +24,12 @@ struct TransportView: View {
     /// B2b — lo Stop a pressione della fascia DA SOLO è scattato: `LiveView` lo porta alla
     /// stanza (`QLiveSession.followerMusicianStop`), l'unica porta dello Stop del musicista.
     let onHoldStop: () -> Void
+    /// SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — le aperture del pannello del mixer (la maniglia, il trascinamento in su)
+    /// passano dal chiamante con la loro causa: `LiveView` le apre col cancello di stato (non in `.standby` né in
+    /// `.fineSetlist`, M3 §3.9 a) e le scrive nel registro con la causa vera (M3 §3.9 b).
+    let onOpenMixer: (MixerCause) -> Void
+    /// A398 — il tocco su List mode: nessuna azione, una riga nel log del chiamante.
+    let onListMode: () -> Void
 
     private var isCountIn: Bool {
         if case .countIn = session.playbackState { return true }
@@ -171,7 +177,7 @@ struct TransportView: View {
                     }
                 }
 
-                emergButton
+                listModeButton
             }
 
             mixerHandle
@@ -199,7 +205,7 @@ struct TransportView: View {
                     followerRuleLine
                         .frame(width: 2 * cell + gap, height: geo.size.height, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    emergButton
+                    listModeButton
                         .frame(width: cell, height: rowHeight)
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
@@ -272,7 +278,7 @@ struct TransportView: View {
                 HStack(spacing: QLiveStage.Follower.stripGap) {
                     HoldToStopButton(scaleFactor: scaleFactor, onComplete: onHoldStop)
                         .frame(height: QLiveStage.Follower.stopHeight)
-                    emergButton
+                    listModeButton
                         .frame(width: QLiveStage.Follower.emergWidth, height: QLiveStage.Follower.stopHeight)
                 }
             }
@@ -289,10 +295,37 @@ struct TransportView: View {
     /// «emerg», dov'è e com'è oggi: inerte per scelta di prodotto (`TD-emerg-bottone-morto`,
     /// marcature 18/08 e 27/08); resta al Follower (LIBRO `2026-09-11`: RESTANO muto, mixer
     /// e il tasto EMERG).
-    private var emergButton: some View {
-        RubberBtnView(label: "emerg", glyph: "⚠", danger: true,
-            disabled: false,
-            scaleFactor: scaleFactor) { /* navigazione Vista LISTA — Fase successiva */ }
+    /// ⚠️ SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — EMERG È DIVENTATO «List mode» (BOX5 V54, decisione 5: «List mode al
+    ///    posto di EMERG»; LIBRO 2026-10-04 «LE STESSE PAROLE DAPPERTUTTO»; foglio SYNC REV8, schermi 2, 8, 10 e 11,
+    ///    `.qb-lm` e `i-ls`): la parola e il simbolo della console del Solo, nella veste del foglio (fondo `#1f1b18`,
+    ///    raggio 20, icona 24 col tratto 2,2 sopra la parola, 5 fra le due, Inter 700 17 bianco caldo .72, filo chiaro
+    ///    in alto .055), nella cella e nella misura che EMERG ha in ciascuna fascia (caso D6), coi corpi della legge di
+    ///    Direttore e Follower (`QLiveStage.scaled`). Senza azione e acceso, come oggi EMERG; niente veste di
+    ///    pericolo. Se per loro debba essere spento lo decide Mauro al giro del sync. Il testo sopra resta come storia.
+    private var listModeButton: some View {
+        let iconSize = QLiveStage.scaled(QLiveStage.ListMode.icon, scaleFactor)
+        let fontSize = QLiveStage.scaled(QLiveStage.ListMode.fontSize, scaleFactor)
+        return Button(action: onListMode) {
+            ZStack {
+                RoundedRectangle(cornerRadius: QLiveStage.ListMode.radius)
+                    .fill(QLiveStage.ListMode.fill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: QLiveStage.ListMode.radius)
+                            .strokeBorder(Color.white.opacity(QLiveStage.ListMode.highlight), lineWidth: 1)
+                            .mask(alignment: .top) { Rectangle().frame(height: QLiveStage.ListMode.radius) }
+                    )
+                VStack(spacing: QLiveStage.ListMode.gap) {
+                    SoloIconView(icon: .listMode, size: iconSize, color: QLiveStage.ListMode.text)
+                    Text("List mode")
+                        .font(.custom("Inter-Bold", size: fontSize))
+                        .foregroundColor(QLiveStage.ListMode.text)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(RoundedRectangle(cornerRadius: QLiveStage.ListMode.radius))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -302,13 +335,13 @@ struct TransportView: View {
                 .fill(Color.white.opacity(0.12))
                 .frame(width: 28, height: 3)
                 .padding(.top, 4)
-                .onTapGesture { session.showMixer = true }
+                .onTapGesture { onOpenMixer(.handle) }   // A398: dal chiamante, col cancello di stato e la causa
         }
     }
 
     private var mixerDrag: some Gesture {
         DragGesture(minimumDistance: 20).onEnded { val in
-            if val.translation.height < -30 { session.showMixer = true }
+            if val.translation.height < -30 { onOpenMixer(.dragUp) }   // A398: dal chiamante, col cancello e la causa
         }
     }
 

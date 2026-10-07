@@ -50,7 +50,12 @@ struct StandbyOverlayDecision: Equatable {
     // (stile STAGE-CAPS), non il testo: qui la forma è quella dei fogli CD.
     static let resumePrefix = "Resume from "
     static let nextLine = "Next:"
-    static let tapGesture = "Tap anywhere"
+    // SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — «Tap to start» al posto di «Tap anywhere» per chi comanda il
+    //    trasporto (BOX5 V54, decisione 5: «Tap to start» con la mano sui veli dove il tocco fa partire; foglio SYNC
+    //    REV8, schermi 1 e 1b, `.qb-hi.tp`; punto 100 della Solo REV18, forma A). Il Follower tiene «The director
+    //    starts». «Next:» coi due punti resta per Direttore e Follower (decisione 5: «Next» senza i due punti per ora
+    //    solo nel Solo).
+    static let tapGesture = "Tap to start"
     static let directorGesture = "The director starts"
 
     /// C'è un punto di ripresa nella canzone corrente (indice di sezione > 0).
@@ -69,11 +74,15 @@ struct StandbyOverlayDecision: Equatable {
     let songName: String
     /// Forma della riga B secondo la regola del gigante.
     let nameForm: NameForm
-    /// Riga C — gesto: «Tap anywhere» oppure «The director starts».
+    /// Riga C — gesto: «Tap to start» oppure «The director starts».
     let gestureLine: String
+    /// SOLO-G1-PEZZO-1-M3 · A398 — tempo e metrica della sezione che parte («121 · 4/4», `.qb-mt` del foglio SYNC
+    /// REV8, schermi 1, 1b e 9), lo stesso dato e la stessa scritta dei veli del Solo (`SoloScreenDecision.tempoLine`);
+    /// `nil` = la riga non si scrive (il chiamante non la passa, o la sezione non si risolve).
+    let tempoLine: String?
 
     init(currentSectionIdx: Int, currentSectionName: String, songName: String,
-         isFollower: Bool) {
+         isFollower: Bool, tempoLine: String? = nil) {
         let hasResumePoint = currentSectionIdx > 0
         // Garanzia contro la bugia (foglio CD 11/09, lastra ①): se il nome della
         // sezione non si risolve, il velo NON scrive «Resume from —» — ricade
@@ -89,6 +98,7 @@ struct StandbyOverlayDecision: Equatable {
         self.songName = songName
         self.nameForm = Self.nameForm(for: songName)
         self.gestureLine = isFollower ? Self.directorGesture : Self.tapGesture
+        self.tempoLine = (tempoLine?.isEmpty ?? true) ? nil : tempoLine
     }
 
     /// Caratteri, non byte: `String.count` conta i grafemi.

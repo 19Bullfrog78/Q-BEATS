@@ -497,6 +497,12 @@ struct DebugView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
+                        // A398 · SOLO-G1-PEZZO-1-M3 — la scaletta di prova dei veli: i cinque nomi della tavola i della REV18.
+                        Button("Carica dati test COLLAUDO SOLO G1 VELI") {
+                            loadTestDataCollaudoSoloG1Veli()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.teal)
                     }
                 }
                 #endif
@@ -915,6 +921,33 @@ struct DebugView: View {
                               date: Date(), songIDs: [song1.id, song2.id, song3.id, song4.id, song5.id])
 
         QBeatsStore.shared.injectTestData(songs: [song1, song2, song3, song4, song5], setlists: [setlist])
+    }
+
+    /// A398 · SOLO-G1-PEZZO-1-M3 (07/10/2026) — «COLLAUDO SOLO G1 VELI» (decisione del referee, mandato M3 §3.11):
+    /// cinque canzoni coi nomi, i tempi e le metriche della tavola «i · La regola su cinque nomi» della Solo REV18
+    /// («Circuz» 121 4/4; «Verde Rame» 108 4/4; «Lontananza» 92 4/4; «Il cielo in una stanza» 84 3/4; «La canzone
+    /// lunghissima che non finisce mai» 120 4/4), una sezione ciascuna, «Verse», 8 battute, accento sul battito 1
+    /// ([2,1,1,1]; in 3/4 [2,1,1]); conto 0, nessuna base. Così la tavola dei cinque nomi del foglio diventa una prova
+    /// sul telefono, valore per valore, sui veli (80 su due righe, 60, 64 su due righe, 48 coi puntini) e, con lo
+    /// Stop, su H. Vive in RAM e sparisce se l'app si chiude (`injectTestData` sostituisce il contenuto dello store).
+    private func loadTestDataCollaudoSoloG1Veli() {
+        os_log("[DebugView] Carica dati test COLLAUDO SOLO G1 VELI", log: .default, type: .default)
+        func song(_ name: String, bpm: Double, beats: UInt32, unit: UInt32, pattern: [UInt8]) -> Song {
+            let section = SongSection(name: "Verse", bpm: bpm, beatsPerBar: beats, beatUnit: unit,
+                                      repetitions: 8, notes: "", accentPattern: pattern,
+                                      subdivisionMultiplier: 1, swingRatio: 0.5)
+            return Song(id: UUID(), name: name, sections: [section], countIn: 0, backtrackFilename: nil)
+        }
+        let songs = [
+            song("Circuz", bpm: 121.0, beats: 4, unit: 4, pattern: [2, 1, 1, 1]),
+            song("Verde Rame", bpm: 108.0, beats: 4, unit: 4, pattern: [2, 1, 1, 1]),
+            song("Lontananza", bpm: 92.0, beats: 4, unit: 4, pattern: [2, 1, 1, 1]),
+            song("Il cielo in una stanza", bpm: 84.0, beats: 3, unit: 4, pattern: [2, 1, 1]),
+            song("La canzone lunghissima che non finisce mai", bpm: 120.0, beats: 4, unit: 4, pattern: [2, 1, 1, 1]),
+        ]
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO G1 VELI",
+                              date: Date(), songIDs: songs.map { $0.id })
+        QBeatsStore.shared.injectTestData(songs: songs, setlists: [setlist])
     }
     #endif
 }

@@ -115,6 +115,38 @@ enum QLiveStage {
         static let pulsePeriod: Double = 2.2
         static let pulseOpacityLow: Double = 0.45
         static let pulseOpacityHigh: Double = 1.0
+        /// SOLO-G1-PEZZO-1-M3 · A398 — il velo di Direttore e Follower nella veste del foglio SYNC REV8: tempo e
+        /// metrica 14 sotto il nome (`.qb-mt{margin-top:14px}`), la riga del gesto 40 sotto (`.qb-hi{margin-top:40px}`).
+        static let gapNameToTempo: CGFloat = 14
+        static let gapTempoToGesture: CGFloat = 40
+    }
+    /// A398 — tempo e metrica sul velo di Direttore e Follower (`.qb-mt{font:500 var(--s2) var(--mono);color:var(--t45)}`,
+    /// `--s2:17px`): JetBrains Mono 500 17, bianco puro .45.
+    enum Tempo {
+        static let size: CGFloat = 17
+        static let weight: Font.Weight = .medium
+        static let opacity: Double = 0.45
+    }
+    /// A398 — la riga del gesto (`.qb-hi{font:600 var(--cp)/1.2 var(--mono);letter-spacing:.0714em;text-transform:
+    /// uppercase;color:var(--t82)}`, `--cp:21px`; `.qb-hi.tp{gap:.5em}`; `.qb-tap{width:2.1em;height:2.1em;stroke-width:
+    /// 1.7}`): corpo, peso e spaziatura di STAGE-CAPS, bianco puro .82; la mano 2,1 em col tratto 1,7, .5 em di distanza.
+    enum Gesture {
+        static let opacity: Double = 0.82
+        static let handEm: CGFloat = 2.1
+        static let handStroke: CGFloat = 1.7
+        static let gapEm: CGFloat = 0.5
+    }
+    /// A398 — List mode nelle tre fasce di Direttore e Follower (`.qb-lm{background:#1f1b18;border-radius:20px;gap:5px;
+    /// font:700 17px Inter;color:rgba(245,239,230,.72);box-shadow:inset 0 1px 0 rgba(255,255,255,.055)}`,
+    /// `.qb-lm .ic{width:24px;height:24px;stroke-width:2.2}`).
+    enum ListMode {
+        static let fill = Color(hex: "#1f1b18")
+        static let radius: CGFloat = 20
+        static let gap: CGFloat = 5
+        static let fontSize: CGFloat = 17
+        static let icon: CGFloat = 24
+        static let text = Color(hex: "#f5efe6").opacity(0.72)
+        static let highlight: Double = 0.055
     }
     /// B2b — IL FOLLOWER CHE PERDE IL DIRETTORE: i numeri del foglio CD 2D-QUATER (26/09/2026,
     /// `DESIGN/QLive_Nav/2026-09-26_QLive-Player_2D-QUATER-FOLLOWER-FUORI-RIENTRA_390x844_1.html`
@@ -349,5 +381,39 @@ enum QLiveSolo {
         static let playTriangle: Double = 46
         static let playStroke: Double = 2.4
         static let playOffset: Double = 6
+    }
+
+    // SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — i veli V1, V2 e H, «Tap to start» e V4. Corpi, interlinee, spaziature e
+    // distanze delle scritte stanno in `SoloVeilTypography` (Models/, col banco del pezzo del testo); qui i colori, il
+    // respiro e le misure delle parti che non sono scritte.
+    /// Il blocco del velo (`.p-va` e `.p-vt` in `--w66`; `.p-va b` e `.p-vn` bianco pieno) e il respiro del nome
+    /// (`@keyframes pu{0%,100%{opacity:1}50%{opacity:.45}}`, `animation:pu 2.2s ease-in-out infinite`): ciclo intero
+    /// 2,2 s, da 1 a .45 e ritorno, ease-in-out per ogni metà. `QLiveStage.Veil.pulsePeriod` non cambia: lo usano il
+    /// velo di Direttore e Follower e la riga armata del Follower.
+    enum Veil {
+        static let relationOpacity: Double = 0.66
+        static let tempoOpacity: Double = 0.66
+        static let pulsePeriod: Double = 2.2
+        static var pulseHalfPeriod: Double { pulsePeriod / 2 }
+        static let pulseOpacityLow: Double = 0.45
+    }
+    /// «Tap to start» (`.p-tap{gap:10px;font:600 21px/1.2 Inter;color:var(--w86)}`, `.p-tap svg{width:44px;height:44px;
+    /// stroke-width:1.7}`): la mano 44 col tratto 1,7, 10 fra mano e scritta, bianco .86.
+    enum Tap {
+        static let hand: Double = 44
+        static let handStroke: Double = 1.7
+        static let gap: Double = 10
+        static let opacity: Double = 0.86
+    }
+    /// V4: «Back to Shows» (`.p-bs{height:64px;border-radius:20px;box-shadow:inset 0 0 0 2px rgba(245,239,230,.42);
+    /// gap:10px;font:700 19px Inter;color:var(--w86)}`, la freccia in `.ic` 24).
+    enum EndShow {
+        static let buttonRadius: Double = 20
+        static let buttonBorder: Double = 2
+        static let buttonBorderOpacity: Double = 0.42
+        static let buttonIcon: Double = 24
+        static let buttonGap: Double = 10
+        static let buttonFontSize: Double = 19
+        static let buttonOpacity: Double = 0.86
     }
 }

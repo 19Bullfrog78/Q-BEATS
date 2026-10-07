@@ -14,10 +14,10 @@ struct MixerOverlayView: View {
     /// `TD-mixer-copre-endshow`, voce (a)). La decide chi monta il pannello: per il Solo la misura del foglio (da 462
     /// a 622, punto 111, `SoloPlayerGeometry.mixerPanel`), per Direttore e Follower il 21 % dell'altezza UTILE.
     let height: CGFloat
-    /// Decisione D1: nel Solo il tocco sul fondo del pannello non fa niente (`false`); per Direttore e Follower
-    /// chiude, come oggi (`true`). I cursori funzionano come oggi in tutti e due i casi; il tocco resta sul pannello
-    /// (non scende sotto) in tutti e due i casi.
-    let closesOnTap: Bool
+    /// Decisione D1: nel Solo il tocco sul fondo del pannello non fa niente (`nil`); per Direttore e Follower
+    /// chiude, come oggi (il chiamante chiude con la causa «tocco-pannello», A398, M3 §3.9 b). I cursori funzionano
+    /// come oggi in tutti e due i casi; il tocco resta sul pannello (non scende sotto) in tutti e due i casi.
+    let onPanelTap: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 4) {
@@ -41,7 +41,7 @@ struct MixerOverlayView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            if closesOnTap { session.showMixer = false }
+            onPanelTap?()
         }
     }
 }

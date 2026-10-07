@@ -92,8 +92,14 @@ struct LiveView: View {
     // cambia, e qui se ne vede solo l'effetto), e se l'area di K è già stata scritta nel log.
     @State private var midiLampOff: Bool = false
     @State private var midiLampToken: Int = 0
-    @State private var mixerCause: String = "gesto-fascia"
+    // SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — LE CAUSE DEL REGISTRO DEL MIXER SONO QUELLE VERE (`MixerCause`, Models/):
+    //    ogni apertura e chiusura passa da `openMixer`/`closeMixer` e nomina la sua causa; se una riga arrivasse senza
+    //    causa si scrive «sconosciuta», nessuna causa di riserva (decisione g del cancello A397: «montaggio» restava
+    //    impostata e nominava la prima apertura col dito; il tocco sul pannello si registrava «gesto-fascia»).
+    @State private var mixerCause: String = MixerCause.unknown.rawValue
     @State private var soloAreaLogged: Bool = false
+    // SOLO-G1-PEZZO-1-M3 · A398 — se la riga dei caratteri del pezzo del testo è già stata scritta nel log.
+    @State private var soloFontsLogged: Bool = false
 
     // MARK: - Mirror UI per cambi sezione SEAMLESS (TD #38(a) + #40 fix, 17/05/2026)
     //
@@ -233,21 +239,86 @@ struct LiveView: View {
                     //    delle sezioni per la barra della canzone si leggono dal runner in sola lettura (`currentSong`).
                     //    Via, solo qui: frecce di sezione, Loop, EMERG, maniglia e trascinamenti del mixer (BOX5 V54,
                     //    decisione 5; LIBRO 2026-10-04 «NEL SOLO, A CANZONE IN CORSO, NESSUNA MOSSA»).
-                    SoloPlayerView(session: session,
-                                   geometry: soloGeometry,
-                                   displayAccentPattern: displayAccentPattern,
-                                   sectionHold: sectionHold,
-                                   lights: statusLights,
-                                   midiLampOff: midiLampOff,
-                                   faces: consoleFaces,
-                                   clickMuted: audioEngine.appSettings.clickMuted,
-                                   barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
-                                   contentOpacity: standbyOpacity,
-                                   onExit: onExit,
-                                   onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                   onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear { soloAreaShown(soloGeometry) }
+                    // ⚠️ SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — QUALE SCHERMO VEDE IL SOLO LO DECIDE `SoloScreenDecision`
+                    //    (Models/, col suo banco; mandato M3 §3.1): V1/V2 (`SoloVeilView`) in `.standby` con sezione 0; H
+                    //    senza la fila (`SoloResumeView`) in `.standby` con sezione conservata e a `.stopped`; V4
+                    //    (`EndShowView`) a `.fineSetlist`; K (`SoloPlayerView`) in moto; a `.overlayStop` K col pannello
+                    //    superato sopra, com'è (pezzo 2). I veli prendono il posto di K: sotto di loro K non si vede e non
+                    //    prende tocchi. «Sotto il velo di oggi (fino a M3) la composizione si attenua» e «a `.stopped` è K
+                    //    fermo col Play (provvisorio fino a M3)» qui sopra sono storia: si marcano. Le parole, il tocco e
+                    //    il tasto escono dalla stessa regola; righe e corpi dal pezzo del testo (`TextFitter`).
+                    let soloScreen = SoloScreenDecision.screen(state: session.playbackState,
+                                                               sectionIndex: runner.currentSectionIdx,
+                                                               sectionName: runner.currentSection?.name,
+                                                               currentSongName: runner.currentSong?.name,
+                                                               showName: room.showName,
+                                                               songNameInMotion: session.currentSongName,
+                                                               sectionBPM: runner.currentSection?.bpm,
+                                                               sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
+                                                               sectionBeatUnit: runner.currentSection?.beatUnit)
+                    Group {
+                        switch soloScreen.kind {
+                        case .playing, .overlayStop:
+                            SoloPlayerView(session: session,
+                                           geometry: soloGeometry,
+                                           displayAccentPattern: displayAccentPattern,
+                                           sectionHold: sectionHold,
+                                           lights: statusLights,
+                                           midiLampOff: midiLampOff,
+                                           faces: consoleFaces,
+                                           clickMuted: audioEngine.appSettings.clickMuted,
+                                           barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
+                                           contentOpacity: 1.0,
+                                           onExit: onExit,
+                                           onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
+                                .onAppear { soloAreaShown(soloGeometry) }
+                        case .veil:
+                            SoloVeilView(screen: soloScreen,
+                                         geometry: soloGeometry,
+                                         lights: statusLights,
+                                         midiLampOff: midiLampOff,
+                                         clickMuted: audioEngine.appSettings.clickMuted,
+                                         onExit: onExit,
+                                         onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                         onTap: { soloVeilTapped(soloScreen) },
+                                         onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
+                        case .resume:
+                            SoloResumeView(screen: soloScreen,
+                                           geometry: soloGeometry,
+                                           lights: statusLights,
+                                           midiLampOff: midiLampOff,
+                                           clickMuted: audioEngine.appSettings.clickMuted,
+                                           faces: consoleFaces,
+                                           onExit: onExit,
+                                           onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) },
+                                           onDeadTap: { soloVeilTapped(soloScreen) },
+                                           onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
+                        case .endShow:
+                            EndShowView(geometry: soloGeometry,
+                                        title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName),
+                                        statusRow: SoloScreenDecision.endShowStatusRow(role: playerRole),
+                                        lights: statusLights,
+                                        midiLampOff: midiLampOff,
+                                        clickMuted: audioEngine.appSettings.clickMuted,
+                                        onExit: onExit,
+                                        onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                        onBackToShows: onEndShow)
+                                .onAppear {
+                                    endShowShown(role: playerRole,
+                                                 title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName))
+                                }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        soloFontsChecked()
+                        if soloScreen.kind != .veil && soloScreen.kind != .resume { soloScreenShown(soloScreen, texts: nil) }
+                    }
+                    .onChange(of: soloScreen.kind) { kind in
+                        if kind != .veil && kind != .resume { soloScreenShown(soloScreen, texts: nil) }
+                    }
                 } else {
                 VStack(spacing: 0) {
                     LiveHeaderView(session: session, onExit: onExit, scaleFactor: scaleFactor, linkRoleBadge: linkRoleBadge, contentOpacity: standbyOpacity)
@@ -293,7 +364,8 @@ struct LiveView: View {
                                 DragGesture(minimumDistance: 10)
                                     .onEnded { value in
                                         if value.translation.height > 15 {
-                                            session.showMixer = true
+                                            // A398 — apertura col cancello di stato e con la causa (M3 §3.9).
+                                            openMixer(cause: .dragDown, gatedByState: true)
                                         }
                                     }
                             )
@@ -304,7 +376,9 @@ struct LiveView: View {
                         // pressione va alla stanza, l'unica porta dello Stop del musicista.
                         TransportView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
                                       followerAlone: followerAlone,
-                                      onHoldStop: { holdStopFired() })
+                                      onHoldStop: { holdStopFired() },
+                                      onOpenMixer: { cause in openMixer(cause: cause, gatedByState: true) },
+                                      onListMode: { listModeTouched() })
                             .frame(height: geo.size.height * 0.21)
                             .padding(.horizontal, followerAlone ? 0 : 16)
                     }
@@ -317,7 +391,9 @@ struct LiveView: View {
 
                 // B2b — sul Follower FUORI la faccia del foglio vince sul velo di standby, sul velo
                 // UX-3 e sulla schermata di fine scaletta (L5): `!followerOutFace` sui tre.
-                if case .standby(let nextSong) = session.playbackState, !followerOutFace {
+                // SOLO-G1-PEZZO-1-M3 · A398 — il velo di oggi resta a Direttore e Follower: nel Solo i veli V1/V2 e H
+                //    stanno nel ramo `isSolo` qui sopra (`SoloVeilView`, `SoloResumeView`).
+                if case .standby(let nextSong) = session.playbackState, !followerOutFace, !isSolo {
                     // ⚠️ A267 (30/08/2026) — IL TOCCO RIPARTE DALLA SEZIONE
                     // CONSERVATA. Ratifica: Mauro 30/08 «sezione 8 battito 2 →
                     // riparte da sezione 8 battito 1» (= opzione B di A240;
@@ -366,11 +442,16 @@ struct LiveView: View {
                     //    alla vista (`followerVeil`). Sul Follower il velo dice sempre «Next:»
                     //    (2D-D6): lo decide `StandbyOverlayDecision`.
                     let rule = audioEngine.followerDecision
+                    // A398 — tempo e metrica della sezione che parte (`.qb-mt`, SYNC REV8 schermi 1, 1b e 9): lo
+                    //    stesso dato e la stessa scritta dei veli del Solo (M3 §3.5 b).
                     let veil = StandbyOverlayDecision(
                         currentSectionIdx: runner.currentSectionIdx,
                         currentSectionName: runner.currentSection?.name ?? "",
                         songName: nextSong,
-                        isFollower: rule.isFollower)
+                        isFollower: rule.isFollower,
+                        tempoLine: SoloScreenDecision.tempoLine(bpm: runner.currentSection?.bpm,
+                                                                beatsPerBar: runner.currentSection?.beatsPerBar,
+                                                                beatUnit: runner.currentSection?.beatUnit))
                     VStack(spacing: 0) {
                         // Il velo si ferma SOTTO la testata (decisione 13): la fascia
                         // resta scoperta e freccia e muto arrivano ai loro `Button`.
@@ -395,7 +476,8 @@ struct LiveView: View {
                     OverlayStopView(sectionName: sec, songName: song, audioEngine: audioEngine, scaleFactor: scaleFactor)
                 }
 
-                if case .fineSetlist = session.playbackState, !followerOutFace {
+                // SOLO-G1-PEZZO-1-M3 · A398 — nel Solo la fine scaletta è V4 (`EndShowView`, nel ramo `isSolo`).
+                if case .fineSetlist = session.playbackState, !followerOutFace, !isSolo {
                     // ⟦S5x⟧ (A64) — BACK TO SHOWS, ratifica LIBRO:154 «torna alla
                     // libreria SHOWS». ORDINE OBBLIGATO, ratificato nel mandato:
                     //  (a) sessione a .stopped — il rilascio del sottoalbero al flip
@@ -443,7 +525,23 @@ struct LiveView: View {
                     //    END SHOW, e il mandato ha sciolto che non è di questo giro.
                     //    Lo si incontra per forza lavorando qui: è lasciato intatto
                     //    di proposito, non per svista.
-                    FineSetlistView(scaleFactor: scaleFactor, onBackToShows: onEndShow)
+                    // ⚠️ SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — `FineSetlistView` È USCITA: la fine scaletta è V4 per
+                    //    tutti i ruoli (`EndShowView`, BOX5 V54 decisione 5), sulla cornice D4; per Direttore e Follower
+                    //    la testata senza il nome dello show e senza riga di stato. Il cartello RESTART SETLIST qui sopra
+                    //    resta come storia: quel bottone era già uscito (A309) e con la vista è uscito anche il suo file.
+                    EndShowView(geometry: soloGeometry,
+                                title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName),
+                                statusRow: SoloScreenDecision.endShowStatusRow(role: playerRole),
+                                lights: statusLights,
+                                midiLampOff: midiLampOff,
+                                clickMuted: audioEngine.appSettings.clickMuted,
+                                onExit: onExit,
+                                onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
+                                onBackToShows: onEndShow)
+                        .onAppear {
+                            endShowShown(role: playerRole,
+                                         title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName))
+                        }
                 }
 
                 // CD-6 (libro mastro v14, 27/05/2026) — Vista WAITING FOR
@@ -482,12 +580,12 @@ struct LiveView: View {
                     //    referee, 06/10): si apre e si chiude solo col tasto Mixer, e da sé quando la console sparisce
                     //    (`mixerAutoClose`). Nessuna zona di chiusura: il tocco fuori dal pannello arriva a ciò che c'è
                     //    sotto (freccia, muto e console funzionano; altrove non succede niente). Il tocco sul fondo del
-                    //    pannello non fa niente (`closesOnTap: false`); i cursori funzionano come oggi. Sta dove lo
+                    //    pannello non fa niente (`closesOnTap: false`; A398: `onPanelTap: nil`); i cursori funzionano come oggi. Sta dove lo
                     //    mette la geometria: bordo in basso a 622, alto 160 (l'altezza non si misura più sullo schermo),
                     //    largo quanto la cornice. Il pannello resta quello di oggi (Mauro, 04/10: «3. ESATTO. OK»).
                     if session.showMixer {
                         MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
-                                         height: CGFloat(soloGeometry.mixerPanel.height), closesOnTap: false)
+                                         height: CGFloat(soloGeometry.mixerPanel.height), onPanelTap: nil)
                             .frame(width: CGFloat(soloGeometry.mixerPanel.width),
                                    height: CGFloat(soloGeometry.mixerPanel.height))
                             .offset(x: CGFloat(soloGeometry.mixerPanel.x), y: CGFloat(soloGeometry.mixerPanel.y))
@@ -500,16 +598,13 @@ struct LiveView: View {
                         Color.clear
                             .frame(height: geo.size.height * 0.49)
                             .contentShape(Rectangle())
-                            .onTapGesture {
-                                mixerCause = "zona-sopra"
-                                session.showMixer = false
-                            }
+                            .onTapGesture { closeMixer(cause: .zoneAbove) }
                         // SOLO-G1-PEZZO-1-M2 · A397 — decisione D2 (b): per Direttore e Follower il pannello è alto il
                         //    21 % dell'altezza UTILE (BUGS, `TD-mixer-copre-endshow`, voce (a)), non dello schermo; i
                         //    gesti non cambiano (apertura a trascinamento e a maniglia, chiusura con la zona sopra il
                         //    pannello e col tocco sul pannello).
                         MixerOverlayView(session: session, audioEngine: audioEngine, scaleFactor: scaleFactor,
-                                         height: geo.size.height * 0.21, closesOnTap: true)
+                                         height: geo.size.height * 0.21, onPanelTap: { closeMixer(cause: .panelTap) })
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -532,7 +627,7 @@ struct LiveView: View {
             .onChange(of: session.showMixer) { open in mixerChanged(open: open) }
             .onChange(of: session.playbackState) { state in mixerAutoClose(for: state) }
             .onChange(of: followerOutFace) { out in
-                if out { mixerAutoClose(cause: "follower-fuori") }
+                if out { closeMixer(cause: .followerOut) }
             }
             .onReceive(audioEngine.midiActionLampSubject) { _ in midiLampFired() }
         }
@@ -571,8 +666,12 @@ struct LiveView: View {
             //    questa riga si rientrerebbe col mixer aperto senza capire come.
             //    Ogni ALTRO campo della sessione sopravvive DI PROPOSITO: vedi
             //    il cartello A242 in `QLiveSession.swift`.
-            mixerCause = "montaggio"
-            session.showMixer = false
+            // A398 — «montaggio» solo se all'ingresso il pannello era aperto e si chiude (M3 §3.9 b): prima la causa
+            //    restava impostata anche a pannello chiuso e nominava la prima apertura col dito (collaudo P3-1).
+            if session.showMixer {
+                mixerCause = MixerCause.mount.rawValue
+                session.showMixer = false
+            }
             // ⟦DISPLAY-FIRMA-A⟧ A5+C1+C2 — SPENTO AL MONTAGGIO. Da A242 la
             // sessione sopravvive alla schermata, quindi `currentBar` e
             // `beatActive` arrivano qui con i valori dell'ULTIMA volta — e a
@@ -590,6 +689,7 @@ struct LiveView: View {
             os_log("[Q-BEATS][A345] player montato - sessione PRIMA di primeDisplay:%{public}@ isPlaying:%{public}@",
                    log: .default, type: .default,
                    String(describing: session.playbackState), audioEngine.isPlaying ? "true" : "false")
+            playerMounted()
             runner.primeDisplay(session: session)
             // Sync displayBpb/displayAccentPattern dalla prima sezione del runner.
             // Override il sync da audioEngine sopra: la setlist caricata è "verità"
@@ -1143,8 +1243,12 @@ struct LiveView: View {
             runner.startCurrentSection(audioEngine: audioEngine, session: session)
             outcome = "runner.startCurrentSection"
         case .toggleMixer:
-            mixerCause = "tasto"
-            session.showMixer.toggle()
+            // Il tasto sta nella console, che c'è solo in K e in H: il cancello di stato è la console stessa.
+            if session.showMixer {
+                closeMixer(cause: .key)
+            } else {
+                openMixer(cause: .key, gatedByState: false)
+            }
             outcome = session.showMixer ? "pannello aperto" : "pannello chiuso"
         case .killBacktrack:
             audioEngine.stopBacktrack()
@@ -1156,30 +1260,68 @@ struct LiveView: View {
                log: .default, type: .default, keyName, outcome)
     }
 
-    /// Il pannello del mixer si è aperto o chiuso: una riga con la causa (tasto, zona-sopra, montaggio, standby,
-    /// fine-scaletta, follower-fuori; gesto-fascia per la maniglia e i trascinamenti di `TransportView`, che si
-    /// vedono qui solo nell'effetto).
+    /// Il pannello del mixer si è aperto o chiuso: una riga con la causa vera (`MixerCause`: tasto, zona-sopra,
+    /// tocco-pannello, maniglia, trascinamento-giu, trascinamento-su, montaggio, standby, fine-scaletta,
+    /// follower-fuori; «sconosciuta» se nessuno l'ha nominata). Dopo la riga la causa torna «sconosciuta».
+    /// ⚠️ A398 — «gesto-fascia» non esiste più: la maniglia e i trascinamenti della fascia passano da `openMixer`.
     private func mixerChanged(open: Bool) {
         os_log("[Q-BEATS][SOLO-M2][MIXER] pannello:%{public}@ causa:%{public}@",
                log: .default, type: .default, open ? "aperto" : "chiuso", mixerCause)
-        mixerCause = "gesto-fascia"
+        mixerCause = MixerCause.unknown.rawValue
     }
 
     /// D2 (a): il pannello si chiude da sé a ogni ingresso in `.standby` e in `.fineSetlist`, dove velo e fine
-    /// scaletta coprono console e fascia. In `.overlayStop` resta com'è: caso fermato e riportato nel referto (la
-    /// console resta in vista, attenuata sotto il nero .65 del pannello superato, ma non prende tocchi).
+    /// scaletta coprono console e fascia. In `.overlayStop` resta com'è (decisione b del cancello A397).
     private func mixerAutoClose(for state: LivePlaybackState) {
         switch state {
-        case .standby: mixerAutoClose(cause: "standby")
-        case .fineSetlist: mixerAutoClose(cause: "fine-scaletta")
+        case .standby: closeMixer(cause: .standby)
+        case .fineSetlist: closeMixer(cause: .endOfSetlist)
         default: break
         }
     }
 
-    private func mixerAutoClose(cause: String) {
+    /// SOLO-G1-PEZZO-1-M3 · A398 — L'UNICA PORTA CHE APRE IL PANNELLO. Decisione del referee (M3 §3.9 a): il pannello
+    /// non si apre dove non si può chiudere. Le aperture di Direttore e Follower (il trascinamento in giù, la
+    /// maniglia, il trascinamento in su) passano dal cancello di stato (`MixerOpenDecision`: non in `.standby` né in
+    /// `.fineSetlist`; in `.overlayStop` resta tutto com'è); il tasto Mixer del Solo sta nella console, che c'è solo
+    /// in K e in H, e la console è il suo cancello. Un'apertura rifiutata si scrive nel log.
+    private func openMixer(cause: MixerCause, gatedByState: Bool) {
+        if gatedByState && !MixerOpenDecision.canOpen(in: session.playbackState) {
+            os_log("[Q-BEATS][SOLO-M3][MIXER] apertura rifiutata causa:%{public}@ stato:%{public}@",
+                   log: .default, type: .default, cause.rawValue, String(describing: session.playbackState))
+            return
+        }
+        guard !session.showMixer else { return }
+        mixerCause = cause.rawValue
+        session.showMixer = true
+    }
+
+    /// L'unica porta che chiude il pannello, con la causa vera.
+    private func closeMixer(cause: MixerCause) {
         guard session.showMixer else { return }
-        mixerCause = cause
+        mixerCause = cause.rawValue
         session.showMixer = false
+    }
+
+    /// Il tocco su List mode di Direttore e Follower: nessuna azione (come EMERG oggi), una riga nel log.
+    private func listModeTouched() {
+        let role = PlayerRoleDecision.playerRole(role: audioEngine.currentLinkMode, userLinkEnabled: audioEngine.linkUserEnabled)
+        os_log("[Q-BEATS][SOLO-M3][LIST-MODE] ruolo:%{public}@ esito:%{public}@",
+               log: .default, type: .default, role.rawValue, "nessuna azione")
+    }
+
+    /// Lo stato dell'apparecchio al montaggio del player, per il copione del collaudo (M3 §3.12): ruolo scelto, Link
+    /// dell'utente, Link dell'app, Start Stop Sync, composizione (K oppure oggi). `CFBundleVersion` è fisso a 142: le
+    /// righe [SOLO-M3] sono il segno che sul telefono c'è l'app nuova.
+    private func playerMounted() {
+        let role = PlayerRoleDecision.playerRole(role: audioEngine.currentLinkMode, userLinkEnabled: audioEngine.linkUserEnabled)
+        os_log("[Q-BEATS][SOLO-M3][MONTAGGIO] ruolo:%{public}@ linkUtente:%{public}@ linkApp:%{public}@ startStopSync:%{public}@ composizione:%{public}@",
+               log: .default, type: .default,
+               audioEngine.currentLinkMode.rawValue,
+               audioEngine.linkUserEnabled ? "acceso" : "spento",
+               audioEngine.linkEnabled ? "acceso" : "spento",
+               audioEngine.linkStartStopSyncEnabled ? "acceso" : "spento",
+               role == .solo ? "K" : "oggi")
     }
 
     /// Le spie: una riga alla prima comparsa e a ogni cambio di faccia o di striscia.
@@ -1203,6 +1345,65 @@ struct LiveView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + QLiveSolo.Status.lampOffSeconds) {
             if midiLampToken == token { midiLampOff = false }
         }
+    }
+
+    // MARK: - SOLO-G1-PEZZO-1-M3 · A398 — gli schermi del Solo: il tocco sul velo, le righe di log
+
+    /// Il tocco sul velo: su V1/V2 fa partire la canzone con la chiamata di oggi (`runner.startCurrentSong`, come
+    /// `veilTapped`); su H non fa niente (punto 87) e si scrive solo nel log. L'esito lo decide `SoloScreen.tap`.
+    private func soloVeilTapped(_ screen: SoloScreen) {
+        switch screen.tap {
+        case .startSong:
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "runner.startCurrentSong")
+            runner.startCurrentSong(audioEngine: audioEngine, session: session)
+        case .none:
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "nessuna azione")
+        }
+    }
+
+    /// Ogni schermo del Solo che compare: lo schermo (V, H, K, V4, overlayStop), l'indice e il nome della sezione
+    /// come è scritta, corpo e righe del nome sui veli (0 dove il nome non c'è), tempo e metrica, la testata.
+    private func soloScreenShown(_ screen: SoloScreen, texts: SoloVeilTexts?) {
+        let sectionWritten: String = screen.relationSection
+            ?? SectionNameDecision.displayName(runner.currentSection?.name ?? "", numberInSong: runner.currentSectionIdx + 1)
+        os_log("[Q-BEATS][SOLO-M3][SCHERMO] schermo:%{public}@ sezioneIdx:%d sezione:%{public}@ nomeCorpo:%d nomeRighe:%d puntini:%{public}@ tempo:%{public}@ testata:%{public}@",
+               log: .default, type: .default,
+               Self.screenName(screen.kind),
+               runner.currentSectionIdx,
+               sectionWritten,
+               texts.map { Int($0.name.size.rounded()) } ?? 0,
+               texts?.name.lineCount ?? 0,
+               (texts?.name.truncated ?? false) ? "si" : "no",
+               screen.tempoLine.isEmpty ? "-" : screen.tempoLine,
+               screen.headerTitle.isEmpty ? "-" : screen.headerTitle)
+    }
+
+    private static func screenName(_ kind: SoloScreenKind) -> String {
+        switch kind {
+        case .veil: return "V"
+        case .resume: return "H"
+        case .playing: return "K"
+        case .endShow: return "V4"
+        case .overlayStop: return "overlayStop"
+        }
+    }
+
+    /// La fine scaletta, col ruolo e con la testata (col nome dello show o senza).
+    private func endShowShown(role: PlayerRole, title: String) {
+        os_log("[Q-BEATS][SOLO-M3][FINE-SCALETTA] ruolo:%{public}@ testata:%{public}@",
+               log: .default, type: .default, role.rawValue, title.isEmpty ? "vuota" : "show:" + title)
+    }
+
+    /// Una volta per montaggio: i cinque caratteri del pezzo del testo si risolvono in CoreText (il nome PostScript
+    /// chiesto torna; `CoreTextWidthMeasurer.resolves`).
+    private func soloFontsChecked() {
+        guard !soloFontsLogged else { return }
+        soloFontsLogged = true
+        let measurer = CoreTextWidthMeasurer.shared
+        let report = SoloFonts.all.map { "\($0):\(measurer.resolves($0) ? "ok" : "MANCA")" }.joined(separator: " ")
+        os_log("[Q-BEATS][SOLO-M3][CARATTERI] %{public}@", log: .default, type: .default, report)
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {
