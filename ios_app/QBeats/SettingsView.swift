@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 private struct ABLLinkSettingsSheetView: UIViewControllerRepresentable {
     let presenter: LinkSettingsPresenter
@@ -24,14 +25,23 @@ struct SettingsView: View {
                         showLinkSetup = true
                     }
                     if audioEngine.linkEnabled {
+                        // SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — TRE VOCI: «Solo» (`.standalone`, il default), «Director»,
+                        //    «Follower» (`LinkModeMenu`, Models/, col banco che cade se un ruolo resta senza voce). Chiude
+                        //    `TD-mode-picker-senza-solo` al collaudo (BUGS: «chi sceglie Follower una volta resta con un
+                        //    ruolo che non sa togliersi»). Il resto com'è: compare solo a Link acceso, bloccato in moto.
+                        //    Una riga di log a ogni cambio (da → a). L'unica scrittura di `appSettings.linkMode` è qui.
                         Picker("Mode", selection: Binding(
                             get: { audioEngine.appSettings.linkMode },
                             set: { newValue in
+                                let previous = audioEngine.appSettings.linkMode
+                                os_log("[Q-BEATS][SOLO-M3][RUOLO] da:%{public}@ a:%{public}@",
+                                       log: .default, type: .default, previous.rawValue, newValue.rawValue)
                                 audioEngine.appSettings.linkMode = newValue
                             }
                         )) {
-                            Text("Director").tag(LinkMode.direttore)
-                            Text("Follower").tag(LinkMode.collaborativa)
+                            ForEach(LinkModeMenu.entries, id: \.mode) { entry in
+                                Text(entry.title).tag(entry.mode)
+                            }
                         }
                         .pickerStyle(.menu)
                         .disabled(audioEngine.isPlaying)

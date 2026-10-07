@@ -115,6 +115,38 @@ enum QLiveStage {
         static let pulsePeriod: Double = 2.2
         static let pulseOpacityLow: Double = 0.45
         static let pulseOpacityHigh: Double = 1.0
+        /// SOLO-G1-PEZZO-1-M3 · A398 — il velo di Direttore e Follower nella veste del foglio SYNC REV8: tempo e
+        /// metrica 14 sotto il nome (`.qb-mt{margin-top:14px}`), la riga del gesto 40 sotto (`.qb-hi{margin-top:40px}`).
+        static let gapNameToTempo: CGFloat = 14
+        static let gapTempoToGesture: CGFloat = 40
+    }
+    /// A398 — tempo e metrica sul velo di Direttore e Follower (`.qb-mt{font:500 var(--s2) var(--mono);color:var(--t45)}`,
+    /// `--s2:17px`): JetBrains Mono 500 17, bianco puro .45.
+    enum Tempo {
+        static let size: CGFloat = 17
+        static let weight: Font.Weight = .medium
+        static let opacity: Double = 0.45
+    }
+    /// A398 — la riga del gesto (`.qb-hi{font:600 var(--cp)/1.2 var(--mono);letter-spacing:.0714em;text-transform:
+    /// uppercase;color:var(--t82)}`, `--cp:21px`; `.qb-hi.tp{gap:.5em}`; `.qb-tap{width:2.1em;height:2.1em;stroke-width:
+    /// 1.7}`): corpo, peso e spaziatura di STAGE-CAPS, bianco puro .82; la mano 2,1 em col tratto 1,7, .5 em di distanza.
+    enum Gesture {
+        static let opacity: Double = 0.82
+        static let handEm: CGFloat = 2.1
+        static let handStroke: CGFloat = 1.7
+        static let gapEm: CGFloat = 0.5
+    }
+    /// A398 — List mode nelle tre fasce di Direttore e Follower (`.qb-lm{background:#1f1b18;border-radius:20px;gap:5px;
+    /// font:700 17px Inter;color:rgba(245,239,230,.72);box-shadow:inset 0 1px 0 rgba(255,255,255,.055)}`,
+    /// `.qb-lm .ic{width:24px;height:24px;stroke-width:2.2}`).
+    enum ListMode {
+        static let fill = Color(hex: "#1f1b18")
+        static let radius: CGFloat = 20
+        static let gap: CGFloat = 5
+        static let fontSize: CGFloat = 17
+        static let icon: CGFloat = 24
+        static let text = Color(hex: "#f5efe6").opacity(0.72)
+        static let highlight: Double = 0.055
     }
     /// B2b — IL FOLLOWER CHE PERDE IL DIRETTORE: i numeri del foglio CD 2D-QUATER (26/09/2026,
     /// `DESIGN/QLive_Nav/2026-09-26_QLive-Player_2D-QUATER-FOLLOWER-FUORI-RIENTRA_390x844_1.html`

@@ -4,7 +4,12 @@ import SwiftUI
 // Riga A, relazione (STAGE-CAPS): «Resume from ⟨sezione⟩» oppure «Next:» ·
 // riga B, il nome della canzone (STAGE-HERO, regola del gigante) · riga C, il
 // gesto (STAGE-CAPS): «Tap anywhere» a chi comanda il trasporto, «The director
-// starts» al Follower. Le righe arrivano GIÀ DECISE (`StandbyOverlayDecision`,
+// starts» al Follower.
+// ⚠️ SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — a chi comanda il trasporto la riga C dice «Tap to start» con la mano
+//    (forma A), nella veste `.qb-hi` del foglio SYNC REV8, 40 sotto la riga nuova di tempo e metrica (`.qb-mt`),
+//    che sta 14 sotto il nome; lo slot E del Follower resta sotto di lei. Il resto del velo è quello di oggi (il
+//    blocco a 248, «Stay on this screen», il nome dello show, «Next» senza i due punti, il respiro di 2,2 s per
+//    ciclo intero e l'interlinea 1,04 arrivano coi giri di Direttore e Follower). Il testo sopra resta come storia. Le righe arrivano GIÀ DECISE (`StandbyOverlayDecision`,
 // costruita in `LiveView` dallo stesso dato che sceglie la ripartenza): questa
 // vista non decide niente, mette a schermo. Nessuna riga di count-in, in nessun
 // caso (BOX5, invariante «Il velo NON porta righe di count-in finché il
@@ -109,9 +114,30 @@ struct StandbyOverlayView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, QLiveStage.Veil.gapRelationToName)
 
+                // ── SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — tempo e metrica della sezione che parte, 14 sotto il nome
+                //    (foglio SYNC REV8, schermi 1, 1b e 9, `.qb-mt`: JetBrains Mono 500 17, bianco puro .45; BOX5 V54,
+                //    decisione 5: «tempo e metrica sui veli dove il foglio del sync li disegna»). Lo stesso dato e la
+                //    stessa scritta dei veli del Solo. Senza sezione la riga non c'è (D6). ──
+                if let tempo = decision.tempoLine {
+                    Text(tempo)
+                        .font(.jbMono(QLiveStage.Tempo.weight, size: QLiveStage.scaled(QLiveStage.Tempo.size, scaleFactor)))
+                        .foregroundColor(Color.white.opacity(QLiveStage.Tempo.opacity))
+                        .lineLimit(1)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, QLiveStage.Veil.gapNameToTempo)
+                }
+
                 // ── Riga C — gesto: una riga sola, le sue due stringhe sono fisse ──
-                capsLine(decision.gestureLine, size: capsSize, maxLines: 1)
-                    .padding(.top, QLiveStage.Veil.gapNameToGesture)
+                // ⚠️ A398 — la riga del gesto prende la veste `.qb-hi` (bianco .82) e sta 40 sotto la riga di tempo e
+                //    metrica (`.qb-hi{margin-top:40px}`, schermo 9); per chi comanda il trasporto «Tap to start» con la
+                //    mano a sinistra (forma A, `.qb-hi.tp`, `.qb-tap` di 2,1 em col tratto 1,7, .5 em fra mano e
+                //    scritta); il Follower tiene «The director starts». Decisione del referee: per il Direttore il posto
+                //    in basso del foglio (bottom 180) arriva col giro del Direttore; fino ad allora la riga resta nel
+                //    blocco, alla distanza che il foglio dà al Follower. `gapNameToGesture` (34) non si usa più qui.
+                gestureLine(decision.gestureLine, withHand: !decision.isFollower, size: capsSize)
+                    .padding(.top, QLiveStage.Veil.gapTempoToGesture)
 
                 // ── B2b — Slot E, sul Follower: «Director signal OK» col pallino verde (foglio
                 //    2D-QUATER L1, `.qb-sg.ok.g2`), allo stesso posto (C→E) della lastra ⑧ di
@@ -143,6 +169,28 @@ struct StandbyOverlayView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
             .frame(maxWidth: .infinity)
+    }
+
+    /// A398 — la riga del gesto nella veste `.qb-hi`: JetBrains Mono 600 21, spaziatura 1,5, MAIUSCOLE, bianco puro .82;
+    /// con la mano `i-tp` a sinistra (2,1 em, tratto 1,7, .5 em di distanza) quando il tocco fa partire.
+    private func gestureLine(_ text: String, withHand: Bool, size: CGFloat) -> some View {
+        let color = Color.white.opacity(QLiveStage.Gesture.opacity)
+        return HStack(spacing: size * QLiveStage.Gesture.gapEm) {
+            if withHand {
+                let hand = size * QLiveStage.Gesture.handEm
+                SoloIconView(icon: .tapHand, size: hand, color: color,
+                             strokeWidth: hand * QLiveStage.Gesture.handStroke / 24)
+            }
+            Text(text)
+                .font(.jbMono(QLiveStage.Caps.weight, size: size))
+                .tracking(QLiveStage.Caps.tracking)
+                .foregroundColor(color)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .fixedSize()
+        }
+        .padding(.horizontal, QLiveStage.Veil.horizontalMargin)
+        .frame(maxWidth: .infinity)
     }
 
     private func startPulse() {
