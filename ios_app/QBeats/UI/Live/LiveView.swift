@@ -247,12 +247,17 @@ struct LiveView: View {
                     //    prende tocchi. «Sotto il velo di oggi (fino a M3) la composizione si attenua» e «a `.stopped` è K
                     //    fermo col Play (provvisorio fino a M3)» qui sopra sono storia: si marcano. Le parole, il tocco e
                     //    il tasto escono dalla stessa regola; righe e corpi dal pezzo del testo (`TextFitter`).
+                    // A401 (10/10/2026) — Solo REV20, punto 116: il posto nello show della canzone del runner, da 1, per
+                    //    «Song N» dove il player del Solo scrive una canzone senza nome (`SongNameDecision`).
+                    let soloSongNumber = runner.currentSongIdx + 1
                     let soloScreen = SoloScreenDecision.screen(state: session.playbackState,
                                                                sectionIndex: runner.currentSectionIdx,
                                                                sectionName: runner.currentSection?.name,
                                                                currentSongName: runner.currentSong?.name,
                                                                showName: room.showName,
                                                                songNameInMotion: session.currentSongName,
+                                                               songNumber: soloSongNumber,
+                                                               displayWritten: session.macroBarCurrent > 0,
                                                                sectionBPM: runner.currentSection?.bpm,
                                                                sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
                                                                sectionBeatUnit: runner.currentSection?.beatUnit)
@@ -268,6 +273,7 @@ struct LiveView: View {
                                            faces: consoleFaces,
                                            clickMuted: audioEngine.appSettings.clickMuted,
                                            barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
+                                           songNumber: soloSongNumber,
                                            contentOpacity: 1.0,
                                            onExit: onExit,
                                            onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },

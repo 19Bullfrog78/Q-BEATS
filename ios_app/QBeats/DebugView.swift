@@ -503,6 +503,12 @@ struct DebugView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.teal)
+                        // A401 — la scaletta di prova della Solo REV20: i nomi della sezione R e una canzone senza nome.
+                        Button("Carica dati test COLLAUDO SOLO REV20") {
+                            loadTestDataCollaudoSoloRev20()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.indigo)
                     }
                 }
                 #endif
@@ -948,6 +954,43 @@ struct DebugView: View {
         let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO G1 VELI",
                               date: Date(), songIDs: songs.map { $0.id })
         QBeatsStore.shared.injectTestData(songs: songs, setlists: [setlist])
+    }
+
+    /// A401 (10/10/2026) — «COLLAUDO SOLO REV20» (mandato A401 §6): due canzoni, conto 0, nessuna base, accento sul
+    /// battito 1 ([2,1,1,1]), tutto in 4/4. La prima, «Circuz» (il titolo degli schermi R del foglio), ha sei sezioni
+    /// coi nomi della sezione R della Solo REV20, nell'ordine: «Verse» (R2: 68, una riga) · «Pre-Chorus» (R3: 68, due
+    /// righe) · «Bridge attenzione vai piano» (R4 e, col Mixer aperto, R11: 53, tre righe; 16 battute per avere il
+    /// tempo di aprire il Mixer) · «comincia il canto four three two one» (R9: 53, tre righe) · «entra la voce piano,
+    /// quattro battute poi ritornello» (R10: 42, tre righe, coi puntini) · una sezione senza nome («Section 6», punto
+    /// 109 e riga d: 68, una riga), a 110,5 (BPM non intero, Costituzione §6). La seconda canzone è senza nome («Song
+    /// 2», punto 116): si legge dopo «Next song» all'ultima sezione della prima, sul velo e nel titolo di K. Tempi già
+    /// usati nelle scalette di prova: 121 e 110,5 in 4/4 («COLLAUDO SOLO G1»), 120 in 4/4 («COLLAUDO SOLO G1 VELI»).
+    /// Durate (battute × beatsPerBar × 60 / bpm): (1) 8 + 8 + 16 + 8 + 8 battute a 121 (95,2 s) + 8 a 110,5 (17,4 s)
+    /// = 112,6 s · (2) 8 battute a 120 = 16,0 s. Vive in RAM e sparisce se l'app si chiude (`injectTestData`
+    /// sostituisce il contenuto dello store).
+    private func loadTestDataCollaudoSoloRev20() {
+        os_log("[DebugView] Carica dati test COLLAUDO SOLO REV20", log: .default, type: .default)
+        func section(_ name: String, bpm: Double, bars: Int) -> SongSection {
+            SongSection(name: name, bpm: bpm, beatsPerBar: 4, beatUnit: 4,
+                        repetitions: bars, notes: "", accentPattern: [2, 1, 1, 1],
+                        subdivisionMultiplier: 1, swingRatio: 0.5)
+        }
+        let song1 = Song(id: UUID(), name: "Circuz",
+                         sections: [
+                            section("Verse", bpm: 121.0, bars: 8),
+                            section("Pre-Chorus", bpm: 121.0, bars: 8),
+                            section("Bridge attenzione vai piano", bpm: 121.0, bars: 16),
+                            section("comincia il canto four three two one", bpm: 121.0, bars: 8),
+                            section("entra la voce piano, quattro battute poi ritornello", bpm: 121.0, bars: 8),
+                            section("", bpm: 110.5, bars: 8),
+                         ],
+                         countIn: 0, backtrackFilename: nil)
+        let song2 = Song(id: UUID(), name: "",
+                         sections: [section("Verse", bpm: 120.0, bars: 8)],
+                         countIn: 0, backtrackFilename: nil)
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO REV20",
+                              date: Date(), songIDs: [song1.id, song2.id])
+        QBeatsStore.shared.injectTestData(songs: [song1, song2], setlists: [setlist])
     }
     #endif
 }

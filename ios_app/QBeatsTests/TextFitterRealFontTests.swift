@@ -96,14 +96,9 @@ final class TextFitterRealFontTests: XCTestCase {
 
     // MARK: - Le attese del referee (mandato M3 §3.6)
 
-    func testTheSectionOfKWrapsAsTheRefereeExpects() {
-        // «Bridge attenzione vai piano» a 42 in 366: «Bridge attenzione» (342,5) / «vai piano».
-        let f = TextFitter.fit(SoloVeilTypography.sectionSpec("Bridge attenzione vai piano"), measurer: m)
-        XCTAssertEqual(texts(f), ["Bridge attenzione", "vai piano"], "larghezze: \(f.lines.map { $0.width })")
-        XCTAssertFalse(f.truncated)
-        XCTAssertEqual(f.size, 42)
-        XCTAssertEqual(f.height, 90.72, accuracy: 1e-9)
-    }
+    // ⚠️ A401 (10/10/2026) — qui stava `testTheSectionOfKWrapsAsTheRefereeExpects`: «Bridge attenzione vai piano» a 42
+    //    fisso su due righe (punto 51). Con la Solo REV20 (punto 115) quel nome esce a 53 su tre righe: il banco della
+    //    sezione di K è in fondo a questo file («A401 · Solo REV20, punto 115»).
 
     func testTheRelationLineOfHWrapsAsTheRefereeExpects() {
         // «Resume from Bridge attenzione vai piano» a 21 in 338: «Resume from Bridge attenzione» / «vai piano».
@@ -147,5 +142,125 @@ final class TextFitterRealFontTests: XCTestCase {
         let f = TextFitter.fit(SoloVeilTypography.nameSpec("Notturno"), measurer: m)
         XCTAssertEqual(f.size, 78, "larghezze: \(f.lines.map { $0.width })")
         XCTAssertEqual(f.lineCount, 1)
+    }
+
+    // MARK: - A401 · Solo REV20, punto 115: il teleprompter di K
+    // Gli attesi sono del foglio (`DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, sezione R:
+    // schermi R2-R11 e tabella) e del referee (mandato A401 §4.1 e: misura del 10/10 con `Inter-ExtraBold.ttf`).
+    // Se un atteso non torna il banco cade e si riporta la misura: non si aggiusta l'atteso.
+
+    private func section(_ name: String) -> FittedText {
+        SoloVeilTypography.sectionFit(name, measurer: m)
+    }
+
+    /// Dove sta il blocco, in coordinate del foglio: il riquadro va da 284 a 457.
+    private func blockSpan(_ f: FittedText) -> (top: Double, bottom: Double) {
+        let top = 284 + SoloVeilTypography.sectionBlockTop(height: f.height)
+        return (top, top + f.height)
+    }
+
+    private func describe(_ f: FittedText) -> String {
+        "corpo \(f.size), righe \(f.lines.map { "\($0.text) (\($0.width))" })"
+    }
+
+    func testTheShortSectionNamesAreSixtyEightOnOneLine() {
+        // R2 «Verse»: 68, una riga; riga d delle misure: «Section 3» 68 in una riga. Tabella, «Dove sta»: una riga a
+        // 68 da 334 a 407 (333,8–407,2).
+        for name in ["Verse", "Section 3"] {
+            let f = section(name)
+            XCTAssertEqual(f.size, 68, "\(name): \(describe(f))")
+            XCTAssertEqual(texts(f), [name])
+            XCTAssertFalse(f.truncated)
+            let span = blockSpan(f)
+            XCTAssertEqual(span.top, 333.8, accuracy: 0.05)
+            XCTAssertEqual(span.bottom, 407.2, accuracy: 0.05)
+        }
+    }
+
+    func testPreChorusIsSixtyEightOnTwoLinesAfterTheHyphen() {
+        // R3: «Pre-» / «Chorus», a capo dopo il trattino già scritto; in una riga a 68 servirebbero 366,67 su 366.
+        let f = section("Pre-Chorus")
+        XCTAssertEqual(f.size, 68, describe(f))
+        XCTAssertEqual(texts(f), ["Pre-", "Chorus"])
+        XCTAssertFalse(f.truncated)
+        let span = blockSpan(f)
+        XCTAssertEqual(span.top, 297.1, accuracy: 0.05)
+        XCTAssertEqual(span.bottom, 443.9, accuracy: 0.05)
+    }
+
+    func testStaccoVeloceAndBridgeVaiPianoAreSixtyEightOnTwoLines() {
+        // R5 e R7: due righe a 68, da 297 a 444 (297,1–443,9).
+        for name in ["Stacco veloce", "Bridge vai piano"] {
+            let f = section(name)
+            XCTAssertEqual(f.size, 68, "\(name): \(describe(f))")
+            XCTAssertEqual(f.lineCount, 2, "\(name): \(describe(f))")
+            XCTAssertFalse(f.truncated)
+            let span = blockSpan(f)
+            XCTAssertEqual(span.top, 297.1, accuracy: 0.05)
+            XCTAssertEqual(span.bottom, 443.9, accuracy: 0.05)
+        }
+    }
+
+    func testThePhrasesAreFiftyThreeOnThreeLines() {
+        // R4 (e R11, col Mixer aperto) «Bridge attenzione vai piano» e R9 «comincia il canto four three two one»:
+        // in due righe dovrebbero scendere sotto 53, quindi tre righe a 53, da 285 a 456 (284,6–456,4), dentro il
+        // riquadro 284–457.
+        for name in ["Bridge attenzione vai piano", "comincia il canto four three two one"] {
+            let f = section(name)
+            XCTAssertEqual(f.size, 53, "\(name): \(describe(f))")
+            XCTAssertEqual(f.lineCount, 3, "\(name): \(describe(f))")
+            XCTAssertFalse(f.truncated)
+            XCTAssertTrue(f.lines.allSatisfy { $0.width <= 366 }, describe(f))
+            let span = blockSpan(f)
+            XCTAssertEqual(span.top, 284.6, accuracy: 0.05)
+            XCTAssertEqual(span.bottom, 456.4, accuracy: 0.05)
+            XCTAssertGreaterThanOrEqual(span.top, 284)
+            XCTAssertLessThanOrEqual(span.bottom, 457)
+        }
+    }
+
+    func testTheLongNameOfRevThreeIsFortyFourOnThreeLines() {
+        // R6: «Nella REV19 arrivava a 42 coi puntini; in tre righe sta tutto.»
+        let f = section("Bridge attenzione vai piano poi stop secco sul quattro")
+        XCTAssertEqual(f.size, 44, describe(f))
+        XCTAssertEqual(f.lineCount, 3, describe(f))
+        XCTAssertFalse(f.truncated)
+    }
+
+    func testANameThatDoesNotFitAtFortyTwoEndsWithTheEllipsisOnTheThirdLine() {
+        // R10: 51 caratteri; a 42 servirebbero quattro righe («entra la voce / piano, quattro / battute poi /
+        // ritornello»): la terza si chiude coi puntini di `TextFitter`, «battute poi…», come nel foglio.
+        let f = section("entra la voce piano, quattro battute poi ritornello")
+        XCTAssertEqual(f.size, 42, describe(f))
+        XCTAssertEqual(f.lineCount, 3, describe(f))
+        XCTAssertTrue(f.truncated)
+        XCTAssertEqual(f.lines[2].text, "battute poi\u{2026}", describe(f))
+        XCTAssertEqual(f.lines.map { $0.truncated }, [false, false, true])
+        XCTAssertTrue(f.lines.allSatisfy { $0.width <= 366 }, describe(f))
+    }
+
+    func testFiftyTwoCharactersStillFitAtFortyTwoOnThreeLines() {
+        // Didascalia di R10: questo nome, di 52 caratteri, «sta ancora a 42 in tre righe».
+        let f = section("entra la voce, quattro battute poi ritornello e stop")
+        XCTAssertEqual(f.size, 42, describe(f))
+        XCTAssertEqual(f.lineCount, 3, describe(f))
+        XCTAssertFalse(f.truncated)
+    }
+
+    func testTheThreeWidthsWithinOnePointOfTheLimit() {
+        // Tre casi a meno di un punto da 366 (misura del referee: 366,67 · 366,93 · 366,66): decidono il corpo o
+        // l'a capo dei nomi qui sopra. La larghezza di CoreText si stampa nel log della CI, per il referto.
+        let cases: [(text: String, size: Double, referee: Double)] = [
+            ("Pre-Chorus", 68, 366.67), ("Bridge attenzione", 45, 366.93), ("quattro battute poi", 43, 366.66),
+        ]
+        for c in cases {
+            let w = m.width(of: c.text, fontName: SoloFonts.interExtraBold, size: c.size, trackingEm: -0.035)
+            let below = m.width(of: c.text, fontName: SoloFonts.interExtraBold, size: c.size - 1, trackingEm: -0.035)
+            print("[A401][CORETEXT] «\(c.text)» a \(Int(c.size)) = \(String(format: "%.4f", w)); a \(Int(c.size) - 1) = \(String(format: "%.4f", below))")
+            XCTAssertGreaterThan(w, 366, "«\(c.text)» a \(c.size): \(w)")
+            XCTAssertLessThan(w, 367, "«\(c.text)» a \(c.size): \(w)")
+            XCTAssertEqual(w, c.referee, accuracy: 0.05, "«\(c.text)» a \(c.size): \(w)")
+            XCTAssertLessThanOrEqual(below, 366, "«\(c.text)» a \(c.size - 1): \(below)")
+        }
     }
 }

@@ -5,6 +5,9 @@ import XCTest
 // sezione o «Section N», «Tap to start»), il tocco (V1/V2: la canzone; H: niente), il tasto (H: Play dalla
 // sezione); tempo e metrica con BPM non intero (180,5 e 9/8 → «181 · 9/8», Costituzione §6); il titolo della
 // testata (lo show sui veli e su V4, la canzone in K; vuoto su V4 per Direttore e Follower).
+// ⚠️ A401 · Solo REV20 — punto 117: su V4 il nome dello show sta in testata per i tre ruoli («vuoto su V4 per
+// Direttore e Follower» qui sopra è storia); la riga di stato resta del solo Solo. Punto 116: una canzone senza nome
+// è «Song N» sui veli, su H e nel titolo di K, N = il posto nello show.
 
 final class SoloScreenDecisionTests: XCTestCase {
 
@@ -15,11 +18,13 @@ final class SoloScreenDecisionTests: XCTestCase {
 
     private func screen(_ state: LivePlaybackState, sectionIndex: Int = 0, sectionName: String? = "Verse",
                         currentSongName: String? = "Circuz", showName: String? = "Milano Assago",
-                        songNameInMotion: String = "Circuz", bpm: Double? = 121, beats: UInt32? = 4,
+                        songNameInMotion: String = "Circuz", songNumber: Int = 1, displayWritten: Bool = true,
+                        bpm: Double? = 121, beats: UInt32? = 4,
                         unit: UInt32? = 4) -> SoloScreen {
         SoloScreenDecision.screen(state: state, sectionIndex: sectionIndex, sectionName: sectionName,
                                   currentSongName: currentSongName, showName: showName,
-                                  songNameInMotion: songNameInMotion, sectionBPM: bpm,
+                                  songNameInMotion: songNameInMotion, songNumber: songNumber,
+                                  displayWritten: displayWritten, sectionBPM: bpm,
                                   sectionBeatsPerBar: beats, sectionBeatUnit: unit)
     }
 
@@ -120,14 +125,73 @@ final class SoloScreenDecisionTests: XCTestCase {
     }
 
     func testEndShowHeaderForTheThreeRoles() {
-        XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: .solo, showName: "Milano Assago"), "Milano Assago")
-        XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: .direttore, showName: "Milano Assago"), "")
-        XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: .follower, showName: "Milano Assago"), "")
+        // A401 — Solo REV20, punto 117: al centro della testata di V4 il nome dello show, per i tre ruoli (fino ad
+        // A400 vuoto per Direttore e Follower). La riga di stato resta del solo Solo (decisione 5).
+        let roles: [PlayerRole] = [.solo, .direttore, .follower]
+        XCTAssertEqual(roles.count, 3)
+        for role in roles {
+            XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: role, showName: "Milano Assago"), "Milano Assago",
+                           "ruolo \(role.rawValue)")
+            // Come sui veli: uno show senza nome, o di soli spazi, lascia il centro vuoto; il nome com'è scritto.
+            XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: role, showName: nil), "", "ruolo \(role.rawValue)")
+            XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: role, showName: "   "), "", "ruolo \(role.rawValue)")
+            XCTAssertEqual(SoloScreenDecision.endShowHeaderTitle(role: role, showName: " Milano "), " Milano ",
+                           "ruolo \(role.rawValue)")
+        }
         XCTAssertTrue(SoloScreenDecision.endShowStatusRow(role: .solo))
         XCTAssertFalse(SoloScreenDecision.endShowStatusRow(role: .direttore))
         XCTAssertFalse(SoloScreenDecision.endShowStatusRow(role: .follower))
         XCTAssertEqual(SoloVeilTypography.endShowWord, "END SHOW")
         XCTAssertEqual(SoloScreenDecision.backToShows, "Back to Shows")
+    }
+
+    // MARK: - A401 · Solo REV20, punto 116: una canzone senza nome è «Song N»
+
+    func testAnUnnamedSongOnTheVeilIsSongN() {
+        // V1/V2: il nome viene dal caso `.standby(nextSongName:)`, il numero dal posto della canzone del runner.
+        let v = screen(.standby(nextSongName: ""), sectionIndex: 0, songNumber: 2)
+        XCTAssertEqual(v.kind, .veil)
+        XCTAssertEqual(v.songName, "Song 2")
+        XCTAssertEqual(screen(.standby(nextSongName: "   "), sectionIndex: 0, songNumber: 7).songName, "Song 7")
+        XCTAssertEqual(screen(.standby(nextSongName: "Mare"), sectionIndex: 0, songNumber: 2).songName, "Mare")
+        // La lineetta di una canzone che non si risolve (`SetlistRunner.armNextSong`) resta com'è.
+        XCTAssertEqual(screen(.standby(nextSongName: "\u{2014}"), sectionIndex: 0, songNumber: 2).songName, "\u{2014}")
+    }
+
+    func testAnUnnamedSongOnTheResumeScreenIsSongN() {
+        // H dopo lo Stop: il nome è `runner.currentSong?.name`.
+        let stopped = screen(.stopped, sectionIndex: 2, currentSongName: "", songNumber: 2)
+        XCTAssertEqual(stopped.kind, .resume)
+        XCTAssertEqual(stopped.songName, "Song 2")
+        XCTAssertEqual(screen(.stopped, sectionIndex: 0, currentSongName: "  ", songNumber: 4).songName, "Song 4")
+        XCTAssertEqual(screen(.stopped, sectionIndex: 2, currentSongName: "Circuz", songNumber: 2).songName, "Circuz")
+        // Una canzone che non si risolve non è una canzone senza nome: il nome resta vuoto (A398 §9, caso 3).
+        XCTAssertEqual(screen(.stopped, sectionIndex: 2, currentSongName: nil, songNumber: 2).songName, "")
+        // H al rientro con la sezione conservata: il nome dal caso `.standby`, come in V1.
+        let kept = screen(.standby(nextSongName: ""), sectionIndex: 3, currentSongName: "Altro", songNumber: 5)
+        XCTAssertEqual(kept.kind, .resume)
+        XCTAssertEqual(kept.songName, "Song 5")
+    }
+
+    func testAnUnnamedSongInMotionIsSongNInTheHeader() {
+        for state in [LivePlaybackState.playing, .countIn(countdown: 4), .starting, .loopActive,
+                      .overlayStop(sectionName: "Bridge", songName: "")] {
+            XCTAssertEqual(screen(state, songNameInMotion: "", songNumber: 2, displayWritten: true).headerTitle, "Song 2",
+                           "stato \(state)")
+            XCTAssertEqual(screen(state, songNameInMotion: "Circuz", songNumber: 2, displayWritten: true).headerTitle,
+                           "Circuz", "stato \(state)")
+            // Display non ancora scritto: il titolo resta vuoto, niente «Song N» di passaggio.
+            XCTAssertEqual(screen(state, songNameInMotion: "", songNumber: 2, displayWritten: false).headerTitle, "",
+                           "stato \(state)")
+        }
+    }
+
+    func testTheShowNameIsNeverReplacedBySongN() {
+        // Sui veli, su H e su V4 la testata dice lo show: «Song N» riguarda il nome della canzone, non la testata.
+        XCTAssertEqual(screen(.standby(nextSongName: ""), sectionIndex: 0, songNumber: 2).headerTitle, "Milano Assago")
+        XCTAssertEqual(screen(.stopped, sectionIndex: 1, currentSongName: "", songNumber: 2).headerTitle, "Milano Assago")
+        XCTAssertEqual(screen(.fineSetlist, songNumber: 2).headerTitle, "Milano Assago")
+        XCTAssertEqual(screen(.fineSetlist, songNumber: 2).songName, "")
     }
 
     // MARK: - K e il pannello superato

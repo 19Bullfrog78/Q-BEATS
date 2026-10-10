@@ -13,6 +13,10 @@ import Foundation
 // riferimento (area utile 390 x 763) il fattore è 1 a meno di pochi millesimi: il foglio al punto. Su iPad e
 // telefoni piccoli è una legge provvisoria finché CD non disegna quegli apparecchi; per il player del Solo
 // prende il posto della legge «token × max(1, scaleFactor)» della Vista LIVE.
+// ⚠️ A401 (10/10/2026) — per il player del Solo fa fede la Solo REV20
+//    (`DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, blob
+//    `5ac0d521143e2ad5a2f43852580173d5307b58ec`; LIBRO, riga 2026-10-10). Della geometria di K cambia un blocco
+//    solo: il riquadro del teleprompter (punto 115), al suo posto qui sotto.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro. Misure in `Double`.
 struct SoloRect: Equatable {
     let x: Double
@@ -92,8 +96,13 @@ struct SoloPlayerGeometry: Equatable {
     var barRow: SoloRect { rect(sheetX: 18, sheetY: 226, width: 354, height: 26) }
     /// La barra delle battute (`.p-bm`, `.bm`): 264-276.
     var barMeter: SoloRect { rect(sheetX: 18, sheetY: 264, width: 354, height: 12) }
-    /// Il teleprompter (`.p-se`): 346-446, riquadro 366 x 100, margini 12.
-    var prompter: SoloRect { rect(sheetX: 12, sheetY: 346, width: 366, height: 100) }
+    /// Il teleprompter (`.p-se`): 284-457, riquadro 366 x 173, margini 12.
+    /// ⚠️ A401 (10/10/2026) — SOLO REV20, PUNTO 115 (cambia il 51). Era 346-446, alto 100. Foglio
+    /// `DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, tabella della sezione R, riga
+    /// «Riquadro del teleprompter»: «284–457», «largo 366, margini 12 · alto 173»; `.p-se{top:284px;left:12px;
+    /// right:12px;height:173px}`. Comincia 8 sotto la barra delle battute (276) e finisce 5 sopra il pannello del
+    /// mixer aperto (462): il nome non si sposta e non va sotto il pannello. Il resto di K non si muove.
+    var prompter: SoloRect { rect(sheetX: 12, sheetY: 284, width: 366, height: 173) }
     /// Next (`.p-nx`): 516-576.
     var next: SoloRect { rect(sheetX: 18, sheetY: 516, width: 354, height: 60) }
     /// La barra della canzone (`.p-sp`): 596-606.

@@ -7,6 +7,8 @@ import Foundation
 //  · `.p-se b` — la sezione in K: Inter 800 (`Inter-ExtraBold`) 42 fisso, interlinea 1,08, spaziatura −0,035 em, largo
 //               366 (`.p-se{left:12px;right:12px}`), due righe al più, poi i puntini; il blocco centrato nel riquadro
 //               alto 100 (`.p-se{align-items:center}`);
+//               ⚠️ A401 (10/10/2026) — con la Solo REV20 (punto 115) non è più 42 fisso nel riquadro di 100: due
+//               righe da 68 a 53, poi tre righe da 53 a 42, nel riquadro alto 173; la regola sta al suo MARK;
 //  · `.p-va`  — la riga A dei veli: Inter 600 (`Inter-SemiBold`) 21, interlinea 1,25, largo 338, due righe al più; in
 //               H la sezione in Inter 700 (`Inter-Bold`) nella stessa riga (`.p-va b`): una riga fatta di pezzi;
 //  · `.p-vt`  — tempo e metrica: JetBrains Mono 500 (`JetBrainsMono-Medium`) 21, interlinea 1,2, una riga;
@@ -46,25 +48,59 @@ enum SoloVeilTypography {
                     sizes: TextFitSpec.descending(from: nameMaxSize, to: nameMinSize))
     }
 
-    // MARK: La sezione in K (`.p-se b`)
+    // MARK: La sezione in K (`.p-se b`, punto 115)
 
-    static let sectionSize: Double = 42
+    // ⚠️ A401 (10/10/2026) — SOLO REV20, PUNTO 115 (cambia il 51): il nome non ha più un corpo fisso. Foglio
+    //    `DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, tabella della sezione R, riga «Il
+    //    nome della sezione»: «Inter 800 bianco, interlinea 1,08, spaziatura −0,035 em, come il 51 · 1. si prova in
+    //    due righe larghe 366, da 68 a scendere di 1 · 2. se in due righe dovrebbe scendere sotto 53, passa a tre
+    //    righe, da 53 a scendere di 1 · 3. a 42 quello che non sta finisce coi puntini, alla fine della terza riga ·
+    //    vince il primo corpo a cui il nome sta · un corpo solo per tutte le righe · a capo fra le parole e dopo un
+    //    trattino già scritto, mai dentro una parola»; riga «Riquadro del teleprompter»: «284–457», «alto 173».
+    //    Erano: 42 fisso, due righe al più, riquadro alto 100 (`sectionSize`, `sectionMaxLines`, `sectionSpec`).
+    /// Il tetto: il corpo da cui il nome si prova, in due righe.
+    static let sectionMaxSize = 68
+    /// In due righe non si scende sotto questo corpo: si passa a tre righe, da qui.
+    static let sectionThreeLineSize = 53
+    /// Il pavimento: a 42 ciò che non sta finisce coi puntini, alla fine della terza riga.
+    static let sectionMinSize = 42
     static let sectionLineHeight: Double = 1.08
     static let sectionTrackingEm: Double = -0.035
     static let sectionWidth: Double = 366
-    static let sectionBoxHeight: Double = 100
-    static let sectionMaxLines = 2
+    static let sectionBoxHeight: Double = 173
+    static let sectionTwoLines = 2
+    static let sectionThreeLines = 3
 
-    static func sectionSpec(_ name: String) -> TextFitSpec {
+    private static func sectionSpec(_ name: String, maxLines: Int, from: Int, to: Int) -> TextFitSpec {
         TextFitSpec(styles: [TextFitStyle(fontName: SoloFonts.interExtraBold, trackingEm: sectionTrackingEm)],
                     runs: [TextRun(text: name, style: 0)],
                     lineHeightFactor: sectionLineHeight,
                     maxWidth: sectionWidth,
-                    maxLines: sectionMaxLines,
-                    sizes: [sectionSize])
+                    maxLines: maxLines,
+                    sizes: TextFitSpec.descending(from: from, to: to))
     }
 
-    /// Il blocco della sezione sta al centro del riquadro alto 100: dove comincia (dall'alto del riquadro).
+    /// Passo 1: due righe larghe 366, corpi da 68 a 53, a scendere di 1.
+    static func sectionTwoLineSpec(_ name: String) -> TextFitSpec {
+        sectionSpec(name, maxLines: sectionTwoLines, from: sectionMaxSize, to: sectionThreeLineSize)
+    }
+
+    /// Passo 2: tre righe larghe 366, corpi da 53 a 42, a scendere di 1; a 42 i puntini.
+    static func sectionThreeLineSpec(_ name: String) -> TextFitSpec {
+        sectionSpec(name, maxLines: sectionThreeLines, from: sectionThreeLineSize, to: sectionMinSize)
+    }
+
+    /// La regola del punto 115, sopra `TextFitter` (che non cambia): il nome si prova in due righe, da 68 a 53, e
+    /// vince il primo corpo a cui sta (`FittedText.fits`); se nemmeno a 53 sta in due righe, tre righe da 53 a 42,
+    /// e a 42 ciò che non sta finisce coi puntini di `TextFitter` (gli stessi del nome sui veli, punto 114), alla
+    /// fine della terza riga. In punti del foglio: il fattore D4 si applica al risultato.
+    static func sectionFit(_ name: String, measurer: TextWidthMeasurer) -> FittedText {
+        let twoLines = TextFitter.fit(sectionTwoLineSpec(name), measurer: measurer)
+        if twoLines.fits { return twoLines }
+        return TextFitter.fit(sectionThreeLineSpec(name), measurer: measurer)
+    }
+
+    /// Il blocco della sezione sta al centro del riquadro alto 173: dove comincia (dall'alto del riquadro).
     static func sectionBlockTop(height: Double) -> Double {
         (sectionBoxHeight - height) / 2
     }
@@ -156,5 +192,23 @@ enum SoloVeilTypography {
     static func nameTop(relation: FittedText) -> Double { relation.height + gapRelationToName }
     static func tempoTop(relation: FittedText, name: FittedText) -> Double {
         nameTop(relation: relation) + name.height + gapNameToTempo
+    }
+}
+
+// === A401 (10/10/2026) — IL FIT DELLA SEZIONE DI K, UNA VOLTA PER NOME ===
+// `SoloPlayerView` osserva la sessione e si rivaluta a ogni battito: fino ad A400 `SoloPrompterView` rifaceva il fit
+// a ogni valutazione del body (referto A398 §10, voce 4). Con la regola del punto 115 un nome lungo costa fino a 28
+// corpi provati: qui il fit di un nome si calcola la prima volta che il nome arriva e poi si rilegge. La vista lo
+// tiene per tutta la sua vita (`@State`): quando K si smonta, a fine canzone, va via con lei. Si usa solo dal main
+// (le viste); non pubblica niente, quindi leggerlo nel body non rimette in moto il body.
+final class SoloSectionFitMemo {
+    private var fits: [String: FittedText] = [:]
+
+    /// Il fit del nome: calcolato una volta (`SoloVeilTypography.sectionFit`), poi riletto.
+    func fit(_ name: String, measurer: TextWidthMeasurer) -> FittedText {
+        if let known = fits[name] { return known }
+        let fresh = SoloVeilTypography.sectionFit(name, measurer: measurer)
+        fits[name] = fresh
+        return fresh
     }
 }
