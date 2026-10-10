@@ -426,6 +426,22 @@ class AudioEngine: ObservableObject {
     // A360 — copia su audioQueue di `linkUserEnabled` (la mano dell'utente): la legge
     // `stopSync()` dentro `audioQueue.sync` per decidere se lo stop parte verso Link.
     private var _linkUserEnabledQ: Bool = false   // accesso SOLO su audioQueue
+    // === A400 · R1 (10/10/2026) — IL SEGNO DEL PROPRIO AVVIO, accesso SOLO su audioQueue ===
+    // Dice «ho scritto io». Si alza subito prima di ognuna delle tre scritture con cui questo
+    // apparecchio annuncia «suona» a Link (`link_engine_start_at_beat_zero`,
+    // `link_engine_start_at_beat`, `link_engine_join_running_session`); lo consuma il richiamo
+    // avvio/stop di Link quando gli torna indietro il proprio avvio (passo di coda del richiamo,
+    // in `init`; regola e banco: `LinkTransportCallbackDecision`). Così un avvio comandato da
+    // questo apparecchio non gli torna indietro come avvio di un altro: prima il Solo con Link
+    // acceso partiva due volte, e il secondo avvio riazzerava il contatore di sezione dopo il
+    // primo colpo (referto A399 §5).
+    // Per costruzione, non per tempi: non legge `isPlaying` e non confronta ore; chi lo alza e
+    // chi lo consuma stanno su questa coda, nell'ordine dei fatti.
+    // Se l'eco non arriva resta alzato fino all'arresto. Lo abbassano `stopSync`, i tre arresti
+    // che non passano da `stopSync` (inizio di un'interruzione, cambio di topologia, cambio di
+    // configurazione) e il `catch` di `start()`: ogni blocco di coda che scrive `isRunning = false`
+    // lo abbassa prima di finire (`lowerOwnTransportStartQ`).
+    private var _ownTransportStartPendingQ: Bool = false
     // === A386 · FASE B2A (2D) — LO STATO DEL 2D, accesso SOLO su audioQueue ===
     // La macchina del Follower, il segnale «sento il Direttore», la ripetizione del Direttore
     // e la fase di avvio per la falsa partenza vivono qui; gli specchi @Published sopra.
@@ -701,6 +717,14 @@ class AudioEngine: ObservableObject {
                         engine.logSessionTempoIgnoredQ(bpm)
                         return
                     }
+                    // A400 · R1 — una riga di registro, nessun cambio di comportamento: il tempo che
+                    // il richiamo porta, quello che il motore suonava (`_engineTempoQ`, letto prima che
+                    // il blocco sotto lo riscriva) e se sono diversi (`adottato:1`: il motore cambia
+                    // tempo; `adottato:0`: aveva già quello). Fino a oggi questo ramo era muto
+                    // (referto A399 §5.4, il «secondo eco»).
+                    os_log("[Q-BEATS][LINK][TEMPO] richiamo bpm:%.4f motore:%.4f adottato:%d",
+                           log: .default, type: .default,
+                           bpm, engine._engineTempoQ, bpm != engine._engineTempoQ ? 1 : 0)
                     // Il tempo in corso viene dalla sessione: alla soglia di DA SOLO il motore
                     // torna a quello della propria sezione (`followerEnterOwnClockQ`).
                     engine._linkTempoAdoptedQ = bpm
@@ -876,19 +900,54 @@ class AudioEngine: ObservableObject {
                     }
                     return
                 }
-                // CRITICO: NON dispatchiamo su audioQueue — stopSync() ha
-                // audioQueue.sync dentro e causerebbe deadlock.
-                DispatchQueue.main.async {
-                    if isPlaying && !engine.isPlaying {
-                        // Q-D4 esteso — Gate anti double-emit (vedi commento
-                        // su `_linkStartEmitInFlight` decl).
-                        guard !engine._linkStartEmitInFlight else { return }
+                // A400 · R1 — CHI NON È DIRETTORE NÉ FOLLOWER.
+                // Regola (`LinkTransportCallbackDecision`, Models/, col suo banco): un avvio comandato
+                // da questo apparecchio non gli torna indietro come avvio di un altro.
+                // Il richiamo «suona» fa due passi. Passo di coda, su audioQueue: se il segno del
+                // proprio avvio è alzato (`_ownTransportStartPendingQ`) è l'eco — il segno si abbassa,
+                // una riga di registro, fine; altrimenti passa a main, dove decide la tabella di
+                // sempre (`mainStep`).
+                // Il richiamo «non suona» va DRITTO a main, com'era prima di A400, e lì decide la
+                // stessa tabella (ferma solo a motore in moto). Dalla coda NON passa: lo stop
+                // leggerebbe `isPlaying` in ritardo rispetto ai comandi locali, e quattro ordini si
+                // rovescerebbero contro il comportamento di prima (referto A400 §8.2, V1-V4;
+                // decisione del referee del 10/10/2026). Così l'eco del proprio stop resta inerte,
+                // com'era.
+                // CRITICO, com'era: `stop()` NON si chiama da dentro audioQueue — `stopSync()` ha
+                // `audioQueue.sync` dentro e sarebbe un deadlock. Il passo di coda non avvia e non
+                // ferma niente: accoda soltanto un lavoro su main, senza attesa, ed è quel lavoro,
+                // su main, a chiamare `start()` e `stop()`.
+                let mainWork: () -> Void = {
+                    switch LinkTransportCallbackDecision.mainStep(
+                        isPlaying: isPlaying,
+                        engineIsPlaying: engine.isPlaying,
+                        startEmitInFlight: engine._linkStartEmitInFlight) {
+                    case .start:
+                        // Q-D4 esteso — Gate anti double-emit (vedi commento su
+                        // `_linkStartEmitInFlight` decl): `.start` esce solo a lucchetto giù.
                         engine._linkStartEmitInFlight = true
                         engine.start()
                         engine.linkStartedSubject.send()
-                    } else if !isPlaying && engine.isPlaying {
+                    case .stop:
                         engine.stop()
+                    case .none:
+                        break
                     }
+                }
+                if isPlaying {
+                    engine.audioQueue.async {
+                        if LinkTransportCallbackDecision.queueStep(
+                            isPlaying: isPlaying,
+                            ownStartPending: engine._ownTransportStartPendingQ) == .consumeOwnEcho {
+                            engine._ownTransportStartPendingQ = false
+                            os_log("[Q-BEATS][LINK][ECO-PROPRIO] avvio ignorato (isPlaying:%d)",
+                                   log: .default, type: .default, isPlaying ? 1 : 0)
+                            return
+                        }
+                        DispatchQueue.main.async { mainWork() }
+                    }
+                } else {
+                    DispatchQueue.main.async { mainWork() }
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
         }
@@ -1192,6 +1251,15 @@ class AudioEngine: ObservableObject {
             }
             if let lh = lhCaptured {
                 if writesPlayToLink {
+                    // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO si alza subito prima della scrittura
+                    // «suona» di chi comanda il trasporto ed entra in una sessione condivisa. Se la
+                    // sessione era ferma, Link richiama per questo avvio (misurato, referto A399
+                    // §5.1) e il richiamo consuma il segno (`init`, passo di coda). Dove Link suona
+                    // già l'eco non arriva — il richiamo scatta solo ai cambi di «suona» (misura di
+                    // A399 §13-bis.1) — e non arriva a ponte spento: il segno resta alzato, inerte,
+                    // fino allo stop. A motore in moto un avvio altrui non fa niente comunque
+                    // (`LinkTransportCallbackDecision.mainStep` avvia solo a motore fermo).
+                    self._ownTransportStartPendingQ = true
                     link_engine_join_running_session(lh, futureHostTime)
                 } else {
                     // RIENTRO-P1 (e) — W4: vedi `writesPlayToLink` in testa ad `armSharedJoin`.
@@ -1298,6 +1366,10 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
                    log: .default, type: .default,
                    self._startAbsoluteBeat)
+            // A400 · R1 — la riga del segno alzato, a buffer accodati (`logOwnTransportStartRaisedQ`).
+            if writesPlayToLink && lhCaptured != nil {
+                self.logOwnTransportStartRaisedQ(write: "ingresso")
+            }
             // RIENTRO-P2A — [FUOCO]: ora prevista e ora vera del fuoco, con la differenza.
             self.logJoinFire(outcome: "ingresso", expected: futureHostTime,
                              actual: firedAt, waitSeconds: delaySeconds,
@@ -1360,6 +1432,30 @@ class AudioEngine: ObservableObject {
         DispatchQueue.main.async {
             self.isWaitingForLinkDownbeat = false
         }
+    }
+
+    // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO: la riga «alzato». Chiamare SOLO su audioQueue.
+    // Il segno si alza in linea, subito prima della scrittura in Link (un `Bool`: niente lavoro
+    // davanti alla scrittura); la riga che lo dice si scrive dopo, a buffer accodati, per non
+    // mettere lavoro davanti al primo buffer (come la riga [FUOCO] di `armSharedJoin`).
+    private func logOwnTransportStartRaisedQ(write: String) {
+        os_log("[Q-BEATS][LINK][SEGNO-AVVIO] alzato (scrittura:%{public}@)",
+               log: .default, type: .default, write)
+    }
+
+    // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO SI ABBASSA SENZA ECO. Chiamare SOLO su audioQueue.
+    // Il consumo vero sta nel richiamo avvio/stop di Link (`init`, passo di coda). Qui il segno
+    // si abbassa quando l'eco non è arrivato e il motore si ferma o non parte: `stopSync`
+    // (motivo «stop»), i tre arresti che non passano da `stopSync` («interruzione»,
+    // «topologia», «configurazione») e il `catch` di `start()` («catch»). NON sta dentro
+    // `cancelPendingJoin`, che esce subito quando non c'è un ingresso pendente: cioè sempre,
+    // nel Solo senza collegati. La riga si scrive solo se il segno era alzato: nel registro ogni
+    // «alzato» ha una sola chiusura, «avvio ignorato» oppure questa.
+    private func lowerOwnTransportStartQ(reason: String) {
+        guard _ownTransportStartPendingQ else { return }
+        _ownTransportStartPendingQ = false
+        os_log("[Q-BEATS][LINK][SEGNO-AVVIO] abbassato senza eco (motivo:%{public}@)",
+               log: .default, type: .default, reason)
     }
 
     // RIENTRO-P1 (f) — SONDA DI SOLA LETTURA: l'ora dell'ultimo avvio/stop che Link riporta
@@ -2518,6 +2614,14 @@ class AudioEngine: ObservableObject {
                         let snappedBeatLocal = self._startAbsoluteBeat + snappedRelative
                         self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
+                            // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO si alza subito prima della scrittura
+                            // «suona» della ripresa. Dove Link suona già l'eco non arriva — il richiamo
+                            // scatta solo ai cambi di «suona» (misura di A399 §13-bis.1), e a una ripresa
+                            // Link di norma suona già, perché l'arresto che la precede non gli manda lo
+                            // stop — e non arriva a ponte spento: il segno resta alzato, inerte, fino allo
+                            // stop. A motore in moto un avvio altrui non fa niente comunque
+                            // (`LinkTransportCallbackDecision.mainStep` avvia solo a motore fermo).
+                            self._ownTransportStartPendingQ = true
                             link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
                             // A386 · FASE B2A-BIS (2D) — LA RIPRESA NON È UN PLAY: la fase di avvio
                             // resta quella del Play vero (battito zero, `registerStartPhase`). Sui
@@ -2539,6 +2643,10 @@ class AudioEngine: ObservableObject {
                         self.scheduleNextBuffer()
                         os_log("[Q-BEATS][LINK][START] resume avviato a beat:%.4f",
                                log: .default, type: .default, snappedBeatLocal)
+                        // A400 · R1 — la riga del segno alzato, a buffer accodati.
+                        if self.linkEngineHandle != nil {
+                            self.logOwnTransportStartRaisedQ(write: "ripresa")
+                        }
                     } else {
                         // FRESH PLAY: probe + num_peers per distinguere i 3 scenari.
                         let hostNow = mach_absolute_time()
@@ -2601,6 +2709,15 @@ class AudioEngine: ObservableObject {
                             }
                             self.linkSyncSkipBuffers = 3
                             if let lh = self.linkEngineHandle {
+                                // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO si alza subito prima della
+                                // scrittura «suona». Quando Link richiama per questo avvio, il richiamo
+                                // consuma il segno invece di far ripartire il motore (`init`, passo di
+                                // coda). Dove Link suona già l'eco non arriva — il richiamo scatta solo ai
+                                // cambi di «suona» (misura di A399 §13-bis.1) — e non arriva a ponte
+                                // spento: il segno resta alzato, inerte, fino allo stop. A motore in moto
+                                // un avvio altrui non fa niente comunque
+                                // (`LinkTransportCallbackDecision.mainStep` avvia solo a motore fermo).
+                                self._ownTransportStartPendingQ = true
                                 link_engine_start_at_beat_zero(lh, hostNow)
                                 self.registerStartPhase(context: "battito-zero")
                             }
@@ -2611,6 +2728,10 @@ class AudioEngine: ObservableObject {
                                    log: .default, type: .default,
                                    self._linkMode == .direttore ? "direttore" : "standalone",
                                    peersCount)
+                            // A400 · R1 — la riga del segno alzato, a buffer accodati.
+                            if self.linkEngineHandle != nil {
+                                self.logOwnTransportStartRaisedQ(write: "battito-zero")
+                            }
                         } else {
                             // === SESSIONE CONDIVISA — solo LinkMode.collaborativa ===
                             // Bug 2.b / Ferita A (10/06/2026): l'ingresso quantizzato è
@@ -2683,8 +2804,18 @@ class AudioEngine: ObservableObject {
             } catch {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
+                // A400 · R1 — l'avvio è fallito prima delle tre scritture «suona» (l'unico `try` del
+                // blocco è `engine.start()`, e sta sopra di loro): questo avvio il segno non l'ha
+                // alzato. Si abbassa lo stesso, per simmetria con gli altri arresti.
+                self.lowerOwnTransportStartQ(reason: "catch")
                 let errStr = "start fallito: \(error)"
-                DispatchQueue.main.async { self.clickStatus = errStr }
+                DispatchQueue.main.async {
+                    self.clickStatus = errStr
+                    // A400 · R1 — come l'uscita `stayStopped` più sopra: mai un avvio altrui
+                    // inghiottito dal gate anti double-emit. Fino a oggi, dopo un avvio fallito, il
+                    // lucchetto restava alzato fino al primo avvio riuscito (referto A399 §5.5).
+                    self._linkStartEmitInFlight = false
+                }
             }
         }
     }
@@ -3474,6 +3605,10 @@ class AudioEngine: ObservableObject {
         var directorStopped = false
         var directorFalseStart = false
         audioQueue.sync {
+            // A400 · R1 — ogni arresto abbassa il segno del proprio avvio, se l'eco non l'ha già
+            // consumato. In testa al blocco, prima del `guard` più sotto: vale anche a motore già
+            // fermo.
+            self.lowerOwnTransportStartQ(reason: "stop")
             // A386 · FASE B2A — Q18: uno stop durante un'interruzione CHIUDE la ripresa
             // pendente, su tutti e due i ruoli: lo show è andato avanti (Stop del Direttore,
             // END SHOW, uscita dalla stanza) o il musicista ha fermato, e alla fine
@@ -4681,6 +4816,9 @@ class AudioEngine: ObservableObject {
                 // RIENTRO-P1 (a) — questo arresto non passa da `stopSync`: se l'interruzione
                 // cade durante l'attesa d'ingresso, l'ingresso pendente si annulla QUI.
                 self.cancelPendingJoin(reason: "inizio interruzione")
+                // A400 · R1 — questo arresto non passa da `stopSync`: anche il segno del proprio
+                // avvio, se l'eco non è arrivato, si abbassa QUI.
+                self.lowerOwnTransportStartQ(reason: "interruzione")
             }
             guard shouldStop else { return }
             playerNode.stop()
@@ -4902,6 +5040,9 @@ class AudioEngine: ObservableObject {
                 // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso
                 // pendente, se c'è, si annulla qui.
                 self.cancelPendingJoin(reason: "cambio di topologia")
+                // A400 · R1 — arresto che non passa da `stopSync`: si abbassa qui anche il segno
+                // del proprio avvio.
+                self.lowerOwnTransportStartQ(reason: "topologia")
 
                 self.rebuildGraph(for: detectedMode)
                 self.applyChannelRouting(for: detectedMode)
@@ -5021,6 +5162,9 @@ class AudioEngine: ObservableObject {
             // del 17/09/2026 (G3, 10:19:39): cambio di configurazione durante l'attesa
             // d'ingresso, e il riavvio qui sotto armava un SECONDO ingresso accanto al primo.
             self.cancelPendingJoin(reason: "cambio di configurazione")
+            // A400 · R1 — arresto che non passa da `stopSync`: si abbassa qui anche il segno del
+            // proprio avvio.
+            self.lowerOwnTransportStartQ(reason: "configurazione")
 
             // 1. Graph rebuild
             self.rebuildGraph(for: self.detectAudioMode())
