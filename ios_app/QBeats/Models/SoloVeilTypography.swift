@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // === SOLO-G1-PEZZO-1-M3 · A398 (07/10/2026) — LE VESTI DEL FOGLIO PER IL PEZZO DEL TESTO, E LE ALTEZZE DEI BLOCCHI ===
 // Dalla Solo REV18 (CSS citato accanto a ogni valore; tabella C riga i; tabella 3 «Blocco del velo»; punto 114):
@@ -199,9 +200,14 @@ enum SoloVeilTypography {
 // `SoloPlayerView` osserva la sessione e si rivaluta a ogni battito: fino ad A400 `SoloPrompterView` rifaceva il fit
 // a ogni valutazione del body (referto A398 §10, voce 4). Con la regola del punto 115 un nome lungo costa fino a 28
 // corpi provati: qui il fit di un nome si calcola la prima volta che il nome arriva e poi si rilegge. La vista lo
-// tiene per tutta la sua vita (`@State`): quando K si smonta, a fine canzone, va via con lei. Si usa solo dal main
-// (le viste); non pubblica niente, quindi leggerlo nel body non rimette in moto il body.
-final class SoloSectionFitMemo {
+// tiene per tutta la sua vita con `@StateObject`: quando K si smonta, a fine canzone, va via con lei. È
+// `ObservableObject` solo per questo: l'oggetto nasce una volta, non a ogni valutazione del padre («SwiftUI creates
+// a new instance of the model object only once during the lifetime of the container that declares the state
+// object.», https://developer.apple.com/documentation/swiftui/stateobject; l'inizializzatore prende il valore come
+// chiusura: `init(wrappedValue thunk: @autoclosure @escaping () -> ObjectType)`, iOS 14.0+). Non ha campi
+// `@Published`: non pubblica niente, quindi leggerlo e riempirlo nel body non rimette in moto il body. Si usa solo
+// dal main (le viste).
+final class SoloSectionFitMemo: ObservableObject {
     private var fits: [String: FittedText] = [:]
 
     /// Il fit del nome: calcolato una volta (`SoloVeilTypography.sectionFit`), poi riletto.

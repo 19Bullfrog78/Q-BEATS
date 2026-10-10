@@ -18,14 +18,14 @@ import os
 //    42, e a 42 finisce coi puntini alla fine della terza riga (`SoloVeilTypography.sectionFit`, sopra `TextFitter`);
 //    Inter 800, interlinea 1,08, spaziatura −0,035 em e blocco al centro del riquadro restano. «42 fisso», «due
 //    righe lo riempiono» e «riquadro di 100» qui sopra sono storia: si marcano.
-//    Il fit si calcola una volta per nome (`SoloSectionFitMemo`, tenuto dalla vista), non a ogni valutazione del
-//    body. La riga di log si scrive dal nome NUOVO (`onChange(of: name)` consegna il valore nuovo), una volta per
-//    cambio di nome, col fit di quel nome; col nome vuoto (display non ancora scritto, o K che si smonta a fine
-//    canzone) non si scrive (referto A399 §8.3, punto 4).
+//    Il fit si calcola una volta per nome (`SoloSectionFitMemo`, tenuto dalla vista con `@StateObject`: nasce una
+//    volta sola per ogni montaggio di K), non a ogni valutazione del body. La riga di log si scrive dal nome NUOVO
+//    (`onChange(of: name)` consegna il valore nuovo), una volta per cambio di nome, col fit di quel nome; col nome
+//    vuoto (display non ancora scritto, o K che si smonta a fine canzone) non si scrive (referto A399 §8.3, punto 4).
 struct SoloPrompterView: View {
     let name: String
     let scale: Double
-    @State private var memo = SoloSectionFitMemo()
+    @StateObject private var memo = SoloSectionFitMemo()
 
     var body: some View {
         let fit = memo.fit(name, measurer: CoreTextWidthMeasurer.shared)
