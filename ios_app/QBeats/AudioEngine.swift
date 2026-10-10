@@ -900,44 +900,54 @@ class AudioEngine: ObservableObject {
                     }
                     return
                 }
-                // A400 · R1 — CHI NON È DIRETTORE NÉ FOLLOWER: DUE PASSI, LA CODA E POI MAIN.
+                // A400 · R1 — CHI NON È DIRETTORE NÉ FOLLOWER.
                 // Regola (`LinkTransportCallbackDecision`, Models/, col suo banco): un avvio comandato
                 // da questo apparecchio non gli torna indietro come avvio di un altro.
-                // Passo di coda, su audioQueue: se il richiamo dice «suona» e il segno del proprio
-                // avvio è alzato (`_ownTransportStartPendingQ`), è l'eco: il segno si abbassa, una
-                // riga di registro, fine. Tutto il resto passa a main, dove decide la tabella di
-                // sempre (`mainStep`). Avvio E stop fanno la stessa strada, così arrivano a main
-                // nell'ordine in cui Link li ha dati (due code seriali in fila).
+                // Il richiamo «suona» fa due passi. Passo di coda, su audioQueue: se il segno del
+                // proprio avvio è alzato (`_ownTransportStartPendingQ`) è l'eco — il segno si abbassa,
+                // una riga di registro, fine; altrimenti passa a main, dove decide la tabella di
+                // sempre (`mainStep`).
+                // Il richiamo «non suona» va DRITTO a main, com'era prima di A400, e lì decide la
+                // stessa tabella (ferma solo a motore in moto). Dalla coda NON passa: lo stop
+                // leggerebbe `isPlaying` in ritardo rispetto ai comandi locali, e quattro ordini si
+                // rovescerebbero contro il comportamento di prima (referto A400 §8.2, V1-V4;
+                // decisione del referee del 10/10/2026). Così l'eco del proprio stop resta inerte,
+                // com'era.
                 // CRITICO, com'era: `stop()` NON si chiama da dentro audioQueue — `stopSync()` ha
-                // `audioQueue.sync` dentro e sarebbe un deadlock. Per questo il passo di coda non
-                // avvia e non ferma niente: accoda soltanto un lavoro su main, senza attesa, ed è
-                // quel lavoro, su main, a chiamare `start()` e `stop()`.
-                engine.audioQueue.async {
-                    if LinkTransportCallbackDecision.queueStep(
+                // `audioQueue.sync` dentro e sarebbe un deadlock. Il passo di coda non avvia e non
+                // ferma niente: accoda soltanto un lavoro su main, senza attesa, ed è quel lavoro,
+                // su main, a chiamare `start()` e `stop()`.
+                let mainWork: () -> Void = {
+                    switch LinkTransportCallbackDecision.mainStep(
                         isPlaying: isPlaying,
-                        ownStartPending: engine._ownTransportStartPendingQ) == .consumeOwnEcho {
-                        engine._ownTransportStartPendingQ = false
-                        os_log("[Q-BEATS][LINK][ECO-PROPRIO] avvio ignorato (isPlaying:%d)",
-                               log: .default, type: .default, isPlaying ? 1 : 0)
-                        return
+                        engineIsPlaying: engine.isPlaying,
+                        startEmitInFlight: engine._linkStartEmitInFlight) {
+                    case .start:
+                        // Q-D4 esteso — Gate anti double-emit (vedi commento su
+                        // `_linkStartEmitInFlight` decl): `.start` esce solo a lucchetto giù.
+                        engine._linkStartEmitInFlight = true
+                        engine.start()
+                        engine.linkStartedSubject.send()
+                    case .stop:
+                        engine.stop()
+                    case .none:
+                        break
                     }
-                    DispatchQueue.main.async {
-                        switch LinkTransportCallbackDecision.mainStep(
+                }
+                if isPlaying {
+                    engine.audioQueue.async {
+                        if LinkTransportCallbackDecision.queueStep(
                             isPlaying: isPlaying,
-                            engineIsPlaying: engine.isPlaying,
-                            startEmitInFlight: engine._linkStartEmitInFlight) {
-                        case .start:
-                            // Q-D4 esteso — Gate anti double-emit (vedi commento su
-                            // `_linkStartEmitInFlight` decl): `.start` esce solo a lucchetto giù.
-                            engine._linkStartEmitInFlight = true
-                            engine.start()
-                            engine.linkStartedSubject.send()
-                        case .stop:
-                            engine.stop()
-                        case .none:
-                            break
+                            ownStartPending: engine._ownTransportStartPendingQ) == .consumeOwnEcho {
+                            engine._ownTransportStartPendingQ = false
+                            os_log("[Q-BEATS][LINK][ECO-PROPRIO] avvio ignorato (isPlaying:%d)",
+                                   log: .default, type: .default, isPlaying ? 1 : 0)
+                            return
                         }
+                        DispatchQueue.main.async { mainWork() }
                     }
+                } else {
+                    DispatchQueue.main.async { mainWork() }
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
         }

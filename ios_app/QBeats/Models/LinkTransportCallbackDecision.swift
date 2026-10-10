@@ -20,12 +20,16 @@ import Foundation
 // ore. Il richiamo ha due passi, e il tipo li porta tutti e due:
 //  · passo di coda (`queueStep`, su `audioQueue`): se il richiamo dice «suona» e il segno
 //    è alzato, è l'eco del proprio avvio — il segno si consuma e non si fa altro;
-//    altrimenti si passa a main. Avvio e stop fanno la stessa strada (la coda, poi main),
-//    così arrivano nell'ordine in cui Link li ha dati;
+//    altrimenti si passa a main. Dalla coda il motore fa passare solo il richiamo «suona»;
 //  · passo di main (`mainStep`): la tabella di sempre — avvio a motore fermo → il motore
 //    parte, se il lucchetto del doppio invio (`_linkStartEmitInFlight`) è giù; stop a
 //    motore in moto → il motore si ferma; il resto niente.
-// Uno stop non è mai un eco: il segno si consuma solo su «suona».
+// Uno stop non è mai un eco: il segno si consuma solo su «suona». E lo stop non passa
+// dalla coda: il motore lo manda dritto a main, com'era prima di A400, perché dalla coda
+// fermerebbe in ritardo rispetto ai comandi locali e quattro ordini si rovescerebbero
+// contro il comportamento di prima (referto A400 §8.2, V1-V4). Così l'eco del proprio stop
+// resta inerte, com'era. Per la regola non cambia niente: a uno stop il passo di coda
+// rende comunque «a main».
 //
 // I due rami di ruolo — il Direttore ignora sempre, il Follower passa dalla sua macchina
 // (`FollowerSyncDecision`) — restano scritti nel richiamo, prima dei due passi; qui sono
@@ -33,7 +37,8 @@ import Foundation
 // Link acceso dall'utente).
 // Storia del ramo: il primo commit portava qui la regola di prima (il passo di coda
 // mandava sempre a main) e il banco con l'atteso nuovo; i tre test `testOwnEcho…`
-// cadevano. Con questa regola passano.
+// cadevano. Con questa regola passano. Il secondo commit faceva passare dalla coda anche
+// lo stop; il quarto l'ha riportato dritto a main (decisione del referee del 10/10/2026).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct LinkTransportCallbackDecision: Equatable {
 
@@ -106,7 +111,8 @@ struct LinkTransportCallbackDecision: Equatable {
     }
 
     /// Il passo di coda: «suona» col segno alzato è l'eco del proprio avvio. Uno stop passa
-    /// sempre a main, qualunque sia il segno.
+    /// sempre a main, qualunque sia il segno (e il motore, per lo stop, non fa nemmeno il
+    /// salto sulla coda: lo accoda direttamente su main).
     static func queueStep(isPlaying: Bool, ownStartPending: Bool) -> QueueStep {
         return (isPlaying && ownStartPending) ? .consumeOwnEcho : .forwardToMain
     }
