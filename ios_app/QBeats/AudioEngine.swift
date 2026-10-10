@@ -439,8 +439,8 @@ class AudioEngine: ObservableObject {
     // chi lo consuma stanno su questa coda, nell'ordine dei fatti.
     // Se l'eco non arriva resta alzato fino all'arresto. Lo abbassano `stopSync`, i tre arresti
     // che non passano da `stopSync` (inizio di un'interruzione, cambio di topologia, cambio di
-    // configurazione) e il `catch` di `start()`: a motore fermo è sempre giù
-    // (`lowerOwnTransportStartQ`).
+    // configurazione) e il `catch` di `start()`: ogni blocco di coda che scrive `isRunning = false`
+    // lo abbassa prima di finire (`lowerOwnTransportStartQ`).
     private var _ownTransportStartPendingQ: Bool = false
     // === A386 · FASE B2A (2D) — LO STATO DEL 2D, accesso SOLO su audioQueue ===
     // La macchina del Follower, il segnale «sento il Direttore», la ripetizione del Direttore
@@ -2794,9 +2794,9 @@ class AudioEngine: ObservableObject {
             } catch {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
-                // A400 · R1 — l'avvio è fallito prima di ogni scrittura in Link (l'unico `try` del
-                // blocco è `engine.start()`): questo avvio il segno non l'ha alzato. Si abbassa lo
-                // stesso, per simmetria con gli altri arresti.
+                // A400 · R1 — l'avvio è fallito prima delle tre scritture «suona» (l'unico `try` del
+                // blocco è `engine.start()`, e sta sopra di loro): questo avvio il segno non l'ha
+                // alzato. Si abbassa lo stesso, per simmetria con gli altri arresti.
                 self.lowerOwnTransportStartQ(reason: "catch")
                 let errStr = "start fallito: \(error)"
                 DispatchQueue.main.async {
