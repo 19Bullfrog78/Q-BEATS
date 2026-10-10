@@ -1,31 +1,39 @@
 import Foundation
 
 // === A400 (10/10/2026) — IL RICHIAMO AVVIO/STOP DI LINK: UN SOLO POSTO, TESTATO ===
-// ⚠️ PRIMO COMMIT DEL RAMO: QUI C'È LA REGOLA DI OGGI, estratta dal richiamo com'è alla
-//    punta `a292550` (`AudioEngine.init`, `link_engine_set_start_stop_callback`). Il segno
-//    del proprio avvio entra già fra gli ingressi ma NON decide: nel motore non esiste
-//    ancora, e ogni richiamo va dritto a main. Il banco porta l'atteso NUOVO, quindi i
-//    casi dell'eco propria cadono: è la prova che la cura cambia qualcosa. La regola nuova
-//    entra col commit della cura, in `queueStep`.
+// Regola del referee (ratifica del 10/10/2026 sul referto A399 §5): un avvio comandato da
+// questo apparecchio non gli torna indietro come avvio di un altro. Gli avvii e gli stop
+// che arrivano dagli altri apparecchi passano come prima.
 //
 // Il fatto (referto A399 §5, misurato sui log del collaudo di M3). LinkKit richiama sul
 // main thread quando cambia lo stato avvio/stop della sessione (`ABLLink.h`: «Invoked on
 // the main thread when the Start/stop state of the Link session changes»). Misurato: con
 // Start Stop Sync acceso e nessun collegato richiama anche per l'avvio scritto
 // dall'apparecchio stesso. Il Solo scrive «suona» in Link da `audioQueue`, dentro
-// `start()`, prima che `isPlaying` passi a vero su main: il richiamo trova il motore
-// ancora «fermo» e lo fa partire una seconda volta (eco propria → avvia).
+// `start()`, prima che `isPlaying` passi a vero su main: il richiamo trovava il motore
+// ancora «fermo» e lo faceva partire una seconda volta, e il secondo avvio riazzerava il
+// contatore di sezione dopo il primo colpo.
 //
-// Il richiamo ha due passi, e il tipo li porta tutti e due:
-//  · passo di coda (`queueStep`, su `audioQueue`): oggi non c'è, manda sempre a main;
-//  · passo di main (`mainStep`): avvio a motore fermo → il motore parte, se il lucchetto
-//    del doppio invio (`_linkStartEmitInFlight`) è giù; stop a motore in moto → il motore
-//    si ferma; il resto niente.
+// La cura è per costruzione, non per tempi. Il motore tiene un segno confinato ad
+// `audioQueue` (`_ownTransportStartPendingQ`), alzato subito prima di ogni propria
+// scrittura «suona» in Link: dice «ho scritto io», non legge `isPlaying` e non confronta
+// ore. Il richiamo ha due passi, e il tipo li porta tutti e due:
+//  · passo di coda (`queueStep`, su `audioQueue`): se il richiamo dice «suona» e il segno
+//    è alzato, è l'eco del proprio avvio — il segno si consuma e non si fa altro;
+//    altrimenti si passa a main. Avvio e stop fanno la stessa strada (la coda, poi main),
+//    così arrivano nell'ordine in cui Link li ha dati;
+//  · passo di main (`mainStep`): la tabella di sempre — avvio a motore fermo → il motore
+//    parte, se il lucchetto del doppio invio (`_linkStartEmitInFlight`) è giù; stop a
+//    motore in moto → il motore si ferma; il resto niente.
+// Uno stop non è mai un eco: il segno si consuma solo su «suona».
 //
 // I due rami di ruolo — il Direttore ignora sempre, il Follower passa dalla sua macchina
-// (`FollowerSyncDecision`) — sono scritti nel richiamo, prima dei due passi; qui sono la
-// stessa tabella, per il banco. «Follower» è la regola di `FollowerDecision` (ruolo E Link
-// acceso dall'utente).
+// (`FollowerSyncDecision`) — restano scritti nel richiamo, prima dei due passi; qui sono
+// la stessa tabella, per il banco. «Follower» è la regola di `FollowerDecision` (ruolo E
+// Link acceso dall'utente).
+// Storia del ramo: il primo commit portava qui la regola di prima (il passo di coda
+// mandava sempre a main) e il banco con l'atteso nuovo; i tre test `testOwnEcho…`
+// cadevano. Con questa regola passano.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct LinkTransportCallbackDecision: Equatable {
 
@@ -97,12 +105,13 @@ struct LinkTransportCallbackDecision: Equatable {
         }
     }
 
-    /// Il passo di coda. REGOLA DI OGGI: il segno non esiste, ogni richiamo va a main.
+    /// Il passo di coda: «suona» col segno alzato è l'eco del proprio avvio. Uno stop passa
+    /// sempre a main, qualunque sia il segno.
     static func queueStep(isPlaying: Bool, ownStartPending: Bool) -> QueueStep {
-        return .forwardToMain
+        return (isPlaying && ownStartPending) ? .consumeOwnEcho : .forwardToMain
     }
 
-    /// Il passo di main, parola per parola il blocco del richiamo:
+    /// Il passo di main, parola per parola il blocco che il richiamo aveva prima di A400:
     /// `if isPlaying && !engine.isPlaying { guard !engine._linkStartEmitInFlight … start }`
     /// `else if !isPlaying && engine.isPlaying { stop }`.
     static func mainStep(isPlaying: Bool, engineIsPlaying: Bool,
