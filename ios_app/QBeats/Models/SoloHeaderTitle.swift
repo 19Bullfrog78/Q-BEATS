@@ -16,6 +16,19 @@ import Combine
 // tollera 1 px, l'app no. Vale dove la testata del Solo scrive un titolo, cioè in `SoloHeaderView`: lo show su V1,
 // V2, sul velo dopo lo Stop e su V4 (V4 è una vista sola per i tre ruoli, punto 117: anche per Direttore e
 // Follower), la canzone in K. Il conto (K0) nell'app non è costruito.
+// ⚠️ A403 · SEGUITO 1 (11/10/2026) — IN TESTATA I PUNTINI AL CARATTERE, COME NEL FOGLIO. «a 17 ciò che non sta finisce
+//    coi puntini di `TextFitter`» qui sopra è storia: con una riga sola `TextFitter` va a capo sugli spazi e tiene la
+//    prima riga, e i puntini cadevano dopo l'ultima parola intera che sta («Tour 2026 - Milano/Assago/Bergamo/
+//    Brescia/Verona» usciva «Tour 2026 -…», larga 112,87 su 254). Il foglio non toglie parole: lo script `fitH` lascia
+//    i puntini al CSS di `.p-hn` (`white-space:nowrap;overflow:hidden;text-overflow:ellipsis`; il suo commento: «a 17
+//    i puntini alla fine (text-overflow)»), che taglia al carattere (W3C, CSS Overflow Module Level 3, Working Draft
+//    del 7 ottobre 2025, §5.1: «implementations must hide characters and atomic inline-level elements at the end edge
+//    of the line as necessary to fit the ellipsis», https://www.w3.org/TR/css-overflow-3/#text-overflow). Ora: i
+//    corpi da 24 a 17 come prima; se nemmeno a 17 il titolo sta su una riga, la riga intera (tutti gli atomi su una
+//    riga) si accorcia togliendo caratteri dalla fine finché riga e «…» stanno nei 254 (`cutAtTheCharacter`, con
+//    `TextFitter.truncate`, che non cambia). Due scelte del referee, le stesse degli altri nomi del player: gli spazi
+//    in coda non restano davanti ai puntini; la riga tagliata resta al centro della casella (`text-align:center`,
+//    nella regola di `.p-hn` citata qui sopra). LIBRO, riga 2026-10-11, decisione h).
 // Solo Foundation, più Combine per il memo: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 enum SoloHeaderTitle {
     // La testata (`.p-hd{height:60px;gap:10px;padding:0 14px}`, `.p-rk` tonda 44) è larga 390 − 2 × 14 = 362
@@ -48,8 +61,35 @@ enum SoloHeaderTitle {
     /// Il titolo della testata: corpo, riga e puntini. Vince il primo corpo a cui il titolo sta su una riga
     /// (`FittedText.fits`); a 17 ciò che non sta finisce coi puntini di `TextFitter`, alla fine. In punti del
     /// foglio: il fattore D4 si applica al risultato.
+    /// ⚠️ A403 · seguito 1: «coi puntini di `TextFitter`» è storia (cartello in testa al file). Se nemmeno a 17 il
+    /// titolo sta su una riga, la riga è quella di `cutAtTheCharacter`: il titolo intero, tagliato al carattere.
     static func fit(_ title: String, measurer: TextWidthMeasurer) -> FittedText {
-        TextFitter.fit(spec(title), measurer: measurer)
+        let rule = spec(title)
+        let fitted = TextFitter.fit(rule, measurer: measurer)
+        return fitted.fits ? fitted : cutAtTheCharacter(rule, measurer: measurer)
+    }
+
+    /// Il titolo che non sta nemmeno al pavimento: la riga intera che `TextFitter` scriverebbe (tutti gli atomi di
+    /// `tokenize` su una riga, uniti da `fragments`: niente spazi in testa, uno spazio fra le parole), a 17,
+    /// accorciata da `TextFitter.truncate`: via caratteri dalla fine finché riga e «…» stanno nei 254; gli spazi in
+    /// coda non restano davanti ai puntini. Una riga sola, alta 1,2 × 17, con la linea di base del modello CSS.
+    static func cutAtTheCharacter(_ rule: TextFitSpec, measurer: TextWidthMeasurer) -> FittedText {
+        let size = rule.sizes[rule.sizes.count - 1]
+        let whole = TextFitter.fragments(TextFitter.tokenize(rule.runs))
+        let runs = TextFitter.truncate(whole, size: size, spec: rule, measurer: measurer)
+        let line = FittedLine(runs: runs,
+                              width: TextFitter.width(of: runs, size: size, spec: rule, measurer: measurer),
+                              truncated: true)
+        let lineHeight = rule.lineHeightFactor * size
+        let metrics = measurer.verticalMetrics(fontName: rule.styles.first?.fontName ?? "")
+        return FittedText(styles: rule.styles,
+                          size: size,
+                          lines: [line],
+                          lineHeight: lineHeight,
+                          height: lineHeight,
+                          baselines: TextFitter.baselines(count: 1, size: size, lineHeight: lineHeight, metrics: metrics),
+                          truncated: true,
+                          fits: false)
     }
 }
 

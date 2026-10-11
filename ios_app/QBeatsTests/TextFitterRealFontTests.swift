@@ -376,4 +376,56 @@ final class TextFitterRealFontTests: XCTestCase {
             XCTAssertLessThanOrEqual(below, 254, "«\(c.text)» a \(c.size - 1): \(below)")
         }
     }
+
+    // MARK: - A403 · seguito 1: in testata i puntini al carattere, come nel foglio
+    // Il foglio non toglie parole: `fitH` lascia i puntini al CSS di `.p-hn` (`text-overflow:ellipsis`), che taglia al
+    // carattere. I nove titoli di A403 qui sopra restano, con le stesse scritte: su quelli il taglio alla parola e
+    // quello al carattere coincidono. Su questi tre no (attesi del referee, mandato A403 · seguito 1 §2 e: misura
+    // dell'11/10 con `Inter-Bold.ttf` dell'app, HarfBuzz sul file del repo). Alla parola uscivano «Tour 2026 -…»,
+    // «A…» e «Sagra del Tortellino…». Se un atteso non torna il banco cade e si riporta la misura: non si aggiusta.
+
+    func testTheTitlesCutAtTheCharacterAsTheRefereeMeasured() {
+        let cases: [(title: String, shown: String)] = [
+            ("Tour 2026 - Milano/Assago/Bergamo/Brescia/Verona", "Tour 2026 - Milano/Assago/\u{2026}"),
+            ("A Supercalifragilistichespiralidoso", "A Supercalifragilistichespiral\u{2026}"),
+            ("Sagra del Tortellino Castelfranco Emilia", "Sagra del Tortellino Castelfra\u{2026}"),
+        ]
+        for c in cases {
+            let f = headerTitle(c.title)
+            XCTAssertEqual(f.size, 17, "\(c.title): \(describe(f))")
+            XCTAssertEqual(texts(f), [c.shown], "\(c.title): \(describe(f))")
+            XCTAssertTrue(f.truncated, c.title)
+            XCTAssertFalse(f.fits, c.title)
+            XCTAssertLessThanOrEqual(f.lines[0].width, 254, "\(c.title): \(describe(f))")
+            XCTAssertEqual(f.height, 1.2 * 17, accuracy: 1e-9)
+        }
+    }
+
+    func testTheSixCutTitlesAndThePieceThatWouldNotFit() {
+        // Le sei scritte coi puntini (i tre titoli nuovi e i tre di A403: N3, N4, N6), a 17: la larghezza della
+        // scritta e quella che avrebbe col pezzo che viene subito dopo nel titolo, oltre 254 (numeri del referee).
+        // Le larghezze di CoreText si stampano nel log della CI, per il referto.
+        let cases: [(title: String, body: String, width: Double, piece: String, longer: Double)] = [
+            ("Tour 2026 - Milano/Assago/Bergamo/Brescia/Verona", "Tour 2026 - Milano/Assago/", 244.96, "B", 256.71),
+            ("A Supercalifragilistichespiralidoso", "A Supercalifragilistichespiral", 251.76, "i", 256.20),
+            ("Sagra del Tortellino Castelfranco Emilia", "Sagra del Tortellino Castelfra", 252.39, "n", 262.81),
+            ("La canzone lunghissima che non finisce mai", "La canzone lunghissima che", 246.61, " n", 260.88),
+            ("Estate in Piazza \u{B7} Bergamo Alta 2026", "Estate in Piazza \u{B7} Bergamo Al", 251.71, "t", 258.01),
+            ("Teatro Comunale di Vicenza 21/04/2026", "Teatro Comunale di Vicenza", 245.09, " 2", 259.48),
+        ]
+        for c in cases {
+            XCTAssertTrue(c.title.hasPrefix(c.body + c.piece), c.title)
+            let w = m.width(of: c.body + "\u{2026}", fontName: SoloFonts.interBold, size: 17, trackingEm: -0.01)
+            let longer = m.width(of: c.body + c.piece + "\u{2026}", fontName: SoloFonts.interBold, size: 17, trackingEm: -0.01)
+            print("[A403][CORETEXT] testata al carattere «\(c.body)\u{2026}» a 17 = \(String(format: "%.4f", w)); con «\(c.piece)» = \(String(format: "%.4f", longer))")
+            XCTAssertLessThanOrEqual(w, 254, "«\(c.body)»: \(w)")
+            XCTAssertEqual(w, c.width, accuracy: 0.05, "«\(c.body)»: \(w)")
+            XCTAssertGreaterThan(longer, 254, "«\(c.body + c.piece)»: \(longer)")
+            XCTAssertEqual(longer, c.longer, accuracy: 0.05, "«\(c.body + c.piece)»: \(longer)")
+            // La riga che la regola scrive è quella scritta, larga quanto la misura.
+            let f = headerTitle(c.title)
+            XCTAssertEqual(texts(f), [c.body + "\u{2026}"], "\(c.title): \(describe(f))")
+            XCTAssertEqual(f.lines[0].width, w, accuracy: 1e-6, c.title)
+        }
+    }
 }

@@ -8,6 +8,10 @@ import XCTest
 // derivati dalla regola con questi numeri (i conti stanno accanto a ogni caso), non assunti. Gli attesi del foglio e
 // del referee, col carattere vero, stanno in `TextFitterRealFontTests`. In coda: il fit una volta per titolo
 // (`SoloHeaderTitleMemo`).
+// ⚠️ A403 · SEGUITO 1 (11/10/2026) — a 17 il titolo che non sta si taglia al carattere, come nel foglio (CSS
+//    `text-overflow:ellipsis` su `.p-hn`), non più dopo l'ultima parola intera: `SoloHeaderTitle.cutAtTheCharacter`.
+//    La prova che fissava il taglio alla parola (`testAtSeventeenTheWordsThatDoNotFitGoAwayAndTheEllipsisClosesTheLine`)
+//    è riscritta al carattere, col nome nuovo `testAtSeventeenATitleOfSeveralWordsIsCutAtTheCharacter`.
 
 final class SoloHeaderTitleTests: XCTestCase {
 
@@ -106,18 +110,105 @@ final class SoloHeaderTitleTests: XCTestCase {
         XCTAssertEqual(f.height, 1.2 * 17, accuracy: 1e-9)
     }
 
-    func testAtSeventeenTheWordsThatDoNotFitGoAwayAndTheEllipsisClosesTheLine() {
-        // Tre parole di 10 minuscole: a 17 tutte e tre fanno (16,2 + 0,58) × 17 = 285,26 > 254, due fanno 188,53. Resta
-        // la riga con le prime due parole e si chiude coi puntini di `TextFitter`: 188,53 + 15,13 = 203,66. Si legge
-        // l'inizio: i puntini stanno alla fine.
+    func testAtSeventeenATitleOfSeveralWordsIsCutAtTheCharacter() {
+        // Tre parole di 10 minuscole: a 17 tutte e tre fanno (16,2 + 0,58) × 17 = 285,26 > 254. A 17 una minuscola è
+        // larga 9,18, lo spazio 4,93, i puntini 15,13. Il titolo intero si accorcia dalla fine, un carattere alla
+        // volta: due parole e i due spazi fanno 183,6 + 9,86 = 193,46; con 5 lettere della terza 193,46 + 45,9 +
+        // 15,13 = 254,49 > 254, con 4 lettere 193,46 + 36,72 + 15,13 = 245,31. Della terza parola restano quattro
+        // lettere: il taglio è al carattere, non alla parola (alla parola la riga era «abcdefghij abcdefghij…», 203,66).
         let f = fit("abcdefghij abcdefghij abcdefghij")
         XCTAssertEqual(f.size, 17)
-        XCTAssertEqual(texts(f), ["abcdefghij abcdefghij\u{2026}"])
-        XCTAssertEqual(f.lines[0].width, 203.66, accuracy: 1e-9)
+        XCTAssertEqual(texts(f), ["abcdefghij abcdefghij abcd\u{2026}"])
+        XCTAssertEqual(f.lines[0].width, 245.31, accuracy: 1e-9)
         XCTAssertTrue(f.truncated)
+        XCTAssertTrue(f.lines[0].truncated)
         XCTAssertFalse(f.fits)
-        XCTAssertTrue(f.lines[0].text.hasPrefix("abcdefghij"))
-        XCTAssertTrue(f.lines[0].text.hasSuffix("\u{2026}"))
+        XCTAssertEqual(f.lineCount, 1)
+        XCTAssertEqual(f.height, 1.2 * 17, accuracy: 1e-9)
+        // Una riga sola, con la linea di base del modello CSS: mezza interlinea più l'ascendente del carattere.
+        XCTAssertEqual(f.baselines, TextFitter.baselines(count: 1, size: 17, lineHeight: 1.2 * 17,
+                                                         metrics: m.verticalMetrics(fontName: "Inter-Bold")))
+        XCTAssertEqual(f.styles, [TextFitStyle(fontName: "Inter-Bold", trackingEm: -0.01)])
+    }
+
+    func testTheSpacesAtTheCutDoNotStayBeforeTheEllipsis() {
+        // «abcdefghij abcdefghij abcd efghij»: 30 lettere e 3 spazi, a 17 fanno 275,4 + 14,79 = 290,19 > 254. Fino a
+        // «…abcd e» la riga coi puntini non sta (229,5 + 14,79 + 15,13 = 259,42); tolta la «e» resta «…abcd » con lo
+        // spazio in coda, che non resta davanti ai puntini: «…abcd…», 220,32 + 9,86 + 15,13 = 245,31.
+        let f = fit("abcdefghij abcdefghij abcd efghij")
+        XCTAssertEqual(f.size, 17)
+        XCTAssertEqual(texts(f), ["abcdefghij abcdefghij abcd\u{2026}"])
+        XCTAssertEqual(f.lines[0].width, 245.31, accuracy: 1e-9)
+        XCTAssertTrue(f.truncated)
+        // Gli spazi in testa e quelli doppi fra le parole non si scrivono, nemmeno nella riga tagliata: è la riga che
+        // `TextFitter` scriverebbe (`tokenize` e `fragments`).
+        let g = fit("  abcdefghij   abcdefghij abcdefghij")
+        XCTAssertEqual(texts(g), ["abcdefghij abcdefghij abcd\u{2026}"])
+        XCTAssertEqual(g.lines[0].width, 245.31, accuracy: 1e-9)
+    }
+
+    func testTheCutNeverLeavesOutAPieceThatWouldFit() {
+        // Per ogni titolo: i puntini solo a 17, solo in coda, e solo se il titolo intero a 17 non sta; la riga
+        // tagliata è l'inizio del titolo intero, senza spazio davanti ai puntini, e col pezzo che viene subito dopo
+        // (il prossimo carattere che non è uno spazio, con gli spazi che lo precedono) non starebbe più nei 254.
+        // I titoli: parole di minuscole, cifre e trattini, lunghezze da un generatore fisso (niente caso).
+        var seed: UInt64 = 403
+        func next(_ n: Int) -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int((seed >> 33) % UInt64(n))
+        }
+        let alphabet: [Character] = Array("abcdefghijklmnopqrstuvwxyz0123456789-")
+        var titles: [String] = ["abcdefghij abcdefghij abcdefghij", "abcdefghijklmnopqrstuvwxyzabcd", "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+                      "ab-cdefghijklmnopqrstuvwxyz abcdefghijklmnop", "abcdefghij abcdefghij abcd efghij"]
+        for _ in 0..<200 {
+            let wordCount = 1 + next(7)
+            var words: [String] = []
+            for _ in 0..<wordCount {
+                let length = 1 + next(14)
+                var word = ""
+                for _ in 0..<length { word.append(alphabet[next(alphabet.count)]) }
+                words.append(word)
+            }
+            titles.append(words.joined(separator: " "))
+        }
+        var cut = 0
+        for title in titles {
+            let f = fit(title)
+            let rule = SoloHeaderTitle.spec(title)
+            let whole = TextFitter.fragments(TextFitter.tokenize(rule.runs)).map { $0.text }.joined()
+            let wholeAtFloor = m.width(of: whole, fontName: "Inter-Bold", size: 17, trackingEm: -0.01)
+            XCTAssertEqual(f.lineCount, 1, title)
+            XCTAssertLessThanOrEqual(f.lines[0].width, 254 + 1e-9, title)
+            XCTAssertEqual(f.truncated, wholeAtFloor > 254 + 1e-9, title)
+            guard f.truncated else {
+                XCTAssertEqual(f.lines[0].text, whole, title)
+                XCTAssertTrue(f.fits, title)
+                continue
+            }
+            cut += 1
+            XCTAssertEqual(f.size, 17, title)
+            XCTAssertFalse(f.fits, title)
+            let shown = f.lines[0].text
+            XCTAssertTrue(shown.hasSuffix("\u{2026}"), title)
+            let body = String(shown.dropLast())
+            XCTAssertFalse(body.contains("\u{2026}"), title)
+            XCTAssertFalse(body.hasSuffix(" "), title)
+            XCTAssertFalse(body.isEmpty, title)
+            XCTAssertTrue(whole.hasPrefix(body), title)
+            XCTAssertLessThan(body.count, whole.count, title)
+            // Il pezzo dopo: gli spazi che seguono e il primo carattere che non è uno spazio.
+            var rest = Array(whole.dropFirst(body.count))
+            var piece = ""
+            while let ch = rest.first {
+                piece.append(ch)
+                rest.removeFirst()
+                if ch != " " { break }
+            }
+            let longer = m.width(of: body + piece + "\u{2026}", fontName: "Inter-Bold", size: 17, trackingEm: -0.01)
+            XCTAssertGreaterThan(longer, 254 + 1e-9, "\(title): «\(body + piece)…» starebbe (\(longer))")
+        }
+        XCTAssertGreaterThan(cut, 20, "il generatore deve dare titoli che si tagliano")
+        XCTAssertLessThan(cut, titles.count - 20, "e titoli che stanno")
     }
 
     func testATitleIsAlwaysOneLineInsideTheBox() {

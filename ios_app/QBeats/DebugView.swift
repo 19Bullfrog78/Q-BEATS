@@ -1069,6 +1069,10 @@ struct DebugView: View {
     /// seconda canzone è senza nome («Song 2», punto 116), come nel tasto REV20. Il nome dello show, «COLLAUDO SOLO
     /// REV22», nella testata dei veli esce a 21, intero. Durate come nel tasto REV20: 112,6 s e 16,0 s. Vive in RAM e
     /// sparisce se l'app si chiude (`injectTestData` sostituisce il contenuto dello store).
+    /// ⚠️ A403 · seguito 1 (11/10/2026): «due canzoni» qui sopra è storia, sono tre. La terza si chiama «Sagra del
+    /// Tortellino Castelfranco Emilia» e ha una sezione «Verse» a 120, 8 battute (16,0 s), come la seconda. Coi primi
+    /// due titoli il taglio alla parola e quello al carattere danno la stessa scritta; con questo no: in K la testata
+    /// deve dire «Sagra del Tortellino Castelfra…» (al carattere) e non «Sagra del Tortellino…» (alla parola).
     private func loadTestDataCollaudoSoloRev22() {
         os_log("[DebugView] Carica dati test COLLAUDO SOLO REV22", log: .default, type: .default)
         func section(_ name: String, bpm: Double, bars: Int) -> SongSection {
@@ -1089,9 +1093,12 @@ struct DebugView: View {
         let song2 = Song(id: UUID(), name: "",
                          sections: [section("Verse", bpm: 120.0, bars: 8)],
                          countIn: 0, backtrackFilename: nil)
+        let song3 = Song(id: UUID(), name: "Sagra del Tortellino Castelfranco Emilia",
+                         sections: [section("Verse", bpm: 120.0, bars: 8)],
+                         countIn: 0, backtrackFilename: nil)
         let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO REV22",
-                              date: Date(), songIDs: [song1.id, song2.id])
-        QBeatsStore.shared.injectTestData(songs: [song1, song2], setlists: [setlist])
+                              date: Date(), songIDs: [song1.id, song2.id, song3.id])
+        QBeatsStore.shared.injectTestData(songs: [song1, song2, song3], setlists: [setlist])
     }
     #endif
 }

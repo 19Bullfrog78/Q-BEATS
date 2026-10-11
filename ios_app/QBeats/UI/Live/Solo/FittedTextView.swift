@@ -9,6 +9,14 @@ import SwiftUI
 // (`FittedText.styles`); i colori li dà il chiamante, uno per veste. Corpi, interlinee e linee di base sono in punti
 // del foglio e qui si moltiplicano per il fattore D4. La spaziatura dei caratteri è `tracking` sul corpo scalato
 // (dopo ogni carattere, l'ultimo compreso, come `letter-spacing`).
+// ⚠️ A403 · SEGUITO 1 (11/10/2026) — IL CARATTERE A GRANDEZZA FISSA. Le righe sono misurate da CoreText al corpo scelto
+//    e ogni riga ha `fixedSize()`: il carattere si chiede con `custom(_:fixedSize:)` di `Font` («Create a custom font
+//    with the given `name` and a fixed `size` that does not scale with Dynamic Type.», iOS 14.0+,
+//    https://developer.apple.com/documentation/swiftui/font/custom(_:fixedsize:)) e non più con `custom(_:size:)`, che
+//    segue la dimensione del testo di sistema («Create a custom font with the given `name` and `size` that scales
+//    with the body text style.», iOS 13.0+, https://developer.apple.com/documentation/swiftui/font/custom(_:size:)):
+//    con la grandezza fissa scrittura e misura coincidono a ogni impostazione. Vale per chi scrive con questa vista:
+//    testata, teleprompter, blocco del velo, END SHOW. Il resto dell'app non cambia.
 struct FittedTextView: View {
     let fit: FittedText
     /// Un colore per veste (`fit.styles`); se mancano, vale l'ultimo.
@@ -42,7 +50,7 @@ struct FittedTextView: View {
             let trackingEm = fit.styles.isEmpty ? 0 : fit.styles[index].trackingEm
             let color = colors.isEmpty ? Color.white : colors[min(index, colors.count - 1)]
             text = text + Text(run.text)
-                .font(.custom(fontName, size: size))
+                .font(.custom(fontName, fixedSize: size))
                 .tracking(size * CGFloat(trackingEm))
                 .foregroundColor(color)
         }
