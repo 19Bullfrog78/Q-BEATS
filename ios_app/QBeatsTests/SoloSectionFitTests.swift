@@ -62,9 +62,10 @@ final class SoloSectionFitTests: XCTestCase {
     }
 
     func testWhereTheBlockSitsInTheSheet() {
-        // Sezione S, tavola dei casi: «una riga a 68 · 359–433 · alto 73,4», «due righe a 68 · 323–469 · alto 146,9»,
-        // «tre righe a 68 · 286–506 · alto 220,3», «tre righe a 57 · 304–488 · alto 184,7», «tre righe a 42, coi
-        // puntini · 328–464 · alto 136,1»; le righe «centrate a 396». Il riquadro va da 284 a 508.
+        // Sezione S, tavola dei casi, cella per cella: «una riga a 68», «359–433 · alto 73,4»; «due righe a 68»,
+        // «323–469 · alto 146,9»; «tre righe a 68», «286–506 · alto 220,3 · 10 sopra Next»; «tre righe a 57»,
+        // «304–488 · alto 184,7»; «tre righe a 42, coi puntini», «328–464 · alto 136,1»; le righe «centrate a 396».
+        // Il riquadro va da 284 a 508.
         let cases: [(lines: Double, size: Double, top: Double, bottom: Double, height: Double)] = [
             (1, 68, 359, 433, 73.4), (2, 68, 323, 469, 146.9), (3, 68, 286, 506, 220.3),
             (3, 57, 304, 488, 184.7), (3, 42, 328, 464, 136.1),
@@ -238,7 +239,7 @@ final class SoloSectionFitTests: XCTestCase {
         let twoToThree = fit("abcde abcde abcde")
         XCTAssertEqual(twoToThree.size, 68)
         XCTAssertEqual(texts(twoToThree), ["abcde", "abcde", "abcde"])
-        // «e quelle che con la A vanno in tre righe a 53 o meno»: tre parole di 8 minuscole, con la A 53, con la B 68.
+        // «sia quelle che con la A vanno in tre righe a 53 o meno»: tre parole di 8 minuscole, con la A 53, con la B 68.
         XCTAssertEqual(oldRuleSize("abcdefgh abcdefgh abcdefgh"), 53)
         XCTAssertEqual(fit("abcdefgh abcdefgh abcdefgh").size, 68)
         // «Restano uguali i nomi che con la A sono a 68, in una o due righe».

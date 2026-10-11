@@ -195,7 +195,7 @@ final class TextFitterRealFontTests: XCTestCase {
     }
 
     func testTheShortSectionNamesAreSixtyEightOnOneLine() {
-        // R2 «Verse» e R12 «Section 6»: 68, una riga. Tavola della sezione S: «una riga a 68 · 359–433 · alto 73,4»,
+        // R2 «Verse» e R12 «Section 6»: 68, una riga. Tavola della sezione S: «una riga a 68», «359–433 · alto 73,4»,
         // riga di base 421.
         for name in ["Verse", "Section 6"] {
             let f = section(name)
@@ -212,7 +212,7 @@ final class TextFitterRealFontTests: XCTestCase {
 
     func testPreChorusIsSixtyEightOnTwoLinesAfterTheHyphen() {
         // R3: «Pre-» / «Chorus», a capo dopo il trattino già scritto; in una riga a 68 servirebbero 366,67 su 366.
-        // Tavola S: «due righe a 68 · 323–469», righe di base 384 e 457.
+        // Tavola S: «due righe a 68», «323–469 · alto 146,9», righe di base 384 e 457.
         let f = section("Pre-Chorus")
         XCTAssertEqual(f.size, 68, describe(f))
         XCTAssertEqual(texts(f), ["Pre-", "Chorus"])
@@ -236,7 +236,7 @@ final class TextFitterRealFontTests: XCTestCase {
 
     func testBridgeAttenzioneVaiPianoIsSixtyEightOnThreeLines() {
         // R4 e, col Mixer aperto, R11: con la B «Bridge / attenzione / vai piano» a 68, da 286 a 506 (con la A era 53).
-        // Tavola S: «tre righe a 68 · 286–506 · alto 220,3 · 10 sopra Next», righe di base 347, 421 e 494; col Mixer
+        // Tavola S: «tre righe a 68», «286–506 · alto 220,3 · 10 sopra Next», righe di base 347, 421 e 494; col Mixer
         // aperto «la terza ha la base 32 sotto il bordo».
         let f = section("Bridge attenzione vai piano")
         XCTAssertEqual(f.size, 68, describe(f))
@@ -251,7 +251,7 @@ final class TextFitterRealFontTests: XCTestCase {
 
     func testCominciaIlCantoIsFiftySevenOnThreeLines() {
         // R9 e, col Mixer aperto, R13: 57, da 304 a 488. La ferma «three two one»: a 58 sarebbe larga 366,9 su 366.
-        // Tavola S: «tre righe a 57 · 304–488 · alto 184,7», righe di base 355, 417 e 478; col Mixer aperto «la terza
+        // Tavola S: «tre righe a 57», «304–488 · alto 184,7», righe di base 355, 417 e 478; col Mixer aperto «la terza
         // ha la base 16 sotto il bordo».
         let f = section("comincia il canto four three two one")
         XCTAssertEqual(f.size, 57, describe(f))
@@ -274,7 +274,7 @@ final class TextFitterRealFontTests: XCTestCase {
 
     func testANameThatDoesNotFitAtFortyTwoEndsWithTheEllipsisOnTheThirdLine() {
         // R10 e, col Mixer aperto, R15: 51 caratteri; a 42 servirebbero quattro righe: la terza si chiude coi puntini
-        // di `TextFitter`, «battute poi…». Tavola S: «tre righe a 42, coi puntini · 328–464 · alto 136,1», righe di
+        // di `TextFitter`, «battute poi…». Tavola S: «tre righe a 42, coi puntini», «328–464 · alto 136,1», righe di
         // base 366, 411 e 457; col Mixer aperto «la terza ha la base 5 sopra il bordo».
         let f = section("entra la voce piano, quattro battute poi ritornello")
         XCTAssertEqual(f.size, 42, describe(f))

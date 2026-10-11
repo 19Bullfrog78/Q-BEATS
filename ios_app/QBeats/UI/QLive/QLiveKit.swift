@@ -273,7 +273,9 @@ enum QLiveSolo {
     /// ⚠️ A403 (11/10/2026) — Solo REV22, punto 118: il corpo del titolo (da 24 a 17), la sua spaziatura e la
     /// larghezza della casella (254) stanno in `SoloHeaderTitle` (Models/, col banco). `titleSize` e
     /// `titleTrackingEm` sono usciti da qui; tonda, margine e spazio sono quelli di `SoloHeaderTitle`, da cui
-    /// esce il 254: una fonte sola.
+    /// esce il 254: una fonte sola. La regola `.p-hn` qui sopra è citata accorciata (A397): nel foglio è
+    /// `font:700 24px/1.2 Inter`, e l'1,2 è l'interlinea, cioè l'altezza della riga del titolo
+    /// (`SoloHeaderTitle.lineHeight`).
     enum Header {
         static let round: Double = SoloHeaderTitle.roundDiameter
         static let sidePadding: Double = SoloHeaderTitle.sidePadding

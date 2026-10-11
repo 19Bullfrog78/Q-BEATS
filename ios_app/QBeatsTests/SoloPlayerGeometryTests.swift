@@ -104,6 +104,11 @@ final class SoloPlayerGeometryTests: XCTestCase {
         XCTAssertEqual(g.prompter.width, 366, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.height, 224, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.maxY, 508 - 44, accuracy: 0.0001)
+        // A403 — il riquadro che la regola B misura è quello che la geometria disegna: il 366 e il 224 sono scritti
+        // in due posti di Models/ (`SoloVeilTypography.sectionWidth` e `sectionBoxHeight`; `SoloPlayerGeometry.prompter`).
+        // Queste due attese li legano: i blocchi e le righe di base dei banchi del testo parlano dello stesso riquadro.
+        XCTAssertEqual(g.prompter.width, SoloVeilTypography.sectionWidth, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.height, SoloVeilTypography.sectionBoxHeight, accuracy: 0.0001)
         // Il centro del riquadro è a 396, a metà fra la barra delle battute (276) e Next (516).
         XCTAssertEqual(g.prompter.midY, 396 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.midY, (g.barMeter.maxY + g.next.minY) / 2, accuracy: 0.0001)
