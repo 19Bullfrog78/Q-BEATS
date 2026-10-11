@@ -535,6 +535,10 @@ struct LiveView: View {
                     //    tutti i ruoli (`EndShowView`, BOX5 V54 decisione 5), sulla cornice D4; per Direttore e Follower
                     //    la testata senza il nome dello show e senza riga di stato. Il cartello RESTART SETLIST qui sopra
                     //    resta come storia: quel bottone era già uscito (A309) e con la vista è uscito anche il suo file.
+                    // ⚠️ A401 · SOLO REV20 (10/10/2026) — il cartello qui sopra è SUPERATO in parte: per Direttore
+                    //    e Follower la testata di V4 ora porta il nome dello show, come nel Solo (punto 117,
+                    //    SoloScreenDecision.endShowHeaderTitle; LIBRO, riga 2026-10-10). Resta vero che la riga di
+                    //    stato è del solo Solo.
                     EndShowView(geometry: soloGeometry,
                                 title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName),
                                 statusRow: SoloScreenDecision.endShowStatusRow(role: playerRole),
