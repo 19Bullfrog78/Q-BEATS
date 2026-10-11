@@ -22,6 +22,13 @@ import os
 //    volta sola per ogni montaggio di K), non a ogni valutazione del body. La riga di log si scrive dal nome NUOVO
 //    (`onChange(of: name)` consegna il valore nuovo), una volta per cambio di nome, col fit di quel nome; col nome
 //    vuoto (display non ancora scritto, o K che si smonta a fine canzone) non si scrive (referto A399 §8.3, punto 4).
+// ⚠️ A403 (11/10/2026) — SOLO REV22, PUNTI 115 E 119: IL RIQUADRO FINO A NEXT, LA REGOLA B. Riquadro 366 x 224
+//    (284-508, `SoloPlayerGeometry.prompter`), il nome al centro, a 396; il nome si prova da 68 a 42 in righe larghe
+//    366, fino a tre, in un passo solo, e a 42 finisce coi puntini alla fine della terza riga
+//    (`SoloVeilTypography.sectionFit`). «Riquadro 366 x 173 (284-457)» e «in due righe da 68 a 53, poi in tre righe
+//    da 53 a 42» qui sopra sono storia: si marcano. Col Mixer aperto il nome non si sposta e il pannello gli passa
+//    sopra: lo monta `LiveView`, più in basso nello stesso `ZStack` di K, col fondo pieno. Il memo e la riga di log
+//    non cambiano.
 struct SoloPrompterView: View {
     let name: String
     let scale: Double

@@ -17,6 +17,10 @@ import Foundation
 //    (`DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, blob
 //    `5ac0d521143e2ad5a2f43852580173d5307b58ec`; LIBRO, riga 2026-10-10). Della geometria di K cambia un blocco
 //    solo: il riquadro del teleprompter (punto 115), al suo posto qui sotto.
+// ⚠️ A403 (11/10/2026) — per il player del Solo fa fede la Solo REV22
+//    (`DESIGN/QLive_Nav/2026-10-11_QLive-Player_G1-SOLO-REV22_390x844_1.html`, blob
+//    `b57b13fb26e468578dda05975bc1fa6e1b3d718c`; LIBRO, riga 2026-10-11). Della geometria di K cambia ancora un blocco
+//    solo, lo stesso: il riquadro del teleprompter (punto 115) ora arriva fino a Next.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro. Misure in `Double`.
 struct SoloRect: Equatable {
     let x: Double
@@ -96,13 +100,22 @@ struct SoloPlayerGeometry: Equatable {
     var barRow: SoloRect { rect(sheetX: 18, sheetY: 226, width: 354, height: 26) }
     /// La barra delle battute (`.p-bm`, `.bm`): 264-276.
     var barMeter: SoloRect { rect(sheetX: 18, sheetY: 264, width: 354, height: 12) }
-    /// Il teleprompter (`.p-se`): 284-457, riquadro 366 x 173, margini 12.
+    /// Il teleprompter (`.p-se`): 284-508, riquadro 366 x 224, margini 12.
     /// ⚠️ A401 (10/10/2026) — SOLO REV20, PUNTO 115 (cambia il 51). Era 346-446, alto 100. Foglio
     /// `DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, tabella della sezione R, riga
     /// «Riquadro del teleprompter»: «284–457», «largo 366, margini 12 · alto 173»; `.p-se{top:284px;left:12px;
     /// right:12px;height:173px}`. Comincia 8 sotto la barra delle battute (276) e finisce 5 sopra il pannello del
     /// mixer aperto (462): il nome non si sposta e non va sotto il pannello. Il resto di K non si muove.
-    var prompter: SoloRect { rect(sheetX: 12, sheetY: 284, width: 366, height: 173) }
+    /// ⚠️ A403 (11/10/2026) — SOLO REV22, PUNTO 115: IL RIQUADRO VA FINO A NEXT. Foglio
+    /// `DESIGN/QLive_Nav/2026-10-11_QLive-Player_G1-SOLO-REV22_390x844_1.html`, tabella della sezione R, riga
+    /// «Riquadro del teleprompter»: «284–508», «largo 366, margini 12 · alto 224 · 8 sotto la barra delle battute
+    /// (276), 8 sopra Next (516)»; `.p-se{top:284px;left:12px;right:12px;height:224px}`. Il nome sta al centro del
+    /// riquadro, a 396 (riga «Dove sta»). «284–457», «alto 173» e la frase qui sopra sul riquadro che finisce 5 sopra
+    /// il pannello del mixer aperto e non ci va sotto sono storia: ora il pannello aperto copre il riquadro da 462 a
+    /// 508, per disegno (riga «Col Mixer aperto»: «il pannello si disegna sopra il teleprompter e copre ciò che del
+    /// nome scende sotto 462 · il nome non si sposta e non cambia corpo, aprendo o chiudendo»). Il resto di K non si
+    /// muove.
+    var prompter: SoloRect { rect(sheetX: 12, sheetY: 284, width: 366, height: 224) }
     /// Next (`.p-nx`): 516-576.
     var next: SoloRect { rect(sheetX: 18, sheetY: 516, width: 354, height: 60) }
     /// La barra della canzone (`.p-sp`): 596-606.
@@ -115,6 +128,7 @@ struct SoloPlayerGeometry: Equatable {
     var mixerPanel: SoloRect { rect(sheetX: 0, sheetY: 462, width: Self.frameWidth, height: 160) }
 
     /// I nove blocchi a schermo, nell'ordine dall'alto (il pannello del mixer non c'è: sta sopra due di loro).
+    /// ⚠️ A403 — dalla Solo REV22 il pannello aperto sta anche sopra la parte bassa del teleprompter (462-508).
     var blocks: [SoloRect] {
         [header, statusRow, beatLights, barRow, barMeter, prompter, next, songBar, console]
     }

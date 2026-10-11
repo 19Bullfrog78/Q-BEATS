@@ -10,6 +10,9 @@ import Combine
 //               alto 100 (`.p-se{align-items:center}`);
 //               ⚠️ A401 (10/10/2026) — con la Solo REV20 (punto 115) non è più 42 fisso nel riquadro di 100: due
 //               righe da 68 a 53, poi tre righe da 53 a 42, nel riquadro alto 173; la regola sta al suo MARK;
+//               ⚠️ A403 (11/10/2026) — con la Solo REV22 (punti 115 e 119) la regola è la B, un passo solo: fino a
+//               tre righe, da 68 a 42, nel riquadro alto 224. «Due righe da 68 a 53, poi tre righe da 53 a 42» e
+//               «riquadro alto 173» qui sopra sono storia;
 //  · `.p-va`  — la riga A dei veli: Inter 600 (`Inter-SemiBold`) 21, interlinea 1,25, largo 338, due righe al più; in
 //               H la sezione in Inter 700 (`Inter-Bold`) nella stessa riga (`.p-va b`): una riga fatta di pezzi;
 //  · `.p-vt`  — tempo e metrica: JetBrains Mono 500 (`JetBrainsMono-Medium`) 21, interlinea 1,2, una riga;
@@ -49,7 +52,7 @@ enum SoloVeilTypography {
                     sizes: TextFitSpec.descending(from: nameMaxSize, to: nameMinSize))
     }
 
-    // MARK: La sezione in K (`.p-se b`, punto 115)
+    // MARK: La sezione in K (`.p-se b`, punti 115 e 119)
 
     // ⚠️ A401 (10/10/2026) — SOLO REV20, PUNTO 115 (cambia il 51): il nome non ha più un corpo fisso. Foglio
     //    `DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`, tabella della sezione R, riga «Il
@@ -59,49 +62,50 @@ enum SoloVeilTypography {
     //    vince il primo corpo a cui il nome sta · un corpo solo per tutte le righe · a capo fra le parole e dopo un
     //    trattino già scritto, mai dentro una parola»; riga «Riquadro del teleprompter»: «284–457», «alto 173».
     //    Erano: 42 fisso, due righe al più, riquadro alto 100 (`sectionSize`, `sectionMaxLines`, `sectionSpec`).
-    /// Il tetto: il corpo da cui il nome si prova, in due righe.
+    // ⚠️ A403 (11/10/2026) — SOLO REV22, PUNTI 115 E 119: LA REGOLA B, UN PASSO SOLO. Foglio
+    //    `DESIGN/QLive_Nav/2026-10-11_QLive-Player_G1-SOLO-REV22_390x844_1.html`. Tabella della sezione R, riga «Il
+    //    nome della sezione»: «Inter 800 bianco, interlinea 1,08, spaziatura −0,035 em, come il 51 · la regola B
+    //    (Mauro, 11/10): si prova da 68 a scendere di 1, in righe larghe 366, fino a tre · vince il primo corpo a cui
+    //    il nome sta in tre righe al massimo · a 42 quello che non sta finisce coi puntini, alla fine della terza riga
+    //    · un corpo solo per tutte le righe · a capo fra le parole e dopo un trattino già scritto, mai dentro una
+    //    parola». Sezione S, «Cosa fa il calcolo»: «Un passo solo: non si prova prima in due righe, e il 53 non c'è
+    //    più.» Riga «Come si costruisce»: «la regola del nome sui veli (punto 114) con 366 al posto di 338, 68 al
+    //    posto di 80, 42 al posto di 48 e tre righe al posto di due: un passo solo, come sui veli · lo stesso pezzo
+    //    del testo che M3 ha già costruito (A398 §3.6; `TextFit.swift`), con le righe che passano da 2 a 3». Riga
+    //    «Riquadro del teleprompter»: «284–508», «alto 224». La regola A qui sopra (due righe da 68 a 53, poi tre
+    //    righe da 53 a 42; riquadro alto 173) è storia: sono usciti `sectionThreeLineSize`, `sectionTwoLines`,
+    //    `sectionThreeLines`, `sectionTwoLineSpec` e `sectionThreeLineSpec`.
+    /// Il tetto: il corpo da cui il nome si prova.
     static let sectionMaxSize = 68
-    /// In due righe non si scende sotto questo corpo: si passa a tre righe, da qui.
-    static let sectionThreeLineSize = 53
     /// Il pavimento: a 42 ciò che non sta finisce coi puntini, alla fine della terza riga.
     static let sectionMinSize = 42
     static let sectionLineHeight: Double = 1.08
     static let sectionTrackingEm: Double = -0.035
     static let sectionWidth: Double = 366
-    static let sectionBoxHeight: Double = 173
-    static let sectionTwoLines = 2
-    static let sectionThreeLines = 3
+    static let sectionBoxHeight: Double = 224
+    /// Le righe che il nome può prendere, al più.
+    static let sectionMaxLines = 3
 
-    private static func sectionSpec(_ name: String, maxLines: Int, from: Int, to: Int) -> TextFitSpec {
+    /// La regola B in una `TextFitSpec`: righe larghe 366, tre al più, corpi da 68 a 42 a scendere di 1.
+    static func sectionSpec(_ name: String) -> TextFitSpec {
         TextFitSpec(styles: [TextFitStyle(fontName: SoloFonts.interExtraBold, trackingEm: sectionTrackingEm)],
                     runs: [TextRun(text: name, style: 0)],
                     lineHeightFactor: sectionLineHeight,
                     maxWidth: sectionWidth,
-                    maxLines: maxLines,
-                    sizes: TextFitSpec.descending(from: from, to: to))
+                    maxLines: sectionMaxLines,
+                    sizes: TextFitSpec.descending(from: sectionMaxSize, to: sectionMinSize))
     }
 
-    /// Passo 1: due righe larghe 366, corpi da 68 a 53, a scendere di 1.
-    static func sectionTwoLineSpec(_ name: String) -> TextFitSpec {
-        sectionSpec(name, maxLines: sectionTwoLines, from: sectionMaxSize, to: sectionThreeLineSize)
-    }
-
-    /// Passo 2: tre righe larghe 366, corpi da 53 a 42, a scendere di 1; a 42 i puntini.
-    static func sectionThreeLineSpec(_ name: String) -> TextFitSpec {
-        sectionSpec(name, maxLines: sectionThreeLines, from: sectionThreeLineSize, to: sectionMinSize)
-    }
-
-    /// La regola del punto 115, sopra `TextFitter` (che non cambia): il nome si prova in due righe, da 68 a 53, e
-    /// vince il primo corpo a cui sta (`FittedText.fits`); se nemmeno a 53 sta in due righe, tre righe da 53 a 42,
-    /// e a 42 ciò che non sta finisce coi puntini di `TextFitter` (gli stessi del nome sui veli, punto 114), alla
-    /// fine della terza riga. In punti del foglio: il fattore D4 si applica al risultato.
+    /// La regola dei punti 115 e 119, sopra `TextFitter` (che non cambia): il nome si prova da 68 a 42 in righe
+    /// larghe 366, fino a tre, e vince il primo corpo a cui sta (`FittedText.fits`); a 42 ciò che non sta finisce
+    /// coi puntini di `TextFitter` (gli stessi del nome sui veli, punto 114), alla fine della terza riga. Un passo
+    /// solo. In punti del foglio: il fattore D4 si applica al risultato.
     static func sectionFit(_ name: String, measurer: TextWidthMeasurer) -> FittedText {
-        let twoLines = TextFitter.fit(sectionTwoLineSpec(name), measurer: measurer)
-        if twoLines.fits { return twoLines }
-        return TextFitter.fit(sectionThreeLineSpec(name), measurer: measurer)
+        TextFitter.fit(sectionSpec(name), measurer: measurer)
     }
 
-    /// Il blocco della sezione sta al centro del riquadro alto 173: dove comincia (dall'alto del riquadro).
+    /// Il blocco della sezione sta al centro del riquadro alto 224, cioè a 396 nel foglio: dove comincia, dall'alto
+    /// del riquadro.
     static func sectionBlockTop(height: Double) -> Double {
         (sectionBoxHeight - height) / 2
     }
@@ -207,6 +211,8 @@ enum SoloVeilTypography {
 // chiusura: `init(wrappedValue thunk: @autoclosure @escaping () -> ObjectType)`, iOS 14.0+). Non ha campi
 // `@Published`: non pubblica niente, quindi leggerlo e riempirlo nel body non rimette in moto il body. Si usa solo
 // dal main (le viste).
+// ⚠️ A403 (11/10/2026) — con la regola B (punto 119) i corpi provati per un nome sono al più 27, da 68 a 42, in un
+//    passo solo: «fino a 28 corpi provati» qui sopra era la regola A (16 in due righe più 12 in tre).
 final class SoloSectionFitMemo: ObservableObject {
     private var fits: [String: FittedText] = [:]
 

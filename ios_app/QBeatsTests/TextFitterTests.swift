@@ -9,6 +9,8 @@ import XCTest
 // Gli attesi sono calcolati a mano sul misuratore finto, scritto qui sotto, e pinnati per valore.
 // ⚠️ A401 (10/10/2026) — con la Solo REV20 (punto 115) il riquadro di K è alto 173 e la sezione non è più a 42
 //    fisso: «centrate nel riquadro di 100» qui sopra è storia. La regola nuova ha il suo banco, `SoloSectionFitTests`.
+// ⚠️ A403 (11/10/2026) — con la Solo REV22 (punti 115 e 119) il riquadro di K è alto 224 e la regola è la B, un passo
+//    solo, fino a tre righe da 68 a 42: «il riquadro di K è alto 173» qui sopra è storia.
 
 /// Misuratore finto e deterministico: ogni carattere è largo una frazione fissa del corpo (maiuscole 0,7; minuscole
 /// e cifre 0,55; spazio 0,3; trattino 0,35; puntini 0,9; altro 0,5), senza crenatura; più la spaziatura dopo ogni
@@ -274,14 +276,15 @@ final class TextFitterTests: XCTestCase {
     }
 
     func testTheSectionBlockOfKIsCenteredInItsBox() {
-        // A401 — Solo REV20, punto 115: il riquadro è alto 173 (era 100, punto 51). Due righe a 42 con interlinea
-        // 1,08 fanno ancora 90,72: nel riquadro di 173 cominciano a 41,14 (in quello di 100 cominciavano a 4,64).
+        // A403 — Solo REV22, punto 115: il riquadro è alto 224 (era 173 con la REV20, 100 col punto 51). Due righe a
+        // 42 con interlinea 1,08 fanno ancora 90,72: nel riquadro di 224 cominciano a 66,64 (in quello di 173
+        // cominciavano a 41,14, in quello di 100 a 4,64).
         let f = TextFitter.fit(spec("Bridge attenzione vai piano", size: 42, width: 200, lineHeight: 1.08, trackingEm: -0.035), measurer: m)
         XCTAssertEqual(f.lineCount, 2)
         XCTAssertEqual(f.height, 90.72, accuracy: 1e-9)
-        XCTAssertEqual(SoloVeilTypography.sectionBoxHeight, 173)
-        XCTAssertEqual(SoloVeilTypography.sectionBlockTop(height: f.height), 41.14, accuracy: 1e-9)
-        XCTAssertEqual(SoloVeilTypography.sectionBlockTop(height: 45.36), (173 - 45.36) / 2, accuracy: 1e-9)
+        XCTAssertEqual(SoloVeilTypography.sectionBoxHeight, 224)
+        XCTAssertEqual(SoloVeilTypography.sectionBlockTop(height: f.height), 66.64, accuracy: 1e-9)
+        XCTAssertEqual(SoloVeilTypography.sectionBlockTop(height: 45.36), (224 - 45.36) / 2, accuracy: 1e-9)
     }
 
     // MARK: - Le vesti del foglio, pinnate
@@ -294,13 +297,15 @@ final class TextFitterTests: XCTestCase {
         XCTAssertEqual(name.maxLines, 2)
         XCTAssertEqual(name.sizes.first, 80)
         XCTAssertEqual(name.sizes.last, 48)
-        // A401 — Solo REV20, punto 115: la sezione di K non è più a 42 fisso; due passi (banco `SoloSectionFitTests`).
-        let section = SoloVeilTypography.sectionTwoLineSpec("Bridge")
+        // A403 — Solo REV22, punti 115 e 119: la sezione di K con la regola B, un passo solo, fino a tre righe da 68
+        // a 42 (banco `SoloSectionFitTests`).
+        let section = SoloVeilTypography.sectionSpec("Bridge")
         XCTAssertEqual(section.styles, [TextFitStyle(fontName: "Inter-ExtraBold", trackingEm: -0.035)])
         XCTAssertEqual(section.lineHeightFactor, 1.08)
         XCTAssertEqual(section.maxWidth, 366)
+        XCTAssertEqual(section.maxLines, 3)
         XCTAssertEqual(section.sizes.first, 68)
-        XCTAssertEqual(section.sizes.last, 53)
+        XCTAssertEqual(section.sizes.last, 42)
         let relation = SoloVeilTypography.relationSpec(prefix: "Resume from ", section: "Bridge")
         XCTAssertEqual(relation.styles.map { $0.fontName }, ["Inter-SemiBold", "Inter-Bold"])
         XCTAssertEqual(relation.runs, [TextRun(text: "Resume from ", style: 0), TextRun(text: "Bridge", style: 1)])
