@@ -270,13 +270,15 @@ enum QLiveSolo {
     /// Testata (`.p-hd{height:60px;gap:10px;padding:0 14px}`, `.p-rk` tonda 44 su `--sf` col filo chiaro in alto
     /// `inset 0 1px 0 rgba(255,255,255,.055)`, `.p-hn{font:700 24px Inter;letter-spacing:-.01em;color:var(--w86)}`);
     /// icona 24: freccia `--orl`, altoparlante `--w86`, muto acceso `--amb` (`.p-rk.mu`, punto 110).
+    /// ⚠️ A403 (11/10/2026) — Solo REV22, punto 118: il corpo del titolo (da 24 a 17), la sua spaziatura e la
+    /// larghezza della casella (254) stanno in `SoloHeaderTitle` (Models/, col banco). `titleSize` e
+    /// `titleTrackingEm` sono usciti da qui; tonda, margine e spazio sono quelli di `SoloHeaderTitle`, da cui
+    /// esce il 254: una fonte sola.
     enum Header {
-        static let round: Double = 44
-        static let sidePadding: Double = 14
-        static let gap: Double = 10
+        static let round: Double = SoloHeaderTitle.roundDiameter
+        static let sidePadding: Double = SoloHeaderTitle.sidePadding
+        static let gap: Double = SoloHeaderTitle.gap
         static let icon: Double = 24
-        static let titleSize: Double = 24
-        static let titleTrackingEm: Double = -0.01
         static let titleOpacity: Double = 0.86
         static let iconOpacity: Double = 0.86
         static let roundHighlight: Double = 0.055

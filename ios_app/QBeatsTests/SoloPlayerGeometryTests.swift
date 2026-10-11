@@ -5,6 +5,9 @@ import XCTest
 // 390 x 763, 430 x 839, 820 x 1136: valori di prova, non misure di apparecchi) tutti i blocchi dentro l'area
 // utile e nessuna sovrapposizione; il pannello del mixer finisce sopra la console; la traduzione dal foglio
 // (y − 44, fattore, cornice centrata); un'area degenere non ferma niente.
+// ⚠️ A403 (11/10/2026) — Solo REV22, punto 115: il riquadro del teleprompter va fino a Next (284-508, alto 224) e il
+//    pannello del mixer aperto lo copre da 462 a 508, per disegno. Le attese del riquadro passano a 284, 224 e 508;
+//    si rovesciano quella sul pannello che non copriva il teleprompter e quella dei 5 sopra il pannello.
 
 final class SoloPlayerGeometryTests: XCTestCase {
 
@@ -57,14 +60,17 @@ final class SoloPlayerGeometryTests: XCTestCase {
             XCTAssertLessThanOrEqual(g.mixerPanel.maxY, g.console.minY + 0.0001, "pannello sulla console su \(w)x\(h)")
             // Gli 8 del foglio fra il bordo in basso del pannello (622) e i quadranti (630).
             XCTAssertEqual(g.console.minY - g.mixerPanel.maxY, 8 * g.scale, accuracy: 0.0001)
-            // Il pannello copre Next e la barra della canzone, non il teleprompter (punto 111).
+            // Il pannello copre Next e la barra della canzone (punto 111).
             XCTAssertTrue(g.mixerPanel.overlaps(g.next))
             XCTAssertTrue(g.mixerPanel.overlaps(g.songBar))
-            XCTAssertFalse(g.mixerPanel.overlaps(g.prompter))
-            // A401 — Solo REV20, sezione R: il riquadro comincia 8 sotto la barra delle battute (276) e finisce 5
-            // sopra il pannello del mixer aperto (462).
+            // A403 — Solo REV22, sezione R, riga «Col Mixer aperto»: «il pannello si disegna sopra il teleprompter e
+            // copre ciò che del nome scende sotto 462». Fino ad A401 qui si pretendeva il contrario (il pannello non
+            // copriva il riquadro, che finiva 5 sopra di lui): ora lo copre per disegno, da 462 a 508, cioè per 46.
+            XCTAssertTrue(g.mixerPanel.overlaps(g.prompter))
+            XCTAssertEqual(g.prompter.maxY - g.mixerPanel.minY, 46 * g.scale, accuracy: 0.0001)
+            // Riga «Riquadro del teleprompter»: «8 sotto la barra delle battute (276), 8 sopra Next (516)».
             XCTAssertEqual(g.prompter.minY - g.barMeter.maxY, 8 * g.scale, accuracy: 0.0001)
-            XCTAssertEqual(g.mixerPanel.minY - g.prompter.maxY, 5 * g.scale, accuracy: 0.0001)
+            XCTAssertEqual(g.next.minY - g.prompter.maxY, 8 * g.scale, accuracy: 0.0001)
             XCTAssertEqual(g.mixerPanel.height, 160 * g.scale, accuracy: 0.0001)
         }
     }
@@ -91,12 +97,16 @@ final class SoloPlayerGeometryTests: XCTestCase {
         XCTAssertEqual(g.barRow.y, 226 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.barMeter.y, 264 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.barMeter.height, 12, accuracy: 0.0001)
-        // A401 — Solo REV20, punto 115: riquadro del teleprompter 284-457, largo 366, alto 173 (era 346-446, alto 100).
+        // A403 — Solo REV22, punto 115: riquadro del teleprompter 284-508, largo 366, alto 224 (era 284-457, alto 173,
+        // con la REV20; 346-446, alto 100, col punto 51).
         XCTAssertEqual(g.prompter.y, 284 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.x, 12, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.width, 366, accuracy: 0.0001)
-        XCTAssertEqual(g.prompter.height, 173, accuracy: 0.0001)
-        XCTAssertEqual(g.prompter.maxY, 457 - 44, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.height, 224, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.maxY, 508 - 44, accuracy: 0.0001)
+        // Il centro del riquadro è a 396, a metà fra la barra delle battute (276) e Next (516).
+        XCTAssertEqual(g.prompter.midY, 396 - 44, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.midY, (g.barMeter.maxY + g.next.minY) / 2, accuracy: 0.0001)
         XCTAssertEqual(g.next.y, 516 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.next.height, 60, accuracy: 0.0001)
         XCTAssertEqual(g.songBar.y, 596 - 44, accuracy: 0.0001)

@@ -569,6 +569,12 @@ struct DebugView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.indigo)
+                        // A403 — la scaletta di prova della Solo REV22: il nome lungo in testata e i nomi della sezione R.
+                        Button("Carica dati test COLLAUDO SOLO REV22") {
+                            loadTestDataCollaudoSoloRev22()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.purple)
                     }
                 }
                 #endif
@@ -1049,6 +1055,41 @@ struct DebugView: View {
                          sections: [section("Verse", bpm: 120.0, bars: 8)],
                          countIn: 0, backtrackFilename: nil)
         let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO REV20",
+                              date: Date(), songIDs: [song1.id, song2.id])
+        QBeatsStore.shared.injectTestData(songs: [song1, song2], setlists: [setlist])
+    }
+
+    /// A403 (11/10/2026) — «COLLAUDO SOLO REV22» (mandato A403 §5): due canzoni, conto 0, nessuna base, accento sul
+    /// battito 1 ([2,1,1,1]), tutto in 4/4. La prima si chiama «La canzone lunghissima che non finisce mai» (Solo
+    /// REV22, punto 118 e schermo N3: nella testata di K esce a 17 coi puntini alla fine) e ha le stesse sei sezioni,
+    /// tempi e battute della prima canzone di «COLLAUDO SOLO REV20»: «Verse» · «Pre-Chorus» · «Bridge attenzione vai
+    /// piano» (16 battute) · «comincia il canto four three two one» · «entra la voce piano, quattro battute poi
+    /// ritornello» · una sezione senza nome («Section 6») a 110,5; le altre a 121, 8 battute. Con la regola B (punto
+    /// 119) escono a 68 su una riga, 68 su due, 68 su tre, 57 su tre, 42 su tre coi puntini e 68 su una riga. La
+    /// seconda canzone è senza nome («Song 2», punto 116), come nel tasto REV20. Il nome dello show, «COLLAUDO SOLO
+    /// REV22», nella testata dei veli esce a 21, intero. Durate come nel tasto REV20: 112,6 s e 16,0 s. Vive in RAM e
+    /// sparisce se l'app si chiude (`injectTestData` sostituisce il contenuto dello store).
+    private func loadTestDataCollaudoSoloRev22() {
+        os_log("[DebugView] Carica dati test COLLAUDO SOLO REV22", log: .default, type: .default)
+        func section(_ name: String, bpm: Double, bars: Int) -> SongSection {
+            SongSection(name: name, bpm: bpm, beatsPerBar: 4, beatUnit: 4,
+                        repetitions: bars, notes: "", accentPattern: [2, 1, 1, 1],
+                        subdivisionMultiplier: 1, swingRatio: 0.5)
+        }
+        let song1 = Song(id: UUID(), name: "La canzone lunghissima che non finisce mai",
+                         sections: [
+                            section("Verse", bpm: 121.0, bars: 8),
+                            section("Pre-Chorus", bpm: 121.0, bars: 8),
+                            section("Bridge attenzione vai piano", bpm: 121.0, bars: 16),
+                            section("comincia il canto four three two one", bpm: 121.0, bars: 8),
+                            section("entra la voce piano, quattro battute poi ritornello", bpm: 121.0, bars: 8),
+                            section("", bpm: 110.5, bars: 8),
+                         ],
+                         countIn: 0, backtrackFilename: nil)
+        let song2 = Song(id: UUID(), name: "",
+                         sections: [section("Verse", bpm: 120.0, bars: 8)],
+                         countIn: 0, backtrackFilename: nil)
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO SOLO REV22",
                               date: Date(), songIDs: [song1.id, song2.id])
         QBeatsStore.shared.injectTestData(songs: [song1, song2], setlists: [setlist])
     }
