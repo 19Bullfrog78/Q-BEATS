@@ -15,8 +15,8 @@ import SwiftUI
 //    https://developer.apple.com/documentation/swiftui/font/custom(_:fixedsize:)) e non più con `custom(_:size:)`, che
 //    segue la dimensione del testo di sistema («Create a custom font with the given `name` and `size` that scales
 //    with the body text style.», iOS 13.0+, https://developer.apple.com/documentation/swiftui/font/custom(_:size:)):
-//    con la grandezza fissa scrittura e misura coincidono a ogni impostazione. Vale per chi scrive con questa vista:
-//    testata, teleprompter, blocco del velo, END SHOW. Il resto dell'app non cambia.
+//    con la grandezza fissa scrittura e misura coincidono a ogni dimensione del testo di sistema. Vale per chi
+//    scrive con questa vista: testata, teleprompter, blocco del velo, END SHOW. Il resto dell'app non cambia.
 struct FittedTextView: View {
     let fit: FittedText
     /// Un colore per veste (`fit.styles`); se mancano, vale l'ultimo.
