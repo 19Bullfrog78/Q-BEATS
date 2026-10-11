@@ -37,6 +37,16 @@ struct DebugView: View {
     @State private var showImporter = false
     @State private var backupError: String? = nil
 
+    // --- Registro esportato dall'app (A402) ---
+    // «Esporta registro»: l'app rilegge le proprie righe di registro (`DebugLogExporter`, `OSLogStore`) e le salva
+    // in un file di testo, poi apre il foglio di condivisione che c'è già (`activeModal = .export`, `ActivitySheet`
+    // di `BackupView.swift`). Così un registro si prende da qualunque apparecchio, anche senza iMazing collegato.
+    // Lettura e scrittura stanno su una coda propria di `DebugLogExporter`: qui restano il segno che sta lavorando
+    // e, alla fine, quante righe ha scritto.
+    @State private var logExportBusy = false
+    @State private var logExportFailed = false
+    @State private var logExportNote: String? = nil
+
     // Tipi accettati dal selettore file: il tipo custom .qbeats (registrato in
     // project.yml) + zip (conformità) + data come rete di sicurezza debug.
     private var qbeatsImportTypes: [UTType] {
@@ -75,6 +85,32 @@ struct DebugView: View {
         }
     }
 
+    private func doLogExport() {
+        guard !logExportBusy else { return }
+        logExportBusy = true
+        logExportFailed = false
+        logExportNote = nil
+        Task {
+            do {
+                // I dati dell'intestazione vengono da UIKit: si leggono sul main.
+                let info = await MainActor.run { DebugLogExporter.currentInfo() }
+                let outcome = try await DebugLogExporter.export(info: info)
+                let seconds = String(format: "%.1f", outcome.seconds)
+                await MainActor.run {
+                    logExportBusy = false
+                    logExportNote = "Scritte \(outcome.rows) righe in \(seconds) s · \(outcome.url.lastPathComponent)"
+                    activeModal = .export(outcome.url)
+                }
+            } catch {
+                await MainActor.run {
+                    logExportBusy = false
+                    logExportFailed = true
+                    logExportNote = "Esportazione del registro fallita: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
     private func handleImporterResult(_ result: Result<URL, Error>) {
         backupError = nil
         switch result {
@@ -105,6 +141,30 @@ struct DebugView: View {
     var body: some View {
         NavigationStack {
             List {
+                // --- REGISTRO ESPORTATO DALL'APP (A402) ---
+                SwiftUI.Section("Registro (TEST)") {
+                    Button(action: { doLogExport() }) {
+                        Label(logExportBusy ? "Lettura del registro…" : "Esporta registro",
+                              systemImage: "doc.text")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.gray)
+                    .disabled(logExportBusy)
+
+                    if logExportBusy {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    }
+                    if let note = logExportNote {
+                        Text(note)
+                            .font(.caption)
+                            .foregroundColor(logExportFailed ? .red : .secondary)
+                    }
+                    Text("Rilegge le righe di registro dell'app e le salva in un file di testo: foglio di condivisione → AirDrop, \"Salva su File\" o Drive.")
+                        .font(.caption2).foregroundColor(.secondary)
+                }
+
                 // --- BACKUP / RESTORE (.qbeats) — TEST device B7-A5c ---
                 SwiftUI.Section("Backup / Restore (.qbeats · TEST)") {
                     Button(action: { doDebugExport() }) {
