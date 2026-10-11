@@ -23,6 +23,14 @@ import Foundation
 // D6), la canzone in K. Per Direttore e Follower su V4 la testata senza il nome dello show e niente riga di stato
 // (BOX5 V54, decisione 5: «Per ora solo nel Solo: la riga di stato, 'Next' senza i due punti, il nome dello show in
 // testata»).
+// ⚠️ A401 (10/10/2026) — SOLO REV20 (`DESIGN/QLive_Nav/2026-10-10_QLive-Player_G1-SOLO-REV20_390x844_1.html`):
+//  · punto 117: su V4 il nome dello show sta al centro della testata per i tre ruoli («Anche per Direttore e Follower
+//    al centro della testata va il nome dello show, nella veste del Solo»); la riga di stato resta del solo Solo («La
+//    riga di stato resta come dice la decisione 5»). «Per Direttore e Follower su V4 la testata senza il nome dello
+//    show» qui sopra è storia: si marca. Il 117 supera, per il solo centro della testata di V4, la decisione 5 del
+//    05/10 (LIBRO, riga 2026-10-10);
+//  · punto 116: sui veli, su H e nel titolo di K una canzone senza nome si scrive «Song N», N = il posto nello show
+//    (`SongNameDecision`; il posto è `runner.currentSongIdx + 1`, passato dal chiamante).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 enum SoloScreenKind: String, Equatable {
     /// V1/V2: il velo prima della canzone e fra due canzoni.
@@ -97,6 +105,11 @@ enum SoloScreenDecision {
     /// - `sectionIndex`: `runner.currentSectionIdx`; `sectionName`: `runner.currentSection?.name` (`nil` = non si risolve).
     /// - `currentSongName`: `runner.currentSong?.name`, la canzone che il Play fa ripartire a `.stopped`.
     /// - `showName`: `room.showName`; `songNameInMotion`: `session.currentSongName`, il titolo di K.
+    /// - `songNumber`: il posto nello show della canzone del runner, da 1 (`runner.currentSongIdx + 1`): è la
+    ///   canzone di `currentSongName`, del nome in `.standby(nextSongName:)` e di `songNameInMotion` (il runner li
+    ///   legge tutti da `currentSong`); `displayWritten`: il display della canzone è scritto
+    ///   (`session.macroBarCurrent > 0`). Senza nome, «Song N» (punto 116, `SongNameDecision`). Una canzone che non si
+    ///   risolve a `.stopped` (`currentSongName == nil`) non è una canzone senza nome: il nome resta vuoto.
     /// - tempo e metrica della sezione (`runner.currentSection`): bpm, beatsPerBar, beatUnit.
     static func screen(state: LivePlaybackState,
                        sectionIndex: Int,
@@ -104,32 +117,38 @@ enum SoloScreenDecision {
                        currentSongName: String?,
                        showName: String?,
                        songNameInMotion: String,
+                       songNumber: Int,
+                       displayWritten: Bool,
                        sectionBPM: Double?,
                        sectionBeatsPerBar: UInt32?,
                        sectionBeatUnit: UInt32?) -> SoloScreen {
         let tempo = tempoLine(bpm: sectionBPM, beatsPerBar: sectionBeatsPerBar, beatUnit: sectionBeatUnit)
         let sectionWritten = SectionNameDecision.displayName(sectionName ?? "", numberInSong: max(sectionIndex, 0) + 1)
         let show = showTitle(showName)
+        let titleInMotion = SongNameDecision.titleInMotion(songNameInMotion, numberInShow: songNumber,
+                                                           displayWritten: displayWritten)
         switch state {
         case .standby(let nextSongName):
+            let song = SongNameDecision.displayName(nextSongName, numberInShow: songNumber)
             if sectionIndex > 0 {
-                return resume(songName: nextSongName, section: sectionWritten, tempo: tempo, show: show)
+                return resume(songName: song, section: sectionWritten, tempo: tempo, show: show)
             }
             return SoloScreen(kind: .veil, headerTitle: show, statusRow: true,
                               relationPrefix: nextWord, relationSection: nil,
-                              songName: nextSongName, tempoLine: tempo, gestureLine: tapToStart,
+                              songName: song, tempoLine: tempo, gestureLine: tapToStart,
                               tap: .startSong, consoleVisible: false, playStartsSection: false)
         case .stopped:
-            return resume(songName: currentSongName ?? "", section: sectionWritten, tempo: tempo, show: show)
+            let song = currentSongName.map { SongNameDecision.displayName($0, numberInShow: songNumber) } ?? ""
+            return resume(songName: song, section: sectionWritten, tempo: tempo, show: show)
         case .fineSetlist:
             return SoloScreen(kind: .endShow, headerTitle: show, statusRow: true,
                               relationPrefix: "", relationSection: nil,
                               songName: "", tempoLine: "", gestureLine: nil,
                               tap: .none, consoleVisible: false, playStartsSection: false)
         case .overlayStop:
-            return playing(kind: .overlayStop, title: songNameInMotion)
+            return playing(kind: .overlayStop, title: titleInMotion)
         case .playing, .countIn, .starting, .loopActive:
-            return playing(kind: .playing, title: songNameInMotion)
+            return playing(kind: .playing, title: titleInMotion)
         }
     }
 
@@ -147,11 +166,13 @@ enum SoloScreenDecision {
                    tap: .none, consoleVisible: true, playStartsSection: false)
     }
 
-    // MARK: V4 per tutti i ruoli (BOX5 V54, decisione 5)
+    // MARK: V4 per tutti i ruoli (BOX5 V54, decisione 5; Solo REV20, punto 117)
 
-    /// Il centro della testata a fine scaletta: lo show nel Solo; vuoto per Direttore e Follower.
+    /// Il centro della testata a fine scaletta: il nome dello show, per i tre ruoli (A401, punto 117; fino ad A400
+    /// lo show nel Solo e vuoto per Direttore e Follower). Il ruolo resta nella firma: i chiamanti lo passano già,
+    /// e la regola resta per ruolo come quella della riga di stato qui sotto.
     static func endShowHeaderTitle(role: PlayerRole, showName: String?) -> String {
-        role == .solo ? showTitle(showName) : ""
+        showTitle(showName)
     }
 
     /// La riga di stato a fine scaletta: solo nel Solo.

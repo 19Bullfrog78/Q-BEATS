@@ -61,6 +61,10 @@ final class SoloPlayerGeometryTests: XCTestCase {
             XCTAssertTrue(g.mixerPanel.overlaps(g.next))
             XCTAssertTrue(g.mixerPanel.overlaps(g.songBar))
             XCTAssertFalse(g.mixerPanel.overlaps(g.prompter))
+            // A401 — Solo REV20, sezione R: il riquadro comincia 8 sotto la barra delle battute (276) e finisce 5
+            // sopra il pannello del mixer aperto (462).
+            XCTAssertEqual(g.prompter.minY - g.barMeter.maxY, 8 * g.scale, accuracy: 0.0001)
+            XCTAssertEqual(g.mixerPanel.minY - g.prompter.maxY, 5 * g.scale, accuracy: 0.0001)
             XCTAssertEqual(g.mixerPanel.height, 160 * g.scale, accuracy: 0.0001)
         }
     }
@@ -87,9 +91,12 @@ final class SoloPlayerGeometryTests: XCTestCase {
         XCTAssertEqual(g.barRow.y, 226 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.barMeter.y, 264 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.barMeter.height, 12, accuracy: 0.0001)
-        XCTAssertEqual(g.prompter.y, 346 - 44, accuracy: 0.0001)
+        // A401 — Solo REV20, punto 115: riquadro del teleprompter 284-457, largo 366, alto 173 (era 346-446, alto 100).
+        XCTAssertEqual(g.prompter.y, 284 - 44, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.x, 12, accuracy: 0.0001)
         XCTAssertEqual(g.prompter.width, 366, accuracy: 0.0001)
-        XCTAssertEqual(g.prompter.height, 100, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.height, 173, accuracy: 0.0001)
+        XCTAssertEqual(g.prompter.maxY, 457 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.next.y, 516 - 44, accuracy: 0.0001)
         XCTAssertEqual(g.next.height, 60, accuracy: 0.0001)
         XCTAssertEqual(g.songBar.y, 596 - 44, accuracy: 0.0001)

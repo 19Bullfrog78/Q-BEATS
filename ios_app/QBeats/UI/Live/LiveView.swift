@@ -247,12 +247,17 @@ struct LiveView: View {
                     //    prende tocchi. «Sotto il velo di oggi (fino a M3) la composizione si attenua» e «a `.stopped` è K
                     //    fermo col Play (provvisorio fino a M3)» qui sopra sono storia: si marcano. Le parole, il tocco e
                     //    il tasto escono dalla stessa regola; righe e corpi dal pezzo del testo (`TextFitter`).
+                    // A401 (10/10/2026) — Solo REV20, punto 116: il posto nello show della canzone del runner, da 1, per
+                    //    «Song N» dove il player del Solo scrive una canzone senza nome (`SongNameDecision`).
+                    let soloSongNumber = runner.currentSongIdx + 1
                     let soloScreen = SoloScreenDecision.screen(state: session.playbackState,
                                                                sectionIndex: runner.currentSectionIdx,
                                                                sectionName: runner.currentSection?.name,
                                                                currentSongName: runner.currentSong?.name,
                                                                showName: room.showName,
                                                                songNameInMotion: session.currentSongName,
+                                                               songNumber: soloSongNumber,
+                                                               displayWritten: session.macroBarCurrent > 0,
                                                                sectionBPM: runner.currentSection?.bpm,
                                                                sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
                                                                sectionBeatUnit: runner.currentSection?.beatUnit)
@@ -268,6 +273,7 @@ struct LiveView: View {
                                            faces: consoleFaces,
                                            clickMuted: audioEngine.appSettings.clickMuted,
                                            barsPerSection: runner.currentSong?.sections.map { $0.repetitions } ?? [],
+                                           songNumber: soloSongNumber,
                                            contentOpacity: 1.0,
                                            onExit: onExit,
                                            onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
@@ -529,6 +535,10 @@ struct LiveView: View {
                     //    tutti i ruoli (`EndShowView`, BOX5 V54 decisione 5), sulla cornice D4; per Direttore e Follower
                     //    la testata senza il nome dello show e senza riga di stato. Il cartello RESTART SETLIST qui sopra
                     //    resta come storia: quel bottone era già uscito (A309) e con la vista è uscito anche il suo file.
+                    // ⚠️ A401 · SOLO REV20 (10/10/2026) — il cartello qui sopra è SUPERATO in parte: per Direttore
+                    //    e Follower la testata di V4 ora porta il nome dello show, come nel Solo (punto 117,
+                    //    SoloScreenDecision.endShowHeaderTitle; LIBRO, riga 2026-10-10). Resta vero che la riga di
+                    //    stato è del solo Solo.
                     EndShowView(geometry: soloGeometry,
                                 title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName),
                                 statusRow: SoloScreenDecision.endShowStatusRow(role: playerRole),

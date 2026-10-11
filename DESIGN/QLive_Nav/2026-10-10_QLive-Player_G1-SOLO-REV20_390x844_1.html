@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<!--
+ CD · Q-BEATS — A386 · PLAYER · GIRO 1 — SOLO · REV20 · il teleprompter di K: tetto 68, tre righe a 53 · iPhone 390x844 · file 1 di 1
+ DATA       10/10/2026 — dichiarata dal mio orologio (REV19: 08/10/2026).
+ ORIGINE    brief del referee A386 · PLAYER · CORREZIONI AL GIRO 1 E AL SYNC, emissione 2, §2.4: decisione di Mauro nella chat del referee («ok perfetto.»). La fila delle sezioni è quella della REV11 (03/10, chat CD).
+ PRECEDENTE 2026-10-03_QLive-Player_G1-SOLO-REV11_390x844_1.html — superata. REV13 e non REV12: il 12 è del foglio dei veli non consegnato (REV12-VELI).
+ REV14      brief del referee A386 · PLAYER · CORREZIONI ALLA SYNC REV5 E ALLA SOLO REV13, emissione 2, §2.1-2.2: decisione di Mauro nella chat del referee («3. ok», «si midi»). Supera la REV13 (2026-10-04_QLive-Player_G1-SOLO-REV13_390x844_1.html).
+ REV15      brief del referee A386 · PLAYER · LE STESSE PAROLE DAPPERTUTTO: SOLO REV15 E SYNC REV7, emissione 1: veli 01, 02 e 04 rifatti come quelli del Direttore e del Follower; «Tap to start» in una forma sola; END SHOW + BACK TO SHOWS; il conto alla rovescia; icona del dito sulla fila; regola della spia MIDI. Supera la REV14.
+ REV16      brief del referee A386 · PLAYER · SOLO REV16: DOPPIONI CHIUSI, TEST DI «TAP TO START», CONTO DOPO LO STOP, emissione 2: decisioni di Mauro nella chat del referee, 04/10 («1. SI»; «2. Devo verificare. Mi piacerebbe vedere l'icona del dito grande e sotto la scritta.»; «si si fallo cmq»). Testata col nome dello show; «Resume from» sulla fila; test A/B di «Tap to start»; conto dopo lo Stop anche con Off; segno dello scorrere senza dito. Supera la REV15. Il sync non si tocca: la SYNC REV7 resta valida.
+ REV17      brief del referee A386 · PLAYER · SOLO REV17 E SYNC REV8: DOPO LO STOP SOLO IL PLAY, TEST CHIUSO CON LA A, emissione 2: decisioni di Mauro nella chat del referee, 04/10 («1. A»; «si esattamente via il tocco sul velo»). Dopo lo Stop si riparte solo col Play: via il tocco sul velo e «Tap to start» da quel velo; test chiuso con la A, sezione T tolta. Supera la REV16, che resta su Drive come traccia del test.
+ REV18      brief del referee A386 · PLAYER · SOLO REV18: I CASI CHE LA REV17 NON DISEGNA, emissione 1: decisioni di Mauro nella chat del referee, 05/10 («B»; «DOMANDA LIST MODE: B»). Kill e List mode spenti anche in moto; nove casi nuovi (sezione C, punti 106-114), aperti fino alla ratifica. La REV17, ratificata il 04/10 (LIBRO, riga 2026-10-04), resta la base: misure, parole e schermi non cambiano.
+ REV19      mandato del referee QB-2026-10-08-CD-COLLAUDO-M3, emissione 2, §3a: richiesta di Mauro dal collaudo M3 (08/10, «se riusciamo a sfruttare meglio lo spazio per il teleprompter principale è meglio»). Il nome della sezione in K da 80 a scendere fino a 42, in un riquadro 284–457: cambia il punto 51 (sezione R, punto 115). Nuovi i punti 116 e 117 (casi D6 del collaudo, §2). La REV18 resta la base.
+ REV20      mandato del referee QB-2026-10-10-CD-SOLO-REV20: scelta di Mauro del 10/10 sulla scheda del test visivo di K («80 LO SCARTIAMO»; «OPTEREI PER UN 53 TRE RIGHE CON TETTO A 68.»). Il nome della sezione in K: due righe da 68; sotto 53 tre righe da 53; a 42 i puntini alla fine della terza riga (punto 115, sezione R, riga d delle misure). Riquadro e resto di K fermi; 116 e 117 come nella REV19. La REV19 resta la base.
+ PROPOSTA   la ratifica è di Mauro, su questo file; CC lo mette nel deposito, scrive la riga nel LIBRO e lo costruisce (mandato QB-2026-10-10-CD-SOLO-REV20, §3).
+ ⛔ Nessun codice. Ciò che la decisione non dice sta nei punti aperti (§4).
+-->
+<title>Q-BEATS · CD · A386 PLAYER · Giro 1 · Solo REV20 · il teleprompter di K · iPhone · 10/10/2026</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root{--paper:#ede8e0;--txt:#3b352e;--bg:#110f0e;--sf:#1f1b18;--w:#f5efe6;--w86:rgba(245,239,230,.86);--w72:rgba(245,239,230,.72);--w66:rgba(245,239,230,.66);--w18:rgba(245,239,230,.18);--w12:rgba(245,239,230,.12);--w07:rgba(245,239,230,.07);--orl:#ff8a5c;--acc:#28cd41;--lk:#00c96e;--red:#ff3b30;--amb:#f5b820;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box}
+body{margin:0;width:1900px;padding:36px 98px 64px;background:var(--paper);font-family:Inter,sans-serif;color:#1b1814;-webkit-font-smoothing:antialiased}
+a{color:#9a3d12}a:hover{color:#5f240a}
+p{margin:0}
+code{font-family:var(--mono);font-size:.88em;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:5px}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.45}}
+.s-top{display:grid;grid-template-columns:minmax(0,1fr) 760px;gap:52px;align-items:start}
+.s-kick{font:700 13px/1.4 Inter;letter-spacing:.08em;text-transform:uppercase;color:#9a3d12}
+h1{font:900 42px/1.1 Inter;letter-spacing:-.02em;margin:12px 0 0;text-wrap:balance}
+.s-p{font:16px/1.6 Inter;color:var(--txt);margin-top:14px;text-wrap:pretty}
+.s-p b,.s-cap b,.s-pan b,.s-ol b{color:#1b1814}
+.s-no{color:#a3271c;font-weight:700}
+.s-box{background:#1b1714;color:#efe8de;border-radius:22px;padding:8px 26px}
+.s-m{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.08)}.s-m:first-child{border-top:0}
+.s-m b.n{font:800 16px/1.5 Inter;color:var(--orl)}
+.s-m p{font:15px/1.55 Inter;color:rgba(239,232,222,.84);text-wrap:pretty}.s-m p b{color:#fff}
+.s-qb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;padding:22px 30px}
+.s-qb pre{margin:0 0 12px;font:14.5px/1.55 Inter;color:rgba(239,232,222,.92);white-space:pre-wrap}
+.s-qb p{font:14.5px/1.55 Inter;color:rgba(239,232,222,.88);margin-bottom:9px;text-wrap:pretty}.s-qb p b{color:#fff}
+.s-qb .h{font:700 12px/1.5 Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--orl);margin-bottom:10px}
+.s-h2{font:800 20px Inter;letter-spacing:-.01em;margin:58px 0 20px;display:flex;gap:12px;align-items:baseline}.s-h2 span{font:500 15px Inter;color:#7a6f63}
+.s-row{display:flex;gap:48px;align-items:flex-start}
+.s-col{flex:0 0 390px;width:390px;min-width:0}
+.s-lbl{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;white-space:nowrap;overflow:hidden}.s-lbl b{font:800 18px Inter}.s-lbl span{font:15px Inter;color:#7a6f63}
+.s-cap{font:15px/1.55 Inter;color:var(--txt);margin-top:20px;text-wrap:pretty}
+.s-fl{font:700 14px/1.5 Inter;color:#a3271c;margin-top:10px;text-wrap:pretty}
+.s-pan{background:#fff;border-radius:20px;padding:20px 24px}
+.s-pan p{font:14.5px/1.6 Inter;color:var(--txt);margin-bottom:11px;text-wrap:pretty}.s-pan p:last-child{margin-bottom:0}
+table.s-t{width:100%;border-collapse:collapse;font:14px/1.5 Inter;color:var(--txt)}
+.s-t th{font:700 12px Inter;letter-spacing:.06em;text-transform:uppercase;color:#7a6f63;text-align:left;padding:7px 10px;border-bottom:2px solid rgba(0,0,0,.14)}
+.s-t td{padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:top}
+.s-t td:first-child{font-weight:700;color:#1b1814;white-space:nowrap}
+.s-ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 40px}
+.s-ol li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;font:14.5px/1.55 Inter;color:var(--txt);text-wrap:pretty}
+.s-ol li>b.n{width:32px;height:32px;border-radius:10px;background:#1b1714;color:#fff;font:800 14px/32px Inter;text-align:center}
+.s-ol li.x{opacity:.55}.s-ol li.x>span>b{text-decoration:line-through}
+.im{font:700 11px/1 Inter;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:6px;margin-left:4px;white-space:nowrap}
+.im.a{background:#f6d9cb;color:#9a3d12}.im.m{background:#efe5c4;color:#6b5410}.im.b{background:#dfe8da;color:#3c5a2f}
+.s-sig{margin-top:44px;border-top:1px solid rgba(0,0,0,.16);padding-top:16px;font:14.5px/1.6 Inter;color:var(--txt)}
+/* dentro la cornice: solo token dell'app */
+.ic{width:24px;height:24px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sbi{width:44px;height:12px;fill:currentColor}
+.p{width:390px;height:844px;background:var(--bg);border-radius:46px;position:relative;overflow:hidden;color:var(--w);box-shadow:0 30px 60px rgba(50,35,20,.32),0 0 0 2px rgba(0,0,0,.12)}
+.p::after{content:"";position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(245,239,230,.25)}
+.p-sb{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 9px 34px;font:600 15px Inter}
+.p-hd{position:absolute;top:44px;left:0;right:0;height:60px;display:flex;align-items:center;gap:10px;padding:0 14px}
+.p-rk{width:44px;height:44px;border-radius:50%;background:var(--sf);display:grid;place-items:center;flex:0 0 auto;color:var(--w86);box-shadow:inset 0 1px 0 rgba(255,255,255,.055)}.p-rk.or{color:var(--orl)}
+.p-hn{flex:1;min-width:0;text-align:center;font:700 24px/1.2 Inter;letter-spacing:-.01em;color:var(--w86);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-rl{position:absolute;top:98px;left:18px;right:18px;height:30px;display:flex;align-items:center;gap:18px;font:600 17px Inter;color:var(--w66)}
+.p-rl span{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.p-rl i{width:10px;height:10px;border-radius:50%;background:var(--lk)}.p-rl i.o{background:var(--w18)}
+.p-rl .sp{margin-left:auto}
+/* il velo, versione 1 — ora finisce sopra la fila */
+.p-vb{position:absolute;top:248px;left:26px;right:26px;text-align:center}
+.p-va{font:600 21px/1.25 Inter;color:var(--w66)}.p-va b{font-weight:700;color:var(--w)}
+.p-vn{margin-top:14px;font:900 80px/1.02 Inter;letter-spacing:-.03em;animation:pu 2.2s ease-in-out infinite}
+.p-vc{margin-top:34px;display:flex;align-items:center;justify-content:center;gap:10px;font:600 21px Inter;color:var(--w66)}
+.p-vc svg{width:15px;height:15px;fill:currentColor}
+/* REV11: la fila delle sezioni, al posto della barra della canzone */
+.sx-l{position:absolute;top:526px;left:18px;right:18px;height:1.5px;background:var(--w12)}
+.sx-t{position:absolute;top:540px;left:18px;font:600 17px/21px Inter;color:var(--w66)}
+.sx-s{position:absolute;top:574px;left:0;right:0;height:44px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;cursor:grab}
+.sx-s::-webkit-scrollbar{display:none}
+.sx-r{display:flex;flex-wrap:nowrap;gap:10px;padding:0 18px;width:max-content}
+.sx-r b{flex:0 0 auto;height:44px;min-width:64px;max-width:200px;padding:0 18px;border-radius:12px;background:var(--sf);box-shadow:inset 0 1px 0 rgba(255,255,255,.055);font:700 17px/44px Inter;color:var(--w86);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sx-r b.cu{background:rgba(245,239,230,.14);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.5);color:var(--w)}
+.sx-r b.pr{background:var(--w);color:var(--bg);box-shadow:none}
+/* il player in moto, REV9 */
+.p-lp{position:absolute;top:156px;left:0;right:0;display:flex;justify-content:center;gap:22px}
+.p-lp i{width:46px;height:46px;border-radius:50%;background:var(--w07);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.1)}
+.p-lp i:first-child{background:var(--acc);box-shadow:none}
+.p-bc{position:absolute;top:226px;left:18px;right:18px;display:flex;align-items:baseline;justify-content:space-between}
+.p-bc b{font:700 26px/1 var(--mono);letter-spacing:-.02em}
+.p-bc b span{font:600 17px Inter;letter-spacing:0;color:var(--w66);margin:0 7px}.p-bc b span:first-child{margin-left:0}.p-bc b:last-child span{margin-right:0}
+.p-bm{position:absolute;top:264px;left:18px;right:18px;height:12px;display:flex;gap:6px}
+.p-bm i{flex:1;border-radius:6px;background:var(--w12)}.p-bm i.c{background:var(--w)}
+.p-se{position:absolute;top:284px;left:12px;right:12px;height:173px;display:flex;align-items:center;justify-content:center;text-align:center}
+.p-se b{display:block;width:100%;font:800 68px/1.08 Inter;letter-spacing:-.035em}.p-se.o18{top:346px;height:100px}.p-se b.fx{font-size:42px}.p-se b.cl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.r19{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#7c4a03;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.r20{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#1d5e4f;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.p-nx{position:absolute;top:516px;left:18px;right:18px;height:60px;border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--w12);display:flex;align-items:center;gap:12px;padding:0 16px}
+.p-nx span{font:600 19px Inter;color:var(--w66)}
+.p-nx b{flex:1;min-width:0;font:700 28px/1.15 Inter;letter-spacing:-.015em;color:var(--w86);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-sp{position:absolute;top:596px;left:18px;right:18px;height:10px;display:flex;gap:4px}
+.p-sp i{border-radius:5px;background:var(--w12);position:relative;overflow:hidden}.p-sp i.d{background:rgba(245,239,230,.34)}
+.p-sp u{position:absolute;left:0;top:0;bottom:0;width:6.25%;background:rgba(245,239,230,.62)}
+.kB{position:absolute;left:18px;right:18px;top:630px;height:176px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px}
+.q{background:var(--sf);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font:700 17px Inter;color:var(--w72);box-shadow:inset 0 1px 0 rgba(255,255,255,.055);white-space:nowrap}
+.q.l{padding-right:64px}.q.r{padding-left:64px}.q.dead{opacity:.4}
+.kst{position:absolute;left:50%;top:50%;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:linear-gradient(rgba(255,59,48,.16),rgba(255,59,48,.16)),var(--bg);box-shadow:0 0 0 8px var(--bg),inset 0 0 0 2px rgba(255,59,48,.7);display:grid;place-items:center}
+.kst i{width:42px;height:42px;border-radius:8px;background:var(--red)}
+.kst.pl{background:linear-gradient(rgba(40,205,65,.14),rgba(40,205,65,.14)),var(--bg);box-shadow:0 0 0 8px var(--bg),inset 0 0 0 2px var(--acc)}.kst.pl svg{width:46px;height:46px;margin-left:6px;fill:none;stroke:var(--acc);stroke-width:2.4;stroke-linejoin:round}
+/* schema: non schermo */
+.mz{position:absolute;left:8px;right:8px;border-radius:14px}
+.mz.a{top:46px;height:84px;border:2px dashed rgba(245,239,230,.32)}
+.mz.b{top:136px;height:374px;background:rgba(255,138,92,.13);border:2px dashed rgba(255,138,92,.75)}
+.mz.c{top:568px;height:56px;border:2px dashed rgba(245,239,230,.5)}
+.mz.d{top:626px;height:184px;border:2px dashed rgba(245,239,230,.32)}
+.mk{position:absolute;background:var(--paper);color:#1b1814;font:700 14px/1.35 Inter;padding:7px 10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
+.fg{position:absolute;width:52px;height:52px;border-radius:50%;border:3px solid var(--paper);background:rgba(237,232,224,.22)}
+.fa{position:absolute;height:3px;background:var(--paper)}
+.fa::after{content:"";position:absolute;right:-2px;top:-6px;border:7.5px solid transparent;border-left:11px solid var(--paper);border-right:0}
+@media (prefers-reduced-motion:reduce){.p-vn{animation:none}}
+.q.off{opacity:.4}
+.r13{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:var(--orl);color:#1b1714;margin:0 6px 0 2px;vertical-align:2px}
+.r13x{display:inline-block;font:700 11px/1 Inter;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:#1b1714;color:#fff;margin-right:4px;vertical-align:1px}
+.im.n{background:#1b1714;color:#fff}
+.s-qb .src{font:13px/1.5 Inter;color:rgba(239,232,222,.62);margin:2px 0 0}
+.r14{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#5b3fa8;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.r15{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#0f6b5c;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.p-vt{margin-top:12px;font:500 21px/1.2 var(--mono);color:var(--w66)}
+.p-tap{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:10px;font:600 21px/1.2 Inter;color:var(--w86)}.p-tap svg{width:44px;height:44px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sx-sw{position:absolute;top:537px;right:18px;width:28px;height:28px;fill:none;stroke:var(--w66);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.p-es{position:absolute;top:360px;left:0;right:0;text-align:center;font:900 44px/1 Inter;letter-spacing:-.02em;color:var(--w)}
+.p-bs{position:absolute;bottom:50px;left:45px;right:45px;height:64px;border-radius:20px;box-shadow:inset 0 0 0 2px rgba(245,239,230,.42);display:flex;align-items:center;justify-content:center;gap:10px;font:700 19px Inter;color:var(--w86)}
+.p-lp.cd i:first-child{background:var(--w07);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.1)}.p-lp.cd i.on{background:var(--w);box-shadow:none}
+.p-cd{position:absolute;top:290px;left:0;right:0;height:214px;display:flex;align-items:center;justify-content:center}.p-cd b{font:900 190px/1 Inter;letter-spacing:-.04em;color:var(--w)}
+.r16{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#1f4f8f;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.r17{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#7a2e6b;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+.r18{display:inline-block;font:800 10.5px/1 Inter;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:5px;background:#5c5410;color:#fff;margin:0 6px 0 2px;vertical-align:2px}
+/* REV18: i casi nuovi */
+.ic.s{width:20px;height:20px}
+.p-nx span{white-space:nowrap}
+.p-rk.mu{color:var(--amb)}
+.p-rl .x{color:var(--amb)}
+.p-rl .ll{flex:1;min-width:0;align-self:stretch;margin-left:-18px;padding-left:18px;border-radius:0 15px 15px 0;background:var(--amb);color:var(--bg);font-weight:700}
+.p-rl i.fl{animation:fl 2s steps(1,end) infinite}
+@keyframes fl{0%,93.9%{background:var(--lk)}94%,100%{background:var(--w18)}}
+.lp{position:absolute;top:156px;left:0;right:0;height:46px;display:flex;justify-content:center;align-items:center}
+.lp i{flex:0 0 auto;border-radius:50%;background:var(--w07);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.1)}
+.lp i.a{background:var(--acc);box-shadow:none}.lp i.n{background:var(--w);box-shadow:none}
+.bm{position:absolute;top:264px;left:18px;right:18px;height:12px;display:flex}
+.bm i{flex:1;min-width:0;background:var(--w12)}.bm i.d{background:rgba(245,239,230,.42)}.bm i.c{background:var(--w)}
+.q.on{background:rgba(245,239,230,.14);box-shadow:inset 0 0 0 1.5px rgba(245,239,230,.5);color:var(--w)}
+.mxp{position:absolute;left:0;right:0;top:445px;height:177px;background:#16161a;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.1);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:16px 16px 14px}
+.mxp b{display:flex;flex-direction:column;align-items:center;gap:10px;font:700 13px var(--mono);color:var(--w66)}
+.mxp b::before{content:"";flex:1;width:4px;border-radius:2px;background:var(--w18)}
+.mxp b.o{opacity:.4}
+.st{position:relative;width:390px;height:70px;background:var(--bg);border-radius:18px;overflow:hidden;color:var(--w)}
+.st .lp{top:12px}.st .p-hd{top:6px}.st .p-rl{top:62px}
+.st.vv{height:auto;padding:18px 0 20px}.st.vv .p-vb{position:static;margin:0 26px}
+.p-vn.cl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.tv{display:grid;grid-template-columns:104px 390px;gap:10px 14px;align-items:center}
+.tv>p{font:13.5px/1.35 Inter;color:var(--txt);text-align:right}.tv>p b{font:800 17px Inter;color:#1b1814}
+.s-fc{font:700 14px/1.4 Inter;color:#7a6f63;margin:0 0 8px}
+@media (prefers-reduced-motion:reduce){.p-rl i.fl{animation:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-sb" viewBox="0 0 44 12"><rect y="7" width="3" height="5" rx="1"></rect><rect x="5" y="5" width="3" height="7" rx="1"></rect><rect x="10" y="2.5" width="3" height="9.5" rx="1"></rect><rect x="15" width="3" height="12" rx="1"></rect><rect x="23" y=".7" width="18.6" height="10.6" rx="3" fill="none" stroke="currentColor"></rect><rect x="25" y="2.6" width="12" height="6.8" rx="1.5"></rect></symbol>
+<symbol id="i-bk" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"></path></symbol>
+<symbol id="i-sp" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"></path><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"></path></symbol>
+<symbol id="i-mx" viewBox="0 0 24 24"><path d="M6 3.5v6M6 14v6.5M12 3.5v1.5M12 9.5v11M18 3.5v8M18 16v4.5"></path><circle cx="6" cy="11.8" r="2.3"></circle><circle cx="12" cy="7.2" r="2.3"></circle><circle cx="18" cy="13.8" r="2.3"></circle></symbol>
+<symbol id="i-ls" viewBox="0 0 24 24"><path d="M9.5 6H20M9.5 12H20M9.5 18H20M4.5 6h.01M4.5 12h.01M4.5 18h.01"></path></symbol>
+<symbol id="i-kl" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3"></path></symbol>
+<symbol id="i-pl" viewBox="0 0 24 24"><path d="M6 3.5L21 12 6 20.5z"></path></symbol>
+<symbol id="i-sm" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"></path><path d="M3 3l18 18"></path></symbol>
+<symbol id="i-lo" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 017 7h1M15 7h2a5 5 0 014 8M8 12h3M3 3l18 18"></path></symbol>
+<symbol id="i-wo" viewBox="0 0 24 24"><path d="M12 19.5h.01M8.6 15.8a5 5 0 016.8 0M5.2 12.4a10 10 0 0113.6 0M2 9a14.5 14.5 0 0120 0M3 3l18 18"></path></symbol>
+<symbol id="i-mo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v2.6M3 3l18 18"></path><circle cx="7" cy="12" r="1.25" fill="currentColor" stroke="none"></circle><circle cx="8.46" cy="15.54" r="1.25" fill="currentColor" stroke="none"></circle><circle cx="12" cy="17" r="1.25" fill="currentColor" stroke="none"></circle><circle cx="15.54" cy="15.54" r="1.25" fill="currentColor" stroke="none"></circle><circle cx="17" cy="12" r="1.25" fill="currentColor" stroke="none"></circle></symbol>
+<symbol id="i-tp" viewBox="0 0 24 24"><path d="M6.6 6.2a4.2 4.2 0 0 1 8.4 0"></path><path d="M8.6 6.6a2.2 2.2 0 0 1 4.4 0"></path><path d="M9.6 14V7.4a1.2 1.2 0 0 1 2.4 0V12"></path><path d="M12 11.2a1.2 1.2 0 0 1 2.4 0V12.4"></path><path d="M14.4 11.8a1.2 1.2 0 0 1 2.4 0v.8"></path><path d="M16.8 12.4a1.2 1.2 0 0 1 2.4 0v3.4a5.6 5.6 0 0 1-5.6 5.6h-1.2a5.2 5.2 0 0 1-4.1-2l-2.6-3.3a1.25 1.25 0 0 1 1.9-1.6l2 2.1"></path></symbol>
+</svg>
+
+<div class="s-top"><div>
+<div class="s-kick">CD → Mauro · referee in controllo · Q-BEATS · Q-Live · A386 · PLAYER · Giro 1 · Solo · REV20 · iPhone 390×844 · file 1 di 1</div>
+<h1>REV20 · Il nome della sezione in K: due righe da 68; se dovrebbe scendere sotto 53, tre righe da 53; a 42 i puntini. Cambia il punto 51.</h1>
+<p class="s-p"><span class="r20">REV20</span><b>Data dichiarata dal mio orologio: 10/10/2026.</b> La REV19 (<code>2026-10-08_QLive-Player_G1-SOLO-REV19_390x844_1.html</code>) è la base: misure, parole e schermi restano quelli, salvo ciò che segue, sul mandato <b>QB-2026-10-10-CD-SOLO-REV20</b>. <b>Cosa cambia:</b> <b>il teleprompter di K</b> prende la regola scelta da Mauro il 10/10 sulla scheda del test visivo (sezione 0): il nome si prova in <b>due righe da 68</b>; se dovrebbe scendere sotto 53 passa a <b>tre righe da 53</b>; <b>a 42</b> i puntini, alla fine della terza riga (punto 115: cambia di nuovo il 51). Il riquadro 284–457, il carattere, l'a capo e il resto di K non cambiano. Rifatti con la regola nuova la sezione R, coi suoi schermi e la tabella, più tre schermi nuovi (la frase di Mauro, un nome ai puntini, tre righe col Mixer aperto), e la riga d delle misure. 116 e 117 restano come nella REV19. Solo iPhone: l'iPad copia dopo (punto 83). <b>Ordine:</b> il referee la controlla, Mauro la ratifica, CC la mette nel deposito, scrive la riga nel LIBRO e la costruisce. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r19">REV19</span><b>Data dichiarata dal mio orologio: 08/10/2026.</b> La REV18 (<code>2026-10-05_QLive-Player_G1-SOLO-REV18_390x844_1.html</code>) resta la base: è normativa, con la SYNC REV8 (referee, 08/10). Misure, parole e schermi non cambiano, salvo ciò che segue, sul mandato <b>QB-2026-10-08-CD-COLLAUDO-M3</b>, emissione 2. <b>Cosa cambia:</b> <b>il teleprompter di K</b>: il nome della sezione parte da 80 e scende fino a 42, in un riquadro alto 173, da 284 a 457 (§3a, sezione R, punto 115). <b>Cambia il punto 51</b>, ratificato il 04/10 (LIBRO v89, riga 2026-10-04) fra i punti da provare sul telefono. Due regole per casi che i fogli non disegnavano, scelte sul collaudo M3 (§2): la canzone senza nome (punto 116) e il nome dello show su V4 di Direttore e Follower (punto 117). Le altre richieste di Mauro (tempo e metrica, «Tap to start», «Resume from», END SHOW) sono dell'iPad: raccolte per il suo giro, non disegnate. Solo iPhone. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r18">REV18</span><b>Data dichiarata dal mio orologio: 05/10/2026.</b> La REV17 (<code>2026-10-04_QLive-Player_G1-SOLO-REV17_390x844_1.html</code>) è <b>ratificata</b> (Mauro, 04/10, «RATIFICO»; LIBRO, riga 2026-10-04) ed è la base: misure, parole e schermi restano quelli. Questo foglio aggiunge solo ciò che segue, sul brief <b>A386 · PLAYER · SOLO REV18: I CASI CHE LA REV17 NON DISEGNA</b>, emissione 1. <b>Cosa cambia:</b> <b>Kill e List mode spenti anche in moto</b>, nella veste del quadrante vuoto: a canzone in corso restano accesi solo Mixer e Stop (§2.1; Mauro: «B», «DOMANDA LIST MODE: B»); corretto dove il foglio diceva che in moto si riaccendono (riquadro in alto, K, K0, misure, punti 84 e 88); il titolo del punto 74 dice il Play (§2.3); <b>la sezione C, nuova</b>, coi nove casi che la costruzione ha trovato (§2.2, da a a i) e i loro punti, dal 106 al 114, aperti finché Mauro non ratifica (§2.4). Solo iPhone: l'iPad viene dopo e copierà l'iPhone (§1.3, punto 83). Il conto (K0) e lo Stop durante il conto restano ai punti 74 e 101; il sync non si tocca. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r17">REV17</span><b>Data dichiarata dal mio orologio: 04/10/2026.</b> Correzione della REV16 (<code>2026-10-04_QLive-Player_G1-SOLO-REV16_390x844_1.html</code>), che <b>è superata</b> e resta su Drive come traccia del test, sul brief <b>A386 · PLAYER · SOLO REV17 E SYNC REV8: DOPO LO STOP SOLO IL PLAY, TEST CHIUSO CON LA A</b>, emissione 2, §2. <b>Cosa cambia:</b> <b>dopo lo Stop si riparte solo col Play</b>, sempre col conto: il tocco sul velo non fa più niente e su quel velo «Tap to start» non c'è più (§2.1, Mauro: «si esattamente via il tocco sul velo»); corretto in tutto il foglio ciò che diceva il contrario (§2.2); il punto 87 si chiude e il 75 è riletto (§2.3); su V1 e V2 «Tap to start» resta, nella forma A (§2.4, Mauro: «1. A»); il test è chiuso, la sezione T è tolta e il punto 100 si chiude (§2.5). Senza «Tap to start» sotto, il blocco del velo dopo lo Stop scende a 248, come su V1 e V2 (punto 105). Lo swipe fra canzoni sul velo resta com'è. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r16">REV16</span><b>Data dichiarata dal mio orologio: 04/10/2026.</b> Correzione della REV15 (<code>2026-10-04_QLive-Player_G1-SOLO-REV15_390x844_1.html</code>), che <b>è superata</b>, sul brief <b>A386 · PLAYER · SOLO REV16: DOPPIONI CHIUSI, TEST DI «TAP TO START», CONTO DOPO LO STOP</b>, emissione 2, §3. <b>Cosa cambia:</b> la testata dei veli dice <b>il nome dello show</b>, come nel sync, su V1, V2, V4 e sul velo dopo lo Stop (§3.1, punto 102); sulla fila <b>«Resume from»</b> al posto di «Start from», la stessa frase del velo (§3.2, Mauro: «1. SI»); <b>il test di «Tap to start»</b>: la forma A, com'è oggi, e la forma B, la mano grande con la scritta sotto, una accanto all'altra su V1 e sul velo dopo lo Stop (§3.3, sezione T); nel resto del foglio resta la A finché Mauro non sceglie (punto 100); <b>il conto dopo lo Stop c'è sempre</b>, con Off una battuta comunque (§3.4, Mauro: «si si fallo cmq», punto 74); <b>il segno dello scorrere non è più un dito</b>: una doppia freccia di lato, così sullo schermo l'unica mano è quella di «Tap to start» (§3.5, punto 103). Il punto 101 si chiude per la parola, «Count-in». <b>Il sync non si tocca in questo giro: la SYNC REV7 resta valida.</b> La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r15">REV15</span><b>Data dichiarata dal mio orologio: 04/10/2026.</b> Correzione della REV14, che <b>è superata</b>, sul brief <b>A386 · PLAYER · LE STESSE PAROLE DAPPERTUTTO: SOLO REV15 E SYNC REV7</b>, emissione 1, §2. <b>Cosa cambia:</b> la riga di stato anche sui veli e sulla fine scaletta (§2.1); la spia MIDI lampeggia solo quando il pedale fa fare davvero qualcosa all'app (§2.2, punto 98); i veli 01 e 02 rifatti come quello del Direttore, con tempo e metrica (§2.3); <b>«Tap to start»</b> con la mano, in una forma sola, su ogni velo<s>, anche dopo lo Stop</s> (§2.4, §2.5, punto 100); <s>il tocco sul velo dopo lo Stop resta e il punto 87 si chiude</s> (superato nella REV17: dopo lo Stop solo il Play); <b>lo schermo del conto alla rovescia</b> (§2.6, punto 74); la fine scaletta con <b>END SHOW</b> poco sopra il centro dello schermo e <b>BACK TO SHOWS</b>, bianco, in fondo (§2.7 e Mauro sui fogli); l'icona del dito sulla fila delle sezioni, solo quando non sta nello schermo (§2.8); List mode resta, col suo simbolo (§2.9). I disegni dei veli valgono da qui: il foglio dei veli resta una fotografia. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r14">REV14</span><b>Data dichiarata dal mio orologio: 04/10/2026.</b> Correzione della REV13 (<code>2026-10-04_QLive-Player_G1-SOLO-REV13_390x844_1.html</code>), che <b>è superata</b>, sul brief <b>A386 · PLAYER · CORREZIONI ALLA SYNC REV5 E ALLA SOLO REV13</b>, emissione 2, §2.1 e §2.2. <b>Cosa cambia: solo la riga di stato.</b> Al posto di «Bluetooth» la spia <b>«MIDI»</b>: verde = un apparecchio MIDI, per esempio il pedale, è collegato; <s>lampeggia quando il pedale manda un messaggio</s> lampeggia solo quando il pedale fa fare davvero qualcosa all'app (corretto nella REV15, punto 98). L'app non distingue un pedale Bluetooth da uno via cavo (A387, §6.2): per questo «MIDI». Resta verde. <b>Wi-Fi verde = collegato a una rete Wi-Fi</b> (A387, §6.4); nella striscia «· no Wi-Fi» vuol dire «non collegato a una rete Wi-Fi»; la banda (2,4 o 5 GHz) non si scrive mai. «Link» compare solo a Link acceso, come prima. Le facce dei LED della REV9 restano; il punto 52 resta aperto; nuovo il 98. La carica CD su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><span class="r13">REV13</span>Correzione della REV11 (<code>2026-10-03_QLive-Player_G1-SOLO-REV11_390x844_1.html</code>), che <b>è superata</b>, sulla decisione di Mauro presa nella chat del referee e portata dal brief <b>A386 · PLAYER · CORREZIONI AL GIRO 1 E AL SYNC</b>, emissione 2, §2.4. <b>REV13 e non REV12:</b> il 12 è del foglio dei veli non consegnato. I file li carica Mauro su Drive, in <b>Qbeats_IN_CD</b>.</p>
+<p class="s-p"><b>Cosa cambia rispetto alla REV11: solo la console a canzone ferma.</b> Resta al suo posto col Play al centro; <b>Kill e List mode sono spenti</b> e il tocco su di loro non fa niente; <b>il Mixer resta acceso</b>. <s>In moto tornano tutti accesi.</s> (REV18: spenti anche in moto.) Come appaiono i tasti spenti l'ho scelto io: la veste del quadrante vuoto (punto 88). Fila, velo e misure sono quelli della REV11; dei punti aperti l'84 è deciso, nuovi l'88 e l'89. Supera <b>Q7=A del 21/05</b> (pulsantiera nascosta a canzone ferma), ma solo dopo lo Stop: lo scrive il LIBRO alla ratifica.</p>
+<p class="s-p"><span class="s-no">⛔ Nessun codice · ⛔ nessuna regola nuova oltre le parole di Mauro · ⚑ ciò che non dicono sta nei punti aperti · solo iPhone · ratificato solo quando Mauro lo scrive nel LIBRO, con sezione e data.</span></p>
+</div>
+<div class="s-box">
+<div class="s-m"><b class="n">1</b><p><b>La console resta dov'è</b>, uguale alla REV9: Mixer, List mode, Kill. <b>Il tasto centrale diventa Play</b>: triangolo col contorno verde al posto del quadrato rosso. <span class="r13">REV13</span><b>A canzone ferma Kill e List mode si spengono</b> e il tocco su di loro non fa niente; <b>il Mixer resta acceso</b>. <span class="r18">REV18</span><b>Spenti anche in moto:</b> a canzone in corso restano accesi solo Mixer e Stop. Il velo copre solo la parte alta, fino alla fila.</p></div>
+<div class="s-m"><b class="n">2</b><p><b>La barra della canzone sparisce</b> e al suo posto, subito sopra la console, compare la fila: Intro, Verse, Chorus… nell'ordine della canzone.</p></div>
+<div class="s-m"><b class="n">3</b><p><b>Una riga sola, non va a capo.</b> La fila esce dal bordo destro: il tasto tagliato dice che oltre la videata c'è altro. Niente sfumature. <span class="r16">REV16</span>Sopra la fila <b>«Resume from»</b>, come sul velo; accanto <b>il segno dello scorrere</b>, una doppia freccia di lato, solo quando la fila non sta tutta nello schermo (punto 103). Non è un dito. <span class="r17">REV17</span>Dopo lo Stop sullo schermo non c'è nessuna mano: «Tap to start» resta solo su V1 e V2.</p></div>
+<div class="s-m"><b class="n">4</b><p><b>Col dito di lato la fila scorre; un tocco su un tasto seleziona quella sezione</b>, e il «Resume from» del velo cambia con lei. <span class="r17">REV17</span><b>Si parte solo col Play</b>: il tocco sul velo non fa niente. All'apertura la fila si mette in modo che la sezione segnata sia in vista.</p></div>
+<div class="s-m"><b class="n">5</b><p><b>Le zone non si toccano.</b> Sopra, il velo: <span class="r17">REV17</span>lì il tocco non fa niente e resta solo lo swipe fra canzoni; poi 64 pt senza tocco; poi la fila; poi la console.</p></div>
+</div></div>
+
+<div class="s-h2">0 · Le parole di Mauro <span>esatte, con maiuscole e refusi · 03/10 in chat CD · 04/10 e 05/10 dalla chat del referee · 10/10 in chat CD</span></div>
+<div class="s-box s-qb">
+<div><p class="h">Mauro · chat CD · 10/10 · la scheda del test visivo di K, iPhone<span class="r20">REV20</span></p>
+<p>Sulla scheda <code>2026-10-10_QLive-Player_K-TELEPROMPTER_TEST-VISIVO__non-normativo__390x844.html</code>: tetto 80 e tetto 68, due righe fino a 42 e tre righe fino a 53.</p>
+<pre>80 LO SCARTIAMO
+
+OPTEREI PER UN 53 TRE RIGHE CON TETTO A 68.</pre>
+<p class="src">Verbatim, dal punto CD del 10/10 (mandato QB-2026-10-10-CD-SOLO-REV20, §2). Solo la variante del §4 della scheda, «il più grande dei due · tetto 68», mette insieme il 68 e le tre righe a 53 (referee, §1). La REV20 la disegna nella sezione R.</p></div>
+<div><p class="h">Mauro · collaudo M3 · 08/10 · iPad, Solo, sull'asta<span class="r19">REV19</span></p>
+<p>P3-1, velo di Circuz:</p>
+<pre>Sull'asta, il nome Circuz si legge: bene
+Sull'asta, «121 · 4/4» si legge: bene avendo il posto si potrebbe anche ingradirlo
+Sull'asta, «TAP TO START» si legge: bene avendo il posto si potrebbe anche ingrandire</pre>
+<p>P3-2, K, H e V4:</p>
+<pre>Sull'asta: «Verse», «Resume from Verse» ed «END SHOW» si leggono ma si possono fare un po' piu grandi.
+Anche il testo nel teleprompter principale è piccolo. Ad esempio "Verse" su ipad è piccolo se abbiamo spazio è giusto sfruttarlo. quindi sia in iphone sia in Ipad se riusciamo a sfruttare meglio lo spazio per il teleprompter principale è meglio.</pre>
+<p class="src">Dal mandato QB-2026-10-08-CD-COLLAUDO-M3, emissione 2, §3: righe di Mauro verbatim. Sull'iPhone la REV19 risponde sul teleprompter (sezione R); il resto è del giro dell'iPad, raccolto e non disegnato.</p></div>
+<div><p class="h">Mauro · chat del referee · 05/10 · la console in moto, l'iPad<span class="r18">REV18</span></p>
+<p>Kill a canzone in corso: nel Giro 1 la base nel player non parte mai. Proposta del referee: spento, come dopo lo Stop, finché la base non arriva nel player; quando arriverà, acceso mentre la base suona.</p>
+<pre>B</pre>
+<p>List mode a canzone in corso: nel Giro 1 non ha una funzione, le sue dinamiche si disegnano dopo il restyling. Proposta del referee: spento finché non ha una funzione.</p>
+<pre>DOMANDA LIST MODE: B</pre>
+<p>L'iPad:</p>
+<pre>nota datenere a mente: ricordiamo che lo stesso lavoro di grafica ecc va fatta anche per Ipad</pre>
+<p class="src">Dal brief A386 · PLAYER · SOLO REV18, emissione 1, §1: parole di Mauro verbatim; proposte del referee in sintesi. Per l'iPad vale l'ordine già nel LIBRO: prima l'iPhone, poi l'iPad, che copierà le decisioni dell'iPhone (righe 2026-09-11 e 2026-10-04, punto 83). Questo giro è solo iPhone.</p>
+<p class="h" style="margin-top:18px">Mauro · chat del referee · 04/10 · dopo lo Stop, il test<span class="r17">REV17</span></p>
+<p>Il test di «Tap to start» (punto 100): A, la mano accanto alla scritta; B, la mano grande con la scritta sotto.</p>
+<pre>1. A</pre>
+<p>Guardando gli schermi H, I e J della REV16:</p>
+<pre>ho Riguardando tutto ho visto che in 1 · Lo schermo fermo dopo lo Stop · Solo (H, I , J) c'e' scritto tap to start?</pre>
+<pre>partiamo con il play o sbaglio? Quindi tap to start non ha senso lo si utilizza quando toccando ovunque partiamo e questo non e' il caso perche' per ripartire dobbiamo premere play</pre>
+<p>Sulla proposta del referee: dopo lo Stop solo il Play; via il tocco sul velo e, con lui, «Tap to start» da quel velo.</p>
+<pre>si esattamente via il tocco sul velo</pre>
+<p class="src">Dal brief A386 · SOLO REV17 E SYNC REV8, emissione 2, §1.1 e §1.3: parole di Mauro verbatim, accenti resi con l'apostrofo; proposte in sintesi. Nel brief «LE STESSE PAROLE DAPPERTUTTO» il tocco restava per scelta del referee, dopo il «5. NON SAPREI» di Mauro: non era una decisione di Mauro.</p>
+<p class="h" style="margin-top:18px">Mauro · chat del referee · 04/10 · doppioni, «Tap to start», il conto<span class="r16">REV16</span></p>
+<p>La fila del Solo dopo lo Stop, sulla proposta del referee: «Resume from», la frase del velo, al posto di «Start from»; sul Follower resta «Start from».</p>
+<pre>1. SI</pre>
+<p>La forma di «Tap to start» (punto 100), sulla proposta di CD: la mano accanto alla scritta, il gruppo centrato.</p>
+<pre>2. Devo verificare. Mi piacerebbe vedere l'icona del dito grande e sotto la scritta.</pre>
+<pre>Ora invece e' tutto su una riga. Vorrei un test visivo.</pre>
+<p>Il conto dopo lo Stop con l'impostazione su Off, sulla proposta del referee: una battuta comunque, perché la band deve ripartire tutta insieme.</p>
+<pre>si si fallo cmq</pre>
+<p>Le due icone col dito sullo schermo dopo lo Stop:</p>
+<pre>Pensavo che con dito intendessi il tap to start</pre>
+<p class="src">Dal brief A386 · SOLO REV16, emissione 2, §1 e §3.5: parole di Mauro verbatim, accenti resi con l'apostrofo; proposte in sintesi.</p>
+<p class="h" style="margin-top:18px">Mauro · chat del referee · 04/10 · le stesse parole dappertutto<span class="r15">REV15</span></p>
+<pre>si esatto. preferisco END SHOW piu' cose trasversali e uguali ci sono meglio e'.
+COn trasversali intendo dire usare le stesse cose dove possibili senza inventarsi nomi nuovi dove e' gia' stato inventato in altre situazioni.
+Esempio: E' inutile scrivere End of setlist, scriviamo END SHOW come siamo abituati il significato e' chiaro.</pre>
+<pre>Vorei usare dove possibili le stesse parole.</pre>
+<p>Fine scaletta, sulla proposta del referee (END SHOW in alto e BACK TO SHOWS, uguale per i tre ruoli):</p>
+<pre>1. Tutto uguale dove possibile teniamo le stesse dinamiche</pre><pre>2. Mettiamo END SHOW per il motivo sopra descritto</pre><pre>3. OK D'ACCORDO</pre>
+<p>Sul tasto bianco:</p><pre>4. si</pre>
+<p>Poi, sui fogli:</p>
+<pre>PER TUTTI:
+
+fine scaletta
+
+END SHOW A 2/3 SI VIDEATA (SOPRA IL CENTRO ) E BACK TO SHOWS A FONDO PAGINA</pre>
+<pre>END SHOW E' ANCORA TROPPO ALTO, SPOSTALO VERSO IL CENTRO VEDEATA</pre>
+<p>La scritta del tocco:</p>
+<pre>3. SI ma se la spostiamo allora la voglio uguale in ogni situazione.  ES. se facciamo il dito grande e sotto Tap to start allora cosi' dev'essere ovunque oppure se decidiamo di fare dito + Tap to start allora cosi' dev'essere ovunque</pre>
+<pre>1. Tap to start mi sembra quella piu' di uso comune. Tocca e parti.</pre>
+<p>La vista statica:</p><pre>2. List mode con relativo simbolo che aiuta sempre a capire l'intenzione o l'azione a chi non sa la lingua</pre>
+<p>Il tempo sul velo del Solo:</p><pre>4. SI OK</pre>
+<p>Le tre regole (rifiuto che lascia lo schermo com'era; riga del rifiuto finché è vera; spia MIDI solo quando il pedale fa qualcosa):</p><pre>1. si</pre><pre>2. si</pre><pre>3. si</pre>
+<p>Il dubbio sulla ripartenza dopo lo Stop:</p>
+<pre>5. NON SAPREI TI SPIEGO IL MIO DUBBIO: STA SUONANDO DA SOLO, PREMI STOP.  LA BAND HA BISOGNO DI "4-3-2-1" PRIMA DI PARTIRE IN BLOCCO E SINCRONIZZATO CON TUTTA LA BAND. NON SO COME FARE.</pre>
+<p>L'iPad:</p><pre>6. SI COPIERA' LE DECISIONI DI IPHONE</pre>
+<p class="src">Dal brief A386 · LE STESSE PAROLE DAPPERTUTTO, emissione 1, §1: parole di Mauro verbatim, accenti resi con l'apostrofo; proposte del referee in sintesi.</p>
+<p class="h" style="margin-top:18px">Mauro · chat del referee · 04/10 · le spie<span class="r14">REV14</span></p>
+<p>Proposta del referee: la spia Wi-Fi vuol dire «collegato a una rete Wi-Fi»; al posto della spia Bluetooth una spia «MIDI», che dice se il pedale è collegato e lampeggia quando lo si usa.</p>
+<pre>3. ok</pre>
+<p>Poi:</p>
+<pre>diciamo a CD che vogliamo la spia MIDI.</pre>
+<pre>si midi</pre>
+<p class="src">Dal brief A386 · CORREZIONI ALLA SYNC REV5 E ALLA SOLO REV13, emissione 2, §1: parole di Mauro verbatim, proposta del referee in sintesi.</p>
+<p class="h" style="margin-top:18px">Mauro · chat del referee · i tasti dopo lo Stop<span class="r13">REV13</span></p>
+<pre>sicuramente se clicco stop i tasti restanti non servono piu' possono anche sparire o abbassare la loro intensita' e diventare deselezionabili. TU come la vedi?</pre>
+<p>Poi, sulla proposta del referee (console al suo posto, Kill e List mode senza effetto, Mixer attivo):</p>
+<pre>ok perfetto.</pre>
+<p class="h" style="margin-top:6px">Mauro · chat del referee · List mode</p>
+<pre>si esattamente e' una schermata statica del player. Nel player esistono due modi di guardare la canzone: dinamica oppure statica (List mode). Dobbiamo ancora decidere bene le dinamiche di questa videata. Magari finot tutto questo lavoro di restlying ci mettiamo a progettare le List mode</pre>
+<p class="h" style="margin-top:6px">Mauro · chat del referee · le spie</p>
+<pre>La spia WiFI verifica la presenza del Wifi on stessa cosa per il peer (potrebbe essere attivo il wifi ma trovandoci in dual band il peer non c'e' perche' il direttore e' su 2.4 mentre il folllower e' su 5 ghz). Stresso discorso per Bluetooth se e' on counicando in entrata e uscita oppure se e' off</pre>
+<p>Poi, sulle note del referee:</p>
+<pre>Peer=ok; WiFi ok; Bluetooth= ok</pre>
+<p class="src">Dal brief A386 · CORREZIONI, emissione 2, §1: verbatim, con gli accenti resi con l'apostrofo come lì.</p>
+<p class="h" style="margin-top:18px">Mauro · 03/10/2026 · la correzione alla REV10 (chat CD)</p>
+<pre>non non lo voglio così quando premo stop la console resta la barra counter bar totale sparisce e compoaiono Intro verse chorus e prosegue uscendo dalla schermata, non va a capo deve capirsi che oltre la videata c'è altro. Con il dito fai slide e sposti le sezioni.</pre>
+<p class="h" style="margin-top:6px">Mauro · 03/10/2026 · l'idea (dal brief del referee, emissione 1)</p>
+<pre>Premendo STOP nel player compaiono al posto della counter bar totale della canzone (che non serve più visto che abbiamo premuto stop) le sezioni selezionabili posizionate orizzontalmente, nulla di enorme o pulsanti giganti lo stretto necessario perchè si leggano le sezioni.</pre>
+<pre>Se voglioamo partire dalla bridge semplicemente cerco bridge clicco e parto.</pre>
+<pre>si si eventualmente solo per il "solo"</pre>
+<p class="h" style="margin-top:6px">Mauro · 03/10/2026 · sulla REV11 (chat CD)</p>
+<pre>ovviamente il simbolo centrale STOP nella simulazione deve divenatre triangolo con contorno verde</pre>
+<pre>il tasto seleziona la sezione non la fa partire.
+per farla partire devo premere play</pre></div>
+<div><p class="h">Come le leggo, dove serve dirlo</p>
+<p><span class="r18">REV18</span><b>«B» · «DOMANDA LIST MODE: B».</b> A canzone in corso restano accesi solo Mixer e Stop. Kill e List mode hanno la stessa veste, ferma e in moto: quella del quadrante vuoto (punto 88). La console ha così una faccia sola, e cambia solo il tasto centrale, Play o Stop. I due tasti si riaccendono uno alla volta, quando avranno qualcosa da fare: Kill quando la base arriverà nel player, e solo mentre suona; List mode quando avrà la sua funzione, dopo il restyling.</p>
+<p><span class="r18">REV18</span><b>«lo stesso lavoro di grafica ecc va fatta anche per Ipad».</b> Sì: dopo l'iPhone, copiandone le decisioni. In questo foglio niente iPad (punto 83).</p>
+<p><span class="r17">REV17</span><b>«si esattamente via il tocco sul velo».</b> Dopo lo Stop si riparte solo col Play, al centro della console, dalla sezione scelta e sempre col conto. Sul velo restano «Resume from» con la sezione, la canzone, tempo e metrica; il tocco non fa niente; lo swipe fra canzoni resta, perché non è il tocco. Per questo velo supera il «tap ovunque per far ripartire» del LIBRO (30/08): lo scrive il LIBRO alla ratifica.</p>
+<p><span class="r17">REV17</span><b>«1. A».</b> La mano accanto alla scritta, il gruppo centrato: resta su V1 e V2, dove la console è nascosta e il tocco è l'unico modo di partire dallo schermo. Il test è chiuso: la sezione T è tolta, la REV16 resta su Drive come traccia.</p>
+<p><span class="r16">REV16</span><b>«1. SI».</b> Sulla fila del Solo la stessa frase del velo, «Resume from»: il velo dice da quale sezione si riparte, la fila sotto le offre tutte. Sul Follower resta «Start from»: lì non si riprende una canzone fermata, si entra nella band.</p>
+<p><span class="r16">REV16</span><b>«Vorrei un test visivo».</b> Le due forme sugli stessi schermi, una accanto all'altra: sezione T. Nel resto del foglio resta la A finché Mauro non sceglie; poi la forma scelta va identica su ogni velo, e sul Direttore al prossimo giro del sync. <b>REV17: test chiuso con la A; la sezione T è tolta.</b></p>
+<p><span class="r16">REV16</span><b>«si si fallo cmq».</b> Al Resume dopo lo Stop il conto c'è sempre: con «Off» una battuta, con «1 bar» o «2 bars» come impostato. Via «con Off non c'è» dalla didascalia di K0.</p>
+<p><span class="r16">REV16</span><b>«Pensavo che con dito intendessi il tap to start».</b> Confonderli era facile: il segno della fila era un polpastrello fra due frecce, un dito come la mano. Ora è una doppia freccia di lato, senza dito. La mano dice «tocca e parti», la freccia dice «la fila scorre». Nel foglio non lo chiamo più «icona del dito»: è <b>il segno dello scorrere</b>.</p>
+<p><span class="r13">REV13</span><b>«i tasti restanti non servono più» · «ok perfetto.»</b> La console resta al suo posto e il Play sta dove stava lo Stop. A canzone ferma <b>Kill e List mode non rispondono al tocco</b>; <b>il Mixer sì</b>, così i volumi si sistemano anche da fermi. Come appaiono i tasti spenti l'ho scelto io: non spariscono, prendono la veste del quadrante vuoto, e la console non cambia forma. Punto 88.</p>
+<p><span class="r13">REV13</span><b>List mode e le spie.</b> List mode resta un tasto senza funzione, come oggi Emerg: le sue dinamiche si disegnano dopo il restyling. La spia di Link resta nel Solo; Wi-Fi e Bluetooth restano come sono, ma provvisorie finché CC non verifica cosa iOS lascia leggere all'app.</p>
+<p><span class="r14">REV14</span><b>Le spie, definite.</b> Wi-Fi verde = collegato a una rete Wi-Fi. Al posto di Bluetooth, <b>MIDI</b>: verde fisso = un apparecchio MIDI collegato, un lampo = un messaggio dal pedale. Come lampeggia, e per quali messaggi, è il punto 98.</p>
+<p><span class="r15">REV15</span><b>«Tap to start» · END SHOW · il conto.</b> Una parola sola per il tocco, scelta da Mauro, e una forma sola: <b>la mano a sinistra della scritta</b>, il gruppo centrato, come Mauro l'ha sistemato sul Direttore. <b>REV17: resta la A (Mauro: «1. A»).</b> La stessa forma su ogni velo<s>, compreso quello dopo lo Stop, dove il tocco resta e riparte dalla sezione scelta, come il Play (punto 87 chiuso)</s> (REV17: dopo lo Stop il tocco non c'è più, solo il Play). A fine scaletta END SHOW poco sopra il centro dello schermo e BACK TO SHOWS in fondo, come nell'app e uguale per i tre ruoli. Il «4-3-2-1» che Mauro cerca è il conto alla rovescia, già deciso e mai costruito: lo disegno (schermo K0, punto 74).</p>
+<p><b>«la console resta».</b> I quattro tasti e il tasto centrale restano al loro posto, come in moto. Il velo non scende più fino in fondo: finisce sopra la fila.</p>
+<p><b>«la barra counter bar totale sparisce».</b> È la barra della canzone a 596, quella con i blocchi delle sezioni. La fila prende il suo posto, fra il velo e la console.</p>
+<p><b>«prosegue uscendo dalla schermata, non va a capo».</b> Una riga sola. L'ultimo tasto in vista è tagliato dal bordo: è quello il segno che c'è altro. Se la fila è scorsa, anche il primo è tagliato a sinistra.</p>
+<p><b>«Con il dito fai slide e sposti le sezioni».</b> Leggo «sposti» come <b>scorri</b> la fila, non «cambi l'ordine» delle sezioni: l'ordine della canzone non si tocca dal player. Punto 85.</p>
+<p><b>«nulla di enorme».</b> Tasti alti 44, scritta 17: come la REV10.</p>
+<p><b>«il tasto seleziona… devo premere play».</b> Questo supera il «cerco bridge clicco e parto» del brief: il tocco sceglie, il Play parte. Il tasto selezionato è uno solo, ed è quello che il velo nomina nel «Resume from».</p>
+</div></div>
+
+<div class="s-h2">R · Il teleprompter di K <span>REV20 · due righe da 68, sotto 53 tre righe, a 42 i puntini · cambia il punto 51 · aperto finché Mauro non ratifica</span></div>
+<div class="s-pan" style="margin-bottom:28px"><p><span class="r20">REV20</span><b>La regola scelta da Mauro il 10/10</b> sulla scheda del test visivo (sezione 0: «80 LO SCARTIAMO»; «OPTEREI PER UN 53 TRE RIGHE CON TETTO A 68.»). <b>1.</b> Il nome si prova in <b>due righe, da 68</b>, a scendere di 1. <b>2.</b> Se in due righe dovrebbe scendere <b>sotto 53</b>, passa a <b>tre righe, da 53</b>, a scendere di 1. <b>3.</b> <b>A 42</b> quello che non sta finisce coi puntini, alla fine della terza riga. 68 è il corpo di STAGE-HERO della scala di palco (BOX5, 11/09). I nomi corti restano a 68; una frase fino a circa 50 caratteri sta intera, in tre righe: «comincia il canto four three two one» 53 e «Bridge attenzione vai piano» 53, che nella REV19 erano 43 e 44 in due righe.</p>
+<p><span class="r19">REV19</span><b>Cambia solo il nome della sezione in K</b> (Mauro, 08/10: «se riusciamo a sfruttare meglio lo spazio per il teleprompter principale è meglio»). <b>Il riquadro</b> passa da 346–446, alto 100, a <b>284–457, alto 173</b>: lo spazio fra la barra delle battute, che finisce a 276, e il bordo alto del Mixer aperto, a 462. Così il nome non si sposta mai, col Mixer aperto o chiuso, e non finisce mai sotto il pannello. <b>Il nome non ha più un corpo fisso</b>: la regola è quella della REV20, sopra (<s>da 80 a 42 in due righe</s>). Peso, interlinea e spaziatura restano quelli del 51: Inter 800, 1,08, −0,035 em.</p>
+<p><b>Cambia il punto 51</b> (REV17, ratificata il 04/10, LIBRO v89, riga 2026-10-04, fra i punti da provare sul telefono): il 42 fisso diventa il pavimento. Resta vero quello per cui il 51 era nato: l'esempio di Mauro, «Bridge attenzione vai piano», sta sempre intero, <span class="r20">REV20</span>in tre righe a 53 (<s>in due righe</s>). Il resto di K non si muove: spie, battuta e BPM, barra delle battute, Next a 516, barra della canzone, console.</p></div>
+<div class="s-row">
+<div class="s-col"><div class="s-lbl"><b>R1 · Com'è oggi</b><span>REV18 · punto 51</span></div>
+<div class="p" data-screen-label="R1 K REV18 · Verse 42"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 16</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="16" data-c="3"></div>
+<div class="p-se o18"><b class="fx">Verse</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i style="flex:16"><u style="width:18.75%"></u></i><i style="flex:16"></i><i style="flex:8"></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Il teleprompter di oggi:</b> 42 fisso nel riquadro alto 100. Sopra e sotto restano 70 pt vuoti. Sull'iPad, ingrandito 1,38, Mauro: «"Verse" su ipad è piccolo».</p></div>
+<div class="s-col"><div class="s-lbl"><b>R2 · Verse</b><span>REV20 · 68</span></div>
+<div class="p" data-screen-label="R2 K REV20 · Verse"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 16</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="16" data-c="3"></div>
+<div class="p-se"><b data-f="r2">Verse</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i style="flex:16"><u style="width:18.75%"></u></i><i style="flex:16"></i><i style="flex:8"></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>Lo stesso Verse:</b> <span data-fo="r2"></span>. Una riga a 68 sta al centro del riquadro, 334–407 (<s>a 80, 327–414</s>). Next, la barra della canzone e la console sono dove erano.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R3 · Pre-Chorus</b><span>a capo dopo il trattino</span></div>
+<div class="p" data-screen-label="R3 K REV20 · Pre-Chorus"><div class="p-sb"><b>22:05</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Marea</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>2<span>of 4</span></b><b>96<span>bpm</span></b></div>
+<div class="bm" data-n="4" data-c="2"></div>
+<div class="p-se"><b data-f="r3">Pre-Chorus</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:4"></i><i class="d" style="flex:8"></i><i style="flex:4"><u style="width:50%"></u></i><i style="flex:8"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r19">REV19</span><b>Pre-Chorus:</b> <span data-fo="r3"></span>. Va a capo dopo il trattino già scritto, come i nomi sui veli (A398 §3.6). Nessun trattino aggiunto: le parole non si spezzano mai.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R4 · L'esempio di Mauro</b><span>27 caratteri · tre righe</span></div>
+<div class="p" data-screen-label="R4 K REV20 · Bridge attenzione vai piano"><div class="p-sb"><b>21:47</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>5<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="5"></div>
+<div class="p-se"><b data-f="r4">Bridge attenzione vai piano</b></div>
+<div class="p-nx"><span>Next</span><b>Outro</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i class="d" style="flex:16"></i><i style="flex:8"><u style="width:62.5%"></u></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>«Bridge attenzione vai piano»</b> (REV3): <span data-fo="r4"></span>. In due righe dovrebbe scendere a 44, sotto 53: passa a tre righe e resta a 53. Col 51 era 42 in due righe.</p></div>
+</div>
+<div class="s-row" style="margin-top:44px">
+<div class="s-col"><div class="s-lbl"><b>R5 · Stacco veloce</b><span>dalla scaletta di Mauro</span></div>
+<div class="p" data-screen-label="R5 K REV20 · Stacco veloce"><div class="p-sb"><b>22:31</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Verde Rame</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>7<span>of 8</span></b><b>132<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="7"></div>
+<div class="p-se"><b data-f="r5">Stacco veloce</b></div>
+<div class="p-nx"><span>Next</span><b>Stop</b></div>
+<div class="p-sp"><i class="d" style="flex:4"></i><i class="d" style="flex:12"></i><i style="flex:8"><u style="width:87.5%"></u></i><i style="flex:1"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r19">REV19</span><b>«8X stacco veloce»</b>, dalla scaletta che Mauro fotografava: <span data-fo="r5"></span>.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R6 · Nome lungo</b><span>54 caratteri · tre righe</span></div>
+<div class="p" data-screen-label="R6 K REV20 · nome lungo"><div class="p-sb"><b>21:49</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>2<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="2"></div>
+<div class="p-se"><b data-f="r6">Bridge attenzione vai piano poi stop secco sul quattro</b></div>
+<div class="p-nx"><span>Next</span><b>Outro</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i class="d" style="flex:16"></i><i style="flex:8"><u style="width:25%"></u></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>Il nome troppo lungo della REV3:</b> <span data-fo="r6"></span>. Nella REV19 arrivava a 42 coi puntini; in tre righe sta tutto. Il nome che arriva ai puntini è in R10.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R7 · Mixer aperto</b><span>due righe a 68</span></div>
+<div class="p" data-screen-label="R7 K REV20 · Mixer aperto · Bridge vai piano"><div class="p-sb"><b>21:46</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>4<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="4"></div>
+<div class="p-se"><b data-f="r7">Bridge vai piano</b></div>
+<div class="mxp" style="top:462px;height:160px"><b>CLICK</b><b>BACKT</b><b class="o">CH3</b><b class="o">CH4</b></div>
+<p class="mk" style="top:540px;left:50%;transform:translateX(-50%)">il pannello · 462–622 · schema</p>
+<div class="kB"><span class="q dead"></span><span class="q r on"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r19">REV19</span><b>«Bridge vai piano»:</b> <span data-fo="r7"></span>, col Mixer aperto. Il riquadro finisce a 457, 5 sopra il pannello (462–622, la misura costruita in M3, A398 §9 caso 4): anche la gamba della «p» resta in vista. Next e la barra della canzone stanno sotto il pannello, come nella REV18 (f1).</p></div>
+<div class="s-col"><div class="s-lbl"><b>R8 · Le misure</b><span>schema, non schermo</span></div>
+<div class="p" data-screen-label="R8 schema · il riquadro del teleprompter"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 16</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="16" data-c="3"></div>
+<div class="p-se"><b>Verse</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i style="flex:16"><u style="width:18.75%"></u></i><i style="flex:16"></i><i style="flex:8"></i><i style="flex:8"></i></div>
+<div class="mz" style="top:284px;height:173px;left:12px;right:12px;background:rgba(255,138,92,.13);border:2px dashed rgba(255,138,92,.75)"></div>
+<p class="mk" style="top:292px;left:22px">riquadro 284–457 · 366 × 173</p>
+<div style="position:absolute;left:0;right:0;top:462px;border-top:2px dashed var(--paper)"></div>
+<p class="mk" style="top:470px;right:16px">462 · bordo del Mixer aperto</p>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Il riquadro</b> (arancio): da 284 a 457, largo 366, margini 12. Comincia 8 sotto la barra delle battute (276) e finisce 5 sopra il Mixer aperto (462). È centrato nello spazio che resta col Mixer aperto: per questo, a Mixer chiuso, una riga sta un po' più vicina alla barra delle battute che a Next.</p></div>
+</div>
+<div class="s-row" style="margin-top:44px">
+<div class="s-col"><div class="s-lbl"><b>R9 · La frase di Mauro</b><span>36 caratteri · tre righe</span></div>
+<div class="p" data-screen-label="R9 K REV20 · comincia il canto four three two one"><div class="p-sb"><b>22:07</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Marea</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 4</span></b><b>96<span>bpm</span></b></div>
+<div class="bm" data-n="4" data-c="3"></div>
+<div class="p-se"><b data-f="r9">comincia il canto four three two one</b></div>
+<div class="p-nx"><span>Next</span><b>Verse</b></div>
+<div class="p-sp"><i style="flex:4"><u style="width:75%"></u></i><i style="flex:16"></i><i style="flex:8"></i><i style="flex:16"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>«comincia il canto four three two one»</b>, la frase di Mauro del 09/10: <span data-fo="r9"></span>. Nella REV19 43 in due righe.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R10 · Ai puntini</b><span>a 42, alla fine della terza riga</span></div>
+<div class="p" data-screen-label="R10 K REV20 · nome ai puntini"><div class="p-sb"><b>22:12</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Verde Rame</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 8</span></b><b>108<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="3"></div>
+<div class="p-se"><b data-f="r10">entra la voce piano, quattro battute poi ritornello</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i style="flex:8"><u style="width:37.5%"></u></i><i style="flex:16"></i><i style="flex:8"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>Un nome che non sta neanche in tre righe a 42:</b> «entra la voce piano, quattro battute poi ritornello», 51 caratteri: <span data-fo="r10"></span>, alla fine della terza riga. Succede intorno ai 50 caratteri, ma dipende dalle parole: «entra la voce, quattro battute poi ritornello e stop», 52, sta ancora a 42 in tre righe. Per l'editor resta la misura del 51, circa 14 caratteri per riga a 42, 28 in tutto.</p></div>
+<div class="s-col"><div class="s-lbl"><b>R11 · Mixer aperto</b><span>tre righe a 53</span></div>
+<div class="p" data-screen-label="R11 K REV20 · Mixer aperto · Bridge attenzione vai piano"><div class="p-sb"><b>21:48</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>5<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="5"></div>
+<div class="p-se"><b data-f="r11">Bridge attenzione vai piano</b></div>
+<div class="mxp" style="top:462px;height:160px"><b>CLICK</b><b>BACKT</b><b class="o">CH3</b><b class="o">CH4</b></div>
+<p class="mk" style="top:540px;left:50%;transform:translateX(-50%)">il pannello · 462–622 · schema</p>
+<div class="kB"><span class="q dead"></span><span class="q r on"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r20">REV20</span><b>Tre righe col Mixer aperto,</b> il caso più stretto: «Bridge attenzione vai piano», <span data-fo="r11"></span>. Le righe vanno da 285 a 456; l'inchiostro, dalle metriche del carattere, da 282 a 458,5 (referee, 10/10): resta fra la barra delle battute (276) e il pannello (462).</p></div>
+</div>
+<div class="s-pan" style="margin-top:36px"><table class="s-t">
+<tr><th>Blocco</th><th>pt</th><th>Corpo e colore</th></tr>
+<tr><td>Riquadro del teleprompter</td><td>284–457</td><td><span class="r19">REV19</span>largo 366, margini 12 · alto 173 · <s>346–446, alto 100</s> (punto 51) · <span class="r20">REV20</span>non cambia: ci stanno tre righe a 53 (3 × 1,08 × 53 = 171,7) e due a 68 (146,9) · <s>due righe a 80 × 1,08</s></td></tr>
+<tr><td>Il nome della sezione</td><td>—</td><td><span class="r20">REV20</span>Inter 800 bianco, interlinea 1,08, spaziatura −0,035 em, come il 51 · <b>1.</b> si prova in due righe larghe 366, da 68 a scendere di 1 · <b>2.</b> se in due righe dovrebbe scendere sotto 53, passa a tre righe, da 53 a scendere di 1 · <b>3.</b> a 42 quello che non sta finisce coi puntini, alla fine della terza riga · vince il primo corpo a cui il nome sta · un corpo solo per tutte le righe · a capo fra le parole e dopo un trattino già scritto, mai dentro una parola · <s>da 80 a 42 in due righe</s> (REV19) · <s>42 fisso</s> (51)</td></tr>
+<tr><td>Dove sta</td><td>—</td><td>il blocco al centro del riquadro, come oggi · <span class="r20">REV20</span>una riga a 68: 334–407 · due righe a 68: 297–444 · tre righe a 53: 285–456 · a corpo minore resta centrato · inchiostro, dalle metriche del carattere (referee, 10/10): due righe a 68 294–447, tre righe a 53 282–458,5, fra 276 e 462 · <s>una riga a 80: 327–414</s></td></tr>
+<tr><td>Intorno, fermi</td><td>276 · 462 · 516</td><td>la barra delle battute finisce a 276 · il Mixer aperto comincia a 462 · Next comincia a 516 · spie, battuta e BPM, barra della canzone e console come nella REV18</td></tr>
+<tr><td>Come si costruisce</td><td>—</td><td><span class="r20">REV20</span>la regola del nome sui veli (punto 114) con 366 al posto di 338, 68 al posto di 80, 42 al posto di 48, e un passo in più: sotto 53 tre righe invece di due · lo stesso pezzo del testo che M3 ha già costruito (A398 §3.6; <code>TextFit.swift</code>), con le righe che passano da 2 a 3 · <s>con 80 e due righe</s> (REV19)</td></tr>
+<tr><td>I nomi di questa sezione</td><td>—</td><td>calcolati nel foglio, coi caratteri del foglio · Verse <b data-fo="r2"></b> · Pre-Chorus <b data-fo="r3"></b> · Bridge attenzione vai piano <b data-fo="r4"></b> · Stacco veloce <b data-fo="r5"></b> · Bridge vai piano <b data-fo="r7"></b> · il nome lungo della REV3 <b data-fo="r6"></b> · <span class="r20">REV20</span>comincia il canto four three two one <b data-fo="r9"></b> · entra la voce piano, quattro battute poi ritornello <b data-fo="r10"></b> · col Mixer aperto, Bridge attenzione vai piano <b data-fo="r11"></b> · con <code>Inter-ExtraBold.ttf</code> dell'app gli stessi corpi (CD e referee, 10/10)</td></tr>
+<tr><td>Scala di palco</td><td>—</td><td><span class="r20">REV20</span>il tetto 68 è il corpo di STAGE-HERO della scala di palco (BOX5, 11/09) · pavimento 42 e peso 800 restano quelli del punto 51 (marcatura A390) · <s>tetto 80, fuori dalla scala</s> (REV19)</td></tr>
+</table>
+<p class="s-cap" style="margin-top:14px"><b>Contrasto</b>, calcolato sui token e non misurato sul telefono: nome bianco <code>#f5efe6</code> sul fondo <code>#110f0e</code> circa 16:1, come prima. <b>Da provare sul telefono</b>, al buio, sull'asta: come il 51.</p></div>
+
+<div class="s-h2">V · I veli del Solo <span>prima della canzone · fra due canzoni · fine scaletta: con le parole e la forma di Direttore e Follower</span></div>
+<div class="s-row">
+<div class="s-col"><div class="s-lbl"><b>V1 · Prima della canzone</b><span>come il Direttore</span></div>
+<div class="p" data-screen-label="V1 Solo · prima della canzone"><div class="p-sb"><b>21:36</b><svg class="sbi"><use href="#i-sb"></use></svg></div><div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div><div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div><div class="p-vb" style="top:248px"><p class="p-va">Next</p><p class="p-vn">Circuz</p><p class="p-vt">121 · 4/4</p></div><p class="p-tap" style="top:618px"><svg viewBox="0 0 24 24"><path d="M6.6 6.2a4.2 4.2 0 0 1 8.4 0"></path><path d="M8.6 6.6a2.2 2.2 0 0 1 4.4 0"></path><path d="M9.6 14V7.4a1.2 1.2 0 0 1 2.4 0V12"></path><path d="M12 11.2a1.2 1.2 0 0 1 2.4 0V12.4"></path><path d="M14.4 11.8a1.2 1.2 0 0 1 2.4 0v.8"></path><path d="M16.8 12.4a1.2 1.2 0 0 1 2.4 0v3.4a5.6 5.6 0 0 1-5.6 5.6h-1.2a5.2 5.2 0 0 1-4.1-2l-2.6-3.3a1.25 1.25 0 0 1 1.9-1.6l2 2.1"></path></svg>Tap to start</p></div>
+<p class="s-cap"><span class="r16">REV16</span>In testata <b>il nome dello show</b>, come sul velo del Direttore (punto 102). <span class="r17">REV17</span>«Tap to start» nella forma A, scelta da Mauro («1. A»): qui resta, perché la console è nascosta e il tocco è l'unico modo di partire dallo schermo. <span class="r15">REV15</span><b>Come il velo del Direttore</b> (sync, schermo 1): «Next», la canzone, tempo e metrica della canzone e «Tap to start» con la mano, nella forma unica (punto 100). Via «Tap anywhere» e il triangolo (Mauro: «Tap to start mi sembra quella piu' di uso comune. Tocca e parti.»). Tempo e metrica anche qui (Mauro: «4. SI OK»). La riga di stato c'è anche sul velo: «Wi-Fi · MIDI», «Link» solo a Link acceso. Resta del solo Direttore «Stay on this screen». <b>Si entra nello show:</b> un tocco ovunque sul velo fa partire la canzone.</p></div>
+<div class="s-col"><div class="s-lbl"><b>V2 · Fra due canzoni</b><span>come lo V1</span></div>
+<div class="p" data-screen-label="V2 Solo · fra due canzoni"><div class="p-sb"><b>21:48</b><svg class="sbi"><use href="#i-sb"></use></svg></div><div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div><div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div><div class="p-vb" style="top:248px"><p class="p-va">Next</p><p class="p-vn">Mare</p><p class="p-vt">100 · 4/4</p></div><p class="p-tap" style="top:618px"><svg viewBox="0 0 24 24"><path d="M6.6 6.2a4.2 4.2 0 0 1 8.4 0"></path><path d="M8.6 6.6a2.2 2.2 0 0 1 4.4 0"></path><path d="M9.6 14V7.4a1.2 1.2 0 0 1 2.4 0V12"></path><path d="M12 11.2a1.2 1.2 0 0 1 2.4 0V12.4"></path><path d="M14.4 11.8a1.2 1.2 0 0 1 2.4 0v.8"></path><path d="M16.8 12.4a1.2 1.2 0 0 1 2.4 0v3.4a5.6 5.6 0 0 1-5.6 5.6h-1.2a5.2 5.2 0 0 1-4.1-2l-2.6-3.3a1.25 1.25 0 0 1 1.9-1.6l2 2.1"></path></svg>Tap to start</p></div>
+<p class="s-cap"><span class="r16">REV16</span>In testata il nome dello show, come su V1. <span class="r15">REV15</span><b>Lo stesso velo, con la canzone dopo</b>: Circuz è finita, viene Mare. Tempo e metrica sono quelli di Mare. Prima della canzone e fra due canzoni lo schermo resta uno solo, come nel foglio dei veli.</p></div>
+<div class="s-col"><div class="s-lbl"><b>V4 · Fine scaletta</b><span>uguale per i tre ruoli</span></div>
+<div class="p" data-screen-label="V4 Solo · fine scaletta"><div class="p-sb"><b>23:31</b><svg class="sbi"><use href="#i-sb"></use></svg></div><div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div><div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div><p class="p-es">END SHOW</p><div class="p-bs"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Back to Shows</div></div>
+<p class="s-cap"><span class="r16">REV16</span>In testata il nome dello show, come su Direttore e Follower: dice quale show è finito. <span class="r15">REV15</span><b>Come nell'app, uguale per Solo, Direttore e Follower:</b> END SHOW poco sopra il centro dello schermo, e un solo tasto, BACK TO SHOWS, bianco, in fondo: esce, non ferma niente (Mauro: «2. Mettiamo END SHOW per il motivo sopra descritto», «4. si»). Via «Show over». Testata e riga di stato come su Direttore e Follower (punto 97). Le stesse misure nel sync, per Direttore e Follower (Mauro: «PER TUTTI: fine scaletta END SHOW A 2/3 SI VIDEATA (SOPRA IL CENTRO ) E BACK TO SHOWS A FONDO PAGINA»).</p></div>
+</div>
+
+<div class="s-h2">1 · Lo schermo fermo dopo lo Stop · Solo <span>Circuz, Stop sul Bridge: la fila, il dito che la scorre, il tocco su Chorus, il conto, la partenza</span></div>
+<div class="s-row" style="flex-wrap:wrap">
+<div class="s-col"><div class="s-lbl"><b>H · Fermo dopo lo Stop</b><span>la fila apre sul Bridge</span></div>
+<div class="p" data-screen-label="01 Solo fermo dopo lo Stop · la fila"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Bridge</b></p><p class="p-vn">Circuz</p><p class="p-vt">121 · 4/4</p></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="80"><div class="sx-r"><b>Intro</b><b>Verse</b><b>Chorus</b><b class="cu">Bridge</b><b>Outro</b></div></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div></div>
+<p class="s-cap"><span class="r17">REV17</span><b>Sul velo niente «Tap to start», e il tocco non fa niente: si riparte solo col Play</b> (Mauro: «si esattamente via il tocco sul velo»). Il blocco del velo scende a 248, come su V1 e V2. <span class="r16">REV16</span>In testata il nome dello show. Sopra la fila <b>«Resume from»</b>, la stessa frase del velo; accanto il segno dello scorrere, <b>una doppia freccia di lato, senza dito</b>, perché la fila non sta tutta nello schermo. <span class="r13x">REV13</span> <b>La console resta al suo posto, col Play al centro: il Mixer è acceso, Kill e List mode sono spenti</b> e il tocco su di loro non fa niente. <b>La barra della canzone non c'è più.</b> Al suo posto la fila, già scorsa quanto basta per avere in vista il Bridge segnato. Intro si vede appena a sinistra, Outro esce a destra: la fila continua da tutte e due le parti. <b>In questo foglio la fila scorre davvero:</b> trascinala.</p></div>
+
+<div class="s-col"><div class="s-lbl"><b>I · Il dito scorre la fila</b><span>verso destra, fino a Intro</span></div>
+<div class="p" data-screen-label="02 Solo fermo · il dito scorre la fila"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Bridge</b></p><p class="p-vn">Circuz</p><p class="p-vt">121 · 4/4</p></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="0"><div class="sx-r"><b>Intro</b><b>Verse</b><b>Chorus</b><b class="cu">Bridge</b><b>Outro</b></div></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div>
+<span class="fa" style="top:595px;left:150px;width:110px"></span><span class="fg" style="top:570px;left:250px"></span></div>
+<p class="s-cap"><b>Il dito appoggiato sulla fila e trascinato</b>: le sezioni seguono il dito, non succede altro. Ora Intro è intero a sinistra e il Bridge esce a destra. Lo scorrere non fa partire niente e non sceglie niente.</p>
+<p class="s-fl">⚑ Lo scorrere e lo swipe fra canzoni: punto 76.</p></div>
+
+<div class="s-col"><div class="s-lbl"><b>J · Chorus selezionato</b><span>poi Play</span></div>
+<div class="p" data-screen-label="03 Solo fermo · Chorus selezionato, poi Play"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Chorus</b></p><p class="p-vn">Circuz</p><p class="p-vt">121 · 4/4</p></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="80"><div class="sx-r"><b>Intro</b><b>Verse</b><b class="cu">Chorus</b><b>Bridge</b><b>Outro</b></div></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div>
+<span class="fg" style="top:692px;left:169px"></span></div>
+<p class="s-cap"><b>Il tocco su Chorus lo seleziona, non lo fa partire.</b> Il segno passa dal Bridge al Chorus e il velo lo dice: «Resume from <b>Chorus</b>». Si può cambiare idea quante volte si vuole. <b>Si parte solo col Play</b>, il triangolo verde al centro della console (il dito disegnato). <span class="r17">REV17</span>Il tocco sul velo non fa più niente. Se il dito si sposta sulla fila, è uno scorrere e non seleziona niente.</p>
+<p class="s-fl">⚑ Il tocco sul velo dopo lo Stop: punto 87, chiuso nella REV17. Col conto alla rovescia: punto 74. Con la base: punto 82.</p></div>
+
+<div class="s-col"><div class="s-lbl"><b>K0 · Il conto</b><span>dopo il Play · proposta</span></div>
+<div class="p" data-screen-label="04a Solo · il conto prima del Chorus"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp cd"><i></i><i></i><i class="on"></i><i></i></div>
+<div class="p-bc"><b><span>Count-in</span>1<span>of 1</span></b><b>121<span>bpm</span></b></div>
+<div class="p-cd"><b>2</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i style="flex:16"><u style="width:0"></u></i><i style="flex:8"></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><span class="r15">REV15</span><b>Il conto alla rovescia</b>, per il dubbio di Mauro («LA BAND HA BISOGNO DI "4-3-2-1" PRIMA DI PARTIRE IN BLOCCO»). Dopo il Play (<b>REV17</b>: il tocco sul velo non fa più partire) il conto suona nel click, col tempo e la metrica della sezione da cui si riparte (D9, 30/08): qui il Chorus, 121, 4/4, quindi 4-3-2-1; in 3/4 sarebbe 3-2-1. <span class="r16">REV16</span><b>Al Resume dopo lo Stop a metà canzone il conto c'è sempre</b> (Q3=A, 21/05); dal 29/09 vale solo nel Solo. <b>Se la canzone ha «Count-in» su «Off», si fa comunque una battuta</b> (Mauro, 04/10: «si si fallo cmq»): la band deve ripartire tutta insieme. Con «1 bar» o «2 bars» si fa come impostato. Qui una battuta, «Count-in 1 of 1»: con «Off» o con «1 bar» lo schermo è questo. Il numero grande dice quanti battiti mancano, le spie lo seguono, Next dice la sezione che parte. Finisce esattamente sul battito 1 della musica: lì lo schermo diventa K. <b>Oggi nell'app il conto non è costruito: è una proposta.</b> <span class="r18">REV18</span>Kill e List mode spenti anche qui, come in moto; il resto dello schermo del conto non è toccato (punti 74 e 101).</p>
+<p class="s-fl">⚑ Lo Stop durante il conto: punto 74. Come si mostrano le 2 battute: punto 101.</p></div>
+
+<div class="s-col"><div class="s-lbl"><b>K · Parte dal Chorus</b><span>in moto, REV9</span></div>
+<div class="p" data-screen-label="04 Solo in moto · dal Chorus"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>1<span>of 16</span></b><b>121<span>bpm</span></b></div>
+<div class="p-bm"><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="p-se"><b>Chorus</b></div>
+<div class="p-nx"><span>Next</span><b>Bridge</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i style="flex:16"><u></u></i><i style="flex:8"></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>In moto la fila torna barra:</b> la barra della canzone riappare a 596, con Intro e Verse fatti. La console non si è mai mossa. <span class="r18">REV18</span><b>In moto Kill e List mode restano spenti</b>, nella veste del quadrante vuoto: a canzone in corso sono accesi solo Mixer e Stop (Mauro: «B»; «DOMANDA LIST MODE: B»). Dopo lo Stop la fila riapre sulla sezione dove ci si è fermati.</p></div>
+</div>
+
+<div class="s-h2">2 · Come non si confondono <span>la mappa dei tocchi · una canzone lunga con nomi uguali</span></div>
+<div class="s-row">
+<div class="s-col"><div class="s-lbl"><b>La mappa dei tocchi</b><span>schema sopra lo schermo H</span></div>
+<div class="p" data-screen-label="05 Schema · i tocchi a canzone ferma"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div style="opacity:.3"><div class="p-vb"><p class="p-va">Resume from <b>Bridge</b></p><p class="p-vn" style="animation:none">Circuz</p><p class="p-vt">121 · 4/4</p></div></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="80"><div class="sx-r"><b>Intro</b><b>Verse</b><b>Chorus</b><b class="cu">Bridge</b><b>Outro</b></div></div>
+<div style="opacity:.3"><div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div></div>
+<div class="mz a"></div><div class="mz b"></div><div class="mz c"></div><div class="mz d"></div>
+<p class="mk" style="top:62px;left:76px;right:76px;text-align:center">freccia → bivio · muto · riga di stato</p>
+<p class="mk" style="top:150px;left:30px;right:30px;text-align:center">tocco → niente (REV17)</p>
+<p class="mk" style="top:392px;left:30px;right:30px;text-align:center">swipe di lato → canzone accanto</p>
+<p class="mk" style="top:520px;right:22px">64 pt senza tocco ↓</p>
+<p class="mk" style="top:642px;left:22px">↑ fila: dito di lato scorre · tocco seleziona</p>
+<p class="mk" style="top:697px;left:22px">Mixer → si apre · List mode, Kill → niente</p>
+<p class="mk" style="top:752px;left:22px">Play → parte dalla selezionata</p></div>
+<p class="s-cap"><b>Schema, non schermo.</b> In arancio il velo: <span class="r17">REV17</span>il tocco non fa più niente, resta lo swipe fra canzoni. Poi 64 pt dove il dito non fa niente, la fila, la console: a canzone ferma lì rispondono solo il Play e il Mixer (REV13). La linea a 526 è il confine e si vede anche sullo schermo vero.</p></div>
+
+<div class="s-col"><div class="s-lbl"><b>L · Canzone lunga</b><span>nomi uguali · Link acceso</span></div>
+<div class="p" data-screen-label="06 Solo fermo · canzone lunga, nomi uguali"><div class="p-sb"><b>22:31</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span><i></i>Link</span><span class="sp"><i></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Chorus</b></p><p class="p-vn">Mare</p><p class="p-vt">100 · 4/4</p></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="560"><div class="sx-r"><b>Intro</b><b>Verse</b><b>Pre-chorus</b><b>Chorus</b><b>Verse</b><b>Pre-chorus</b><b class="cu">Chorus</b><b>Bridge attenzione vai piano</b><b>Chorus</b><b>Outro</b></div></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div></div>
+<p class="s-cap"><b>Dieci sezioni, tre Chorus, un nome lungo: sempre una riga.</b> La fila apre già scorsa sul secondo Chorus, quello dove si era fermi; prima e dopo di lui, tasti tagliati ai bordi. «Bridge attenzione vai piano» si ferma coi puntini a 200 pt. Qualunque sia la lunghezza della canzone, la fila resta alta 44: il limite delle quattro file della REV10 non c'è più.</p></div>
+
+<div class="s-col" style="flex-basis:520px;width:520px"><div class="s-lbl"><b>Perché un dito sbagliato non fa danni</b><span>quattro difese</span></div>
+<div class="s-pan">
+<p><b>① La distanza.</b> Fra la fine del velo (510) e la fila (574) ci sono 64 pt senza tocco: tengono lo swipe fra canzoni del velo lontano dallo scorrere della fila. <span class="r17">REV17</span>Un dito che punta alla fila e cade alto non fa ripartire niente: sul velo il tocco non fa più niente.</p>
+<p><b>② Sulla fila niente parte.</b> Il dito che si sposta la scorre; il tocco fermo seleziona. Un tasto sbagliato si corregge toccandone un altro: la canzone non è ancora partita.</p>
+<p><b>③ I gesti di lato non si contendono.</b> Lo swipe fra canzoni (ratificato il 21/05, Q8=A e Q9=A; non costruito, LIBRO 2026-09-05) resta nel velo. Nella fila lo stesso gesto scorre le sezioni. Sono due zone separate dai 64 pt.</p>
+<p><b>④ La console sotto la fila.</b> Fra la fila (618) e la console (630) ci sono 12 pt. È poco: il tasto centrale e i quattro tasti sono grandi e il dito li cerca senza guardare, ma va provato sul telefono. Punto 86. <b>REV13:</b> se il dito scivola dalla fila su Kill o List mode non succede niente, perché a canzone ferma sono spenti.</p>
+<p><b>Cosa non serve:</b> né la pressione lunga né la doppia conferma. La conferma è il Play, che c'era già.</p>
+</div></div>
+</div>
+
+<div class="s-h2">3 · Le misure per chi costruisce <span>pt dall'alto, iPhone 390 · lo schermo fermo dopo lo Stop, Solo</span></div>
+<div class="s-pan"><table class="s-t">
+<tr><th>Blocco</th><th>pt</th><th>Corpo e colore</th></tr>
+<tr><td>Testata</td><td>44–104</td><td>freccia e muto toccabili · <b>REV16:</b> al centro il nome dello show, Inter 700 24 bianco .86, la stessa veste del nome della canzone in moto · sul velo la testata dice lo show, in moto la canzone</td></tr>
+<tr><td>Riga di stato</td><td>98–128</td><td>come in moto (REV9)</td></tr>
+<tr><td>Velo</td><td>136–510</td><td>fondo <code>#110f0e</code>: copre la parte alta del player, che sotto non si vede · <b>REV17:</b> il tocco non fa niente; resta lo swipe fra canzoni</td></tr>
+<tr><td>Blocco del velo</td><td>248–407</td><td>«Resume from» Inter 600 21 .66, la sezione 700 bianco · canzone Inter 900 80, respiro 2,2 s · <b>REV15:</b> tempo e metrica della sezione JetBrains Mono 500 21 .66, 12 sotto la canzone · <b>REV17:</b> sceso da 226 a 248, come su V1 e V2: 120 sotto la riga di stato e 119 sopra la linea a 526 (punto 105)</td></tr>
+<tr><td>«Tap to start»</td><td>—</td><td><b>REV17:</b> non c'è sul velo dopo lo Stop: si riparte solo col Play · resta sui veli interi (V1, V2) a 618–662, forma A (Mauro: «1. A»): mano 44 a sinistra della scritta, 10 fra le due, gruppo centrato, Inter 600 21 bianco .86, come sul Direttore</td></tr>
+<tr><td>Senza tocco</td><td>510–574</td><td>linea a 526: 1,5 pt bianco .12, da 18 a 372 · «Resume from» a 540, Inter 600 17 .66, a sinistra (<b>REV16</b>, prima «Start from»)</td></tr>
+<tr><td>La fila</td><td>574–618</td><td>al posto della barra della canzone (596 in moto) · una riga, da bordo a bordo dello schermo, scorre di lato · primo tasto a 18 dal bordo a fila ferma all'inizio, ultimo tasto con 18 dopo di sé a fila in fondo</td></tr>
+<tr><td>Tasto</td><td>alto 44</td><td>10 pt fra i tasti · fondo <code>#1f1b18</code>, raggio 12 · Inter 700 17 .86, margine interno 18 · largo da 64 a 200, poi puntini · nell'ordine della canzone</td></tr>
+<tr><td>Apertura della fila</td><td>—</td><td>se il tasto segnato sta tutto in vista partendo dall'inizio, la fila parte dall'inizio; se no, è scorsa in modo che il tasto segnato sia intero e il tasto prima si veda in parte</td></tr>
+<tr><td>Segno di «c'è altro»</td><td>—</td><td>il tasto tagliato dal bordo e il segno dello scorrere a destra di «Resume from»: <b>REV16</b> una doppia freccia di lato, senza dito, 28, tratto 1,9 su 24, bianco .66, a 18 dal bordo, centrata sulla riga della scritta · solo quando la fila non sta tutta nello schermo · nessuna sfumatura, nessuna barra di scorrimento</td></tr>
+<tr><td>Tasto selezionato</td><td>—</td><td>fondo bianco .14, bordo 1,5 bianco .5, scritta bianca piena · uno solo · all'apertura è la sezione dove ci si è fermati · un tocco fermo su un altro tasto sposta la selezione · il «Resume from» del velo nomina sempre la selezionata</td></tr>
+<tr><td>Partenza</td><td>—</td><td><b>REV17:</b> solo col Play al centro della console, dalla sezione selezionata, sempre col conto (K0): con «Off» una battuta, con «1 bar» o «2 bars» come impostato (REV16) · il tocco sul velo e sui tasti della fila non fa mai partire</td></tr>
+<tr><td>Console</td><td>630–806</td><td>uguale alla REV9, tranne il tasto centrale: <b>Play</b>, triangolo 46 col contorno 2,4 verde <code>#28cd41</code>, anello 2 verde, fondo verde .14 · torna Stop in moto · <b>REV13:</b> a canzone ferma Kill e List mode spenti, opacità .4 come il quadrante vuoto, il tocco non fa niente · Mixer acceso come in moto · <b>REV18:</b> Kill e List mode spenti anche in moto: a canzone in corso sono accesi solo Mixer e Stop</td></tr>
+</table>
+<p class="s-cap" style="margin-top:14px"><b>Contrasti</b>, calcolati sui token e non misurati sul telefono: scritta .86 sul tasto 11,3:1 · tasto selezionato 11,7:1 · «Resume from» .66 sul fondo 7,5:1 · nome dello show in testata .86 sul fondo 12,4:1 · <b>Kill e List mode spenti 2,3:1, voluto</b>: non portano azione (il pavimento 4,5:1 vale sul testo che porta azione). Nessuna scritta sotto 17.</p></div>
+
+<div class="s-h2">C · I casi che la REV17 non disegnava <span>REV18 · trovati dalla costruzione · le lettere sono quelle del brief, da a a i · punti 106–114, aperti finché Mauro non ratifica</span></div>
+<div class="s-pan" style="margin-bottom:28px"><p><span class="r18">REV18</span><b>Nove casi, uno per lettera del brief</b> (§2.2). Per ognuno: lo schermo o la tavola, cosa fa l'app oggi, la misura (in fondo alla sezione) e il punto. Stanno tutti dentro la griglia della REV17: nessuna sua misura si sposta. <b>Ciò che non viene da Mauro è proposta di CD</b>; ciò che tocca il funzionamento è segnato ⚑ e lo guarda il referee. In ogni schermo in moto la console è quella della REV18: Kill e List mode spenti.</p></div>
+<div class="s-row">
+<div class="s-col" style="flex-basis:508px;width:508px"><div class="s-lbl"><b>a · Le spie, da 2 a 12 battiti</b><span>acceso il battito 1, accentato</span></div>
+<div class="tv">
+<p><b>2</b> · 2/4<br>Ø 46 · 22</p><div class="st"><div class="lp" data-n="2" data-on="1"></div></div>
+<p><b>3</b> · 3/4<br>Ø 46 · 22</p><div class="st"><div class="lp" data-n="3" data-on="1"></div></div>
+<p><b>4</b> · 4/4<br>Ø 46 · 22</p><div class="st"><div class="lp" data-n="4" data-on="1"></div></div>
+<p><b>5</b> · 5/4 5/8<br>Ø 46 · 12</p><div class="st"><div class="lp" data-n="5" data-on="1"></div></div>
+<p><b>6</b> · 6/4 6/8<br>Ø 46 · 12</p><div class="st"><div class="lp" data-n="6" data-on="1"></div></div>
+<p><b>7</b> · 7/4 7/8<br>Ø 42 · 10</p><div class="st"><div class="lp" data-n="7" data-on="1"></div></div>
+<p><b>9</b> · 9/8<br>Ø 32 · 8</p><div class="st"><div class="lp" data-n="9" data-on="1"></div></div>
+<p><b>11</b> · 11/8<br>Ø 26 · 6</p><div class="st"><div class="lp" data-n="11" data-on="1"></div></div>
+<p><b>12</b> · 12/8<br>Ø 24 · 6</p><div class="st"><div class="lp" data-n="12" data-on="1"></div></div>
+</div>
+<p class="s-cap"><b>Una spia per battito, su una fila sola, mai più larga della barra delle battute</b> (354, da 18 a 372). A sinistra: battiti, metriche dell'app, Ø e spazio fra le spie, in pt. Fino a 6 come la REV9. A 7 il Ø 42 della REV9, con spazio 10: la fila è larga proprio 354. Oltre, la spia si stringe quanto basta e lo spazio con lei. Il centro resta a 179: sopra e sotto non si muove niente. <b>Oggi</b> l'app mette una barretta per battito, in una fila sola. Punto 106.</p></div>
+<div class="s-col" style="flex-basis:508px;width:508px"><div class="s-lbl"><b>b · La barra delle battute, da 1 a 64</b><span>un segmento per battuta</span></div>
+<div class="tv">
+<p><b>8</b> battute<br>spazio 6 · 39</p><div class="st" style="height:74px"><div class="p-bc" style="top:12px"><b><span>Bar</span>5<span>of 8</span></b><b>121<span>bpm</span></b></div><div class="bm" style="top:50px" data-n="8" data-c="5"></div></div>
+<p><b>16</b> battute<br>spazio 6 · 16,5</p><div class="st" style="height:74px"><div class="p-bc" style="top:12px"><b><span>Bar</span>9<span>of 16</span></b><b>121<span>bpm</span></b></div><div class="bm" style="top:50px" data-n="16" data-c="9"></div></div>
+<p><b>32</b> battute<br>spazio 3 · 8,2</p><div class="st" style="height:74px"><div class="p-bc" style="top:12px"><b><span>Bar</span>21<span>of 32</span></b><b>121<span>bpm</span></b></div><div class="bm" style="top:50px" data-n="32" data-c="21"></div></div>
+<p><b>64</b> battute<br>spazio 1,5 · 4</p><div class="st" style="height:74px"><div class="p-bc" style="top:12px"><b><span>Bar</span>37<span>of 64</span></b><b>121<span>bpm</span></b></div><div class="bm" style="top:50px" data-n="64" data-c="37"></div></div>
+</div>
+<p class="s-cap"><b>Un segmento per battuta, sempre; si stringe lo spazio</b>, perché la riga resti larga 354: 6 fino a 16 battute, 3 da 17 a 32, 1,5 da 33 a 64. A sinistra: battute, spazio e larghezza del segmento, in pt. A 64 il segmento è largo 4 e il raggio scende a 2, mai più di metà del segmento. Il numero esatto lo dice «Bar 37 of 64». <b>Oggi</b> lo spazio è sempre 6: oltre circa 60 battute la riga non basta. Punto 107.</p></div>
+<div class="s-col"><div class="s-lbl"><b>a · b · 12/8, 64 battute</b><span>le due regole al limite</span></div>
+<div class="p" data-screen-label="C-ab Solo in moto · 12/8, 64 battute"><div class="p-sb"><b>22:12</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Marea</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="lp" data-n="12" data-on="5"></div>
+<div class="p-bc"><b><span>Bar</span>37<span>of 64</span></b><b>72<span>bpm</span></b></div>
+<div class="bm" data-n="64" data-c="37"></div>
+<div class="p-se"><b>Solo</b></div>
+<div class="p-nx"><span>Next</span><b>Outro</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i style="flex:64"><u style="width:56%"></u></i><i style="flex:8"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Il caso più stretto per tutte e due:</b> dodici spie Ø 24 e una sezione di 64 battute. Acceso il battito 5, normale: lampo bianco. Il resto è lo schermo K, con la console della REV18.</p></div>
+</div>
+
+<div class="s-row" style="margin-top:44px">
+<div class="s-col"><div class="s-lbl"><b>c1 · Ultima sezione</b><span>poi un'altra canzone</span></div>
+<div class="p" data-screen-label="C-c1 Solo in moto · ultima sezione della canzone"><div class="p-sb"><b>21:47</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>6<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="6"></div>
+<div class="p-se"><b>Outro</b></div>
+<div class="p-nx"><span>Next song</span><b>Mare</b></div>
+<div class="p-sp"><i class="d" style="flex:8"></i><i class="d" style="flex:16"></i><i class="d" style="flex:16"></i><i class="d" style="flex:8"></i><i style="flex:8"><u style="width:69%"></u></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Sull'ultima sezione Next dice la canzone dopo:</b> «Next song» e il nome, nella casella di sempre e con la stessa veste. «Next song» è la parola che l'app ha già; «FINE» non serve: lo dicono «Next song» e la barra della canzone, all'ultimo blocco. Il nome ha meno posto: puntini dopo circa 11 caratteri. <b>Oggi:</b> «FINE · NEXT SONG: Mare». Punto 108.</p></div>
+<div class="s-col"><div class="s-lbl"><b>c2 · Ultima sezione dello show</b><span>dopo c'è la fine</span></div>
+<div class="p" data-screen-label="C-c2 Solo in moto · ultima sezione dell'ultima canzone"><div class="p-sb"><b>23:28</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Notturno</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="lp" data-n="6" data-on="1"></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 4</span></b><b>96<span>bpm</span></b></div>
+<div class="bm" data-n="4" data-c="3"></div>
+<div class="p-se"><b>Coda</b></div>
+<div class="p-nx"><span>Next</span><b>END SHOW</b></div>
+<div class="p-sp"><i class="d" style="flex:4"></i><i class="d" style="flex:8"></i><i class="d" style="flex:8"></i><i class="d" style="flex:8"></i><i style="flex:4"><u style="width:56%"></u></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Sull'ultima sezione dell'ultima canzone, «Next» e END SHOW</b>, la parola della fine scaletta (V4): dopo questa sezione viene lei. La casella non cambia forma. <b>Oggi</b> l'app non scrive niente: una casella vuota sembrerebbe un guasto. Punto 108.</p></div>
+<div class="s-col"><div class="s-lbl"><b>d · Sezione senza nome</b><span>col suo numero</span></div>
+<div class="p" data-screen-label="C-d Solo in moto · sezione senza nome"><div class="p-sb"><b>22:02</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Mare</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>2<span>of 8</span></b><b>100<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="2"></div>
+<div class="p-se"><b>Section 3</b></div>
+<div class="p-nx"><span>Next</span><b>Chorus</b></div>
+<div class="p-sp"><i class="d" style="flex:4"></i><i class="d" style="flex:8"></i><i style="flex:8"><u style="width:16%"></u></i><i style="flex:8"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-fc" style="margin-top:20px">La stessa sezione sulla fila, dopo lo Stop</p>
+<div class="st" style="height:100px"><p class="sx-t" style="top:12px">Resume from</p><svg class="sx-sw" style="top:9px" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg><div class="sx-s" style="top:44px" data-sl="40"><div class="sx-r"><b>Intro</b><b>Verse</b><b class="cu">Section 3</b><b>Chorus</b><b>Outro</b></div></div></div>
+<p class="s-cap"><b>Una sezione senza nome si chiama «Section» col suo numero nella canzone</b>, contato da 1 come la fila: qui è la terza. Vale dovunque il player scrive il nome: teleprompter, Next, la fila e «Resume from» sul velo. Stessa veste del nome scritto. <b>Oggi</b> al suo posto c'è il BPM grande con la parola «BPM»: il tempo c'è già, in «100 bpm». Punto 109.</p></div>
+<div class="s-col"><div class="s-lbl"><b>e · Il muto acceso</b><span>la testata di ogni schermo</span></div>
+<p class="s-fc">Spento, come in tutti i fogli</p>
+<div class="st" style="height:100px"><div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div><div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div></div>
+<p class="s-fc" style="margin-top:18px">Acceso</p>
+<div class="st" style="height:100px"><div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk mu"><svg class="ic"><use href="#i-sm"></use></svg></span></div><div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div></div>
+<p class="s-cap"><b>Il tasto resta dov'è; acceso, l'altoparlante barrato è ambra</b>, come oggi nell'app, nella tonda di sempre. L'ambra dice che qualcosa non va: il click non si sente. Le spie continuano a lampeggiare: è muto il click, non il tempo. Uguale su ogni schermo con la testata, veli compresi; il tocco lo spegne. Punto 110.</p></div>
+</div>
+
+<div class="s-row" style="margin-top:44px">
+<div class="s-col"><div class="s-lbl"><b>f1 · Mixer aperto, in moto</b><span>sopra la console</span></div>
+<div class="p" data-screen-label="C-f1 Solo in moto · mixer aperto"><div class="p-sb"><b>21:41</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Circuz</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-lp"><i></i><i></i><i></i><i></i></div>
+<div class="p-bc"><b><span>Bar</span>5<span>of 8</span></b><b>121<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="5"></div>
+<div class="p-se"><b>Bridge</b></div>
+<div class="mxp"><b>CLICK</b><b>BACKT</b><b class="o">CH3</b><b class="o">CH4</b></div>
+<p class="mk" style="top:500px;left:50%;transform:translateX(-50%)">il pannello di oggi · schema</p>
+<div class="kB"><span class="q dead"></span><span class="q r on"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>Il pannello di oggi sta subito sopra la console</b>, non ridisegnato: il bordo in basso a 622, 8 sopra i quadranti, come lo spazio fra loro. Alto 177 come oggi, arriva a 445: copre Next e la barra della canzone; spie, battuta e teleprompter restano in vista. Alla misura giusta, 160, partirebbe da 462. <b>La console resta libera:</b> un tocco su Mixer lo chiude e Stop resta Stop. A pannello aperto il tasto Mixer ha la veste del tasto selezionato della fila. Il disegno del pannello qui è solo uno schema: resta quello dell'app. <span class="r19">REV19</span>Costruito a 462–622, alto 160 (A398 §9, caso 4): il teleprompter della REV19 finisce a 457 e conta su quel 462 (sezione R, R7).</p>
+<p class="s-fl">⚑ Il tocco fuori dal pannello e la chiusura quando la console sparisce: punto 111.</p></div>
+<div class="s-col"><div class="s-lbl"><b>f2 · Mixer aperto, dopo lo Stop</b><span>lo stesso posto</span></div>
+<div class="p" data-screen-label="C-f2 Solo fermo dopo lo Stop · mixer aperto"><div class="p-sb"><b>21:43</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Bridge</b></p><p class="p-vn">Circuz</p><p class="p-vt">121 · 4/4</p></div>
+<div class="mxp"><b>CLICK</b><b>BACKT</b><b class="o">CH3</b><b class="o">CH4</b></div>
+<p class="mk" style="top:500px;left:50%;transform:translateX(-50%)">il pannello di oggi · schema</p>
+<div class="kB"><span class="q dead"></span><span class="q r on"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div></div>
+<p class="s-cap"><b>Lo stesso posto a canzone ferma:</b> copre la linea, «Resume from» e la fila; il velo dice ancora da dove si riparte e il Play resta libero. Chiuso il pannello, la fila torna com'era, con la sezione scelta. Punto 111.</p></div>
+<div class="s-col"><div class="s-lbl"><b>g · Link perso</b><span>Wi-Fi e MIDI restano in vista</span></div>
+<div class="p" data-screen-label="C-g Solo in moto · Link perso, le spie restano"><div class="p-sb"><b>22:05</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Notturno</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="ll"><svg class="ic s"><use href="#i-lo"></use></svg>Link lost</span><span><i></i>Wi-Fi</span><span><i class="fl"></i>MIDI</span></div>
+<div class="lp" data-n="6" data-on="1"></div>
+<div class="p-bc"><b><span>Bar</span>3<span>of 8</span></b><b>96<span>bpm</span></b></div>
+<div class="bm" data-n="8" data-c="3"></div>
+<div class="p-se"><b>Chorus</b></div>
+<div class="p-nx"><span>Next</span><b>Bridge</b></div>
+<div class="p-sp"><i class="d" style="flex:4"></i><i class="d" style="flex:8"></i><i style="flex:8"><u style="width:37.5%"></u></i><i style="flex:8"></i><i style="flex:4"></i></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst"><i></i></span></div></div>
+<p class="s-cap"><b>La striscia prende il posto di «Link» e si ferma prima delle spie:</b> parte dal bordo sinistro, come nella REV9, e finisce arrotondata 18 prima di Wi-Fi. Wi-Fi e MIDI restano dove stanno sempre, con le loro facce, e il lampo del pedale si vede: in questo foglio la spia MIDI lampeggia. Parole, ambra, corpo e altezza della REV9. <b>Oggi</b> la striscia prende tutta la riga e le spie non si vedono. Punto 112.</p></div>
+<div class="s-col"><div class="s-lbl"><b>g · h · Le facce della riga</b><span>Link perso, MIDI perso</span></div>
+<p class="s-fc">① Link perso, senza Wi-Fi</p>
+<div class="st" style="height:54px"><div class="p-rl" style="top:12px"><span class="ll"><svg class="ic s"><use href="#i-wo"></use></svg>Link lost · no Wi-Fi</span><span class="x"><svg class="ic s"><use href="#i-wo"></use></svg>Wi-Fi</span><span><i></i>MIDI</span></div></div>
+<p class="s-fc" style="margin-top:18px">② Link spento, cade il pedale</p>
+<div class="st" style="height:54px"><div class="p-rl" style="top:12px"><span class="sp"><i class="o"></i>Wi-Fi</span><span class="x"><svg class="ic s"><use href="#i-mo"></use></svg>MIDI</span></div></div>
+<p class="s-fc" style="margin-top:18px">③ L'icona, grande</p>
+<div class="st" style="width:120px;height:120px;display:grid;place-items:center;color:var(--amb)"><svg class="ic" style="width:88px;height:88px"><use href="#i-mo"></use></svg></div>
+<p class="s-cap">① <b>Senza Wi-Fi</b> la striscia dice la causa, come nella REV9, e la spia Wi-Fi la ripete, ambra e barrata: ognuna segue la sua regola. Se Mauro preferisce, la striscia dice solo «Link lost». ② <b>Il pedale perso:</b> al posto del pallino l'icona barrata, ambra, con la parola; solo se il MIDI era collegato e si è perso durante lo show. ③ <b>L'icona:</b> la presa MIDI, un cerchio con cinque piedini e la tacca, barrata come Link e Wi-Fi. Prende il posto della runa del Bluetooth della REV9. Punti 112 e 113.</p></div>
+</div>
+
+<div class="s-row" style="margin-top:44px">
+<div class="s-col"><div class="s-lbl"><b>i1 · Nome lungo, prima della canzone</b><span>V1</span></div>
+<div class="p" data-screen-label="C-i1 V1 Solo · nome lungo"><div class="p-sb"><b>21:36</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="t1">Verde Rame</p><p class="p-vt">108 · 4/4</p></div>
+<p class="p-tap" style="top:618px"><svg><use href="#i-tp"></use></svg>Tap to start</p></div>
+<p class="s-cap"><b>Il nome va a capo fra le parole, fino a due righe, a 80.</b> Il blocco parte sempre a 248 e cresce verso il basso: con due righe finisce a 489, sopra «Tap to start» (618). Qui: <b data-fo="t1"></b>. Uguale su V2. Punto 114.</p></div>
+<div class="s-col"><div class="s-lbl"><b>i2 · Nome lungo, dopo lo Stop</b><span>il corpo scende</span></div>
+<div class="p" data-screen-label="C-i2 Solo fermo dopo lo Stop · nome lungo"><div class="p-sb"><b>22:20</b><svg class="sbi"><use href="#i-sb"></use></svg></div>
+<div class="p-hd"><span class="p-rk or"><svg class="ic"><use href="#i-bk"></use></svg></span><span class="p-hn">Milano Assago</span><span class="p-rk"><svg class="ic"><use href="#i-sp"></use></svg></span></div>
+<div class="p-rl"><span class="sp"><i class="o"></i>Wi-Fi</span><span><i></i>MIDI</span></div>
+<div class="p-vb"><p class="p-va">Resume from <b>Chorus</b></p><p class="p-vn fit" data-f="t2">Il cielo in una stanza</p><p class="p-vt">84 · 3/4</p></div>
+<div class="sx-l"></div><p class="sx-t">Resume from</p><svg class="sx-sw" viewBox="0 0 24 24"><path d="M3.5 12h17M7.5 8l-4 4 4 4M16.5 8l4 4-4 4"></path></svg>
+<div class="sx-s" data-sl="0"><div class="sx-r"><b>Intro</b><b>Verse</b><b class="cu">Chorus</b><b>Verse</b><b>Chorus</b><b>Outro</b></div></div>
+<div class="kB"><span class="q dead"></span><span class="q r"><svg class="ic"><use href="#i-mx"></use></svg>Mixer</span><span class="q l off"><svg class="ic"><use href="#i-ls"></use></svg>List mode</span><span class="q r off"><svg class="ic"><use href="#i-kl"></use></svg>Kill</span><span class="kst pl"><svg><use href="#i-pl"></use></svg></span></div></div>
+<p class="s-cap"><b>Se a 80 non bastano due righe, il corpo scende</b> finché il nome sta in due righe, fino a 48: qui <b data-fo="t2"></b>. Il blocco resta sopra la fine del velo (510); linea, fila e console non si muovono. Punto 114.</p></div>
+<div class="s-col" style="flex-basis:508px;width:508px"><div class="s-lbl"><b>i · La regola su cinque nomi</b><span>il blocco del velo, da solo</span></div>
+<div class="tv">
+<p><b>1</b><br><span data-fo="n1"></span></p><div class="st vv"><div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="n1">Circuz</p><p class="p-vt">121 · 4/4</p></div></div>
+<p><b>2</b><br><span data-fo="n2"></span></p><div class="st vv"><div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="n2">Verde Rame</p><p class="p-vt">108 · 4/4</p></div></div>
+<p><b>3</b><br><span data-fo="n3"></span></p><div class="st vv"><div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="n3">Lontananza</p><p class="p-vt">92 · 4/4</p></div></div>
+<p><b>4</b><br><span data-fo="n4"></span></p><div class="st vv"><div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="n4">Il cielo in una stanza</p><p class="p-vt">84 · 3/4</p></div></div>
+<p><b>5</b><br><span data-fo="n5"></span></p><div class="st vv"><div class="p-vb"><p class="p-va">Next</p><p class="p-vn fit" data-f="n5">La canzone lunghissima che non finisce mai</p><p class="p-vt">120 · 4/4</p></div></div>
+</div>
+<p class="s-cap"><b>La regola su cinque nomi.</b> Il corpo scende anche quando una parola da sola non sta nella riga (338), come «Lontananza». Un corpo solo per le due righe. <b>A 48 si ferma:</b> quello che non sta finisce coi puntini alla fine della seconda riga. Le parole non si spezzano. A sinistra corpo e righe, misurati su questo foglio. <b>Oggi</b> il foglio disegna solo nomi corti. Punto 114.</p></div>
+</div>
+
+<div class="s-h2">C · Le misure dei casi nuovi <span>pt dall'alto, iPhone 390 · le altre restano quelle della sezione 3 e della REV9</span></div>
+<div class="s-pan"><table class="s-t">
+<tr><th>Caso</th><th>pt</th><th>Corpo e colore</th></tr>
+<tr><td>a · Spie (106)</td><td>156–202</td><td>una spia per battito, una fila centrata, larga al massimo 354 · centro a 179 · Ø e spazio: da 2 a 4 battiti 46 e 22 · 5 e 6: 46 e 12 · 7: 42 e 10 · 9: 32 e 8 · 11: 26 e 6 · 12: 24 e 6 · facce della REV9: spenta bianco .07 con bordo 1,5 bianco .1, accento verde <code>#28cd41</code>, battito bianco</td></tr>
+<tr><td>b · Barra delle battute (107)</td><td>264–276</td><td>un segmento per battuta, riga larga 354 · spazio 6 fino a 16 battute, 3 da 17 a 32, 1,5 da 33 a 64 · raggio 6, mai più di metà del segmento · fatte .42, in corso bianco pieno, le altre .12</td></tr>
+<tr><td>c · Next, ultima sezione (108)</td><td>516–576</td><td>«Next song» Inter 600 19 .66, una riga · la canzone Inter 700 28 .86, puntini · ultima dello show: «Next» e «END SHOW», stessa veste</td></tr>
+<tr><td>d · Senza nome (109)</td><td>—</td><td>«Section» + il numero nella canzone, da 1 · nella veste del nome: teleprompter 42, Next 28, fila 17, «Resume from» 21 · <span class="r20">REV20</span>nel teleprompter vale la regola del punto 115, come per ogni nome: «Section 3» 68 in una riga · <s>da 80 a 42</s> (REV19)</td></tr>
+<tr><td>e · Muto acceso (110)</td><td>44–104</td><td>tonda 44 invariata · altoparlante barrato 24, tratto 2,2, ambra <code>#f5b820</code></td></tr>
+<tr><td>f · Pannello del mixer (111)</td><td>445–622</td><td>il pannello di oggi, non ridisegnato · bordo in basso a 622, 8 sopra la console · alto 177 come oggi; a 160 parte da 462 · fondo pieno <code>#16161a</code> · console libera · tasto Mixer col pannello aperto: fondo bianco .14, bordo 1,5 bianco .5, scritta bianca piena</td></tr>
+<tr><td>g · «Link lost» (112)</td><td>98–128</td><td>striscia ambra dal bordo sinistro a 18 prima di Wi-Fi, raggio 15 a destra · dentro: margine 18, icona 20, Inter 700 17 <code>#110f0e</code> · Wi-Fi e MIDI a destra, invariati, col lampo</td></tr>
+<tr><td>h · Spia MIDI persa (113)</td><td>98–128</td><td>al posto del pallino l'icona <code>i-mo</code> 20 (presa MIDI barrata, tratto 2,2 su 24) e «MIDI», tutte e due ambra</td></tr>
+<tr><td>i · Nome a 80 (114)</td><td>da 248</td><td>Inter 900 80, interlinea 1,02, spaziatura −0,03 em, larghezza 338 · fino a due righe · poi il corpo scende fino a 48, uno per le due righe · a 48 puntini · le parole non si spezzano · due righe a 80 finiscono a 489</td></tr>
+</table>
+<p class="s-cap" style="margin-top:14px"><b>Contrasti</b>, calcolati sui token e non misurati sul telefono: ambra sulla tonda <code>#1f1b18</code> 9,6:1 · <code>#110f0e</code> sull'ambra 10,7:1 · «Next song» .66 sul fondo 7,5:1. Nessuna scritta nuova sotto 17; le scritte del pannello del mixer sono quelle di oggi e si rifanno col pannello.</p></div>
+
+<div class="s-h2">4 · I punti aperti <span>⚑ = tocca il funzionamento: lo guarda il referee prima che decida Mauro</span></div>
+<div class="s-pan" style="margin-bottom:22px">
+<p><b>Restano come scritti nella REV9:</b> 34–37 · 39–43 · 45–46 · 51–54 · 56 · 59–60 · 62–73, e della versione 1: 11 · 12 · 22–25 · 27 · 29–32. <b>Dalla REV10 e dalla REV11 restano</b> 74–76 · 78–83 · 85–87 (il 77 è caduto con la REV11). <b>REV13:</b> l'84 è deciso; nuovi l'88 e l'89. <b>REV14:</b> nuovo il 98 (la spia MIDI), comune col foglio del sync; il 52 resta aperto. <b>REV15:</b> l'87 è chiuso; il 74 ha il suo schermo (K0) e resta aperto per lo Stop durante il conto; il 98 è deciso; nuovi il 100 e il 101. <b>REV16:</b> il 100 resta aperto fino alla scelta di Mauro sul test (sezione T); il 101 si chiude per la parola e resta aperto per le 2 battute; il 74 prende la regola del conto con Off; nuovi il 102 e il 103. <b>REV17:</b> l'87 si chiude (dopo lo Stop solo il Play); il 100 si chiude con la A; il 75 è riletto; il 103 è deciso anche per il sync; nuovo il 105 (il 104 è del sync, schermo 8). <b>REV18:</b> il titolo del 74 dice il Play; l'84 e l'88 prendono la decisione «B»: Kill e List mode spenti anche in moto; nuovi i punti dal 106 al 114, i casi della sezione C, aperti finché Mauro non ratifica. <span class="r19">REV19</span>Il 51 cambia (punto 115, sezione R); nuovi il 115, il 116 e il 117, aperti finché Mauro non ratifica. <span class="r20">REV20</span>Il 115 prende la regola di Mauro del 10/10 (due righe da 68, sotto 53 tre righe, a 42 i puntini) e cambia di nuovo il 51; il 116 e il 117 restano come nella REV19.</p>
+</div>
+<ol class="s-ol">
+<li><b class="n">74</b><span>⚑ <b>Il conto alla rovescia al Play.</b> <span class="im n">titolo · REV18</span> Prima diceva «al tocco su un tasto», l'idea del 03/10 superata lo stesso giorno: il tasto seleziona, il Play parte (REV17). <span class="im n">REV15</span> Disegnato lo schermo del conto (K0): tempo e metrica della sezione da cui si riparte, lunghezza dall'impostazione, chiusura sul battito 1, nel click. Resta aperto lo Stop durante il conto. <span class="im n">REV16</span> Al Resume dopo lo Stop il conto c'è sempre: con «Off» una battuta comunque, con «1 bar» o «2 bars» come impostato (Mauro, 04/10: «si si fallo cmq»). Da scrivere nel LIBRO accanto a Q3=A. Q3=A (21/05): conto sempre al Resume dopo lo Stop. D9 (30/08): velocità e metrica dalla sezione che introduce. Disegnato: il Play parte dalla selezionata come il Resume, col conto. Il conto oggi non è costruito (<code>TD-countin-ratificato-mai-costruito</code>). Lo Stop durante il conto nel LIBRO non lo trovo. <span class="im m">medio</span></span></li>
+<li><b class="n">75</b><span>⚑ <b>La zona senza tocco</b>, 64 pt fra velo e fila (scelta di CD). <span class="im n">riletto · REV17</span> Servivano a tenere il tocco del velo lontano dalla fila: il tocco non c'è più. Restano per lo swipe fra canzoni, che sul velo cambia canzone mentre nella fila lo stesso gesto scorre le sezioni (punto 76): due gesti uguali, due zone. Il referee verifichi che lo swipe fra canzoni si possa limitare al velo, sopra 510. <s>Il referee verifichi che l'app possa togliere al tocco ovunque tutto ciò che sta sotto 510.</s> <span class="im m">medio</span></span></li>
+<li><b class="n">76</b><span>⚑ <b>Cambiato: la fila scorre di lato.</b> Lo vuole Mauro. Lo swipe fra canzoni resta solo nel velo, sopra i 64 pt; nella fila lo stesso gesto scorre le sezioni. Il referee verifichi che i due gesti si possano tenere separati per zona. <span class="im m">medio</span></span></li>
+<li class="x"><b class="n">77</b><span><b>Più di quattro file.</b> Cade: la fila è una riga sola e scorre, per qualunque numero di sezioni.</span></li>
+<li><b class="n">78</b><span><b>Nomi lunghi nei tasti:</b> fino a 200 pt, circa 17 caratteri, poi puntini. Una canzone con una sezione sola ha un tasto solo e la fila non scorre. <span class="im b">basso</span></span></li>
+<li><b class="n">79</b><span>⚑ <b>Solo dopo lo Stop.</b> Sul velo prima della canzone e fra una canzone e l'altra la fila non c'è. Se Mauro la vuole anche lì è un comportamento da decidere. <span class="im m">medio</span></span></li>
+<li><b class="n">80</b><span><b>La riga di stato</b> resta visibile sopra il velo, come in moto. <span class="im m">medio</span></span></li>
+<li><b class="n">81</b><span>⚑ <b>Il primo tasto ricomincia la canzone.</b> «Restart {song.name}» (LIBRO Sez.1) non è a schermo (<code>TD-restart-song-falsa-ricevuta</code>). Selezionare il primo tasto e premere Play fa la stessa cosa: va verificato che sia un vero da capo, base compresa. <span class="im m">medio</span></span></li>
+<li><b class="n">82</b><span>⚑ <b>Partire da una sezione con la base.</b> I modi «Free» e «Griglia» vengono da un briefing di maggio (V4) e nel LIBRO non li trovo: non li uso come regola. Cosa fa oggi la base quando si riparte da metà canzone va letto a fonte (CC). <span class="im a">alto</span></span></li>
+<li><b class="n">83</b><span><b>L'iPad della REV11</b> si fa dopo l'OK di Mauro sull'iPhone (LIBRO 2026-09-11). <b>REV15:</b> prima la ratifica nel LIBRO, poi l'iPad, che copierà le decisioni dell'iPhone (Mauro: «6. SI COPIERA' LE DECISIONI DI IPHONE»). <span class="im b">basso</span></span></li>
+<li><b class="n">84</b><span>⚑ <b>La console a canzone ferma.</b> Mauro dice «la console resta»: è disegnata uguale a quella in moto. Il tasto centrale diventa Play (Mauro, 03/10: «il simbolo centrale STOP nella simulazione deve divenatre triangolo con contorno verde»): triangolo col contorno verde <code>#28cd41</code>, anello verde. Il Play parte dalla sezione selezionata (Mauro, 03/10). <b>Deciso (REV13):</b> a canzone ferma Kill e List mode non rispondono al tocco, il Mixer sì. Proposta del referee, «ok perfetto.» di Mauro nella sua chat. Supera Q7=A del 21/05 dopo lo Stop: punto 89. <b>REV18: spenti anche in moto</b> (Mauro, 05/10: «B»; «DOMANDA LIST MODE: B»): a canzone in corso sono accesi solo Mixer e Stop. Kill resta spento finché la base non arriva nel player; quando arriverà, sarà acceso mentre la base suona. List mode resta spento finché non ha una funzione. <span class="im b">deciso</span></span></li>
+<li><b class="n">85</b><span><b>«sposti le sezioni» = scorri.</b> Leggo che il dito fa scorrere la fila, non che cambia l'ordine delle sezioni. Se Mauro intende riordinare, è un'altra cosa e va chiesta. <span class="im m">medio</span></span></li>
+<li><b class="n">86</b><span><b>12 pt fra la fila e la console.</b> La fila sta dove stava la barra della canzone, quindi a ridosso della console. Da provare sul telefono con la bacchetta in mano; se serve, il velo si accorcia e la fila sale. <span class="im b">basso</span></span></li>
+
+<li><b class="n">87</b><span><b>Il tocco sul velo dopo lo Stop.</b> <span class="im b">chiuso · REV17</span> Via: dopo lo Stop si riparte solo col Play, sempre col conto. Mauro: «partiamo con il play o sbaglio? Quindi tap to start non ha senso lo si utilizza quando toccando ovunque partiamo e questo non e' il caso perche' per ripartire dobbiamo premere play» e «si esattamente via il tocco sul velo». Sul velo dopo lo Stop non c'è più «Tap to start»; lo swipe fra canzoni resta. Per questo velo supera il «tap ovunque per far ripartire» del LIBRO (30/08): lo scrive il LIBRO alla ratifica. <s>REV15: resta, come nella REV14, e fa ripartire dalla sezione scelta, come il Play.</s></span></li>
+<li><b class="n">88</b><span><b>Come appaiono Kill e List mode spenti.</b> <span class="im n">nuovo</span> Scelta di CD: restano al loro posto, nella veste del quadrante vuoto in alto a sinistra (opacità .4). Stessa veste, stesso significato: il tocco non fa niente. Non spariscono, così la console non cambia forma e il dito trova il Play dove trovava lo Stop. Contrasto 2,3:1, voluto: non portano azione. Da provare al buio, sull'asta, a un metro. <b>REV18:</b> la stessa veste anche in moto (K, K0): la console ha una faccia sola, ferma e in moto, e cambia solo il tasto centrale, Play o Stop. I due tasti si riaccendono uno alla volta, quando hanno qualcosa da fare: Kill con la base, List mode con la sua funzione. <span class="im m">medio</span></span></li>
+<li><b class="n">89</b><span>⚑ <b>Q7=A del 21/05 cade solo dopo lo Stop.</b> <span class="im n">nuovo</span> Q7=A nascondeva la pulsantiera a canzone ferma. Dopo lo Stop ora la console resta (REV11, REV13). Sui veli prima della canzone e fra due canzoni resta nascosta, come Mauro li ha visti e approvati il 03/10 nel foglio dei veli. Il LIBRO lo scrive alla ratifica, con questo confine. <span class="im m">medio</span></span></li>
+<li><b class="n">98</b><span><b>Quando lampeggia la spia MIDI.</b> <span class="im b">deciso · REV15</span> Mauro: «3. si». Verde fisso = un apparecchio MIDI è collegato. <b>Lampeggia solo quando il pedale fa fare davvero qualcosa all'app su questo telefono.</b> Non lampeggia per i messaggi che l'app ignora (tutto ciò che non è una nota o un controllo, quindi anche Clock e Active Sensing), per i messaggi non insegnati col MIDI Learn, né per i cinque comandi assegnabili che oggi col pedale non fanno niente (sezione avanti e indietro, canzone successiva, avvio canzone, loop). Sul Follower il pedale fa solo il muto: lampeggia solo per quello. Il codice di oggi permette già questa distinzione (misura del referee). <s>Lampeggia quando il pedale manda un messaggio</s> (REV14). Come appare il lampo, uno spegnimento breve di circa 120 ms, resta la proposta di CD.</span></li>
+<li><b class="n">100</b><span><b>«Tap to start», una forma sola.</b> <span class="im b">chiuso · REV17</span> Mauro: «1. A». La mano accanto alla scritta, alta come due righe, il gruppo centrato: sui veli V1 e V2 a 618–662, e sul Direttore, dove c'è già. Dopo lo Stop «Tap to start» non c'è più (punto 87). La sezione T è tolta; la REV16 resta su Drive come traccia del test. Storia: REV15, scelta di CD (la forma del Direttore); REV16, test fra A e B (Mauro: «Vorrei un test visivo»).</span></li>
+<li><b class="n">101</b><span>⚑ <b>Il conto: la parola e le due battute.</b> <span class="im b">parola chiusa · REV16</span> «Count-in» è già il nome dell'app, nell'editor della canzone, con «Off», «1 bar», «2 bars»: resta (brief A386 · SOLO REV16, §2.4). <b>Resta aperto come si mostrano le 2 battute</b>: oggi il numero scende due volte (4-3-2-1, 4-3-2-1) e «1 of 2 · 2 of 2» dice a che battuta si è. Va col disegno completo del conto, che Mauro farà dopo il lavoro sul player. <span class="im m">medio</span></span></li>
+<li><b class="n">102</b><span><b>Il nome dello show in testata, nel Solo.</b> <span class="im n">nuovo</span> Brief §3.1: come nel sync, su V1, V2, V4 e sul velo dopo lo Stop. Come appare l'ho scelto io: la casella e la veste del nome della canzone in moto, Inter 700 24 bianco .86. La testata nomina sempre ciò che contiene quello che sta al centro: sul velo lo show, in moto la canzone. Nel sync il nome dello show oggi è in maiuscolo mono e quasi spento, con la grafica di prima del Giro 1: si allinea coi giri 2-3 (brief SOLO REV17 E SYNC REV8, §3.5). <span class="im m">medio</span></span></li>
+<li><b class="n">103</b><span><b>Il segno dello scorrere, senza dito.</b> <span class="im n">nuovo</span> Brief §3.5 (Mauro: «Pensavo che con dito intendessi il tap to start»). Scelta di CD: sulla fila del Solo una doppia freccia di lato, senza polpastrello. <b>REV17:</b> dopo lo Stop sullo schermo non c'è più nessuna mano. Cambiano la forma (freccia contro mano), la misura (28 contro 44), il posto (a destra della scritta sopra la fila, contro il centro del velo) e il bianco (.66 contro .86). La regola resta: solo quando la fila non sta tutta nello schermo. <span class="im b">deciso · REV17</span> Mauro: «2. Il segno dello scorrere sulla scaletta del Follower: ok». Nella SYNC REV8 la scaletta del Follower ha la doppia freccia in su e in giù, senza dito.</span></li>
+<li><b class="n">105</b><span><b>Il blocco del velo dopo lo Stop scende a 248.</b> <span class="im n">nuovo</span> Scelta di CD: senza «Tap to start» sotto, il blocco («Resume from», la canzone, tempo e metrica) passa da 226 a 248, la stessa altezza di V1 e V2. Sta in mezzo fra la riga di stato (128) e la linea a 526: 120 sopra, 119 sotto. Fila, linea e console non si muovono. Se Mauro lo preferisce, torna a 226 con un ritocco. <span class="im b">basso</span></span></li>
+<li><b class="n">106</b><span><b>Le spie a 7, 9, 11 e 12 battiti.</b> <span class="im n">nuovo · REV18</span> Una spia per battito, su una fila sola, mai più larga della barra delle battute (354). Da 2 a 6 come la REV9; a 7 il Ø 42 della REV9, con spazio 10; a 9 Ø 32 e spazio 8; a 11 Ø 26 e a 12 Ø 24, spazio 6. Il centro resta a 179. Le metriche dell'app sono dodici, lista chiusa: la tavola copre tutti i battiti possibili. Oggi una barretta per battito, in una fila sola. A 12 la spia è metà di quella a 4: da provare al buio, a 2 m. Per leggere i gruppi del 12/8 (3+3+3+3) si potrebbe allargare lo spazio prima di ogni accento: non lo propongo, la fila cambierebbe forma da una sezione all'altra. Risponde al «servirà una regola» del 53; del 53 resta da leggere a fonte come l'app disegna oggi il 6/8. <span class="im m">medio</span></span></li>
+<li><b class="n">107</b><span><b>La barra delle battute con molte battute.</b> <span class="im n">nuovo · REV18</span> Un segmento per battuta, sempre, e la riga larga 354; si stringe lo spazio: 6 fino a 16 battute, 3 da 17 a 32, 1,5 da 33 a 64. A 64 il segmento è largo 4, il raggio 2. Il numero esatto lo dice «Bar 37 of 64». Oggi lo spazio è sempre 6 e oltre circa 60 battute la riga non basta. Per leggere le frasi si potrebbe allargare lo spazio ogni 4 battute: non lo propongo, sarebbero due regole invece di una. <span class="im m">medio</span></span></li>
+<li><b class="n">108</b><span><b>Next sull'ultima sezione.</b> <span class="im n">nuovo · REV18</span> Ultima sezione di una canzone: «Next song» e la canzone dopo, nella stessa casella e con la stessa veste. Ultima sezione dell'ultima canzone: «Next» e «END SHOW», la parola della fine scaletta. Oggi: «FINE · NEXT SONG: &lt;canzone&gt;» nel primo caso, niente nel secondo. «Next song» è la parola che l'app ha già; «FINE» cade, perché lo dicono «Next song» e la barra della canzone all'ultimo blocco. Con «Next song» il nome ha meno posto: puntini dopo circa 11 caratteri. <span class="im m">medio</span></span></li>
+<li><b class="n">109</b><span><b>La sezione senza nome.</b> <span class="im n">nuovo · REV18</span> Si chiama «Section» col suo numero nella canzone, contato da 1 come la fila: «Section 3». Vale dovunque il player scrive il nome della sezione: teleprompter, Next, fila e «Resume from», nella veste del nome scritto. Oggi al suo posto il BPM grande con la parola «BPM»: il tempo c'è già, nella riga della battuta. È il numero del posto, non un nome: se la sezione cambia posto nell'editor, cambia numero. <span class="im m">medio</span></span></li>
+<li><b class="n">110</b><span><b>Il muto acceso.</b> <span class="im n">nuovo · REV18</span> Nella tonda in alto a destra l'altoparlante barrato, ambra <code>#f5b820</code>, come fa oggi l'app; la tonda resta com'è e il tocco lo spegne. L'ambra dice che qualcosa non va: il click non si sente. Le spie continuano a lampeggiare: è muto il click, non il tempo. Uguale su ogni schermo con la testata. <span class="im b">basso</span></span></li>
+<li><b class="n">111</b><span>⚑ <b>Il pannello del mixer aperto.</b> <span class="im n">nuovo · REV18</span> Il pannello di oggi, non ridisegnato (Mauro, 04/10: «3. ESATTO. OK»), sta sopra la console: il bordo in basso a 622, 8 sopra i quadranti. Alto 177 come oggi, arriva a 445; alla misura giusta, 160 (BUGS: oggi è misurato sullo schermo, non sull'area sicura), a 462. In moto copre Next e la barra della canzone; dopo lo Stop la fila. Spie, battuta, teleprompter e velo restano in vista; la console resta libera. A pannello aperto il tasto Mixer prende la veste del tasto selezionato della fila: scelta di CD. <b>Il referee verifichi due cose:</b> che il tocco fuori dal pannello, che oggi lo chiude, non si prenda la console: a pannello aperto Stop deve fermare; e che il pannello si chiuda da solo quando la console sparisce, sul velo fra due canzoni e a fine scaletta, dove il tasto per chiuderlo non c'è (BUGS: oggi il pannello arriva aperto a END SHOW). <span class="im a">alto</span></span></li>
+<li><b class="n">112</b><span><b>«Link lost» e le spie.</b> <span class="im n">nuovo · REV18</span> La striscia prende il posto di «Link»: parte dal bordo sinistro come nella REV9 e finisce arrotondata, 18 prima di Wi-Fi. Wi-Fi e MIDI restano a destra, con le loro facce e il lampo del pedale. Parole, ambra, corpo e altezza della REV9. «Link lost · no Wi-Fi» ci sta, con circa 20 di margine. Con «no Wi-Fi» la causa si legge due volte, nella striscia e nella spia ambra: ogni pezzo segue la sua regola; se Mauro preferisce, la striscia dice solo «Link lost». Oggi la striscia prende tutta la riga e le spie non si vedono. Nel sync si porta al suo giro, se Mauro è d'accordo. <span class="im m">medio</span></span></li>
+<li><b class="n">113</b><span><b>L'icona barrata della spia MIDI.</b> <span class="im n">nuovo · REV18</span> La presa MIDI, un cerchio con cinque piedini e la tacca in alto, barrata come le icone di Link e Wi-Fi: 20, tratto 2,2 su 24, ambra, con la parola «MIDI» ambra. Prende il posto della runa del Bluetooth della REV9. Compare solo se il MIDI era collegato e si è perso durante lo show (LIBRO, riga 2026-10-04, chiusura del 42 e del 52). Il disegno è il simbolo <code>i-mo</code> di questo foglio. <span class="im b">basso</span></span></li>
+<li><b class="n">114</b><span><b>Il nome della canzone a 80 sui veli, con nomi lunghi.</b> <span class="im n">nuovo · REV18</span> Inter 900 80, a capo fra le parole, fino a due righe. Se a 80 non bastano due righe, o una parola da sola non sta nella riga (338), il corpo scende finché il nome sta in due righe, fino a 48; un corpo solo per le due righe. A 48 quello che non sta finisce coi puntini. Le parole non si spezzano mai. Il blocco parte da 248 e cresce verso il basso: due righe a 80 finiscono a 489, sopra «Tap to start» (618) e, dopo lo Stop, sopra la fine del velo (510) se «Resume from» sta su una riga. Vale su V1, V2 e sul velo dopo lo Stop. <span class="im m">medio</span></span></li>
+<li><b class="n">115</b><span><b>Il teleprompter di K usa lo spazio.</b> <span class="im n">nuovo · REV19</span> <span class="r20">REV20</span><b>Cambia il 51.</b> Riquadro 284–457, alto 173, largo 366. Il nome si prova in due righe, da 68 a scendere di 1; se in due righe dovrebbe scendere sotto 53, passa a tre righe, da 53 a scendere di 1; a 42 ciò che non sta finisce coi puntini, alla fine della terza riga. 68 è STAGE-HERO della scala di palco (BOX5, 11/09). Inter 800, 1,08, −0,035 em come prima; a capo fra le parole e dopo un trattino già scritto, parole mai spezzate; il blocco al centro del riquadro. Finisce 5 sopra il Mixer aperto (462): non si sposta e non va sotto il pannello. Scelta di Mauro, 10/10 (sezione 0); <s>da 80 a 42 in due righe</s> (REV19). Sezione R. Da provare sul telefono, al buio, sull'asta. <span class="im a">alto</span></span></li>
+<li><b class="n">116</b><span><b>Una canzone senza nome.</b> <span class="im n">nuovo · REV19</span> Dove il player scrive il nome della canzone (testata di K, dopo «Next song», sui veli) una canzone senza nome, o di soli spazi, si scrive «Song» col suo numero nello show, da 1: come «Section N» per le sezioni (punto 109). Prende il posto del valore vuoto della costruzione (A397 §10, caso 6). Il numero è del posto: cambia se la canzone cambia posto nello show. <span class="im m">medio</span></span></li>
+<li><b class="n">117</b><span><b>V4 di Direttore e Follower: al centro il nome dello show.</b> <span class="im n">nuovo · REV19</span> V4 è una vista sola per i tre ruoli (M3). Anche per Direttore e Follower al centro della testata va il nome dello show, nella veste del Solo (Inter 700 24 bianco .86, punto 102), come negli schermi 3 e 12 della SYNC REV8. Prende il posto del centro vuoto della costruzione (A398 §9, caso 5; visto l'08/10, P2-8). La riga di stato resta come dice la decisione 5. <span class="im m">medio</span></span></li></ol>
+
+<div class="s-sig"><b>REV20:</b> il teleprompter di K con la regola scelta da Mauro il 10/10: due righe da 68, sotto 53 tre righe da 53, a 42 i puntini alla fine della terza riga. Cambiano: lo stile del nome (corpo di partenza 68, puntini alla terza riga) e il suo calcolo nel foglio; la sezione R (titolo, testo, etichette e didascalie di R2, R4, R6, R7, nomi degli schermi R2–R7, tre schermi nuovi R9–R11, tabella); la riga d delle misure; il punto 115 e la nota dei punti; le parole di Mauro del 10/10 nella sezione 0; intestazione e firma. Restano come nella REV19 il riquadro, il resto di K, i veli (punto 114) e i punti 116 e 117. Nient'altro della REV19 è toccato.<br />
+<b>REV19:</b> la sezione R, nuova: il teleprompter di K su 8 schermi (uno com'è oggi, sei coi nomi, uno schema) e le sue misure; il riquadro e la regola del nome cambiati su tutti gli schermi K del foglio; le parole di Mauro dell'08/10 nella sezione 0; la nota REV19 nella didascalia di f1; nuovi i punti 115–117. Nient'altro della REV18 è toccato.<br />
+<b>REV18:</b> Kill e List mode spenti anche in moto su K e K0, e corretti i testi che dicevano che in moto si riaccendono (riquadro in alto, il paragrafo della REV13, K, misure, punti 84 e 88); il titolo del 74 corretto; nuova la sezione C coi nove casi del brief, su 9 schermi, 3 tavole e 6 facce, e le loro misure; nuovi i punti 106–114. Nient'altro della REV17 è toccato. <b>Esito dei controlli della REV18:</b> <span id="esito18">file reso e controllato da un verificatore separato: nessun errore in console; Kill e List mode spenti su tutte le console, K e K0 compresi; le regole calcolate tornano (spie: 7 battiti larghe 354 a Ø 42, 9 → 352 a Ø 32, 11 → 346 a Ø 26, 12 → 354 a Ø 24; barra: segmento 16,5 a 16 battute, 8,2 a 32, 4 a 64; nomi: «Verde Rame» 80 su due righe, «Lontananza» 60, «Il cielo in una stanza» 64 su due righe, il quinto a 48 coi puntini); pannello del mixer da 445 a 622; «Link lost · no Wi-Fi» larga 208, ci sta. Corretti dopo il controllo due sottotitoli tagliati (d, f1) e il primo fotogramma del lampo MIDI, che ora parte verde. A schermo solo inglese, a parte i nomi scritti dall'utente; «il pannello di oggi · schema» è una nota del foglio, come le note della mappa.</span><br />
+<b>REV17:</b> via «Tap to start» e il tocco dal velo dopo lo Stop sui 5 schermi che lo mostravano (H, I, J, la mappa, L): si riparte solo col Play; il blocco di quel velo sceso a 248; corretto ogni testo che diceva il contrario (riquadro in alto, J, K0, la mappa, le difese, le misure, i punti 75 e 87); la sezione T tolta e il punto 100 chiuso con la A; il 103 deciso; nuovo il 105.
+<b>REV16:</b> il nome dello show in testata su 8 schermi (V1, V2, V4, H, I, J, la mappa, L); «Resume from» sopra la fila e il segno dello scorrere senza dito sui 5 schermi con la fila; la sezione T, nuova, col test di «Tap to start» su 4 schermi; la didascalia del conto (K0) corretta; i punti 74, 100 e 101 aggiornati, nuovi il 102 e il 103. Il sync non è toccato.
+<b>REV15:</b> tre veli nuovi (V1, V2, V4) presi dal foglio dei veli e rifatti; lo schermo del conto (K0); «Tap to start» con la mano al posto di «Tap anywhere» sui 5 schermi col velo dopo lo Stop; l'icona del dito sulla fila in 5 schermi; la regola della spia MIDI.
+<b>REV14:</b> cambia solo la parola della riga di stato, «Bluetooth» → «MIDI», sui 5 schermi che la mostrano; schermi e misure sono quelli della REV13.
+<b>Esito dei controlli della REV13:</b> <span id="esito">file renderizzato e controllato da un verificatore separato: gli stessi 6 schermi della REV11 a 390×844; Kill e List mode spenti su tutti e 5 gli schermi a canzone ferma (H, I, J, la mappa, L) e accesi solo in K, in moto; Mixer acceso ovunque; Play verde a canzone ferma, Stop rosso solo in K; la fila scorre come nella REV11; nessun errore in console. A schermo solo inglese, a parte i nomi scritti dall'utente.</span><br />
+<b>Consegna:</b> la carica CD su Drive, cartella <b>Qbeats_IN_CD</b>. — CD · 10/10/2026 · A386 · PLAYER · GIRO 1 · Solo · REV20 · le decisioni di Mauro disegnate come sono dette; il resto è proposta: la ratifica è di Mauro, la riga nel LIBRO la scrive CC quando mette il file nel deposito.</div>
+<script>
+document.querySelectorAll('.sx-s').forEach(function(s){
+var t=+s.dataset.sl||0;
+var cu=s.querySelector('.cu');
+if(s.dataset.sl==='auto'&&cu){t=Math.max(0,cu.offsetLeft-120)}
+s.scrollLeft=t;
+var d=false,x0=0,l0=0;
+s.addEventListener('pointerdown',function(e){d=true;x0=e.clientX;l0=s.scrollLeft;s.setPointerCapture(e.pointerId);s.style.cursor='grabbing'});
+s.addEventListener('pointermove',function(e){if(d)s.scrollLeft=l0-(e.clientX-x0)});
+s.addEventListener('pointerup',function(){d=false;s.style.cursor='grab'});
+});
+</script>
+<script>
+(function(){
+var LP={2:[46,22],3:[46,22],4:[46,22],5:[46,12],6:[46,12],7:[42,10],9:[32,8],11:[26,6],12:[24,6]};
+document.querySelectorAll('.lp').forEach(function(e){var n=+e.dataset.n,s=LP[n],on=+e.dataset.on||0,h='';e.style.gap=s[1]+'px';for(var k=1;k<=n;k++)h+='<i class="'+(k===on?(k===1?'a':'n'):'')+'" style="width:'+s[0]+'px;height:'+s[0]+'px"></i>';e.innerHTML=h});
+document.querySelectorAll('.bm').forEach(function(e){var n=+e.dataset.n,c=+e.dataset.c,g=n<=16?6:n<=32?3:1.5,r=Math.min(6,(354-g*(n-1))/n/2),h='';e.style.gap=g+'px';for(var k=1;k<=n;k++)h+='<i class="'+(k<c?'d':k===c?'c':'')+'" style="border-radius:'+r+'px"></i>';e.innerHTML=h});
+function fit(e,hi,lo){var s=hi,lh=function(){return parseFloat(getComputedStyle(e).lineHeight)},bad=function(){return e.scrollWidth>e.clientWidth+1||e.offsetHeight>2*lh()+2};e.style.fontSize=s+'px';while(s>lo&&bad()){s--;e.style.fontSize=s+'px'}var c=bad();if(c)e.classList.add('cl');var n=Math.round(e.offsetHeight/lh());document.querySelectorAll('[data-fo="'+e.dataset.f+'"]').forEach(function(o){o.textContent=s+' · '+(n<2?'una riga':'due righe')+(c?' · puntini':'')})}
+function fitK(e){var s,n=2,lh=function(){return parseFloat(getComputedStyle(e).lineHeight)},bad=function(r){return e.scrollWidth>e.clientWidth+1||e.offsetHeight>r*lh()+2},set=function(v){s=v;e.style.fontSize=v+'px'};set(68);while(s>53&&bad(2))set(s-1);if(bad(2)){n=3;while(s>42&&bad(3))set(s-1)}var c=bad(n);if(c){var w=e.textContent.split(' ');while(w.length>1){w.pop();e.textContent=w.join(' ').replace(/[,;:.]$/,'')+'…';if(!bad(3))break}e.classList.add('cl')}var r=Math.max(1,Math.min(3,Math.round(e.offsetHeight/lh())));document.querySelectorAll('[data-fo="'+e.dataset.f+'"]').forEach(function(o){o.textContent=s+' · '+['una riga','due righe','tre righe'][r-1]+(c?' · puntini':'')})}
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(function(){document.querySelectorAll('.p-vn.fit').forEach(function(e){fit(e,80,48)});document.querySelectorAll('.p-se b:not(.fx)').forEach(function(e){fitK(e)})});
+})();
+</script>
+</body>
+</html>

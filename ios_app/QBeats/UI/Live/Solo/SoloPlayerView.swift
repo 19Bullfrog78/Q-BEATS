@@ -23,6 +23,9 @@ struct SoloPlayerView: View {
     let faces: SoloConsoleFaces
     let clickMuted: Bool
     let barsPerSection: [Int]
+    /// A401, punto 116 — il posto nello show della canzone in corso, da 1 (`runner.currentSongIdx + 1`, dal
+    /// chiamante): per «Song N» nel titolo e, più uno, dopo «Next song».
+    let songNumber: Int
     let contentOpacity: Double
     let onExit: () -> Void
     let onToggleMute: () -> Void
@@ -33,7 +36,7 @@ struct SoloPlayerView: View {
         let s = g.scale
         ZStack(alignment: .topLeading) {
             place(g.header) {
-                SoloHeaderView(title: session.currentSongName,
+                SoloHeaderView(title: songDisplayName,
                                muted: clickMuted,
                                scale: s,
                                contentOpacity: contentOpacity,
@@ -76,6 +79,16 @@ struct SoloPlayerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
+    /// Il titolo di K: la canzone in corso come è scritta, oppure «Song N» (A401, punto 116; N = `songNumber`, il
+    /// posto nello show). Nome e posto sono della stessa canzone: il runner scrive `currentSongName` da
+    /// `currentSong`, cioè dal catalogo a `currentSongIdx` (`SetlistRunner.updateSessionDisplay`), e quando cambia
+    /// `currentSongIdx` azzera il display nello stesso passo (`armNextSong`, `armSong`) o lo riscrive
+    /// (`prepareAndStartCurrentSection`). Con il display non ancora scritto (0) il nome resta com'è, vuoto.
+    private var songDisplayName: String {
+        SongNameDecision.titleInMotion(session.currentSongName, numberInShow: songNumber,
+                                       displayWritten: session.macroBarCurrent > 0)
+    }
+
     /// Il nome della sezione in corso: come è scritto, oppure «Section N» (punto 109; N = `macroBarCurrent`, che il
     /// runner scrive come indice + 1 al tick giusto). Con il display non ancora scritto (0) niente.
     private var sectionDisplayName: String {
@@ -86,11 +99,14 @@ struct SoloPlayerView: View {
     /// Next (punto 108): la sezione dopo (`nextSectionName`, scritta dal runner da `nextSection`), la canzone dopo
     /// all'ultima sezione (`nextSongName`, scritta dal runner da `nextSong` solo se `isLastSectionInSong`), oppure
     /// «END SHOW» all'ultima dell'ultima canzone. Con il display non ancora scritto (0) niente.
+    /// A401, punto 116 — la canzone dopo senza nome è «Song N», N = `songNumber + 1`: `nextSong` è il catalogo a
+    /// `currentSongIdx + 1` (`SetlistRunner.nextSong`), una dopo quella di `songNumber`.
     private var nextDecision: SoloNext {
         guard session.macroBarCurrent > 0 else { return SoloNext(label: SoloNextDecision.nextLabel, value: "") }
         return SoloNextDecision.next(nextSectionName: session.nextSectionName,
                                      nextSectionNumber: session.macroBarCurrent + 1,
-                                     nextSongName: session.nextSongName)
+                                     nextSongName: session.nextSongName,
+                                     nextSongNumber: songNumber + 1)
     }
 
     /// La barra della canzone: le battute di ogni sezione della canzone (dal runner, `currentSong`), la sezione in
