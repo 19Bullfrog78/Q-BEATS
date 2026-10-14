@@ -114,3 +114,12 @@ ARCHIVIO.MD/
 HANDOFF/*
 !HANDOFF/SCALETTA_ATOMI_S6_2026-07-10.md
 !HANDOFF/INDICE_ID_MANDATI.md
+
+# ============================================================
+# Ableton Link SDK (LinkKit) fuori dal deposito
+# La licenza dell'SDK vieta di ridistribuirlo e Ableton (richiesta
+# #3167257, 14/10/2026) chiede che la CI lo scarichi dal repository
+# LinkKit: lo fa .github/scripts/fetch_linkkit.sh, che lo mette qui,
+# dove lo cerca ios_app/project.yml.
+# ============================================================
+Vendors/AbletonLink/
