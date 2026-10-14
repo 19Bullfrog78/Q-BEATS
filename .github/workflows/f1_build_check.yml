@@ -13,6 +13,11 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      # LinkKit non sta nel deposito (licenza Ableton Link SDK): lo scarica
+      # lo script dalla release ufficiale e ne controlla lo sha256.
+      - name: Fetch LinkKit (Ableton Link SDK)
+        run: bash .github/scripts/fetch_linkkit.sh
+
       - name: Generate Xcode project
         working-directory: ios_app
         run: xcodegen generate
