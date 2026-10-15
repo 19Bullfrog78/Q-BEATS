@@ -2637,9 +2637,9 @@ class AudioEngine: ObservableObject {
                 // A408 — la riga del primo avvio riuscito dopo una ricostruzione, una volta.
                 if self._firstStartAfterMediaResetQ {
                     self._firstStartAfterMediaResetQ = false
-                    os_log("[Q-BEATS][RESET] primo avvio dopo il reset riuscito motore:%p",
+                    os_log("[Q-BEATS][RESET] primo avvio dopo il reset riuscito motore:0x%lx",
                            log: .default, type: .default,
-                           Unmanaged.passUnretained(self.engine).toOpaque())
+                           Int(bitPattern: Unmanaged.passUnretained(self.engine).toOpaque()))
                 }
 
 #if QB_DIAG_SPY
@@ -5274,7 +5274,7 @@ class AudioEngine: ObservableObject {
     // DispatchQueue.main.sync.
     private func rebuildAfterMediaResetQ() -> Bool {
         let rebuildStart = mach_absolute_time()
-        let oldEngine = Unmanaged.passUnretained(engine).toOpaque()
+        let oldEngine = Int(bitPattern: Unmanaged.passUnretained(engine).toOpaque())
         // 1.
         autoreleasepool {
             engine.stop()
@@ -5294,7 +5294,7 @@ class AudioEngine: ObservableObject {
         guard setupSession() else {
             _mediaServicesQ = MediaServicesResetDecision.transition(state: _mediaServicesQ,
                                                                    event: .rebuilt(sessionActivated: false)).next
-            os_log("[Q-BEATS][RESET] ricostruzione non finita: sessione non attivata - motore:%p invariato - stato:%{public}@",
+            os_log("[Q-BEATS][RESET] ricostruzione non finita: sessione non attivata - motore:0x%lx invariato - stato:%{public}@",
                    log: .default, type: .default, oldEngine, describe(_mediaServicesQ))
             return false
         }
@@ -5323,9 +5323,9 @@ class AudioEngine: ObservableObject {
         // 6.
         _mediaServicesQ = MediaServicesResetDecision.transition(state: _mediaServicesQ,
                                                                event: .rebuilt(sessionActivated: true)).next
-        os_log("[Q-BEATS][RESET] motore nuovo vecchio:%p nuovo:%p ms:%.1f stato:%{public}@",
+        os_log("[Q-BEATS][RESET] motore nuovo vecchio:0x%lx nuovo:0x%lx ms:%.1f stato:%{public}@",
                log: .default, type: .default,
-               oldEngine, Unmanaged.passUnretained(engine).toOpaque(),
+               oldEngine, Int(bitPattern: Unmanaged.passUnretained(engine).toOpaque()),
                machTicksToSeconds(mach_absolute_time() - rebuildStart) * 1000.0,
                describe(_mediaServicesQ))
         return true
