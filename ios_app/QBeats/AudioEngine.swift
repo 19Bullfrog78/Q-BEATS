@@ -985,9 +985,30 @@ class AudioEngine: ObservableObject {
         // mainMixerNode collegato al graph). Vedi installLinkTap().
         qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
 
-        setupSession()
-        setupGraph()
-        // MIDI engine avvia DOPO Link e grafo audio — ordine intenzionale.
+        // A406 — la sessione audio si attiva su audioQueue, non sul thread principale. Su iOS 27
+        // l'attivazione dal thread principale scrive a ogni avvio il Fault «AVAudioSession_iOS.mm:978
+        // This method can lead to UI unresponsiveness if called on the main thread»; l'SDK
+        // (AVAudioSession.h): «activating an audio session is a synchronous (blocking) operation».
+        // L'attivazione resta sincrona e cambia coda: audioQueue è la coda seriale di start(),
+        // rebuildGraph, della ripresa e di handleRouteChange, e un Play o un evento che arriva
+        // durante l'attivazione si mette in coda dietro di lei. Nel blocco niente audioQueue.sync,
+        // niente DispatchQueue.main.sync.
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.setupSession()
+            self.setupGraph()
+            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
+            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
+            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
+            DispatchQueue.main.async {
+                self.sampleRateInfo = AVAudioSession.sharedInstance().sampleRate
+            }
+        }
+        // MIDI engine avvia DOPO Link — ordine intenzionale (commento a midi_engine_create qui
+        // sopra). Resta sul thread principale: CoreMIDI chiama la notifica del client «on the same
+        // run loop that you created the client on» (Apple, MIDIClientCreate), e audioQueue non ha
+        // un run loop. midi_engine_start non usa né la sessione né il grafo, che ora si
+        // costruiscono su audioQueue (blocco qui sopra).
         if let mh = midiEngineHandle {
             // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — «MIDI COLLEGATO» (A393 §6.3) ===
             // Il richiamo «riconto finito» va registrato PRIMA di midi_engine_start: il primo riconto
@@ -1011,14 +1032,6 @@ class AudioEngine: ObservableObject {
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
             midi_engine_start(mh)
-        }
-        audioQueue.sync {
-            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
-            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
-            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
-        }
-        DispatchQueue.main.async {
-            self.sampleRateInfo = AVAudioSession.sharedInstance().sampleRate
         }
         setupNotifications()
         os_log("AppSettings loaded: accent=%.2f beat=%.2f subdiv=%.2f muted=%d",
@@ -3942,7 +3955,14 @@ class AudioEngine: ObservableObject {
             try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
             // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive
             configureSessionChannels(for: detectAudioMode())
+            let setActiveStart = mach_absolute_time()
             try session.setActive(true)
+            // A406 — il thread della setActive (all'avvio e al reset dei servizi audio: main:0) e la
+            // durata della sola setActive.
+            os_log("[Q-BEATS][SESSIONE] setActive main:%d ms:%.1f",
+                   log: .default, type: .default,
+                   Thread.isMainThread ? 1 : 0,
+                   machTicksToSeconds(mach_absolute_time() - setActiveStart) * 1000.0)
             sampleRate = AVAudioSession.sharedInstance().sampleRate
             if let mh = metronomeHandle {
                 metronome_set_sample_rate(mh, sampleRate)
@@ -4093,18 +4113,18 @@ class AudioEngine: ObservableObject {
     // in senso stretto, ma scheduling RT garantito ad ogni render del
     // mainMixer — sempre attivo durante engine running).
     //
-    // Le API ABLLink AudioSessionState (Capture/Commit) sono LOCKFREE
-    // per design: compatibili con thread RT secondo doc Ableton ABLLink.h.
+    // A406 — il blocco conta i buffer resi e nient'altro. Il contatore lo legge
+    // la riga [SinkDiag-AQ] relay, su audioQueue, nel richiamo del battito di
+    // scheduleNextBuffer, da dove parte anche la trasmissione a Link (dal 15/05,
+    // e77d6e8).
     //
     // Vincoli del block (identici al sink originario):
     // - niente self / weak / class Swift (no ARC)
     // - niente ObjC messaging
     // - niente lock / I/O
-    // - solo C function su atomic + ABLLink Audio*SessionState (lockfree)
+    // - solo C function su atomic
     //
-    // Cattura esplicita:
-    // - opaque C pointers (pendingPtr, handle) — stabili per lifecycle
-    // - scalar primitive (tbNumer, tbDenom) — let immutabili
+    // Cattura esplicita: pendingPtr, opaque C pointer stabile per lifecycle.
     //
     // Idempotente: removeTap precede installTap per sopravvivere a
     // rebuildGraph (cambio modalita' Base/Pro).
@@ -4112,65 +4132,11 @@ class AudioEngine: ObservableObject {
         engine.mainMixerNode.removeTap(onBus: 0)
 
         let pendingPtr: OpaquePointer = self.linkPending
-        let handle: LinkEngineHandle? = self.linkEngineHandle
-        let tbNumer: UInt32 = self.machTimebase.numer
-        let tbDenom: UInt32 = self.machTimebase.denom
 
-        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { _, when in
-            // Tap block — priorita' RT equivalente al rendering AVAudioEngine.
+        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { _, _ in
+            // Tap block — conta i buffer resi per la riga [SinkDiag-AQ] relay.
             // Vincoli: no self/weak/class, no ObjC msg, no lock, no I/O.
-            // ABLLink Audio*SessionState lockfree → compatibili con thread RT.
-            let renderBufferId = qbeats_link_pending_increment_render_buffer(pendingPtr)
-
-            if renderBufferId % 1024 == 0 {
-                os_log("[Q-BEATS][SinkDiag-RT] heartbeat — renderBufferId:%llu",
-                       log: .default, type: .default, renderBufferId)
-            }
-
-            // Calibrazione delta sched-render (one-shot self-correcting)
-            if qbeats_link_pending_get_delta(pendingPtr) == 0 {
-                let schedNow = qbeats_link_pending_get_sched_buffer_count(pendingPtr)
-                if schedNow > 0 {
-                    let delta = Int64(schedNow) - Int64(renderBufferId)
-                    if delta > 0 {
-                        qbeats_link_pending_set_delta(pendingPtr, delta)
-                    }
-                }
-            }
-
-            // === DISABLED — broadcast moved to scheduleNextBuffer beat callback ===
-            // Il design del match buffer-id (sched ~100/s vs render ~10/s) non regge
-            // l'asimmetria reale: il match `renderBufferId == targetBufferId` non
-            // scatta nei tempi del target (verifica Step 1A, sessione 15/05/2026).
-            // Broadcast Link ora parte da audioQueue — vedi commento "Step 2 —
-            // broadcast Link da audioQueue" nel beat callback di scheduleNextBuffer.
-            // Codice mantenuto visibile per reference durante validazione; pulizia
-            // definitiva in commit separato post-device verde.
-            /*
-            // Arming check + apply al sample-accurate del downbeat
-            if qbeats_link_pending_load_scheduled(pendingPtr) {
-                let targetBufferId = qbeats_link_pending_load_buffer_id(pendingPtr)
-                if renderBufferId == targetBufferId {
-                    let bpm = qbeats_link_pending_load_bpm(pendingPtr)
-                    let sampleOffset = qbeats_link_pending_load_sample_offset(pendingPtr)
-                    let sampleRate = qbeats_link_pending_load_sample_rate(pendingPtr)
-                    // hostTime preciso del sample del downbeat:
-                    //   when.hostTime + offset_in_buffer in ticks
-                    let nanosOffset = Double(sampleOffset) / sampleRate * 1.0e9
-                    let ticksOffset = UInt64(nanosOffset * Double(tbDenom) / Double(tbNumer))
-                    let hostTime = when.hostTime + ticksOffset
-                    if let h = handle {
-                        let nowAtSink = mach_absolute_time()
-                        os_log("[Q-BEATS][SinkSync] broadcast — bpm:%.1f renderBufferId:%llu when.hostTime:%llu ticksOffset:%llu hostTime:%llu deltaFromNow:%lld",
-                               log: .default, type: .default,
-                               bpm, renderBufferId, when.hostTime, ticksOffset, hostTime,
-                               Int64(hostTime) - Int64(nowAtSink))
-                        link_engine_set_bpm_audio_thread(h, bpm, hostTime)
-                    }
-                    qbeats_link_pending_clear_scheduled(pendingPtr)
-                }
-            }
-            */
+            _ = qbeats_link_pending_increment_render_buffer(pendingPtr)
         }
     }
 
@@ -5120,20 +5086,24 @@ class AudioEngine: ObservableObject {
     @objc private func handleMediaReset(_ notification: Notification) {
         let wasRunning: Bool = audioQueue.sync { self.isRunning }
         stopSync()
-        setupSession()
-        setupGraph()
-        audioQueue.sync {
+        let settings = appSettings
+        // A406 — come in init: la sessione si riattiva su audioQueue, non sul thread principale.
+        // applySettings accoda il suo lavoro: gira dopo questo blocco e prima della setActive e
+        // dello start che activateSessionAndStart accoda a sua volta. Nel blocco niente
+        // audioQueue.sync, niente DispatchQueue.main.sync.
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.setupSession()
+            self.setupGraph()
             self.backtrackBuffer = nil
             self.backtrackArmed  = false
-        }
-        applySettings(appSettings)
-        audioQueue.sync {
+            self.applySettings(settings)
             self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
             self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
             self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
-        }
-        if wasRunning {
-            activateSessionAndStart(resumeAtBeat: nil, trigger: "media_reset")
+            if wasRunning {
+                self.activateSessionAndStart(resumeAtBeat: nil, trigger: "media_reset")
+            }
         }
     }
 
