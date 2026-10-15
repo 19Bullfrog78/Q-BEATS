@@ -10,6 +10,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # A405 — PASSO DI SOLA LETTURA, TEMPORANEO (mandato DUE-ERRORI-P1 §3 c): dove l'SDK di iOS della CI dichiara
+      # l'attivazione asincrona di AVAudioSession. Non scrive niente; al cancello non c'è più.
+      - name: A405 sola lettura - AVAudioSession nell'SDK
+        continue-on-error: true
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "SDK: $SDK"
+          xcrun --sdk iphoneos --show-sdk-version
+          find "$SDK/System/Library/Frameworks/AVFAudio.framework" -name 'AVAudioSession*.h' | sort
+          for H in $(find "$SDK/System/Library/Frameworks/AVFAudio.framework" -name 'AVAudioSession*.h' | sort); do
+            echo "=== $H"
+            grep -n 'activateWithOptions\|activateWithCompletionHandler\|deactivateWithCompletionHandler\|setActive:' "$H" || true
+          done
+          for H in $(grep -l 'activateWithOptions' $(find "$SDK/System/Library/Frameworks/AVFAudio.framework" -name 'AVAudioSession*.h')); do
+            echo "=== CONTESTO $H"
+            for N in $(grep -n 'activateWithOptions\|activateWithCompletionHandler\|deactivateWithCompletionHandler' "$H" | cut -d: -f1); do
+              S=$((N > 40 ? N - 40 : 1)); E=$((N + 6))
+              echo "--- righe $S-$E"
+              sed -n "${S},${E}p" "$H" | nl -ba -v "$S"
+            done
+          done
+          SI="$(find "$SDK" -path '*AVFAudio.swiftmodule*' -name '*.swiftinterface' | head -1)"
+          echo "swiftinterface: $SI"
+          if [ -n "$SI" ]; then grep -n 'func activate(\|func deactivate(' "$SI" | head -20 || true; fi
+
       - name: Install XcodeGen
         run: brew install xcodegen
 

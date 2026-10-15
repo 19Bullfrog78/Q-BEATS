@@ -1375,7 +1375,25 @@ struct LiveView: View {
 
     /// Ogni schermo del Solo che compare: lo schermo (V, H, K, V4, overlayStop), l'indice e il nome della sezione
     /// come è scritta, corpo e righe del nome sui veli (0 dove il nome non c'è), tempo e metrica, la testata.
-    private func soloScreenShown(_ screen: SoloScreen, texts: SoloVeilTexts?) {
+    /// ⚠️ A405 (15/10/2026) — LO SCHERMO DELLA RIGA SI RIFÀ QUI, dallo stato di adesso, con gli stessi ingressi del
+    ///    blocco `soloScreen` del body: quello che arriva da chi chiama può essere vecchio, e non si legge. Misurato nei
+    ///    registri del collaudo A403: `onChange(of: soloScreen.kind)` consegna lo schermo di prima (all'arrivo di K la
+    ///    riga diceva V o H con `nomeCorpo:0`; alla fine scaletta K invece di V4); il primo H dopo il montaggio
+    ///    consegna l'H del montaggio (tempo 121 della prima canzone, mentre a schermo c'era il 120 della terza). Corpo,
+    ///    righe e puntini del nome restano quelli del velo che li ha misurati, e solo se lo schermo di adesso è un velo.
+    private func soloScreenShown(_ fromCaller: SoloScreen, texts: SoloVeilTexts?) {
+        let screen = SoloScreenDecision.screen(state: session.playbackState,
+                                               sectionIndex: runner.currentSectionIdx,
+                                               sectionName: runner.currentSection?.name,
+                                               currentSongName: runner.currentSong?.name,
+                                               showName: room.showName,
+                                               songNameInMotion: session.currentSongName,
+                                               songNumber: runner.currentSongIdx + 1,
+                                               displayWritten: session.macroBarCurrent > 0,
+                                               sectionBPM: runner.currentSection?.bpm,
+                                               sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
+                                               sectionBeatUnit: runner.currentSection?.beatUnit)
+        let veilTexts = (screen.kind == .veil || screen.kind == .resume) ? texts : nil
         let sectionWritten: String = screen.relationSection
             ?? SectionNameDecision.displayName(runner.currentSection?.name ?? "", numberInSong: runner.currentSectionIdx + 1)
         os_log("[Q-BEATS][SOLO-M3][SCHERMO] schermo:%{public}@ sezioneIdx:%d sezione:%{public}@ nomeCorpo:%d nomeRighe:%d puntini:%{public}@ tempo:%{public}@ testata:%{public}@",
@@ -1383,9 +1401,9 @@ struct LiveView: View {
                Self.screenName(screen.kind),
                runner.currentSectionIdx,
                sectionWritten,
-               texts.map { Int($0.name.size.rounded()) } ?? 0,
-               texts?.name.lineCount ?? 0,
-               (texts?.name.truncated ?? false) ? "si" : "no",
+               veilTexts.map { Int($0.name.size.rounded()) } ?? 0,
+               veilTexts?.name.lineCount ?? 0,
+               (veilTexts?.name.truncated ?? false) ? "si" : "no",
                screen.tempoLine.isEmpty ? "-" : screen.tempoLine,
                screen.headerTitle.isEmpty ? "-" : screen.headerTitle)
     }

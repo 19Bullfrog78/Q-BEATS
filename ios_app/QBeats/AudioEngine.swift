@@ -327,6 +327,9 @@ class AudioEngine: ObservableObject {
     // UX-2 — DND Reminder
     @Published var shouldShowDNDReminder: Bool = false
     private var dndReminderShownThisSession = false
+    /// A405 — la chiusura dell'avviso già scritta da SwiftUI nel binding (`setDNDReminderPresented`), finché il
+    /// `@Published` non si abbassa sul main. Non pubblica: la legge solo `isDNDReminderPresented`.
+    private var dndReminderClosing = false
 
     // Placeholder L3 — sostituiti dalla song/section model di Layer 3
     var currentSection: String? = nil
@@ -3187,6 +3190,25 @@ class AudioEngine: ObservableObject {
                 self.appSettings.showDNDReminder = false
                 self.appSettings.save()
             }
+        }
+    }
+
+    /// A405 — il binding dell'avviso del promemoria (`ContentView`). Su iOS 27 la chiusura dell'avviso arriva nel
+    /// binding mentre SwiftUI aggiorna la vista, subito dopo `_didHideAlertController`: scritta nel `@Published` era
+    /// una pubblicazione dentro l'aggiornamento («Publishing changes from within view updates is not allowed», quattro
+    /// righe a ogni chiusura nei registri del collaudo A403). Qui la chiusura si segna senza pubblicare, l'avviso
+    /// risulta subito chiuso, e il `@Published` si abbassa sul main al giro dopo, come in `dismissDNDReminder`.
+    /// Quando e dove compare l'avviso non cambia.
+    var isDNDReminderPresented: Bool {
+        shouldShowDNDReminder && !dndReminderClosing
+    }
+
+    func setDNDReminderPresented(_ presented: Bool) {
+        guard !presented else { return }
+        dndReminderClosing = true
+        DispatchQueue.main.async {
+            self.shouldShowDNDReminder = false
+            self.dndReminderClosing = false
         }
     }
 
