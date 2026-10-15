@@ -36,6 +36,20 @@ jobs:
           SI="$(find "$SDK" -path '*AVFAudio.swiftmodule*' -name '*.swiftinterface' | head -1)"
           echo "swiftinterface: $SI"
           if [ -n "$SI" ]; then grep -n 'func activate(\|func deactivate(' "$SI" | head -20 || true; fi
+          echo "=== TUTTI GLI XCODE DELL'IMMAGINE"
+          ls -d /Applications/Xcode*.app || true
+          for X in /Applications/Xcode*.app; do
+            [ -L "$X" ] && { echo "--- $X -> $(readlink "$X")"; continue; }
+            echo "--- $X"
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$X/Contents/Info.plist" 2>/dev/null || true
+            for S in "$X"/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS*.sdk; do
+              [ -d "$S" ] || continue
+              [ -L "$S" ] && continue
+              echo "    SDK $S"
+              H="$S/System/Library/Frameworks/AVFAudio.framework/Headers/AVAudioSession.h"
+              grep -n 'activateWithOptions\|activateWithCompletionHandler\|deactivateWithCompletionHandler' "$H" || true
+            done
+          done
 
       - name: Install XcodeGen
         run: brew install xcodegen
