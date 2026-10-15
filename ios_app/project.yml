@@ -73,9 +73,8 @@ targets:
       - CoreAudioKit.framework
       # === MODIFICATO 6A ===
       - path: ../Vendors/AbletonLink/LinkKit.xcframework
-    resources:
-      - path: ../Vendors/AbletonLink/LinkKitResources.bundle
-        codeSignOnCopy: true
+    # A405 — via la chiave `resources:` del bundle di LinkKit: XcodeGen non la conosce e il bundle non è mai entrato
+    # nell'IPA. Il bundle non si aggiunge (decisione del referee, A404).
     entitlements:
       path: QBeats/QBeats.entitlements
       properties:

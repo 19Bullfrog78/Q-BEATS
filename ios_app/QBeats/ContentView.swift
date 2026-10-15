@@ -82,7 +82,12 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(audioEngine: audioEngine)
         }
-        .alert("Modalità Aereo / Non Disturbare", isPresented: $audioEngine.shouldShowDNDReminder) {
+        // A405 — il binding non scrive nel `@Published` del motore: su iOS 27 SwiftUI scrive la chiusura mentre
+        // aggiorna la vista. Lettura e scrittura in `AudioEngine` (`isDNDReminderPresented`, `setDNDReminderPresented`).
+        .alert("Modalità Aereo / Non Disturbare", isPresented: Binding(
+            get: { audioEngine.isDNDReminderPresented },
+            set: { audioEngine.setDNDReminderPresented($0) }
+        )) {
             Button("OK") {
                 audioEngine.dismissDNDReminder(permanent: false)
             }

@@ -279,7 +279,10 @@ struct QLiveShowsView: View {
     // (§markup frame ②) — riga tap-abile da ⟦S5a⟧: naviga al dettaglio via `onSelectShow`.
     private func showCard(_ show: Setlist) -> some View {
         // ⚠️ default CC (flag in testa): nessun modello last-opened → pick MAI attivo per ora.
-        let isPick = false
+        // A405 — la regola sta in una funzione e non nella costante `false`: con la costante il compilatore vede morti i
+        // rami `.pick` qui sotto e lo dice (F1, «will never be executed»). Lo stile resta costruito e spento.
+        func isLastOpened(_ show: Setlist) -> Bool { false }
+        let isPick = isLastOpened(show)
         return HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 5) {
                 // «Untitled show» = fallback per name vuoto (specchio ShowsListView, 10° punto:
