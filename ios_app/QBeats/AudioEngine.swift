@@ -407,8 +407,16 @@ class AudioEngine: ObservableObject {
         return tbi
     }()
 
-    private let engine               = AVAudioEngine()
-    private let playerNode           = AVAudioPlayerNode()
+    // === A408 (15/10/2026) — MOTORE E NODI SI RICREANO DOPO IL RESET DEI SERVIZI AUDIO ===
+    // `engine`, `playerNode` e, più sotto, `backtrackPlayerNode`, `ch1MixerNode`…`ch4MixerNode`,
+    // `ch3PlayerNode`, `ch4PlayerNode` sono `var`: la ricostruzione al primo avvio dopo il reset
+    // (`rebuildAfterMediaResetQ`, chiamata da `start()`) li sostituisce con oggetti nuovi.
+    // Dopo la nascita (gli inizializzatori qui sotto) si SCRIVONO SOLO su audioQueue, lì dentro.
+    // Si leggono su audioQueue; fuori da audioQueue si usano solo le copie prese dentro un
+    // `audioQueue.sync` (`stopSync`, inizio di un'interruzione). `deinit` non gira mai: `shared`
+    // è una `static let`.
+    private var engine               = AVAudioEngine()
+    private var playerNode           = AVAudioPlayerNode()
     // Fase 1.5a: sampleRate dinamico — aggiornato da AVAudioSession dopo setActive(true)
     private var sampleRate           : Double = 48000.0
     private let bufferSize           : AVAudioFrameCount = 512
@@ -445,6 +453,17 @@ class AudioEngine: ObservableObject {
     // configurazione) e il `catch` di `start()`: ogni blocco di coda che scrive `isRunning = false`
     // lo abbassa prima di finire (`lowerOwnTransportStartQ`).
     private var _ownTransportStartPendingQ: Bool = false
+    // === A408 (15/10/2026) — IL RESET DEI SERVIZI AUDIO, accesso SOLO su audioQueue ===
+    // Tre stati: «normale», «servizi persi» (fra la Lost e la Reset), «da ricostruire» (dopo la
+    // Reset, fino alla ricostruzione al primo avvio, in `start()`). Regola e banco:
+    // `MediaServicesResetDecision` (Models/).
+    private var _mediaServicesQ: MediaServicesState = MediaServicesResetDecision.initial
+    // Quante Lost e quante Reset sono arrivate dall'avvio dell'app: il numero delle righe [RESET].
+    private var _mediaLostCountQ: Int = 0
+    private var _mediaResetCountQ: Int = 0
+    // Alzato da una ricostruzione riuscita, abbassato dal primo `engine.start()` riuscito dopo:
+    // la riga «primo avvio dopo il reset» esce una volta.
+    private var _firstStartAfterMediaResetQ: Bool = false
     // === A386 · FASE B2A (2D) — LO STATO DEL 2D, accesso SOLO su audioQueue ===
     // La macchina del Follower, il segnale «sento il Direttore», la ripetizione del Direttore
     // e la fase di avvio per la falsa partenza vivono qui; gli specchi @Published sopra.
@@ -641,18 +660,21 @@ class AudioEngine: ObservableObject {
     private var lastSampledStartStamp: StartStampSample? = nil   // accesso SOLO su startStampQueue
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
-    private let backtrackPlayerNode = AVAudioPlayerNode()
+    // A408 — `var`: si ricrea dopo il reset dei servizi audio (cartello su `engine`).
+    private var backtrackPlayerNode = AVAudioPlayerNode()
     private var backtrackBuffer: AVAudioPCMBuffer? = nil
     private var backtrackArmed: Bool = false
 
     // --- Mixer 4 canali ---
-    private let ch1MixerNode = AVAudioMixerNode()   // Click / Metronomo
-    private let ch2MixerNode = AVAudioMixerNode()   // Backtrack musicale
-    private let ch3MixerNode = AVAudioMixerNode()   // Guide vocals (disabilitato senza HW Pro)
-    private let ch4MixerNode = AVAudioMixerNode()   // FX ambientali (disabilitato senza HW Pro)
+    // A408 — `var`, come i due lettori qui sotto: si ricreano dopo il reset dei servizi audio
+    // (cartello su `engine`).
+    private var ch1MixerNode = AVAudioMixerNode()   // Click / Metronomo
+    private var ch2MixerNode = AVAudioMixerNode()   // Backtrack musicale
+    private var ch3MixerNode = AVAudioMixerNode()   // Guide vocals (disabilitato senza HW Pro)
+    private var ch4MixerNode = AVAudioMixerNode()   // FX ambientali (disabilitato senza HW Pro)
 
-    private let ch3PlayerNode = AVAudioPlayerNode()
-    private let ch4PlayerNode = AVAudioPlayerNode()
+    private var ch3PlayerNode = AVAudioPlayerNode()
+    private var ch4PlayerNode = AVAudioPlayerNode()
 
     // Volumi indipendenti per canale — accesso SOLO su audioQueue
     private var ch1Volume: Float = 1.0
@@ -678,9 +700,12 @@ class AudioEngine: ObservableObject {
 
         metronomeHandle = metronome_create(sampleRate, 120.0)
         midiEngineHandle = midi_engine_create()
-        // midi_engine_start() spostato dopo setupGraph() —
+        // midi_engine_start() sta più sotto, dopo link_engine_create() e link_engine_activate() —
         // Link registra il suo listener UDP multicast prima che CoreMIDI
         // apra virtual ports e scan queue. Previene contesa rete al boot.
+        // A408 — prima qui c'era «spostato dopo setupGraph()», vero fino ad A405: da A406
+        // setupGraph() gira su audioQueue e midi_engine_start() sul thread principale, senza un
+        // ordine fra loro (referto A406, §8.1).
         // === MODIFICATO 6A ===
         linkEngineHandle = link_engine_create()
         if let lh = linkEngineHandle {
@@ -2538,6 +2563,49 @@ class AudioEngine: ObservableObject {
             // partenza fresca (`usesResumeBeat` e' falso per costruzione sul Follower).
             let resumeBeatForStart: Double? = startDecision.usesResumeBeat ? resumeAtBeat : nil
 
+            // === A408 (15/10/2026) — IL RESET DEI SERVIZI AUDIO, AL PRIMO AVVIO DOPO ===
+            // Dopo la guardia e dopo l'uscita `stayStopped` del Follower, prima del `do` che
+            // contiene `engine.start()`. Sta qui perché questa è la porta unica dell'avvio (A361,
+            // qui sopra): console, velo, pedale, Link e riprese passano tutti di qui. ⚠️ Fra gli
+            // inneschi del cartello A361 c'è ancora «reset dei servizi media»: da A408 il reset non
+            // avvia più il motore (`handleMediaReset`), il click riparte solo da un avvio.
+            //  · «servizi persi» (fra la Lost e la Reset): l'avvio è rifiutato e non si ricorda;
+            //    niente `engine.start()` su un motore agganciato al server morto;
+            //  · «da ricostruire» (dopo la Reset): motore e nodi nuovi, sessione e grafo
+            //    (`rebuildAfterMediaResetQ`), poi l'avvio prosegue. Se la sessione non si attiva,
+            //    l'avvio finisce come un avvio fallito (il `catch` qui sotto), fermo, e il Play dopo
+            //    riprova;
+            //  · «normale»: tutto come prima.
+            // Tipo puro e banco: `MediaServicesResetDecision` (Models/).
+            switch MediaServicesResetDecision.transition(state: self._mediaServicesQ, event: .start).action {
+            case .refuseStart:
+                os_log("[Q-BEATS][RESET] Play non avviato: servizi audio persi - motore fermo",
+                       log: .default, type: .default)
+                DispatchQueue.main.async {
+                    // Come l'uscita `stayStopped` qui sopra.
+                    self.playbackState = .stopped
+                    self._linkStartEmitInFlight = false
+                }
+                return
+            case .rebuildThenStart:
+                guard self.rebuildAfterMediaResetQ() else {
+                    // Come il `catch` qui sotto: l'avvio è fallito prima di `engine.start()`. Il
+                    // segno del proprio avvio qui non è alzato (lo abbassa lo stopSync della Reset):
+                    // la chiamata è per simmetria.
+                    os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
+                           log: .default, type: .default)
+                    self.lowerOwnTransportStartQ(reason: "catch")
+                    DispatchQueue.main.async {
+                        self.playbackState = .stopped
+                        self._linkStartEmitInFlight = false
+                    }
+                    return
+                }
+                self._firstStartAfterMediaResetQ = true
+            default:
+                break
+            }
+
             // Build #309: rimosso il vecchio DOWNBEAT WAIT (Opzione B) e il
             // parametro skipLinkWait. La distinzione standalone/master-con-peer/
             // follower avviene ora esplicitamente dentro il blocco do { ... }
@@ -2566,6 +2634,13 @@ class AudioEngine: ObservableObject {
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
+                // A408 — la riga del primo avvio riuscito dopo una ricostruzione, una volta.
+                if self._firstStartAfterMediaResetQ {
+                    self._firstStartAfterMediaResetQ = false
+                    os_log("[Q-BEATS][RESET] primo avvio dopo il reset riuscito motore:%p",
+                           log: .default, type: .default,
+                           Unmanaged.passUnretained(self.engine).toOpaque())
+                }
 
 #if QB_DIAG_SPY
                 // SPIA passiva: abilita il ring L1 (seq azzerato → join con beatTick L3)
@@ -3441,6 +3516,8 @@ class AudioEngine: ObservableObject {
     func playBacktrack() {
         audioQueue.async { [weak self] in
             guard let self else { return }
+            // A408 — fuori da «normale» il lettore della base è del motore vecchio: niente avvio.
+            if self.mediaResetSkipsQ("play della base") { return }
             guard self.backtrackArmed, let buffer = self.backtrackBuffer else {
                 os_log("[Q-BEATS][BACKTRACK] playBacktrack: non armato — noop",
                        log: .default, type: .default)
@@ -3639,6 +3716,10 @@ class AudioEngine: ObservableObject {
         var bt = 0
         var directorStopped = false
         var directorFalseStart = false
+        // A408 — `playerNode` ed `engine` si scrivono su audioQueue (la ricostruzione dopo il reset
+        // dei servizi audio): qui fuori si fermano le copie prese dentro il `sync`.
+        var runningPlayer: AVAudioPlayerNode? = nil
+        var runningEngine: AVAudioEngine? = nil
         audioQueue.sync {
             // A400 · R1 — ogni arresto abbassa il segno del proprio avvio, se l'eco non l'ha già
             // consumato. In testa al blocco, prima del `guard` più sotto: vale anche a motore già
@@ -3680,6 +3761,8 @@ class AudioEngine: ObservableObject {
             wasRunning = self.isRunning
             guard self.isRunning else { return }
             self.isRunning = false
+            runningPlayer = self.playerNode
+            runningEngine = self.engine
             bc = self.bufferCount
             bt = self.beatTotal
             
@@ -3791,9 +3874,9 @@ class AudioEngine: ObservableObject {
                 self?.directorStoppedSubject.send(falseStart)
             }
         }
-        guard wasRunning else { return }
-        playerNode.stop()
-        engine.stop()
+        guard wasRunning, let playerToStop = runningPlayer, let engineToStop = runningEngine else { return }
+        playerToStop.stop()
+        engineToStop.stop()
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false
@@ -3808,6 +3891,12 @@ class AudioEngine: ObservableObject {
         attempt: Int = 0,
         token: Int = -1
     ) {
+        // A408 — fuori da «normale» niente riattivazione e niente ripartenza: la sessione la
+        // riattiva solo la ricostruzione, al primo avvio dopo il reset (`start()`), e il click non
+        // riparte da solo. Tutti i chiamanti girano su audioQueue; i tentativi e la rete di
+        // sicurezza rientrano da qui, e qui si fermano.
+        if mediaResetSkipsQ("riattivazione - trigger:\(trigger)") { return }
+
         // — Token anti-zombie —
         var activeToken = token
         if attempt == 0 {
@@ -3852,6 +3941,8 @@ class AudioEngine: ObservableObject {
 
         audioQueue.async { [weak self] in
             guard let self = self else { return }
+            // A408 — di nuovo qui: una Lost può essere arrivata fra il controllo in testa e questo blocco.
+            if self.mediaResetSkipsQ("riattivazione - trigger:\(trigger)") { return }
             do {
                 try AVAudioSession.sharedInstance().setActive(true,
                     options: .notifyOthersOnDeactivation)
@@ -3945,7 +4036,10 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    private func setupSession() {
+    // A408 — rende `true` se la sessione si è attivata. La legge la ricostruzione dopo il reset dei
+    // servizi audio (`rebuildAfterMediaResetQ`); `init` la ignora, come prima.
+    @discardableResult
+    private func setupSession() -> Bool {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .default, options: [])
@@ -3971,12 +4065,16 @@ class AudioEngine: ObservableObject {
             // (sink block lo legge per calcolo offset hostTime sample-accurate).
             qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
             os_log("QA-3 sampleRate aggiornato: %{public}.1f", log: .default, type: .default, sampleRate)
+            return true
         } catch {
             DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
+            return false
         }
     }
 
-    private func setupGraph() {
+    // A408 — rende il modo usato per il grafo (la riga «grafo pronto» della ricostruzione).
+    @discardableResult
+    private func setupGraph() -> AudioMode {
         self.sampleRate = AVAudioSession.sharedInstance().sampleRate
         // Task D refactor #18 — propaga sampleRate al pending atomic.
         qbeats_link_pending_set_sample_rate(self.linkPending, self.sampleRate)
@@ -4004,6 +4102,7 @@ class AudioEngine: ObservableObject {
         // lo configura). Idempotente — vedi installLinkTap().
         installLinkTap()
         applyChannelRouting(for: detectedMode)
+        return detectedMode
     }
 
     /// Costruisce la topologia del grafo AVAudioEngine in base alla modalità hardware.
@@ -4765,10 +4864,16 @@ class AudioEngine: ObservableObject {
             name: AVAudioSession.interruptionNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleRouteChange),
             name: AVAudioSession.routeChangeNotification, object: nil)
+        // A408 — la Lost: fra lei e la Reset il server dei servizi audio non c'è (referto A407, §3).
+        NotificationCenter.default.addObserver(self, selector: #selector(handleMediaLost),
+            name: AVAudioSession.mediaServicesWereLostNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleMediaReset),
             name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        // A408 — `object: nil`: dopo un reset dei servizi audio il motore è un'altra istanza, e un
+        // osservatore legato alla prima non vedrebbe la nuova (referto A407, §2c). Il filtro sul
+        // motore corrente sta in `handleEngineConfigChange`, su audioQueue.
         NotificationCenter.default.addObserver(self, selector: #selector(handleEngineConfigChange),
-            name: .AVAudioEngineConfigurationChange, object: engine)
+            name: .AVAudioEngineConfigurationChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleAppWakeUp),
             name: UIApplication.willEnterForegroundNotification, object: nil)
     }
@@ -4781,6 +4886,9 @@ class AudioEngine: ObservableObject {
         switch type {
         case .began:
             var shouldStop = false
+            // A408 — come in `stopSync`: le copie di `playerNode` ed `engine` si prendono nel `sync`.
+            var interruptedPlayer: AVAudioPlayerNode? = nil
+            var interruptedEngine: AVAudioEngine? = nil
             audioQueue.sync {
                 guard self.isRunning else {
                     os_log("[Q-BEATS][INTERRUPTION] began — engine già fermo, noop",
@@ -4801,6 +4909,8 @@ class AudioEngine: ObservableObject {
                 self.isAudioInterrupted = true
                 self.isRunning          = false
                 shouldStop              = true
+                interruptedPlayer       = self.playerNode
+                interruptedEngine       = self.engine
                 // RIENTRO-P1 (a) — questo arresto non passa da `stopSync`: se l'interruzione
                 // cade durante l'attesa d'ingresso, l'ingresso pendente si annulla QUI.
                 self.cancelPendingJoin(reason: "inizio interruzione")
@@ -4808,9 +4918,9 @@ class AudioEngine: ObservableObject {
                 // avvio, se l'eco non è arrivato, si abbassa QUI.
                 self.lowerOwnTransportStartQ(reason: "interruzione")
             }
-            guard shouldStop else { return }
-            playerNode.stop()
-            engine.stop()
+            guard shouldStop, let playerToStop = interruptedPlayer, let engineToStop = interruptedEngine else { return }
+            playerToStop.stop()
+            engineToStop.stop()
             DispatchQueue.main.async {
                 self.isPlaying   = false
                 self.clickStatus = "audio muted — clock running"
@@ -4821,6 +4931,10 @@ class AudioEngine: ObservableObject {
         case .ended:
             audioQueue.async { [weak self] in
                 guard let self = self else { return }
+
+                // A408 — fuori da «normale» niente ripresa e niente rebuildGraph sul motore vecchio:
+                // la sessione la riattiva solo la ricostruzione, al primo avvio dopo il reset.
+                if self.mediaResetSkipsQ("fine interruzione") { return }
 
                 // Recovery pendingResume
                 if self.pendingResume {
@@ -4955,6 +5069,11 @@ class AudioEngine: ObservableObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
+            // A408 — fuori da «normale» (dalla Lost alla ricostruzione) niente: né ripresa, né
+            // setupGraph o rebuildGraph sul motore vecchio, né frequenza letta da una sessione morta.
+            // La ricostruzione al primo avvio rilegge percorso, modo e frequenza dalla sessione.
+            if self.mediaResetSkipsQ("cambio di percorso") { return }
+
             // --- pendingResume recovery (path esistente preservato) ---
             if self.pendingResume {
                 self.pendingResume = false
@@ -5083,27 +5202,162 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    @objc private func handleMediaReset(_ notification: Notification) {
-        let wasRunning: Bool = audioQueue.sync { self.isRunning }
-        stopSync()
-        let settings = appSettings
-        // A406 — come in init: la sessione si riattiva su audioQueue, non sul thread principale.
-        // applySettings accoda il suo lavoro: gira dopo questo blocco e prima della setActive e
-        // dello start che activateSessionAndStart accoda a sua volta. Nel blocco niente
-        // audioQueue.sync, niente DispatchQueue.main.sync.
+    // === A408 (15/10/2026) — IL RESET DEI SERVIZI AUDIO ===
+    // Lost e Reset le posta iOS sul thread principale (Apple, referto A407, §1.1-§1.2), una volta per
+    // ogni sessione del processo: nel collaudo di A406 tre di ciascuna, una dell'app e due delle
+    // sessioni aptiche di UIKit (referto A407, §4). Gli osservatori restano con `object: nil`: un
+    // filtro sull'oggetto non ha fonte (referto A407, §1.8). Lo stato vive su audioQueue
+    // (`_mediaServicesQ`); regola e banco in `MediaServicesResetDecision` (Models/). Nessun gestore
+    // chiama setActive, setupSession, setupGraph o activateSessionAndStart: la sessione si riattiva
+    // al primo avvio dopo il reset (`start()` → `rebuildAfterMediaResetQ`), e il click non riparte da
+    // solo (decisioni del referee sul referto A407, punti 2 e 4; QA1749).
+
+    // La Lost: lo stato va a «servizi persi», da qualunque stato. Nient'altro: se il click suona, lo
+    // ferma la Reset.
+    @objc private func handleMediaLost(_ notification: Notification) {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
-            self.setupSession()
-            self.setupGraph()
-            self.backtrackBuffer = nil
-            self.backtrackArmed  = false
-            self.applySettings(settings)
-            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
-            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
-            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
-            if wasRunning {
-                self.activateSessionAndStart(resumeAtBeat: nil, trigger: "media_reset")
-            }
+            self._mediaLostCountQ += 1
+            let from = self._mediaServicesQ
+            self._mediaServicesQ = MediaServicesResetDecision.transition(state: from, event: .lost).next
+            os_log("[Q-BEATS][RESET] servizi audio persi n:%d stato:%{public}@ -> %{public}@",
+                   log: .default, type: .default,
+                   self._mediaLostCountQ, self.describe(from), self.describe(self._mediaServicesQ))
+        }
+    }
+
+    // La Reset.
+    //  · da «servizi persi»: stopSync sul principale, come prima (sul Direttore e sul Solo con Link
+    //    manda lo Stop alla band); poi, su audioQueue, «da ricostruire». Fra la lettura e il
+    //    passaggio lo stato resta «servizi persi»: un avvio che arriva in mezzo è rifiutato;
+    //  · da «da ricostruire»: notifica ripetuta, ignorata;
+    //  · da «normale» (Reset senza Lost): «da ricostruire», senza stopSync.
+    // Il `sync` dal principale è quello di prima (la lettura di `wasRunning`).
+    @objc private func handleMediaReset(_ notification: Notification) {
+        let action: MediaServicesAction = audioQueue.sync {
+            self._mediaResetCountQ += 1
+            let from = self._mediaServicesQ
+            let step = MediaServicesResetDecision.transition(state: from, event: .reset)
+            self._mediaServicesQ = step.next
+            os_log("[Q-BEATS][RESET] notifica di reset n:%d stato:%{public}@ esito:%{public}@",
+                   log: .default, type: .default,
+                   self._mediaResetCountQ, self.describe(from), self.describe(step.action))
+            return step.action
+        }
+        guard action == .stopThenMarkRebuild else { return }
+        stopSync()
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            self._mediaServicesQ = MediaServicesResetDecision.transition(state: self._mediaServicesQ,
+                                                                        event: .stoppedAfterReset).next
+        }
+    }
+
+    // La ricostruzione, al primo avvio dopo il reset. Chiamare SOLO su audioQueue, da `start()` in
+    // «da ricostruire», dopo la guardia (motore fermo) e dopo l'uscita `stayStopped` del Follower.
+    // Come all'avvio dell'app (`init`), nell'ordine:
+    //  1. motore vecchio: stop e poi removeTap, come in `deinit`. Gli errori si ignorano (QA1749);
+    //  2. motore nuovo e 8 nodi nuovi (referto A407, §6.1);
+    //  3. `setupSession()`: categoria, preferenze, canali, setActive. Se la sessione non si attiva
+    //     la ricostruzione si ferma qui: i nuovi si lasciano andare senza essere mai stati attaccati,
+    //     restano in uso motore e nodi vecchi, fermi e ancora attaccati, e lo stato resta «da
+    //     ricostruire». Così nessuna strada trova un nodo staccato, che Apple dice inutilizzabile
+    //     finché non lo si attacca (`AVAudioEngine.attach(_:)`). Il Play dopo riprova;
+    //  4. i nuovi entrano in uso, e il motore vecchio si lascia andare qui, su audioQueue (non in un
+    //     gestore del cambio di configurazione: referto A407, §1.3); `setupGraph()` (attach ×8,
+    //     collegamenti, tap di Link, instradamento), poi `prepare()`;
+    //  5. i tre campioni del click; la base si scarta, come al reset di prima. Volumi, pan e
+    //     channelMap dei nodi nuovi li rimette `setupGraph` coi valori salvati (`connectAllNodes`,
+    //     `applyChannelRouting`): niente `applySettings`;
+    //  6. «normale», e la riga col motore vecchio, il nuovo e i millisecondi della ricostruzione.
+    // Rende `false` se la sessione non si è attivata. Niente audioQueue.sync, niente
+    // DispatchQueue.main.sync.
+    private func rebuildAfterMediaResetQ() -> Bool {
+        let rebuildStart = mach_absolute_time()
+        let oldEngine = Unmanaged.passUnretained(engine).toOpaque()
+        // 1.
+        autoreleasepool {
+            engine.stop()
+            engine.mainMixerNode.removeTap(onBus: 0)
+        }
+        // 2.
+        let newEngine          = AVAudioEngine()
+        let newPlayer          = AVAudioPlayerNode()
+        let newBacktrackPlayer = AVAudioPlayerNode()
+        let newCh1Mixer        = AVAudioMixerNode()
+        let newCh2Mixer        = AVAudioMixerNode()
+        let newCh3Mixer        = AVAudioMixerNode()
+        let newCh4Mixer        = AVAudioMixerNode()
+        let newCh3Player       = AVAudioPlayerNode()
+        let newCh4Player       = AVAudioPlayerNode()
+        // 3.
+        guard setupSession() else {
+            _mediaServicesQ = MediaServicesResetDecision.transition(state: _mediaServicesQ,
+                                                                   event: .rebuilt(sessionActivated: false)).next
+            os_log("[Q-BEATS][RESET] ricostruzione non finita: sessione non attivata - motore:%p invariato - stato:%{public}@",
+                   log: .default, type: .default, oldEngine, describe(_mediaServicesQ))
+            return false
+        }
+        // 4.
+        autoreleasepool {
+            engine              = newEngine
+            playerNode          = newPlayer
+            backtrackPlayerNode = newBacktrackPlayer
+            ch1MixerNode        = newCh1Mixer
+            ch2MixerNode        = newCh2Mixer
+            ch3MixerNode        = newCh3Mixer
+            ch4MixerNode        = newCh4Mixer
+            ch3PlayerNode       = newCh3Player
+            ch4PlayerNode       = newCh4Player
+        }
+        let mode = setupGraph()
+        engine.prepare()
+        os_log("[Q-BEATS][RESET] grafo pronto modo:%{public}@ sr:%.0f",
+               log: .default, type: .default, "\(mode)", sampleRate)
+        // 5.
+        backtrackBuffer = nil
+        backtrackArmed  = false
+        clickSamples              = generateClickSamples(frequency: 1000.0)
+        accentedClickSamples      = generateClickSamples(frequency: 1500.0)
+        subdivisionClickSamples   = generateClickSamples(frequency: 800.0)
+        // 6.
+        _mediaServicesQ = MediaServicesResetDecision.transition(state: _mediaServicesQ,
+                                                               event: .rebuilt(sessionActivated: true)).next
+        os_log("[Q-BEATS][RESET] motore nuovo vecchio:%p nuovo:%p ms:%.1f stato:%{public}@",
+               log: .default, type: .default,
+               oldEngine, Unmanaged.passUnretained(engine).toOpaque(),
+               machTicksToSeconds(mach_absolute_time() - rebuildStart) * 1000.0,
+               describe(_mediaServicesQ))
+        return true
+    }
+
+    // Fuori da «normale» le strade che farebbero lavoro di grafo o d'avvio sul motore vecchio, o
+    // chiamerebbero setActive, si saltano: rende `true` e scrive la riga. Chiamare SOLO su audioQueue.
+    private func mediaResetSkipsQ(_ path: String) -> Bool {
+        guard !MediaServicesResetDecision.allowsAudioWork(_mediaServicesQ) else { return false }
+        os_log("[Q-BEATS][RESET] %{public}@ saltato - stato:%{public}@",
+               log: .default, type: .default, path, describe(_mediaServicesQ))
+        return true
+    }
+
+    private func describe(_ state: MediaServicesState) -> String {
+        switch state {
+        case .normal:       return "normale"
+        case .servicesLost: return "servizi-persi"
+        case .needsRebuild: return "da-ricostruire"
+        }
+    }
+
+    private func describe(_ action: MediaServicesAction) -> String {
+        switch action {
+        case .none:                return "nessuna"
+        case .stopThenMarkRebuild: return "stop-poi-da-ricostruire"
+        case .markRebuild:         return "da-ricostruire-senza-stop"
+        case .ignoreRepeatedReset: return "ignorata"
+        case .startAsToday:        return "avvio"
+        case .refuseStart:         return "avvio-rifiutato"
+        case .rebuildThenStart:    return "ricostruzione-poi-avvio"
+        case .failStart:           return "avvio-fallito"
         }
     }
 
@@ -5111,7 +5365,19 @@ class AudioEngine: ObservableObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
+            // A408 — l'osservatore è registrato con `object: nil` (`setupNotifications`): dopo la
+            // ricostruzione il motore è un'altra istanza. Qui, su audioQueue, dove il motore si
+            // scrive, passa solo il cambio di configurazione del motore corrente.
+            guard let sender = notification.object as? AVAudioEngine, sender === self.engine else {
+                os_log("[Q-BEATS][ENGINE] cambio di configurazione di un motore non corrente, ignorato - mittente:%{public}@",
+                       log: .default, type: .default,
+                       notification.object.map { "\($0)" } ?? "nil")
+                return
+            }
+
             guard self.isRunning, !self.engine.isRunning else { return }
+            // A408 — fuori da «normale» niente rebuildGraph sul motore vecchio e niente ripartenza.
+            if self.mediaResetSkipsQ("cambio di configurazione") { return }
 
             let hardwareSR = AVAudioSession.sharedInstance().sampleRate
             let nodeSR = self.sampleRate
