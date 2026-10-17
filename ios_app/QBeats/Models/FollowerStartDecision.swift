@@ -5,8 +5,9 @@ import Foundation
 // entrare in una sessione che suona. La regola sta nel punto unico di avvio del motore
 // (`AudioEngine.start(resumeAtBeat:)`), prima della scelta del ramo — non porta per
 // porta: pedale, ripresa dopo un'interruzione di sistema, cambio di configurazione,
-// reset dei servizi media, risveglio, recupero pendente, schermata di debug passano
-// tutti di lì.
+// risveglio, recupero pendente, schermata di debug passano
+// tutti di lì. (Fra gli inneschi qui c'era anche il reset dei servizi media: da A408 non
+// avvia più il motore, e in A410 è uscito dall'elenco.)
 //
 //  · chi comanda il trasporto (Direttore, Solo, e un ruolo Follower con Link spento
 //    dall'utente): il motore parte come oggi, ripresa a beat noto compresa —

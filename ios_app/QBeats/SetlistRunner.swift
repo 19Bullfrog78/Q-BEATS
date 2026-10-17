@@ -288,6 +288,14 @@ final class SetlistRunner: ObservableObject {
         // motore la usa per la mezza battuta (Q10) e per il margine della falsa partenza
         // (D7-bis), sui due ruoli. Prima del setup, così è già lì quando parte il click.
         audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? section.beatsPerBar)
+        // A410 — e la mappa della canzone, per il conteggio in silenzio (`ShowClock`): le sezioni,
+        // l'indice della canzone e la sezione da cui parte il click. Nel motore diventa una copia di
+        // coda; nel passo 1 la leggono solo le righe di registro del Direttore in crisi.
+        if let song = currentSong {
+            audioEngine.setSongMap(SongMap(songSections: song.sections),
+                                   songIdx: currentSongIdx,
+                                   startSection: currentSectionIdx)
+        }
 
         // 1-4: ordine ratificato setup audio.
         audioEngine.setBeatsPerBar(section.beatsPerBar)

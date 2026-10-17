@@ -344,6 +344,51 @@ void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
     void (*callback)(bool isEnabled, void* context),
     void* context);
 
+// === A410 (16/10/2026) — DIRETTORE IN CRISI, PASSO 1: DUE LETTURE PER IL CONTEGGIO IN SILENZIO ===
+// Tutte e due SOLO lettura: UN ABLLinkCaptureAppSessionState, NESSUN commit, e la guardia enabled_
+// come `link_engine_time_for_is_playing` e `link_engine_read_start_stamp` (a Link spento linkEnabled
+// è false e i campi di Link restano a zero). Non passano da `link_engine_beat_at_time`, che cattura
+// e committa. ⛔ Chiamare SOLO da audioQueue, come le sorelle: la cattura scrive in un membro
+// condiviso dell'istanza (vedi `LinkStartStamp`). Le chiamate dell'API «App» da audioQueue restano
+// il debito `TD-linkkit-funzioni-app-fuori-dal-main` (ABLLink.h:217-238 le vuole sul thread
+// principale). Chi le usa: `AudioEngine`, per l'àncora del silenzio del Direttore, la riga al
+// secondo e la riga di cosa farebbe il rientro (mandato A410, §2.3-§2.6). Nessuna decisione del
+// motore le legge: si scrivono nel registro.
+//
+// (1) LA SESSIONE A UN'ORA, da una cattura sola:
+//   isPlaying        = ABLLinkIsPlaying(state)
+//   timeForIsPlaying = T = ABLLinkTimeForIsPlaying(state), mach ticks locali
+//   beatAtStartQ1    = ABLLinkBeatAtTime(state, T, 1.0): il battito dell'avvio, per il giudice
+//                      «stesso avvio» in battiti (progetto A376, §2.3, P6)
+//   tempo            = ABLLinkGetTempo(state)
+//   beatAtHostTime   = ABLLinkBeatAtTime(state, hostTime, quantum)
+//   captureHostTime  = mach_absolute_time() letto subito prima della cattura
+typedef struct {
+    bool     linkEnabled;
+    bool     isPlaying;
+    uint64_t timeForIsPlaying;
+    double   beatAtStartQ1;
+    double   tempo;
+    double   beatAtHostTime;
+    uint64_t captureHostTime;
+} LinkSessionReading;
+
+LinkSessionReading link_engine_read_session_at(LinkEngineHandle handle,
+                                               uint64_t         hostTime,
+                                               double           quantum);
+
+// (2) L'ORA D'USCITA DI UN BATTITO: ABLLinkTimeAtBeat(state, beat, quantum) (ABLLink.h:292-303,
+// l'inversa di ABLLinkBeatAtTime a tempo costante). A Link spento hostTime resta 0.
+typedef struct {
+    bool     linkEnabled;
+    uint64_t hostTime;
+    uint64_t captureHostTime;
+} LinkTimeAtBeatReading;
+
+LinkTimeAtBeatReading link_engine_time_at_beat(LinkEngineHandle handle,
+                                               double           beat,
+                                               double           quantum);
+
 #ifdef __cplusplus
 }
 #endif

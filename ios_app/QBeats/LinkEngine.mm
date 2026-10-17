@@ -910,3 +910,49 @@ void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
         },
         (void*)engine);
 }
+
+// =====================================================================================
+// === A410 (16/10/2026) — DIRETTORE IN CRISI, PASSO 1 (dichiarazioni in MIDIEngineBridge.h) ===
+// =====================================================================================
+// Due letture per il conteggio in silenzio del Direttore: una cattura, NESSUN commit, guardia
+// enabled_ come `link_engine_time_for_is_playing` e `link_engine_read_start_stamp`. Non passano da
+// `link_engine_beat_at_time`, che cattura e committa. ⛔ Solo da audioQueue.
+
+// (1) La sessione a un'ora.
+LinkSessionReading link_engine_read_session_at(LinkEngineHandle handle,
+                                               uint64_t         hostTime,
+                                               double           quantum) {
+    LinkSessionReading reading = { false, false, 0, 0.0, 0.0, 0.0, 0 };
+    reading.captureHostTime = mach_absolute_time();
+    if (!handle) return reading;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return reading;
+    reading.linkEnabled = true;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    const uint64_t startTime = ABLLinkTimeForIsPlaying(state);
+    reading.isPlaying        = ABLLinkIsPlaying(state);
+    reading.timeForIsPlaying = startTime;
+    reading.beatAtStartQ1    = ABLLinkBeatAtTime(state, startTime, 1.0);
+    reading.tempo            = ABLLinkGetTempo(state);
+    reading.beatAtHostTime   = ABLLinkBeatAtTime(state, hostTime, quantum);
+    return reading;
+}
+
+// (2) L'ora d'uscita di un battito.
+LinkTimeAtBeatReading link_engine_time_at_beat(LinkEngineHandle handle,
+                                               double           beat,
+                                               double           quantum) {
+    LinkTimeAtBeatReading reading = { false, 0, 0 };
+    reading.captureHostTime = mach_absolute_time();
+    if (!handle) return reading;
+    LinkEngine* engine = (LinkEngine*)handle;
+    if (!engine->enabled_.load(std::memory_order_relaxed)) return reading;
+    reading.linkEnabled = true;
+
+    ABLLinkSessionStateRef state =
+        ABLLinkCaptureAppSessionState(engine->link_);
+    reading.hostTime = ABLLinkTimeAtBeat(state, beat, quantum);
+    return reading;
+}
