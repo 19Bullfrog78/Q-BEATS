@@ -337,11 +337,13 @@ struct DebugView: View {
 
                 // --- TOGGLES ---
                 SwiftUI.Section("Impostazioni") {
+                    // A411 · SOLO-INERTE — il toggle passa dalla stessa regola d'accensione: mostra lo specchio
+                    // (Link in rete) e il tocco la ricalcola, senza forzare niente (`debugLinkToggleTouched`).
                     Toggle("Ableton Link", isOn: Binding(
                         get: { audioEngine.linkEnabled },
-                        set: { 
+                        set: {
                             os_log("[DebugView] Azione: Toggle Link %{public}@", log: .default, type: .default, $0 ? "ON" : "OFF")
-                            audioEngine.setLinkEnabled($0) 
+                            audioEngine.debugLinkToggleTouched(requested: $0)
                         }
                     ))
                     

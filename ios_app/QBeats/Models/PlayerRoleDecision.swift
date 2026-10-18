@@ -9,9 +9,10 @@ import Foundation
 //    `.direttore` E Link acceso dall'utente — A386 B1);
 //  · Solo      = tutto il resto.
 // Decisione del referee (05/10/2026): è Solo anche il ruolo Direttore con Link spento dall'utente
-// e il ruolo Follower con Link spento dall'utente (A393 §3.2, casi 3 e 4). L'interruttore che
-// l'app muove in sfondo (`link_engine_set_enabled`, specchio `linkEnabled`) NON conta: entra
-// qui, come in `FollowerDecision`, solo perché il banco provi che non conta.
+// e il ruolo Follower con Link spento dall'utente (A393 §3.2, casi 3 e 4). L'interruttore
+// dell'app (`link_engine_set_enabled`, specchio `linkEnabled`: da A411 lo muove la regola
+// d'accensione, `LinkActivationDecision`, che lo spegne in sfondo a click fermo e in Solo) NON
+// conta: entra qui, come in `FollowerDecision`, solo perché il banco provi che non conta.
 // In M1 non la legge ancora nessuna vista: la legge il lampo del pedale (`MIDILampDecision`,
 // da `AudioEngine.executeMIDIAction`) e, dai mandati M2/M3, la composizione del player.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.

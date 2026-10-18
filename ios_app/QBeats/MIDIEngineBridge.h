@@ -58,6 +58,9 @@ void   midi_engine_set_beat_position(void* handle, double targetBeats);
 // === LinkEngine Bridge 6A ===
 typedef void* LinkEngineHandle;
 
+// A411 · SOLO-INERTE — `link_engine_create` spegne Link subito dopo ABLLinkNew (nessuna finestra in rete
+// all'avvio); `link_engine_set_enabled` è l'unico punto che lo accende e lo spegne (`enabled_` +
+// ABLLinkSetActive), e la chiama solo `AudioEngine.applyLinkActivationQ`, su audioQueue.
 LinkEngineHandle link_engine_create(void);
 void link_engine_destroy(LinkEngineHandle handle);
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled);
@@ -109,9 +112,9 @@ void link_engine_set_is_connected_callback(LinkEngineHandle handle,
 // Registra il user callback per ABLLinkSetIsEnabledCallback.
 // LinkKit invoca il callback sul main thread quando l'utente cambia
 // l'enabled state nel preference pane Ableton (toggle dentro il pane).
-// Il C++ sincronizza enabled_ PRIMA di chiamare il callback Swift, così
-// quando il callback Swift accede ai guard interni (es. via altre
-// link_engine_* su audioQueue) il flag è già coerente.
+// A411 · SOLO-INERTE — il C++ passa la levetta e basta: non tocca più né enabled_ né ABLLinkSetActive
+// (fino ad A410 li sincronizzava qui, e la levetta accesa metteva in rete anche il Solo). La levetta
+// è un ingresso della regola d'accensione del motore, che applica l'esito con link_engine_set_enabled.
 //
 // Pattern di parità comportamentale con Soundbrenner: peer compare nel
 // pane mentre è ancora aperto, senza necessità di chiudere.
@@ -203,6 +206,8 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 
 // === AGGIUNTO Build #177 — Activate after callbacks ===
 // Chiamare UNA SOLA VOLTA in init, dopo la registrazione di tutti i callback.
+// A411 · SOLO-INERTE — non accende più niente: legge la levetta, la passa al richiamo se accesa, avvia il
+// poll diagnostico (cattura senza commit).
 void link_engine_activate(LinkEngineHandle handle);
 
 // === AGGIUNTO Build #181 — Direct peer query ===

@@ -146,16 +146,22 @@ struct LiveView: View {
     /// (Bug 2.a). Il counter offset "bar 2 di N" (Bug 2.b) è rimandato a
     /// Fase 6-7-bis.
     private var linkRoleBadge: String? {
-        guard audioEngine.linkEnabled else { return nil }
+        // A411 · SOLO-INERTE — la visibilità passa dalla regola delle facce del Solo
+        // (`SoloInertDecision.roleBadgeVisible`): per Direttore e Follower è lo specchio
+        // `linkEnabled` di sempre; nel Solo mai (e la testata col badge nel Solo non si disegna).
+        guard SoloInertDecision.roleBadgeVisible(role: audioEngine.currentLinkMode,
+                                                 userLinkEnabled: audioEngine.linkUserEnabled,
+                                                 linkActive: audioEngine.linkEnabled) else { return nil }
         // A360 — la PAROLA «FOLLOWER» la decide la regola (`FollowerDecision`: ruolo E Link
         // acceso dall'utente), come la fascia e il velo; la VISIBILITÀ del badge resta
-        // quella di sempre (`linkEnabled`, la veste). Un ruolo Follower con Link spento
-        // dall'utente si comporta da Solo e si chiama SOLO.
+        // quella di sempre (`linkEnabled`, la veste) per Direttore e Follower. Un ruolo Follower
+        // con Link spento dall'utente si comporta da Solo e si chiamava SOLO.
+        // ⚠️ A411 — i due «SOLO» qui sotto non escono più: nel Solo la guardia sopra rende `nil`.
         if audioEngine.followerDecision.isFollower { return "FOLLOWER" }
         switch audioEngine.currentLinkMode {
         case .direttore:     return "DIRECTOR"
         case .collaborativa: return "SOLO"   // A360: Follower senza Link dell'utente = Solo
-        case .standalone:    return "SOLO"   // naming Decisione 2 CD; badge visibile solo se linkEnabled (guard :63)
+        case .standalone:    return "SOLO"   // naming Decisione 2 CD; fino ad A410 visibile se linkEnabled
         }
     }
 
@@ -187,7 +193,12 @@ struct LiveView: View {
             // per `connectionMemory`) e le facce della console (`SoloConsoleDecision`: `isPlaying` è l'ingresso
             // dell'azione del tasto centrale, D5; la base nel player non suona, A387 §2.2, quindi
             // `backtrackPlaying: false` con lo stesso motivo del lampo di M1).
-            let statusLights = StatusLightsDecision.lights(linkUserEnabled: audioEngine.linkUserEnabled,
+            // A411 · SOLO-INERTE — il Solo passa alla regola della spia la levetta spenta
+            // (`SoloInertDecision.statusLightsUserLinkEnabled`): la riga di stato del player del Solo non mostra né la
+            // spia «Link» né la striscia «Link lost», come a Link spento. Direttore e Follower passano la levetta com'è.
+            let statusLights = StatusLightsDecision.lights(linkUserEnabled: SoloInertDecision.statusLightsUserLinkEnabled(
+                                                               role: audioEngine.currentLinkMode,
+                                                               userLinkEnabled: audioEngine.linkUserEnabled),
                                                            linkConnected: audioEngine.linkIsConnected,
                                                            wifiConnected: audioEngine.wifiConnected,
                                                            midiConnected: audioEngine.midiDeviceConnected,

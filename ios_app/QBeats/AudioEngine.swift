@@ -76,18 +76,20 @@ class AudioEngine: ObservableObject {
 
     @Published var clickStatus : String  = "non caricato"
     @Published var currentBPM: Double = 120.0
-    @Published var linkEnabled: Bool = false
+    // A411 · SOLO-INERTE (18/10/2026) — LINK IN RETE: lo specchio dell'accensione (`ABLLinkSetActive`,
+    // `enabled_` del ponte). Lo scrive UNA mano sola, `applyLinkActivationQ`, con l'esito della regola
+    // `LinkActivationDecision` (levetta E ruolo Direttore o Follower E non sospeso dallo sfondo E l'app non
+    // si chiude). In Solo è spento anche a levetta accesa. Fino ad A410 lo scrivevano due mani: il
+    // richiamo del pannello Link e `setLinkEnabled` (sfondo, chiusura del pannello, Debug), che non c'è più.
+    @Published private(set) var linkEnabled: Bool = false
     // A360 (16/09/2026) — L'INTERRUTTORE DI LINK DELL'UTENTE, e solo quello.
-    // `linkEnabled` qui sopra è scritto da DUE mani: dal callback del pannello Link
-    // (l'utente: il callback di `link_engine_set_is_enabled_callback` registrato in
-    // `init`) e da `setLinkEnabled` (l'app: `QBeatsApp` in background a
-    // click fermo, `SettingsView` alla chiusura del pannello, `DebugView`). Il ruolo
-    // Follower (`FollowerDecision`) deve leggere la mano dell'UTENTE — `ABLLinkIsEnabled`,
+    // Il ruolo Follower (`FollowerDecision`) deve leggere la mano dell'UTENTE — `ABLLinkIsEnabled`,
     // «only controllable by the user via the Link settings dialog» (ABLLink.h) — e non
-    // cambiare quando l'app va in background e torna. Questo mirror lo scrive SOLO il
+    // cambiare quando l'app va in background e torna. Questo mirror lo scrivono il
     // callback `link_engine_set_is_enabled_callback` (utente nel pannello, e la
     // riconciliazione all'avvio in `link_engine_activate` che passa dallo stesso
-    // callback). `setLinkEnabled` non lo tocca: `ABLLinkSetActive` non muove
+    // callback) e, da A411, la lettura all'avvio e la chiusura del pannello (`linkPanelClosed`), che
+    // lo rileggono dal ponte. L'accensione non lo tocca: `ABLLinkSetActive` non muove
     // `ABLLinkIsEnabled`. Copia su audioQueue: `_linkUserEnabledQ`.
     @Published private(set) var linkUserEnabled: Bool = false
     @Published var linkIsConnected: Bool = false
@@ -163,6 +165,12 @@ class AudioEngine: ObservableObject {
                          userLinkEnabled: linkUserEnabled,
                          appLinkEnabled: linkEnabled,
                          anyPeerConnected: linkIsConnected)
+    }
+
+    // A411 · SOLO-INERTE — IL LUCCHETTO DEL SOLO letto su main, dagli specchi, come `followerDecision`:
+    // lo legge il richiamo avvio/stop di Link, che gira su main. Su audioQueue: `soloLockPassesQ`.
+    var soloInertMain: Bool {
+        SoloInertDecision.isInert(role: currentLinkMode, userLinkEnabled: linkUserEnabled)
     }
 
     @Published var isPlaying   : Bool    = false
@@ -349,9 +357,12 @@ class AudioEngine: ObservableObject {
             metronome_set_subdiv_volume(mh, s.subdivVolume)
             self._clickMuted = s.clickMuted
             // A386 · FASE B2A (2D) — un cambio di ruolo azzera la macchina del Follower.
+            // A411 · SOLO-INERTE — e ricalcola l'accensione di Link (mano «ruolo»): Link va in rete alla
+            // scelta di Director o Follower, ne esce tornando a Solo.
             if self._linkMode != s.linkMode {
                 self._linkMode = s.linkMode
                 self.followerResetQ(reason: "cambio-di-ruolo")
+                self.applyLinkActivationQ(trigger: .role)
             } else {
                 self._linkMode = s.linkMode
             }
@@ -437,6 +448,19 @@ class AudioEngine: ObservableObject {
     // A360 — copia su audioQueue di `linkUserEnabled` (la mano dell'utente): la legge
     // `stopSync()` dentro `audioQueue.sync` per decidere se lo stop parte verso Link.
     private var _linkUserEnabledQ: Bool = false   // accesso SOLO su audioQueue
+    // === A411 · SOLO-INERTE (18/10/2026) — L'ACCENSIONE DI LINK, accesso SOLO su audioQueue ===
+    // I due ingressi della regola d'accensione (`LinkActivationDecision`) che non hanno già una copia di
+    // coda (la levetta è `_linkUserEnabledQ`, il ruolo `_linkMode`): la sospensione decisa dalla politica
+    // dello sfondo (`QBeatsApp`, `setLinkBackgroundSuspended`) e la chiusura dell'app
+    // (`disableLinkOnTerminate`). E l'ultimo esito dato al ponte (`nil` = mai, prima dell'avvio).
+    private var _linkBackgroundSuspendedQ: Bool = false
+    private var _linkTerminatingQ: Bool = false
+    private var _linkActiveAppliedQ: Bool? = nil
+    /// Le righe del lucchetto quando scarta qualcosa che arriva da Link: una per strada, a frequenza
+    /// limitata (`SoloInertDiscardLog`, al più una ogni `kSoloInertLogIntervalSeconds`).
+    private var _soloInertTempoLogQ: SoloInertDiscardLog = .start
+    private var _soloInertTransportLogQ: SoloInertDiscardLog = .start
+    private static let kSoloInertLogIntervalSeconds: Double = 2.0
     // === A400 · R1 (10/10/2026) — IL SEGNO DEL PROPRIO AVVIO, accesso SOLO su audioQueue ===
     // Dice «ho scritto io». Si alza subito prima di ognuna delle tre scritture con cui questo
     // apparecchio annuncia «suona» a Link (`link_engine_start_at_beat_zero`,
@@ -452,6 +476,9 @@ class AudioEngine: ObservableObject {
     // che non passano da `stopSync` (inizio di un'interruzione, cambio di topologia, cambio di
     // configurazione) e il `catch` di `start()`: ogni blocco di coda che scrive `isRunning = false`
     // lo abbassa prima di finire (`lowerOwnTransportStartQ`).
+    // ⚠️ A411 · SOLO-INERTE — nel Solo il segno si alza lo stesso, come a Link spento (inerte fino allo
+    //    stop), ma la scrittura «suona» non esce (lucchetto, `SoloInertDecision`), e il richiamo avvio/stop
+    //    nel Solo si scarta in testa: da A411 il passo di coda che lo consumava non lo raggiunge nessuno.
     private var _ownTransportStartPendingQ: Bool = false
     // === A408 (15/10/2026) — IL RESET DEI SERVIZI AUDIO, accesso SOLO su audioQueue ===
     // Tre stati: «normale», «servizi persi» (fra la Lost e la Reset), «da ricostruire» (dopo la
@@ -765,6 +792,13 @@ class AudioEngine: ObservableObject {
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async {
+                    // A411 · SOLO-INERTE — IL LUCCHETTO, prima di tutto: nel Solo il tempo della sessione non
+                    // entra nel motore (niente metronomo, MIDI, `currentBPM`), e il ruolo Direttore con la
+                    // levetta spenta non lo ribatte su Link. Una riga a frequenza limitata.
+                    if !engine.soloLockPassesQ(.sessionTempo) {
+                        engine.noteSoloInertDiscardQ(.sessionTempo, detail: String(format: "bpm:%.4f", bpm))
+                        return
+                    }
                     // Modalità Direttore: non subisce MAI il BPM del peer (Bug 5-BPM chiuso).
                     // Affinamento 29/05/2026 (test R2/R6 su device):
                     // - In play: re-broadcasta _audioBPM e vince la negoziazione Link
@@ -786,8 +820,9 @@ class AudioEngine: ObservableObject {
                     // una, pura (`FollowerLinkFollowDecision`), letta qui su audioQueue dalla copia
                     // della macchina: Follower in DA SOLO (o nella coda prima dell'arresto) ⇒ il
                     // cambio di tempo si ignora — niente metronomo, niente MIDI, niente
-                    // `currentBPM` — con una riga di log. IN SYNC, FUORI, Solo e ruolo Follower
-                    // con Link spento dall'utente: il blocco qui sotto, identico a prima.
+                    // `currentBPM` — con una riga di log. IN SYNC e FUORI: il blocco qui sotto,
+                    // identico a prima. Il Solo e il ruolo Follower con la levetta spenta da A411 non
+                    // arrivano qui: li ferma il lucchetto in testa al blocco.
                     if !engine.followsLinkQ() {
                         engine.logSessionTempoIgnoredQ(bpm)
                         return
@@ -840,60 +875,21 @@ class AudioEngine: ObservableObject {
 
             // === Reattività pane Ableton — ABLLinkSetIsEnabledCallback ===
             // Callback main-thread quando l'utente flicca toggle Link nel pane
-            // Ableton. Il flag enabled_ C++ è già stato sincronizzato dal
-            // callback C++ stesso. Qui replichiamo il pattern di setLinkEnabled
-            // SOLO per la parte UI (linkEnabled / linkIsConnected / linkPeers
-            // con re-check post-2s), SENZA ri-chiamare link_engine_set_enabled
-            // (eviterebbe potenziale loop di re-emission).
+            // Ableton (ABLLink.h:153-159).
+            // A411 · SOLO-INERTE — il richiamo porta la levetta, e basta. Fino ad A410 il C++ accendeva Link
+            // da sé (`enabled_` + `ABLLinkSetActive`) e qui `linkEnabled` si scriveva come la levetta: con la
+            // levetta accesa il telefono entrava in rete anche in Solo. Ora la levetta è un ingresso della
+            // regola d'accensione: `noteUserLinkSwitchQ` la scrive (e, se si spegne, azzera la macchina del
+            // Follower e nasconde il numero dei collegati, come prima), poi la funzione unica
+            // (`applyLinkActivationQ`, mano «levetta») decide e scrive `linkEnabled`, `linkIsConnected` e
+            // `linkPeers`.
             link_engine_set_is_enabled_callback(lh, { isEnabled, ctx in
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>.fromOpaque(ctx).takeUnretainedValue()
                 engine.audioQueue.async { [weak engine] in
-                    guard let engine = engine,
-                          let lh = engine.linkEngineHandle else { return }
-                    // A360 — la mano dell'UTENTE: è l'unico punto che scrive il mirror
-                    // `linkUserEnabled` (e la sua copia di coda). LinkKit chiama questo
-                    // callback solo dal pannello Link (e all'avvio, per il valore
-                    // persistito): `setLinkEnabled` — l'app, in background — non passa di qui.
-                    engine._linkUserEnabledQ = isEnabled
-                    DispatchQueue.main.async {
-                        engine.linkUserEnabled = isEnabled
-                    }
-                    os_log("[Q-BEATS][A360] Link dell'utente:%{public}@ (pannello Link / avvio) - ruolo:%{public}@",
-                           log: .default, type: .default,
-                           isEnabled ? "acceso" : "spento", String(describing: engine._linkMode))
-                    if isEnabled {
-                        let isConn = link_engine_is_connected(lh)
-                        DispatchQueue.main.async {
-                            engine.linkEnabled = true
-                            engine.linkIsConnected = isConn
-                            engine.linkPeers = isConn ? 1 : 0
-                        }
-                        if !isConn {
-                            engine.audioQueue.asyncAfter(deadline: .now() + 2.0) {
-                                [weak engine] in
-                                guard let engine = engine,
-                                      let lh = engine.linkEngineHandle else { return }
-                                guard link_engine_is_enabled(lh) else { return }
-                                let isConn2 = link_engine_is_connected(lh)
-                                if isConn2 {
-                                    DispatchQueue.main.async {
-                                        engine.linkIsConnected = true
-                                        engine.linkPeers = 1
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // A386 · FASE B2A (2D) — Link spento dall'utente: la macchina del
-                        // Follower si azzera (`reset`) e il numero dei collegati si nasconde.
-                        engine.followerResetQ(reason: "link-utente-spento")
-                        DispatchQueue.main.async {
-                            engine.linkEnabled = false
-                            engine.linkIsConnected = false
-                            engine.linkPeers = 0
-                            engine.linkPeerCount = nil
-                        }
+                    guard let engine = engine else { return }
+                    if engine.noteUserLinkSwitchQ(isEnabled, source: "pannello Link / avvio") {
+                        engine.applyLinkActivationQ(trigger: .userSwitch)
                     }
                 }
             }, Unmanaged.passUnretained(self).toOpaque())
@@ -942,6 +938,16 @@ class AudioEngine: ObservableObject {
                 guard let ctx = ctx else { return }
                 let engine = Unmanaged<AudioEngine>
                     .fromOpaque(ctx).takeUnretainedValue()
+                // A411 · SOLO-INERTE — IL LUCCHETTO, prima di tutto: nel Solo il richiamo avvio/stop di Link non
+                // fa partire né fermare niente (niente sonde di registro, niente macchina, niente `start()` o
+                // `stop()`). Si legge dagli specchi di main, come `followerDecision` più sotto: il richiamo gira
+                // su main. Una riga a frequenza limitata, su audioQueue.
+                if engine.soloInertMain {
+                    engine.audioQueue.async {
+                        engine.noteSoloInertDiscardQ(.sessionTransport, detail: "suona:\(isPlaying ? 1 : 0)")
+                    }
+                    return
+                }
                 // Modalità Direttore: ignora SEMPRE start/stop da peer in qualsiasi
                 // stato (sorgente unica autoritativa).
                 // Bug 5 fix 28/05/2026 — pre-fix richiedeva isRunning: Director in
@@ -964,9 +970,10 @@ class AudioEngine: ObservableObject {
                 // acceso dall'utente) passa dalla macchina, su audioQueue, PRIMA di `engine.start()`
                 // e NON dentro `start()`, che è anche la porta del rientro dopo un'interruzione:
                 // mezza battuta (D6, `HalfBarWindow`), falsa partenza (D7-bis,
-                // `FalseStartDecision`), tabella `FollowerSyncDecision`. Chi non è Follower (Solo,
-                // o ruolo Follower con Link spento dall'utente) tiene il ramo di sempre, sotto,
-                // invariato. B2A-bis: questo richiamo gira su main, quindi la decisione si legge
+                // `FalseStartDecision`), tabella `FollowerSyncDecision`. Chi non era Follower (Solo,
+                // o ruolo Follower con Link spento dall'utente) teneva il ramo di sempre, sotto; da
+                // A411 non arriva qui: lo ferma il lucchetto in testa al richiamo.
+                // B2A-bis: questo richiamo gira su main, quindi la decisione si legge
                 // dalla copia di main (`followerDecision`, la stessa di `handleStop`), non dalle
                 // copie di coda; la lettura di `_linkMode` alla riga sopra è pre-esistente.
                 if engine.followerDecision.isFollower {
@@ -976,6 +983,10 @@ class AudioEngine: ObservableObject {
                     return
                 }
                 // A400 · R1 — CHI NON È DIRETTORE NÉ FOLLOWER.
+                // ⚠️ A411 · SOLO-INERTE — da qui non passa più nessuno: «né Direttore né Follower» è il Solo
+                //    (`PlayerRoleDecision`), e il lucchetto in testa al richiamo lo ferma prima. Il blocco
+                //    resta com'era (toglierlo non è di questo mandato: referto A411, Aperti); il testo qui
+                //    sotto descrive la strada fino ad A410.
                 // Regola (`LinkTransportCallbackDecision`, Models/, col suo banco): un avvio comandato
                 // da questo apparecchio non gli torna indietro come avvio di un altro.
                 // Il richiamo «suona» fa due passi. Passo di coda, su audioQueue: se il segno del
@@ -1027,13 +1038,28 @@ class AudioEngine: ObservableObject {
             }, Unmanaged.passUnretained(self).toOpaque())
         }
 
-        // link_engine_activate() esegue boot reconciliation di ABLLinkIsEnabled
-        // persistito (se true: enabled_.store + ABLLinkSetActive(true) +
-        // propagazione isEnabledCallback → linkEnabled=true Swift), poi avvia
-        // il poll diagnostico #293. Vedi commento estensivo in LinkEngine.mm.
-        // Quando ABLLinkIsEnabled è false, l'attivazione resta affidata al
-        // toggle UI (link_engine_set_enabled).
+        // A411 · SOLO-INERTE — L'AVVIO. Il ruolo è Solo (non si salva più: `AppSettings`, §2.1 del mandato);
+        // la levetta si legge dal ponte (`ablIsEnabled`, `ABLLinkIsEnabled`, sul thread principale come
+        // `link_engine_activate`); la regola d'accensione si applica una prima volta (mano «avvio»): con il
+        // ruolo Solo Link resta fuori rete, qualunque cosa dica la levetta. Il ponte nasce già spento
+        // (`link_engine_create`, `ABLLinkSetActive(false)` subito dopo `ABLLinkNew`): nessuna finestra.
+        // Tutto questo PRIMA di `link_engine_activate`, così la riga dell'avvio ha già la levetta vera, e il
+        // richiamo che `activate` passa a Swift a levetta accesa la trova scritta e non ricalcola niente.
+        // `link_engine_activate()` da A411 non accende più niente: legge la levetta, la passa al richiamo
+        // (se accesa) e avvia il poll diagnostico #293. Vedi commento in LinkEngine.mm.
         if let lh = linkEngineHandle {
+            let userEnabledAtBoot = linkSettingsPresenter?.ablIsEnabled() ?? false
+            let savedRole = AppSettings.savedRoleInDefaults()
+            let imposedRole = appSettings.linkMode
+            audioQueue.async { [weak self] in
+                guard let self else { return }
+                os_log("[Q-BEATS][SOLO-INERTE] avvio - ruolo nel salvataggio:%{public}@ - ruolo imposto:%{public}@ - levetta:%d",
+                       log: .default, type: .default,
+                       savedRole ?? "nessuno", imposedRole.rawValue, userEnabledAtBoot ? 1 : 0)
+                self._linkUserEnabledQ = userEnabledAtBoot
+                self.applyLinkActivationQ(trigger: .boot)
+            }
+            DispatchQueue.main.async { [weak self] in self?.linkUserEnabled = userEnabledAtBoot }
             link_engine_activate(lh)
         }
         // RIENTRO-P2A — campionatore diagnostico del timbro dell'avvio (solo log).
@@ -2084,7 +2110,9 @@ class AudioEngine: ObservableObject {
     /// un'interruzione NON la registra (B2A-bis): resta la fase del Play.
     private func registerStartPhase(context: String) {
         guard let lh = linkEngineHandle else { return }
-        let snap = link_engine_read_transport_snapshot(lh)
+        // A411 · SOLO-INERTE — nel Solo il motore non legge la sessione: l'istantanea è quella del ponte
+        // spento (tutti zeri), come a Link spento, qualunque cosa dica l'accensione.
+        let snap = soloLockPassesQ(.startWrite) ? link_engine_read_transport_snapshot(lh) : LinkTransportSnapshot()
         _startPhaseQ = snap.phaseAtStampQBig
         os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:%{public}@ fase:%.6f oraAvvio:%llu suona:%d",
                log: .default, type: .default, context, snap.phaseAtStampQBig, snap.timeForIsPlaying, snap.isPlaying ? 1 : 0)
@@ -2872,7 +2900,8 @@ class AudioEngine: ObservableObject {
             // portava un beat di ripresa; altrimenti il motore NON parte (`stayStopped`).
             // Da un Follower non escono mai `link_engine_start_at_beat_zero` né
             // `link_engine_start_at_beat`. Chi comanda il trasporto (Direttore, Solo) parte
-            // come oggi, ripresa compresa. Tipo puro `FollowerStartDecision` (Models/), col
+            // come oggi, ripresa compresa; da A411 il Solo parte senza scrivere niente su Link
+            // (lucchetto, `SoloInertDecision`). Tipo puro `FollowerStartDecision` (Models/), col
             // suo banco.
             // ⚠️ A362 — «almeno un collegato» (`link_engine_num_peers`) NON decide: è la spia
             //    dei collegati, che può restare indietro (`TD-link-indicator-stale`); prima di
@@ -2881,7 +2910,9 @@ class AudioEngine: ObservableObject {
             let startDecision: FollowerStartDecision = {
                 var connected = false
                 var sessionPlaying = false
-                if let lh = self.linkEngineHandle {
+                // A411 · SOLO-INERTE — nel Solo niente probe (cattura E commit): i valori sono quelli del
+                // ponte spento. Per chi non è Follower l'esito è comunque «comanda il trasporto».
+                if let lh = self.linkEngineHandle, self.soloLockPassesQ(.sessionProbe) {
                     let probe = link_engine_probe_session(lh, mach_absolute_time(),
                                                           Double(self._beatsPerBarQ))
                     connected = link_engine_num_peers(lh) > 0
@@ -3079,7 +3110,13 @@ class AudioEngine: ObservableObject {
                             // stop. A motore in moto un avvio altrui non fa niente comunque
                             // (`LinkTransportCallbackDecision.mainStep` avvia solo a motore fermo).
                             self._ownTransportStartPendingQ = true
-                            link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
+                            // A411 · SOLO-INERTE — nel Solo il segno si alza come a Link spento (inerte fino
+                            // allo stop), ma «suona» non esce verso Link.
+                            if self.soloLockPassesQ(.startWrite) {
+                                link_engine_start_at_beat(lh, mach_absolute_time(), snappedBeatLocal)
+                            } else {
+                                self.logSoloInertWriteSkippedQ(.startWrite, detail: String(format: "ripresa battito:%.4f", snappedBeatLocal))
+                            }
                             // A386 · FASE B2A-BIS (2D) — LA RIPRESA NON È UN PLAY: la fase di avvio
                             // resta quella del Play vero (battito zero, `registerStartPhase`). Sui
                             // Follower la ripresa non fa scattare nessun richiamo (la loro copia dice
@@ -3112,13 +3149,23 @@ class AudioEngine: ObservableObject {
                                                      phaseAtHost: 0.0,
                                                      tempo: 0.0)
                         var peersCount: UInt32 = 0
-                        // RIENTRO-P1 (c) — l'interruttore dell'APP (`enabled_`): lo spengono sia
-                        // l'utente dal pannello Link sia l'app in secondo piano.
+                        // RIENTRO-P1 (c) — l'interruttore dell'APP (`enabled_`).
+                        // ⚠️ A411 · SOLO-INERTE — fino ad A410 lo spegnevano sia l'utente dal pannello Link sia
+                        //    l'app in secondo piano; da A411 lo muove solo la regola d'accensione
+                        //    (`applyLinkActivationQ`: levetta, ruolo, sfondo, chiusura). Qui entra come lo vede il
+                        //    motore (`SoloInertDecision.engineSeesLinkOn`): nel Solo spento anche col ponte
+                        //    acceso, e niente probe (cattura E commit). Così il Solo va sempre nel ramo standalone,
+                        //    quello del Solo a Link spento (A364 P1 c). `peersCount` è il contatore del ponte,
+                        //    nessuna chiamata a LinkKit: si legge come prima.
                         var linkOn = false
                         if let lh = self.linkEngineHandle {
-                            probe = link_engine_probe_session(lh, hostNow, quantum)
+                            if self.soloLockPassesQ(.sessionProbe) {
+                                probe = link_engine_probe_session(lh, hostNow, quantum)
+                            }
                             peersCount = link_engine_num_peers(lh)
-                            linkOn = link_engine_is_enabled(lh)
+                            linkOn = SoloInertDecision.engineSeesLinkOn(role: self._linkMode,
+                                                                        userLinkEnabled: self._linkUserEnabledQ,
+                                                                        linkActive: link_engine_is_enabled(lh))
                         }
 
                         // A361 — il Follower e' gia' stato deciso in testa a `start()`: se e'
@@ -3159,8 +3206,9 @@ class AudioEngine: ObservableObject {
                             // ramo SHARED → join → latenza fino a ~1s + avvio a metà battuta.
                             // Edge case (peer già in play): Director forza comunque beat 0,
                             // peer si riallinea. Progettato e ratificato.
-                            // (Standalone puro: stesso comportamento, Q-BEATS solo nella
-                            // sessione Link o Link disabled — bridge early return su !enabled.)
+                            // (Standalone puro: stesso ramo. Fino ad A410, a Link acceso, scriveva
+                            // anche lui la timeline su Link; da A411 dal Solo non esce niente verso
+                            // Link: lucchetto qui sotto.)
                             if let h = self.metronomeHandle {
                                 metronome_reset_for_start(h, 0.0)
                             }
@@ -3175,7 +3223,13 @@ class AudioEngine: ObservableObject {
                                 // un avvio altrui non fa niente comunque
                                 // (`LinkTransportCallbackDecision.mainStep` avvia solo a motore fermo).
                                 self._ownTransportStartPendingQ = true
-                                link_engine_start_at_beat_zero(lh, hostNow)
+                                // A411 · SOLO-INERTE — nel Solo il segno si alza come a Link spento, «suona»
+                                // non esce, e la fase d'avvio è quella del ponte spento (`registerStartPhase`).
+                                if self.soloLockPassesQ(.startWrite) {
+                                    link_engine_start_at_beat_zero(lh, hostNow)
+                                } else {
+                                    self.logSoloInertWriteSkippedQ(.startWrite, detail: "battito-zero")
+                                }
                                 self.registerStartPhase(context: "battito-zero")
                             }
                             self.scheduleNextBuffer()
@@ -3311,9 +3365,11 @@ class AudioEngine: ObservableObject {
     // `_audioBPM`, ri-àncora MIDI, `currentBPM` — ma SUL FOLLOWER NON SCRIVE IL TEMPO SU LINK:
     // all'ingresso il Follower prende il tempo della sessione, non lo dà. Fino a oggi lo
     // scriveva a ogni Play del Direttore e a ogni rientro, anche dalla sezione sbagliata
-    // (collaudo 17/09/2026, giro G3; referto A364, §3.f e §5.e). Direttore, Solo e ruolo
-    // Follower con Link spento dall'utente scrivono come oggi: `FollowerLinkWriteDecision`.
-    // ⚠️ `setBPM` qui sopra NON cambia (metronomo di Q-Studio, tap tempo): scrive sempre.
+    // (collaudo 17/09/2026, giro G3; referto A364, §3.f e §5.e). Il Direttore scrive come
+    // oggi: `FollowerLinkWriteDecision`. Il Solo (e il ruolo Follower o Direttore con la levetta
+    // spenta) da A411 non scrive: lo ferma prima il lucchetto (`SoloInertDecision`).
+    // ⚠️ `setBPM` qui sopra NON cambia (metronomo di Q-Studio, tap tempo): scrive sempre, salvo nel
+    //    Solo da A411 (stesso lucchetto, in `applyBPM`).
     func setSectionBPM(_ bpm: Double) {
         applyBPM(bpm, orchestratedSectionStart: true)
     }
@@ -3352,7 +3408,11 @@ class AudioEngine: ObservableObject {
             }
             if let lh = self.linkEngineHandle {
                 // RIENTRO-P1 (e) — W1: vedi `setSectionBPM`.
-                if orchestratedSectionStart,
+                // A411 · SOLO-INERTE — nel Solo il tempo non esce verso Link, né all'avvio di sezione né da
+                // `setBPM` (lucchetto, prima della regola del Follower).
+                if !self.soloLockPassesQ(.tempoWrite) {
+                    self.logSoloInertWriteSkippedQ(.tempoWrite, detail: String(format: "bpm:%.1f", bpm))
+                } else if orchestratedSectionStart,
                    !FollowerLinkWriteDecision.writesTempoAtOrchestratedStart(
                         role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
                     os_log("[Q-BEATS][RIENTRO-P1] tempo di sezione %.1f impostato in locale - NON scritto su Link (W1) - apparecchio Follower",
@@ -3402,6 +3462,9 @@ class AudioEngine: ObservableObject {
     //    quel caso esce in più, in ogni configurazione, la riga [2D][DA-SOLO] qui sotto, col
     //    tempo della sezione nuova, il tempo della sessione letto dall'ultimo battito a 1 s
     //    (nessuna chiamata a Link in più) e lo stato della macchina.
+    // ⚠️ A411 · SOLO-INERTE — davanti a W2 il chiamante legge prima il lucchetto del Solo: è un'altra
+    //    regola (`SoloInertDecision`, la stessa di ogni strada del Solo), non questa in due posti. Nel Solo
+    //    questa funzione non si chiama, e la riga [RIENTRO-P1] non esce.
     private func followerBoundaryTempoWriteSkipped(bpm: Double) -> Bool {
 #if DEBUG
         let switchOn = self._debugFollowerBoundaryTempoWriteQ
@@ -3678,54 +3741,190 @@ class AudioEngine: ObservableObject {
         appSettings.save()
     }
 
-    func setLinkEnabled(_ enabled: Bool) {
-        audioQueue.async { [weak self] in
-            guard let self = self, let lh = self.linkEngineHandle else {
-                os_log("[Q-BEATS][LINK][SWIFT] setLinkEnabled: guard fallita — handle o self nil",
-                       log: .default, type: .default)
-                return
+    // =====================================================================================
+    // === A411 · SOLO-INERTE (18/10/2026) — L'ACCENSIONE DI LINK E IL LUCCHETTO DEL SOLO ===
+    // =====================================================================================
+    // Mandato del referee «SOLO-INERTE · EMISSIONE 2», §2.2-§2.4 e §2.7. Le regole sono pure e col loro
+    // banco in Models/ (`LinkActivationDecision`, `SoloInertDecision`); qui il collegamento.
+    // Fino ad A410 Link si accendeva da tre parti: il richiamo del pannello nel C++, `link_engine_activate`
+    // all'avvio e `setLinkEnabled` (sfondo, chiusura del pannello, Debug), e con la levetta accesa il
+    // telefono entrava in rete anche in Solo. `setLinkEnabled` non c'è più: ogni mano cambia un ingresso e
+    // chiama `applyLinkActivationQ`, unica a chiamare `link_engine_set_enabled` e a scrivere `linkEnabled`.
+
+    /// Le mani che cambiano un ingresso dell'accensione, col nome che va nella riga [SOLO-INERTE].
+    private enum LinkActivationTrigger: String {
+        case boot = "avvio"
+        case userSwitch = "levetta"
+        case role = "ruolo"
+        case background = "sfondo"
+        case foreground = "primo-piano"
+        case panelClosed = "chiusura-pannello"
+        case debugToggle = "debug"
+        case appTermination = "chiusura-app"
+    }
+
+    /// LA FUNZIONE UNICA DELL'ACCENSIONE. Su audioQueue. La regola (`LinkActivationDecision`) dagli
+    /// ingressi di coda; una riga [SOLO-INERTE] a ogni chiamata (le chiamano solo le mani, mai un timer);
+    /// se l'esito cambia, o al primo giro, il ponte (`link_engine_set_enabled`: `enabled_` +
+    /// `ABLLinkSetActive`) e gli specchi `linkEnabled`, `linkIsConnected`, `linkPeers`, con la rilettura
+    /// del collegato a 2 s, come faceva `setLinkEnabled`.
+    private func applyLinkActivationQ(trigger: LinkActivationTrigger) {
+        guard let lh = linkEngineHandle else { return }
+        let decision = LinkActivationDecision(userLinkEnabled: _linkUserEnabledQ,
+                                              role: _linkMode,
+                                              backgroundSuspended: _linkBackgroundSuspendedQ,
+                                              appTerminating: _linkTerminatingQ)
+        let previous = _linkActiveAppliedQ
+        let changed = previous != decision.active
+        os_log("[Q-BEATS][SOLO-INERTE] accensione mano:%{public}@ levetta:%d ruolo:%{public}@ player:%{public}@ sfondo:%d click:%d chiusura:%d -> attivo:%d prima:%{public}@ cambio:%d motivo:%{public}@",
+               log: .default, type: .default,
+               trigger.rawValue,
+               decision.userLinkEnabled ? 1 : 0,
+               decision.role.rawValue,
+               decision.playerRole.rawValue,
+               decision.backgroundSuspended ? 1 : 0,
+               isRunning ? 1 : 0,
+               decision.appTerminating ? 1 : 0,
+               decision.active ? 1 : 0,
+               previous.map { $0 ? "1" : "0" } ?? "mai",
+               changed ? 1 : 0,
+               decision.offReason?.rawValue ?? "-")
+        guard changed else { return }
+        _linkActiveAppliedQ = decision.active
+        link_engine_set_enabled(lh, decision.active)
+        if decision.active {
+            let isConn = link_engine_is_connected(lh)
+            DispatchQueue.main.async {
+                self.linkEnabled = true
+                self.linkIsConnected = isConn
+                self.linkPeers = isConn ? 1 : 0
             }
-            os_log("[Q-BEATS][LINK][SWIFT] setLinkEnabled(%{public}@) → chiamata C++",
-                   log: .default, type: .default, enabled ? "true" : "false")
-            link_engine_set_enabled(lh, enabled)
-            if enabled {
-                let isConn = link_engine_is_connected(lh)
-                DispatchQueue.main.async {
-                    self.linkEnabled = true
-                    self.linkIsConnected = isConn
-                    self.linkPeers = isConn ? 1 : 0
-                }
-                if !isConn {
-                    self.audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        guard let self = self, let lh = self.linkEngineHandle else { return }
-                        guard link_engine_is_enabled(lh) else { return }
-                        let isConn2 = link_engine_is_connected(lh)
-                        os_log("[Q-BEATS][LINK][SWIFT] check 2s post-enable — isConn:%{public}@",
-                               log: .default, type: .default, isConn2 ? "true" : "false")
-                        if isConn2 {
-                            DispatchQueue.main.async {
-                                self.linkIsConnected = true
-                                self.linkPeers = 1
-                            }
+            if !isConn {
+                audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    guard let self = self, let lh = self.linkEngineHandle else { return }
+                    guard link_engine_is_enabled(lh) else { return }
+                    let isConn2 = link_engine_is_connected(lh)
+                    os_log("[Q-BEATS][LINK][SWIFT] check 2s post-enable — isConn:%{public}@",
+                           log: .default, type: .default, isConn2 ? "true" : "false")
+                    if isConn2 {
+                        DispatchQueue.main.async {
+                            self.linkIsConnected = true
+                            self.linkPeers = 1
                         }
                     }
                 }
-            } else {
-                DispatchQueue.main.async {
-                    self.linkEnabled = false
-                    self.linkIsConnected = false
-                    self.linkPeers = 0
-                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.linkEnabled = false
+                self.linkIsConnected = false
+                self.linkPeers = 0
             }
         }
     }
 
+    /// La levetta del pannello. Su audioQueue. Scrive la copia di coda e lo specchio e la riga [A360] di
+    /// sempre; se si spegne, azzera la macchina del Follower e nasconde il numero dei collegati (A386 B2A,
+    /// com'era). Rende `true` se la levetta è cambiata: chi chiama ricalcola allora l'accensione.
+    @discardableResult
+    private func noteUserLinkSwitchQ(_ isEnabled: Bool, source: String) -> Bool {
+        let changed = _linkUserEnabledQ != isEnabled
+        _linkUserEnabledQ = isEnabled
+        DispatchQueue.main.async { self.linkUserEnabled = isEnabled }
+        os_log("[Q-BEATS][A360] Link dell'utente:%{public}@ (%{public}@) - ruolo:%{public}@",
+               log: .default, type: .default,
+               isEnabled ? "acceso" : "spento", source, String(describing: _linkMode))
+        if changed && !isEnabled {
+            followerResetQ(reason: "link-utente-spento")
+            DispatchQueue.main.async { self.linkPeerCount = nil }
+        }
+        return changed
+    }
+
+    /// La politica dello sfondo (`QBeatsApp`, invariata: in sfondo a click fermo sospende, in primo piano
+    /// riprende) dà alla regola il suo ingresso. Chiamabile da qualunque thread.
+    func setLinkBackgroundSuspended(_ suspended: Bool) {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            self._linkBackgroundSuspendedQ = suspended
+            self.applyLinkActivationQ(trigger: suspended ? .background : .foreground)
+        }
+    }
+
+    /// La chiusura del pannello Link (`SettingsView`): la levetta riletta dal ponte, se il richiamo del
+    /// pannello non l'avesse già portata, e la regola. Fino ad A410 qui Link si accendeva come la levetta,
+    /// anche in Solo. Chiamabile da qualunque thread.
+    func linkPanelClosed(userEnabled: Bool) {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            if self._linkUserEnabledQ != userEnabled {
+                self.noteUserLinkSwitchQ(userEnabled, source: "chiusura del pannello")
+            }
+            self.applyLinkActivationQ(trigger: .panelClosed)
+        }
+    }
+
+    /// Il toggle «Ableton Link» della schermata di debug passa dalla stessa regola: il tocco la ricalcola
+    /// e non forza niente. La levetta la muove solo l'utente nel pannello (ABLLink.h:64-69), il ruolo si
+    /// sceglie nel menu Mode; il toggle mostra lo specchio, quindi resta dov'era se la regola non cambia.
+    /// Chiamabile da qualunque thread.
+    func debugLinkToggleTouched(requested: Bool) {
+        audioQueue.async { [weak self] in
+            guard let self = self else { return }
+            os_log("[Q-BEATS][SOLO-INERTE] toggle Debug 'Ableton Link' toccato - chiesto:%{public}@ - decide la regola",
+                   log: .default, type: .default, requested ? "acceso" : "spento")
+            self.applyLinkActivationQ(trigger: .debugToggle)
+        }
+    }
+
+    /// La chiusura dell'app (`AppDelegate.applicationWillTerminate`): l'ingresso «chiusura» e la regola,
+    /// nello stesso `audioQueue.sync` di prima.
     func disableLinkOnTerminate() {
         audioQueue.sync {
-            if let lh = linkEngineHandle {
-                link_engine_set_enabled(lh, false)
-            }
+            _linkTerminatingQ = true
+            applyLinkActivationQ(trigger: .appTermination)
         }
+    }
+
+    /// Il lucchetto del Solo su una strada (`SoloInertDecision`), dalle copie di coda. Su audioQueue.
+    /// `true` = il motore passa da Link come oggi; `false` = Solo, strada chiusa.
+    private func soloLockPassesQ(_ path: SoloInertDecision.Path) -> Bool {
+        SoloInertDecision.passes(path, role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+    }
+
+    /// Una scrittura verso Link che il lucchetto non lascia uscire: una riga a ogni scrittura saltata (sono
+    /// eventi rari: avvio, stop, tempo di sezione). Su audioQueue.
+    private func logSoloInertWriteSkippedQ(_ path: SoloInertDecision.Path, detail: String) {
+        os_log("[Q-BEATS][SOLO-INERTE] non scritto su Link strada:%{public}@ %{public}@ - ruolo:%{public}@ levetta:%d ponte:%d",
+               log: .default, type: .default,
+               path.rawValue, detail, _linkMode.rawValue, _linkUserEnabledQ ? 1 : 0,
+               linkEngineHandle.map { link_engine_is_enabled($0) ? 1 : 0 } ?? 0)
+    }
+
+    /// W2 al confine di sezione: il lucchetto del Solo, con la sua riga. Su audioQueue.
+    private func soloInertSkipsBoundaryTempoWriteQ(bpm: Double) -> Bool {
+        guard !soloLockPassesQ(.boundaryTempoWrite) else { return false }
+        logSoloInertWriteSkippedQ(.boundaryTempoWrite, detail: String(format: "bpm:%.1f", bpm))
+        return true
+    }
+
+    /// Qualcosa che arriva da Link e il lucchetto scarta (§2.7): una riga a frequenza limitata per strada
+    /// (`SoloInertDiscardLog`), col numero degli scarti dall'ultima riga. Su audioQueue.
+    private func noteSoloInertDiscardQ(_ path: SoloInertDecision.Path, detail: String) {
+        let now = mach_absolute_time()
+        let interval = secondsToMachTicks(AudioEngine.kSoloInertLogIntervalSeconds)
+        let count: Int?
+        switch path {
+        case .sessionTempo:
+            count = _soloInertTempoLogQ.noteDiscard(now: now, intervalTicks: interval)
+        default:
+            count = _soloInertTransportLogQ.noteDiscard(now: now, intervalTicks: interval)
+        }
+        guard let n = count else { return }
+        os_log("[Q-BEATS][SOLO-INERTE] scartato da Link strada:%{public}@ %{public}@ scarti:%d - ruolo:%{public}@ levetta:%d ponte:%d",
+               log: .default, type: .default,
+               path.rawValue, detail, n, _linkMode.rawValue, _linkUserEnabledQ ? 1 : 0,
+               linkEngineHandle.map { link_engine_is_enabled($0) ? 1 : 0 } ?? 0)
     }
 
     func enableNetworkMIDI() {
@@ -4157,6 +4356,10 @@ class AudioEngine: ObservableObject {
                 if FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
                     os_log("[Q-BEATS][A360] stop NON inviato a Link - apparecchio Follower (ruolo:collaborativa linkUtente:acceso) - il motore si ferma solo in locale",
                            log: .default, type: .default)
+                } else if !self.soloLockPassesQ(.stopWrite) {
+                    // A411 · SOLO-INERTE — il Solo non manda lo Stop a Link: il motore si ferma in locale.
+                    // Prima di A411 lo Stop del Solo con Link acceso fermava gli altri apparecchi.
+                    self.logSoloInertWriteSkippedQ(.stopWrite, detail: "stopSync")
                 } else {
                     link_engine_stop(lh, mach_absolute_time())
                     // A410 — con l'àncora viva (il Direttore taceva) questo Stop esce lo stesso: è lo
@@ -4823,6 +5026,11 @@ class AudioEngine: ObservableObject {
                     self.linkSyncSkipBuffers -= 1
                     os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
                            log: .default, type: .default, self.linkSyncSkipBuffers)
+                } else if !self.soloLockPassesQ(.phaseCorrection) {
+                    // A411 · SOLO-INERTE — nel Solo nessuna correzione di fase, né l'assert del ruolo
+                    // Direttore con la levetta spenta né `link_engine_sync_phase`: il click va col suo
+                    // orologio, come a Link spento (dove `sync_phase` esce senza correggere). Nessuna riga:
+                    // gira a ogni buffer.
                 } else if _linkMode == .direttore {
                     // Modalità Direttore in play (siamo dentro scheduleNextBuffer,
                     // quindi isRunning è già garantito true dal guard a riga 1359).
@@ -5043,7 +5251,11 @@ class AudioEngine: ObservableObject {
                         // ⚠️ MARCATURA A386 · B2c-BIS — la stessa condizione salta W2, in ogni
                         //    configurazione, anche quando il Follower è sul proprio orologio (DA
                         //    SOLO, e la coda prima dell'arresto): da solo non scrive in Link.
+                        // ⚠️ A411 · SOLO-INERTE — in testa il lucchetto del Solo: nel Solo W2 non esce
+                        //    (`soloInertSkipsBoundaryTempoWriteQ` scrive la riga), e la regola del Follower
+                        //    qui sotto non si chiede nemmeno.
                         if let lh = self.linkEngineHandle, let mh = self.midiEngineHandle,
+                           !self.soloInertSkipsBoundaryTempoWriteQ(bpm: pending),
                            !self.followerBoundaryTempoWriteSkipped(bpm: pending) {
                             let sampleOffset = UInt32(offset)
                             let nanosOffset = Double(sampleOffset) / self.sampleRate * 1.0e9
@@ -5293,7 +5505,12 @@ class AudioEngine: ObservableObject {
                 // CRITICO: NON chiamare midi_engine_stop() — il sequencer C++ continua a
                 // mantenere la beat position corrente. NON notificare stop a Link.
                 if let lh = self.linkEngineHandle {
-                    self.clockLinkWasEnabled = link_engine_is_enabled(lh)
+                    // A411 · SOLO-INERTE — Link come lo vede il motore: nel Solo spento, così a fine
+                    // interruzione il Solo riprende col suo battito, come a Link spento. Se il Solo debba
+                    // ripartire da solo non si decide qui (passo 2 del Direttore in crisi).
+                    self.clockLinkWasEnabled = SoloInertDecision.engineSeesLinkOn(role: self._linkMode,
+                                                                                  userLinkEnabled: self._linkUserEnabledQ,
+                                                                                  linkActive: link_engine_is_enabled(lh))
                 } else {
                     self.clockLinkWasEnabled = false
                 }
@@ -5633,8 +5850,9 @@ class AudioEngine: ObservableObject {
     // La Reset.
     //  · da «servizi persi»: stopSync sul principale, poi, su audioQueue, «da ricostruire». Fra la
     //    lettura e il passaggio lo stato resta «servizi persi»: un avvio che arriva in mezzo è
-    //    rifiutato. ⚠️ DIFETTO APERTO (A410): sul Direttore, e sul Solo con Link acceso, questo
-    //    stopSync manda lo Stop alla band, e sul Direttore chiude la canzone (`directorStoppedSubject`):
+    //    rifiutato. ⚠️ DIFETTO APERTO (A410): sul Direttore questo stopSync manda lo Stop alla band,
+    //    e chiude la canzone (`directorStoppedSubject`); fino ad A410 lo Stop partiva anche dal Solo con
+    //    Link acceso, da A411 il Solo non manda niente a Link (`SoloInertDecision`):
     //    è contro LIBRO 2026-09-17 «IL PRINCIPIO DELLA BAND» (un apparecchio in crisi non ferma la
     //    band), `TD-media-reset-del-direttore-ferma-la-band`, e si cura nel passo 2 del Direttore in
     //    crisi. Prima qui c'era «come prima», come se fosse una scelta: non lo era (referto A408, §8.3);

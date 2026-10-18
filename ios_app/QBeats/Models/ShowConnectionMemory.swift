@@ -9,6 +9,8 @@ import Foundation
 // falso con l'interruttore dell'utente `linkUserEnabled` acceso (`QBeatsApp`, sfondo a click
 // fermo) — il ricordo di Link si azzera: al ritorno la spia è grigia finché non si ricollega, mai
 // «Link lost» per uno spegnimento fatto dall'app, che non è una perdita (A393 §6.5 e §9, caso 13).
+// A411 · SOLO-INERTE — da A411 lo specchio `linkEnabled` è spento anche in Solo a levetta accesa (Link fuori
+// rete per regola): il ricordo di Link nel Solo resta vuoto, per la stessa regola.
 // È una funzione pura perché il banco la provi (il banco compila solo Models/).
 // SOLO-G1-PEZZO-1-M2 · A397 (06/10/2026) — due decisioni del referee del 05/10 (BOX5 V54, capitolo «PLAYER DEL
 // SOLO, GIRO 1 — DECISIONI DEL REFEREE DEL 05/10/2026», punti 3 e 4): (3) uno spegnimento VOLUTO di Link non

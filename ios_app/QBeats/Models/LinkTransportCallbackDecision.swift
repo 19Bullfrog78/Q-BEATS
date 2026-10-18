@@ -13,6 +13,10 @@ import Foundation
 // `start()`, prima che `isPlaying` passi a vero su main: il richiamo trovava il motore
 // ancora «fermo» e lo faceva partire una seconda volta, e il secondo avvio riazzerava il
 // contatore di sezione dopo il primo colpo.
+// ⚠️ A411 · SOLO-INERTE (18/10/2026) — da A411 il Solo non scrive più «suona» in Link, e nel Solo il
+//    richiamo avvio/stop si scarta in testa (lucchetto, `SoloInertDecision`). «Né Direttore né
+//    Follower» è il Solo: questa regola non la raggiunge più nessuna strada del motore. Resta col suo
+//    banco; toglierla non è di quel mandato (referto A411, Aperti). Le righe sopra raccontano A399-A400.
 //
 // La cura è per costruzione, non per tempi. Il motore tiene un segno confinato ad
 // `audioQueue` (`_ownTransportStartPendingQ`), alzato subito prima di ogni propria

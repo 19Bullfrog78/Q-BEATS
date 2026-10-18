@@ -7,7 +7,9 @@ import Foundation
 // non lo avrebbe visto. `AppSettings` continua a usarlo tale e quale: stesso modulo.
 enum LinkMode: String, Codable, CaseIterable {
     case standalone      // Solo — NUOVO DEFAULT: Q-BEATS suona il proprio click, NON comanda NON segue i peer.
-                         // Isolamento = Link OFF (linkEnabled default false). RUOLO scelto, ≠ stato-connessione "nessun peer".
+                         // Isolamento = Link fuori rete per regola (A411: `LinkActivationDecision`, anche a levetta
+                         // accesa) e motore inerte (`SoloInertDecision`). RUOLO scelto, ≠ stato-connessione "nessun peer".
+                         // Fino ad A410 l'isolamento era solo il default `linkEnabled` falso: la levetta lo accendeva.
     case direttore       // Q-BEATS sorgente unica autoritativa: detta start/stop, BPM, phase.
                          // Ignora SEMPRE input dai peer — in play e in stop. Timeline e tempo
                          // imposti dal Director, i peer si adeguano.

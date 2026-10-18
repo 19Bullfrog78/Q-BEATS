@@ -6,6 +6,11 @@ import XCTest
 // `.collaborativa` E Link acceso dall'utente) in DA SOLO, o nella coda fra l'uscita da DA SOLO e
 // l'arresto del motore. Tutto il resto e' la prova che Direttore, Solo, ruolo Follower con Link
 // spento dall'utente, IN SYNC e FUORI restano come prima.
+// ⚠️ A411 · SOLO-INERTE — «come prima» per il Solo vale per la RISPOSTA della regola, non per la
+//    strada del motore: da A411 il Solo (e il ruolo Follower o Direttore con la levetta spenta) non
+//    arriva a questa regola, lo ferma prima il lucchetto (`SoloInertDecision`), che non lascia entrare
+//    né il tempo né la fase di Link. Le righe col ruolo Solo qui sotto restano e provano la regola;
+//    la prova del Solo inerte sta in `SoloInertDecisionTests`.
 // Il banco gira in CI (`.github/workflows/ios_build.yml`, `xcodebuild test -scheme QBeatsTests`).
 
 final class FollowerLinkFollowDecisionTests: XCTestCase {

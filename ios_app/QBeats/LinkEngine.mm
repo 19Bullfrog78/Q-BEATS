@@ -46,19 +46,22 @@ LinkEngineHandle link_engine_create(void) {
     LinkEngine* engine = new LinkEngine();
     // 120.0 = temporaneo — master BPM di AudioEngine verrà allineato in 6B
     engine->link_ = ABLLinkNew(120.0);
-    // TD #44 fix (22/05/2026): rimosso ABLLinkSetActive(engine->link_, false)
-    // post-ABLLinkNew. Default LinkKit post-init è "active" (ABLLink.h:57-62
-    // "It is active by default after init"). La vecchia sequenza
-    // Create→SetActive(false)→[registra IsConnectedCallback]→...→SetActive(true)
-    // in activate produceva una transizione false→true con stato callback
-    // incompleto al primo SetActive — ipotesi causa TD #44 (discovery
-    // same-bundle cross-device falliva, mentre cross-bundle QB↔SB funzionava).
-    // Nuova sequenza: nessuna chiamata SetActive qui. La gestione opt-in
-    // utente è interamente in link_engine_activate, biforcata su
-    // ABLLinkIsEnabled persistito, eseguita DOPO la registrazione di tutti
-    // i callback LinkKit (SessionTempo, IsEnabled, StartStop sono registrate
-    // dai setter chiamati da AudioEngine.swift; IsConnectedCallback resta
-    // inline qui sotto).
+    // === A411 · SOLO-INERTE (18/10/2026) — LINK NASCE SPENTO ===
+    // LinkKit nasce attivo (ABLLink.h:56-62): da attivo si annuncia sulla rete locale e apre le
+    // connessioni. Con la levetta del pannello accesa, l'apparecchio era in rete dall'avvio, prima di
+    // qualunque scelta di ruolo. Qui si spegne subito, sullo stesso thread di ABLLinkNew: a ogni avvio
+    // l'app è in Solo e il Solo resta fuori rete (LIBRO, riga 2026-07-01). Da qui in poi Link si accende
+    // e si spegne solo da `link_engine_set_enabled`, chiamata solo dalla funzione unica del motore
+    // (`AudioEngine.applyLinkActivationQ`, regola `LinkActivationDecision`): levetta accesa E ruolo
+    // Director o Follower. Il passaggio spento → acceso diventa la strada normale (Solo → Director).
+    // È anche l'invariante di BOX5 «Link — init silente: ABLLinkSetActive(false) subito dopo ABLLinkNew».
+    // Storia: il 22/05/2026 (B1'', commit c3d628b) questa chiamata era stata tolta sull'ipotesi che la
+    // sequenza spento → acceso con i richiami non ancora registrati rompesse la scoperta fra due Q-BEATS
+    // (TD #44). L'ipotesi è stata smentita sul device quello stesso giorno: la causa vera era
+    // l'entitlement multicast perso alla firma (BUGS, TD #44, e sezione «LinkKit SetActive sequence come
+    // causa TD #44»). Da allora lo spento → acceso è la strada di ogni ritorno dallo sfondo (Bug 4,
+    // collaudato il 26/05/2026) e della levetta accesa dopo un avvio a levetta spenta.
+    ABLLinkSetActive(engine->link_, false);
     ABLLinkSetIsConnectedCallback(engine->link_,
         [](bool isConnected, void* context) {
             auto* le = static_cast<LinkEngine*>(context);
@@ -87,6 +90,8 @@ void link_engine_destroy(LinkEngineHandle handle) {
     delete engine;
 }
 
+// A411 · SOLO-INERTE — l'unico posto che accende e spegne Link (`enabled_` + `ABLLinkSetActive`). Unico
+// chiamante: `AudioEngine.applyLinkActivationQ`, su audioQueue, con l'esito della regola d'accensione.
 void link_engine_set_enabled(LinkEngineHandle handle, bool enabled) {
     if (!handle) {
         os_log(OS_LOG_DEFAULT,
@@ -265,22 +270,17 @@ void link_engine_set_peers_changed_callback(LinkEngineHandle handle,
 // finché l'utente non chiudeva. Soundbrenner registra questo callback,
 // noi no — fix di parità comportamentale con SB.
 //
-// Comportamento: il C++ replica la sequenza interna di
-// link_engine_set_enabled atomicamente PRIMA di chiamare il user
-// callback Swift. Due passi obbligatori:
-//   1. enabled_.store(isEnabled) — flag interno per i guard di
-//      probe_session, start_at_*, stop, sync_phase, assert_session_state.
-//   2. ABLLinkSetActive(link_, isEnabled) — flag programmatic di LinkKit
-//      che attiva/disattiva la discovery dei peer e il network multicast.
-//      Questo è separato da ABLLinkIsEnabled (user-only) e DEVE essere
-//      chiamato esplicitamente perché altrimenti il pane Ableton mostra
-//      Link "on" ma Q-B non scopre peer (build c7d1073..7d38080 aveva
-//      proprio questo bug).
-//
-// No loop di re-emission: ABLLinkSetIsEnabledCallback è documentato
-// "Invoked when the user changes the enabled state via the Link
-// settings view" — solo user action, non chiamate programmatiche.
-// ABLLinkSetActive(true) qui non ri-trigger il callback.
+// === A411 · SOLO-INERTE (18/10/2026) — IL RICHIAMO PORTA LA LEVETTA, NON ACCENDE ===
+// Fino ad A410 qui il C++ ripeteva la sequenza di link_engine_set_enabled prima del richiamo Swift:
+// `enabled_` e `ABLLinkSetActive(link_, isEnabled)`. Con la levetta accesa Link entrava in rete
+// qualunque fosse il ruolo, anche in Solo. Da A411 il richiamo non tocca né `enabled_` né
+// `ABLLinkSetActive`: passa la levetta a Swift, che la mette fra gli ingressi della regola
+// d'accensione (`LinkActivationDecision`) e applica l'esito con `link_engine_set_enabled`, su
+// audioQueue. Resta vero quel che insegnò la build c7d1073..7d38080: la levetta da sola
+// (ABLLinkIsEnabled, user-only) non mette in rete, serve anche ABLLinkSetActive — che ora arriva
+// dalla regola, quando c'è un ruolo Director o Follower.
+// No loop di re-emission: il richiamo scatta solo per un gesto dell'utente nel pannello
+// (ABLLink.h:153-159), e ABLLinkSetActive non lo fa ripartire.
 void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
     void (*callback)(bool isEnabled, void* context),
     void* context) {
@@ -291,15 +291,8 @@ void link_engine_set_is_enabled_callback(LinkEngineHandle handle,
     ABLLinkSetIsEnabledCallback(engine->link_,
         [](bool isEnabled, void* ctx) {
             LinkEngine* e = (LinkEngine*)ctx;
-            // Sincronizza i due flag (interno + programmatic) atomicamente
-            // PRIMA di chiamare il user callback Swift. Stessa sequenza di
-            // link_engine_set_enabled, perché il pane Ableton da solo
-            // modifica solo ABLLinkIsEnabled (user-only) — la discovery
-            // dei peer richiede anche ABLLinkSetActive programmatic.
-            e->enabled_.store(isEnabled, std::memory_order_relaxed);
-            ABLLinkSetActive(e->link_, isEnabled);
             os_log(OS_LOG_DEFAULT,
-                   "[Q-BEATS][LINK][IS-ENABLED] callback isEnabled:%d (enabled_ + ABLLinkSetActive sincronizzati)",
+                   "[Q-BEATS][LINK][IS-ENABLED] callback isEnabled:%d (solo la levetta: decide la regola d'accensione del motore)",
                    (int)isEnabled);
             if (e->isEnabledCallback_) {
                 e->isEnabledCallback_(isEnabled, e->isEnabledCallbackContext_);
@@ -312,67 +305,42 @@ void link_engine_activate(LinkEngineHandle handle) {
     if (!handle) return;
     LinkEngine* le = static_cast<LinkEngine*>(handle);
 
-    // === Boot reconciliation ABLLinkIsEnabled persistito — B1'' (22/05/2026) ===
-    // Default post-ABLLinkNew = "active" (ABLLink.h:57-62 "It is active by
-    // default after init"). link_engine_create non chiama più SetActive(false)
-    // (vedi commento TD #44 fix lì). Quindi tra Create e qui Link gira in
-    // default-active per la breve finestra in cui AudioEngine.swift registra
-    // gli altri callback (SessionTempo, IsEnabled, StartStop). IsConnectedCallback
-    // è già piazzato inline da link_engine_create — se un peer si connettesse in
-    // quella finestra, viene gestito.
-    //
-    // Qui, DOPO che tutti i callback LinkKit sono in place, biforchiamo su
-    // ABLLinkIsEnabled persistito:
-    //   - persistedEnabled=true  → SetActive(true) (idempotente col default,
-    //                              esplicito per chiarezza e robustezza) +
-    //                              propaga callback Swift. Zero transizioni
-    //                              false→true: l'ipotesi causa TD #44
-    //                              (discovery same-bundle cross-device rotta
-    //                              dalla transizione false→true con stato
-    //                              callback incompleto) è eliminata su questo
-    //                              percorso.
-    //   - persistedEnabled=false → SetActive(false) una sola volta, eseguito
-    //                              DOPO la registrazione di tutti i callback.
-    //                              Opt-in utente preservato: l'app smette di
-    //                              advertising sulla rete locale finché
-    //                              l'utente non attiva Link dal pane Ableton.
-    //                              Il side-effect ipotizzato per TD #44
-    //                              dipende dalla transizione false→true post
-    //                              callback parziali, non da SetActive(false)
-    //                              di per sé — questo percorso evita la
-    //                              transizione e dovrebbe restare safe.
-    //
-    // Quando l'utente cambia Link toggle dal pane Ableton in qualsiasi
-    // momento successivo, scatta link_engine_set_is_enabled_callback che
-    // chiama ABLLinkSetActive(isEnabled) di conseguenza (gestito già in
-    // LinkEngine.mm:283-300).
+    // === A411 · SOLO-INERTE (18/10/2026) — ALL'AVVIO NIENTE SI ACCENDE ===
+    // Fino ad A410 qui si accendeva Link come la levetta salvata da LinkKit (B1'', 22/05/2026): levetta
+    // accesa → `enabled_` e ABLLinkSetActive(true), e l'apparecchio era in rete prima di qualunque scelta
+    // di ruolo; levetta spenta → ABLLinkSetActive(false). Da A411 il ponte nasce spento
+    // (`link_engine_create`) e lo accende solo la regola d'accensione del motore
+    // (`AudioEngine.applyLinkActivationQ`, che all'avvio ha già girato una volta, col ruolo Solo: Link
+    // resta fuori rete). Qui resta la riconciliazione della levetta: si legge e, se accesa, si passa al
+    // richiamo Swift, come prima (lì trova la levetta già letta all'avvio e non ricalcola niente).
+    // Quando l'utente cambia la levetta nel pannello scatta link_engine_set_is_enabled_callback, che da
+    // A411 passa la levetta e basta.
     bool persistedEnabled = ABLLinkIsEnabled(le->link_);
     os_log(OS_LOG_DEFAULT,
            "[Q-BEATS][LINK][ACTIVATE] persistedEnabled:%d",
            (int)persistedEnabled);
 
     if (persistedEnabled) {
-        le->enabled_.store(true, std::memory_order_relaxed);
-        ABLLinkSetActive(le->link_, true);
         os_log(OS_LOG_DEFAULT,
-               "[Q-BEATS][LINK][ACTIVATE] reconciled enabled=true: SetActive(true) idempotente + propagate callback (zero transizioni false→true — fix TD #44)");
+               "[Q-BEATS][LINK][ACTIVATE] levetta accesa: passata al richiamo Swift - Link resta come lo vuole la regola d'accensione (all'avvio Solo: fuori rete)");
         if (le->isEnabledCallback_) {
             le->isEnabledCallback_(true, le->isEnabledCallbackContext_);
         }
     } else {
-        ABLLinkSetActive(le->link_, false);
         os_log(OS_LOG_DEFAULT,
-               "[Q-BEATS][LINK][ACTIVATE] no persisted state: SetActive(false) one-shot post callback registration — opt-in preservato");
+               "[Q-BEATS][LINK][ACTIVATE] levetta spenta - Link fuori rete");
     }
 
     // Diagnostic #293: poll stato Link ogni 5s dopo attivazione
+    // A411 · SOLO-INERTE — cattura SENZA commit, come le sonde `link_engine_read_*`: una lettura non deve
+    // poter scrivere, e cinque secondi dopo l'avvio il ruolo è Solo. Fino ad A410 qui si committava lo stato
+    // appena catturato.
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
         dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
             bool conn = ABLLinkIsConnected(le->link_);
             bool en   = ABLLinkIsEnabled(le->link_);
             ABLLinkSessionStateRef state = ABLLinkCaptureAppSessionState(le->link_);
             double bpm = ABLLinkGetTempo(state);
-            ABLLinkCommitAppSessionState(le->link_, state);
             os_log(OS_LOG_DEFAULT,
                 "[Q-BEATS][LINK][POLL] enabled:%d connected:%d bpm:%.2f",
                 (int)en, (int)conn, bpm);

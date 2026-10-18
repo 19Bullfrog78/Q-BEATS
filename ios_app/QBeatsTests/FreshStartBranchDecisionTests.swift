@@ -7,6 +7,10 @@ import XCTest
 //  2. a Link SPENTO si va SEMPRE nel ramo standalone, qualunque cosa dica il contatore dei
 //     collegati — è la riga nuova, nata dal giro G7 del collaudo del 17/09/2026;
 //  3. il Follower deciso in testa a `start` entra comunque, qualunque siano gli altri ingressi.
+// ⚠️ A411 · SOLO-INERTE — nel motore il Solo passa Link spento (`SoloInertDecision.engineSeesLinkOn`):
+//    le righe col ruolo Solo e Link acceso qui sotto provano la tabella, non una strada viva del
+//    motore. Che il Solo, Link acceso o spento, vada sempre nel ramo standalone lo prova
+//    `SoloInertDecisionTests` sulla stessa decisione.
 // Il banco gira in CI su ogni push (`.github/workflows/ios_build.yml`,
 // `xcodebuild test -scheme QBeatsTests`).
 

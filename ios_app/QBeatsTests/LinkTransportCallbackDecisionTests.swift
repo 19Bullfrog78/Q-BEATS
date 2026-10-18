@@ -13,6 +13,10 @@ import XCTest
 //  4. il passo di main è il blocco di sempre, riga per riga (attesi LETTERALI), e la
 //     regola intera è i due passi in fila.
 // Il banco gira in CI (`.github/workflows/ios_build.yml`, `xcodebuild test -scheme QBeatsTests`).
+// ⚠️ A411 · SOLO-INERTE — «né Direttore né Follower» è il Solo, e da A411 nel Solo il richiamo
+//    avvio/stop si scarta in testa (lucchetto, `SoloInertDecision`) e «suona» non esce verso Link: il
+//    caso «Solo con Link acceso» di questo banco non è più una strada viva del motore. Le asserzioni
+//    restano tutte e provano la regola; la prova del Solo inerte sta in `SoloInertDecisionTests`.
 
 final class LinkTransportCallbackDecisionTests: XCTestCase {
 
@@ -37,8 +41,9 @@ final class LinkTransportCallbackDecisionTests: XCTestCase {
 
     // MARK: - 1 · L'eco propria (cadono con la regola di oggi, passano con la cura)
 
-    /// Il caso misurato (A399 §5.1, 18 avvii su 25): Solo, Link acceso, il richiamo «suona»
-    /// arriva col segno alzato e il motore ancora «fermo» su main. Oggi: avvia.
+    /// Il caso misurato (A399 §5.1, 18 avvii su 25), fino ad A410: Solo, Link acceso, il richiamo
+    /// «suona» arriva col segno alzato e il motore ancora «fermo» su main; prima di A400 avviava una
+    /// seconda volta. Da A411 nel Solo il richiamo non arriva più qui (lucchetto in testa).
     func testOwnEchoOfTheSoloIsConsumedAndDoesNotStart() {
         XCTAssertEqual(action(isPlaying: true, sign: true, engine: false), .consumeOwnEcho)
     }

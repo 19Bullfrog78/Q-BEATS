@@ -6,6 +6,10 @@ import XCTest
 // all'ingresso). Una riga sola dice «non scrive»: il Follower (ruolo `.collaborativa` E
 // Link acceso dall'utente). Le altre cinque sono la prova che Direttore, Solo e ruolo
 // Follower con Link spento dall'utente scrivono come prima.
+// ⚠️ A411 · SOLO-INERTE — «scrivono» per il Solo è la RISPOSTA della regola, non più la strada del
+//    motore: da A411 dal Solo (e dal ruolo Follower o Direttore con la levetta spenta) non esce niente
+//    verso Link, lo ferma prima il lucchetto (`SoloInertDecision`). Le righe qui sotto restano e
+//    provano la regola; la prova del Solo inerte sta in `SoloInertDecisionTests`.
 // Il banco gira in CI su ogni push (`.github/workflows/ios_build.yml`,
 // `xcodebuild test -scheme QBeatsTests`).
 

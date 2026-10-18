@@ -10,8 +10,10 @@ import Foundation
 // I due interruttori di Link sono due cose diverse (mappa A360, §1):
 //  · quello dell'UTENTE è `ABLLinkIsEnabled` (ABLLink.h: «only controllable by the
 //    user via the Link settings dialog») — lo muove solo chi apre il pannello Link;
-//  · quello dell'APP è `link_engine_set_enabled` (`ABLLinkSetActive`), che l'app
-//    spegne da sola in background a click fermo e riaccende al ritorno (`QBeatsApp`).
+//  · quello dell'APP è `link_engine_set_enabled` (`ABLLinkSetActive`). Da A411 lo muove solo
+//    la regola d'accensione del motore (`LinkActivationDecision`: levetta E ruolo Director o
+//    Follower E non sospeso dallo sfondo — in background a click fermo l'app lo spegne e al
+//    ritorno lo riaccende, `QBeatsApp`); in Solo resta spento anche a levetta accesa.
 // Andare in background e tornare NON cambia il ruolo: per questo il secondo
 // interruttore entra qui SOLO per essere ignorato — `appLinkEnabled` è un ingresso
 // della regola perché il banco possa provare che non conta, non perché conti.

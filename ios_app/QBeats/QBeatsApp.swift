@@ -54,17 +54,21 @@ struct QBeatsApp: App {
             //
             // LinkHut chiama SetActive(true) unconditional al .active perché
             // Link è sempre attivo quando l'app è aperta — non c'è preferenza
-            // utente. Q-BEATS invece ha toggle utente per disabilitare Link
-            // (persisted): se chiamassimo setLinkEnabled(true) unconditional
-            // riaccenderemmo Link contro la volontà dell'utente al primo
-            // .active (vedi log cold launch con persistedEnabled:0).
+            // utente. Q-BEATS invece accende Link solo con la levetta del pannello
+            // E un ruolo Director o Follower (A411 · SOLO-INERTE, regola
+            // `LinkActivationDecision` nel motore): riaccendere unconditional al
+            // primo .active lo metterebbe in rete contro la levetta o in Solo.
             //
             // Flag linkSuspendedByBackground traccia SOLO le sospensioni
-            // autorizzate da noi al .background. Casi:
-            // - User Link OFF → flag mai settato → .active non tocca niente
-            // - User Link ON + audio fermo → SetActive(false) al bg, ripristino
-            //   al fg (flag traccia il restore)
-            // - User Link ON + audio in corso → non tocchiamo (performance
+            // autorizzate da noi al .background. La politica è quella di prima; da
+            // A411 non accende e non spegne Link da sé: dà alla regola l'ingresso
+            // «sospeso dallo sfondo» (`setLinkBackgroundSuspended`), e la regola decide.
+            // Casi:
+            // - Link fuori rete (levetta spenta, o Solo) → flag mai settato →
+            //   .active non tocca niente
+            // - Link in rete (Director o Follower) + audio fermo → sospeso al bg,
+            //   ripresa al fg (flag traccia il restore)
+            // - Link in rete + audio in corso → non tocchiamo (performance
             //   in background deve continuare)
             // - User cambia Link OFF→ON manualmente in foreground → flag
             //   resta false, prossimo ciclo bg/fg gestito correttamente
@@ -72,12 +76,12 @@ struct QBeatsApp: App {
             case .background:
                 if AudioEngine.shared.linkEnabled && !AudioEngine.shared.isPlaying {
                     linkSuspendedByBackground = true
-                    AudioEngine.shared.setLinkEnabled(false)
+                    AudioEngine.shared.setLinkBackgroundSuspended(true)
                 }
             case .active:
                 if linkSuspendedByBackground {
                     linkSuspendedByBackground = false
-                    AudioEngine.shared.setLinkEnabled(true)
+                    AudioEngine.shared.setLinkBackgroundSuspended(false)
                 }
             default: break
             }

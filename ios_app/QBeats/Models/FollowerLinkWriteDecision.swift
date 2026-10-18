@@ -16,8 +16,10 @@ import Foundation
 //    Direttore è ripartito. È una scrittura di trasporto che esce dal Follower.
 //
 // La regola è la stessa di `FollowerDecision` (ruolo `.collaborativa` E Link acceso
-// dall'utente): il Follower non scrive; Direttore, Solo e ruolo Follower con Link spento
-// dall'utente scrivono come oggi, e il banco lo prova riga per riga.
+// dall'utente): il Follower non scrive; per chi non è Follower la regola dice «scrive», e il banco
+// lo prova riga per riga. Nel motore, da A411, questo vale per il Direttore: il Solo (e il ruolo
+// Follower o Direttore con la levetta spenta) non scrive niente in Link, lo ferma prima il lucchetto
+// (`SoloInertDecision`). Fino ad A410 anche il Solo con Link acceso scriveva.
 //
 // ⚠️ FUORI DA QUI, di proposito: il tempo che il Follower scrive al CONFINE DI SEZIONE
 //    (`link_engine_set_bpm_and_beat_at_time` dal beat callback di `scheduleNextBuffer`)

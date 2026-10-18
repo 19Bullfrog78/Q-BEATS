@@ -17,8 +17,10 @@ import Foundation
 // su audioQueue e leggono QUESTA decisione dalla copia della macchina che vive li'.
 //
 // La regola:
-//  · chi non e' Follower (Direttore, Solo, ruolo Follower con Link spento dall'utente): `true`
-//    — le strade restano quelle di oggi, questa decisione non le tocca;
+//  · chi non e' Follower: `true`, la risposta della regola. Nel motore non ci arriva nessuno: il
+//    Direttore ha il suo ramo prima, e da A411 il Solo (e il ruolo Follower o Direttore con la
+//    levetta spenta) lo ferma prima il lucchetto (`SoloInertDecision`), che non lascia entrare né
+//    il tempo né la fase di Link. Fino ad A410 per il Solo questo `true` voleva dire «segue Link»;
 //  · Follower IN SYNC: `true` — segue tempo e fase di Link, come oggi;
 //  · Follower DA SOLO: `false`;
 //  · Follower FUORI: `true`, cioe' come oggi. A motore fermo conta solo il richiamo del tempo,

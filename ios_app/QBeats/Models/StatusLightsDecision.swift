@@ -15,6 +15,9 @@ import Foundation
 // Wi-Fi perso, perché il perché lo dice già la spia ambra del Wi-Fi; «Link lost · no Wi-Fi» esce dal codice e
 // dal banco. La striscia prende il posto di «Link»; Wi-Fi e MIDI restano a destra con le loro facce
 // (`SoloStatusRowView`, M2).
+// A411 · SOLO-INERTE (18/10/2026) — la regola resta questa (servirà ai player di Direttore e Follower);
+// cambia ciò che le passa il Solo: la levetta spenta (`SoloInertDecision.statusLightsUserLinkEnabled`,
+// letta da `LiveView`), così nel player del Solo niente spia «Link» e niente striscia, come a Link spento.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 enum StatusLightFace: Equatable {
     /// Verde: collegato.

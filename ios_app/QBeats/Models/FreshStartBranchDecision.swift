@@ -24,8 +24,13 @@ import Foundation
 //  · a Link acceso la tabella è quella di sempre (BOX5, «Link — fresh play branching»):
 //    nessun collegato E sessione ferma → standalone; Direttore → sempre il suo ramo;
 //    altrimenti sessione condivisa.
-// «Link acceso» qui è l'interruttore dell'APP (`link_engine_is_enabled`, cioè `enabled_`):
-// lo spengono sia l'utente dal pannello (callback `isEnabled`) sia l'app in secondo piano.
+// «Link acceso» qui è l'interruttore dell'APP come lo vede il motore. A411 · SOLO-INERTE: è quello del
+// ponte (`link_engine_is_enabled`, cioè `enabled_`), che muove solo la regola d'accensione del motore
+// (levetta E ruolo Director o Follower E non sospeso dallo sfondo), e nel Solo arriva spento anche col
+// ponte acceso (`SoloInertDecision.engineSeesLinkOn`). Il Solo va quindi sempre nel ramo standalone,
+// quello del Solo a Link spento. Fino ad A410 `enabled_` lo spegnevano l'utente dal pannello (callback
+// `isEnabled`) e l'app in secondo piano, e il Solo con Link acceso e una sessione che suonava entrava
+// nel ramo condiviso.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct FreshStartBranchDecision: Equatable {
 
