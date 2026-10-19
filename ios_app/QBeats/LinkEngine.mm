@@ -890,12 +890,16 @@ void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
 LinkSessionReading link_engine_read_session_at(LinkEngineHandle handle,
                                                uint64_t         hostTime,
                                                double           quantum) {
-    LinkSessionReading reading = { false, false, 0, 0.0, 0.0, 0.0, 0 };
+    LinkSessionReading reading = { false, false, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0 };
     reading.captureHostTime = mach_absolute_time();
     if (!handle) return reading;
     LinkEngine* engine = (LinkEngine*)handle;
     if (!engine->enabled_.load(std::memory_order_relaxed)) return reading;
     reading.linkEnabled = true;
+
+    // A412 · SEGUITO 2 — il quantum grande della numerazione della sessione (MIDIEngineBridge.h, sopra a
+    // `LinkSessionReading`): lo stesso di `DirectorRejoinDecision.sessionQuantum` in Swift.
+    constexpr double kSessionQuantum = 1.0e6;
 
     ABLLinkSessionStateRef state =
         ABLLinkCaptureAppSessionState(engine->link_);
@@ -905,6 +909,9 @@ LinkSessionReading link_engine_read_session_at(LinkEngineHandle handle,
     reading.beatAtStartQ1    = ABLLinkBeatAtTime(state, startTime, 1.0);
     reading.tempo            = ABLLinkGetTempo(state);
     reading.beatAtHostTime   = ABLLinkBeatAtTime(state, hostTime, quantum);
+    // A412 · SEGUITO 2 — gli stessi due battiti nella numerazione della sessione, dalla stessa cattura.
+    reading.beatAtStartQBig    = ABLLinkBeatAtTime(state, startTime, kSessionQuantum);
+    reading.beatAtHostTimeQBig = ABLLinkBeatAtTime(state, hostTime, kSessionQuantum);
     return reading;
 }
 

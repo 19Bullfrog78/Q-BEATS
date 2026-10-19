@@ -40,6 +40,14 @@ struct TransportView: View {
         return false
     }
     private var isStopped: Bool { session.playbackState == .stopped }
+    /// A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — il tasto Play/Stop di chi comanda dice «stop»? Col
+    /// Direttore muto in canzone lo decide il motore (`session.directorSilence`, `DirectorTransportDecision`:
+    /// Play = rientra, Stop = ferma la band e chiude la canzone); fuori dal silenzio com'è oggi (conteggio o
+    /// motore in moto). Glifi e scritte sono quelli di oggi: nessun disegno nuovo.
+    private var playStopShowsStop: Bool {
+        if let silence = session.directorSilence { return !silence.showsPlay }
+        return isCountIn || audioEngine.isPlaying
+    }
     @State private var killFlashing = false
 
     // A360 (16/09/2026) — DUE FASCE, UNA REGOLA. A chi comanda il trasporto (Direttore,
@@ -136,13 +144,18 @@ struct TransportView: View {
                 //    obbligatorio; nome `currentLinkMode` evita collision
                 //    con `_linkMode` audio-queue privato — CI failure run
                 //    26581236612).
+                // A412 — scritta e glifo da `playStopShowsStop` (fuori dal silenzio identici a prima: «stop» e «■»
+                // al conteggio o a motore in moto); col Direttore muto in canzone il tocco va al motore, che
+                // rientra o ferma la band (`directorTransportTapped`): mai `runner.startCurrentSection` né W1.
                 RubberBtnView(
-                    label: isCountIn ? "stop" : (audioEngine.isPlaying ? "stop" : "play"),
-                    glyph: isCountIn ? "■" : (audioEngine.isPlaying ? "■" : "▶"),
+                    label: playStopShowsStop ? "stop" : "play",
+                    glyph: playStopShowsStop ? "■" : "▶",
                     primary: !isStopped,
                     disabled: isStandby,
                     scaleFactor: scaleFactor) {
-                        if audioEngine.isPlaying {
+                        if let silence = session.directorSilence {
+                            audioEngine.directorTransportTapped(silence.tap, origin: "fascia")
+                        } else if audioEngine.isPlaying {
                             audioEngine.stop()
                         } else {
                             // Modalità Direttore: Q-BEATS è sorgente, parte

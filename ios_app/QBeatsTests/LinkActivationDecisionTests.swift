@@ -193,4 +193,64 @@ final class LinkActivationDecisionTests: XCTestCase {
         XCTAssertEqual(d.playerRole, .follower)
         XCTAssertFalse(d.active)
     }
+
+    // MARK: - A412 — la politica dello sfondo col Direttore muto in canzone (mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.8)
+
+    /// Le otto righe: Link in rete × click in moto × Direttore muto in canzone. Si sospende solo in rete,
+    /// a click fermo, col Direttore non muto (la politica del 02/10, LIBRO 2026-10-02, più l'ingresso nuovo).
+    func testTheBackgroundPolicyEightRowsLiterally() {
+        // (in rete, click in moto, muto in canzone, si sospende)
+        let policy: [(Bool, Bool, Bool, Bool)] = [
+            (false, false, false, false),
+            (false, false, true,  false),
+            (false, true,  false, false),
+            (false, true,  true,  false),
+            (true,  false, false, true),
+            (true,  false, true,  false),
+            (true,  true,  false, false),
+            (true,  true,  true,  false),
+        ]
+        for (active, playing, silent, expected) in policy {
+            XCTAssertEqual(LinkActivationDecision.suspendsOnBackground(linkActive: active, clickPlaying: playing,
+                                                                       directorSilentInSong: silent),
+                           expected, "inRete:\(active) click:\(playing) muto:\(silent)")
+        }
+    }
+
+    /// La matrice di A411 allargata: levetta × ruolo × click in moto × Direttore muto in canzone. Prima
+    /// dello sfondo Link è quello della regola; al passaggio in sfondo la politica dà l'ingresso
+    /// «sospeso dallo sfondo», e decide la regola (la strada resta una). In rete dopo lo sfondo resta solo
+    /// chi c'era e ha il click in moto o è muto in canzone; il Solo mai.
+    func testTheWidenedMatrixThroughTheBackground() {
+        var cells = 0
+        for user in bools {
+            for role in roles {
+                for playing in bools {
+                    for silent in bools {
+                        cells += 1
+                        let before = decision(user, role, false, false).active
+                        let suspended = LinkActivationDecision.suspendsOnBackground(linkActive: before, clickPlaying: playing,
+                                                                                    directorSilentInSong: silent)
+                        let after = decision(user, role, suspended, false).active
+                        let tag = "levetta:\(user) ruolo:\(role) click:\(playing) muto:\(silent)"
+                        XCTAssertEqual(after, before && (playing || silent), tag)
+                        if role == .standalone { XCTAssertFalse(after, tag) }
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(cells, 2 * 3 * 2 * 2)
+    }
+
+    /// Il caso del ticket `TD-link-spento-in-secondo-piano-durante-lo-show`: Director in rete, click fermo
+    /// per un'interruzione, canzone in corso → in sfondo Link resta in rete. A click fermato dall'utente
+    /// la politica del 02/10 è identica: in sfondo si sospende.
+    func testTheDirectorSilentInSongStaysOnlineInBackground() {
+        let silent = LinkActivationDecision.suspendsOnBackground(linkActive: true, clickPlaying: false, directorSilentInSong: true)
+        XCTAssertFalse(silent)
+        XCTAssertTrue(decision(true, .direttore, silent, false).active)
+        let stopped = LinkActivationDecision.suspendsOnBackground(linkActive: true, clickPlaying: false, directorSilentInSong: false)
+        XCTAssertTrue(stopped)
+        XCTAssertEqual(decision(true, .direttore, stopped, false).offReason, .backgroundSuspended)
+    }
 }

@@ -1,0 +1,87 @@
+import Foundation
+
+// === A412 · SEGUITO 3 (18/10/2026) — IL TIMER ALL'ORA CHIESTA: COLPO SINGOLO, MARGINE DICHIARATO DI 1 ms ===
+// Mandato del referee «A412 · SEGUITO 3». Al collaudo dell'IPA #776 (18/10/2026, 19:02-19:03) l'armamento del
+// rientro del Direttore, atteso con `asyncAfter`, e' scattato fino a 135,7 ms dopo l'ora chiesta, su un'attesa di
+// 3,538 s: il fuoco e' arrivato in ritardo due volte e il rientro e' slittato di due battute. Secondo la lettura del
+// referee del sorgente di libdispatch [R], `asyncAfter` concede al sistema un ritardo pari a una frazione
+// dell'attesa (5% sulla coda del motore, che e' `.userInteractive`). Questo timer dichiara il suo: una sorgente GCD a
+// colpo singolo (`repeating: .never`), col flag `.strict` e un margine (leeway) di 1 ms.
+// Lo usano le due attese del Direttore muto che mirano a un'ora: l'armamento del rientro e lo Stop di fine canzone
+// (`AudioEngine`). L'ingresso del Follower lo potra' usare piu' avanti (M4); oggi resta su `asyncAfter`.
+// Le regole:
+//  - un'attesa sola alla volta: armare annulla quella di prima, anche dentro lo scatto di quella di prima;
+//  - allo scatto il timer si rilascia PRIMA di eseguire il lavoro: un armamento fatto dal lavoro trova il timer
+//    vuoto, e il nuovo resta l'unico armato;
+//  - il lavoro e' un `DispatchWorkItem`, eseguito sulla coda del timer solo se nessuno l'ha annullato, come lo
+//    esegue `asyncAfter`;
+//  - il lavoro lo tiene il timer, non la sorgente: il gestore della sorgente ha solo un riferimento debole al timer e
+//    il numero dell'armamento, e allo scatto si fa consegnare il lavoro. Cosi' la vita del lavoro non dipende da
+//    quando GCD lascia il gestore di una sorgente annullata;
+//  - dopo lo scatto o l'annullo il timer non tiene piu' niente: ne' la sorgente ne' il lavoro (`isArmed`,
+//    `holdsWork`);
+//  - si arma, si annulla e si legge SOLO sulla coda del timer (per il motore: audioQueue).
+// Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
+final class StrictOneShotTimer {
+
+    /// Il margine dichiarato, in millisecondi: lo stesso minimo che `asyncAfter` si da' da se' [R].
+    static let leewayMilliseconds: Int = 1
+
+    private let queue: DispatchQueue
+    private var source: DispatchSourceTimer?
+    /// Il lavoro dell'attesa armata. Lo tiene solo il timer, fino allo scatto o all'annullo.
+    private var work: DispatchWorkItem?
+    /// Cresce a ogni armamento: lo scatto consegna il lavoro solo se l'armamento e' ancora il suo.
+    private var armings: UInt64 = 0
+
+    init(queue: DispatchQueue) {
+        self.queue = queue
+    }
+
+    deinit {
+        source?.cancel()
+    }
+
+    /// C'e' un'attesa armata, non ancora scattata ne' annullata.
+    var isArmed: Bool { source != nil }
+
+    /// Il timer tiene un lavoro: solo fra l'armamento e lo scatto o l'annullo.
+    var holdsWork: Bool { work != nil }
+
+    /// Arma `work` fra `seconds` secondi da adesso, come `asyncAfter(deadline: .now() + seconds)`, e annulla
+    /// l'attesa di prima, se c'e'.
+    func arm(afterSeconds seconds: Double, work: DispatchWorkItem) {
+        cancel()
+        armings &+= 1
+        let arming = armings
+        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: queue)
+        timer.schedule(deadline: .now() + seconds, repeating: .never,
+                       leeway: .milliseconds(StrictOneShotTimer.leewayMilliseconds))
+        timer.setEventHandler { [weak self] in
+            // Colpo singolo: prima il rilascio (che consegna il lavoro), poi il lavoro.
+            guard let self, self.armings == arming, let item = self.disarm() else { return }
+            if !item.isCancelled {
+                item.perform()
+            }
+        }
+        source = timer
+        self.work = work
+        timer.resume()
+    }
+
+    /// Annulla l'attesa armata, se c'e': il lavoro non parte e il timer non tiene piu' niente.
+    func cancel() {
+        _ = disarm()
+    }
+
+    /// Toglie e annulla la sorgente, e consegna il lavoro: da qui il timer non tiene niente.
+    private func disarm() -> DispatchWorkItem? {
+        let item = work
+        work = nil
+        if let timer = source {
+            source = nil
+            timer.cancel()
+        }
+        return item
+    }
+}

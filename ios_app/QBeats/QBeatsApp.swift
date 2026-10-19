@@ -6,7 +6,6 @@ struct QBeatsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var audioEngine = AudioEngine.shared
     @Environment(\.scenePhase) private var scenePhase
-    @State private var linkSuspendedByBackground = false
     @State private var pendingImportManifest: BackupManifest? = nil
     @State private var showImportView = false
 
@@ -72,17 +71,18 @@ struct QBeatsApp: App {
             //   in background deve continuare)
             // - User cambia Link OFF→ON manualmente in foreground → flag
             //   resta false, prossimo ciclo bg/fg gestito correttamente
+            // ⚠️ A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — la politica e il segno «sospeso da noi» stanno
+            //    ora nel motore (`AudioEngine.sceneEnteredBackground` / `sceneBecameActive`, regola
+            //    `LinkActivationDecision.suspendsOnBackground`), perché c'è un caso in più che vive su audioQueue:
+            //    col Direttore muto in canzone il click è fermo ma la canzone suona per la band, e Link non si
+            //    sospende (mandato §2.8; BUGS, `TD-link-spento-in-secondo-piano-durante-lo-show`). Qui si passa
+            //    solo «il click suona». I casi qui sopra restano veri; il flag `linkSuspendedByBackground` di
+            //    questa struttura è uscito (è `_linkBackgroundSuspendedQ` nel motore).
             switch newPhase {
             case .background:
-                if AudioEngine.shared.linkEnabled && !AudioEngine.shared.isPlaying {
-                    linkSuspendedByBackground = true
-                    AudioEngine.shared.setLinkBackgroundSuspended(true)
-                }
+                AudioEngine.shared.sceneEnteredBackground(clickPlaying: AudioEngine.shared.isPlaying)
             case .active:
-                if linkSuspendedByBackground {
-                    linkSuspendedByBackground = false
-                    AudioEngine.shared.setLinkBackgroundSuspended(false)
-                }
+                AudioEngine.shared.sceneBecameActive()
             default: break
             }
         }

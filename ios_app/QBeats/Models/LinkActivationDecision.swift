@@ -10,7 +10,8 @@ import Foundation
 // La regola: Link è attivo (`ABLLinkSetActive(true)`) se e solo se
 //  · la levetta del pannello è accesa (`ABLLinkIsEnabled`, specchio `linkUserEnabled`),
 //  · E il ruolo del player è Direttore o Follower (`PlayerRoleDecision.playerRole` diverso da `.solo`),
-//  · E la politica dello sfondo non l'ha sospeso (`QBeatsApp`, sfondo a click fermo: invariata),
+//  · E la politica dello sfondo non l'ha sospeso (sfondo a click fermo; da A412 col Direttore muto in canzone
+//    non si sospende, e la valuta il motore: blocco «A412» qui sotto),
 //  · E l'app non si sta chiudendo (`disableLinkOnTerminate`).
 // La quarta condizione è la mano «chiusura dell'app» del §2.2 detta come ingresso: senza, quella mano non
 // avrebbe niente da cambiare e non passerebbe dalla regola.
@@ -33,7 +34,8 @@ struct LinkActivationDecision: Equatable {
     let userLinkEnabled: Bool
     /// Il ruolo scelto nel menu Mode (`currentLinkMode`, copia di coda `_linkMode`).
     let role: LinkMode
-    /// Sospeso dalla politica dello sfondo (`QBeatsApp`, `setLinkBackgroundSuspended`).
+    /// Sospeso dalla politica dello sfondo (`suspendsOnBackground`, qui sotto; da A412 la valuta il motore,
+    /// `AudioEngine.sceneEnteredBackground`: prima `QBeatsApp` con `setLinkBackgroundSuspended`, uscita).
     let backgroundSuspended: Bool
     /// L'app si sta chiudendo (`disableLinkOnTerminate`).
     let appTerminating: Bool
@@ -72,5 +74,22 @@ struct LinkActivationDecision: Equatable {
             && PlayerRoleDecision.playerRole(role: role, userLinkEnabled: userLinkEnabled) != .solo
             && !backgroundSuspended
             && !appTerminating
+    }
+
+    // === A412 (18/10/2026) — LA POLITICA DELLO SFONDO, CON IL DIRETTORE MUTO IN CANZONE ===
+    // Il fatto (BUGS, `TD-link-spento-in-secondo-piano-durante-lo-show`, con la marcatura del 05/10; referto
+    // A409, §5.2 e §8.11). La politica del 02/10 (LIBRO, riga 2026-10-02 «L'APP IN SFONDO RESTA COM'È»): al
+    // passaggio in sfondo, con Link in rete e il click fermo, Link si sospende; al ritorno in primo piano si
+    // riprende. Ma col Direttore muto in canzone il click è fermo e la canzone suona per la band: sospendere
+    // Link toglieva il Direttore dalla sessione. Decisione del referee del 05/10 (mandato A396, §2.3 [R]) e
+    // mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.8: col Direttore muto in canzone in sfondo Link non si
+    // sospende. Per tutto il resto la politica è identica, e si valuta solo ai passaggi di sfondo e primo
+    // piano. Il suo esito è l'ingresso `backgroundSuspended` della regola qui sopra: la strada resta una sola
+    // (`AudioEngine.applyLinkActivationQ`). Niente `beginBackgroundTask` (scelta T9): se iOS sospende l'app,
+    // Link e la ripetizione si fermano lo stesso.
+
+    /// Al passaggio in sfondo Link si sospende? In rete, click fermo, e il Direttore non è muto in canzone.
+    static func suspendsOnBackground(linkActive: Bool, clickPlaying: Bool, directorSilentInSong: Bool) -> Bool {
+        linkActive && !clickPlaying && !directorSilentInSong
     }
 }

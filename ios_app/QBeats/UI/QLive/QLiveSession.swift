@@ -195,6 +195,28 @@ final class QLiveSession: ObservableObject {
                                             isFollower: audioEngine.followerDecision.isFollower)
             }
             .store(in: &cancellables)
+        // A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — due iscrizioni in più, stesse regole di vita del
+        // cassetto:
+        //  · il Direttore muto in canzone chiede al runner: la sezione d'arrivo del rientro (senza avvio), la
+        //    canzone finita durante il silenzio (arma la successiva), il velo della stessa canzone (T6);
+        //  · l'esito del tasto della fascia col Direttore muto, portato nella sessione
+        //    (`LiveSession.directorSilence`, mandato §2.5): la fascia lo legge dalla sessione, non dal motore.
+        //    Consegna sincrona, senza `receive(on:)`: il motore pubblica su main; il valore dal soggetto.
+        audioEngine.directorRunnerActionSubject
+            .sink { [weak self, weak audioEngine] action in
+                guard let self, let audioEngine else { return }
+                self.handleDirectorRunnerAction(action, audioEngine: audioEngine)
+            }
+            .store(in: &cancellables)
+        audioEngine.$directorSilence
+            .sink { [weak self] silence in
+                guard let self, self.liveSession.directorSilence != silence else { return }
+                self.liveSession.directorSilence = silence
+                os_log("[Q-BEATS][DIR-TASTO] sessione - tasto:%{public}@",
+                       log: .default, type: .default,
+                       silence.map { $0.showsPlay ? "play" : "stop" } ?? "come-oggi")
+            }
+            .store(in: &cancellables)
         directorPlaySubscribed = true
         os_log("[Q-BEATS][A337] ascolto Play-Direttore ATTACCATO alla stanza - runner:%{public}@",
                log: .default, type: .default, runner == nil ? "nil" : "presente")
@@ -350,19 +372,44 @@ final class QLiveSession: ObservableObject {
         // specchi non erano ancora scritti) e la scriveva due volte per transizione.
     }
 
+    /// A412 · DIRETTORE IN CRISI, PASSO 2 — le richieste del Direttore muto in canzone al runner
+    /// (`DirectorRunnerAction`): la sezione d'arrivo del rientro (`moveToSection`, nessun avvio); la canzone
+    /// finita durante il silenzio, con lo Stop di fine canzone già uscito (`armNextSong`, come a fine canzone
+    /// propria); la sessione ferma da altri (T6: il velo della stessa canzone, `armSong`).
+    private func handleDirectorRunnerAction(_ action: DirectorRunnerAction, audioEngine: AudioEngine) {
+        guard let runner else {
+            os_log("[Q-BEATS][DIR-RIENTRO] azione del Direttore senza runner - ignorata",
+                   log: .default, type: .default)
+            return
+        }
+        switch action {
+        case .rejoin(let songIdx, let sectionIdx):
+            runner.moveToSection(songIdx: songIdx, sectionIdx: sectionIdx, session: liveSession)
+        case .songEndedArmNext:
+            runner.armNextSong(audioEngine: audioEngine, session: liveSession)
+        case .rearmSame:
+            runner.armSong(index: runner.currentSongIdx, session: liveSession)
+        }
+    }
+
     /// D3 / D7-bis — il Direttore ha fermato: chiude la canzone (o riarma la stessa se falsa
     /// partenza), solo se la canzone era in corso. `songInProgress` = la sessione era
     /// `.playing`, `.countIn` o `.starting`: a fine canzone propria il runner ha già messo
     /// `.standby` PRIMA dello `stop()`, quindi qui non avanza una seconda volta (e
     /// `armNextSong` è comunque idempotente).
+    /// A412 — e il Direttore muto in canzone (`liveSession.directorSilence`): la canzone è in corso anche
+    /// a click fermo (mandato §2.4). Il motore manda questo avviso PRIMA di togliere il silenzio.
     private func handleDirectorStopped(falseStart: Bool, audioEngine: AudioEngine) {
         guard let runner else { return }
-        let inProgress: Bool
+        var inProgress: Bool
         switch liveSession.playbackState {
         case .playing, .countIn, .starting:
             inProgress = true
         default:
             inProgress = false
+        }
+        if liveSession.directorSilence != nil {
+            inProgress = true
         }
         let outcome = DirectorSongCloseDecision.onStop(role: audioEngine.currentLinkMode,
                                                        userLinkEnabled: audioEngine.linkUserEnabled,
@@ -532,6 +579,11 @@ final class QLiveSession: ObservableObject {
     ///    PRIMA di `link_engine_stop` (`:1701`) ⇒ nessun evento alla band. È ciò
     ///    che rende lo stop INCONDIZIONATO qui: sul ramo `.fineSetlist` (motore
     ///    già fermato dal runner, `SetlistRunner.swift:466`) non fa nulla.
+    /// ⚠️ A412 (18/10/2026) — UNA ECCEZIONE, VOLUTA: col Direttore muto in canzone (il click fermo da una
+    ///    crisi, la canzone aperta) il motore è fermo ma lo Stop NON è inerte: `stopSync` manda lo Stop a Link
+    ///    prima del `guard` e la canzone si chiude (mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.4: END SHOW
+    ///    durante il silenzio ferma la band, come dice l'etichetta). Sul ramo `.fineSetlist` resta inerte: lì il
+    ///    silenzio è già finito.
     ///
     /// ⚠️ ORDINE: lo stop PRIMA di svuotare lo slot — prima si zittisce la
     ///    stanza, poi si chiude la sessione.
@@ -571,6 +623,9 @@ final class QLiveSession: ObservableObject {
         // e, allo scadere della soglia, i Follower vanno FUORI (foglio 2D-QUATER, L5).
         audioEngine.setShowOpen(false, origin: "end-show")
         liveSession.playbackState = .stopped
+        // A412 — lo show chiuso non ha silenzio del Direttore: il tasto torna com'è oggi anche se lo specchio del
+        // motore arriva dopo (lo Stop qui sopra lo toglie, con un `main.async`).
+        liveSession.directorSilence = nil
         // A386 · FASE B2A (2D) — END SHOW chiude lo show: la macchina del Follower si azzera
         // (`reset`, Q12), dopo lo stop e a slot già vuoto.
         audioEngine.followerReset(reason: "end-show")

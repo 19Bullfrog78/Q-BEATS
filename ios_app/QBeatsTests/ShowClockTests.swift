@@ -419,4 +419,58 @@ final class ShowClockTests: XCTestCase {
         XCTAssertEqual(one.read(nowLinkBeat: 80, nowTicks: ticks(afterAnchor: 1.5), ticksPerSecond: tps),
                        other.read(nowLinkBeat: 80, nowTicks: ticks(afterAnchor: 1.5), ticksPerSecond: tps))
     }
+
+    // MARK: - A412 — l'ora sulla mappa di un «uno» (mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.2)
+
+    /// Test Song A, àncora al battito 40 dell'Intro (battuta 11), Link 1000, a 100 s. Battuta 12
+    /// dell'Intro: 4 battiti a 100 = 2,4 s. Verse battuta 2: 8 battiti a 100 (4,8 s) più 4 a 120
+    /// (2,0 s) = 6,8 s. Bridge battuta 1: 4,8 s più 12 battiti a 120 (6,0 s) = 10,8 s. Bridge battuta 2:
+    /// più 3 battiti a 140 (1,285714… s). L'àncora stessa: 0. Un «uno» prima dell'àncora nella sua
+    /// sezione (battuta 10): −2,4 s. L'ultimo battito più un battito a 140 è la fine della canzone.
+    func testTheMapTimeOfADownbeatWalksTheTempoChanges() {
+        let c = clock(songA, section: 0, beat: 40, linkBeat: 1000)
+        let cases: [(Int, Int, Double)] = [
+            (0, 44, 2.4),
+            (1, 4, 6.8),
+            (2, 0, 10.8),
+            (2, 3, 4.8 + 6.0 + 3.0 * 60.0 / 140.0),
+            (0, 40, 0),
+            (0, 36, -2.4),
+        ]
+        for (section, beat, seconds) in cases {
+            let t = c.ticks(section: section, beatInSection: beat, ticksPerSecond: tps)
+            XCTAssertNotNil(t, "sezione:\(section) battito:\(beat)")
+            XCTAssertEqual(Double(t ?? 0), Double(anchorTicks) + seconds * tps, accuracy: 1.0,
+                           "sezione:\(section) battito:\(beat)")
+        }
+        let downbeat = ShowClockDownbeat(section: 1, bar: 2, beatInSection: 4, linkBeat: 1012)
+        XCTAssertEqual(c.ticks(of: downbeat, ticksPerSecond: tps), c.ticks(section: 1, beatInSection: 4, ticksPerSecond: tps))
+        guard let last = c.ticks(section: 2, beatInSection: 5, ticksPerSecond: tps),
+              let end = c.endTicks(ticksPerSecond: tps) else { return XCTFail("ultimo battito e fine") }
+        XCTAssertEqual(Double(end) - Double(last), 60.0 / 140.0 * tps, accuracy: 2.0)
+    }
+
+    /// Dove l'ora non c'è: sezione prima di quella dell'àncora o fuori dalla mappa, battito fuori dalla
+    /// sua sezione, un ciclo d'arrivo o da attraversare, tick al secondo non validi, mappa non valida.
+    func testTheMapTimeRefusals() {
+        let c = clock(songA, section: 1, beat: 4, linkBeat: 0)
+        XCTAssertNil(c.ticks(section: 0, beatInSection: 44, ticksPerSecond: tps), "prima della sezione dell'àncora")
+        XCTAssertNil(c.ticks(section: 3, beatInSection: 0, ticksPerSecond: tps), "fuori dalla mappa")
+        XCTAssertNil(c.ticks(section: 1, beatInSection: 12, ticksPerSecond: tps), "oltre la sezione")
+        XCTAssertNil(c.ticks(section: 1, beatInSection: -1, ticksPerSecond: tps), "battito negativo")
+        XCTAssertNil(c.ticks(section: 2, beatInSection: 0, ticksPerSecond: 0), "tick al secondo a zero")
+        XCTAssertNil(c.ticks(section: 2, beatInSection: 0, ticksPerSecond: .infinity), "tick al secondo infiniti")
+        XCTAssertNotNil(c.ticks(section: 2, beatInSection: 0, ticksPerSecond: tps))
+        let withCycle = SongMap(sections: [
+            SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 100),
+            SongMapSection(beatsPerBar: 4, repetitions: -1, bpm: 100),
+            SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 100),
+        ])
+        let cc = clock(withCycle, section: 0, beat: 0, linkBeat: 0)
+        XCTAssertNotNil(cc.ticks(section: 0, beatInSection: 4, ticksPerSecond: tps))
+        XCTAssertNil(cc.ticks(section: 1, beatInSection: 0, ticksPerSecond: tps), "ciclo d'arrivo")
+        XCTAssertNil(cc.ticks(section: 2, beatInSection: 0, ticksPerSecond: tps), "ciclo da attraversare")
+        let bad = clock(SongMap(sections: []), section: 0, beat: 0, linkBeat: 0)
+        XCTAssertNil(bad.ticks(section: 0, beatInSection: 0, ticksPerSecond: tps), "mappa non valida")
+    }
 }

@@ -355,4 +355,155 @@ final class DirectorRejoinDecisionTests: XCTestCase {
         XCTAssertTrue(Decision.sameStart(anchorStartBeat: 100, nowStartBeat: 100.4, toleranceBeats: 0.5))
         XCTAssertEqual(Decision.sameStartToleranceBeats, 0.125)
     }
+
+    // MARK: - A412 — il coordinatore che agisce (mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.2 e §2.3)
+
+    /// Il Direttore muto in canzone senza àncora (A410: «ancora non presa») è non certo: resta muto,
+    /// nessun ingresso e nessuno Stop. Show chiuso, Solo e Follower restano fuori dal coordinatore.
+    func testCoordinateWithoutAnAnchorIsUncertain() {
+        let plan = Decision.coordinate(clock: nil, situation: situation(nowLinkBeat: 1001.5, afterAnchor: 0.9))
+        XCTAssertEqual(plan.outcome, .uncertain(.noAnchor))
+        XCTAssertNil(plan.reading)
+        XCTAssertFalse(plan.outcome.wouldStartEngine)
+        XCTAssertFalse(plan.outcome.wouldSendStop)
+        XCTAssertEqual(Decision.coordinate(clock: nil, situation: situation(show: false, nowLinkBeat: 1001.5, afterAnchor: 0.9)).outcome,
+                       .notCoordinated(.showClosed))
+        XCTAssertEqual(Decision.coordinate(clock: nil, situation: situation(role: .standalone, nowLinkBeat: 1001.5, afterAnchor: 0.9)).outcome,
+                       .notCoordinated(.notDirector))
+        XCTAssertEqual(Decision.coordinate(clock: nil, situation: situation(role: .direttore, userLink: false, nowLinkBeat: 1001.5, afterAnchor: 0.9)).outcome,
+                       .notCoordinated(.notDirector))
+    }
+
+    /// Con l'àncora il coordinatore è la decisione di A410, per ogni conteggio e ogni ingresso.
+    func testCoordinateWithAnAnchorIsThePlan() {
+        var cells = 0
+        for kind in Count.allCases {
+            for link in [false, true] {
+                for playing in [false, true] {
+                    for same in [false, true] {
+                        for windowOn in [false, true] {
+                            cells += 1
+                            let c = count(kind)
+                            let s = situation(link: link, playing: playing, same: same,
+                                              nowLinkBeat: c.linkBeat, afterAnchor: c.seconds,
+                                              tempo: c.tempo, window: windowOn ? window : 0)
+                            XCTAssertEqual(Decision.coordinate(clock: c.clock, situation: s), Decision.plan(clock: c.clock, situation: s),
+                                           "conto:\(kind) link:\(link) suona:\(playing) stessoAvvio:\(same) finestra:\(windowOn)")
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(cells, 5 * 2 * 2 * 2 * 2)
+    }
+
+    /// La prova P4 del collaudo A410: decisione nell'Intro a 100, bersaglio Verse battuta 2 a 120. L'ora del
+    /// ponte alla decisione (tempo costante 100: Link 1012 è 12 battiti × 0,6 s = 7,2 s dopo l'àncora) sta
+    /// 0,40 s dopo quella della mappa (8 battiti a 100 = 4,8 s, più 4 a 120 = 2,0 s: 6,8 s): −0,8 battiti a
+    /// 120, il controllo non passa. All'armamento, passato il confine, il ponte vede il 120 (Link 1008 a
+    /// 4,8 s, 1012 a 6,8 s): scarto zero, il controllo passa.
+    func testTheBridgeAtTheDecisionIgnoresTheTempoChangeAndTheArmingCatchesIt() {
+        let map = clockA.ticks(section: 1, beatInSection: 4, ticksPerSecond: tps)
+        XCTAssertEqual(Double(map ?? 0), Double(anchorTicks) + 6.8 * tps, accuracy: 1.0)
+        let atDecision = Decision.armingCheck(mapTicks: map, bridgeTicks: anchorTicks + 172_800_000,
+                                              sectionBPM: 120, ticksPerSecond: tps)
+        XCTAssertEqual(atDecision.gapSeconds ?? 0, -0.4, accuracy: 1e-6)
+        XCTAssertEqual(atDecision.gapBeats ?? 0, -0.8, accuracy: 1e-6)
+        XCTAssertFalse(atDecision.agree)
+        let atArming = Decision.armingCheck(mapTicks: map, bridgeTicks: anchorTicks + 163_200_000,
+                                            sectionBPM: 120, ticksPerSecond: tps)
+        XCTAssertEqual(atArming.gapSeconds ?? 99, 0, accuracy: 1e-6)
+        XCTAssertTrue(atArming.agree)
+    }
+
+    /// Il controllo all'armamento: 1/8 di battito al tempo della sezione d'arrivo, compreso; oltre no. Senza
+    /// l'ora del ponte (0, ponte spento) o della mappa, o con valori non validi, non passa.
+    func testTheArmingCheckTolerance() {
+        let map: UInt64 = anchorTicks + 163_200_000
+        // 0,05 s a 120 = 0,1 battiti: passa, nei due versi.
+        XCTAssertTrue(Decision.armingCheck(mapTicks: map, bridgeTicks: map + 1_200_000, sectionBPM: 120, ticksPerSecond: tps).agree)
+        XCTAssertTrue(Decision.armingCheck(mapTicks: map, bridgeTicks: map - 1_200_000, sectionBPM: 120, ticksPerSecond: tps).agree)
+        // 0,0625 s a 120 = 0,125 battiti: il bordo, passa.
+        let edge = Decision.armingCheck(mapTicks: map, bridgeTicks: map + 1_500_000, sectionBPM: 120, ticksPerSecond: tps)
+        XCTAssertEqual(edge.gapBeats ?? 0, -0.125, accuracy: 1e-12)
+        XCTAssertTrue(edge.agree)
+        // 0,07 s a 120 = 0,14 battiti: non passa, nei due versi.
+        XCTAssertFalse(Decision.armingCheck(mapTicks: map, bridgeTicks: map + 1_680_000, sectionBPM: 120, ticksPerSecond: tps).agree)
+        XCTAssertFalse(Decision.armingCheck(mapTicks: map, bridgeTicks: map - 1_680_000, sectionBPM: 120, ticksPerSecond: tps).agree)
+        // Lo stesso scarto in secondi pesa di più a un tempo più veloce: 0,05 s a 160 = 0,1333 battiti.
+        XCTAssertFalse(Decision.armingCheck(mapTicks: map, bridgeTicks: map + 1_200_000, sectionBPM: 160, ticksPerSecond: tps).agree)
+        // Mancanze e valori non validi.
+        let noBridge = Decision.armingCheck(mapTicks: map, bridgeTicks: 0, sectionBPM: 120, ticksPerSecond: tps)
+        XCTAssertNil(noBridge.gapSeconds)
+        XCTAssertFalse(noBridge.agree)
+        XCTAssertFalse(Decision.armingCheck(mapTicks: nil, bridgeTicks: map, sectionBPM: 120, ticksPerSecond: tps).agree)
+        let badTempo = Decision.armingCheck(mapTicks: map, bridgeTicks: map, sectionBPM: 0, ticksPerSecond: tps)
+        XCTAssertEqual(badTempo.gapSeconds, 0)
+        XCTAssertNil(badTempo.gapBeats)
+        XCTAssertFalse(badTempo.agree)
+        XCTAssertFalse(Decision.armingCheck(mapTicks: map, bridgeTicks: map, sectionBPM: 120, ticksPerSecond: 0).agree)
+    }
+
+    /// Il primo buffer comincia all'ora d'uscita del bersaglio meno la latenza d'uscita; l'armamento sta un
+    /// margine prima del bersaglio (qui 125 ms, esatti in tick); il blocco è in ritardo se adesso più
+    /// l'anticipo minimo supera l'ora chiesta.
+    func testTheFirstBufferTheArmingAndTheLateness() {
+        let target: UInt64 = anchorTicks + 163_200_000
+        XCTAssertEqual(Decision.firstBufferRenderTicks(targetOutputTicks: target, outputLatencyTicks: 240_000), target - 240_000)
+        XCTAssertEqual(Decision.firstBufferRenderTicks(targetOutputTicks: 100, outputLatencyTicks: 240_000), 0)
+        XCTAssertEqual(Decision.armingTicks(targetOutputTicks: target, marginSeconds: 0.125, ticksPerSecond: tps), target - 3_000_000)
+        XCTAssertEqual(Decision.armingTicks(targetOutputTicks: target, marginSeconds: -1, ticksPerSecond: tps), target)
+        let render = target - 240_000
+        let lead: UInt64 = 720_000   // 30 ms
+        XCTAssertFalse(Decision.isLate(nowTicks: render - lead, renderTicks: render, minLeadTicks: lead), "esatto: in tempo")
+        XCTAssertTrue(Decision.isLate(nowTicks: render - lead + 1, renderTicks: render, minLeadTicks: lead))
+        XCTAssertFalse(Decision.isLate(nowTicks: render - 3_600_000, renderTicks: render, minLeadTicks: lead), "150 ms prima")
+        XCTAssertTrue(Decision.isLate(nowTicks: render + 1, renderTicks: render, minLeadTicks: 0), "dopo l'ora chiesta")
+        XCTAssertTrue(Decision.isLate(nowTicks: UInt64.max - 10, renderTicks: UInt64.max, minLeadTicks: lead), "trabocca: in ritardo")
+        XCTAssertEqual(Decision.minLeadSeconds, 0.030)
+        XCTAssertEqual(Decision.maxLateSkips, 4)
+    }
+
+    /// LO STOP DI FINE CANZONE (D1): mai prima della fine. Test Song A dall'àncora: la mappa dà la fine a
+    /// 13,371428… s (8 battiti a 100, 12 a 120, 6 a 140). Si prende la più tarda fra mappa e ponte, più 1/8
+    /// di battito all'ultimo tempo (a 140: 53,57 ms).
+    func testTheSongEndStopIsNeverBeforeTheEnd() {
+        guard let mapEnd = clockA.endTicks(ticksPerSecond: tps) else { return XCTFail("fine della mappa") }
+        XCTAssertEqual(Double(mapEnd), Double(anchorTicks) + (4.8 + 6.0 + 6.0 * 60.0 / 140.0) * tps, accuracy: 1.0)
+        let margin = 0.125 * 60.0 / 140.0 * tps
+        let later = Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: mapEnd + 240_000,
+                                              lastSectionBPM: 140, ticksPerSecond: tps)
+        XCTAssertEqual(Double(later ?? 0), Double(mapEnd + 240_000) + margin, accuracy: 1.0, "conta il ponte, 10 ms dopo")
+        let earlier = Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: mapEnd - 240_000,
+                                                lastSectionBPM: 140, ticksPerSecond: tps)
+        XCTAssertEqual(Double(earlier ?? 0), Double(mapEnd) + margin, accuracy: 1.0, "conta la mappa, il ponte 10 ms prima")
+        for delta in stride(from: -2_400_000, through: 2_400_000, by: 240_000) {
+            let bridge = UInt64(Int64(mapEnd) + Int64(delta))
+            let stop = Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: bridge,
+                                                 lastSectionBPM: 140, ticksPerSecond: tps)
+            XCTAssertNotNil(stop, "scarto:\(delta)")
+            XCTAssertGreaterThan(stop ?? 0, max(mapEnd, bridge), "mai prima della più tarda - scarto:\(delta)")
+        }
+        XCTAssertNil(Decision.songEndStopTicks(mapEndTicks: nil, bridgeEndTicks: mapEnd, lastSectionBPM: 140, ticksPerSecond: tps))
+        XCTAssertNil(Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: 0, lastSectionBPM: 140, ticksPerSecond: tps))
+        XCTAssertNil(Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: mapEnd, lastSectionBPM: 0, ticksPerSecond: tps))
+        XCTAssertNil(Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: mapEnd, lastSectionBPM: 140, ticksPerSecond: .nan))
+        XCTAssertNil(Decision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: mapEnd, lastSectionBPM: 140,
+                                               ticksPerSecond: tps, marginBeats: -0.1))
+    }
+
+    /// Le ragioni nuove del «non certo» si distinguono, e nessuna entra né ferma.
+    func testTheNewUncertainReasons() {
+        let all: [Decision.Uncertain] = [.linkOff, .startChanged, .clock(.cycle), .rulersDisagree, .noTarget,
+                                         .noAnchor, .mapBridgeDisagree, .lateTooManyTimes]
+        for (i, a) in all.enumerated() {
+            for (j, b) in all.enumerated() {
+                XCTAssertEqual(a == b, i == j, "\(a) \(b)")
+            }
+        }
+        for why in [Decision.Uncertain.noAnchor, .mapBridgeDisagree, .lateTooManyTimes] {
+            XCTAssertFalse(Decision.Outcome.uncertain(why).wouldStartEngine, "\(why)")
+            XCTAssertFalse(Decision.Outcome.uncertain(why).wouldSendStop, "\(why)")
+        }
+    }
 }

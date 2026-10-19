@@ -290,9 +290,11 @@ final class SetlistRunner: ObservableObject {
         audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? section.beatsPerBar)
         // A410 — e la mappa della canzone, per il conteggio in silenzio (`ShowClock`): le sezioni,
         // l'indice della canzone e la sezione da cui parte il click. Nel motore diventa una copia di
-        // coda; nel passo 1 la leggono solo le righe di registro del Direttore in crisi.
+        // coda. ⚠️ RISCRITTO A412: qui si diceva «nel passo 1 la leggono solo le righe di registro del
+        // Direttore in crisi»; da A412 la legge il coordinatore del rientro, che agisce, e la consegna porta le
+        // sezioni stesse (la mappa la fa il motore): al rientro il motore carica da lì la sezione d'arrivo.
         if let song = currentSong {
-            audioEngine.setSongMap(SongMap(songSections: song.sections),
+            audioEngine.setSongMap(sections: song.sections,
                                    songIdx: currentSongIdx,
                                    startSection: currentSectionIdx)
         }
@@ -335,6 +337,28 @@ final class SetlistRunner: ObservableObject {
         // 6: parte la catena audio.
         // L1.b v1: niente count-in tra canzoni. Da aggiungere in iterazione successiva.
         audioEngine.start()
+    }
+
+    /// A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — IL RIENTRO DEL DIRETTORE (mandato §2.2). Il motore è
+    /// rientrato a metà canzone e il runner va alla sezione d'arrivo SENZA avvio: niente `setSongMap`, niente
+    /// W1, niente `loadSection` né `start()` — la sezione l'ha già caricata il motore, nello stesso passo del
+    /// fuoco, con la chiusura di fine sezione di questo runner (`sectionEndedClosure`, la stessa per tutte le
+    /// sezioni: legge gli indici al momento dell'esecuzione). La sessione si aggiorna come a un avvio di sezione
+    /// (`updateSessionDisplay`). Solo per la canzone in corso e una sezione che esiste: altrimenti un rifiuto con
+    /// la riga, e niente si scrive. Chiamante unico: la stanza (`QLiveSession`, azione `.rejoin` del motore).
+    func moveToSection(songIdx: Int, sectionIdx: Int, session: LiveSession) {
+        guard songIdx == currentSongIdx, let song = currentSong,
+              sectionIdx >= 0, sectionIdx < song.sections.count else {
+            os_log("[Q-BEATS][DIR-RIENTRO] runner - sezione d'arrivo RIFIUTATA songIdx:%d sectionIdx:%d - corrente songIdx:%d",
+                   log: .default, type: .error, songIdx, sectionIdx, currentSongIdx)
+            return
+        }
+        pendingDisplayUpdate = false
+        songClosed = false
+        currentSectionIdx = sectionIdx
+        os_log("[Q-BEATS][DIR-RIENTRO] runner - sezione d'arrivo songIdx:%d sectionIdx:%d - nessun avvio",
+               log: .default, type: .default, songIdx, sectionIdx)
+        updateSessionDisplay(session: session)
     }
 
     /// Aggiorna i campi `@Published` di LiveSession per il display Vista LIVE.

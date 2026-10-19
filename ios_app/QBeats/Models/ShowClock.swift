@@ -9,8 +9,12 @@ import Foundation
 // il conto fatto sulla struttura della canzone a partire da un'àncora.
 //
 // L'ÀNCORA (A376 §2.1, P1): un battito della canzone uscito davvero prima del silenzio — sezione e
-// battito nella sezione — con la sua ora d'uscita e il battito di Link a quell'ora, letto con
-// quantum 1, cioè sulla griglia condivisa. Da lì, due righelli:
+// battito nella sezione — con la sua ora d'uscita e il battito di Link a quell'ora. ⚠️ RISCRITTO A412 ·
+// SEGUITO 2 (18/10/2026). Il testo di prima diceva «letto con quantum 1, cioè sulla griglia condivisa»: a
+// quantum 1 è condivisa la fase, non la parte intera, che un cambio di tempo fatto da un altro può
+// rinumerare di un battito (collaudo di A412 delle 16:24; `ABLLink.h:280-286`). Il motore legge ora il
+// battito nella numerazione della sessione (`DirectorRejoinDecision.sessionQuantum`); il tipo non sa
+// quale numerazione riceve, gli basta che àncora e adesso siano nella stessa. Da lì, due righelli:
 //  · BATTITI DI LINK (primario, A376 P2): la sessione e la canzone avanzano allo stesso tempo, quindi
 //    i battiti di Link passati dall'àncora sono i battiti della canzone passati dall'àncora, e la
 //    deriva fra gli orologi non entra. Vale finché il tempo della sessione segue la canzone (W2 dei
@@ -90,7 +94,8 @@ struct ShowClockAnchor: Equatable {
     let section: Int
     /// Indice del battito nella sezione, da 0: (battuta − 1) × battiti per battuta + (battito − 1).
     let beatInSection: Int
-    /// Il battito di Link (quantum 1) all'ora del battito.
+    /// Il battito di Link all'ora del battito, nella numerazione con cui si leggerà «adesso».
+    /// ⚠️ RISCRITTO A412 · SEGUITO 2: diceva «(quantum 1)»; il motore passa la numerazione della sessione.
     let linkBeat: Double
     /// L'ora d'uscita del battito, in tick dell'orologio dell'apparecchio.
     let ticks: UInt64
@@ -232,7 +237,8 @@ struct ShowClock: Equatable {
         return .pastEnd(beats: x)
     }
 
-    /// Il righello primario: il battito di Link di adesso (quantum 1) contro quello dell'àncora.
+    /// Il righello primario: il battito di Link di adesso contro quello dell'àncora, nella stessa
+    /// numerazione (⚠️ RISCRITTO A412 · SEGUITO 2: diceva «(quantum 1)»; dal motore, quella della sessione).
     func byLinkBeats(nowLinkBeat: Double) -> ShowClockRuler {
         let beats = nowLinkBeat - anchor.linkBeat
         return ShowClockRuler(beatsFromAnchor: beats, place: place(beatsFromAnchor: beats))
@@ -376,6 +382,43 @@ struct ShowClock: Equatable {
         let bpm = map.sections[downbeat.section].bpm
         guard bpm > 0, bpm.isFinite else { return 0 }
         return Double(downbeat.beatInSection) * 60.0 / bpm
+    }
+
+    /// A412 (18/10/2026) — L'ORA SULLA MAPPA DI UN BATTITO DELLA CANZONE (mandato «DIRETTORE-IN-CRISI-
+    /// PASSO-2», §2.2: «L'ora del bersaglio: la dà la mappa»). L'ora dell'àncora più i secondi che la
+    /// mappa dà dal battito dell'àncora al battito `beatInSection` della sezione `section`, camminati
+    /// sezione per sezione col tempo di ciascuna: a differenza dell'ora del ponte (`ABLLinkTimeAtBeat`,
+    /// inversa di `ABLLinkBeatAtTime` a tempo costante, `ABLLink.h:292-303`) conosce i cambi di tempo
+    /// fra adesso e il bersaglio. Nella sezione dell'àncora un battito prima di lei dà un'ora prima della
+    /// sua. `nil` se il conto non si può fare, se la sezione non è dell'àncora o successiva, se il
+    /// battito cade fuori dalla sua sezione, se il cammino incontra un ciclo, o con tick al secondo non
+    /// validi.
+    func ticks(section: Int, beatInSection: Int, ticksPerSecond: Double) -> UInt64? {
+        guard invalidity == nil, ticksPerSecond > 0, ticksPerSecond.isFinite else { return nil }
+        guard section >= anchor.section, section < map.sections.count else { return nil }
+        if map.sections[section].isCycle { return nil }
+        guard beatInSection >= 0, beatInSection < sectionBeats(section) else { return nil }
+        var seconds: Double
+        if section == anchor.section {
+            seconds = Double(beatInSection - anchor.beatInSection) * 60.0 / map.sections[section].bpm
+        } else {
+            seconds = Double(sectionBeats(anchor.section) - anchor.beatInSection) * 60.0
+                / map.sections[anchor.section].bpm
+            var index = anchor.section + 1
+            while index < section {
+                let current = map.sections[index]
+                if current.isCycle { return nil }
+                seconds += Double(sectionBeats(index)) * 60.0 / current.bpm
+                index += 1
+            }
+            seconds += Double(beatInSection) * 60.0 / map.sections[section].bpm
+        }
+        return ShowClock.ticks(anchor.ticks, plusSeconds: seconds, ticksPerSecond: ticksPerSecond)
+    }
+
+    /// A412 — l'ora sulla mappa di un «uno» (`ticks(section:beatInSection:ticksPerSecond:)`).
+    func ticks(of downbeat: ShowClockDownbeat, ticksPerSecond: Double) -> UInt64? {
+        ticks(section: downbeat.section, beatInSection: downbeat.beatInSection, ticksPerSecond: ticksPerSecond)
     }
 
     // MARK: La fine

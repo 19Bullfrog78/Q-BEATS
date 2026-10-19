@@ -41,6 +41,19 @@ enum FollowerRunnerAction: Equatable {
     case armSong(songIdx: Int)
 }
 
+// A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — cosa il Direttore muto in canzone chiede al runner, via la
+// stanza (`directorRunnerActionSubject` → `QLiveSession` → `SetlistRunner`), come `FollowerRunnerAction`.
+enum DirectorRunnerAction: Equatable {
+    /// Il rientro: il runner va a (canzone, sezione) senza avvio, e la sessione si aggiorna come a un avvio di
+    /// sezione (mandato §2.2).
+    case rejoin(songIdx: Int, sectionIdx: Int)
+    /// La canzone è finita durante il silenzio e lo Stop di fine canzone è uscito: si arma la successiva
+    /// (`armNextSong`), come a una fine canzone propria (mandato §2.3, D1).
+    case songEndedArmNext
+    /// La sessione si è fermata senza uno Stop del Direttore (scelta T6): il velo della stessa canzone.
+    case rearmSame
+}
+
 // A386 · B2b-BIS (2D) — STATO E RAGIONE DELLA MACCHINA DEL FOLLOWER, PUBBLICATI INSIEME.
 /// Lo specchio unico di `_followerSyncQ` e `_followerOutReasonQ` per lo schermo e la stanza: UN
 /// `@Published` (`AudioEngine.followerSync`), scritto una volta per transizione in `followerApply`,
@@ -69,6 +82,15 @@ struct FollowerSyncSnapshot: Equatable {
     /// La sessione Link è in moto («band playing — wait for the stop»): è il dato che R1 legge
     /// all'armamento, portato dal battito e dal richiamo avvio/stop.
     let linkSessionPlaying: Bool
+}
+
+// A412 · DIRETTORE IN CRISI, PASSO 2 — chi chiama `stopSync`: uno Stop voluto (ogni porta che passa da `stop()` e
+// `handleStop`), l'arresto del Solo a una crisi della sessione audio (come lo Stop della sua console, ma non è uno
+// Stop voluto: `RecoveryDecision` legge la causa), o la Reset dopo la Lost sul Follower (arresto locale, A360).
+private enum StopOrigin {
+    case wanted
+    case soloCrisis
+    case followerReset
 }
 
 class AudioEngine: ObservableObject {
@@ -328,6 +350,16 @@ class AudioEngine: ObservableObject {
     /// del runner (`DirectorSongCloseDecision.onStop`) e scrive `.standby` prima che lo
     /// specchio di `LiveView` veda il `.stopped`.
     let directorStoppedSubject = PassthroughSubject<Bool, Never>()
+    // === A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — IL DIRETTORE MUTO IN CANZONE, per la stanza ===
+    /// Il Direttore muto in canzone chiede al runner: la sezione d'arrivo del rientro, la canzone finita durante il
+    /// silenzio, il velo della stessa canzone (`DirectorRunnerAction`). Emesso su main; la stanza (`QLiveSession`)
+    /// lo ascolta accanto a `followerRunnerActionSubject`.
+    let directorRunnerActionSubject = PassthroughSubject<DirectorRunnerAction, Never>()
+    /// Il tasto della fascia (e il pedale playPause) col Direttore muto in canzone: l'esito di
+    /// `DirectorTransportDecision` (Play = rientra, Stop = ferma la band e chiude la canzone); `nil` = nessun
+    /// silenzio, il tasto com'è oggi. Solo main: lo scrivono `publishDirectorSilenceQ` (da audioQueue, con
+    /// `main.async`) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
+    @Published private(set) var directorSilence: DirectorSilence? = nil
 
     // UX-3 — state machine playback
     @Published var playbackState: PlaybackState = .stopped
@@ -362,6 +394,10 @@ class AudioEngine: ObservableObject {
             if self._linkMode != s.linkMode {
                 self._linkMode = s.linkMode
                 self.followerResetQ(reason: "cambio-di-ruolo")
+                // A412 — un cambio di ruolo chiude il silenzio del Direttore (il coordinatore è solo suo) e il
+                // «segue Link» dopo un rientro.
+                self.leaveDirectorSilenceQ(reason: "cambio-di-ruolo", closeAnchor: true)
+                self._directorFollowsLinkQ = false
                 self.applyLinkActivationQ(trigger: .role)
             } else {
                 self._linkMode = s.linkMode
@@ -451,8 +487,10 @@ class AudioEngine: ObservableObject {
     // === A411 · SOLO-INERTE (18/10/2026) — L'ACCENSIONE DI LINK, accesso SOLO su audioQueue ===
     // I due ingressi della regola d'accensione (`LinkActivationDecision`) che non hanno già una copia di
     // coda (la levetta è `_linkUserEnabledQ`, il ruolo `_linkMode`): la sospensione decisa dalla politica
-    // dello sfondo (`QBeatsApp`, `setLinkBackgroundSuspended`) e la chiusura dell'app
-    // (`disableLinkOnTerminate`). E l'ultimo esito dato al ponte (`nil` = mai, prima dell'avvio).
+    // dello sfondo e la chiusura dell'app (`disableLinkOnTerminate`). E l'ultimo esito dato al ponte (`nil` =
+    // mai, prima dell'avvio). ⚠️ A412: la politica dello sfondo la valuta il motore (`sceneEnteredBackground`,
+    // `sceneBecameActive`, chiamati da `QBeatsApp`); prima la valutava `QBeatsApp` e la passava con
+    // `setLinkBackgroundSuspended`, uscita. `_linkBackgroundSuspendedQ` è anche il segno «sospeso da noi».
     private var _linkBackgroundSuspendedQ: Bool = false
     private var _linkTerminatingQ: Bool = false
     private var _linkActiveAppliedQ: Bool? = nil
@@ -492,13 +530,14 @@ class AudioEngine: ObservableObject {
     // la riga «primo avvio dopo il reset» esce una volta.
     private var _firstStartAfterMediaResetQ: Bool = false
     // === A410 (16/10/2026) — DIRETTORE IN CRISI, PASSO 1: IL CONTEGGIO IN SILENZIO, accesso SOLO su audioQueue ===
-    // Solo misure (mandato A410): niente di quello che segue cambia cosa esce verso Link, i rami di
-    // `start()`, lo `stopSync`, l'assert del Direttore, la ripetizione, le strade del Follower e del
-    // Solo, gli schermi. Il motore conta i battiti sulla mappa della canzone; quando il motore del
-    // Direttore tace senza Stop prende un'àncora; finché l'àncora vive scrive una riga al secondo con
-    // la posizione della band; al primo `start()` scrive cosa farebbe il rientro e chiude l'àncora.
-    // Tipi puri e banchi: `ShowClock`, `DirectorRejoinDecision` (Models/). Le funzioni stanno prima
-    // di `start(resumeAtBeat:)`, blocco «A410».
+    // Il motore conta i battiti sulla mappa della canzone; quando il motore del Direttore in canzone tace
+    // senza Stop prende un'àncora; finché l'àncora vive scrive una riga al secondo con la posizione della
+    // band. ⚠️ RISCRITTO A412 (18/10/2026). Il testo di prima diceva «Solo misure: niente di quello che segue
+    // cambia cosa esce verso Link, i rami di `start()`, lo `stopSync` [...]» e «al primo `start()` scrive cosa
+    // farebbe il rientro»: era vero del passo 1. Da A412 l'àncora è l'ingresso del coordinatore del rientro
+    // (`coordinateDirectorRejoinQ`, dentro `start()`), che decide e agisce: rientro, Stop di fine canzone,
+    // silenzio. Tipi puri e banchi: `ShowClock`, `DirectorRejoinDecision` (Models/). Le funzioni stanno prima di
+    // `start(resumeAtBeat:trigger:)`, blocchi «A410» e «A412».
     /// La mappa della canzone che parte e il suo indice nella scaletta: le consegna il runner a ogni
     /// avvio di canzone (`setSongMap`, accanto a `setSongFirstBeatsPerBar`). Copia di coda.
     private var _songMapQ: SongMap? = nil
@@ -519,25 +558,104 @@ class AudioEngine: ObservableObject {
     private var _prevCountedBeatQ: CountedBeat? = nil
     /// L'àncora del silenzio del Direttore e l'avvio della sessione letto all'àncora (per il giudice
     /// «stesso avvio»). Il resto di quello che Link diceva all'àncora sta nella riga che la prende.
+    /// A412 — e le sezioni della canzone della mappa: al rientro il motore carica da qui la sezione d'arrivo
+    /// e la successiva. (Fino ad A411 c'era anche `ownStopSent`, «uno Stop è uscito verso Link con l'àncora
+    /// viva»: lo `stopSync` della Reset dopo la Lost. Da A412 nessuna crisi manda Stop a Link, e uno Stop
+    /// voluto chiude l'àncora prima di uscire: il campo non aveva più niente da dire.)
+    /// A412 · SEGUITO 2 — `startBeatQBig`: il battito dell'avvio nella numerazione della sessione
+    /// (`DirectorRejoinDecision.sessionQuantum`), quello che il giudice «stesso avvio» confronta; `startBeatQ1`
+    /// resta per le righe, accanto. Il conto (`clock`) ha l'àncora nella numerazione della sessione.
     private struct SilenceAnchor {
         let clock: ShowClock
         let songIdx: Int
+        let sections: [SongSection]
         let cause: String
         let takenTicks: UInt64
         let startTicks: UInt64
         let startBeatQ1: Double
-        /// Uno Stop è uscito verso Link con l'àncora viva: lo `stopSync` della Reset, che nel passo 1
-        /// resta com'è.
-        var ownStopSent: Bool
+        let startBeatQBig: Double
     }
-    /// L'àncora viva; `nil` = niente da contare. La chiudono il primo `start()` che prosegue, uno
-    /// Stop voluto (`stop()`) e la chiusura dello show (`setShowOpen(false)`); lo `stopSync` della
-    /// Reset no (non passa da `stop()`).
+    /// L'àncora viva; `nil` = niente da contare. ⚠️ RISCRITTO A412: la prende solo il Direttore che entra nel
+    /// silenzio in canzone (`enterDirectorSilenceQ`); la chiudono il rientro riuscito, uno Stop voluto
+    /// (`stop()`, `stopSync`), lo Stop di fine canzone, la sessione ferma da altri (T6), l'uscita dal
+    /// coordinatore, il cambio di ruolo, la levetta spenta e la chiusura dello show. Prima diceva «la chiudono
+    /// il primo `start()` che prosegue [...]; lo `stopSync` della Reset no»: era il passo 1.
     private var _silenceAnchorQ: SilenceAnchor? = nil
     /// Il margine del bersaglio del rientro (progetto A376, P9) e la finestra del cambio di sezione,
     /// in buffer: i 100 del passo (f) del ramo SEAMLESS di `scheduleNextBuffer`.
     private static let kRejoinMarginSeconds: Double = 0.150
     private static let kRejoinSectionWindowBuffers: Int = 100
+    // === A412 (18/10/2026) — DIRETTORE IN CRISI, PASSO 2: IL SILENZIO CHE AGISCE, accesso SOLO su audioQueue ===
+    // Mandato del referee «DIRETTORE-IN-CRISI-PASSO-2». Le regole sono pure e col loro banco in Models/
+    // (`CrisisStopDecision`, `DirectorRejoinDecision`, `DirectorTransportDecision`, `RecoveryDecision`,
+    // `LinkActivationDecision.suspendsOnBackground`); qui lo stato, il collegamento nel blocco «A412».
+    /// Le sezioni della canzone della mappa (`setSongMap`), per l'àncora: al rientro la sezione d'arrivo.
+    private var _songSectionsQ: [SongSection] = []
+    /// La mappa è arrivata per il prossimo avvio (`setSongMap`, subito prima di `start()` nel runner): quell'avvio
+    /// è l'avvio di una canzone. Lo consuma l'avvio che non passa dal coordinatore (`prepareNormalStartQ`).
+    private var _songMapForNextStartQ: Bool = false
+    /// «Canzone in corso» per `CrisisStopDecision`: il motore è partito per una canzone del runner e nessuno Stop
+    /// lo ha fermato dopo. Lo abbassano `stopSync`, lo Stop di fine canzone, la sessione ferma da altri e la
+    /// chiusura dello show; un rientro lo lascia alzato.
+    private var _songInProgressQ: Bool = false
+    /// Il Direttore è muto in canzone (`CrisisStopOutcome.silentInSong`), dalla crisi fino al rientro riuscito, a
+    /// uno Stop voluto, allo Stop di fine canzone, alla sessione ferma da altri, all'uscita dal coordinatore, al
+    /// cambio di ruolo, alla levetta spenta, alla chiusura dello show.
+    private var _directorSilentInSongQ: Bool = false
+    /// La causa dell'ultima crisi dall'ultimo avvio che non passa dal coordinatore (`RecoveryDecision`).
+    private var _crisisCauseQ: CrisisCause? = nil
+    /// Uno Stop voluto (o lo Stop di fine canzone, o la sessione ferma da altri) dopo l'ultima crisi: nessuna
+    /// ripartenza automatica (`RecoveryDecision`).
+    private var _wantedStopSinceCrisisQ: Bool = false
+    /// Dopo un rientro il Direttore segue Link — la correzione di fase del Follower in `scheduleNextBuffer` —
+    /// invece dell'assert, fino all'avvio dopo (scelta T4); il richiamo del tempo di Link non rilancia `_audioBPM`.
+    private var _directorFollowsLinkQ: Bool = false
+    /// Il rientro è armato e non ancora suonato (`armDirectorRejoinQ` → `fireDirectorRejoinQ`): il tasto, in
+    /// attesa, dice Stop.
+    private var _rejoinArmedQ: Bool = false
+    /// La chiusura di fine sezione del runner, l'ultima consegnata (`loadSection`, `preloadNextSection`): è una
+    /// sola per la vita del runner e legge gli indici al momento dell'esecuzione (`SetlistRunner`, in testa).
+    private var _songSectionEndClosureQ: (() -> Void)? = nil
+    /// Lo Stop di fine canzone armato durante il silenzio, e la sua ora d'invio.
+    private var _songEndStopWorkQ: DispatchWorkItem? = nil
+    private var _songEndStopPlannedTicksQ: UInt64? = nil
+    /// A412 · SEGUITO 3 — LE DUE ATTESE CHE MIRANO A UN'ORA: l'armamento del rientro (`armDirectorRejoinQ`, il work
+    /// item in `pendingLinkStart`) e lo Stop di fine canzone (`scheduleDirectorSongEndStopQ`, il work item in
+    /// `_songEndStopWorkQ`). Le aspetta `StrictOneShotTimer` (colpo singolo, flag `.strict`, margine di 1 ms) invece
+    /// di `asyncAfter`, che al collaudo dell'IPA #776 ha fatto scattare l'armamento fino a 135,7 ms dopo l'ora chiesta.
+    /// Il work item è quello di prima e il timer lo esegue su questa coda; ogni percorso che annulla o azzera il
+    /// work item ferma anche il timer. Solo su audioQueue.
+    private lazy var _rejoinArmTimerQ = StrictOneShotTimer(queue: audioQueue)
+    private lazy var _songEndStopTimerQ = StrictOneShotTimer(queue: audioQueue)
+    /// La riga «Stop di fine canzone NON inviato» esce una volta per silenzio.
+    private var _songEndNotSentLoggedQ: Bool = false
+    /// L'ultimo esito del tasto mandato allo specchio `directorSilence`: la riga [DIR-TASTO] esce ai cambi.
+    private var _directorSilencePublishedQ: DirectorSilence? = nil
+    /// Il primo buffer della scorta muta del rientro, all'ora chiesta al lettore (`scheduleBuffer(_:at:)`, scelta T5);
+    /// `nil` = nessuno in attesa. E l'ora d'uscita dei tre buffer accodati al fuoco, per l'ora dei battiti contati.
+    /// ⚠️ RISCRITTO A412 · SEGUITO 2 (2/2) (18/10/2026). Il testo di prima diceva «Il primo buffer del rientro, all'ora
+    /// chiesta al lettore (`scheduleBuffer(_:at:)`, scelta T5); `nil` = nessuno in attesa. E l'ora d'uscita dei tre
+    /// buffer del rientro, per l'ora dei battiti contati.»: il buffer ancorato era quello del bersaglio. Da qui è il
+    /// primo della scorta (`DirectorRejoinDecision.leadIn`), `scorta` buffer prima dell'ora del bersaglio, e i tre
+    /// buffer del fuoco sono muti; senza scorta resta quello del bersaglio.
+    private var _anchoredFirstBufferQ: AVAudioTime? = nil
+    private var _anchoredOutputTicksQ: UInt64 = 0
+    private var _anchoredPreRollLeftQ: Int = 0
+    /// A412 · SEGUITO 2 (2/2) — LA SCORTA MUTA DEL RIENTRO, viva dal fuoco al primo click (l'«uno»): il piano
+    /// (`DirectorRejoinDecision.LeadIn`), l'ora del bersaglio, un buffer in battiti al tempo della sezione d'arrivo, le
+    /// correzioni di fase fatte prima del click (al più una: `leadInAllowsCorrection`) e la loro somma in battiti, e
+    /// il MIDI tenuto zitto finché l'«uno» non cade nel buffer (`leadInHoldsMIDI`). Nella scorta il motore non suona
+    /// niente prima dell'«uno» (`scheduleNextBuffer`). La chiude il primo click (`noteRejoinFirstClickQ`), un rientro
+    /// fermato (`stopRejoinEngineQ`) o un avvio (`start()`). Solo su audioQueue.
+    private struct RejoinLeadIn {
+        let plan: DirectorRejoinDecision.LeadIn
+        let targetTicks: UInt64
+        let bufferBeats: Double
+        var corrections: Int = 0
+        var correctionBeats: Double = 0
+        var midiHeld: Bool = true
+    }
+    private var _rejoinLeadInQ: RejoinLeadIn? = nil
     // === A386 · FASE B2A (2D) — LO STATO DEL 2D, accesso SOLO su audioQueue ===
     // La macchina del Follower, il segnale «sento il Direttore», la ripetizione del Direttore
     // e la fase di avvio per la falsa partenza vivono qui; gli specchi @Published sopra.
@@ -800,17 +918,51 @@ class AudioEngine: ObservableObject {
                         return
                     }
                     // Modalità Direttore: non subisce MAI il BPM del peer (Bug 5-BPM chiuso).
-                    // Affinamento 29/05/2026 (test R2/R6 su device):
-                    // - In play: re-broadcasta _audioBPM e vince la negoziazione Link
-                    //   (check bpm != _audioBPM evita loop quando il peer rimanda il valore Q-B).
-                    // - In stop: NON adotta il BPM del peer e NON combatte la sessione, così un
-                    //   Follower in START LOCAL (CD-6) può seguire il tempo della propria setlist.
-                    // Il return (sotto) garantisce entrambi: il Direttore esce sempre prima del
-                    // blocco di adozione interna (metronome / MIDI / currentBPM, righe seguenti).
+                    // ⚠️ RISCRITTO A412 · SEGUITO 1 (18/10/2026). Il testo di prima diceva: «Affinamento
+                    // 29/05/2026 (test R2/R6 su device): - In play: re-broadcasta _audioBPM e vince la
+                    // negoziazione Link (check bpm != _audioBPM evita loop quando il peer rimanda il valore
+                    // Q-B). - In stop: NON adotta il BPM del peer e NON combatte la sessione, così un Follower
+                    // in START LOCAL (CD-6) può seguire il tempo della propria setlist. Il return (sotto)
+                    // garantisce entrambi: il Direttore esce sempre prima del blocco di adozione interna
+                    // (metronome / MIDI / currentBPM, righe seguenti).» Il codice leggeva «in play» come
+                    // «motore in moto» (`isRunning`), e il motore è in moto anche mentre il Direttore muto in
+                    // canzone aspetta il rientro (A412, da `start()` col bersaglio al fuoco): lì ribatteva il
+                    // tempo della sezione di prima e la band lo adottava (collaudo di A412, prova P2-bis, la
+                    // sezione a 110 suonata a 90). Da qui decide `DirectorTempoRebroadcastDecision`: il
+                    // Direttore ribatte `_audioBPM` solo se suona davvero la sua linea — motore in moto, non
+                    // muto in canzone (attesa del rientro compresa), non «segue Link» dopo un rientro (T4) — e
+                    // se il richiamo porta un tempo diverso dal suo (il controllo contro il rimpallo, com'era).
+                    // In ogni altro caso niente verso Link. Come prima, il Direttore esce sempre qui, prima del
+                    // blocco di adozione interna (metronomo, MIDI, `currentBPM`).
                     if engine._linkMode == .direttore {
-                        if engine.isRunning, bpm != engine._audioBPM,
-                           let lh = engine.linkEngineHandle {
-                            link_engine_set_bpm(lh, engine._audioBPM)
+                        let role = PlayerRoleDecision.playerRole(role: engine._linkMode,
+                                                                 userLinkEnabled: engine._linkUserEnabledQ)
+                        let echo = DirectorTempoRebroadcastDecision.outcome(playerRole: role,
+                                                                            engineRunning: engine.isRunning,
+                                                                            silentInSong: engine._directorSilentInSongQ,
+                                                                            followsLink: engine._directorFollowsLinkQ,
+                                                                            callbackTempo: bpm,
+                                                                            ownTempo: engine._audioBPM)
+                        switch echo {
+                        case .rebroadcast:
+                            if let lh = engine.linkEngineHandle {
+                                link_engine_set_bpm(lh, engine._audioBPM)
+                            }
+                        case .hold(.silentInSong):
+                            // A412 · SEGUITO 1 — muto in canzone (attesa del rientro compresa) il Direttore non
+                            // ribatte il tempo: una riga a richiamo, col tempo del richiamo, `_audioBPM` e il rientro
+                            // armato o no.
+                            os_log("[Q-BEATS][DIR-RIENTRO] muto in canzone - tempo della sessione bpm:%.4f non ribattuto (motore:%.4f) rientroArmato:%d",
+                                   log: .default, type: .default, bpm, engine._audioBPM, engine._rejoinArmedQ ? 1 : 0)
+                        case .hold(.followsLink):
+                            // A412 — dopo un rientro il Direttore segue Link fino all'avvio dopo (scelta T4): il tempo
+                            // della sessione non si ribatte con `_audioBPM` e non entra nel motore (il tempo delle
+                            // sezioni lo porta la canzone, al confine). Una riga a richiamo.
+                            os_log("[Q-BEATS][DIR-RIENTRO] segue Link - tempo della sessione bpm:%.4f non ribattuto (motore:%.4f)",
+                                   log: .default, type: .default, bpm, engine._audioBPM)
+                        case .hold:
+                            // Motore fermo senza crisi, o lo stesso tempo: niente, senza riga (com'era).
+                            break
                         }
                         return
                     }
@@ -1222,10 +1374,13 @@ class AudioEngine: ObservableObject {
     // SOLO L3 (nessuna nuova API bridge/DSP). Gira esclusivamente su
     // audioQueue (chiamata dal blocco start() + asyncAfter su audioQueue):
     // _beatsPerBarQ e pendingLinkStart restano queue-confined.
+    // ⚠️ A412 · SEGUITO 3 (18/10/2026): dal fuoco del rientro del Direttore (ramo «in ritardo») la chiamata
+    // arriva dal timer `StrictOneShotTimer`, anche lui su audioQueue; l'asyncAfter qui sopra resta quello
+    // dell'ingresso del Follower.
     private static let kSharedJoinPhaseTolBeats = 0.1   // allineata alla soglia WARN del seed
     private static let kSharedJoinMaxRearms     = 2     // copre (i)+(ii) anche combinate
 
-    private func armSharedJoin(retriesLeft: Int) {
+    private func armSharedJoin(retriesLeft: Int, rejoin: RejoinTarget? = nil) {
         guard let lh = self.linkEngineHandle else { return }
         // RIENTRO-P1 (a) — UN SOLO INGRESSO PENDENTE ALLA VOLTA. Prima di armare si annulla
         // quello che c'era (fino a oggi l'assegnazione più sotto lo SOVRASCRIVEVA senza
@@ -1233,8 +1388,21 @@ class AudioEngine: ObservableObject {
         // item nato prima, se mai scattasse, si scarta da solo al fuoco. Quando a ri-armare
         // è il work item stesso (ramo «fire NON su barra»), `pendingLinkStart` è già nil.
         self.pendingLinkStart?.cancel()
+        // A412 · SEGUITO 3 — col work item si ferma il timer del rientro del Direttore (`_rejoinArmTimerQ`); per un
+        // ingresso del Follower è vuoto.
+        self._rejoinArmTimerQ.cancel()
         self.joinGeneration += 1
         let generation = self.joinGeneration
+        // A412 · DIRETTORE IN CRISI, PASSO 2 — L'INGRESSO COL BERSAGLIO (mandato §2.2, T3). Col bersaglio del
+        // rientro del Direttore (`RejoinTarget`: sezione e battuta d'arrivo, battito di Link, ora della mappa; il
+        // quantum e il seme del contatore vengono dalla sezione d'arrivo) l'ingresso prende il suo ramo QUI,
+        // prima di ogni lettura del ramo condiviso: stessa generazione e stesso annullo qui sopra, nessuna
+        // scrittura su Link (niente «si suona», niente battito). Senza bersaglio — il Follower e chi comanda in
+        // una sessione condivisa — tutto quello che segue è identico a prima.
+        if let rejoin {
+            self.armDirectorRejoinQ(rejoin, generation: generation)
+            return
+        }
         // RIENTRO-P1 (e) — W4: il Follower entra in una sessione che suona GIÀ (A361), quindi
         // al fuoco non scrive «si suona» su Link (`link_engine_join_running_session` →
         // `ABLLinkSetIsPlaying`): il valore non cambierebbe, ma l'ora dello stato avvio/stop
@@ -1537,6 +1705,9 @@ class AudioEngine: ObservableObject {
     // Alza la generazione: anche un work item che `cancel()` non facesse in tempo a fermare
     // si scarta da solo al fuoco. Abbassa `isWaitingForLinkDownbeat`, come fa `stopSync`.
     private func cancelPendingJoin(reason: String) {
+        // A412 · SEGUITO 3 — col work item si ferma il timer del rientro del Direttore (`_rejoinArmTimerQ`); qui, prima
+        // del `guard`, così non dipende da `pendingLinkStart`. Senza attesa armata non fa niente.
+        self._rejoinArmTimerQ.cancel()
         guard let pending = self.pendingLinkStart else { return }
         pending.cancel()
         self.pendingLinkStart = nil
@@ -1808,6 +1979,11 @@ class AudioEngine: ObservableObject {
         // questo battito; mandato A410, §2.4).
         if _silenceAnchorQ != nil {
             logSilenceSecondQ()
+        }
+        // A412 — col Direttore muto in canzone, al secondo: il tasto della fascia (dipende dal conto di adesso) e
+        // lo Stop di fine canzone (mandato §2.3-§2.4). Nessun timer nuovo per il tasto: questo battito.
+        if _directorSilentInSongQ {
+            directorSilenceSecondQ()
         }
     }
 
@@ -2400,15 +2576,21 @@ class AudioEngine: ObservableObject {
 
     /// A410 — la mappa della canzone che parte, per il conteggio in silenzio (`ShowClock`): la
     /// consegna il runner a ogni avvio di canzone, accanto alla misura qui sopra, con l'indice della
-    /// canzone e la sezione da cui parte il click. Qui diventa una copia di coda; nient'altro la legge
-    /// fuori dal blocco «A410». Una riga a ogni consegna, con un'etichetta sua ([CONTEGGIO]): esce a
-    /// ogni avvio di canzone, anche senza nessuna crisi.
-    func setSongMap(_ map: SongMap, songIdx: Int, startSection: Int) {
+    /// canzone e la sezione da cui parte il click. Qui diventa una copia di coda. Una riga a ogni
+    /// consegna, con un'etichetta sua ([CONTEGGIO]): esce a ogni avvio di canzone, anche senza crisi.
+    /// ⚠️ A412 — la consegna porta le sezioni della canzone (la mappa si fa qui, dalle stesse sezioni): al
+    /// rientro il motore carica da lì la sezione d'arrivo. E dice che il prossimo avvio è l'avvio di una
+    /// canzone («canzone in corso», `CrisisStopDecision`). Prima diceva «nient'altro la legge fuori dal
+    /// blocco A410»: da A412 la legge il coordinatore del rientro.
+    func setSongMap(sections: [SongSection], songIdx: Int, startSection: Int) {
+        let map = SongMap(songSections: sections)
         audioQueue.async { [weak self] in
             guard let self else { return }
             self._songMapQ = map
+            self._songSectionsQ = sections
             self._songMapSongIdxQ = songIdx
             self._songMapSectionQ = startSection
+            self._songMapForNextStartQ = true
             os_log("[Q-BEATS][CONTEGGIO] mappa songIdx:%d sezioni:%d partenza:%d valida:%d",
                    log: .default, type: .default,
                    songIdx, map.sections.count, startSection, map.isValid ? 1 : 0)
@@ -2476,8 +2658,12 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][2D][SHOW] show aperto:%d origine:%{public}@ ruolo:%{public}@",
                    log: .default, type: .default, open ? 1 : 0, origin, String(describing: self._linkMode))
             // A410 — la chiusura dello show chiude l'àncora del conteggio in silenzio.
+            // A412 — e il silenzio del Direttore e la canzone in corso (di norma li ha già chiusi lo Stop
+            // voluto che END SHOW e l'uscita dalla stanza mandano prima).
             if !open {
                 self.closeSilenceAnchorQ(reason: "show-chiuso")
+                self._songInProgressQ = false
+                self.leaveDirectorSilenceQ(reason: "show-chiuso", closeAnchor: false)
             }
         }
     }
@@ -2598,23 +2784,38 @@ class AudioEngine: ObservableObject {
     // =====================================================================================
     // === A410 (16/10/2026) — DIRETTORE IN CRISI, PASSO 1: IL CONTEGGIO IN SILENZIO ==========
     // =====================================================================================
-    // Solo misure (mandato A410, §2): l'àncora, la riga al secondo, la riga di cosa farebbe il
-    // rientro; più lo sgombero della ripresa pendente alla Lost e alla Reset (§2.8, l'unico cambio di
-    // comportamento). Tutto su audioQueue; le letture di Link sono catture senza commit
+    // L'àncora, la riga al secondo; più lo sgombero della ripresa pendente alla Lost e alla Reset (A410
+    // §2.8). Tutto su audioQueue; le letture di Link sono catture senza commit
     // (`link_engine_read_session_at`, `link_engine_time_at_beat`, MIDIEngineBridge.h). Le righe:
-    // [Q-BEATS][CONTEGGIO] (la mappa, a ogni avvio di canzone, `setSongMap`), [Q-BEATS][DIR-SILENZIO]
-    // (àncora, riga al secondo, chiusura dell'àncora: solo dopo un silenzio del Direttore) e
-    // [Q-BEATS][DIR-RIENTRO] (cosa farebbe il rientro: SOLO REGISTRO). Indici come nel runner:
+    // [Q-BEATS][CONTEGGIO] (la mappa, a ogni avvio di canzone, `setSongMap`) e [Q-BEATS][DIR-SILENZIO]
+    // (àncora, riga al secondo, chiusura dell'àncora: solo nel silenzio del Direttore).
+    // ⚠️ RISCRITTO A412 (18/10/2026). Il testo di prima diceva «Solo misure (mandato A410, §2)» e
+    // «[Q-BEATS][DIR-RIENTRO] (cosa farebbe il rientro: SOLO REGISTRO)»: era il passo 1. Da A412 la riga
+    // [DIR-RIENTRO] è la decisione del coordinatore che agisce (blocco «A412» qui sotto), e la funzione che
+    // scriveva «cosa farebbe» (`logDirectorRejoinPlanQ`) non c'è più. Indici come nel runner:
     // `songIdx` e `sectionIdx` da 0, battuta e battito da 1; una posizione si scrive
     // `sectionIdx.battuta.battito`. Il testo delle righe è senza accenti, per le ricerche nei
     // registri esportati.
+    // ⚠️ A412 · SEGUITO 2 (18/10/2026) — LA NUMERAZIONE DELLA SESSIONE. Fino al seguito 1 l'àncora, i due
+    // righelli, «stesso avvio», il bersaglio, il ponte e la fine canzone leggevano Link a quantum 1: la parte
+    // intera di quei battiti è dell'apparecchio, e un cambio di tempo fatto da un altro col Direttore muto può
+    // rinumerarla di un battito intero con la sessione ferma (collaudo di A412 delle 16:24: rientro rifiutato,
+    // «avvio cambiato», «mappa e ponte in disaccordo»). Da qui leggono la numerazione della sessione
+    // (`DirectorRejoinDecision.sessionQuantum`, i campi `…QBig` di `LinkSessionReading`); le righe scrivono
+    // accanto anche i valori a quantum 1 (`…Q1`, quelli di prima, e i campi `…Q1e6` per i nuovi).
 
     /// L'àncora del conteggio, nel punto in cui il motore del Direttore tace senza Stop. Chiamare SOLO
-    /// su audioQueue, PRIMA che `isRunning` vada a falso (inizio interruzione, cambio di
-    /// configurazione, cambio di modo) o a motore com'è (Lost, Reset senza Lost). Il battito è
+    /// su audioQueue, PRIMA che `isRunning` vada a falso. ⚠️ A412: la chiama solo `enterDirectorSilenceQ`,
+    /// a ogni crisi del Direttore in canzone (da A412 alla Lost e alla Reset senza Lost il motore si ferma in
+    /// locale subito dopo; prima restava com'era). Il battito è
     /// l'ultimo contato già uscito, non uno solo accodato; il battito di Link si legge all'ora di quel
-    /// battito con quantum 1, e nel conto entra l'intero più vicino (la griglia della sessione). Non è
+    /// battito e nel conto entra l'intero più vicino (la griglia della sessione). Non è
     /// il battito di ripresa del motore: quello resta dell'orologio MIDI.
+    /// ⚠️ RISCRITTO A412 · SEGUITO 2 (18/10/2026). Il testo di prima diceva «il battito di Link si legge
+    /// all'ora di quel battito con quantum 1, e nel conto entra l'intero più vicino (la griglia della
+    /// sessione)»: a quantum 1 la parte intera è dell'apparecchio e può saltare di uno (collaudo delle 16:24).
+    /// Nel conto entra ora l'intero più vicino del battito nella numerazione della sessione
+    /// (`beatAtHostTimeQBig`); la riga scrive anche quello a quantum 1, accanto.
     private func takeSilenceAnchorQ(cause: String) {
         guard DirectorRejoinDecision.takesAnchor(role: _linkMode,
                                                  userLinkEnabled: _linkUserEnabledQ,
@@ -2656,33 +2857,38 @@ class AudioEngine: ObservableObject {
             return
         }
         let grid = read.beatAtHostTime.rounded()
+        // A412 · SEGUITO 2 — la griglia del conto nella numerazione della sessione (`grid` resta per la riga).
+        let gridSession = read.beatAtHostTimeQBig.rounded()
         let clock = ShowClock(map: map,
                               anchor: ShowClockAnchor(section: beat.section,
                                                       beatInSection: beat.beatInSection,
-                                                      linkBeat: grid,
+                                                      linkBeat: gridSession,
                                                       ticks: beat.outTicks))
-        _silenceAnchorQ = SilenceAnchor(clock: clock, songIdx: _songMapSongIdxQ, cause: cause,
-                                        takenTicks: now, startTicks: read.timeForIsPlaying,
-                                        startBeatQ1: read.beatAtStartQ1, ownStopSent: false)
+        _silenceAnchorQ = SilenceAnchor(clock: clock, songIdx: _songMapSongIdxQ, sections: _songSectionsQ,
+                                        cause: cause, takenTicks: now, startTicks: read.timeForIsPlaying,
+                                        startBeatQ1: read.beatAtStartQ1, startBeatQBig: read.beatAtStartQBig)
         let position = clock.barAndBeat(section: beat.section, beatInSection: Double(max(beat.beatInSection, 0)))
         let total: Int = (beat.section >= 0 && beat.section < map.sections.count)
             ? (map.sections[beat.section].totalBeats ?? 0) : 0
         let check: String = clock.invalidity.map { describe($0) } ?? "ok"
-        os_log("[Q-BEATS][DIR-SILENZIO] ancora presa causa:%{public}@ songIdx:%d posizione:%d.%d.%d indice:%d/%d battito:%{public}@ oraBattito:%llu adesso:%llu battitoLinkQ1:%.6f griglia:%.0f scartoGriglia:%.4f tempoSessione:%.3f tempoMotore:%.3f suona:%d oraAvvio:%llu battitoAvvio:%.6f conto:%{public}@",
+        os_log("[Q-BEATS][DIR-SILENZIO] ancora presa causa:%{public}@ songIdx:%d posizione:%d.%d.%d indice:%d/%d battito:%{public}@ oraBattito:%llu adesso:%llu battitoLinkQ1:%.6f griglia:%.0f scartoGriglia:%.4f battitoLinkQ1e6:%.6f grigliaQ1e6:%.0f tempoSessione:%.3f tempoMotore:%.3f suona:%d oraAvvio:%llu battitoAvvio:%.6f battitoAvvioQ1e6:%.6f conto:%{public}@",
                log: .default, type: .default,
                cause, _songMapSongIdxQ, beat.section, position.bar, position.beat,
                beat.beatInSection, total, which, beat.outTicks, now,
-               read.beatAtHostTime, grid, read.beatAtHostTime - grid, read.tempo, _audioBPM,
-               read.isPlaying ? 1 : 0, read.timeForIsPlaying, read.beatAtStartQ1, check)
+               read.beatAtHostTime, grid, read.beatAtHostTime - grid,
+               read.beatAtHostTimeQBig, gridSession, read.tempo, _audioBPM,
+               read.isPlaying ? 1 : 0, read.timeForIsPlaying, read.beatAtStartQ1, read.beatAtStartQBig, check)
     }
 
-    /// L'àncora si chiude. Chiamare SOLO su audioQueue. `reason`: avvio | stop | show-chiuso.
+    /// L'àncora si chiude. Chiamare SOLO su audioQueue. `reason`: avvio | stop | show-chiuso, e da A412 rientro |
+    /// fine-canzone | sessione-ferma | fuori-coordinatore | cambio-di-ruolo | link-utente-spento. (Il campo
+    /// `stopProprio` della riga è uscito con `SilenceAnchor.ownStopSent`, A412.)
     private func closeSilenceAnchorQ(reason: String) {
         guard let anchor = _silenceAnchorQ else { return }
         _silenceAnchorQ = nil
-        os_log("[Q-BEATS][DIR-SILENZIO] ancora chiusa motivo:%{public}@ causa:%{public}@ vissuta_s:%.1f stopProprio:%d",
+        os_log("[Q-BEATS][DIR-SILENZIO] ancora chiusa motivo:%{public}@ causa:%{public}@ vissuta_s:%.1f",
                log: .default, type: .default,
-               reason, anchor.cause, secondsSince(anchor.takenTicks), anchor.ownStopSent ? 1 : 0)
+               reason, anchor.cause, secondsSince(anchor.takenTicks))
     }
 
     /// La riga al secondo dell'àncora viva, dal battito a 1 s (`transportPulse`): la posizione dai
@@ -2701,41 +2907,201 @@ class AudioEngine: ObservableObject {
                    anchor.songIdx, describe(place: bySeconds.place, in: clock), secondsSince(anchor.takenTicks))
             return
         }
-        let reading = clock.read(nowLinkBeat: read.beatAtHostTime, nowTicks: now, ticksPerSecond: ticksPerSecond)
-        let same = DirectorRejoinDecision.sameStart(anchorStartBeat: anchor.startBeatQ1,
-                                                    nowStartBeat: read.beatAtStartQ1)
+        // A412 · SEGUITO 2 — il conto e «stesso avvio» nella numerazione della sessione; quella a quantum 1 resta
+        // nella riga, accanto (il prossimo «uno» anche nella numerazione di prima, con la distanza di questa cattura).
+        let reading = clock.read(nowLinkBeat: read.beatAtHostTimeQBig, nowTicks: now, ticksPerSecond: ticksPerSecond)
+        let same = DirectorRejoinDecision.sameStart(anchorStartBeat: anchor.startBeatQBig,
+                                                    nowStartBeat: read.beatAtStartQBig)
         let gapText: String = reading.gapBeats.map { String(format: "%.4f", $0) } ?? "-"
+        let offset = DirectorRejoinDecision.deviceOffset(beatQuantumOne: read.beatAtHostTime,
+                                                         beatSession: read.beatAtHostTimeQBig)
         var nextText = "-"
+        var nextSessionText = "-"
         if case .inSong(_, _, _, let next?) = reading.outcome {
-            nextText = String(format: "%.0f", next.linkBeat)
+            nextSessionText = String(format: "%.0f", next.linkBeat)
+            if let offset {
+                nextText = String(format: "%.0f", next.linkBeat + offset)
+            }
         }
         var sinceSectionText = "-"
         if case .inSong(_, let beatInSection) = reading.byLinkBeats.place, read.tempo > 0, read.tempo.isFinite {
             sinceSectionText = String(format: "%.0f", beatInSection * 60_000.0 / read.tempo)
         }
-        os_log("[Q-BEATS][DIR-SILENZIO] al-secondo songIdx:%d battiti:%{public}@ secondi:%{public}@ scarto_battiti:%{public}@ certo:%d daInizioSezione_ms:%{public}@ prossimoUno:%{public}@ battitoLinkQ1:%.4f tempoSessione:%.3f suona:%d oraAvvio:%llu battitoAvvio:%.6f stessoAvvio:%d link:1 dallAncora_s:%.1f",
+        os_log("[Q-BEATS][DIR-SILENZIO] al-secondo songIdx:%d battiti:%{public}@ secondi:%{public}@ scarto_battiti:%{public}@ certo:%d daInizioSezione_ms:%{public}@ prossimoUno:%{public}@ prossimoUnoQ1e6:%{public}@ battitoLinkQ1:%.4f battitoLinkQ1e6:%.4f tempoSessione:%.3f suona:%d oraAvvio:%llu battitoAvvio:%.6f battitoAvvioQ1e6:%.6f stessoAvvio:%d link:1 dallAncora_s:%.1f",
                log: .default, type: .default,
                anchor.songIdx,
                describe(place: reading.byLinkBeats.place, in: clock),
                describe(place: reading.bySeconds.place, in: clock),
-               gapText, reading.certain ? 1 : 0, sinceSectionText, nextText,
-               read.beatAtHostTime, read.tempo, read.isPlaying ? 1 : 0,
-               read.timeForIsPlaying, read.beatAtStartQ1, same ? 1 : 0, secondsSince(anchor.takenTicks))
+               gapText, reading.certain ? 1 : 0, sinceSectionText, nextText, nextSessionText,
+               read.beatAtHostTime, read.beatAtHostTimeQBig, read.tempo, read.isPlaying ? 1 : 0,
+               read.timeForIsPlaying, read.beatAtStartQ1, read.beatAtStartQBig, same ? 1 : 0,
+               secondsSince(anchor.takenTicks))
     }
 
-    /// Cosa farebbe il rientro, al primo `start()` che prosegue con l'àncora viva: la decisione
-    /// (`DirectorRejoinDecision`) e, se rientra, il bersaglio con l'ora prevista dal ponte nuovo; se
-    /// la canzone è finita, la fine. Poi l'àncora si chiude. SOLO REGISTRO: `start()` continua
-    /// identico a oggi. Chiamare SOLO su audioQueue, da `start()`.
-    private func logDirectorRejoinPlanQ(resume: Bool) {
-        guard let anchor = _silenceAnchorQ else { return }
+    // =====================================================================================
+    // === A412 (18/10/2026) — DIRETTORE IN CRISI, PASSO 2: IL SILENZIO CHE AGISCE ==============
+    // =====================================================================================
+    // Mandato del referee «DIRETTORE-IN-CRISI-PASSO-2». Quando il click si ferma senza che nessuno abbia
+    // premuto Stop (interruzione, servizi audio persi, reset, cambio di configurazione o di modo), il telefono
+    // del Direttore in canzone non manda niente alla band e non chiude la canzone: tace, conta dove sta la band
+    // (l'àncora e la riga al secondo, blocco «A410») e rientra alla battuta giusta senza spostare nessuno. Se
+    // non è certo tace solo lui; se la canzone finisce durante il silenzio manda lo Stop di fine canzone, solo
+    // col conto certo. Il Solo, dopo una crisi della sessione audio, si ferma come allo Stop della sua console e
+    // aspetta il Play. Le regole sono pure, col loro banco, in Models/: `CrisisStopDecision` (ogni crisi),
+    // `DirectorRejoinDecision` (coordinatore, armamento, Stop di fine canzone), `DirectorTransportDecision` (il
+    // tasto e il pedale), `RecoveryDecision` (le ripartenze automatiche), `LinkActivationDecision` (lo sfondo).
+    // Qui il collegamento, tutto su audioQueue salvo dove è detto. Le letture di Link sono catture senza commit
+    // (`link_engine_read_session_at`, `link_engine_time_at_beat`); l'unica scrittura verso Link di questo blocco
+    // è lo Stop di fine canzone (`link_engine_stop`, la stessa dello Stop voluto). Niente nel render callback.
+    // Le righe (testo senza accenti): [Q-BEATS][CRISI] la decisione a ogni crisi, l'arresto locale, il
+    // silenzio; [Q-BEATS][DIR-RIENTRO] decisione, bersaglio (alla decisione e all'armamento), fuoco, primo
+    // buffer, «segue Link», Stop di fine canzone; [Q-BEATS][DIR-TASTO] il tasto e il pedale; [Q-BEATS][RESUME]
+    // ogni ripartenza automatica instradata.
+
+    /// Il bersaglio del rientro: lo decide il coordinatore, lo consuma l'ingresso (`armSharedJoin`, T3).
+    /// Sezione da 0, battuta da 1, battito nella sezione da 0; battito di Link; il quantum della
+    /// sezione d'arrivo (A376 P10: passato col bersaglio, non letto dal motore, che porta ancora la sezione del
+    /// silenzio); ora d'uscita dalla mappa e dal ponte alla decisione (0 = ponte spento); quanti salti per
+    /// ritardo restano.
+    /// ⚠️ RISCRITTO A412 · SEGUITO 2 (18/10/2026): diceva «battito di Link a quantum 1». `linkBeat` è ora nella
+    /// numerazione della sessione (`DirectorRejoinDecision.sessionQuantum`), e il ponte lo legge con quel
+    /// quantum; `linkBeatQ1` è lo stesso battito nella numerazione a quantum 1 della decisione, solo per le
+    /// righe (il ponte come lo leggeva A412, accanto a quello nuovo).
+    private struct RejoinTarget {
+        let songIdx: Int
+        let section: Int
+        let bar: Int
+        let beatInSection: Int
+        let linkBeat: Double
+        let linkBeatQ1: Double
+        let quantum: Double
+        let mapTicks: UInt64
+        let bridgeTicks: UInt64
+        let trigger: String
+        let lateSkipsLeft: Int
+    }
+
+    /// Cosa fa `start()` dopo il coordinatore.
+    private enum CoordinatorStep {
+        /// Il ramo del rientro, col bersaglio.
+        case rejoin(RejoinTarget)
+        /// Resta muto: conto non certo, canzone finita (Stop armato), sessione ferma da altri (T6). Nessun avvio.
+        case stayMuted
+        /// Fuori dal coordinatore: il silenzio è chiuso e l'avvio prosegue come oggi.
+        case proceedAsToday
+    }
+
+    /// La regola di ogni crisi (`CrisisStopDecision`) dalle copie di coda, con la sua riga. Chiamare SOLO su
+    /// audioQueue, PRIMA di toccare `isRunning`. Una crisi che trova qualcosa da fermare (o il Direttore già
+    /// muto) ricorda la sua causa per le ripartenze (`RecoveryDecision`) e azzera «Stop voluto dopo la crisi».
+    private func crisisOutcomeQ(cause: CrisisCause) -> CrisisStopOutcome {
+        let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        let outcome = CrisisStopDecision.outcome(playerRole: role,
+                                                 cause: cause,
+                                                 showOpen: _showOpenQ,
+                                                 songInProgress: _songInProgressQ,
+                                                 engineRunning: isRunning,
+                                                 silentInSong: _directorSilentInSongQ)
+        if outcome != .nothing {
+            _crisisCauseQ = cause
+            _wantedStopSinceCrisisQ = false
+        }
+        os_log("[Q-BEATS][CRISI] decisione causa:%{public}@ ruolo:%{public}@ show:%d canzone:%d motore:%{public}@ muto:%d -> esito:%{public}@ stopALink:%d",
+               log: .default, type: .default,
+               cause.rawValue, role.rawValue, _showOpenQ ? 1 : 0, _songInProgressQ ? 1 : 0,
+               isRunning ? "in-moto" : "fermo", _directorSilentInSongQ ? 1 : 0, outcome.rawValue,
+               outcome.sendsStopToLink ? 1 : 0)
+        return outcome
+    }
+
+    /// Il Direttore entra nel silenzio in canzone, o ci resta a una crisi nuova: l'àncora del conteggio (se il
+    /// motore suona ancora) e lo stato; un rientro armato non vale più (l'ingresso lo annulla chi ferma). Chiamare
+    /// SOLO su audioQueue, PRIMA di `isRunning = false`: l'àncora prende l'ultimo battito contato già uscito. Il
+    /// tasto lo pubblica chi chiama, a stato finito (`publishDirectorSilenceQ`).
+    private func enterDirectorSilenceQ(cause: CrisisCause) {
+        if isRunning {
+            takeSilenceAnchorQ(cause: cause.rawValue)
+        }
+        _rejoinArmedQ = false
+        guard !_directorSilentInSongQ else {
+            os_log("[Q-BEATS][CRISI] Direttore gia' muto in canzone - causa nuova:%{public}@ - resta muto, ancora:%d",
+                   log: .default, type: .default, cause.rawValue, _silenceAnchorQ != nil ? 1 : 0)
+            return
+        }
+        _directorSilentInSongQ = true
+        _songEndNotSentLoggedQ = false
+        os_log("[Q-BEATS][CRISI] Direttore muto in canzone causa:%{public}@ songIdx:%d ancora:%d - nessuno Stop a Link, la canzone resta aperta",
+               log: .default, type: .default, cause.rawValue, _songMapSongIdxQ, _silenceAnchorQ != nil ? 1 : 0)
+    }
+
+    /// Il silenzio finisce (rientro, Stop di fine canzone, sessione ferma da altri, uscita dal coordinatore,
+    /// cambio di ruolo, levetta spenta, chiusura dello show; lo Stop voluto lo chiude in `stopSync`). Chiamare
+    /// SOLO su audioQueue.
+    private func leaveDirectorSilenceQ(reason: String, closeAnchor: Bool) {
+        if closeAnchor {
+            closeSilenceAnchorQ(reason: reason)
+        }
+        _songEndStopWorkQ?.cancel()
+        _songEndStopWorkQ = nil
+        _songEndStopPlannedTicksQ = nil
+        // A412 · SEGUITO 3 — col work item si ferma il timer dello Stop di fine canzone.
+        _songEndStopTimerQ.cancel()
+        guard _directorSilentInSongQ else { return }
+        _directorSilentInSongQ = false
+        _rejoinArmedQ = false
+        os_log("[Q-BEATS][CRISI] silenzio del Direttore finito motivo:%{public}@",
+               log: .default, type: .default, reason)
+        publishDirectorSilenceQ(context: "fine:\(reason)")
+    }
+
+    /// L'esito del tasto della fascia e del pedale playPause (`DirectorTransportDecision`) allo specchio
+    /// `directorSilence`, con la riga [DIR-TASTO] a ogni cambio. «Un rientro adesso è possibile» = il
+    /// coordinatore, letto adesso, dice «rientra» e nessun rientro è già armato. `plan`: il conto già letto da
+    /// chi chiama (il battito a 1 s), per non catturare due volte. Chiamare SOLO su audioQueue.
+    private func publishDirectorSilenceQ(context: String, plan: DirectorRejoinDecision.Plan? = nil) {
+        let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        var possible = false
+        if _directorSilentInSongQ && !_rejoinArmedQ {
+            let current = plan ?? currentRejoinPlanQ().plan
+            if case .rejoin = current.outcome { possible = true }
+        }
+        let interrupted = isAudioInterrupted
+        let lost = _mediaServicesQ == .servicesLost
+        let silence = DirectorTransportDecision.silence(playerRole: role,
+                                                        silentInSong: _directorSilentInSongQ,
+                                                        rejoinPossibleNow: possible,
+                                                        interruptionActive: interrupted,
+                                                        servicesLost: lost)
+        guard silence != _directorSilencePublishedQ else { return }
+        _directorSilencePublishedQ = silence
+        let reason = DirectorTransportDecision.reason(playerRole: role,
+                                                      silentInSong: _directorSilentInSongQ,
+                                                      rejoinPossibleNow: possible,
+                                                      interruptionActive: interrupted,
+                                                      servicesLost: lost)
+        let key: String = silence.map { $0.showsPlay ? "play" : "stop" } ?? "come-oggi"
+        os_log("[Q-BEATS][DIR-TASTO] tasto:%{public}@ tocco:%{public}@ motivo:%{public}@ rientroArmato:%d contesto:%{public}@ - fascia e pedale playPause",
+               log: .default, type: .default,
+               key, silence?.tap.rawValue ?? "-", reason?.rawValue ?? "-", _rejoinArmedQ ? 1 : 0, context)
+        DispatchQueue.main.async {
+            self.directorSilence = silence
+        }
+    }
+
+    /// Il coordinatore letto adesso (`DirectorRejoinDecision.coordinate`): una cattura di Link senza commit. Rende
+    /// anche la lettura della sessione e l'ora, per le righe. Chiamare SOLO su audioQueue.
+    /// A412 · SEGUITO 2 — conto e «stesso avvio» nella numerazione della sessione (`…QBig`); la cattura dà anche
+    /// i battiti a quantum 1, che restano per le righe.
+    private func currentRejoinPlanQ() -> (plan: DirectorRejoinDecision.Plan, read: LinkSessionReading, now: UInt64) {
         let now = mach_absolute_time()
         var read = LinkSessionReading()
         if let lh = linkEngineHandle {
             read = link_engine_read_session_at(lh, now, 1.0)
         }
-        let same = DirectorRejoinDecision.sameStart(anchorStartBeat: anchor.startBeatQ1,
-                                                    nowStartBeat: read.beatAtStartQ1)
+        let anchor = _silenceAnchorQ
+        let same: Bool = anchor.map {
+            DirectorRejoinDecision.sameStart(anchorStartBeat: $0.startBeatQBig, nowStartBeat: read.beatAtStartQBig)
+        } ?? false
         let windowSeconds = sampleRate > 0
             ? Double(AudioEngine.kRejoinSectionWindowBuffers * Int(bufferSize)) / sampleRate
             : 0
@@ -2745,51 +3111,749 @@ class AudioEngine: ObservableObject {
                                                          linkEnabled: read.linkEnabled,
                                                          sessionPlaying: read.isPlaying,
                                                          sameStart: same,
-                                                         nowLinkBeat: read.beatAtHostTime,
+                                                         nowLinkBeat: read.beatAtHostTimeQBig,
                                                          nowTicks: now,
                                                          ticksPerSecond: ticksPerSecond,
                                                          sessionTempo: read.tempo,
                                                          marginSeconds: AudioEngine.kRejoinMarginSeconds,
                                                          windowSeconds: windowSeconds)
+        return (DirectorRejoinDecision.coordinate(clock: anchor?.clock, situation: situation), read, now)
+    }
+
+    /// IL COORDINATORE (mandato §2.2). Chiamare SOLO su audioQueue: da `start()`, col Direttore muto in canzone,
+    /// dopo i rifiuti e la ricostruzione del reset; e dal fuoco del rientro in ritardo (il bersaglio dopo). La
+    /// decisione si scrive sempre; poi l'esito:
+    ///  · rientra: il bersaglio con l'ora della mappa e quella del ponte (`.rejoin`);
+    ///  · canzone finita: lo Stop di fine canzone, armato all'ora giusta (`scheduleDirectorSongEndStopQ`);
+    ///  · non certo: resta muto, nessuno Stop (D4 (a));
+    ///  · sessione ferma da altri (T6): il velo della stessa canzone, nessun avvio;
+    ///  · fuori dal coordinatore: il silenzio si chiude e l'avvio prosegue come oggi.
+    private func coordinateDirectorRejoinQ(trigger: String, resume: Bool, lateSkipsLeft: Int) -> CoordinatorStep {
+        let current = currentRejoinPlanQ()
+        let plan = current.plan
+        logCoordinatorDecisionQ(plan: plan, read: current.read, trigger: trigger, resume: resume)
+        switch plan.outcome {
+        case .rejoin(let section, let bar, let linkBeat):
+            guard let anchor = _silenceAnchorQ,
+                  section >= 0, section < anchor.clock.map.sections.count,
+                  section < anchor.sections.count else {
+                os_log("[Q-BEATS][DIR-RIENTRO] rientro non eseguito motivo:stato-mancante - resta muto, nessuno Stop a Link",
+                       log: .default, type: .default)
+                publishDirectorSilenceQ(context: "decisione", plan: plan)
+                return .stayMuted
+            }
+            let bpb = max(anchor.clock.map.sections[section].beatsPerBar, 1)
+            let beatInSection = (bar - 1) * bpb
+            guard let mapTicks = anchor.clock.ticks(section: section, beatInSection: beatInSection,
+                                                    ticksPerSecond: ticksPerSecond) else {
+                os_log("[Q-BEATS][DIR-RIENTRO] rientro non eseguito motivo:ora-della-mappa-mancante - resta muto, nessuno Stop a Link",
+                       log: .default, type: .default)
+                publishDirectorSilenceQ(context: "decisione", plan: plan)
+                return .stayMuted
+            }
+            // A412 · SEGUITO 2 — il ponte nella numerazione della sessione; accanto, per la riga, il ponte come lo
+            // leggeva A412 (lo stesso battito nella numerazione a quantum 1 di questa decisione, quantum 1).
+            let offset = DirectorRejoinDecision.deviceOffset(beatQuantumOne: current.read.beatAtHostTime,
+                                                             beatSession: current.read.beatAtHostTimeQBig)
+            let linkBeatQ1: Double = offset.map { linkBeat + $0 } ?? .nan
+            var bridgeTicks: UInt64 = 0
+            var bridgeTicksQ1: UInt64 = 0
+            if let lh = linkEngineHandle {
+                let time = link_engine_time_at_beat(lh, linkBeat, DirectorRejoinDecision.sessionQuantum)
+                if time.linkEnabled { bridgeTicks = time.hostTime }
+                if linkBeatQ1.isFinite {
+                    let timeQ1 = link_engine_time_at_beat(lh, linkBeatQ1, 1.0)
+                    if timeQ1.linkEnabled { bridgeTicksQ1 = timeQ1.hostTime }
+                }
+            }
+            let sectionBPM = anchor.clock.map.sections[section].bpm
+            let check = DirectorRejoinDecision.armingCheck(mapTicks: mapTicks, bridgeTicks: bridgeTicks,
+                                                           sectionBPM: sectionBPM,
+                                                           ticksPerSecond: ticksPerSecond)
+            let checkQ1 = DirectorRejoinDecision.armingCheck(mapTicks: mapTicks, bridgeTicks: bridgeTicksQ1,
+                                                             sectionBPM: sectionBPM,
+                                                             ticksPerSecond: ticksPerSecond)
+            logRejoinTargetQ(phase: "decisione", section: section, bar: bar, linkBeat: linkBeat, linkBeatQ1: linkBeatQ1,
+                             mapTicks: mapTicks, bridgeTicks: bridgeTicks, check: check,
+                             bridgeTicksQ1: bridgeTicksQ1, checkQ1: checkQ1, nowTicks: current.now)
+            return .rejoin(RejoinTarget(songIdx: anchor.songIdx, section: section, bar: bar,
+                                        beatInSection: beatInSection, linkBeat: linkBeat, linkBeatQ1: linkBeatQ1,
+                                        quantum: Double(bpb),
+                                        mapTicks: mapTicks, bridgeTicks: bridgeTicks, trigger: trigger,
+                                        lateSkipsLeft: lateSkipsLeft))
+        case .songEnded(let endLinkBeat, _):
+            scheduleDirectorSongEndStopQ(endLinkBeat: endLinkBeat, read: current.read, context: "decisione")
+            publishDirectorSilenceQ(context: "decisione", plan: plan)
+            return .stayMuted
+        case .uncertain:
+            os_log("[Q-BEATS][DIR-RIENTRO] resta muto - conto non certo, nessuno Stop a Link (D4 a); a fine pezzo serve lo Stop del batterista",
+                   log: .default, type: .default)
+            publishDirectorSilenceQ(context: "decisione", plan: plan)
+            return .stayMuted
+        case .sessionStoppedElsewhere:
+            applySessionStoppedElsewhereQ(context: "decisione")
+            return .stayMuted
+        case .notCoordinated:
+            os_log("[Q-BEATS][DIR-RIENTRO] fuori dal coordinatore - il silenzio finisce, l'avvio prosegue come oggi",
+                   log: .default, type: .default)
+            leaveDirectorSilenceQ(reason: "fuori-coordinatore", closeAnchor: true)
+            return .proceedAsToday
+        }
+    }
+
+    /// La riga della decisione del coordinatore: gli stessi campi della riga di A410, senza «SOLO REGISTRO» e con
+    /// l'innesco (chi ha chiesto l'avvio). Senza àncora, la riga corta. Chiamare SOLO su audioQueue.
+    private func logCoordinatorDecisionQ(plan: DirectorRejoinDecision.Plan, read: LinkSessionReading,
+                                         trigger: String, resume: Bool) {
+        guard let anchor = _silenceAnchorQ else {
+            os_log("[Q-BEATS][DIR-RIENTRO] decisione esito:%{public}@ innesco:%{public}@ ripresa:%d suona:%d link:%d tempoSessione:%.3f ancora:0",
+                   log: .default, type: .default,
+                   describe(plan.outcome), trigger, resume ? 1 : 0, read.isPlaying ? 1 : 0,
+                   read.linkEnabled ? 1 : 0, read.tempo)
+            return
+        }
         let clock = anchor.clock
-        let plan = DirectorRejoinDecision.plan(clock: clock, situation: situation)
+        // A412 · SEGUITO 2 — «stesso avvio» nella numerazione della sessione; la riga scrive i due avvii a quantum 1
+        // (com'era) e, accanto, i due nella numerazione della sessione.
+        let same = DirectorRejoinDecision.sameStart(anchorStartBeat: anchor.startBeatQBig,
+                                                    nowStartBeat: read.beatAtStartQBig)
         let beatsText: String = plan.reading.map { describe(place: $0.byLinkBeats.place, in: clock) } ?? "-"
         let secondsText: String = plan.reading.map { describe(place: $0.bySeconds.place, in: clock) } ?? "-"
         let gapText: String = plan.reading?.gapBeats.map { String(format: "%.4f", $0) } ?? "-"
         let rulersText: String = plan.reading.map { $0.certain ? "accordo" : "disaccordo" } ?? "-"
-        os_log("[Q-BEATS][DIR-RIENTRO] decisione esito:%{public}@ ripresa:%d suona:%d stessoAvvio:%d battitoAvvio:%.6f->%.6f oraAvvio:%llu->%llu battiti:%{public}@ secondi:%{public}@ scarto_battiti:%{public}@ righelli:%{public}@ finestra:%d stopProprio:%d link:%d tempoSessione:%.3f causa:%{public}@ dallAncora_s:%.1f - SOLO REGISTRO, l'avvio prosegue come oggi",
+        os_log("[Q-BEATS][DIR-RIENTRO] decisione esito:%{public}@ innesco:%{public}@ ripresa:%d suona:%d stessoAvvio:%d battitoAvvio:%.6f->%.6f battitoAvvioQ1e6:%.6f->%.6f oraAvvio:%llu->%llu battiti:%{public}@ secondi:%{public}@ scarto_battiti:%{public}@ righelli:%{public}@ finestra:%d link:%d tempoSessione:%.3f causa:%{public}@ dallAncora_s:%.1f",
                log: .default, type: .default,
-               describe(plan.outcome), resume ? 1 : 0, read.isPlaying ? 1 : 0, same ? 1 : 0,
-               anchor.startBeatQ1, read.beatAtStartQ1, anchor.startTicks, read.timeForIsPlaying,
+               describe(plan.outcome), trigger, resume ? 1 : 0, read.isPlaying ? 1 : 0, same ? 1 : 0,
+               anchor.startBeatQ1, read.beatAtStartQ1, anchor.startBeatQBig, read.beatAtStartQBig,
+               anchor.startTicks, read.timeForIsPlaying,
                beatsText, secondsText, gapText, rulersText, plan.windowShifts,
-               anchor.ownStopSent ? 1 : 0, read.linkEnabled ? 1 : 0, read.tempo,
-               anchor.cause, secondsSince(anchor.takenTicks))
-        switch plan.outcome {
-        case .rejoin(let section, let bar, let linkBeat):
-            var predicted: UInt64 = 0
-            if let lh = linkEngineHandle {
-                let time = link_engine_time_at_beat(lh, linkBeat, 1.0)
-                if time.linkEnabled { predicted = time.hostTime }
-            }
-            os_log("[Q-BEATS][DIR-RIENTRO] bersaglio sectionIdx:%d battuta:%d battitoLink:%.0f oraPrevista:%llu margine_ms:%.1f",
-                   log: .default, type: .default,
-                   section, bar, linkBeat, predicted,
-                   predicted > 0 ? signedMilliseconds(from: now, to: predicted) : 0.0)
-        case .songEnded(let endLinkBeat, let alreadyOver):
-            var bridgeTime: UInt64 = 0
-            if let lh = linkEngineHandle {
-                let time = link_engine_time_at_beat(lh, endLinkBeat, 1.0)
-                if time.linkEnabled { bridgeTime = time.hostTime }
-            }
-            let mapTime: UInt64 = clock.endTicks(ticksPerSecond: ticksPerSecond) ?? 0
-            os_log("[Q-BEATS][DIR-RIENTRO] fine canzone battitoLink:%.0f giaFinita:%d oraPonte:%llu oraMappa:%llu daAdesso_ms:%.1f",
-                   log: .default, type: .default,
-                   endLinkBeat, alreadyOver ? 1 : 0, bridgeTime, mapTime,
-                   bridgeTime > 0 ? signedMilliseconds(from: now, to: bridgeTime) : 0.0)
-        default:
-            break
+               read.linkEnabled ? 1 : 0, read.tempo, anchor.cause, secondsSince(anchor.takenTicks))
+    }
+
+    /// La riga del bersaglio, alla decisione e all'armamento (mandato §2.9): l'ora della mappa, quella del ponte,
+    /// lo scarto in millisecondi e in battiti al tempo della sezione d'arrivo, l'accordo (1/8 di battito, T2; alla
+    /// decisione solo registro: il ponte non conosce i cambi di tempo davanti).
+    /// A412 · SEGUITO 2 — `battitoLink` resta il battito nella numerazione a quantum 1 della decisione (com'era);
+    /// accanto `battitoLinkQ1e6`, quello nella numerazione della sessione che il ponte legge e l'accordo usa. In
+    /// coda il ponte come lo leggeva A412 (`oraPonteQ1`, `mappaMenoPonteQ1_ms`: lo stesso battito a quantum 1),
+    /// solo per vedere le due cose insieme: non decide niente.
+    private func logRejoinTargetQ(phase: String, section: Int, bar: Int, linkBeat: Double, linkBeatQ1: Double,
+                                  mapTicks: UInt64, bridgeTicks: UInt64,
+                                  check: DirectorRejoinDecision.ArmingCheck,
+                                  bridgeTicksQ1: UInt64, checkQ1: DirectorRejoinDecision.ArmingCheck,
+                                  nowTicks: UInt64) {
+        let gapMs: String = check.gapSeconds.map { String(format: "%.1f", $0 * 1000.0) } ?? "-"
+        let gapBeats: String = check.gapBeats.map { String(format: "%.4f", $0) } ?? "-"
+        let gapMsQ1: String = checkQ1.gapSeconds.map { String(format: "%.1f", $0 * 1000.0) } ?? "-"
+        let linkBeatQ1Text: String = linkBeatQ1.isFinite ? String(format: "%.0f", linkBeatQ1) : "-"
+        os_log("[Q-BEATS][DIR-RIENTRO] bersaglio fase:%{public}@ sectionIdx:%d battuta:%d battitoLink:%{public}@ battitoLinkQ1e6:%.0f oraMappa:%llu oraPonte:%llu mappaMenoPonte_ms:%{public}@ scarto_battiti:%{public}@ accordo:%d daAdesso_ms:%.1f oraPonteQ1:%llu mappaMenoPonteQ1_ms:%{public}@",
+               log: .default, type: .default,
+               phase, section, bar, linkBeatQ1Text, linkBeat, mapTicks, bridgeTicks, gapMs, gapBeats,
+               check.agree ? 1 : 0, signedMilliseconds(from: nowTicks, to: mapTicks), bridgeTicksQ1, gapMsQ1)
+    }
+
+    /// T6 — la sessione Link non suona più: il Direttore resta muto sul velo della stessa canzone, con una riga,
+    /// e non avvia niente (`.rearmSame` alla stanza). Niente riparte da solo dopo. Chiamare SOLO su audioQueue,
+    /// a motore fermo.
+    private func applySessionStoppedElsewhereQ(context: String) {
+        os_log("[Q-BEATS][DIR-RIENTRO] sessione ferma da altri - il Direttore resta muto sul velo della stessa canzone, nessun avvio (T6) contesto:%{public}@",
+               log: .default, type: .default, context)
+        _songInProgressQ = false
+        _wantedStopSinceCrisisQ = true
+        if pendingResume || isAudioInterrupted {
+            clearPendingResumeQ(reason: "sessione-ferma")
         }
+        DispatchQueue.main.async {
+            self.directorRunnerActionSubject.send(.rearmSame)
+            self.playbackState = .stopped
+        }
+        leaveDirectorSilenceQ(reason: "sessione-ferma", closeAnchor: true)
+    }
+
+    /// L'ARMAMENTO DEL RIENTRO, dal ramo col bersaglio di `armSharedJoin` (T3). Il blocco che arma il primo
+    /// buffer gira 150 ms prima dell'ora d'uscita del bersaglio (A376 P9, scelta T5): il work item nasce con la
+    /// generazione dell'ingresso, come quello del Follower, e un arresto o un ingresso nuovo lo scartano. Il
+    /// contatore e il LED si spengono durante l'attesa (`isWaitingForLinkDownbeat`, i pezzi di oggi). Chiamare
+    /// SOLO su audioQueue.
+    private func armDirectorRejoinQ(_ target: RejoinTarget, generation: Int) {
+        let armAt = DirectorRejoinDecision.armingTicks(targetOutputTicks: target.mapTicks,
+                                                       marginSeconds: AudioEngine.kRejoinMarginSeconds,
+                                                       ticksPerSecond: ticksPerSecond)
+        let now = mach_absolute_time()
+        let delaySeconds = armAt > now ? machTicksToSeconds(armAt - now) : 0
+        _rejoinArmedQ = true
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = true
+        }
+        // A412 · SEGUITO 2 — `battitoLink` a quantum 1 della decisione (com'era), accanto quello della sessione.
+        let linkBeatQ1Text: String = target.linkBeatQ1.isFinite ? String(format: "%.0f", target.linkBeatQ1) : "-"
+        // A412 · SEGUITO 3 — in coda il timer dell'attesa: `timer:stretto leeway_ms:1` (`StrictOneShotTimer`).
+        os_log("[Q-BEATS][DIR-RIENTRO] armato sectionIdx:%d battuta:%d battitoLink:%{public}@ battitoLinkQ1e6:%.0f oraMappa:%llu armamento:%llu attesa_s:%.3f generazione:%d salti:%d innesco:%{public}@ timer:stretto leeway_ms:%d",
+               log: .default, type: .default,
+               target.section, target.bar, linkBeatQ1Text, target.linkBeat, target.mapTicks, armAt, delaySeconds,
+               generation, target.lateSkipsLeft, target.trigger, StrictOneShotTimer.leewayMilliseconds)
+        let work = DispatchWorkItem { [weak self] in
+            self?.fireDirectorRejoinQ(target, generation: generation, armedFor: armAt)
+        }
+        pendingLinkStart = work
+        // A412 · SEGUITO 3 — l'attesa sul timer all'ora chiesta (`StrictOneShotTimer`: colpo singolo, `.strict`, margine
+        // di 1 ms) e non più su `asyncAfter`, che lascia al sistema un margine che cresce con l'attesa (al collaudo
+        // dell'IPA #776, 135,7 ms su 3,538 s: il fuoco in ritardo e il rientro due battute dopo). Stesso work item,
+        // stessa coda; un armamento nuovo, anche dal fuoco in ritardo, annulla quello di prima.
+        _rejoinArmTimerQ.arm(afterSeconds: delaySeconds, work: work)
+        publishDirectorSilenceQ(context: "rientro-armato")
+    }
+
+    /// IL FUOCO DEL RIENTRO. Chiamare SOLO su audioQueue, dal work item di `armDirectorRejoinQ`. Nell'ordine:
+    ///  1. il fuoco vale solo se è l'ultimo armato e il motore è in moto (come l'ingresso del Follower);
+    ///  2. mappa e ponte si rileggono (T2): oltre 1/8 di battito al tempo della sezione d'arrivo, non certo; la
+    ///     sessione deve suonare (altrimenti T6) e avere lo stesso avvio;
+    ///  3. in ritardo sul bersaglio (LIBRO 2026-09-20 «MOTORE IN RITARDO SUL BERSAGLIO: SI SALTA AL BERSAGLIO
+    ///     SUCCESSIVO»): il coordinatore rifà il conto e si arma il bersaglio dopo, fino a `maxLateSkips` volte;
+    ///  4. la sezione d'arrivo, come la carica il runner all'avvio di una sezione (battiti per battuta, accenti,
+    ///     suddivisione, battute, tempo; la successiva precaricata) ma senza W1; il contatore seminato a
+    ///     (battuta − 1) × battiti per battuta; metronomo e MIDI al battito di Link del bersaglio;
+    ///  5. il primo buffer della scorta muta all'ora chiesta al lettore (`scheduleBuffer(_:at:)`, T5), gli altri come
+    ///     oggi; il motore parte dal seme della scorta e l'«uno» esce dopo, dove la prima correzione di fase lo tiene;
+    ///     da qui il Direttore segue Link (T4). Il runner va alla sezione d'arrivo senza avvio (`.rejoin`).
+    ///     ⚠️ RISCRITTO A412 · SEGUITO 2 (2/2) (18/10/2026). Il testo di prima diceva «5. il primo buffer all'ora
+    ///     chiesta al lettore (`scheduleBuffer(_:at:)`, T5), gli altri come oggi; da qui il Direttore segue Link (T4).
+    ///     Il runner va alla sezione d'arrivo senza avvio (`.rejoin`).»: il primo buffer era quello del bersaglio, e il
+    ///     primo click usciva 26-31 ms prima della griglia che la correzione tiene dal quarto buffer.
+    /// Nessuna scrittura su Link: niente battito zero, ripresa, «si suona», W1, W4, fase d'avvio.
+    private func fireDirectorRejoinQ(_ target: RejoinTarget, generation: Int, armedFor: UInt64) {
+        let firedAt = mach_absolute_time()
+        guard generation == joinGeneration, isRunning else {
+            os_log("[Q-BEATS][DIR-RIENTRO] fuoco scartato - generazione:%d attuale:%d motore:%{public}@",
+                   log: .default, type: .default,
+                   generation, joinGeneration, isRunning ? "in moto" : "fermo")
+            return
+        }
+        pendingLinkStart = nil
+        // A412 · SEGUITO 3 — il timer si è già rilasciato allo scatto, prima di questo lavoro (`StrictOneShotTimer`):
+        // qui non c'è niente da fermare, la riga lo rende esplicito.
+        _rejoinArmTimerQ.cancel()
+        guard _directorSilentInSongQ, let anchor = _silenceAnchorQ, let lh = linkEngineHandle,
+              let h = metronomeHandle, let mh = midiEngineHandle,
+              target.section >= 0, target.section < anchor.sections.count,
+              target.section < anchor.clock.map.sections.count else {
+            stopRejoinEngineQ(reason: "stato-mancante")
+            return
+        }
+        let tps = ticksPerSecond
+        let arrival = anchor.sections[target.section]
+        let bpb: UInt32 = max(arrival.beatsPerBar, 1)
+
+        // 2. Mappa e ponte all'armamento, e la sessione all'ora del bersaglio.
+        // A412 · SEGUITO 2 — il ponte nella numerazione della sessione; accanto, per la riga, il ponte come lo
+        // leggeva A412 (il battito a quantum 1 della decisione, quantum 1): non decide niente.
+        let mapTicks = anchor.clock.ticks(section: target.section, beatInSection: target.beatInSection,
+                                          ticksPerSecond: tps)
+        let time = link_engine_time_at_beat(lh, target.linkBeat, DirectorRejoinDecision.sessionQuantum)
+        let bridgeTicks: UInt64 = time.linkEnabled ? time.hostTime : 0
+        var bridgeTicksQ1: UInt64 = 0
+        if target.linkBeatQ1.isFinite {
+            let timeQ1 = link_engine_time_at_beat(lh, target.linkBeatQ1, 1.0)
+            if timeQ1.linkEnabled { bridgeTicksQ1 = timeQ1.hostTime }
+        }
+        let sectionBPM = anchor.clock.map.sections[target.section].bpm
+        let check = DirectorRejoinDecision.armingCheck(mapTicks: mapTicks, bridgeTicks: bridgeTicks,
+                                                       sectionBPM: sectionBPM,
+                                                       ticksPerSecond: tps)
+        let checkQ1 = DirectorRejoinDecision.armingCheck(mapTicks: mapTicks, bridgeTicks: bridgeTicksQ1,
+                                                         sectionBPM: sectionBPM,
+                                                         ticksPerSecond: tps)
+        logRejoinTargetQ(phase: "armamento", section: target.section, bar: target.bar, linkBeat: target.linkBeat,
+                         linkBeatQ1: target.linkBeatQ1, mapTicks: mapTicks ?? 0, bridgeTicks: bridgeTicks, check: check,
+                         bridgeTicksQ1: bridgeTicksQ1, checkQ1: checkQ1, nowTicks: firedAt)
+        guard check.agree, let targetTicks = mapTicks else {
+            stopRejoinEngineQ(reason: "non-certo(\(describe(DirectorRejoinDecision.Uncertain.mapBridgeDisagree)))")
+            return
+        }
+        let session = link_engine_read_session_at(lh, targetTicks, target.quantum)
+        guard session.linkEnabled else {
+            stopRejoinEngineQ(reason: "non-certo(\(describe(DirectorRejoinDecision.Uncertain.linkOff)))")
+            return
+        }
+        guard session.isPlaying else {
+            stopRejoinEngineQ(reason: "sessione-ferma")
+            applySessionStoppedElsewhereQ(context: "armamento")
+            return
+        }
+        // A412 · SEGUITO 2 — «stesso avvio» nella numerazione della sessione (il battito che semina il motore,
+        // `session.beatAtHostTime`, resta col quantum della sezione d'arrivo).
+        guard DirectorRejoinDecision.sameStart(anchorStartBeat: anchor.startBeatQBig,
+                                               nowStartBeat: session.beatAtStartQBig) else {
+            stopRejoinEngineQ(reason: "non-certo(\(describe(DirectorRejoinDecision.Uncertain.startChanged)))")
+            return
+        }
+
+        // 3. In ritardo?
+        // A412 · SEGUITO 2 (2/2) — prima la scorta muta (mandato «A412 · SEGUITO 2 (2/2)», par. 2): quanti buffer muti,
+        // l'ora vera del primo (quello chiesto al lettore) e il seme del motore (`DirectorRejoinDecision.leadIn`). Il
+        // controllo «in ritardo» guarda l'ora del primo buffer muto (par. 2.3). Se la scorta non si può fare, il rientro
+        // entra come prima, col primo buffer all'ora del bersaglio, con una riga.
+        let unoBeat = session.beatAtHostTime
+        let ioSeconds = machTicksToSeconds(bufferDurationTicks)
+        let leadIn = DirectorRejoinDecision.leadIn(targetOutputTicks: targetTicks,
+                                                   outputLatencyTicks: outputLatencyTicks,
+                                                   unoBeat: unoBeat, bpm: arrival.bpm,
+                                                   bufferFrames: Int(bufferSize), sampleRate: sampleRate,
+                                                   ioBufferSeconds: ioSeconds, ticksPerSecond: tps)
+        let renderTicks = leadIn?.firstBufferRenderTicks
+            ?? DirectorRejoinDecision.firstBufferRenderTicks(targetOutputTicks: targetTicks,
+                                                             outputLatencyTicks: outputLatencyTicks)
+        let firstOutputTicks = leadIn?.firstBufferOutputTicks ?? targetTicks
+        if leadIn == nil {
+            os_log("[Q-BEATS][DIR-RIENTRO] scorta non possibile - battitoUno:%.4f tempo:%.1f io_ms:%.2f - primo buffer all'ora del bersaglio, come prima",
+                   log: .default, type: .default, unoBeat, arrival.bpm, ioSeconds * 1000.0)
+        }
+        let checkedAt = mach_absolute_time()
+        if DirectorRejoinDecision.isLate(nowTicks: checkedAt, renderTicks: renderTicks,
+                                         minLeadTicks: secondsToMachTicks(DirectorRejoinDecision.minLeadSeconds)) {
+            os_log("[Q-BEATS][DIR-RIENTRO] fuoco in ritardo sul bersaglio oraRender:%llu adesso:%llu anticipo_ms:%.1f minimo_ms:%.1f salti:%d",
+                   log: .default, type: .default,
+                   renderTicks, checkedAt, signedMilliseconds(from: checkedAt, to: renderTicks),
+                   DirectorRejoinDecision.minLeadSeconds * 1000.0, target.lateSkipsLeft)
+            guard target.lateSkipsLeft > 0 else {
+                stopRejoinEngineQ(reason: "non-certo(\(describe(DirectorRejoinDecision.Uncertain.lateTooManyTimes)))")
+                return
+            }
+            switch coordinateDirectorRejoinQ(trigger: "ritardo", resume: false, lateSkipsLeft: target.lateSkipsLeft - 1) {
+            case .rejoin(let next):
+                armSharedJoin(retriesLeft: 0, rejoin: next)
+            case .stayMuted:
+                stopRejoinEngineQ(reason: "ritardo")
+            case .proceedAsToday:
+                stopRejoinEngineQ(reason: "ritardo-fuori-coordinatore")
+            }
+            return
+        }
+
+        // 4. La sezione d'arrivo (passi 1-4 del runner e il precarico, senza W1).
+        let closure = _songSectionEndClosureQ
+        metronome_cancel_pending_bpm(h)
+        metronome_cancel_pending_bpb(h)
+        metronome_cancel_pending_subdivision(h)
+        _pendingBPMValue = nil
+        _pendingBPMTargetTick = 0
+        _pendingNextBPM = nil
+        _pendingNextBPB = nil
+        _pendingNextAccentPattern = nil
+        _pendingNextSectionTotalBeats = nil
+        _pendingNextOnSectionEnd = nil
+        _pendingNextRepetitions = nil
+        _pendingNextSubdivisionMultiplier = nil
+        _pendingNextSwingRatio = nil
+        _sectionEndPending = false
+        _pendingEndClosure = nil
+        metronome_setBPM(h, arrival.bpm)
+        metronome_setBeatsPerBar(h, bpb)
+        let dspPattern: [UInt8] = arrival.accentPattern.map { $0 == 2 ? UInt8(1) : UInt8(0) }
+        dspPattern.withUnsafeBufferPointer { ptr in
+            metronome_setAccentPattern(h, ptr.baseAddress, UInt32(dspPattern.count))
+        }
+        metronome_setSubdivision(h, arrival.subdivisionMultiplier, arrival.swingRatio)
+        _audioBPM = arrival.bpm
+        _engineTempoQ = arrival.bpm
+        _linkTempoAdoptedQ = nil
+        _ownTimelineQ = nil
+        _beatsPerBarQ = bpb
+        link_engine_set_quantum(lh, target.quantum)
+        let totalBeats = arrival.repetitions > 0 ? arrival.repetitions * Int(bpb) : 0
+        let seed = (target.bar - 1) * Int(bpb)
+        _sectionTotalBeats = totalBeats
+        _onSectionEnd = totalBeats > 0 ? closure : nil
+        if totalBeats > 0 && seed >= 0 && seed < totalBeats {
+            _sectionBeatCounter = seed
+            startBeatOffset = seed
+        } else {
+            _sectionBeatCounter = 0
+            startBeatOffset = 0
+        }
+        _songMapSectionQ = target.section
+        if target.section + 1 < anchor.sections.count, let closure {
+            let following = anchor.sections[target.section + 1]
+            _pendingNextBPM = following.bpm
+            _pendingNextBPB = following.beatsPerBar
+            _pendingNextAccentPattern = following.accentPattern
+            _pendingNextSectionTotalBeats = following.repetitions * Int(following.beatsPerBar)
+            _pendingNextOnSectionEnd = closure
+            _pendingNextRepetitions = following.repetitions
+            _pendingNextSubdivisionMultiplier = following.subdivisionMultiplier
+            _pendingNextSwingRatio = following.swingRatio
+        }
+        // Le posizioni: il battito di Link all'ora del bersaglio, col quantum della sezione d'arrivo, è l'«uno»,
+        // l'origine dei click (`metronome_reset_for_start`: battito 0 della battuta, quindi accentato).
+        // ⚠️ RISCRITTO A412 · SEGUITO 2 (2/2) (18/10/2026). Il testo di prima diceva «Il primo campione del primo
+        // buffer è quel battito, ed è un «uno» (`metronome_reset_for_start`).»: con la scorta il primo campione è
+        // l'«uno» meno la scorta. `metronome_set_beat_position_time_only`, la chiamata della correzione di fase,
+        // sposta indietro la sola linea a campioni e lascia l'«uno» come battito pendente; il MIDI parte dallo stesso
+        // seme. Senza scorta, metronomo e MIDI partono dall'«uno» come prima.
+        let startBeat = unoBeat
+        metronome_reset_for_start(h, startBeat)
+        let seedBeat = leadIn?.seedBeat ?? startBeat
+        if leadIn != nil {
+            metronome_set_beat_position_time_only(h, seedBeat)
+        }
+        midi_engine_set_bpm(mh, arrival.bpm)
+        midi_engine_sync_clock(mh, 0, mach_absolute_time(), sampleRate)
+        midi_engine_set_beat_position(mh, seedBeat)
+        _startAbsoluteBeat = startBeat
+
+        // 5. Il primo buffer all'ora chiesta, poi i due di sempre; il runner e gli specchi su main.
+        // A412 · SEGUITO 2 (2/2) — il primo buffer è il primo della scorta (muto); la scorta resta viva fino all'«uno»
+        // (`_rejoinLeadInQ`: correzioni, MIDI, silenzio, riga del primo click).
+        linkSyncSkipBuffers = DirectorRejoinDecision.uncorrectedFireBuffers
+        _directorFollowsLinkQ = true
+        _anchoredFirstBufferQ = AVAudioTime(hostTime: renderTicks)
+        _anchoredOutputTicksQ = firstOutputTicks
+        _anchoredPreRollLeftQ = 3
+        _rejoinLeadInQ = leadIn.map {
+            RejoinLeadIn(plan: $0, targetTicks: targetTicks,
+                         bufferBeats: Double(bufferSize) / sampleRate * arrival.bpm / 60.0)
+        }
+        let songIdx = target.songIdx
+        let sectionIdx = target.section
+        let pattern = arrival.accentPattern
+        let repetitions = arrival.repetitions
+        let bpm = arrival.bpm
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = false
+            self.directorRunnerActionSubject.send(.rejoin(songIdx: songIdx, sectionIdx: sectionIdx))
+            // Come il ramo SEAMLESS (passo h): il DSP ha già la misura, il `didSet` non la rimanda.
+            self._suppressBeatsPerBarDidSet = true
+            self.beatsPerBar = bpb
+            self.currentAccentPattern = pattern
+            self.currentSectionRepetitions = repetitions
+            self.currentBPM = bpm
+        }
+        scheduleNextBuffer()
+        scheduleNextBuffer()
+        scheduleNextBuffer()
+        let scheduledAt = mach_absolute_time()
+        _rejoinArmedQ = false
+        leaveDirectorSilenceQ(reason: "rientro", closeAnchor: true)
+        // A412 · SEGUITO 2 (2/2) — in coda la scorta: buffer muti, ora d'uscita del primo, seme del motore. `oraRender` e
+        // `anticipo_ms` sono quelli del primo buffer muto (l'ora chiesta al lettore); `oraUscita` resta quella dell'«uno».
+        os_log("[Q-BEATS][DIR-RIENTRO] fuoco esito:ingresso innesco:%{public}@ sectionIdx:%d battuta:%d seme:%d battitoLink:%.4f oraUscita:%llu oraRender:%llu armamentoPrevisto:%llu armamentoVero:%llu ritardo_ms:%.3f anticipo_ms:%.1f latenza_ms:%.1f generazione:%d salti:%d scorta:%d oraUscitaScorta:%llu semeMotore:%.4f",
+               log: .default, type: .default,
+               target.trigger, target.section, target.bar, seed, startBeat, targetTicks, renderTicks,
+               armedFor, firedAt, signedMilliseconds(from: armedFor, to: firedAt),
+               signedMilliseconds(from: scheduledAt, to: renderTicks),
+               machTicksToSeconds(outputLatencyTicks) * 1000.0, generation, target.lateSkipsLeft,
+               leadIn?.buffers ?? 0, firstOutputTicks, seedBeat)
+        os_log("[Q-BEATS][DIR-RIENTRO] segue Link - correzione di fase come il Follower al posto dell'assert, fino all'avvio dopo (T4); il richiamo del tempo non rilancia _audioBPM; W2 del Direttore ai confini com'e'",
+               log: .default, type: .default)
+    }
+
+    /// Il rientro non parte (stato mancante, non certo all'armamento, troppi ritardi, sessione ferma): il motore
+    /// acceso per il rientro si ferma in locale e il Direttore resta muto (il tasto si ricalcola). Nessuno Stop a
+    /// Link. Chiamare SOLO su audioQueue.
+    private func stopRejoinEngineQ(reason: String) {
+        _rejoinArmedQ = false
+        _anchoredFirstBufferQ = nil
+        _anchoredPreRollLeftQ = 0
+        _rejoinLeadInQ = nil
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = false
+        }
+        var stopped = false
+        if isRunning {
+            isRunning = false
+            playerNode.stop()
+            engine.stop()
+            stopped = true
+            DispatchQueue.main.async {
+                self.isPlaying = false
+            }
+        }
+        os_log("[Q-BEATS][DIR-RIENTRO] rientro non eseguito motivo:%{public}@ motore:%{public}@ muto:%d - nessuno Stop a Link",
+               log: .default, type: .default,
+               reason, stopped ? "fermato" : "gia-fermo", _directorSilentInSongQ ? 1 : 0)
+        if _directorSilentInSongQ {
+            publishDirectorSilenceQ(context: "rientro-non-eseguito")
+        }
+    }
+
+    /// Il primo buffer del rientro è stato consumato dal lettore: l'ora chiesta e l'ultimo ciclo di rendering
+    /// che Apple dà (`lastRenderTime`), per vedere nel registro se l'ancoraggio è stato rispettato (un buffer
+    /// suonato subito avrebbe l'ultimo ciclo ben prima dell'ora chiesta). Chiamare SOLO su audioQueue.
+    private func anchoredBufferConsumedQ(requestedRenderTicks: UInt64) {
+        var lastText = "non-valida"
+        var gapText = "-"
+        if let renderTime = playerNode.lastRenderTime, renderTime.isHostTimeValid {
+            lastText = String(renderTime.hostTime)
+            gapText = String(format: "%.1f", signedMilliseconds(from: requestedRenderTicks, to: renderTime.hostTime))
+        }
+        os_log("[Q-BEATS][DIR-RIENTRO] primo buffer consumato oraChiesta:%llu ultimoRender:%{public}@ ultimoRenderMenoChiesta_ms:%{public}@ buffer_ms:%.1f - ancorato con scheduleBuffer(at:)",
+               log: .default, type: .default,
+               requestedRenderTicks, lastText, gapText, Double(bufferSize) / max(sampleRate, 1) * 1000.0)
+    }
+
+    /// A412 · SEGUITO 2 (2/2) — IL PRIMO CLICK DEL RIENTRO, DOPO LA SCORTA MUTA (mandato «A412 · SEGUITO 2 (2/2)», par.
+    /// 2.5). Chiamare SOLO su audioQueue, dal ciclo degli eventi di `scheduleNextBuffer`, al primo battito dopo il fuoco
+    /// (l'«uno»), prima del suo conteggio. La riga: i buffer della scorta (previsti, e quelli passati davvero prima del
+    /// click), la correzione fatta prima del click (in battiti, e quante), il battito dell'«uno» secondo il motore e
+    /// quello del piano, l'ora d'uscita dell'«uno» secondo il motore (la convenzione d'ora della correzione: l'ora del
+    /// buffer più lo scostamento) e quella della catena ancorata (l'ora del primo buffer muto più i campioni passati),
+    /// tutte e due anche come scarto dall'ora del bersaglio. La riga [LINK] Phase sync della prima correzione viene
+    /// prima di questa. Poi la scorta finisce e le correzioni di regime ripartono col buffer dopo.
+    private func noteRejoinFirstClickQ(offset: Int) {
+        guard let lead = _rejoinLeadInQ else { return }
+        _rejoinLeadInQ = nil
+        var beatNow = Double.nan
+        if let mh = midiEngineHandle {
+            beatNow = midi_engine_get_beat_position(mh) + Double(offset) / Double(bufferSize) * lead.bufferBeats
+        }
+        let engineOutTicks = _bufferOutTicksQ + secondsToMachTicks(Double(offset) / sampleRate)
+        let samplesSinceFirst = Double(bufferCount - 1) * Double(bufferSize) + Double(offset)
+        let chainTicks = ShowClock.ticks(lead.plan.firstBufferOutputTicks, plusSeconds: samplesSinceFirst / sampleRate,
+                                         ticksPerSecond: ticksPerSecond)
+        os_log("[Q-BEATS][DIR-RIENTRO] primo click scorta:%d bufferMuti:%d correzionePrimaDelClick:%.4f correzioni:%d battitoUno:%.4f uno:%.4f oraUscitaUno:%llu oraBersaglio:%llu motoreMenoBersaglio_ms:%.1f oraCatena:%llu catenaMenoBersaglio_ms:%.1f",
+               log: .default, type: .default,
+               lead.plan.buffers, bufferCount - 1, lead.correctionBeats, lead.corrections, beatNow, lead.plan.unoBeat,
+               engineOutTicks, lead.targetTicks, signedMilliseconds(from: lead.targetTicks, to: engineOutTicks),
+               chainTicks, signedMilliseconds(from: lead.targetTicks, to: chainTicks))
+    }
+
+    /// Al battito a 1 s col Direttore muto in canzone: il tasto (dipende dal conto di adesso) e lo Stop di fine
+    /// canzone (mandato §2.3). Scelta: il battito a 1 s ARMA un timer unico all'ora giusta, e lo riarma a ogni
+    /// battito finché l'ora si sposta (nell'ultima sezione l'ora del ponte non ha più cambi di tempo davanti):
+    /// col solo battito lo Stop uscirebbe fino a un secondo in ritardo. Chiamare SOLO su audioQueue.
+    private func directorSilenceSecondQ() {
+        let current = currentRejoinPlanQ()
+        publishDirectorSilenceQ(context: "al-secondo", plan: current.plan)
+        guard !_rejoinArmedQ, !isRunning else { return }
+        if case .songEnded(let endLinkBeat, _) = current.plan.outcome {
+            scheduleDirectorSongEndStopQ(endLinkBeat: endLinkBeat, read: current.read, context: "al-secondo")
+        } else {
+            noteSongEndNotSentQ(plan: current.plan, nowTicks: current.now)
+        }
+    }
+
+    /// La riga «Stop di fine canzone NON inviato», una volta per silenzio, quando il conto non è certo e la canzone
+    /// sarebbe finita secondo la mappa (senza àncora: subito). D4 (a): nessuno Stop automatico, a fine pezzo il
+    /// batterista preme Stop. Chiamare SOLO su audioQueue.
+    private func noteSongEndNotSentQ(plan: DirectorRejoinDecision.Plan, nowTicks: UInt64) {
+        guard !_songEndNotSentLoggedQ, case .uncertain(let why) = plan.outcome else { return }
+        let mapEnd: UInt64? = _silenceAnchorQ?.clock.endTicks(ticksPerSecond: ticksPerSecond)
+        if let mapEnd, nowTicks < mapEnd { return }
+        _songEndNotSentLoggedQ = true
+        os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop NON inviato motivo:non-certo(%{public}@) oraMappa:%llu adesso:%llu - serve lo Stop del batterista",
+               log: .default, type: .default, describe(why), mapEnd ?? 0, nowTicks)
+    }
+
+    /// LO STOP DI FINE CANZONE (mandato §2.3, D1): armato all'ora più tarda fra quella della mappa e quella del
+    /// ponte, più 1/8 di battito al tempo dell'ultima sezione (`DirectorRejoinDecision.songEndStopTicks`): mai
+    /// prima che la band abbia finito. Si riarma solo se l'ora si sposta di 5 ms o più. Chiamare SOLO su
+    /// audioQueue, col conto certo (l'esito «canzone finita» del coordinatore).
+    /// A412 · SEGUITO 2 — `endLinkBeat` è nella numerazione della sessione e il ponte lo legge con quel quantum;
+    /// `read` (la cattura del coordinatore) serve solo alla riga, per scrivere lo stesso battito a quantum 1.
+    private func scheduleDirectorSongEndStopQ(endLinkBeat: Double, read: LinkSessionReading, context: String) {
+        guard let anchor = _silenceAnchorQ else { return }
+        let tps = ticksPerSecond
+        let mapEnd = anchor.clock.endTicks(ticksPerSecond: tps)
+        var bridgeEnd: UInt64 = 0
+        if let lh = linkEngineHandle {
+            let time = link_engine_time_at_beat(lh, endLinkBeat, DirectorRejoinDecision.sessionQuantum)
+            if time.linkEnabled { bridgeEnd = time.hostTime }
+        }
+        let offset = DirectorRejoinDecision.deviceOffset(beatQuantumOne: read.beatAtHostTime,
+                                                         beatSession: read.beatAtHostTimeQBig)
+        let endQ1Text: String = offset.map { String(format: "%.0f", endLinkBeat + $0) } ?? "-"
+        let lastBPM = anchor.clock.map.sections.last?.bpm ?? 0
+        let now = mach_absolute_time()
+        guard let sendAt = DirectorRejoinDecision.songEndStopTicks(mapEndTicks: mapEnd, bridgeEndTicks: bridgeEnd,
+                                                                   lastSectionBPM: lastBPM, ticksPerSecond: tps) else {
+            if !_songEndNotSentLoggedQ {
+                _songEndNotSentLoggedQ = true
+                os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop NON inviato motivo:ore-mancanti oraMappa:%llu oraPonte:%llu adesso:%llu - serve lo Stop del batterista",
+                       log: .default, type: .default, mapEnd ?? 0, bridgeEnd, now)
+            }
+            return
+        }
+        if _songEndStopWorkQ != nil, let planned = _songEndStopPlannedTicksQ,
+           abs(signedMilliseconds(from: planned, to: sendAt)) < 5.0 {
+            return
+        }
+        _songEndStopWorkQ?.cancel()
+        // A412 · SEGUITO 3 — col work item si ferma il timer (lo farebbe anche `arm` qui sotto).
+        _songEndStopTimerQ.cancel()
+        let delaySeconds = sendAt > now ? machTicksToSeconds(sendAt - now) : 0
+        let work = DispatchWorkItem { [weak self] in
+            self?.fireDirectorSongEndStopQ(planned: sendAt, endLinkBeat: endLinkBeat)
+        }
+        _songEndStopWorkQ = work
+        _songEndStopPlannedTicksQ = sendAt
+        // A412 · SEGUITO 3 — in coda il timer dell'attesa: `timer:stretto leeway_ms:1` (`StrictOneShotTimer`).
+        os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop armato battitoLink:%{public}@ battitoLinkQ1e6:%.0f oraMappa:%llu oraPonte:%llu mappaMenoPonte_ms:%.1f invio:%llu tra_ms:%.1f margine_battiti:%.3f contesto:%{public}@ timer:stretto leeway_ms:%d",
+               log: .default, type: .default,
+               endQ1Text, endLinkBeat, mapEnd ?? 0, bridgeEnd,
+               bridgeEnd > 0 ? signedMilliseconds(from: bridgeEnd, to: mapEnd ?? 0) : 0.0,
+               sendAt, signedMilliseconds(from: now, to: sendAt), ShowClock.defaultToleranceBeats, context,
+               StrictOneShotTimer.leewayMilliseconds)
+        // A412 · SEGUITO 3 — l'attesa sul timer all'ora chiesta (`StrictOneShotTimer`), non più su `asyncAfter`.
+        _songEndStopTimerQ.arm(afterSeconds: delaySeconds, work: work)
+    }
+
+    /// Il timer dello Stop di fine canzone. All'ora d'invio il conto si rilegge: se dice ancora «canzone finita»
+    /// lo Stop esce verso Link (la stessa scrittura dello Stop voluto) e la stanza arma la successiva; se no,
+    /// niente, con la riga. Dopo, niente riparte da solo (come dopo uno Stop voluto). Chiamare SOLO su audioQueue.
+    private func fireDirectorSongEndStopQ(planned: UInt64, endLinkBeat: Double) {
+        let firedAt = mach_absolute_time()
+        _songEndStopWorkQ = nil
+        _songEndStopPlannedTicksQ = nil
+        // A412 · SEGUITO 3 — il timer si è già rilasciato allo scatto, prima di questo lavoro (`StrictOneShotTimer`):
+        // qui non c'è niente da fermare, la riga lo rende esplicito.
+        _songEndStopTimerQ.cancel()
+        guard _directorSilentInSongQ, !isRunning, !_rejoinArmedQ else {
+            os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop non inviato: il silenzio e' gia' finito o un rientro e' in corso (muto:%d motore:%{public}@)",
+                   log: .default, type: .default,
+                   _directorSilentInSongQ ? 1 : 0, isRunning ? "in-moto" : "fermo")
+            return
+        }
+        let current = currentRejoinPlanQ()
+        guard case .songEnded = current.plan.outcome else {
+            _songEndNotSentLoggedQ = true
+            os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop NON inviato motivo:%{public}@ - all'ora d'invio il conto non dice piu' canzone finita",
+                   log: .default, type: .default, describe(current.plan.outcome))
+            return
+        }
+        guard let lh = linkEngineHandle else { return }
+        let sentAt = mach_absolute_time()
+        link_engine_stop(lh, sentAt)
+        _startPhaseQ = nil
+        _songInProgressQ = false
+        _wantedStopSinceCrisisQ = true
+        // A412 · SEGUITO 2 — il battito della fine nella numerazione della sessione; a quantum 1, accanto, con la
+        // distanza della cattura del coordinatore qui sopra.
+        let offset = DirectorRejoinDecision.deviceOffset(beatQuantumOne: current.read.beatAtHostTime,
+                                                         beatSession: current.read.beatAtHostTimeQBig)
+        let endQ1Text: String = offset.map { String(format: "%.0f", endLinkBeat + $0) } ?? "-"
+        os_log("[Q-BEATS][DIR-RIENTRO] fine canzone - Stop INVIATO a Link battitoLink:%{public}@ battitoLinkQ1e6:%.0f previsto:%llu fuoco:%llu inviato:%llu ritardo_ms:%.1f - la stanza arma la successiva",
+               log: .default, type: .default,
+               endQ1Text, endLinkBeat, planned, firedAt, sentAt, signedMilliseconds(from: planned, to: sentAt))
+        DispatchQueue.main.async {
+            self.directorRunnerActionSubject.send(.songEndedArmNext)
+            self.playbackState = .stopped
+        }
+        if pendingResume || isAudioInterrupted {
+            clearPendingResumeQ(reason: "fine-canzone")
+        }
+        leaveDirectorSilenceQ(reason: "fine-canzone", closeAnchor: true)
+    }
+
+    /// Un avvio che non passa dal coordinatore (mandato §2.2, T4): torna l'assert del Direttore se dopo un rientro
+    /// seguiva Link; «canzone in corso» se la mappa è arrivata per questo avvio; la crisi è alle spalle. Chiamare
+    /// SOLO su audioQueue, da `start()`.
+    private func prepareNormalStartQ(trigger: String) {
+        if _directorFollowsLinkQ {
+            _directorFollowsLinkQ = false
+            os_log("[Q-BEATS][DIR-RIENTRO] assert ripreso all'avvio innesco:%{public}@ - il Direttore torna a dare la fase a Link (T4)",
+                   log: .default, type: .default, trigger)
+        }
+        _songInProgressQ = _songMapForNextStartQ
+        _songMapForNextStartQ = false
+        _crisisCauseQ = nil
+        _wantedStopSinceCrisisQ = false
         closeSilenceAnchorQ(reason: "avvio")
+    }
+
+    /// LE RIPARTENZE AUTOMATICHE (mandato §2.6): dove va ognuna (`RecoveryDecision`), con la riga. Chiamare SOLO
+    /// su audioQueue, all'ingresso di `activateSessionAndStart` e subito prima del suo `start()`.
+    private func recoveryRouteQ(trigger: RecoveryTrigger, stage: String) -> RecoveryRoute {
+        let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        let route = RecoveryDecision.route(trigger: trigger,
+                                           playerRole: role,
+                                           silentInSong: _directorSilentInSongQ,
+                                           wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
+                                           crisisCause: _crisisCauseQ)
+        os_log("[Q-BEATS][RESUME] ripartenza automatica innesco:%{public}@ fase:%{public}@ ruolo:%{public}@ muto:%d stopVoluto:%d crisi:%{public}@ -> %{public}@",
+               log: .default, type: .default,
+               trigger.rawValue, stage, role.rawValue, _directorSilentInSongQ ? 1 : 0,
+               _wantedStopSinceCrisisQ ? 1 : 0, _crisisCauseQ?.rawValue ?? "-", route.rawValue)
+        return route
+    }
+
+    /// L'arresto locale di una crisi (servizi persi, reset senza Lost): lo stato su audioQueue, e la coppia
+    /// lettore-motore da fermare, che chi chiama ferma dove serve (come l'inizio di un'interruzione). Alla Lost è
+    /// un'operazione nuova (A412): fino ad A411 il motore restava com'era fino alla Reset, che lo fermava con lo
+    /// `stopSync` (e lo Stop alla band). Chiamare SOLO su audioQueue.
+    private func beginLocalStopQ(context: String) -> (player: AVAudioPlayerNode, engine: AVAudioEngine)? {
+        guard isRunning else { return nil }
+        isRunning = false
+        cancelPendingJoin(reason: context)
+        lowerOwnTransportStartQ(reason: context)
+        _rejoinArmedQ = false
+        return (playerNode, engine)
+    }
+
+    /// La riga dell'arresto locale di una crisi, dopo `stop()` di lettore e motore. `server`: com'era il server
+    /// dei servizi audio (alla Lost assente: un'operazione nuova, A412).
+    private func logLocalStop(context: String, server: String) {
+        os_log("[Q-BEATS][CRISI] arresto locale contesto:%{public}@ serverAudio:%{public}@ - nessuno Stop a Link",
+               log: .default, type: .default, context, server)
+    }
+
+    /// A412 — il Solo a una crisi della sessione audio col click in moto (mandato §2.7): come lo Stop della sua
+    /// console — `stopSync` e lo stato fermo, lo schermo dopo lo Stop — ma non è uno Stop voluto
+    /// (`StopOrigin.soloCrisis`). Niente verso Link (lucchetto A411). Non riparte da solo: aspetta il Play
+    /// (`RecoveryDecision`). NON chiamare da audioQueue (come `stopSync`).
+    private func stopForSoloCrisis(cause: CrisisCause) {
+        os_log("[Q-BEATS][CRISI] Solo fermo come allo Stop della console causa:%{public}@ - non riparte da solo, aspetta il Play",
+               log: .default, type: .default, cause.rawValue)
+        stopSync(origin: .soloCrisis)
+        DispatchQueue.main.async { [weak self] in
+            self?.playbackState = .stopped
+        }
+    }
+
+    /// A412 — IL TOCCO DEL TASTO DELLA FASCIA (O DEL PEDALE playPause) COL DIRETTORE MUTO IN CANZONE (mandato §2.4,
+    /// D2, D3): l'esito l'ha deciso il motore (`directorSilence`) e la vista lo porta qui. Play = rientra, passando
+    /// dal coordinatore dentro `start()` (mai `runner.startCurrentSection`, W1 o il ramo fresco); Stop = lo Stop
+    /// voluto (`stop()`), che col Direttore muto manda lo Stop a Link e chiude la canzone anche a motore fermo.
+    /// Solo main.
+    func directorTransportTapped(_ tap: DirectorTransportTap, origin: String) {
+        os_log("[Q-BEATS][DIR-TASTO] tocco:%{public}@ origine:%{public}@",
+               log: .default, type: .default, tap.rawValue, origin)
+        switch tap {
+        case .rejoin:
+            start(trigger: origin)
+        case .stopBand:
+            stop()
+        }
+    }
+
+    /// A412 — LA POLITICA DELLO SFONDO, valutata qui sulle copie di coda (mandato §2.8): al passaggio in sfondo Link
+    /// si sospende se è in rete, il click non suona e il Direttore non è muto in canzone
+    /// (`LinkActivationDecision.suspendsOnBackground`); il suo esito è l'ingresso «sospeso dallo sfondo» della regola
+    /// d'accensione, e la strada resta una (`applyLinkActivationQ`). Niente `beginBackgroundTask` (T9). Fino ad
+    /// A411 la politica stava in `QBeatsApp` col suo segno, e leggeva solo «il click suona». Chiamabile da main.
+    func sceneEnteredBackground(clickPlaying: Bool) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            let linkActive = self._linkActiveAppliedQ ?? false
+            let suspends = LinkActivationDecision.suspendsOnBackground(linkActive: linkActive,
+                                                                       clickPlaying: clickPlaying,
+                                                                       directorSilentInSong: self._directorSilentInSongQ)
+            os_log("[Q-BEATS][SOLO-INERTE] sfondo - politica linkAttivo:%d click:%d mutoInCanzone:%d -> sospende:%d",
+                   log: .default, type: .default,
+                   linkActive ? 1 : 0, clickPlaying ? 1 : 0, self._directorSilentInSongQ ? 1 : 0, suspends ? 1 : 0)
+            guard suspends else { return }
+            self._linkBackgroundSuspendedQ = true
+            self.applyLinkActivationQ(trigger: .background)
+        }
+    }
+
+    /// A412 — il ritorno in primo piano: si riprende solo ciò che la politica dello sfondo ha sospeso. Chiamabile da
+    /// main.
+    func sceneBecameActive() {
+        audioQueue.async { [weak self] in
+            guard let self, self._linkBackgroundSuspendedQ else { return }
+            self._linkBackgroundSuspendedQ = false
+            self.applyLinkActivationQ(trigger: .foreground)
+        }
     }
 
     /// §2.8 — l'unico cambio di comportamento del passo 1: alla Lost e alla Reset, in tutti i rami,
@@ -2850,6 +3914,10 @@ class AudioEngine: ObservableObject {
         case .clock(let unknown): return "conto:\(describe(unknown))"
         case .rulersDisagree: return "righelli-in-disaccordo"
         case .noTarget: return "nessun-bersaglio"
+        // A412 — i tre motivi nuovi del coordinatore che agisce.
+        case .noAnchor: return "nessuna-ancora"
+        case .mapBridgeDisagree: return "mappa-e-ponte-in-disaccordo"
+        case .lateTooManyTimes: return "ritardo-oltre-i-salti"
         }
     }
 
@@ -2875,11 +3943,13 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    func start(resumeAtBeat: Double? = nil) {
-        os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f",
+    /// A412 — `trigger`: chi chiede l'avvio, per la riga del coordinatore (le ripartenze automatiche passano il
+    /// loro innesco, il tasto e il pedale la loro origine; tutti gli altri «comando»).
+    func start(resumeAtBeat: Double? = nil, trigger: String = "comando") {
+        os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f innesco:%{public}@",
                log: .default, type: .default,
                resumeAtBeat.map { String(format: "%.6f", $0) } ?? "nil",
-               self._startAbsoluteBeat)
+               self._startAbsoluteBeat, trigger)
 
         audioQueue.async { [weak self] in
             guard let self else { return }
@@ -2912,7 +3982,9 @@ class AudioEngine: ObservableObject {
                 var sessionPlaying = false
                 // A411 · SOLO-INERTE — nel Solo niente probe (cattura E commit): i valori sono quelli del
                 // ponte spento. Per chi non è Follower l'esito è comunque «comanda il trasporto».
-                if let lh = self.linkEngineHandle, self.soloLockPassesQ(.sessionProbe) {
+                // A412 — e niente probe col Direttore muto in canzone: il suo avvio passa dal coordinatore,
+                // che legge Link senza committare (T11), e l'esito qui non dipende dalla probe.
+                if let lh = self.linkEngineHandle, self.soloLockPassesQ(.sessionProbe), !self._directorSilentInSongQ {
                     let probe = link_engine_probe_session(lh, mach_absolute_time(),
                                                           Double(self._beatsPerBarQ))
                     connected = link_engine_num_peers(lh) > 0
@@ -2945,7 +4017,8 @@ class AudioEngine: ObservableObject {
             }
             // Il beat di ripresa e' di chi comanda il trasporto: il Follower entra sempre come
             // partenza fresca (`usesResumeBeat` e' falso per costruzione sul Follower).
-            let resumeBeatForStart: Double? = startDecision.usesResumeBeat ? resumeAtBeat : nil
+            // A412 — e non vale per il rientro del Direttore (lo azzera il coordinatore, più sotto).
+            var resumeBeatForStart: Double? = startDecision.usesResumeBeat ? resumeAtBeat : nil
 
             // === A408 (15/10/2026) — IL RESET DEI SERVIZI AUDIO, AL PRIMO AVVIO DOPO ===
             // Dopo la guardia e dopo l'uscita `stayStopped` del Follower, prima del `do` che
@@ -2966,24 +4039,32 @@ class AudioEngine: ObservableObject {
             case .refuseStart:
                 os_log("[Q-BEATS][RESET] Play non avviato: servizi audio persi - motore fermo",
                        log: .default, type: .default)
+                // A412 — col Direttore muto in canzone la sessione resta com'è (il silenzio, mandato §2.5):
+                // niente `.stopped`, e il tasto si ricalcola.
+                let silentRefused = self._directorSilentInSongQ
                 DispatchQueue.main.async {
                     // Come l'uscita `stayStopped` qui sopra.
-                    self.playbackState = .stopped
+                    if !silentRefused { self.playbackState = .stopped }
                     self._linkStartEmitInFlight = false
                 }
+                if silentRefused { self.publishDirectorSilenceQ(context: "avvio-rifiutato") }
                 return
             case .rebuildThenStart:
                 guard self.rebuildAfterMediaResetQ() else {
                     // Come il `catch` qui sotto: l'avvio è fallito prima di `engine.start()`. Il
-                    // segno del proprio avvio qui non è alzato (lo abbassa lo stopSync della Reset):
-                    // la chiamata è per simmetria.
+                    // segno del proprio avvio qui non è alzato: la chiamata è per simmetria. (Fino ad
+                    // A411 qui si diceva «lo abbassa lo stopSync della Reset»: da A412 lo stopSync della
+                    // Reset gira solo sul Follower.)
                     os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                            log: .default, type: .default)
                     self.lowerOwnTransportStartQ(reason: "catch")
+                    // A412 — col Direttore muto in canzone niente `.stopped`, come qui sopra.
+                    let silentFailed = self._directorSilentInSongQ
                     DispatchQueue.main.async {
-                        self.playbackState = .stopped
+                        if !silentFailed { self.playbackState = .stopped }
                         self._linkStartEmitInFlight = false
                     }
+                    if silentFailed { self.publishDirectorSilenceQ(context: "ricostruzione-fallita") }
                     return
                 }
                 self._firstStartAfterMediaResetQ = true
@@ -2991,14 +4072,35 @@ class AudioEngine: ObservableObject {
                 break
             }
 
-            // === A410 (16/10/2026) — PASSO 1: COSA FAREBBE IL RIENTRO DEL DIRETTORE, SOLO REGISTRO ===
-            // Qui, dopo i rifiuti e la ricostruzione e prima del `do`: è il primo `start()` che
-            // prosegue. Con l'àncora viva (il motore del Direttore ha taciuto senza Stop) si calcola
-            // cosa farebbe il rientro (`DirectorRejoinDecision`), lo si scrive nel registro e l'àncora
-            // si chiude. Da qui in giù start() è identico a oggi: il ramo, le scritture verso Link, il
-            // contatore di sezione, la fase d'avvio, l'assert non leggono niente di quello che si è
-            // appena calcolato (mandato A410, §2.5).
-            self.logDirectorRejoinPlanQ(resume: resumeAtBeat != nil)
+            // === A412 (18/10/2026) — IL COORDINATORE DEL RIENTRO, PRIMA DEL RAMO ===
+            // Qui, dopo i rifiuti e la ricostruzione e prima del `do`: il primo punto in cui l'avvio
+            // prosegue davvero. Col Direttore muto in canzone OGNI avvio — le ripartenze automatiche
+            // (`RecoveryDecision`), il tasto della fascia e il pedale (`directorTransportTapped`), il
+            // debug — passa dal coordinatore (`coordinateDirectorRejoinQ`) e MAI dal ramo fresco o dalla
+            // ripresa: rientra (il ramo del rientro, più sotto, senza scritture su Link) oppure resta
+            // muto e l'avvio si ferma qui (non certo, canzone finita, sessione ferma da altri). Gli altri
+            // avvii passano da `prepareNormalStartQ` e proseguono come prima.
+            // ⚠️ RISCRITTO A412. Qui c'era il passo 1 (A410): «cosa farebbe il rientro», scritto nel
+            // registro e basta, e «da qui in giù start() è identico a oggi»; per il Direttore muto in
+            // canzone non è più vero.
+            var rejoinTarget: RejoinTarget? = nil
+            if self._directorSilentInSongQ {
+                switch self.coordinateDirectorRejoinQ(trigger: trigger, resume: resumeAtBeat != nil,
+                                                      lateSkipsLeft: DirectorRejoinDecision.maxLateSkips) {
+                case .rejoin(let target):
+                    rejoinTarget = target
+                    resumeBeatForStart = nil
+                case .stayMuted:
+                    DispatchQueue.main.async {
+                        self._linkStartEmitInFlight = false
+                    }
+                    return
+                case .proceedAsToday:
+                    self.prepareNormalStartQ(trigger: trigger)
+                }
+            } else {
+                self.prepareNormalStartQ(trigger: trigger)
+            }
 
             // Build #309: rimosso il vecchio DOWNBEAT WAIT (Opzione B) e il
             // parametro skipLinkWait. La distinzione standalone/master-con-peer/
@@ -3026,6 +4128,11 @@ class AudioEngine: ObservableObject {
                 // A410 — i battiti contati per l'àncora ripartono da questo avvio.
                 self._lastCountedBeatQ = nil
                 self._prevCountedBeatQ = nil
+                // A412 — il primo buffer ancorato e i suoi tre buffer appartengono a un rientro solo: li
+                // arma il fuoco del rientro, dopo questo avvio. A412 · SEGUITO 2 (2/2) — anche la scorta muta.
+                self._anchoredFirstBufferQ = nil
+                self._anchoredPreRollLeftQ = 0
+                self._rejoinLeadInQ = nil
 
                 try self.engine.start()
                 self.playerNode.reset()
@@ -3141,6 +4248,14 @@ class AudioEngine: ObservableObject {
                         if self.linkEngineHandle != nil {
                             self.logOwnTransportStartRaisedQ(write: "ripresa")
                         }
+                    } else if let target = rejoinTarget {
+                        // === A412 — IL RAMO DEL RIENTRO DEL DIRETTORE (mandato §2.2, T3) ===
+                        // Il motore è in moto e muto; l'ingresso al bersaglio lo arma `armSharedJoin` col
+                        // bersaglio: stessa generazione e stesso annullo dell'ingresso del Follower, nessuna
+                        // scrittura su Link (niente battito zero né ripresa, niente «si suona», W1, W4, fase
+                        // d'avvio). I buffer, il seme del contatore e la sezione d'arrivo arrivano al fuoco.
+                        self.startBeatOffset = 0
+                        self.armSharedJoin(retriesLeft: 0, rejoin: target)
                     } else {
                         // FRESH PLAY: probe + num_peers per distinguere i 3 scenari.
                         let hostNow = mach_absolute_time()
@@ -3302,7 +4417,8 @@ class AudioEngine: ObservableObject {
                 // valore verrà sovrascritto al fire del work item (vedi flow sopra),
                 // perché il primo sample reale parte a futureHostTime, non a "now".
                 // Per standalone resta corretto.
-                if resumeBeatForStart == nil, let mh = self.midiEngineHandle {
+                // A412 — non per il rientro: lo scrive il suo fuoco (il battito di Link del bersaglio).
+                if resumeBeatForStart == nil, rejoinTarget == nil, let mh = self.midiEngineHandle {
                     let hostTimeAtFirstSample = mach_absolute_time()
                                                 + self.outputLatencyTicks
                                                 + self.bufferDurationTicks
@@ -3327,6 +4443,10 @@ class AudioEngine: ObservableObject {
                     // lucchetto restava alzato fino al primo avvio riuscito (referto A399 §5.5).
                     self._linkStartEmitInFlight = false
                 }
+                // A412 — un rientro che non parte: il Direttore resta muto, il tasto si ricalcola.
+                if self._directorSilentInSongQ {
+                    self.publishDirectorSilenceQ(context: "avvio-fallito")
+                }
             }
         }
     }
@@ -3334,8 +4454,12 @@ class AudioEngine: ObservableObject {
     func stop() {
         // A410 — uno Stop voluto (tasto, pedale, END SHOW, fine canzone propria, uscita dalla stanza:
         // passano tutti di qui) chiude l'àncora del conteggio in silenzio. Accodato PRIMA del `sync` di
-        // `stopSync`, quindi gira prima di lui. Lo `stopSync` della Reset non passa di qui e l'àncora
-        // resta (mandato A410, §2.3). Solo stato di coda: lo Stop resta quello di oggi (passo 2).
+        // `stopSync`, quindi gira prima di lui.
+        // ⚠️ RISCRITTO A412. Il testo di prima diceva «Lo `stopSync` della Reset non passa di qui e
+        // l'àncora resta. Solo stato di coda: lo Stop resta quello di oggi (passo 2)». Da A412 la Reset non
+        // ferma più il Direttore (lo `stopSync` della Reset gira solo sul Follower), e lo Stop voluto col
+        // Direttore muto in canzone manda lo Stop a Link e chiude la canzone anche a motore fermo
+        // (`stopSync`, origine `.wanted`).
         audioQueue.async { [weak self] in
             self?.closeSilenceAnchorQ(reason: "stop")
         }
@@ -3412,6 +4536,12 @@ class AudioEngine: ObservableObject {
                 // `setBPM` (lucchetto, prima della regola del Follower).
                 if !self.soloLockPassesQ(.tempoWrite) {
                     self.logSoloInertWriteSkippedQ(.tempoWrite, detail: String(format: "bpm:%.1f", bpm))
+                } else if orchestratedSectionStart && self._directorSilentInSongQ {
+                    // A412 — col Direttore muto in canzone W1 non esce: il suo Play passa dal coordinatore, mai
+                    // da `runner.startCurrentSection` (mandato §2.4). È una rete per una strada sconosciuta, con
+                    // la sua riga: le strade note non arrivano qui.
+                    os_log("[Q-BEATS][DIR-RIENTRO] tempo di sezione %.1f NON scritto su Link (W1) - Direttore muto in canzone",
+                           log: .default, type: .default, bpm)
                 } else if orchestratedSectionStart,
                    !FollowerLinkWriteDecision.writesTempoAtOrchestratedStart(
                         role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
@@ -3512,6 +4642,9 @@ class AudioEngine: ObservableObject {
                      onEnd: @escaping () -> Void) {
         audioQueue.async { [weak self] in
             guard let self else { return }
+            // A412 — la chiusura di fine sezione resta anche per il rientro del Direttore, che carica la sezione
+            // d'arrivo senza passare dal runner (`fireDirectorRejoinQ`).
+            self._songSectionEndClosureQ = onEnd
             if repetitions > 0 {
                 self._sectionTotalBeats = repetitions * Int(beatsPerBar)
                 self._sectionBeatCounter = 0
@@ -3600,6 +4733,7 @@ class AudioEngine: ObservableObject {
             self._pendingNextAccentPattern = accentPattern
             self._pendingNextSectionTotalBeats = repetitions * Int(beatsPerBar)
             self._pendingNextOnSectionEnd = onEnd
+            self._songSectionEndClosureQ = onEnd   // A412 — vedi `loadSection`.
             self._pendingNextRepetitions = repetitions
             // ATOM C — la suddivisione della sezione entrante viaggia col
             // preload e si arma al downbeat (step d), come bpm/bpb/accent.
@@ -3776,7 +4910,8 @@ class AudioEngine: ObservableObject {
                                               appTerminating: _linkTerminatingQ)
         let previous = _linkActiveAppliedQ
         let changed = previous != decision.active
-        os_log("[Q-BEATS][SOLO-INERTE] accensione mano:%{public}@ levetta:%d ruolo:%{public}@ player:%{public}@ sfondo:%d click:%d chiusura:%d -> attivo:%d prima:%{public}@ cambio:%d motivo:%{public}@",
+        // A412 — in coda alla riga l'ingresso nuovo della politica dello sfondo: il Direttore muto in canzone.
+        os_log("[Q-BEATS][SOLO-INERTE] accensione mano:%{public}@ levetta:%d ruolo:%{public}@ player:%{public}@ sfondo:%d click:%d chiusura:%d -> attivo:%d prima:%{public}@ cambio:%d motivo:%{public}@ mutoInCanzone:%d",
                log: .default, type: .default,
                trigger.rawValue,
                decision.userLinkEnabled ? 1 : 0,
@@ -3788,7 +4923,8 @@ class AudioEngine: ObservableObject {
                decision.active ? 1 : 0,
                previous.map { $0 ? "1" : "0" } ?? "mai",
                changed ? 1 : 0,
-               decision.offReason?.rawValue ?? "-")
+               decision.offReason?.rawValue ?? "-",
+               _directorSilentInSongQ ? 1 : 0)
         guard changed else { return }
         _linkActiveAppliedQ = decision.active
         link_engine_set_enabled(lh, decision.active)
@@ -3837,19 +4973,17 @@ class AudioEngine: ObservableObject {
         if changed && !isEnabled {
             followerResetQ(reason: "link-utente-spento")
             DispatchQueue.main.async { self.linkPeerCount = nil }
+            // A412 — a levetta spenta il ruolo Direttore è un Solo: il silenzio del Direttore e il «segue Link»
+            // dopo un rientro finiscono qui.
+            leaveDirectorSilenceQ(reason: "link-utente-spento", closeAnchor: true)
+            _directorFollowsLinkQ = false
         }
         return changed
     }
 
-    /// La politica dello sfondo (`QBeatsApp`, invariata: in sfondo a click fermo sospende, in primo piano
-    /// riprende) dà alla regola il suo ingresso. Chiamabile da qualunque thread.
-    func setLinkBackgroundSuspended(_ suspended: Bool) {
-        audioQueue.async { [weak self] in
-            guard let self = self else { return }
-            self._linkBackgroundSuspendedQ = suspended
-            self.applyLinkActivationQ(trigger: suspended ? .background : .foreground)
-        }
-    }
+    // ⚠️ A412 — `setLinkBackgroundSuspended(_:)` è uscita: la politica dello sfondo si valuta nel motore
+    //    (`sceneEnteredBackground`, `sceneBecameActive`, blocco «A412»), perché ha un ingresso nuovo che vive su
+    //    audioQueue (il Direttore muto in canzone). La strada resta una: `applyLinkActivationQ`.
 
     /// La chiusura del pannello Link (`SettingsView`): la levetta riletta dal ponte, se il richiamo del
     /// pannello non l'avesse già portata, e la regola. Fino ad A410 qui Link si accendeva come la levetta,
@@ -4232,7 +5366,12 @@ class AudioEngine: ObservableObject {
         }
         switch action {
         case .playPause:
-            if isPlaying { stop() } else { start() }
+            // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
+            // Play = rientra, Stop = ferma la band e chiude la canzone (`directorSilence`, deciso dal motore). Fuori
+            // dal silenzio com'è oggi. Il pedale stop resta sempre Stop (`handleStop` → `stop()` sul Direttore).
+            if let silence = directorSilence {
+                directorTransportTapped(silence.tap, origin: "pedale")
+            } else if isPlaying { stop() } else { start() }
         case .stop:
             handleStop()
         case .muteClickToggle:
@@ -4282,12 +5421,16 @@ class AudioEngine: ObservableObject {
     }
 
     // NON chiamare dall'interno di audioQueue (deadlock).
-    private func stopSync() {
+    // A412 — `origin`: chi ferma (`StopOrigin`). Uno Stop voluto (ogni porta che passa da `stop()` e `handleStop`)
+    // chiude il silenzio del Direttore e ferma le ripartenze automatiche; l'arresto del Solo a una crisi e quello
+    // del Follower alla Reset dopo la Lost no.
+    private func stopSync(origin: StopOrigin = .wanted) {
         var wasRunning = false
         var bc = 0
         var bt = 0
         var directorStopped = false
         var directorFalseStart = false
+        var silenceCleared = false
         // A408 — `playerNode` ed `engine` si scrivono su audioQueue (la ricostruzione dopo il reset
         // dei servizi audio): qui fuori si fermano le copie prese dentro il `sync`.
         var runningPlayer: AVAudioPlayerNode? = nil
@@ -4325,10 +5468,52 @@ class AudioEngine: ObservableObject {
             }
             pendingLinkStart?.cancel()
             pendingLinkStart = nil
+            // A412 · SEGUITO 3 — col work item si ferma il timer del rientro del Direttore.
+            self._rejoinArmTimerQ.cancel()
+            self._rejoinArmedQ = false
             if isWaitingForLinkDownbeat {
                 DispatchQueue.main.async {
                     self.isWaitingForLinkDownbeat = false
                 }
+            }
+            // === A412 (18/10/2026) — LO STOP VOLUTO CHIUDE IL SILENZIO DEL DIRETTORE (mandato §2.4, D3) ===
+            // Ogni arresto chiude «canzone in corso». Uno Stop voluto, in più: niente ripartenze automatiche
+            // dopo (`RecoveryDecision`), via lo Stop di fine canzone armato, e col Direttore muto in canzone il
+            // silenzio si chiude. Se il suo motore è già fermo (il `guard` qui sotto uscirebbe) lo Stop alla
+            // band esce QUI, con la stessa scrittura del ramo di sempre, e la stanza chiude la canzone
+            // (`directorStoppedSubject`, D7-bis sugli stessi numeri). Il tasto torna com'è oggi DOPO quell'avviso
+            // (`silenceCleared`, più sotto): così la stanza vede ancora il silenzio quando decide.
+            self._songInProgressQ = false
+            var silentDirectorStop = false
+            if origin == .wanted {
+                self._wantedStopSinceCrisisQ = true
+                self._songEndStopWorkQ?.cancel()
+                self._songEndStopWorkQ = nil
+                self._songEndStopPlannedTicksQ = nil
+                // A412 · SEGUITO 3 — col work item si ferma il timer dello Stop di fine canzone.
+                self._songEndStopTimerQ.cancel()
+                if self._directorSilentInSongQ {
+                    silentDirectorStop = !self.isRunning
+                    self._directorSilentInSongQ = false
+                    self._directorSilencePublishedQ = nil
+                    silenceCleared = true
+                    self.closeSilenceAnchorQ(reason: "stop")
+                    os_log("[Q-BEATS][CRISI] Stop voluto col Direttore muto in canzone motore:%{public}@ - Stop a Link, la stanza chiude la canzone",
+                           log: .default, type: .default, self.isRunning ? "in-moto" : "fermo")
+                }
+            }
+            if silentDirectorStop, let lh = self.linkEngineHandle {
+                link_engine_stop(lh, mach_absolute_time())
+                let snap = link_engine_read_transport_snapshot(lh)
+                directorStopped = true
+                if snap.linkEnabled {
+                    directorFalseStart = self.falseStartAgainstRegisteredStart(stopPhase: snap.phaseAtStampQBig,
+                                                                                context: "stop-direttore-muto")
+                } else {
+                    os_log("[Q-BEATS][2D][STOP] contesto:stop-direttore-muto ponte spento - falsaPartenza:0",
+                           log: .default, type: .default)
+                }
+                self._startPhaseQ = nil
             }
             wasRunning = self.isRunning
             guard self.isRunning else { return }
@@ -4352,6 +5537,12 @@ class AudioEngine: ObservableObject {
             // GENERALE DEL PERIMETRO DEL FOLLOWER»; ticket `TD-follower-stop-propaga`.
             // Regola nuda su copie di coda: ruolo E Link acceso dall'utente
             // (`FollowerDecision`). Il ponte (`link_engine_stop`) non si tocca.
+            // ⚠️ A412 (18/10/2026) — «L'UNICA riga da cui uno stop esce» NON VALE PIÙ alla lettera: le righe
+            //    `link_engine_stop` sono tre, tutte del Direttore e nessuna del Follower né del Solo. Questa; lo
+            //    Stop voluto col Direttore muto in canzone a motore fermo, qui sopra prima del `guard` (stesso
+            //    `stopSync`, stesse porte); lo Stop di fine canzone durante il silenzio
+            //    (`fireDirectorSongEndStopQ`, mandato §2.3, D1: lo manda il telefono del Direttore, solo col conto
+            //    certo). La regola del Follower resta vera per tutte e tre.
             if let lh = linkEngineHandle {
                 if FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) {
                     os_log("[Q-BEATS][A360] stop NON inviato a Link - apparecchio Follower (ruolo:collaborativa linkUtente:acceso) - il motore si ferma solo in locale",
@@ -4362,15 +5553,10 @@ class AudioEngine: ObservableObject {
                     self.logSoloInertWriteSkippedQ(.stopWrite, detail: "stopSync")
                 } else {
                     link_engine_stop(lh, mach_absolute_time())
-                    // A410 — con l'àncora viva (il Direttore taceva) questo Stop esce lo stesso: è lo
-                    // `stopSync` della Reset dei servizi audio, che nel passo 1 resta com'è
-                    // (`TD-media-reset-del-direttore-ferma-la-band`, passo 2). Si segna soltanto, per la
-                    // riga della decisione al tocco dopo (`stopProprio`); l'àncora resta viva.
-                    if self._silenceAnchorQ != nil {
-                        self._silenceAnchorQ?.ownStopSent = true
-                        os_log("[Q-BEATS][DIR-SILENZIO] Stop mandato a Link con l'ancora viva (causa:%{public}@) - l'ancora resta",
-                               log: .default, type: .default, self._silenceAnchorQ?.cause ?? "-")
-                    }
+                    // A410 segnava qui lo Stop mandato a Link con l'àncora viva (lo `stopSync` della Reset,
+                    // `TD-media-reset-del-direttore-ferma-la-band`). ⚠️ A412: la Reset non passa più di qui sul
+                    // Direttore e uno Stop voluto chiude l'àncora prima di arrivare qui; la marca è uscita
+                    // con `SilenceAnchor.ownStopSent`.
                     // A386 · FASE B2A — D3/D7-bis: il Direttore ha fermato a canzone in corso. La
                     // falsa partenza si decide con la STESSA formula e sugli STESSI numeri di Link
                     // che usano i Follower: fase di sessione dell'avvio registrata al proprio
@@ -4459,6 +5645,14 @@ class AudioEngine: ObservableObject {
                 self?.directorStoppedSubject.send(falseStart)
             }
         }
+        // A412 — il tasto torna com'è oggi, DOPO l'avviso alla stanza qui sopra (stessa coda, FIFO).
+        if silenceCleared {
+            DispatchQueue.main.async { [weak self] in
+                self?.directorSilence = nil
+            }
+            os_log("[Q-BEATS][DIR-TASTO] tasto:come-oggi motivo:stop-voluto - fascia e pedale playPause",
+                   log: .default, type: .default)
+        }
         guard wasRunning, let playerToStop = runningPlayer, let engineToStop = runningEngine else { return }
         playerToStop.stop()
         engineToStop.stop()
@@ -4471,7 +5665,7 @@ class AudioEngine: ObservableObject {
 
     private func activateSessionAndStart(
         resumeAtBeat: Double?,
-        trigger: String,
+        trigger: RecoveryTrigger,
         mode: AudioMode? = nil,
         attempt: Int = 0,
         token: Int = -1
@@ -4480,7 +5674,13 @@ class AudioEngine: ObservableObject {
         // riattiva solo la ricostruzione, al primo avvio dopo il reset (`start()`), e il click non
         // riparte da solo. Tutti i chiamanti girano su audioQueue; i tentativi e la rete di
         // sicurezza rientrano da qui, e qui si fermano.
-        if mediaResetSkipsQ("riattivazione - trigger:\(trigger)") { return }
+        if mediaResetSkipsQ("riattivazione - trigger:\(trigger.rawValue)") { return }
+        // A412 — LE RIPARTENZE AUTOMATICHE, UNA REGOLA (mandato §2.6, `RecoveryDecision`): tutte le strade del
+        // referto A409 §4.1 passano di qui. Il Direttore muto in canzone va al coordinatore (`start()` lo porta
+        // lì: mai ramo fresco né ripresa); dopo uno Stop voluto, e per il Solo dopo una crisi della sessione
+        // audio, niente; il resto come oggi. Una riga a ogni passaggio. L'innesco ora è un tipo
+        // (`RecoveryTrigger`), coi nomi che le righe [RESUME] scrivevano già.
+        if recoveryRouteQ(trigger: trigger, stage: "ingresso") == .noRestart { return }
 
         // — Token anti-zombie —
         var activeToken = token
@@ -4517,17 +5717,17 @@ class AudioEngine: ObservableObject {
             }
         } else if activeToken != currentResumeToken {
             os_log("[Q-BEATS][RESUME] Zombie retry ucciso (token %d vs %d) trigger:%{public}@",
-                   log: .default, type: .default, activeToken, currentResumeToken, trigger)
+                   log: .default, type: .default, activeToken, currentResumeToken, trigger.rawValue)
             return
         }
 
         os_log("[Q-BEATS][RESUME] trigger:%{public}@ attempt:%d token:%d",
-               log: .default, type: .default, trigger, attempt, activeToken)
+               log: .default, type: .default, trigger.rawValue, attempt, activeToken)
 
         audioQueue.async { [weak self] in
             guard let self = self else { return }
             // A408 — di nuovo qui: una Lost può essere arrivata fra il controllo in testa e questo blocco.
-            if self.mediaResetSkipsQ("riattivazione - trigger:\(trigger)") { return }
+            if self.mediaResetSkipsQ("riattivazione - trigger:\(trigger.rawValue)") { return }
             do {
                 try AVAudioSession.sharedInstance().setActive(true,
                     options: .notifyOthersOnDeactivation)
@@ -4538,7 +5738,7 @@ class AudioEngine: ObservableObject {
                 self.pendingResumeBeat = nil
 
                 os_log("[Q-BEATS][RESUME] setActive OK dopo %d tentativi (token:%d trigger:%{public}@)",
-                       log: .default, type: .default, attempt, activeToken, trigger)
+                       log: .default, type: .default, attempt, activeToken, trigger.rawValue)
 
                 // Rebuild grafo Pro DOPO setActive(true) — il formato 4ch è disponibile solo ora.
                 // In Base mode il grafo è già corretto (setupGraph usa sempre Base).
@@ -4546,10 +5746,13 @@ class AudioEngine: ObservableObject {
                 if currentMode == .pro {
                     self.rebuildGraph(for: .pro)
                     os_log("[Q-BEATS][RESUME] rebuildGraph Pro eseguito post-setActive (trigger:%{public}@)",
-                           log: .default, type: .default, trigger)
+                           log: .default, type: .default, trigger.rawValue)
                 }
 
-                self.start(resumeAtBeat: resumeAtBeat)
+                // A412 — la regola si rilegge subito prima dell'avvio: fra l'ingresso e qui (fino a venti
+                // tentativi) può essere arrivato uno Stop voluto.
+                if self.recoveryRouteQ(trigger: trigger, stage: "avvio") == .noRestart { return }
+                self.start(resumeAtBeat: resumeAtBeat, trigger: trigger.rawValue)
 
             } catch {
                 let maxAttempts = 20
@@ -4559,7 +5762,7 @@ class AudioEngine: ObservableObject {
                     self.pendingResume = true
                     self.pendingResumeBeat = nil
                     os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true beat:%.4f trigger:%{public}@",
-                           log: .default, type: .default, resumeAtBeat ?? -1.0, trigger)
+                           log: .default, type: .default, resumeAtBeat ?? -1.0, trigger.rawValue)
 
                     // Safety net a 5 secondi (non 3)
                     self.audioQueue.asyncAfter(deadline: .now() + 5.0) { [weak self] in
@@ -4574,7 +5777,7 @@ class AudioEngine: ObservableObject {
                         self.pendingResumeBeat = nil
                         self.activateSessionAndStart(
                             resumeAtBeat: resumeAtBeat,
-                            trigger: "safety_net",
+                            trigger: .safetyNet,
                             attempt: 1,
                             token: activeToken
                         )
@@ -5022,6 +6225,15 @@ class AudioEngine: ObservableObject {
                 // A386 · B2c — l'ora d'uscita di questo buffer, per l'ora dell'ultimo battito
                 // (riga al secondo di DA SOLO). Una scrittura di un intero, su questa coda.
                 self._bufferOutTicksQ = hostTimeAtOutput
+                // A412 — i tre buffer del rientro escono dall'ora chiesta al lettore (il primo ancorato, gli
+                // altri due di seguito), non dalla convenzione qui sopra: l'ora dei loro battiti è quella vera,
+                // per un'àncora presa subito dopo. La correzione di fase in quei buffer non gira (salto di 3).
+                if self._anchoredPreRollLeftQ > 0 {
+                    let index = UInt64(3 - self._anchoredPreRollLeftQ)
+                    let bufferTicks = self.secondsToMachTicks(Double(self.bufferSize) / self.sampleRate)
+                    self._bufferOutTicksQ = self._anchoredOutputTicksQ + index * bufferTicks
+                    self._anchoredPreRollLeftQ -= 1
+                }
                 if self.linkSyncSkipBuffers > 0 {
                     self.linkSyncSkipBuffers -= 1
                     os_log("[Q-BEATS][LINK] sync skip — buffer rimanenti:%d",
@@ -5031,7 +6243,10 @@ class AudioEngine: ObservableObject {
                     // Direttore con la levetta spenta né `link_engine_sync_phase`: il click va col suo
                     // orologio, come a Link spento (dove `sync_phase` esce senza correggere). Nessuna riga:
                     // gira a ogni buffer.
-                } else if _linkMode == .direttore {
+                } else if _linkMode == .direttore && !self._directorFollowsLinkQ {
+                    // A412 — dopo un rientro il Direttore segue Link (il ramo `link_engine_sync_phase` qui
+                    // sotto) fino all'avvio dopo (scelta T4): niente assert, che riscriverebbe la griglia di
+                    // tutti con la posizione del rientro.
                     // Modalità Direttore in play (siamo dentro scheduleNextBuffer,
                     // quindi isRunning è già garantito true dal guard a riga 1359).
                     // Q-BEATS impone BPM e fase al session state in un singolo
@@ -5062,6 +6277,12 @@ class AudioEngine: ObservableObject {
                     // coda della macchina.
                     self.ownClockPinQ(midi: mh, metronome: h,
                                       hostTimeAtOutput: hostTimeAtOutput, currentBeat: currentBeat)
+                } else if let lead = self._rejoinLeadInQ,
+                          !DirectorRejoinDecision.leadInAllowsCorrection(correctionsSoFar: lead.corrections) {
+                    // A412 · SEGUITO 2 (2/2) — nella scorta muta la correzione di fase gira una volta sola: la prima, che
+                    // la scorta copre. Quelle di regime ripartono col buffer dopo l'«uno»: una di regime qui, con
+                    // l'«uno» appena dopo l'inizio di un buffer, lo scavalcherebbe. Nessuna riga a buffer: il conto
+                    // sta nella riga del primo click.
                 } else if link_engine_sync_phase(lh, hostTimeAtOutput, currentBeat, &newBeat) {
                     midi_engine_set_beat_position(mh, newBeat)
                     // Bug 2.b — solo timeline a campioni: la fase di battuta resta
@@ -5070,6 +6291,12 @@ class AudioEngine: ObservableObject {
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
                            log: .default, type: .default,
                            currentBeat, newBeat)
+                    // A412 · SEGUITO 2 (2/2) — la correzione fatta nella scorta, per la riga del primo click.
+                    if var lead = self._rejoinLeadInQ {
+                        lead.corrections += 1
+                        lead.correctionBeats += newBeat - currentBeat
+                        self._rejoinLeadInQ = lead
+                    }
                     DispatchQueue.main.async { [weak self] in
                         self?.currentBeat = newBeat
                     }
@@ -5085,7 +6312,24 @@ class AudioEngine: ObservableObject {
                 }
             }
 
-            midi_engine_process(mh, UInt32(bufferSize))
+            // A412 · SEGUITO 2 (2/2) — nella scorta muta il MIDI (clock e pattern) tace finché l'«uno» non cade in questo
+            // buffer (`DirectorRejoinDecision.leadInHoldsMIDI`): i buffer prima della prima correzione hanno la
+            // posizione di prima, e quelli dopo ripasserebbero sugli stessi impulsi. La posizione del motore resta
+            // quella di sempre: il sequencer calcola ogni buffer dalla posizione (`MIDISequencer::processBuffer`).
+            var midiHeld = false
+            if var lead = self._rejoinLeadInQ, lead.midiHeld {
+                if DirectorRejoinDecision.leadInHoldsMIDI(bufferStartBeat: midi_engine_get_beat_position(mh),
+                                                          bufferBeats: lead.bufferBeats,
+                                                          unoBeat: lead.plan.unoBeat) {
+                    midiHeld = true
+                } else {
+                    lead.midiHeld = false
+                    self._rejoinLeadInQ = lead
+                }
+            }
+            if !midiHeld {
+                midi_engine_process(mh, UInt32(bufferSize))
+            }
         }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
@@ -5147,6 +6391,14 @@ class AudioEngine: ObservableObject {
                 let offset   = Int(offsets[i])
                 let isAccent = accents[i]  != 0
                 let isBeat   = isBeats[i]  != 0
+
+                // A412 · SEGUITO 2 (2/2) — LA SCORTA È MUTA: prima dell'«uno» nessun click e niente da contare. Una
+                // suddivisione del battito prima può cadere nella scorta (tempo veloce e swing): si salta. Il primo
+                // battito è l'«uno»: la sua riga, poi tutto come sempre (contatore, LED, campioni).
+                if self._rejoinLeadInQ != nil {
+                    if !isBeat { continue }
+                    self.noteRejoinFirstClickQ(offset: offset)
+                }
 
                 if isBeat {
                     self.beatTickCounter += 1
@@ -5460,6 +6712,25 @@ class AudioEngine: ObservableObject {
             }
         }
 
+        // A412 — IL PRIMO BUFFER DELLA SCORTA MUTA DEL RIENTRO, ALL'ORA (scelta T5): `scheduleBuffer(_:at:)` con un'ora di
+        // host, che il lettore rispetta quando l'ora in campioni non è valida (Apple, `AVAudioPlayerNode`). I buffer
+        // dopo vanno in coda come sempre. Al consumo, la riga con l'ora chiesta e l'ultimo ciclo di rendering.
+        // ⚠️ RISCRITTO A412 · SEGUITO 2 (2/2) (18/10/2026). Il testo di prima diceva «A412 — IL PRIMO BUFFER DEL RIENTRO,
+        // ALL'ORA (scelta T5): `scheduleBuffer(_:at:)` con un'ora di host, che il lettore rispetta quando l'ora in
+        // campioni non è valida (Apple, `AVAudioPlayerNode`). I buffer dopo vanno in coda come sempre. Al consumo, la
+        // riga con l'ora chiesta e l'ultimo ciclo di rendering.»: il buffer ancorato era quello del bersaglio; da qui
+        // è il primo della scorta, muto, e l'«uno» esce qualche buffer dopo (`_rejoinLeadInQ`).
+        if let anchoredAt = self._anchoredFirstBufferQ {
+            self._anchoredFirstBufferQ = nil
+            let requestedRenderTicks = anchoredAt.hostTime
+            playerNode.scheduleBuffer(buffer, at: anchoredAt, options: [], completionHandler: { [weak self] in
+                self?.audioQueue.async {
+                    self?.anchoredBufferConsumedQ(requestedRenderTicks: requestedRenderTicks)
+                    self?.scheduleNextBuffer()
+                }
+            })
+            return
+        }
         playerNode.scheduleBuffer(buffer) { [weak self] in
             self?.audioQueue.async { self?.scheduleNextBuffer() }
         }
@@ -5492,10 +6763,40 @@ class AudioEngine: ObservableObject {
         switch type {
         case .began:
             var shouldStop = false
+            var soloStop = false
             // A408 — come in `stopSync`: le copie di `playerNode` ed `engine` si prendono nel `sync`.
             var interruptedPlayer: AVAudioPlayerNode? = nil
             var interruptedEngine: AVAudioEngine? = nil
+            // A412 — il motivo che il sistema dà dell'interruzione, come numero grezzo e solo per il registro
+            // (Aperto del referto A412: un inizio tardivo dopo un rientro). Non si legge la chiave
+            // `AVAudioSessionInterruptionWasSuspendedKey`, deprecata da iOS 14.5, e i casi del motivo non si
+            // nominano. «-» = assente.
+            let systemReason: String = (info[AVAudioSessionInterruptionReasonKey] as? UInt).map { String($0) } ?? "-"
             audioQueue.sync {
+                os_log("[Q-BEATS][CRISI] interruzione iniziata motivoSistema:%{public}@",
+                       log: .default, type: .default, systemReason)
+                // A412 — LA REGOLA DI OGNI CRISI, prima di tutto (`CrisisStopDecision`): il Solo col click in moto
+                // si ferma come allo Stop della sua console (qui sotto, fuori dal `sync`); il Direttore già muto
+                // (o che aspetta il rientro a motore fermo) non ha niente da fermare; per tutti gli altri
+                // l'inizio dell'interruzione di sempre, col silenzio del Direttore in canzone.
+                let outcome = self.crisisOutcomeQ(cause: .interruption)
+                switch outcome {
+                case .soloStopAsConsole:
+                    soloStop = true
+                    return
+                case .silentInSong where !self.isRunning:
+                    // L'interruzione si segna — il tasto dice Stop, e alla fine la ripartenza passa dal
+                    // coordinatore — e un ingresso armato si annulla.
+                    self.isAudioInterrupted = true
+                    self.cancelPendingJoin(reason: "inizio interruzione")
+                    self._rejoinArmedQ = false
+                    os_log("[Q-BEATS][CRISI] interruzione col Direttore gia' muto - segnata, niente da fermare",
+                           log: .default, type: .default)
+                    self.publishDirectorSilenceQ(context: "interruzione")
+                    return
+                default:
+                    break
+                }
                 guard self.isRunning else {
                     os_log("[Q-BEATS][INTERRUPTION] began — engine già fermo, noop",
                            log: .default, type: .default)
@@ -5505,9 +6806,11 @@ class AudioEngine: ObservableObject {
                 // CRITICO: NON chiamare midi_engine_stop() — il sequencer C++ continua a
                 // mantenere la beat position corrente. NON notificare stop a Link.
                 if let lh = self.linkEngineHandle {
-                    // A411 · SOLO-INERTE — Link come lo vede il motore: nel Solo spento, così a fine
-                    // interruzione il Solo riprende col suo battito, come a Link spento. Se il Solo debba
-                    // ripartire da solo non si decide qui (passo 2 del Direttore in crisi).
+                    // A411 · SOLO-INERTE — Link come lo vede il motore: nel Solo spento.
+                    // ⚠️ RISCRITTO A412: qui si diceva «così a fine interruzione il Solo riprende col suo
+                    // battito, come a Link spento. Se il Solo debba ripartire da solo non si decide qui (passo 2
+                    // del Direttore in crisi)». Deciso: il Solo a un'interruzione non arriva qui, si ferma come
+                    // allo Stop della console e non riparte da solo (`CrisisStopDecision`, `RecoveryDecision`).
                     self.clockLinkWasEnabled = SoloInertDecision.engineSeesLinkOn(role: self._linkMode,
                                                                                   userLinkEnabled: self._linkUserEnabledQ,
                                                                                   linkActive: link_engine_is_enabled(lh))
@@ -5517,9 +6820,11 @@ class AudioEngine: ObservableObject {
                 // CRITICO: NON salvare beat/timestamp — midi_engine_get_beat_at_time()
                 // calcola la posizione corretta al momento del resume usando lastMachTime
                 // e lastSamplePosition aggiornati dall'ultimo sync_clock.
-                // A410 — l'àncora del conteggio in silenzio (solo misura: il battito di ripresa resta
-                // quello dell'orologio MIDI qui sopra), prima che `isRunning` vada a falso.
-                self.takeSilenceAnchorQ(cause: "interruzione")
+                // A410 — l'àncora del conteggio in silenzio, prima che `isRunning` vada a falso.
+                // A412 — solo col Direttore muto in canzone (`enterDirectorSilenceQ`, che la prende).
+                if outcome == .silentInSong {
+                    self.enterDirectorSilenceQ(cause: .interruption)
+                }
                 self.isAudioInterrupted = true
                 self.isRunning          = false
                 shouldStop              = true
@@ -5531,6 +6836,14 @@ class AudioEngine: ObservableObject {
                 // A400 · R1 — questo arresto non passa da `stopSync`: anche il segno del proprio
                 // avvio, se l'eco non è arrivato, si abbassa QUI.
                 self.lowerOwnTransportStartQ(reason: "interruzione")
+                // A412 — il tasto, a stato finito (interruzione in corso: Stop).
+                if self._directorSilentInSongQ {
+                    self.publishDirectorSilenceQ(context: "interruzione")
+                }
+            }
+            if soloStop {
+                stopForSoloCrisis(cause: .interruption)
+                return
             }
             guard shouldStop, let playerToStop = interruptedPlayer, let engineToStop = interruptedEngine else { return }
             playerToStop.stop()
@@ -5548,7 +6861,16 @@ class AudioEngine: ObservableObject {
 
                 // A408 — fuori da «normale» niente ripresa e niente rebuildGraph sul motore vecchio:
                 // la sessione la riattiva solo la ricostruzione, al primo avvio dopo il reset.
-                if self.mediaResetSkipsQ("fine interruzione") { return }
+                if self.mediaResetSkipsQ("fine interruzione") {
+                    // A412 — col Direttore muto in canzone l'interruzione è finita anche se dopo un reset non si
+                    // riparte da soli: il tasto torna a dire Play se il rientro è possibile (il tocco ricostruisce
+                    // e rientra, D2), invece di restare su «interruzione in corso».
+                    if self._directorSilentInSongQ && self.isAudioInterrupted {
+                        self.isAudioInterrupted = false
+                        self.publishDirectorSilenceQ(context: "fine-interruzione-dopo-reset")
+                    }
+                    return
+                }
 
                 // Recovery pendingResume
                 if self.pendingResume {
@@ -5563,7 +6885,7 @@ class AudioEngine: ObservableObject {
                     }
                     os_log("[Q-BEATS][RESUME] pendingResume recuperato da InterruptionEnded beat:%.4f",
                            log: .default, type: .default, recoveryBeat ?? -1.0)
-                    self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: "pending_recovery")
+                    self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: .pendingRecovery)
                     return
                 }
 
@@ -5571,6 +6893,16 @@ class AudioEngine: ObservableObject {
                 let options = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
                 let shouldResume = AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume)
                 if !shouldResume {
+                    // A412 — la ripresa pendente (e la sua rete a 1 s) si rialza solo con un'interruzione attiva e
+                    // nessuno Stop voluto dopo la crisi (`RecoveryDecision`; referto A410, Aperto 4): prima si
+                    // rialzava sempre, anche dopo uno Stop voluto durante l'interruzione, e il click ripartiva.
+                    guard RecoveryDecision.raisesPendingOnEndedWithoutResume(interruptionActive: self.isAudioInterrupted,
+                                                                             wantedStopSinceCrisis: self._wantedStopSinceCrisisQ) else {
+                        os_log("[Q-BEATS][RESUME] .ended senza shouldResume - ripresa pendente NON rialzata (interruzione:%d stopVoluto:%d)",
+                               log: .default, type: .default,
+                               self.isAudioInterrupted ? 1 : 0, self._wantedStopSinceCrisisQ ? 1 : 0)
+                        return
+                    }
                     os_log("[Q-BEATS][RESUME] .ended ricevuto ma shouldResume=false — Pending=true.",
                            log: .default, type: .default)
                     self.pendingResumeBeat = nil
@@ -5597,7 +6929,7 @@ class AudioEngine: ObservableObject {
                                 recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
                             }
                             self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
-                                                         trigger: "safety_net_noresume")
+                                                         trigger: .safetyNetNoResume)
                         }
                     }
                     return
@@ -5662,7 +6994,7 @@ class AudioEngine: ObservableObject {
                 // 5. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer
                 self.activateSessionAndStart(
                     resumeAtBeat: linkWasEnabled ? nil : resumeBeat,
-                    trigger: "interruption_ended"
+                    trigger: .interruptionEnded
                 )
             }
 
@@ -5701,7 +7033,7 @@ class AudioEngine: ObservableObject {
                 }
                 os_log("[Q-BEATS][RESUME] pendingResume recuperato da RouteChange — beat:%.4f",
                        log: .default, type: .default, recoveryBeat ?? -1.0)
-                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: "pending_recovery")
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: .pendingRecovery)
                 return
             }
 
@@ -5749,14 +7081,19 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default, recoveryBeat ?? -1.0)
 
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
-                                              trigger: "sample_rate_change")
+                                              trigger: .sampleRateChange)
                 return
             } else if modeChanged {
                 // Topologia grafo cambia tra Base e Pro — rebuild completo obbligatorio.
                 // B1 Hard Sync: clock C++ non si ferma — MAI midi_engine_stop() qui.
                 let wasRunning = self.isRunning
                 // A410 — l'àncora del conteggio in silenzio, prima che `isRunning` vada a falso.
-                self.takeSilenceAnchorQ(cause: "modo")
+                // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`): col Direttore muto in canzone
+                // l'àncora e il silenzio, e la ripartenza qui sotto passa dal coordinatore
+                // (`RecoveryDecision`); per tutti gli altri come oggi.
+                if self.crisisOutcomeQ(cause: .mode) == .silentInSong {
+                    self.enterDirectorSilenceQ(cause: .mode)
+                }
                 self.isRunning = false
                 self.playerNode.stop()
                 self.engine.stop()
@@ -5788,6 +7125,9 @@ class AudioEngine: ObservableObject {
                     self.audioMode = detectedMode
                     self.sampleRateInfo = newSampleRate
                 }
+                if self._directorSilentInSongQ {
+                    self.publishDirectorSilenceQ(context: "modo")
+                }
 
                 guard wasRunning else {
                     os_log("[Q-BEATS][ROUTE] modeChanged — engine fermo, no restart",
@@ -5796,7 +7136,7 @@ class AudioEngine: ObservableObject {
                 }
 
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
-                                             trigger: "mode_change",
+                                             trigger: .modeChange,
                                              mode: detectedMode)
                 return
             }
@@ -5828,11 +7168,15 @@ class AudioEngine: ObservableObject {
     // al primo avvio dopo il reset (`start()` → `rebuildAfterMediaResetQ`), e il click non riparte da
     // solo (decisioni del referee sul referto A407, punti 2 e 4; QA1749).
 
-    // La Lost: lo stato va a «servizi persi», da qualunque stato. Il motore resta com'è: se il click
-    // suona, lo ferma la Reset.
-    // A410 — e in più, sempre su audioQueue: il Direttore in canzone prende l'àncora del conteggio in
-    // silenzio (il motore resta com'è: nessun arresto locale nel passo 1), e la ripresa pendente si
-    // sgombera (§2.8).
+    // La Lost: lo stato va a «servizi persi», da qualunque stato. A410 — la ripresa pendente si sgombera
+    // (§2.8).
+    // ⚠️ RISCRITTO A412 (18/10/2026). Il testo di prima diceva «Il motore resta com'è: se il click suona, lo
+    // ferma la Reset» e «il Direttore in canzone prende l'àncora (il motore resta com'è: nessun arresto locale
+    // nel passo 1)». Da A412 decide la regola di ogni crisi (`CrisisStopDecision`): il Direttore (muto in
+    // canzone, con l'àncora, o senza canzone) si ferma QUI in locale, un'operazione nuova sul server dei servizi
+    // audio che non c'è più (gli errori si ignorano, come nella ricostruzione: QA1749; una riga); il Solo col
+    // click in moto si ferma come allo Stop della console (sul principale: `stopSync` non gira da audioQueue);
+    // il Follower come oggi (resta com'è fino alla Reset).
     @objc private func handleMediaLost(_ notification: Notification) {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
@@ -5842,29 +7186,63 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][RESET] servizi audio persi n:%d stato:%{public}@ -> %{public}@",
                    log: .default, type: .default,
                    self._mediaLostCountQ, self.describe(from), self.describe(self._mediaServicesQ))
-            self.takeSilenceAnchorQ(cause: "servizi-persi")
+            let outcome = self.crisisOutcomeQ(cause: .servicesLost)
+            switch outcome {
+            case .silentInSong, .localStop:
+                if outcome == .silentInSong {
+                    self.enterDirectorSilenceQ(cause: .servicesLost)
+                    // Il tasto prima dello specchio «non suona»: un tocco in mezzo trova già il silenzio.
+                    self.publishDirectorSilenceQ(context: "servizi-persi")
+                }
+                if let pair = self.beginLocalStopQ(context: "servizi-persi") {
+                    pair.player.stop()
+                    pair.engine.stop()
+                    DispatchQueue.main.async {
+                        self.isPlaying = false
+                    }
+                    self.logLocalStop(context: "servizi-persi", server: "assente(operazione-nuova)")
+                }
+            case .soloStopAsConsole:
+                DispatchQueue.main.async {
+                    self.stopForSoloCrisis(cause: .servicesLost)
+                }
+            case .asToday, .nothing:
+                break
+            }
             self.clearPendingResumeQ(reason: "lost")
+            if self._directorSilentInSongQ {
+                self.publishDirectorSilenceQ(context: "servizi-persi")
+            }
         }
     }
 
     // La Reset.
-    //  · da «servizi persi»: stopSync sul principale, poi, su audioQueue, «da ricostruire». Fra la
-    //    lettura e il passaggio lo stato resta «servizi persi»: un avvio che arriva in mezzo è
-    //    rifiutato. ⚠️ DIFETTO APERTO (A410): sul Direttore questo stopSync manda lo Stop alla band,
-    //    e chiude la canzone (`directorStoppedSubject`); fino ad A410 lo Stop partiva anche dal Solo con
-    //    Link acceso, da A411 il Solo non manda niente a Link (`SoloInertDecision`):
-    //    è contro LIBRO 2026-09-17 «IL PRINCIPIO DELLA BAND» (un apparecchio in crisi non ferma la
-    //    band), `TD-media-reset-del-direttore-ferma-la-band`, e si cura nel passo 2 del Direttore in
-    //    crisi. Prima qui c'era «come prima», come se fosse una scelta: non lo era (referto A408, §8.3);
+    //  · da «servizi persi»: lo stopSync del Follower sul principale (vedi sotto), poi, su audioQueue, «da
+    //    ricostruire». Fra la lettura e il passaggio lo stato resta «servizi persi»: un avvio che arriva in
+    //    mezzo è rifiutato;
     //  · da «da ricostruire»: notifica ripetuta, ignorata;
     //  · da «normale» (Reset senza Lost): «da ricostruire», senza stopSync.
-    // Il `sync` dal principale è quello di prima (la lettura di `wasRunning`).
-    // A410 — dentro il `sync`, in tutti i rami: la ripresa pendente si sgombera (§2.8); con la Reset
-    // senza Lost il motore resta com'è e tace (il server è ripartito sotto un motore agganciato a
-    // quello morto), e il Direttore in canzone prende lì l'àncora del conteggio in silenzio, come alla
-    // Lost. Lo stopSync qui sotto non chiude l'àncora: al tocco dopo il reset esce la riga di cosa
-    // farebbe il rientro.
+    // A410 — dentro il `sync`, in tutti i rami: la ripresa pendente si sgombera (§2.8).
+    // ⚠️ RISCRITTO A412 (18/10/2026). Il testo di prima diceva: «da servizi persi: stopSync sul principale» per
+    // tutti, con «⚠️ DIFETTO APERTO (A410): sul Direttore questo stopSync manda lo Stop alla band, e chiude la
+    // canzone» (`TD-media-reset-del-direttore-ferma-la-band`, contro LIBRO 2026-09-17 «IL PRINCIPIO DELLA
+    // BAND»); e «con la Reset senza Lost il motore resta com'è e tace [...] il Direttore in canzone prende lì
+    // l'àncora». Da A412 decide la regola di ogni crisi (`CrisisStopDecision`), e nessuna crisi manda Stop a
+    // Link:
+    //  · Reset dopo la Lost: il Direttore si è già fermato in locale alla Lost (muto in canzone, o senza
+    //    canzone): niente stopSync, niente Stop alla band, la canzone resta aperta. Lo stopSync resta solo sul
+    //    Follower, perché è il suo comportamento di oggi (mandato: il Follower non cambia) e lì non scrive su Link
+    //    (A360): ferma in locale il motore agganciato al server morto. Il Solo, fermo dalla Lost, non ha niente
+    //    da fermare;
+    //  · Reset senza Lost: il motore tace agganciato al server morto. Il Direttore si ferma qui in locale (muto
+    //    in canzone, con l'àncora presa qui; o senza canzone); il Solo col click in moto come allo Stop della
+    //    console; il Follower come oggi (resta com'è).
+    // Il `sync` dal principale è quello di prima.
     @objc private func handleMediaReset(_ notification: Notification) {
+        var followerStopSync = false
+        var soloStop: CrisisCause? = nil
+        var stoppedPair: (player: AVAudioPlayerNode, engine: AVAudioEngine)? = nil
+        var stoppedContext = ""
         let action: MediaServicesAction = audioQueue.sync {
             self._mediaResetCountQ += 1
             let from = self._mediaServicesQ
@@ -5873,18 +7251,56 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][RESET] notifica di reset n:%d stato:%{public}@ esito:%{public}@",
                    log: .default, type: .default,
                    self._mediaResetCountQ, self.describe(from), self.describe(step.action))
-            if step.action == .markRebuild {
-                self.takeSilenceAnchorQ(cause: "reset-senza-lost")
+            if step.action == .stopThenMarkRebuild || step.action == .markRebuild {
+                let cause: CrisisCause = step.action == .stopThenMarkRebuild ? .resetAfterLost : .resetWithoutLost
+                let outcome = self.crisisOutcomeQ(cause: cause)
+                switch outcome {
+                case .silentInSong, .localStop:
+                    if outcome == .silentInSong {
+                        self.enterDirectorSilenceQ(cause: cause)
+                    }
+                    stoppedContext = cause.rawValue
+                    stoppedPair = self.beginLocalStopQ(context: cause.rawValue)
+                case .soloStopAsConsole:
+                    soloStop = cause
+                case .asToday:
+                    followerStopSync = step.action == .stopThenMarkRebuild
+                case .nothing:
+                    break
+                }
             }
             self.clearPendingResumeQ(reason: "reset")
+            if self._directorSilentInSongQ {
+                self.publishDirectorSilenceQ(context: "reset")
+            }
             return step.action
         }
+        if let pair = stoppedPair {
+            pair.player.stop()
+            pair.engine.stop()
+            DispatchQueue.main.async {
+                self.isPlaying = false
+            }
+            logLocalStop(context: stoppedContext, server: "ripartito-sotto-un-motore-vecchio")
+        }
+        if let cause = soloStop {
+            stopForSoloCrisis(cause: cause)
+        }
         guard action == .stopThenMarkRebuild else { return }
-        stopSync()
+        if followerStopSync {
+            stopSync(origin: .followerReset)
+        } else {
+            os_log("[Q-BEATS][RESET] stopSync della Reset non eseguito - non Follower - nessuno Stop alla band, la canzone del Direttore resta aperta",
+                   log: .default, type: .default)
+        }
         audioQueue.async { [weak self] in
             guard let self = self else { return }
             self._mediaServicesQ = MediaServicesResetDecision.transition(state: self._mediaServicesQ,
                                                                         event: .stoppedAfterReset).next
+            // A412 — da «da ricostruire» il tocco ricostruisce e rientra: il tasto si ricalcola (D2).
+            if self._directorSilentInSongQ {
+                self.publishDirectorSilenceQ(context: "da-ricostruire")
+            }
         }
     }
 
@@ -6042,7 +7458,7 @@ class AudioEngine: ObservableObject {
                 }
                 os_log("[Q-BEATS][RESUME] pendingResume recuperato da EngineConfigChange — beat:%.4f",
                        log: .default, type: .default, recoveryBeat ?? -1.0)
-                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: "pending_recovery")
+                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: .pendingRecovery)
                 return
             }
 
@@ -6050,7 +7466,12 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default)
 
             // A410 — l'àncora del conteggio in silenzio, prima che `isRunning` vada a falso.
-            self.takeSilenceAnchorQ(cause: "configurazione")
+            // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`): col Direttore muto in canzone
+            // l'àncora e il silenzio, e la ripartenza qui sotto passa dal coordinatore (`RecoveryDecision`);
+            // per tutti gli altri come oggi.
+            if self.crisisOutcomeQ(cause: .configuration) == .silentInSong {
+                self.enterDirectorSilenceQ(cause: .configuration)
+            }
             self.isRunning = false
             self.playerNode.stop()
             // RIENTRO-P1 (a) — arresto che non passa da `stopSync`. È il caso del collaudo
@@ -6084,14 +7505,19 @@ class AudioEngine: ObservableObject {
             }
 
             // 3. Riattivazione sessione e restart
-            self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: "engine_config_change")
+            if self._directorSilentInSongQ {
+                self.publishDirectorSilenceQ(context: "configurazione")
+            }
+            self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: .engineConfigChange)
         }
     }
 
     @objc private func handleAppWakeUp() {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
-            guard self.isPlaying, !self.isRunning else { return }
+            // A412 — anche il Direttore muto in canzone (il click non suona, `isPlaying` è falso): il ritorno dalla
+            // sospensione passa dal coordinatore (mandato §2.2, D5; `RecoveryDecision`).
+            guard self.isPlaying || self._directorSilentInSongQ, !self.isRunning else { return }
 
             if self.pendingResume {
                 self.pendingResume = false
@@ -6104,7 +7530,7 @@ class AudioEngine: ObservableObject {
                     recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
                 }
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
-                                             trigger: "wakeup_pending_recovery")
+                                             trigger: .wakeupPendingRecovery)
                 return
             }
 
@@ -6115,7 +7541,7 @@ class AudioEngine: ObservableObject {
                              + self.bufferDurationTicks
                 resumeBeat = midi_engine_get_beat_at_time(mh, hostTime)
             }
-            self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: "app_wakeup")
+            self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: .appWakeup)
         }
     }
 }

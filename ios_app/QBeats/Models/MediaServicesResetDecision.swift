@@ -10,14 +10,16 @@ import Foundation
 //
 // La regola (decisioni del referee sul referto A407, mandato A408, §0-§2):
 //  · la Lost porta a «servizi persi», da qualunque stato, e nient'altro;
-//  · la Reset da «servizi persi»: stopSync sul principale, poi, su audioQueue, «da ricostruire».
-//    Fra la lettura e il passaggio lo stato resta «servizi persi», così nessun avvio parte in
-//    mezzo. ⚠️ DIFETTO APERTO (A410): sul Direttore quello stopSync manda lo Stop alla band, e
-//    chiude la canzone (fino ad A410 anche il Solo con Link acceso mandava lo Stop; da A411 il Solo
-//    non manda niente a Link, `SoloInertDecision`): è contro LIBRO 2026-09-17 «IL
-//    PRINCIPIO DELLA BAND» (`TD-media-reset-del-direttore-ferma-la-band`) e si cura nel passo 2 del
-//    Direttore in crisi. Prima qui c'era «lo Stop alla band resta quello di oggi», come se fosse una
-//    scelta: non lo era (referto A408, §8.3);
+//  · la Reset da «servizi persi»: l'arresto che serve sul principale, poi, su audioQueue, «da
+//    ricostruire». Fra la lettura e il passaggio lo stato resta «servizi persi», così nessun avvio
+//    parte in mezzo. A412 (mandato «DIRETTORE-IN-CRISI-PASSO-2», §2.1): l'arresto lo decide la regola
+//    delle crisi (`CrisisStopDecision`). Lo `stopSync` resta solo per il Follower, che ferma in locale
+//    un motore rimasto «in moto» sul server morto, senza scrivere su Link (A360); Direttore e Solo li ha
+//    già fermati la Lost, e alla Reset non esce nessuno Stop verso la band e nessuna canzone si chiude
+//    (LIBRO 2026-09-17 «IL PRINCIPIO DELLA BAND»). Fino ad A411 quello stopSync, sul Direttore, mandava
+//    lo Stop alla band e chiudeva la canzone (`TD-media-reset-del-direttore-ferma-la-band`); fino ad
+//    A410 lo mandava anche il Solo con Link acceso. Prima di A410 qui c'era «lo Stop alla band resta
+//    quello di oggi», come se fosse una scelta: non lo era (referto A408, §8.3);
 //  · la Reset da «da ricostruire»: notifica ripetuta, ignorata;
 //  · la Reset da «normale» (Reset senza Lost): «da ricostruire», senza stopSync;
 //  · un avvio in «servizi persi»: rifiutato e non ricordato, motore fermo;
@@ -63,7 +65,8 @@ enum MediaServicesEvent: Equatable {
 enum MediaServicesAction: Equatable {
     /// Nessuna azione oltre al cambio di stato.
     case none
-    /// Reset da «servizi persi»: stopSync sul principale, poi `stoppedAfterReset`.
+    /// Reset da «servizi persi»: l'arresto che serve sul principale (da A412 lo `stopSync` del solo
+    /// Follower, `CrisisStopDecision`), poi `stoppedAfterReset`.
     case stopThenMarkRebuild
     /// Reset da «normale» (senza Lost): «da ricostruire», senza stopSync.
     case markRebuild

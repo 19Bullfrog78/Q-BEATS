@@ -368,6 +368,17 @@ void link_engine_set_start_stop_sync_enabled_callback(LinkEngineHandle handle,
 //   tempo            = ABLLinkGetTempo(state)
 //   beatAtHostTime   = ABLLinkBeatAtTime(state, hostTime, quantum)
 //   captureHostTime  = mach_absolute_time() letto subito prima della cattura
+// A412 · SEGUITO 2 (18/10/2026) — DUE CAMPI IN CODA, DALLA STESSA CATTURA: LA NUMERAZIONE DELLA SESSIONE.
+// Col quantum 1 la parte intera del battito è dell'apparecchio, non della sessione (ABLLink.h:280-286: il
+// valore assoluto è di questa istanza, la fase rispetto al quantum è condivisa): quando un altro cambia il
+// tempo, la linea propria resta continua all'istante in cui lo riceve e può spostarsi di poco, e se il
+// battito a quantum 1 sta vicino al mezzo battito dalla linea propria scavalca e salta di un intero, con la
+// sessione ferma (collaudo di A412 delle 16:24, mandato «A412 · SEGUITO 2», par. 2). Il quantum grande
+// (`DirectorRejoinDecision.sessionQuantum` in Swift, lo stesso 1e6 di `LinkStartStamp` e del 2D) dà il
+// battito contato dallo zero della sessione: non salta. Da A412 queste letture le usano le decisioni del
+// coordinatore del rientro (la frase sopra «Nessuna decisione del motore le legge» è del passo 1, A410).
+//   beatAtStartQBig    = ABLLinkBeatAtTime(state, T, 1e6): il battito dell'avvio, per «stesso avvio»
+//   beatAtHostTimeQBig = ABLLinkBeatAtTime(state, hostTime, 1e6): il battito a quell'ora, per il conto
 typedef struct {
     bool     linkEnabled;
     bool     isPlaying;
@@ -376,6 +387,8 @@ typedef struct {
     double   tempo;
     double   beatAtHostTime;
     uint64_t captureHostTime;
+    double   beatAtStartQBig;
+    double   beatAtHostTimeQBig;
 } LinkSessionReading;
 
 LinkSessionReading link_engine_read_session_at(LinkEngineHandle handle,

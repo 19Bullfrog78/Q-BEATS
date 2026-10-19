@@ -845,6 +845,16 @@ struct LiveView: View {
                 default:
                     break
                 }
+                //  (4) A412 (18/10/2026) — IL DIRETTORE MUTO IN CANZONE (mandato «DIRETTORE-IN-CRISI-PASSO-2»,
+                //      §2.5): la sessione resta `.playing` per tutto il silenzio, e un `.stopped` del motore in
+                //      quel tempo non la porta a fermo (il player si vede come oggi a click in moto; il tasto lo
+                //      decide `session.directorSilence`). Il silenzio finisce col rientro, con lo Stop voluto (la
+                //      stanza chiude la canzone e arma il velo PRIMA del `.stopped`) o con lo Stop di fine canzone.
+                if session.directorSilence != nil {
+                    os_log("[Q-BEATS][DIR-TASTO] guardia specchio: scartato .stopped del motore col Direttore muto in canzone",
+                           log: .default, type: .default)
+                    return
+                }
                 session.playbackState = .stopped
                 // P2 sync stop manuale: spegnimento all'unisono LED+trattini.
                 // Se sectionHold=false → stop manuale (o overlay) → reset beatActive
