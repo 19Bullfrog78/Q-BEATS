@@ -1,4 +1,4 @@
-BOX3 V102 — Decisione: 2026-10-05 — ⇒ **V102 (mandato A395, corretto al cancello dal mandato A396): lo stato vivo al 05/10/2026 è IN CODA, nel blocco «STATO AL 05/10/2026 — V102»; solo rimandi ai canonici, nessun censimento** · (AUTOPORTANTE — V100 aggiunge in testa SOLO UN BLOCCO DI PUNTATORI, senza censimenti; il CORPO resta quello di V99, datato 2026-07-22) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
+BOX3 V103 — Decisione: 2026-10-19 — ⇒ **V103 (mandato A414, giro dei canonici del 19/10): lo stato vivo al 19/10/2026 è IN CODA, nel blocco «STATO AL 19/10/2026 — V103»; solo rimandi ai canonici, nessun censimento** · (AUTOPORTANTE — V100 aggiunge in testa SOLO UN BLOCCO DI PUNTATORI, senza censimenti; il CORPO resta quello di V99, datato 2026-07-22) · HEAD=origin=bfa07eb (⚠️ campo strutturalmente stale by-design, come Sez.5 di LIBRO: cita l'HEAD al momento della scrittura, NON aggiornato dopo; chi ha bisogno dell'HEAD vero verifica `git log -1` a fonte — verificato a fonte 22/07: HEAD = origin/master = `bfa07eba05aecb25c334d54fe8a9695f57464d76` = BUGS v42; CI `29912886883` verde, `headSha` coincidente)
 Supersede V99 (blocco di SOLI PUNTATORI in testa, 22/08/2026 — mandato A185; ZERO riscritture: il corpo di V99 è riportato sotto INVARIATO, e la sua data resta 2026-07-22. ⛔ Il blocco NON contiene censimenti: una versione precedente ne portava due — «due ticket bloccanti palco» e un elenco dei pulsanti morti del transport — ed erano entrambi falsi. Sostituiti da indirizzi alle sedi vive): ⚠️ **«INVARIATO» si riferisce al TESTO, non alle annotazioni.** Le marcature datate che compaiono dentro il corpo sono **aggiunte posteriori, non modifiche**: la storia non si riscrive, si marca dove sta. Prassi gia' in atto prima di questa nota — vedi le marcature nel blocco di testa. ⇒ **Chi trova una marcatura datata dentro un corpo dichiarato invariato non deve concludere che il testo sia stato manomesso.** Tensione rilevata da CC in `A334` e girata al referee invece che sciolta da solo.
 
 ⚠️ QUESTO DOCUMENTO È FERMO AL 22/07/2026 (V99). Blocco di puntatori
@@ -855,3 +855,30 @@ decisioni si leggono nei canonici, non qui.
    altri tredici restano. Mandato A396, §6.
  · **Dove sta il resto:** bug e gravità in BUGS v91; specifiche, invarianti e regole R-δ in BOX5
    V54; ratifiche nel LIBRO v89, che porta la ratifica della Solo REV18 (riga `2026-10-05`).
+
+════════════════════════════════════════════════════════════════════
+STATO AL 19/10/2026 — V103 (mandato A414, giro dei canonici del 19/10)
+════════════════════════════════════════════════════════════════════
+⚠️ La versione corrente è nella riga 1. Questo blocco porta lo stato al 19/10 e soli rimandi: versioni, ticket e decisioni si leggono nei canonici, non qui. Il blocco del 05/10 qui sopra resta com'è.
+
+ · **Master e ultima CI** [M] (20/10): `master` = `origin/master` = `1314127e6c18c5a599cef0d57f40f62f15c02e8c` (A412); «iOS Signed Build» #780, run `39253401824`, success, 666 test (messaggio di `1314127e` [R]); «F1 — Build Check» #26, run `39253423811`, success. Chi riprende rimisura: `git ls-remote origin refs/heads/master`, e la CI con lo sha a 40 (V99 (d)).
+ · **I canonici a questo giro,** su disco e non ancora committati (il commit lo fa il mandato che segue il cancello): LIBRO v92, BUGS v92, BOX5 V55, SCALETTA v21, BOX3 V103 (questo), l'indice degli ID con la riga A414.
+ · **Entrato su master dal 05/10, in ordine,** uno squash per mandato; ogni messaggio porta il diff, la CI e il collaudo:
+   - `a03c857f` A397, M2 del player del Solo, il player in moto e la console; collaudo di M1+M2 (referto A398, §2);
+   - `a2925505` A398, M3, i veli, lo Stop e la fine scaletta; collaudo di M3 del 07-08/10 (referto A399, §2);
+   - `3d06bf90` A400, la cura di R1; collaudo del 10/10, superato (messaggio di `3ac44203`);
+   - `3ac44203` A401, la Solo REV20 e il LIBRO v90; collaudo dell'11/10, superato (referto A402, §1);
+   - `19367e37` A402, il registro esportato dall'app; collaudo dell'11/10, superato;
+   - `490a3632` A403, la Solo REV22 e il LIBRO v91; collaudo superato (referto A404, §0);
+   - `2ad74f8d` A404, LinkKit fuori dal deposito; collaudo del 15/10, superato (referto A405, §0);
+   - `21d3e073` A405, due errori P1; collaudo del 15/10, superato (referto A406, §0);
+   - `c243fb8e` A406, la sessione audio su `audioQueue`; collaudo del 15/10, superato;
+   - `de215554` A408, la cura del reset dei servizi audio; collaudo del 16/10, superato;
+   - `2e4eadb8` A410, il Direttore in crisi, passo 1; collaudo del 17/10, superato;
+   - `67e1d2f5` A411, il Solo inerte; collaudo del 18/10, superato;
+   - `1314127e` A412, il Direttore in crisi, passo 2; collaudo del 18-19/10, superato, P11 escluso (difetto di prima di A412).
+ · **I referti,** in `HANDOFF/` su C: ed E:, fuori dal deposito: uno per mandato, da A397 ad A414 (A399, A407, A409 e A413 senza commit); l'elenco nel referto A414, §1 [M].
+ · **In corso:** l'uscita audio (la frequenza di campionamento e P11), poi il passo 3 del Direttore in crisi: SCALETTA v21, Sezione I.
+ · **Rami aperti** [M] (`git ls-remote origin`, 20/10): ventisei oltre a `master`: tredici `build-check/` (a397, a398, a400-a406, a408, a410, a411, a412), quattro `feat/`, otto `fix/`, uno `test/`. Ogni `build-check/` ha l'albero della punta uguale a quello del suo squash su master. Si tolgono dopo il cancello, con l'OK di Mauro e dopo la verifica del referee (domanda 12 del 19/10): misure nel referto A414, §7. Il worktree `qb_fixB` non c'è più (`git worktree list`: solo il deposito; la cartella non esiste). Le etichette `FASE_1` e `a3-device-ok` restano. Prima di toglierli, i 26 rami sono salvati in un bundle solo, su E: in `FILE X CLAUDE.MD\HANDOFF\`: `BUNDLE_2026-10-20_A414-I-26-RAMI.bundle`, 10570676 byte, sha256 `d9822e8c6f81516fabb13498831d28a3e60f840286aaf0856d0824094c7d55bc`; `git bundle verify`: ok, storia completa, nessun prerequisito; 26 teste `refs/heads/<ramo>` (mandato A414 · COMMIT, §2; referto A414, §9). Si tolgono dopo il commit di A414, col mandato A414 · COMMIT; le citazioni dei loro commit si leggono dal bundle.
+ · **Dove sta il resto:** bug e gravità in BUGS v92; specifiche, invarianti e regole R-δ in BOX5 V55; decisioni nel LIBRO v92; ordine dei lavori nella SCALETTA v21, Sezione I.
+ · **Nota di coda, 19/10/2026 (A414) — `Vendors/AbletonLink/` e `ABLLink.h`** non sono più nel deposito da A404 (`2ad74f8d`): le righe di questo file che li citano (`BOX3_QBEATS.md:47 @ 1314127e6c18c5a599cef0d57f40f62f15c02e8c`, `BOX3_QBEATS.md:68 @ 1314127e6c18c5a599cef0d57f40f62f15c02e8c`; sonda sul blob di `1314127e`; referto A404, §4.5) puntano a un file che a `1314127e` non c'è. Si legge dalla storia, `git show 490a3632e48ae9778f5f36d3a1e876a6099219b4:Vendors/AbletonLink/LinkKit.xcframework/ios-arm64/Headers/ABLLink.h`, o dalla release LinkKit 4.0, uguale (messaggio di `2ad74f8d`). Niente marcature riga per riga.
