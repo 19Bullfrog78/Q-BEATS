@@ -371,6 +371,31 @@ struct DebugView: View {
                         .foregroundColor(.gray)
                 }
 
+                // --- A416 (21/10/2026) — USCITA AUDIO, PASSO 1: STRUMENTI (mandato «USCITA-AUDIO-PASSO-1», §2.5 e §2.6) ---
+                // L'interruttore del campionatore del timbro (4-06), sulla forma di W2 qui sopra: nasce spento a ogni
+                // avvio e non si conserva. I due pulsanti della prova della frequenza chiedono al sistema una frequenza
+                // d'uscita (la preferita della sessione); il registro scrive chiesta e ottenuta. Testi del mandato.
+                SwiftUI.Section("USCITA AUDIO · strumenti") {
+                    Toggle("Campionatore del timbro (4-06)", isOn: Binding(
+                        get: { audioEngine.debugStartStampSampler },
+                        set: { audioEngine.setDebugStartStampSampler($0) }
+                    ))
+                    Text("Spento = di base. Acceso = una lettura di Link ogni 0,25 s e le righe contesto:campione nel registro. Torna spento a ogni avvio dell'app.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Button("Prova frequenza: chiedi 44100 Hz") {
+                        os_log("[DebugView] Azione: Prova frequenza 44100", log: .default, type: .default)
+                        audioEngine.debugRequestPreferredSampleRate(44100)
+                    }
+                    Button("Prova frequenza: torna a 48000 Hz") {
+                        os_log("[DebugView] Azione: Prova frequenza 48000", log: .default, type: .default)
+                        audioEngine.debugRequestPreferredSampleRate(48000)
+                    }
+                    Text("Chiede al sistema una frequenza d'uscita diversa. Il sistema decide se darla: il registro scrive chiesta e ottenuta.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+
                 // --- BACKTRACK ---
                 SwiftUI.Section("Backtrack (Fase 1.3)") {
                     Button("Arm Test Backtrack") {

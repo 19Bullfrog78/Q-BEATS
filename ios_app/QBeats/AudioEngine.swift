@@ -464,7 +464,11 @@ class AudioEngine: ObservableObject {
     // è una `static let`.
     private var engine               = AVAudioEngine()
     private var playerNode           = AVAudioPlayerNode()
-    // Fase 1.5a: sampleRate dinamico — aggiornato da AVAudioSession dopo setActive(true)
+    // ⚠️ RISCRITTO A416 (21/10/2026). Il testo di prima diceva «Fase 1.5a: sampleRate dinamico — aggiornato da
+    // AVAudioSession dopo setActive(true)»: la scrivevano `setupSession`, `setupGraph` e il cambio di percorso, dalla
+    // sessione, e il DSP restava indietro. Da A416 la scrive solo `applySampleRateQ`, dalla fonte unica
+    // (`SampleRateDecision`: il nodo d'uscita, poi la sessione), insieme al DSP, ai campioni del click e alla durata del
+    // buffer chiesta (mandato «USCITA-AUDIO-PASSO-1», §2.1). Nasce 48000, come la preferita della sessione.
     private var sampleRate           : Double = 48000.0
     private let bufferSize           : AVAudioFrameCount = 512
     private let maxBeats             : Int = 16
@@ -514,6 +518,9 @@ class AudioEngine: ObservableObject {
     // che non passano da `stopSync` (inizio di un'interruzione, cambio di topologia, cambio di
     // configurazione) e il `catch` di `start()`: ogni blocco di coda che scrive `isRunning = false`
     // lo abbassa prima di finire (`lowerOwnTransportStartQ`).
+    // ⚠️ A416 (21/10/2026): gli arresti che non passano da `stopSync` sono anche, da A412, quelli locali della Lost e
+    // del reset (`beginLocalStopQ`) e, da A416, il cambio di frequenza dal percorso a motore in moto
+    // (`handleRouteChange`, motivo «frequenza»); la regola qui sopra vale anche per loro.
     // ⚠️ A411 · SOLO-INERTE — nel Solo il segno si alza lo stesso, come a Link spento (inerte fino allo
     //    stop), ma la scrittura «suona» non esce (lucchetto, `SoloInertDecision`), e il richiamo avvio/stop
     //    nel Solo si scarta in testa: da A411 il passo di coda che lo consumava non lo raggiunge nessuno.
@@ -750,6 +757,10 @@ class AudioEngine: ObservableObject {
     // audioQueue. Tutte e due le scrive solo `setDebugFollowerBoundaryTempoWrite`.
     @Published private(set) var debugFollowerBoundaryTempoWrite: Bool = true
     private var _debugFollowerBoundaryTempoWriteQ: Bool = true   // accesso SOLO su audioQueue
+    // A416 (21/10/2026) — IL CAMPIONATORE DEL TIMBRO DIETRO L'INTERRUTTORE (mandato «USCITA-AUDIO-PASSO-1», §2.5), sulla
+    // forma di W2 qui sopra: esiste solo in DEBUG, nasce spento a ogni avvio e non si conserva. Questo specchio lo legge
+    // la `DebugView` su main; il timer vive su `startStampQueue`. Lo scrive solo `setDebugStartStampSampler`.
+    @Published private(set) var debugStartStampSampler: Bool = false
 #endif
     private var _audioBPM: Double = 120.0   // accesso SOLO su audioQueue
     // DEFAULT DEVE COINCIDERE con @Published var beatsPerBar (didSet non scatta in init)
@@ -819,7 +830,8 @@ class AudioEngine: ObservableObject {
     // Solo l'audio layer (AVAudioEngine + playerNode) viene sospeso.
     private var isAudioInterrupted:  Bool = false
     private var clockLinkWasEnabled: Bool = false
-    private var lastInterruptionResumeTime: UInt64 = 0
+    // A416 (21/10/2026) — qui c'era `lastInterruptionResumeTime`, l'ora dell'ultima ripresa da un'interruzione: la
+    // leggevano solo i 20 s del cambio di configurazione, usciti con la regola di stato (`EngineConfigChangeDecision`).
     private var pendingResume: Bool = false
     private var pendingResumeBeat: Double? = nil
     private var currentResumeToken: Int = 0
@@ -847,9 +859,45 @@ class AudioEngine: ObservableObject {
     // RIENTRO-P2A (20/09/2026) — campionatore diagnostico del timbro dell'avvio (solo log):
     // vedi `startStartStampSampler`. Il timer e l'ultimo campione scritto vivono su
     // `startStampQueue`; su audioQueue gira solo la lettura.
+    // ⚠️ A416 (21/10/2026): la funzione è `startStartStampSamplerQ`, solo DEBUG, e la chiama l'interruttore
+    // (`setDebugStartStampSampler`); il timer si crea e si annulla su `startStampQueue`.
     private let startStampQueue = DispatchQueue(label: "com.bullfrog.qbeats.timbro", qos: .utility)
     private var startStampTimer: DispatchSourceTimer? = nil
     private var lastSampledStartStamp: StartStampSample? = nil   // accesso SOLO su startStampQueue
+
+    // === A416 (21/10/2026) — USCITA AUDIO, PASSO 1: LA FREQUENZA DA UNA FONTE SOLA, IL BUCO DEL RENDER ===
+    // Mandato del referee «USCITA-AUDIO-PASSO-1». Le regole sono pure, col loro banco, in Models/ (`SampleRateDecision`,
+    // `EngineConfigChangeDecision`, `RenderGapMeter`, `AudioErrorText`); qui lo stato, accesso SOLO su audioQueue. Il
+    // collegamento sta nel blocco «A416» accanto a `setupGraph`.
+    /// Lo specchio della frequenza del DSP: la scrive solo `applySampleRateQ`, insieme a `metronome_set_sample_rate`.
+    /// Nasce col valore di `metronome_create` in `init` (la copia del motore alla nascita, 48000): il DSP non si rilegge,
+    /// core_engine non cambia.
+    private var _dspSampleRateQ: Double = 48000.0
+    /// La frequenza con cui sono stati fatti i campioni del click, e quella dell'ultima durata del buffer chiesta alla
+    /// sessione (0 = mai).
+    private var _clickSampleRateQ: Double = 0
+    private var _ioBufferRequestRateQ: Double = 0
+    /// Il misuratore del buco del render, a ogni `scheduleNextBuffer` (solo registro, mandato §2.3).
+    private lazy var _renderGapMeterQ = RenderGapMeter(bufferFrames: Int(bufferSize), sampleRate: sampleRate,
+                                                       ticksPerSecond: ticksPerSecond)
+    /// L'ultimo cambio di percorso (l'ora d'arrivo, letta nel gestore prima del salto su audioQueue, e il motivo) e
+    /// l'ora dell'ultimo cambio di configurazione del motore corrente: la riga del buco li confronta col buco.
+    private struct RouteChangeMark {
+        let ticks: UInt64
+        let reason: String
+    }
+    private var _lastRouteChangeQ: RouteChangeMark? = nil
+    private var _lastConfigChangeTicksQ: UInt64? = nil
+    /// La riga del tempo del click ogni 32 battiti: il battito, l'ora d'uscita e il campione del battito della riga di
+    /// prima (preso di nuovo al primo battito di ogni avvio).
+    private var _tempoLogRefTickQ: Int = 0
+    private var _tempoLogRefOutTicksQ: UInt64 = 0
+    private var _tempoLogRefSampleQ: Int64 = 0
+    /// A416 · SEGUITO 2 (21/10/2026) — l'interruzione di sistema in corso e il cambio di percorso rimandato
+    /// (`InterruptionRouteDecision`, mandato del referee «A416 · SEGUITO 2», §2). Separato da `isAudioInterrupted`, che è lo
+    /// stato della ripresa. Accesso SOLO su audioQueue; lo cambiano `noteSystemInterruptionQ`, il cambio di percorso e chi
+    /// esegue il rimandato (la fine dell'interruzione, `start()`).
+    private var _interruptionRouteQ = InterruptionRouteState.initial
 
     // --- Backtrack state: accesso SOLO su audioQueue ---
     // A408 — `var`: si ricrea dopo il reset dei servizi audio (cartello su `engine`).
@@ -1215,7 +1263,9 @@ class AudioEngine: ObservableObject {
             link_engine_activate(lh)
         }
         // RIENTRO-P2A — campionatore diagnostico del timbro dell'avvio (solo log).
-        startStartStampSampler()
+        // ⚠️ A416 (21/10/2026): qui partiva il campionatore (`startStartStampSampler()`), e non si fermava più. Da A416
+        // (mandato «USCITA-AUDIO-PASSO-1», §2.5) è spento a ogni avvio: lo accende e lo spegne l'interruttore solo DEBUG
+        // della `DebugView` (`setDebugStartStampSampler`). Le altre righe [TIMBRO], a evento, restano accese.
         // A386 · FASE B2A (2D) — la prima lettura di Start Stop Sync (il richiamo arriva solo
         // ai cambi), la notifica del numero dei collegati e il battito di trasporto a 1 s.
         if let lh = linkEngineHandle {
@@ -1228,12 +1278,9 @@ class AudioEngine: ObservableObject {
         // A386 · FASE B2d (2D) — l'ascolto del Follower a 0,25 s: parte con l'app, come il battito.
         startFollowerListen()
 
-        // === Task D refactor #18c — pending atomic init ===
-        // Inizializzazione preliminare sample_rate nel pending atomic prima
-        // che il tap block possa essere invocato. Il tap su mainMixerNode
-        // viene installato in setupGraph() dopo connectAllNodes (richiede
-        // mainMixerNode collegato al graph). Vedi installLinkTap().
-        qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
+        // A416 (21/10/2026) — qui la copia della frequenza nel ponte del tap («Task D refactor #18c — pending atomic
+        // init»: `qbeats_link_pending_set_sample_rate`, prima che il tap potesse girare). Nessuno la leggeva (dal A406 il
+        // tap conta i buffer e basta): è uscita dal ponte con le sue scritture (mandato «USCITA-AUDIO-PASSO-1», §2.1).
 
         // A406 — la sessione audio si attiva su audioQueue, non sul thread principale. Su iOS 27
         // l'attivazione dal thread principale scrive a ogni avvio il Fault «AVAudioSession_iOS.mm:978
@@ -1246,13 +1293,10 @@ class AudioEngine: ObservableObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
             self.setupSession()
-            self.setupGraph()
-            self.clickSamples              = self.generateClickSamples(frequency: 1000.0)
-            self.accentedClickSamples      = self.generateClickSamples(frequency: 1500.0)
-            self.subdivisionClickSamples   = self.generateClickSamples(frequency: 800.0)
-            DispatchQueue.main.async {
-                self.sampleRateInfo = AVAudioSession.sharedInstance().sampleRate
-            }
+            // A416 (21/10/2026) — la frequenza dalla fonte unica arriva a tutte le copie dentro `setupGraph`
+            // (`applySampleRateQ`): anche ai tre campioni del click, che fino ad A415 si facevano qui sotto, e allo
+            // schermo, che qui prendeva la frequenza della sessione (`sampleRateInfo`) e ora mostra quella che si usa.
+            self.setupGraph(context: "avvio-app")
         }
         // MIDI engine avvia DOPO Link — ordine intenzionale (commento a midi_engine_create qui
         // sopra). Resta sul thread principale: CoreMIDI chiama la notifica del client «on the same
@@ -1704,6 +1748,9 @@ class AudioEngine: ObservableObject {
     // «seed SKIP» in mezzo; referto A364, §3.d e §4.3).
     // Alza la generazione: anche un work item che `cancel()` non facesse in tempo a fermare
     // si scarta da solo al fuoco. Abbassa `isWaitingForLinkDownbeat`, come fa `stopSync`.
+    // ⚠️ A416 (21/10/2026): «tre percorsi» oggi sono di più: da A412 gli arresti locali della Lost e del reset
+    // (`beginLocalStopQ`), da A416 il cambio di frequenza dal percorso a motore in moto (`handleRouteChange`, motivo
+    // «cambio di frequenza»). Anche loro annullano qui l'ingresso pendente.
     private func cancelPendingJoin(reason: String) {
         // A412 · SEGUITO 3 — col work item si ferma il timer del rientro del Direttore (`_rejoinArmTimerQ`); qui, prima
         // del `guard`, così non dipende da `pendingLinkStart`. Senza attesa armata non fa niente.
@@ -1736,6 +1783,8 @@ class AudioEngine: ObservableObject {
     // `cancelPendingJoin`, che esce subito quando non c'è un ingresso pendente: cioè sempre,
     // nel Solo senza collegati. La riga si scrive solo se il segno era alzato: nel registro ogni
     // «alzato» ha una sola chiusura, «avvio ignorato» oppure questa.
+    // ⚠️ A416 (21/10/2026): fra gli arresti che non passano da `stopSync` anche il cambio di frequenza dal percorso a
+    // motore in moto (motivo «frequenza»).
     private func lowerOwnTransportStartQ(reason: String) {
         guard _ownTransportStartPendingQ else { return }
         _ownTransportStartPendingQ = false
@@ -1895,9 +1944,32 @@ class AudioEngine: ObservableObject {
     // audioQueue — un blocco con una cattura e tre letture, senza log — perché la cattura
     // dello stato di Link non è sicura da un altro thread (vedi `readStartStamp`). La riga,
     // quando si scrive, si scrive su `startStampQueue`.
-    // Parte in `init` e non si ferma: il motore non sa se c'è uno show in stanza (la sessione
-    // vive sopra di lui). A Link spento i campi restano fermi e non si scrive niente.
-    private func startStartStampSampler() {
+    // ⚠️ RISCRITTO A416 (21/10/2026). Il testo di prima diceva «Parte in `init` e non si ferma: il motore non sa se c'è
+    // uno show in stanza (la sessione vive sopra di lui). A Link spento i campi restano fermi e non si scrive niente.».
+    // Da A416 (mandato «USCITA-AUDIO-PASSO-1», §2.5; BUGS `TD-campionatore-del-timbro-acceso`) il campionatore esiste solo
+    // in DEBUG ed è spento a ogni avvio: lo accende e lo spegne un comando solo, `setDebugStartStampSampler`
+    // (l'interruttore della `DebugView`), che crea e annulla il timer su `startStampQueue`. All'accensione l'ultimo
+    // campione scritto si azzera, così la prima riga esce sempre. A Link spento i campi restano fermi e non si scrive
+    // niente. La riga dell'interruttore porta l'etichetta [TIMBRO], come quelle del campionatore.
+#if DEBUG
+    func setDebugStartStampSampler(_ enabled: Bool) {
+        os_log("[Q-BEATS][RIENTRO-P2A][TIMBRO] interruttore DEBUG 'Campionatore del timbro (4-06)' -> %{public}@",
+               log: .default, type: .default, enabled ? "acceso" : "spento")
+        DispatchQueue.main.async { self.debugStartStampSampler = enabled }
+        startStampQueue.async { [weak self] in
+            guard let self else { return }
+            if enabled {
+                self.startStartStampSamplerQ()
+            } else {
+                self.stopStartStampSamplerQ()
+            }
+        }
+    }
+
+    /// Su `startStampQueue`. Già acceso: niente.
+    private func startStartStampSamplerQ() {
+        guard self.startStampTimer == nil else { return }
+        self.lastSampledStartStamp = nil
         let timer = DispatchSource.makeTimerSource(queue: self.startStampQueue)
         timer.schedule(deadline: .now() + 0.25, repeating: 0.25, leeway: .milliseconds(50))
         timer.setEventHandler { [weak self] in
@@ -1915,6 +1987,13 @@ class AudioEngine: ObservableObject {
         timer.resume()
         self.startStampTimer = timer
     }
+
+    /// Su `startStampQueue`. Già spento: niente.
+    private func stopStartStampSamplerQ() {
+        self.startStampTimer?.cancel()
+        self.startStampTimer = nil
+    }
+#endif
 
     // =====================================================================================
     // === A386 · FASE B2A (25/09/2026) — IL 2D NEL MOTORE: BATTITO A 1 s, MACCHINA, PORTE ===
@@ -4072,6 +4151,56 @@ class AudioEngine: ObservableObject {
                 break
             }
 
+            // === A416 (21/10/2026) — LA FREQUENZA PRIMA DELL'AVVIO (mandato «USCITA-AUDIO-PASSO-1», §2.1) ===
+            // Prima di `engine.start()`, e prima del coordinatore (che con la copia fa la finestra del cambio di sezione):
+            // la fonte unica si rilegge (`applySampleRateQ`, una riga [FORMATO] a ogni avvio). Se dice una frequenza
+            // diversa dalla copia, copia, DSP e campioni del click si portano lì adesso, a motore fermo (`isRunning` è
+            // falso: la guardia qui sopra), e il grafo si ricollega coi formati nuovi; poi si parte. Ogni ramo qui sotto
+            // riscrive la posizione del DSP dopo (`metronome_reset_for_start`, `metronome_set_beat_position`, il fuoco del
+            // rientro e dell'ingresso). Se il motore di sistema gira ancora (lo `stopSync` lo ferma fuori dalla coda, dopo
+            // aver abbassato `isRunning`) si ferma prima di ricollegare. Se il cambio arriva lo stesso con l'avvio (il
+            // 19/10 alle 10:50:59 l'iPad è partito coi nodi a 44100 e l'uscita a 48000), lo prende il cambio di
+            // configurazione (`handleEngineConfigChange`).
+            // A416 · SEGUITO 2 (21/10/2026) — IL CAMBIO DI PERCORSO RIMANDATO durante un'interruzione, se la fine non l'ha
+            // eseguito (non passava dalla ricostruzione del grafo, o non è arrivata): qui, prima della frequenza, una volta
+            // (mandato «A416 · SEGUITO 2», §2.2). L'avvio tocca comunque sessione e motore. Oltre alla frequenza, che si
+            // rilegge qui sotto, si rileggono modo e instradamento: se il modo è cambiato il grafo si ricollega per il modo
+            // nuovo anche a frequenza uguale; poi instradamento e schermo, come nel cambio di percorso di oggi. La regola delle
+            // crisi del suo ramo del modo (`crisisOutcomeQ(.mode)`) non si ripete: a un avvio non c'è una crisi da dichiarare,
+            // il motore è fermo (`isRunning` falso, la guardia in testa), le regole di A412 non cambiano, e subito dopo
+            // `prepareNormalStartQ` (o il coordinatore, per il Direttore muto) azzera causa e Stop voluto.
+            let deferredAtStart = InterruptionRouteDecision.runDeferred(at: .start, state: self._interruptionRouteQ)
+            self._interruptionRouteQ = deferredAtStart.state
+            var deferredMode: AudioMode? = nil
+            if let reason = deferredAtStart.reason {
+                deferredMode = self.detectAudioMode()
+                os_log("[Q-BEATS][ROUTE] rimandato eseguito contesto:%{public}@ motivo:%{public}@",
+                       log: .default, type: .default, DeferredRouteRunner.start.rawValue, reason)
+            }
+            let startFormat = self.applySampleRateQ(context: "avvio")
+            let deferredModeChanged = deferredMode.map { $0 != self.audioMode } ?? false
+            if startFormat.reconnectsGraph || deferredModeChanged {
+                if self.engine.isRunning {
+                    self.playerNode.stop()
+                    self.engine.stop()
+                }
+                let startMode = deferredMode ?? self.detectAudioMode()
+                self.reconnectGraphQ(for: startMode)
+                self.applyChannelRouting(for: startMode)
+                let rateForScreen = self.sampleRate
+                DispatchQueue.main.async {
+                    self.audioMode = startMode
+                    self.sampleRateInfo = rateForScreen
+                }
+            } else if let mode = deferredMode {
+                self.applyChannelRouting(for: mode)
+                let rateForScreen = self.sampleRate
+                DispatchQueue.main.async {
+                    self.audioMode = mode
+                    self.sampleRateInfo = rateForScreen
+                }
+            }
+
             // === A412 (18/10/2026) — IL COORDINATORE DEL RIENTRO, PRIMA DEL RAMO ===
             // Qui, dopo i rifiuti e la ricostruzione e prima del `do`: il primo punto in cui l'avvio
             // prosegue davvero. Col Direttore muto in canzone OGNI avvio — le ripartenze automatiche
@@ -4135,6 +4264,9 @@ class AudioEngine: ObservableObject {
                 self._rejoinLeadInQ = nil
 
                 try self.engine.start()
+                // A416 · SEGUITO 2 — un avvio riuscito del motore chiude l'interruzione di sistema (mandato §2.1; Apple:
+                // `start()` avvia l'hardware audio): se la fine non arriva mai, è il primo Play dopo che la chiude.
+                self.noteSystemInterruptionQ(.engineStarted)
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
@@ -4566,6 +4698,31 @@ class AudioEngine: ObservableObject {
                log: .default, type: .default, enabled ? "acceso" : "spento")
         DispatchQueue.main.async { self.debugFollowerBoundaryTempoWrite = enabled }
         audioQueue.async { self._debugFollowerBoundaryTempoWriteQ = enabled }
+    }
+
+    // A416 (21/10/2026) — LA PROVA DELLA FREQUENZA (mandato «USCITA-AUDIO-PASSO-1», §2.6, scelta 15 del referee): i due
+    // pulsanti solo DEBUG della `DebugView` chiedono al sistema una frequenza d'uscita (la preferita della sessione).
+    // Apple (`AVAudioSession.setPreferredSampleRate(_:)`): chiede il cambio, l'effetto si legge in `sampleRate`, e si può
+    // chiedere prima o dopo l'attivazione della sessione; la preferita si rilegge in `preferredSampleRate`. Il sistema
+    // decide se darla: la riga scrive la chiesta, la preferita riletta, l'ottenuta (la frequenza della sessione subito
+    // dopo) e il nodo d'uscita. Niente si conserva: all'avvio `setupSession` chiede 48000. Se l'uscita cambia, il resto lo
+    // fanno le strade di sempre (il cambio di configurazione a motore in moto, l'avvio dopo a motore fermo), con le loro
+    // righe [FORMATO]. Su audioQueue, come ogni chiamata alla sessione (A406).
+    func debugRequestPreferredSampleRate(_ hz: Double) {
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            let session = AVAudioSession.sharedInstance()
+            var errorText = "-"
+            do {
+                try session.setPreferredSampleRate(hz)
+            } catch {
+                errorText = AudioEngine.describeAudioError(error)
+            }
+            os_log("[Q-BEATS][PROVA-FREQUENZA] chiesta:%.0f preferita:%.0f ottenuta:%.0f uscita:%.0f copia:%.0f motore:%{public}@ errore:%{public}@",
+                   log: .default, type: .default,
+                   hz, session.preferredSampleRate, session.sampleRate, self.outputSampleRateQ(), self.sampleRate,
+                   self.isRunning ? "in-moto" : "fermo", errorText)
+        }
     }
 #endif
 
@@ -5736,6 +5893,9 @@ class AudioEngine: ObservableObject {
                 self.isAudioInterrupted = false
                 self.pendingResume = false
                 self.pendingResumeBeat = nil
+                // A416 · SEGUITO 2 — una `setActive(true)` riuscita chiude anche l'interruzione di sistema (mandato §2.1),
+                // prima dell'uscita di `recoveryRouteQ` qui sotto.
+                self.noteSystemInterruptionQ(.sessionActivated)
 
                 os_log("[Q-BEATS][RESUME] setActive OK dopo %d tentativi (token:%d trigger:%{public}@)",
                        log: .default, type: .default, attempt, activeToken, trigger.rawValue)
@@ -5744,7 +5904,7 @@ class AudioEngine: ObservableObject {
                 // In Base mode il grafo è già corretto (setupGraph usa sempre Base).
                 let currentMode = mode ?? self.detectAudioMode()
                 if currentMode == .pro {
-                    self.rebuildGraph(for: .pro)
+                    self.rebuildGraph(for: .pro, context: "pro")
                     os_log("[Q-BEATS][RESUME] rebuildGraph Pro eseguito post-setActive (trigger:%{public}@)",
                            log: .default, type: .default, trigger.rawValue)
                 }
@@ -5757,12 +5917,15 @@ class AudioEngine: ObservableObject {
             } catch {
                 let maxAttempts = 20
                 let retryDelay = 0.5
+                // A416 (21/10/2026) — l'errore della `setActive` nelle due righe qui sotto: dominio, codice e quattro
+                // lettere (mandato «USCITA-AUDIO-PASSO-1», §2.4; referto A415 §5.6). Fino ad A415 non c'era.
+                let errorText = AudioEngine.describeAudioError(error)
 
                 guard attempt < maxAttempts else {
                     self.pendingResume = true
                     self.pendingResumeBeat = nil
-                    os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true beat:%.4f trigger:%{public}@",
-                           log: .default, type: .default, resumeAtBeat ?? -1.0, trigger.rawValue)
+                    os_log("[Q-BEATS][RESUME] setActive esaurito — pendingResume=true beat:%.4f trigger:%{public}@ errore:%{public}@",
+                           log: .default, type: .default, resumeAtBeat ?? -1.0, trigger.rawValue, errorText)
 
                     // Safety net a 5 secondi (non 3)
                     self.audioQueue.asyncAfter(deadline: .now() + 5.0) { [weak self] in
@@ -5785,8 +5948,8 @@ class AudioEngine: ObservableObject {
                     return
                 }
 
-                os_log("[Q-BEATS][RESUME] retry attempt %d/20 in 500ms (token:%d)",
-                       log: .default, type: .default, attempt + 1, activeToken)
+                os_log("[Q-BEATS][RESUME] retry attempt %d/20 in 500ms (token:%d) errore:%{public}@",
+                       log: .default, type: .default, attempt + 1, activeToken, errorText)
 
                 self.audioQueue.asyncAfter(deadline: .now() + retryDelay) { [weak self] in
                     self?.activateSessionAndStart(
@@ -5833,43 +5996,60 @@ class AudioEngine: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [])
             // RIENTRO-P1 (d) — subito dopo `setCategory` (il `do/catch` è dentro la funzione).
             applyNoSystemAlertInterruptionsPreference(session, site: "setupSession")
-            try session.setPreferredSampleRate(sampleRate)
-            try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
+            // A416 (21/10/2026) — la preferita resta 48000, il valore con cui nasce la copia del motore, e non si prende
+            // più dalla copia (mandato «USCITA-AUDIO-PASSO-1», §2.1): alla ricostruzione dopo il reset la copia poteva
+            // valere la frequenza di un'uscita di passaggio. Anche la durata del buffer qui si chiede per 48000 (512
+            // campioni); dopo la `setActive`, `applySampleRateQ` (in `setupGraph`) la chiede di nuovo alla frequenza vera,
+            // se è diversa (Apple: preferita e durata si possono chiedere prima o dopo l'attivazione).
+            try session.setPreferredSampleRate(SampleRateDecision.preferredSampleRate)
+            try session.setPreferredIOBufferDuration(Double(bufferSize) / SampleRateDecision.preferredSampleRate)
+            _ioBufferRequestRateQ = SampleRateDecision.preferredSampleRate
             // Sequenza iOS obbligatoria: setCategory → setPreferredOutputNumberOfChannels → setActive
             configureSessionChannels(for: detectAudioMode())
             let setActiveStart = mach_absolute_time()
             try session.setActive(true)
+            // A416 · SEGUITO 2 — una `setActive(true)` riuscita chiude l'interruzione di sistema (mandato §2.1), anche dentro
+            // la ricostruzione dopo il reset dei servizi audio (`rebuildAfterMediaResetQ`). Su audioQueue: l'avvio dell'app
+            // e la ricostruzione girano lì.
+            noteSystemInterruptionQ(.sessionActivated)
             // A406 — il thread della setActive (all'avvio e al reset dei servizi audio: main:0) e la
             // durata della sola setActive.
             os_log("[Q-BEATS][SESSIONE] setActive main:%d ms:%.1f",
                    log: .default, type: .default,
                    Thread.isMainThread ? 1 : 0,
                    machTicksToSeconds(mach_absolute_time() - setActiveStart) * 1000.0)
-            sampleRate = AVAudioSession.sharedInstance().sampleRate
-            if let mh = metronomeHandle {
-                metronome_set_sample_rate(mh, sampleRate)
-            }
-            // Task D refactor #18 — propaga sampleRate al pending atomic
-            // (sink block lo legge per calcolo offset hostTime sample-accurate).
-            qbeats_link_pending_set_sample_rate(self.linkPending, sampleRate)
-            os_log("QA-3 sampleRate aggiornato: %{public}.1f", log: .default, type: .default, sampleRate)
+            // A416 (21/10/2026) — qui la copia del motore prendeva la frequenza della sessione, il DSP la riceveva
+            // (`metronome_set_sample_rate`, l'unica scrittura del DSP fino ad A415, solo qui) e il ponte del tap ne teneva una
+            // copia che nessuno leggeva; la riga «QA-3 sampleRate aggiornato». Da A416 lo fa `applySampleRateQ`, in
+            // `setupGraph` subito dopo (all'avvio dell'app e alla ricostruzione dopo il reset), dalla fonte unica e per
+            // tutte le copie insieme; la riga è [FORMATO].
             return true
         } catch {
+            // A416 — l'errore nel registro, con dominio, codice e quattro lettere (mandato §2.4): fino ad A415 andava solo
+            // allo stato a schermo.
+            os_log("[Q-BEATS][SESSIONE] setupSession fallita - errore:%{public}@",
+                   log: .default, type: .error, AudioEngine.describeAudioError(error))
             DispatchQueue.main.async { self.clickStatus = "session fallita: \(error)" }
             return false
         }
     }
 
     // A408 — rende il modo usato per il grafo (la riga «grafo pronto» della ricostruzione).
+    // A416 (21/10/2026) — `context`: chi costruisce, per la riga [FORMATO] («avvio-app», «reset»).
     @discardableResult
-    private func setupGraph() -> AudioMode {
-        self.sampleRate = AVAudioSession.sharedInstance().sampleRate
-        // Task D refactor #18 — propaga sampleRate al pending atomic.
-        qbeats_link_pending_set_sample_rate(self.linkPending, self.sampleRate)
+    private func setupGraph(context: String) -> AudioMode {
+        // ⚠️ RISCRITTO A416 (21/10/2026). Qui c'era `self.sampleRate = AVAudioSession.sharedInstance().sampleRate` e,
+        // col commento «Task D refactor #18 — propaga sampleRate al pending atomic.», la copia nel ponte del tap: la
+        // copia del motore seguiva la sessione, il DSP no, e il ponte non lo leggeva nessuno. Da A416 la frequenza viene
+        // dalla fonte unica e arriva a tutte le copie insieme (`applySampleRateQ`, mandato «USCITA-AUDIO-PASSO-1», §2.1).
+        applySampleRateQ(context: context)
         let detectedMode = detectAudioMode()
+        // A416 — lo schermo prende una costante letta qui: il blocco su main leggeva `self.sampleRate` quando girava, e
+        // la copia si scrive su audioQueue (referto A406, §8 punto 3).
+        let rateForScreen = self.sampleRate
         DispatchQueue.main.async {
             self.audioMode = detectedMode
-            self.sampleRateInfo = self.sampleRate
+            self.sampleRateInfo = rateForScreen
         }
         os_log("setupGraph sampleRate=%.1f audioMode=%{public}@",
                log: .default, type: .default,
@@ -5972,7 +6152,19 @@ class AudioEngine: ObservableObject {
     /// Ricostruisce il grafo: disconnette tutti i nodi, riconnette per la modalità
     /// indicata, prepara l'engine.
     /// Chiamare solo con engine e playerNode già fermi.
-    private func rebuildGraph(for mode: AudioMode) {
+    /// A416 (21/10/2026) — prima di ricollegare porta la frequenza dalla fonte unica a tutte le copie (`applySampleRateQ`,
+    /// mandato «USCITA-AUDIO-PASSO-1», §2.1): i formati dei nodi seguono la copia del motore. `context`: chi ricostruisce,
+    /// per la riga [FORMATO] («pro», «fine-interruzione», «modo», «configurazione»). Il ricollegamento da solo è
+    /// `reconnectGraphQ`.
+    private func rebuildGraph(for mode: AudioMode, context: String) {
+        applySampleRateQ(context: context)
+        reconnectGraphQ(for: mode)
+    }
+
+    /// Il ricollegamento di `rebuildGraph` (fino ad A415 era tutto `rebuildGraph`), coi formati della copia del motore.
+    /// Lo chiamano da soli l'avvio e il cambio di percorso, che la frequenza l'hanno già portata. Chiamare SOLO su
+    /// audioQueue, con engine e playerNode già fermi.
+    private func reconnectGraphQ(for mode: AudioMode) {
         engine.disconnectNodeOutput(playerNode)
         engine.disconnectNodeOutput(backtrackPlayerNode)
         engine.disconnectNodeOutput(ch3PlayerNode)
@@ -5989,6 +6181,165 @@ class AudioEngine: ObservableObject {
         engine.prepare()
         os_log("rebuildGraph completato — mode: %{public}@",
                log: .default, type: .default, "\(mode)")
+    }
+
+    // =====================================================================================
+    // === A416 (21/10/2026) — USCITA AUDIO, PASSO 1: LA FREQUENZA DA UNA FONTE SOLA ==========
+    // =====================================================================================
+    // Mandato del referee «USCITA-AUDIO-PASSO-1», §2.1 e §2.7 (righe 4 e 6). La regola è pura, col suo banco
+    // (`SampleRateDecision`); qui la lettura della fonte, la scrittura delle copie e la riga. Tutto su audioQueue.
+    // Chi la chiama: `setupGraph` (avvio dell'app, ricostruzione dopo il reset), `rebuildGraph` (il Pro dopo la
+    // `setActive`, la fine di un'interruzione, il cambio di modo, il cambio di configurazione), il cambio di percorso
+    // (`handleRouteChange`) e l'avvio (`start()`, prima di `engine.start()`).
+
+    /// La frequenza del formato d'uscita del nodo d'uscita del motore (Apple: il formato dell'hardware; zero = uscita non
+    /// abilitata). Chiamare SOLO su audioQueue.
+    private func outputSampleRateQ() -> Double {
+        engine.outputNode.outputFormat(forBus: 0).sampleRate
+    }
+
+    /// LA FREQUENZA, UNA FONTE SOLA, A TUTTE LE COPIE. Legge la fonte (il nodo d'uscita, poi la sessione) e le copie,
+    /// decide (`SampleRateDecision`) e, a motore fermo, riscrive nello stesso momento quelle diverse: la copia del motore
+    /// (`sampleRate`: i formati dei nodi e dei buffer la seguono, il sequencer MIDI la riceve a ogni buffer), il DSP
+    /// (`metronome_set_sample_rate`, col suo specchio), i tre campioni del click, la durata del buffer chiesta (512
+    /// campioni). A motore in moto con una copia diversa non scrive niente («fermare-e-ricostruire»): ferma chi chiama.
+    /// Una riga [FORMATO] a ogni chiamata. Chi ricollega i nodi è chi chiama (`reconnectsGraph`). Chiamare SOLO su
+    /// audioQueue.
+    @discardableResult
+    private func applySampleRateQ(context: String) -> SampleRateDecision.Outcome {
+        let session = AVAudioSession.sharedInstance()
+        let reading = SampleRateDecision.Reading(output: outputSampleRateQ(),
+                                                 session: session.sampleRate,
+                                                 copy: sampleRate,
+                                                 dsp: _dspSampleRateQ,
+                                                 click: _clickSampleRateQ,
+                                                 ioBuffer: _ioBufferRequestRateQ,
+                                                 engineRunning: isRunning)
+        let outcome = SampleRateDecision.outcome(reading)
+        if outcome.rewritesCopy {
+            sampleRate = outcome.rate
+        }
+        if outcome.rewritesDSP, let mh = metronomeHandle {
+            metronome_set_sample_rate(mh, outcome.rate)
+            _dspSampleRateQ = outcome.rate
+        }
+        if outcome.regeneratesClick {
+            clickSamples            = generateClickSamples(frequency: 1000.0)
+            accentedClickSamples    = generateClickSamples(frequency: 1500.0)
+            subdivisionClickSamples = generateClickSamples(frequency: 800.0)
+            _clickSampleRateQ = sampleRate
+        }
+        if outcome.requestsIOBuffer, let duration = SampleRateDecision.ioBufferDuration(rate: outcome.rate) {
+            do {
+                try session.setPreferredIOBufferDuration(duration)
+                _ioBufferRequestRateQ = outcome.rate
+            } catch {
+                os_log("[Q-BEATS][FORMATO] durata del buffer non chiesta contesto:%{public}@ frequenza:%.0f - errore:%{public}@",
+                       log: .default, type: .error, context, outcome.rate, AudioEngine.describeAudioError(error))
+            }
+        }
+        os_log("[Q-BEATS][FORMATO] contesto:%{public}@ uscita:%.0f sessione:%.0f preferita:%.0f fonte:%{public}@ copia:%.0f->%.0f dsp:%.0f->%.0f click:%d bufferIO_ms:%.2f -> esito:%{public}@",
+               log: .default, type: .default,
+               context, reading.output, reading.session, session.preferredSampleRate, outcome.source.rawValue,
+               reading.copy, sampleRate, reading.dsp, _dspSampleRateQ, outcome.regeneratesClick ? 1 : 0,
+               session.ioBufferDuration * 1000.0, outcome.action.rawValue)
+        return outcome
+    }
+
+    /// Dominio, codice e quattro lettere di un errore della sessione audio, per le righe (`AudioErrorText`, mandato §2.4).
+    private static func describeAudioError(_ error: Error) -> String {
+        let ns = error as NSError
+        return AudioErrorText.line(domain: ns.domain, code: ns.code)
+    }
+
+    /// A416 · SEGUITO 2 (21/10/2026) — lo stato «interruzione di sistema in corso» (`InterruptionRouteDecision`, mandato del
+    /// referee «A416 · SEGUITO 2», §2.1): lo alza l'inizio di ogni interruzione; lo abbassano la fine, una `setActive(true)`
+    /// riuscita e un `engine.start()` riuscito. Il rimandato non lo tocca. Una riga [INTERRUZIONE-SISTEMA] quando cambia, e
+    /// nei due casi di confine (un inizio con lo stato già alzato, una fine con lo stato già basso). Chiamare SOLO su
+    /// audioQueue.
+    private func noteSystemInterruptionQ(_ event: InterruptionRouteDecision.Event) {
+        let before = _interruptionRouteQ
+        _interruptionRouteQ = InterruptionRouteDecision.state(after: event, from: before)
+        let boundary = (event == .began && before.systemInterruption) || (event == .ended && !before.systemInterruption)
+        guard boundary || before.systemInterruption != _interruptionRouteQ.systemInterruption else { return }
+        os_log("[Q-BEATS][INTERRUZIONE-SISTEMA] %{public}@ da:%{public}@ prima:%d rimandato:%{public}@",
+               log: .default, type: .default,
+               _interruptionRouteQ.systemInterruption ? "alzato" : "abbassato", event.rawValue,
+               before.systemInterruption ? 1 : 0, _interruptionRouteQ.deferredReason ?? "-")
+    }
+
+    /// La riga del buco del render (mandato §2.3, §2.7 riga 7): il buco (scarto meno base), i buffer consegnati, lo
+    /// scarto e la base; ruolo, show, canzone, Direttore muto; il cambio di percorso «vicino» (arrivato fra un secondo
+    /// prima dell'inizio stimato del buco e adesso: `RenderGapMeter.isNear`) col suo motivo e i millisecondi dall'inizio
+    /// del buco; un cambio di configurazione vicino. In questo passo nessuna azione. Chiamare SOLO su audioQueue, da
+    /// `scheduleNextBuffer`.
+    private func logRenderGapQ(_ gap: RenderGapMeter.Gap, nowTicks: UInt64) {
+        let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        var routeText = "nessuno"
+        var routeMsText = "-"
+        if let mark = _lastRouteChangeQ,
+           RenderGapMeter.isNear(eventTicks: mark.ticks, holeStartTicks: gap.startTicks, nowTicks: nowTicks,
+                                 ticksPerSecond: ticksPerSecond) {
+            routeText = mark.reason
+            routeMsText = String(format: "%.1f", signedMilliseconds(from: gap.startTicks, to: mark.ticks))
+        }
+        var configNear = false
+        if let configTicks = _lastConfigChangeTicksQ {
+            configNear = RenderGapMeter.isNear(eventTicks: configTicks, holeStartTicks: gap.startTicks,
+                                               nowTicks: nowTicks, ticksPerSecond: ticksPerSecond)
+        }
+        os_log("[Q-BEATS][RENDER] buco ms:%.1f buffer:%d scarto_ms:%.1f base_ms:%.1f ruolo:%{public}@ show:%d canzone:%d muto:%d percorso:%{public}@ percorso_ms:%{public}@ configurazione:%d -> esito:solo-riga",
+               log: .default, type: .default,
+               gap.holeSeconds * 1000.0, gap.bufferCount, gap.gapSeconds * 1000.0, gap.baseSeconds * 1000.0,
+               role.rawValue, _showOpenQ ? 1 : 0, _songInProgressQ ? 1 : 0, _directorSilentInSongQ ? 1 : 0,
+               routeText, routeMsText, configNear ? 1 : 0)
+    }
+
+    /// La riga del tempo del click ogni 32 battiti, accanto a [SinkDiag-AQ] (mandato §2.7, riga 5): il tempo misurato dai
+    /// battiti e dalle loro ore d'uscita (`ClickTempoMeasure`: l'ora d'uscita del buffer più lo scostamento del battito),
+    /// lo stesso sui campioni consegnati al lettore (alla frequenza della copia del motore), e il tempo della sezione
+    /// (`_audioBPM`). È la riga che mostrerebbe il 91,9 % (DSP a 48000, nodi a 44100): `tempoMisurato` 110,3 con la
+    /// sezione a 120. `-` sulla prima riga dopo l'avvio se non c'è un riferimento. Chiamare SOLO su audioQueue.
+    private func logClickTempoQ() {
+        let beats = beatTickCounter - _tempoLogRefTickQ
+        var measuredText = "-"
+        var bySamplesText = "-"
+        if _tempoLogRefTickQ > 0, beats > 0, _lastBeatOutTicksQ > _tempoLogRefOutTicksQ {
+            measuredText = ClickTempoMeasure.bpm(beats: beats, ticks: _lastBeatOutTicksQ - _tempoLogRefOutTicksQ,
+                                                 ticksPerSecond: ticksPerSecond).map { String(format: "%.2f", $0) } ?? "-"
+            bySamplesText = ClickTempoMeasure.bpm(beats: beats, samples: _lastBeatSampleQ - _tempoLogRefSampleQ,
+                                                  sampleRate: sampleRate).map { String(format: "%.2f", $0) } ?? "-"
+        }
+        os_log("[Q-BEATS][TEMPO-CLICK] battiti:%d tempoMisurato:%{public}@ tempoCampioni:%{public}@ tempoSezione:%.2f copiaSR:%.0f dspSR:%.0f",
+               log: .default, type: .default,
+               beats, measuredText, bySamplesText, _audioBPM, sampleRate, _dspSampleRateQ)
+        _tempoLogRefTickQ = beatTickCounter
+        _tempoLogRefOutTicksQ = _lastBeatOutTicksQ
+        _tempoLogRefSampleQ = _lastBeatSampleQ
+    }
+
+    /// Il nome del motivo di un cambio di percorso (Apple, `AVAudioSession.RouteChangeReason`), per le righe.
+    private static func routeChangeReasonName(_ reason: AVAudioSession.RouteChangeReason) -> String {
+        switch reason {
+        case .unknown: return "unknown"
+        case .newDeviceAvailable: return "newDeviceAvailable"
+        case .oldDeviceUnavailable: return "oldDeviceUnavailable"
+        case .categoryChange: return "categoryChange"
+        case .override: return "override"
+        case .wakeFromSleep: return "wakeFromSleep"
+        case .noSuitableRouteForCategory: return "noSuitableRouteForCategory"
+        case .routeConfigurationChange: return "routeConfigurationChange"
+        @unknown default: return "sconosciuto-\(reason.rawValue)"
+        }
+    }
+
+    /// Le uscite di un percorso col loro tipo (`AVAudioSessionPortDescription.portType`), unite da «+»; «nessuna» se non
+    /// ce ne sono, «-» se il percorso non c'è. Solo il tipo, mai il nome dell'apparecchio (che può portare un nome di
+    /// persona e degli accenti).
+    private static func describeOutputs(_ route: AVAudioSessionRouteDescription?) -> String {
+        guard let route else { return "-" }
+        let types = route.outputs.map { $0.portType.rawValue.replacingOccurrences(of: " ", with: "_") }
+        return types.isEmpty ? "nessuna" : types.joined(separator: "+")
     }
 
     // === Task D refactor #18c — installTap su mainMixerNode ===
@@ -6195,6 +6546,9 @@ class AudioEngine: ObservableObject {
             }
             os_log("[Q-BEATS][DRAIN] return — no buffer scheduled to playerNode",
                    log: .default, type: .default)
+            // A416 (21/10/2026) — la catena dei buffer si ferma qui e la riprende `kickScheduling` coi suoi tre buffer: il
+            // misuratore del buco riprende il riferimento dopo di loro, così la pausa non è un buco (`RenderGapMeter`).
+            self._renderGapMeterQ.restart(sampleRate: self.sampleRate)
             return
         }
 
@@ -6205,10 +6559,23 @@ class AudioEngine: ObservableObject {
         // nel beat callback DOPO metronome_processBuffer (vedi loop beat
         // più sotto). L'arming è ora unificato nel beat callback.
 
+        // === A416 (21/10/2026) — IL BUCO DEL RENDER, SOLO REGISTRO (mandato «USCITA-AUDIO-PASSO-1», §2.3) ===
+        // Prima del blocco della fase: lo scarto fra l'orologio e i campioni programmati (`RenderGapMeter`). Un buco scrive
+        // una riga [RENDER] e basta: l'assert del Direttore e la correzione del Follower restano come sono (la cura è del
+        // passo 2). Aritmetica su numeri che il motore ha già, su questa coda.
+        let gapNowTicks = mach_absolute_time()
+        if case .gap(let renderGap) = self._renderGapMeterQ.observe(nowTicks: gapNowTicks, bufferCount: self.bufferCount,
+                                                                    sampleRate: self.sampleRate) {
+            self.logRenderGapQ(renderGap, nowTicks: gapNowTicks)
+        }
+
+        // A416 — in più la frequenza del DSP (lo specchio di `applySampleRateQ`) e quella del nodo d'uscita (mandato §2.7,
+        // riga 3). `hardwareSR` resta la frequenza della sessione, com'era.
         if bufferCount == 0 || bufferCount % 100 == 0 {
-            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f",
+            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f dspSR:%.0f uscitaSR:%.0f",
                    log: .default, type: .default,
-                   bufferCount, AVAudioSession.sharedInstance().sampleRate, self.sampleRate)
+                   bufferCount, AVAudioSession.sharedInstance().sampleRate, self.sampleRate,
+                   self._dspSampleRateQ, self.outputSampleRateQ())
         }
         if let mh = midiEngineHandle {
             midi_engine_sync_clock(mh,
@@ -6411,6 +6778,13 @@ class AudioEngine: ObservableObject {
                     self._lastBeatSampleQ = Int64(self.bufferCount - 1) * Int64(self.bufferSize) + Int64(offset)
                     self._lastBeatOutTicksQ = self._bufferOutTicksQ
                         + self.secondsToMachTicks(Double(offset) / self.sampleRate)
+                    // A416 — il riferimento della riga del tempo del click (ogni 32 battiti, più sotto), al primo battito
+                    // di ogni avvio.
+                    if self.beatTickCounter == 1 {
+                        self._tempoLogRefTickQ = 1
+                        self._tempoLogRefOutTicksQ = self._lastBeatOutTicksQ
+                        self._tempoLogRefSampleQ = self._lastBeatSampleQ
+                    }
                     // A410 — il battito appena contato, per l'àncora del conteggio in silenzio: la
                     // sezione della mappa e il battito nella sezione (da 0: il contatore di sezione
                     // PRIMA del suo incremento, più sotto; -1 in un ciclo, dove il contatore non
@@ -6447,6 +6821,8 @@ class AudioEngine: ObservableObject {
                         let sinkCount = qbeats_link_pending_get_render_buffer_id(self.linkPending)
                         os_log("[Q-BEATS][SinkDiag-AQ] relay — renderBufferId:%llu beatTick:%d",
                                log: .default, type: .default, sinkCount, self.beatTickCounter)
+                        // A416 — accanto, il tempo del click misurato (mandato «USCITA-AUDIO-PASSO-1», §2.7, riga 5).
+                        self.logClickTempoQ()
                     }
 
                     // === Task D — Propagazione BPM al downbeat target (refactor #18) ===
@@ -6773,8 +7149,15 @@ class AudioEngine: ObservableObject {
             // nominano. «-» = assente.
             let systemReason: String = (info[AVAudioSessionInterruptionReasonKey] as? UInt).map { String($0) } ?? "-"
             audioQueue.sync {
+                // A416 · SEGUITO 2 (21/10/2026) — prima di tutto, per ogni ruolo e prima della regola delle crisi
+                // (mandato «A416 · SEGUITO 2», §2.1): l'interruzione di sistema è in corso, e fino alla sua fine un cambio di
+                // percorso non tocca né la sessione né il motore (`handleRouteChange`). Vale anche per il Solo, che esce
+                // qui sotto senza alzare `isAudioInterrupted`, e col motore già fermo.
+                self.noteSystemInterruptionQ(.began)
                 os_log("[Q-BEATS][CRISI] interruzione iniziata motivoSistema:%{public}@",
                        log: .default, type: .default, systemReason)
+                // ⚠️ A416 · SEGUITO 2: «prima di tutto», qui sotto, vuol dire prima di ogni decisione dell'arresto; prima
+                // della regola ora c'è lo stato dell'interruzione di sistema (qui sopra), che della crisi non decide niente.
                 // A412 — LA REGOLA DI OGNI CRISI, prima di tutto (`CrisisStopDecision`): il Solo col click in moto
                 // si ferma come allo Stop della sua console (qui sotto, fuori dal `sync`); il Direttore già muto
                 // (o che aspetta il rientro a motore fermo) non ha niente da fermare; per tutti gli altri
@@ -6858,6 +7241,11 @@ class AudioEngine: ObservableObject {
         case .ended:
             audioQueue.async { [weak self] in
                 guard let self = self else { return }
+
+                // A416 · SEGUITO 2 (21/10/2026) — la fine dell'interruzione di sistema, qualunque siano le opzioni, prima
+                // di ogni altra strada (mandato «A416 · SEGUITO 2», §2.1). Un cambio di percorso rimandato si esegue più
+                // sotto solo se questa fine passa dalla ricostruzione del grafo; se no lo esegue l'avvio (`start()`).
+                self.noteSystemInterruptionQ(.ended)
 
                 // A408 — fuori da «normale» niente ripresa e niente rebuildGraph sul motore vecchio:
                 // la sessione la riattiva solo la ricostruzione, al primo avvio dopo il reset.
@@ -6964,7 +7352,28 @@ class AudioEngine: ObservableObject {
                 let linkWasEnabled = self.clockLinkWasEnabled
 
                 // 1. Graph rebuild
-                self.rebuildGraph(for: self.detectAudioMode())
+                // A416 — con la frequenza dalla fonte unica, a tutte le copie (`applySampleRateQ` in `rebuildGraph`).
+                // A416 · SEGUITO 2 (21/10/2026) — se durante l'interruzione un cambio di percorso è stato rimandato, si
+                // esegue qui, una volta (mandato «A416 · SEGUITO 2», §2.2). La ricostruzione rilegge già frequenza e modo e
+                // non si ricollega due volte; si aggiungono l'instradamento dei canali e i valori per lo schermo, come nel
+                // cambio di percorso di oggi.
+                let endMode = self.detectAudioMode()
+                let deferredAtEnd = InterruptionRouteDecision.runDeferred(at: .interruptionEnd,
+                                                                          state: self._interruptionRouteQ)
+                self._interruptionRouteQ = deferredAtEnd.state
+                if let reason = deferredAtEnd.reason {
+                    os_log("[Q-BEATS][ROUTE] rimandato eseguito contesto:%{public}@ motivo:%{public}@",
+                           log: .default, type: .default, DeferredRouteRunner.interruptionEnd.rawValue, reason)
+                }
+                self.rebuildGraph(for: endMode, context: "fine-interruzione")
+                if deferredAtEnd.reason != nil {
+                    self.applyChannelRouting(for: endMode)
+                    let rateForScreen = self.sampleRate
+                    DispatchQueue.main.async {
+                        self.audioMode = endMode
+                        self.sampleRateInfo = rateForScreen
+                    }
+                }
 
                 // 2. Calcola resumeBeat DOPO setActive — il più tardi possibile
                 let resumeBeat: Double?
@@ -6988,8 +7397,10 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        resumeBeat ?? -1.0, linkWasEnabled ? 1 : 0)
 
-                // 4. Aggiorna timestamp resume — blocca handleEngineConfigChange post-interruzione
-                self.lastInterruptionResumeTime = mach_absolute_time()
+                // 4. ⚠️ RISCRITTO A416 (21/10/2026). Qui c'era «Aggiorna timestamp resume — blocca
+                //    handleEngineConfigChange post-interruzione» (`lastInterruptionResumeTime`): per 20 s dopo la ripresa
+                //    il cambio di configurazione usciva, e se il motore era fermo restava fermo con `isRunning` vero. Da
+                //    A416 il cambio di configurazione legge solo lo stato (`EngineConfigChangeDecision`): niente da segnare.
 
                 // 5. Start — Con Link attivo passa nil: phase sync automatica nei primi buffer
                 self.activateSessionAndStart(
@@ -7003,11 +7414,23 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleRouteChange(_ notification: Notification) {
+        // A416 (21/10/2026) — l'ora d'arrivo, letta qui prima del salto su audioQueue: la riga del buco del render la
+        // confronta col buco (`RenderGapMeter`, mandato «USCITA-AUDIO-PASSO-1», §2.3).
+        let arrivedTicks = mach_absolute_time()
         guard let reasonValue = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
 
-        os_log("routeChange reason=%{public}@",
-               log: .default, type: .default, "\(reason)")
+        // ⚠️ RISCRITTO A416 (21/10/2026). Qui c'era `os_log("routeChange reason=%{public}@", …, "\(reason)")`, che
+        // scriveva il tipo col numero e basta («…(rawValue: 1)»). Da A416 (mandato §2.7, riga 2) il nome del motivo
+        // (Apple, `AVAudioSession.RouteChangeReason`), il numero, le uscite di prima (la chiave
+        // `AVAudioSessionRouteChangePreviousRouteKey`) e di adesso (`currentRoute`) col loro tipo, e l'ora d'arrivo.
+        // L'inizio della riga resta «routeChange reason=».
+        let reasonName = AudioEngine.routeChangeReasonName(reason)
+        let previousOutputs = AudioEngine.describeOutputs(
+            notification.userInfo?[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription)
+        let currentOutputs = AudioEngine.describeOutputs(AVAudioSession.sharedInstance().currentRoute)
+        os_log("routeChange reason=%{public}@ rawValue:%lu prima:%{public}@ adesso:%{public}@ arrivo:%llu",
+               log: .default, type: .default, reasonName, reasonValue, previousOutputs, currentOutputs, arrivedTicks)
 
         // B1 Hard Sync: clock C++ NON si ferma mai durante route change.
         // MAI chiamare midi_engine_stop() qui.
@@ -7015,10 +7438,38 @@ class AudioEngine: ObservableObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
+            // A416 — il segno per la riga del buco del render: l'ora d'arrivo e il motivo.
+            self._lastRouteChangeQ = RouteChangeMark(ticks: arrivedTicks, reason: reasonName)
+
             // A408 — fuori da «normale» (dalla Lost alla ricostruzione) niente: né ripresa, né
             // setupGraph o rebuildGraph sul motore vecchio, né frequenza letta da una sessione morta.
             // La ricostruzione al primo avvio rilegge percorso, modo e frequenza dalla sessione.
             if self.mediaResetSkipsQ("cambio di percorso") { return }
+
+            // A416 · SEGUITO 2 (21/10/2026) — CON L'INTERRUZIONE DI SISTEMA IN CORSO NON SI TOCCA NIENTE (mandato del
+            // referee «A416 · SEGUITO 2», §2.2; `InterruptionRouteDecision`). Il 21/10, durante una telefonata, questo blocco
+            // ha chiesto la durata del buffer e ricollegato il grafo (`engine.prepare()`); 28 ms dopo iOS ha dichiarato
+            // attiva la nostra sessione, e la fine dell'interruzione non è più arrivata. Con lo stato alzato: niente
+            // frequenza (`applySampleRateQ`), niente ricollegamento, niente ramo del modo, niente ripresa pendente. Si segna
+            // il rimandato col motivo dell'ultimo arrivato e si scrive una riga con le sole letture della sessione (il
+            // formato del nodo d'uscita no: che leggerlo non abbia effetti non ha fonte). Lo esegue una volta la fine
+            // dell'interruzione o l'avvio.
+            let routeSession = AVAudioSession.sharedInstance()
+            let routeStep = InterruptionRouteDecision.routeChange(
+                reason: reasonName,
+                conditions: InterruptionRouteDecision.RouteConditions(
+                    engineRunning: self.isRunning,
+                    rateDiffers: !SampleRateDecision.same(routeSession.sampleRate, self.sampleRate),
+                    modeDiffers: self.detectAudioMode() != self.audioMode,
+                    pendingResume: self.pendingResume),
+                state: self._interruptionRouteQ)
+            self._interruptionRouteQ = routeStep.state
+            if routeStep.outcome == .deferred {
+                os_log("[Q-BEATS][ROUTE] rimandato motivo:%{public}@ sessione:%.0f preferita:%.0f -> esito:interruzione-in-corso",
+                       log: .default, type: .default,
+                       reasonName, routeSession.sampleRate, routeSession.preferredSampleRate)
+                return
+            }
 
             // --- pendingResume recovery (path esistente preservato) ---
             if self.pendingResume {
@@ -7038,33 +7489,47 @@ class AudioEngine: ObservableObject {
             }
 
             // --- Fase 1.5a: hardware detection e routing dinamico ---
-            let newSampleRate = AVAudioSession.sharedInstance().sampleRate
+            // ⚠️ RISCRITTO A416 (21/10/2026). Fino ad A415 qui la frequenza era quella della sessione (`newSampleRate`),
+            // «cambiata» se diversa dalla copia del motore; la copia e il ponte del tap la prendevano subito («Task D
+            // refactor #18 — propaga sampleRate al pending atomic su route change»), il DSP no; col motore acceso
+            // `setupGraph()` ricollegava i nodi a motore in moto, e la ripartenza usciva alla guardia di `start()`
+            // (`isRunning` ancora vero): il motore poteva restare fermo con `isRunning` vero (referto A415, §4.7). Da
+            // A416 la frequenza viene dalla fonte unica (`applySampleRateQ`, una riga [FORMATO]). Col motore in moto e una
+            // frequenza diversa (esito «fermare-e-ricostruire») prima l'arresto esplicito, come al cambio di
+            // configurazione, poi la frequenza e il grafo, poi la ripartenza dalla regola (mandato «USCITA-AUDIO-PASSO-1»,
+            // §2.2); a motore fermo la frequenza è già arrivata a tutte le copie e si ricollegano i nodi.
             let detectedMode = self.detectAudioMode()
-            let sampleRateChanged = newSampleRate != self.sampleRate
             let modeChanged = detectedMode != self.audioMode
+            let format = self.applySampleRateQ(context: "percorso")
+            let sampleRateChanged = format.action == .stopAndRebuild || format.reconnectsGraph
 
             os_log("routeChange newSampleRate=%.1f detectedMode=%{public}@ srChanged=%{public}@ modeChanged=%{public}@",
                    log: .default, type: .default,
-                   newSampleRate, "\(detectedMode)",
+                   format.rate, "\(detectedMode)",
                    "\(sampleRateChanged)", "\(modeChanged)")
 
-            self.sampleRate = newSampleRate
-            // Task D refactor #18 — propaga sampleRate al pending atomic
-            // su route change (es. cambio interface 48 kHz ↔ 44.1 kHz).
-            qbeats_link_pending_set_sample_rate(self.linkPending, newSampleRate)
-
-            if sampleRateChanged {
-                let wasRunning = self.isRunning
-                self.setupGraph()
-
-                guard wasRunning else {
-                    os_log("[Q-BEATS][ROUTE] sampleRateChanged — engine fermo, no restart",
-                           log: .default, type: .default)
-                    DispatchQueue.main.async {
-                        self.audioMode = detectedMode
-                        self.sampleRateInfo = newSampleRate
-                    }
-                    return
+            if format.action == .stopAndRebuild {
+                // A416 — L'ARRESTO ESPLICITO, come al cambio di configurazione (`handleEngineConfigChange`): la regola di
+                // ogni crisi (`CrisisStopDecision`) con la causa «configurazione» — per Apple un cambio di frequenza
+                // dell'hardware è un cambio di configurazione del motore, e la regola di A412 resta quella — col
+                // Direttore muto in canzone e l'àncora prima che `isRunning` vada a falso; poi `isRunning` a falso,
+                // lettore e motore fermi, l'ingresso pendente annullato, il segno del proprio avvio abbassato.
+                if self.crisisOutcomeQ(cause: .configuration) == .silentInSong {
+                    self.enterDirectorSilenceQ(cause: .configuration)
+                }
+                self.isRunning = false
+                self.playerNode.stop()
+                self.engine.stop()
+                self.cancelPendingJoin(reason: "cambio di frequenza")
+                self.lowerOwnTransportStartQ(reason: "frequenza")
+                // La frequenza a tutte le copie, a motore fermo, e il grafo coi formati nuovi.
+                self.applySampleRateQ(context: "percorso")
+                self.reconnectGraphQ(for: detectedMode)
+                self.applyChannelRouting(for: detectedMode)
+                let rateForScreen = self.sampleRate
+                DispatchQueue.main.async {
+                    self.audioMode = detectedMode
+                    self.sampleRateInfo = rateForScreen
                 }
 
                 let recoveryBeat: Double?
@@ -7080,8 +7545,27 @@ class AudioEngine: ObservableObject {
                 os_log("[Q-BEATS][ROUTE] sampleRateChanged — recoveryBeat:%.4f",
                        log: .default, type: .default, recoveryBeat ?? -1.0)
 
+                // Il tasto a stato finito, e la ripartenza dalla regola (`RecoveryDecision`): il Direttore muto in canzone
+                // va al coordinatore.
+                if self._directorSilentInSongQ {
+                    self.publishDirectorSilenceQ(context: "frequenza")
+                }
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
                                               trigger: .sampleRateChange)
+                return
+            }
+            if format.reconnectsGraph {
+                // A416 — motore fermo: la frequenza è già arrivata a tutte le copie (qui sopra); si ricollegano i nodi coi
+                // formati nuovi, e niente riparte (com'era).
+                self.reconnectGraphQ(for: detectedMode)
+                self.applyChannelRouting(for: detectedMode)
+                os_log("[Q-BEATS][ROUTE] sampleRateChanged — engine fermo, no restart",
+                       log: .default, type: .default)
+                let rateForScreen = self.sampleRate
+                DispatchQueue.main.async {
+                    self.audioMode = detectedMode
+                    self.sampleRateInfo = rateForScreen
+                }
                 return
             } else if modeChanged {
                 // Topologia grafo cambia tra Base e Pro — rebuild completo obbligatorio.
@@ -7104,7 +7588,8 @@ class AudioEngine: ObservableObject {
                 // del proprio avvio.
                 self.lowerOwnTransportStartQ(reason: "topologia")
 
-                self.rebuildGraph(for: detectedMode)
+                // A416 — con la frequenza dalla fonte unica (`applySampleRateQ` in `rebuildGraph`, a motore fermo).
+                self.rebuildGraph(for: detectedMode, context: "modo")
                 self.applyChannelRouting(for: detectedMode)
 
                 let recoveryBeat: Double?
@@ -7121,9 +7606,11 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .default,
                        "\(self.audioMode)", "\(detectedMode)", recoveryBeat ?? -1.0)
 
+                // A416 — lo schermo mostra la frequenza che si usa (la copia, letta qui), non quella della sessione.
+                let rateForScreen = self.sampleRate
                 DispatchQueue.main.async {
                     self.audioMode = detectedMode
-                    self.sampleRateInfo = newSampleRate
+                    self.sampleRateInfo = rateForScreen
                 }
                 if self._directorSilentInSongQ {
                     self.publishDirectorSilenceQ(context: "modo")
@@ -7142,9 +7629,11 @@ class AudioEngine: ObservableObject {
             }
 
             // Path senza cambio né SR né mode
+            // A416 — lo schermo mostra la frequenza che si usa (la copia, letta qui), non quella della sessione.
+            let rateForScreen = self.sampleRate
             DispatchQueue.main.async {
                 self.audioMode = detectedMode
-                self.sampleRateInfo = newSampleRate
+                self.sampleRateInfo = rateForScreen
             }
 
             // --- Aggiornamento latency ticks ---
@@ -7320,6 +7809,9 @@ class AudioEngine: ObservableObject {
     //  5. i tre campioni del click; la base si scarta, come al reset di prima. Volumi, pan e
     //     channelMap dei nodi nuovi li rimette `setupGraph` coi valori salvati (`connectAllNodes`,
     //     `applyChannelRouting`): niente `applySettings`;
+    //     ⚠️ A416 (21/10/2026): i tre campioni del click non si rifanno più qui. Li rifà `applySampleRateQ`, dentro
+    //     `setupGraph` (passo 4), se la frequenza dalla fonte unica è diversa da quella con cui sono stati fatti; con la
+    //     stessa frequenza sono gli stessi numeri. Qui resta la base che si scarta;
     //  6. «normale», e la riga col motore vecchio, il nuovo e i millisecondi della ricostruzione.
     // Rende `false` se la sessione non si è attivata. Niente audioQueue.sync, niente
     // DispatchQueue.main.sync.
@@ -7361,16 +7853,13 @@ class AudioEngine: ObservableObject {
             ch3PlayerNode       = newCh3Player
             ch4PlayerNode       = newCh4Player
         }
-        let mode = setupGraph()
+        let mode = setupGraph(context: "reset")
         engine.prepare()
         os_log("[Q-BEATS][RESET] grafo pronto modo:%{public}@ sr:%.0f",
                log: .default, type: .default, "\(mode)", sampleRate)
         // 5.
         backtrackBuffer = nil
         backtrackArmed  = false
-        clickSamples              = generateClickSamples(frequency: 1000.0)
-        accentedClickSamples      = generateClickSamples(frequency: 1500.0)
-        subdivisionClickSamples   = generateClickSamples(frequency: 800.0)
         // 6.
         _mediaServicesQ = MediaServicesResetDecision.transition(state: _mediaServicesQ,
                                                                event: .rebuilt(sessionActivated: true)).next
@@ -7413,53 +7902,69 @@ class AudioEngine: ObservableObject {
     }
 
     @objc private func handleEngineConfigChange(_ notification: Notification) {
+        // A416 (21/10/2026) — l'ora d'arrivo, letta qui prima del salto su audioQueue: la riga del buco del render la
+        // confronta col buco (`RenderGapMeter`, mandato «USCITA-AUDIO-PASSO-1», §2.3).
+        let arrivedTicks = mach_absolute_time()
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
             // A408 — l'osservatore è registrato con `object: nil` (`setupNotifications`): dopo la
             // ricostruzione il motore è un'altra istanza. Qui, su audioQueue, dove il motore si
             // scrive, passa solo il cambio di configurazione del motore corrente.
-            guard let sender = notification.object as? AVAudioEngine, sender === self.engine else {
+            // ⚠️ RISCRITTO A416 (21/10/2026). Fino ad A415, dopo il filtro sul motore corrente qui sopra, la guardia di
+            // stato usciva muta, e dopo il reset dei servizi altre due uscite lasciavano il motore fermo con `isRunning`
+            // vero, senza crisi e senza ripartenza (referto A415, §4.3, §4.7, §4.9): «SR mismatch … skip» (la frequenza
+            // della sessione diversa dalla copia del motore) e, nei 20 s dopo la ripresa da un'interruzione, «Config
+            // change post-interruption skip» (`lastInterruptionResumeTime`). L'origine dei 20 s: commit `7c0a8aa6` del
+            // 22/04/2026, «[BUILD #148] AudioEngine: Temporal guard for anti-double snap», per non far ripartire il click
+            // una seconda volta, con un secondo scatto alla battuta, al secondo cambio di configurazione che iOS manda
+            // alla fine di una chiamata (BOX4 V3 del 23/04/2026, Blocco 7, fuori dal deposito). Ma qui si arriva solo col
+            // motore già fermo: saltare non evitava una ripartenza doppia, lasciava il click muto. Da A416 una regola di
+            // stato, pura e col suo banco (`EngineConfigChangeDecision`; mandato «USCITA-AUDIO-PASSO-1», §2.2): motore
+            // fermo con `isRunning` vero, motore corrente e servizi audio «normali» ⇒ si riparte sempre, la ripresa
+            // pendente compresa. L'arresto esplicito qui sotto abbassa `isRunning` prima di ripartire: una seconda
+            // notifica per lo stesso arresto si ignora con la sua riga; i tentativi ripetuti hanno il gettone di
+            // `activateSessionAndStart`. La frequenza la prende la ricostruzione dalla fonte unica (`rebuildGraph` →
+            // `applySampleRateQ`).
+            let senderIsCurrent = (notification.object as? AVAudioEngine).map { $0 === self.engine } ?? false
+            if senderIsCurrent {
+                self._lastConfigChangeTicksQ = arrivedTicks
+            }
+            let step = EngineConfigChangeDecision.outcome(
+                senderIsCurrent: senderIsCurrent,
+                stateRunning: self.isRunning,
+                engineRunning: self.engine.isRunning,
+                audioWorkAllowed: MediaServicesResetDecision.allowsAudioWork(self._mediaServicesQ),
+                pendingResume: self.pendingResume)
+            switch step {
+            case .notCurrentEngine:
                 os_log("[Q-BEATS][ENGINE] cambio di configurazione di un motore non corrente, ignorato - mittente:%{public}@",
                        log: .default, type: .default,
                        notification.object.map { "\($0)" } ?? "nil")
                 return
-            }
-
-            guard self.isRunning, !self.engine.isRunning else { return }
-            // A408 — fuori da «normale» niente rebuildGraph sul motore vecchio e niente ripartenza.
-            if self.mediaResetSkipsQ("cambio di configurazione") { return }
-
-            let hardwareSR = AVAudioSession.sharedInstance().sampleRate
-            let nodeSR = self.sampleRate
-            guard abs(hardwareSR - nodeSR) < 1.0 else {
-                os_log("[Q-BEATS] handleEngineConfigChange: SR mismatch hardware=%.0f node=%.0f — skip",
-                       log: .default, type: .default, hardwareSR, nodeSR)
+            case .ignored:
+                // A416 — fino ad A415 questa uscita era muta (mandato §2.7, riga 1).
+                os_log("[Q-BEATS][ENGINE] cambio di configurazione ignorato - isRunning:%d motoreGira:%d",
+                       log: .default, type: .default, self.isRunning ? 1 : 0, self.engine.isRunning ? 1 : 0)
                 return
-            }
-
-            let timeSinceResume = self.machTicksToSeconds(mach_absolute_time() - self.lastInterruptionResumeTime)
-
-            guard self.lastInterruptionResumeTime == 0 || timeSinceResume > 20.0 else {
-                os_log("[Q-BEATS][ENGINE] Config change post-interruption skip (%.1fs since resume)", 
-                       log: .default, type: .default, timeSinceResume)
+            case .mediaReset:
+                // A408 — fuori da «normale» niente rebuildGraph sul motore vecchio e niente ripartenza (la riga la
+                // scrive `mediaResetSkipsQ`).
+                _ = self.mediaResetSkipsQ("cambio di configurazione")
                 return
+            case .recoverPending, .restart:
+                break
             }
 
-            if self.pendingResume {
+            // A416 — la ripresa pendente prende la stessa strada della ripartenza: prima l'arresto esplicito e la
+            // ricostruzione, poi `activateSessionAndStart` con l'innesco di sempre («pending_recovery»). Fino ad A415
+            // ripartiva da qui senza abbassare `isRunning`, e `start()` usciva alla sua guardia.
+            let recoverPending = step == .recoverPending
+            if recoverPending {
                 self.pendingResume = false
                 self.pendingResumeBeat = nil
-                let recoveryBeat: Double?
-                if let mh = self.midiEngineHandle {
-                    let hostTime = mach_absolute_time() + self.outputLatencyTicks + self.bufferDurationTicks
-                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
-                } else {
-                    recoveryBeat = nil
-                }
-                os_log("[Q-BEATS][RESUME] pendingResume recuperato da EngineConfigChange — beat:%.4f",
-                       log: .default, type: .default, recoveryBeat ?? -1.0)
-                self.activateSessionAndStart(resumeAtBeat: recoveryBeat, trigger: .pendingRecovery)
-                return
+                os_log("[Q-BEATS][RESUME] pendingResume recuperato da EngineConfigChange - arresto esplicito e ricostruzione prima",
+                       log: .default, type: .default)
             }
 
             os_log("[Q-BEATS][ENGINE] Config change detected — rebuilding graph and restarting",
@@ -7483,7 +7988,10 @@ class AudioEngine: ObservableObject {
             self.lowerOwnTransportStartQ(reason: "configurazione")
 
             // 1. Graph rebuild
-            self.rebuildGraph(for: self.detectAudioMode())
+            // A416 — con la frequenza dalla fonte unica, a tutte le copie (`applySampleRateQ` in `rebuildGraph`): fino ad
+            // A415 la ricostruzione prendeva la copia del motore, e alle 10:51 del 19/10 l'iPad è ripartito coi nodi a
+            // 44100 e l'uscita a 48000.
+            self.rebuildGraph(for: self.detectAudioMode(), context: "configurazione")
 
             // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
             let resumeBeat: Double?
@@ -7508,7 +8016,9 @@ class AudioEngine: ObservableObject {
             if self._directorSilentInSongQ {
                 self.publishDirectorSilenceQ(context: "configurazione")
             }
-            self.activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: .engineConfigChange)
+            // A416 — la ripresa pendente col suo innesco di sempre; altrimenti la ripartenza del cambio di configurazione.
+            self.activateSessionAndStart(resumeAtBeat: resumeBeat,
+                                         trigger: recoverPending ? .pendingRecovery : .engineConfigChange)
         }
     }
 

@@ -24,7 +24,8 @@ void qbeats_link_pending_arm(QBeatsLinkPending* p,
                              double bpm,
                              uint32_t sample_offset,
                              uint64_t buffer_id);
-void qbeats_link_pending_set_sample_rate(QBeatsLinkPending* p, double sr);
+// A416 (21/10/2026) — qui c'era `qbeats_link_pending_set_sample_rate`, la copia della frequenza nel ponte: nessuno la
+// leggeva. Uscita con `qbeats_link_pending_load_sample_rate` e il campo (mandato «USCITA-AUDIO-PASSO-1», §2.1).
 void qbeats_link_pending_set_sched_buffer_count(QBeatsLinkPending* p, uint64_t bc);
 uint64_t qbeats_link_pending_get_sched_buffer_count(QBeatsLinkPending* p);
 
@@ -39,7 +40,6 @@ bool     qbeats_link_pending_load_scheduled(QBeatsLinkPending* p);
 double   qbeats_link_pending_load_bpm(QBeatsLinkPending* p);
 uint32_t qbeats_link_pending_load_sample_offset(QBeatsLinkPending* p);
 uint64_t qbeats_link_pending_load_buffer_id(QBeatsLinkPending* p);
-double   qbeats_link_pending_load_sample_rate(QBeatsLinkPending* p);
 void     qbeats_link_pending_clear_scheduled(QBeatsLinkPending* p);
 uint64_t qbeats_link_pending_increment_render_buffer(QBeatsLinkPending* p);
 uint64_t qbeats_link_pending_get_render_buffer_id(QBeatsLinkPending* p);

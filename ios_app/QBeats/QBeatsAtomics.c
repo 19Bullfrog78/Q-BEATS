@@ -10,7 +10,8 @@ struct QBeatsLinkPending {
     _Atomic uint64_t render_buffer_id;
     _Atomic int64_t  delta;
     _Atomic uint64_t sched_buffer_count;
-    _Atomic uint64_t sample_rate_bits;  // bit-cast Double
+    // A416 (21/10/2026) — qui c'era `sample_rate_bits` (la frequenza, bit-cast Double): scritto da AudioEngine.swift in
+    // quattro punti e mai letto. Uscito con le sue due funzioni (mandato «USCITA-AUDIO-PASSO-1», §2.1).
     _Atomic bool     scheduled;
 };
 
@@ -50,19 +51,6 @@ void qbeats_link_pending_set_sched_buffer_count(QBeatsLinkPending* p, uint64_t b
 
 uint64_t qbeats_link_pending_get_sched_buffer_count(QBeatsLinkPending* p) {
     return atomic_load_explicit(&p->sched_buffer_count, memory_order_relaxed);
-}
-
-void qbeats_link_pending_set_sample_rate(QBeatsLinkPending* p, double sr) {
-    uint64_t bits;
-    memcpy(&bits, &sr, sizeof(bits));
-    atomic_store_explicit(&p->sample_rate_bits, bits, memory_order_relaxed);
-}
-
-double qbeats_link_pending_load_sample_rate(QBeatsLinkPending* p) {
-    uint64_t bits = atomic_load_explicit(&p->sample_rate_bits, memory_order_relaxed);
-    double d;
-    memcpy(&d, &bits, sizeof(d));
-    return d;
 }
 
 bool qbeats_link_pending_load_scheduled(QBeatsLinkPending* p) {
