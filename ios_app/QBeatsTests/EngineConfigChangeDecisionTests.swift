@@ -148,4 +148,174 @@ final class EngineConfigChangeDecisionTests: XCTestCase {
         XCTAssertEqual(EngineConfigChangeOutcome.recoverPending.rawValue, "ripresa-pendente")
         XCTAssertEqual(EngineConfigChangeOutcome.restart.rawValue, "ripartenza")
     }
+
+    // MARK: - A420 — la ripartenza per la frequenza, una strada sola (mandato A420, par. 2.3)
+
+    /// Prima il percorso (il nodo d'uscita dà già la frequenza nuova a motore in moto: «fermare-e-ricostruire»), poi la
+    /// configurazione, prima o dopo che la ripartenza sia finita: una ripartenza sola, tutte le copie alla frequenza nuova.
+    func testRouteThenConfigurationRestartsOnce() {
+        // La configurazione prima che la ripartenza finisca: trova `isRunning` basso e si ignora.
+        var early = RateRig(rate: 44100)
+        early.hardwareRate(48000)
+        early.routeChange()
+        XCTAssertEqual(early.restarts, 1)
+        early.systemStopsEngine()
+        early.configurationChange()
+        early.completeStart()
+        XCTAssertEqual(early.restarts, 1)
+        XCTAssertTrue(early.allCopiesAt48k)
+        XCTAssertTrue(early.stateRunning && early.engineRunning)
+        // La configurazione dopo la ripartenza: trova il motore in moto e si ignora.
+        var late = RateRig(rate: 44100)
+        late.hardwareRate(48000)
+        late.routeChange()
+        late.completeStart()
+        late.configurationChange()
+        XCTAssertEqual(late.restarts, 1)
+        XCTAssertTrue(late.allCopiesAt48k)
+        XCTAssertTrue(late.stateRunning && late.engineRunning)
+    }
+
+    /// Prima la configurazione (il motore l'ha fermato il sistema), poi il percorso, prima o dopo che la ripartenza sia
+    /// finita: il percorso trova la copia già uguale al nodo e non ferma niente. Una ripartenza sola.
+    func testConfigurationThenRouteRestartsOnce() {
+        for routeBeforeTheStart in [true, false] {
+            var rig = RateRig(rate: 44100)
+            rig.hardwareRate(48000)
+            rig.systemStopsEngine()
+            rig.configurationChange()
+            XCTAssertEqual(rig.restarts, 1)
+            XCTAssertTrue(rig.allCopiesAt48k)
+            if routeBeforeTheStart {
+                rig.routeChange()
+                rig.completeStart()
+            } else {
+                rig.completeStart()
+                rig.routeChange()
+            }
+            XCTAssertEqual(rig.restarts, 1, "percorso prima dell'avvio: \(routeBeforeTheStart)")
+            XCTAssertTrue(rig.allCopiesAt48k)
+            XCTAssertTrue(rig.stateRunning && rig.engineRunning)
+        }
+    }
+
+    /// Non è «una ripartenza per evento» alla cieca: se il sistema ferma di nuovo il motore dopo la nostra ripartenza, la
+    /// configurazione trova il motore fermo con `isRunning` vero, ed è un arresto vero: si riparte.
+    func testASystemStopAfterOurRestartRestartsAgain() {
+        var rig = RateRig(rate: 44100)
+        rig.hardwareRate(48000)
+        rig.routeChange()
+        rig.completeStart()
+        rig.systemStopsEngine()
+        rig.configurationChange()
+        XCTAssertEqual(rig.restarts, 2)
+        rig.completeStart()
+        XCTAssertTrue(rig.stateRunning && rig.engineRunning)
+        XCTAssertTrue(rig.allCopiesAt48k)
+    }
+}
+
+// === A420 — le due notifiche della frequenza sul motore ridotto (mandato A420, par. 2.3) ===
+/// Il motore ridotto a quello che conta per le due notifiche: `isRunning`, il motore di sistema, il nodo d'uscita, la
+/// sessione e le copie della frequenza. `restartForRateChange` è la funzione sola del motore (`restartForRateChangeQ`):
+/// arresto sulla coda, frequenza dalla fonte unica a tutte le copie, ripartenza accodata; `completeStart` è l'avvio che la
+/// completa (`activateSessionAndStart`, poi `start()`, che rilegge la frequenza). Le regole sono `SampleRateDecision` ed
+/// `EngineConfigChangeDecision`, le stesse del motore.
+private struct RateRig {
+    var stateRunning = true
+    var engineRunning = true
+    var output: Double
+    var session: Double
+    var copy: Double
+    var dsp: Double
+    var click: Double
+    var ioBuffer: Double
+    var restarts = 0
+    var pendingStart = false
+
+    init(rate: Double) {
+        output = rate
+        session = rate
+        copy = rate
+        dsp = rate
+        click = rate
+        ioBuffer = rate
+    }
+
+    /// `applySampleRateQ`: le letture, la regola, e a motore fermo le copie riscritte.
+    @discardableResult
+    mutating func applySampleRate() -> SampleRateDecision.Outcome {
+        let outcome = SampleRateDecision.outcome(SampleRateDecision.Reading(output: output,
+                                                                            session: session,
+                                                                            copy: copy,
+                                                                            dsp: dsp,
+                                                                            click: click,
+                                                                            ioBuffer: ioBuffer,
+                                                                            engineRunning: stateRunning))
+        if outcome.rewritesCopy {
+            copy = outcome.rate
+        }
+        if outcome.rewritesDSP {
+            dsp = outcome.rate
+        }
+        if outcome.regeneratesClick {
+            click = outcome.rate
+        }
+        if outcome.requestsIOBuffer {
+            ioBuffer = outcome.rate
+        }
+        return outcome
+    }
+
+    /// Il sistema porta l'hardware a un'altra frequenza: il nodo d'uscita e la sessione la danno.
+    mutating func hardwareRate(_ rate: Double) {
+        output = rate
+        session = rate
+    }
+
+    /// Il sistema ferma il motore (Apple: prima di mandare la notifica di configurazione).
+    mutating func systemStopsEngine() {
+        engineRunning = false
+    }
+
+    /// `restartForRateChangeQ`.
+    mutating func restartForRateChange() {
+        stateRunning = false
+        engineRunning = false
+        applySampleRate()
+        restarts += 1
+        pendingStart = true
+    }
+
+    /// Il cambio di percorso (`handleRouteChange`, senza cambio di modo).
+    mutating func routeChange() {
+        if applySampleRate().action == .stopAndRebuild {
+            restartForRateChange()
+        }
+    }
+
+    /// Il cambio di configurazione del motore corrente (`handleEngineConfigChange`).
+    mutating func configurationChange() {
+        let step = EngineConfigChangeDecision.outcome(senderIsCurrent: true,
+                                                      stateRunning: stateRunning,
+                                                      engineRunning: engineRunning,
+                                                      audioWorkAllowed: true,
+                                                      pendingResume: false)
+        if step.restarts {
+            restartForRateChange()
+        }
+    }
+
+    /// L'avvio accodato dalla ripartenza: rilegge la frequenza a motore fermo, poi parte.
+    mutating func completeStart() {
+        guard pendingStart else { return }
+        pendingStart = false
+        applySampleRate()
+        stateRunning = true
+        engineRunning = true
+    }
+
+    var allCopiesAt48k: Bool {
+        copy == 48000 && dsp == 48000 && click == 48000 && ioBuffer == 48000
+    }
 }
