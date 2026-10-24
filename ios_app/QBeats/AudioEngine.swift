@@ -459,9 +459,11 @@ class AudioEngine: ObservableObject {
     // `ch3PlayerNode`, `ch4PlayerNode` sono `var`: la ricostruzione al primo avvio dopo il reset
     // (`rebuildAfterMediaResetQ`, chiamata da `start()`) li sostituisce con oggetti nuovi.
     // Dopo la nascita (gli inizializzatori qui sotto) si SCRIVONO SOLO su audioQueue, lì dentro.
-    // Si leggono su audioQueue; fuori da audioQueue si usano solo le copie prese dentro un
-    // `audioQueue.sync` (`stopSync`, inizio di un'interruzione). `deinit` non gira mai: `shared`
-    // è una `static let`.
+    // ⚠️ RISCRITTO A420 (23/10/2026). Il testo di prima diceva «Si leggono su audioQueue; fuori da audioQueue si usano solo
+    // le copie prese dentro un `audioQueue.sync` (`stopSync`, inizio di un'interruzione).»: lo `stopSync` e l'inizio di
+    // un'interruzione fermavano lettore e motore fuori dalla coda, sulle copie. Da A420 si fermano sulla coda, nello stesso
+    // blocco che abbassa `isRunning` (`stopPlayerAndEngineQ`, mandato A420, par. 2.1), e quelle copie non ci sono più. Si
+    // leggono su audioQueue. `deinit` non gira mai: `shared` è una `static let`.
     private var engine               = AVAudioEngine()
     private var playerNode           = AVAudioPlayerNode()
     // ⚠️ RISCRITTO A416 (21/10/2026). Il testo di prima diceva «Fase 1.5a: sampleRate dinamico — aggiornato da
@@ -856,6 +858,16 @@ class AudioEngine: ObservableObject {
     private var linkSyncSkipBuffers: Int = 0
     // L1.b sync investigation — conta 3 buffer dopo cambio BPM per log DIRECTOR-ASSERT
     private var _linkSyncLogBuffers: Int = 0
+    // === A420 (23/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 1: LA CATENA DEI BUFFER HA UN NUMERO, accesso SOLO su audioQueue ===
+    // Mandato A420, par. 2.2, con la risposta del referee (par. 1-2); regola e banco in `BufferChainGeneration` (Models/).
+    // ⚠️ NON è `joinGeneration` (qui sopra): quella numera gli armamenti dell'ingresso e del rientro, e scarta un fuoco
+    // orfano; questa numera le catene dei buffer del lettore del click, e scarta il richiamo di un buffer di una catena
+    // finita. Le righe di `joinGeneration` dicono «generazione:», quella dello scarto dice «catena:».
+    /// La generazione corrente della catena: nasce 0; sale a ogni passaggio di `isRunning` da falso a vero (`start()`) e
+    /// prima del primo buffer di ogni catena che comincia (`openBufferChainQ`).
+    private var _bufferChainGenerationQ: Int = BufferChainGeneration.initial
+    /// I richiami scartati dall'avvio dell'app: il numero della riga `[SCHED] richiamo di un'altra catena scartato`.
+    private var _bufferChainDiscardedQ: Int = 0
     // RIENTRO-P2A (20/09/2026) — campionatore diagnostico del timbro dell'avvio (solo log):
     // vedi `startStartStampSampler`. Il timer e l'ultimo campione scritto vivono su
     // `startStampQueue`; su audioQueue gira solo la lettura.
@@ -1667,6 +1679,10 @@ class AudioEngine: ObservableObject {
             // sovrascrive con 3; la riga di log si scrive dopo i tre `scheduleNextBuffer`.
             let skipBuffersAtFire = self.linkSyncSkipBuffers
             self.linkSyncSkipBuffers = 3
+            // A420 — la catena dell'ingresso comincia qui: una generazione nuova prima del primo dei tre buffer (mandato A420,
+            // par. 2.2). Un richiamo della catena di prima arrivato fra l'avvio del motore e questo fuoco si è già scartato:
+            // `start()` ha aperto una generazione alzando `isRunning` (risposta del referee, par. 1).
+            self.openBufferChainQ()
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
@@ -3607,6 +3623,10 @@ class AudioEngine: ObservableObject {
             self.currentSectionRepetitions = repetitions
             self.currentBPM = bpm
         }
+        // A420 — la catena del rientro comincia qui (il primo dei tre è il buffer ancorato): una generazione nuova prima del
+        // primo (mandato A420, par. 2.2). Un richiamo della catena di prima arrivato fra l'avvio del motore e questo fuoco si
+        // è già scartato: `start()` ha aperto una generazione alzando `isRunning` (risposta del referee, par. 1).
+        openBufferChainQ()
         scheduleNextBuffer()
         scheduleNextBuffer()
         scheduleNextBuffer()
@@ -3640,8 +3660,7 @@ class AudioEngine: ObservableObject {
         var stopped = false
         if isRunning {
             isRunning = false
-            playerNode.stop()
-            engine.stop()
+            stopPlayerAndEngineQ(context: "rientro")
             stopped = true
             DispatchQueue.main.async {
                 self.isPlaying = false
@@ -3855,17 +3874,20 @@ class AudioEngine: ObservableObject {
         return route
     }
 
-    /// L'arresto locale di una crisi (servizi persi, reset senza Lost): lo stato su audioQueue, e la coppia
-    /// lettore-motore da fermare, che chi chiama ferma dove serve (come l'inizio di un'interruzione). Alla Lost è
-    /// un'operazione nuova (A412): fino ad A411 il motore restava com'era fino alla Reset, che lo fermava con lo
-    /// `stopSync` (e lo Stop alla band). Chiamare SOLO su audioQueue.
-    private func beginLocalStopQ(context: String) -> (player: AVAudioPlayerNode, engine: AVAudioEngine)? {
-        guard isRunning else { return nil }
+    /// L'arresto locale di una crisi (servizi persi, reset senza Lost): lo stato su audioQueue; rende `true` se il motore
+    /// girava. Alla Lost è un'operazione nuova (A412): fino ad A411 il motore restava com'era fino alla Reset, che lo
+    /// fermava con lo `stopSync` (e lo Stop alla band). Chiamare SOLO su audioQueue.
+    /// ⚠️ RISCRITTO A420 (23/10/2026). Il testo di prima diceva «lo stato su audioQueue, e la coppia lettore-motore da
+    /// fermare, che chi chiama ferma dove serve (come l'inizio di un'interruzione)», e la funzione rendeva la coppia: la Reset
+    /// la fermava sul principale, dopo il suo `sync`. Da A420 chi chiama ferma lettore e motore sulla coda, nello stesso
+    /// blocco (`stopPlayerAndEngineQ`, mandato A420, par. 2.1): la Lost subito, la Reset in fondo al suo `sync`.
+    private func beginLocalStopQ(context: String) -> Bool {
+        guard isRunning else { return false }
         isRunning = false
         cancelPendingJoin(reason: context)
         lowerOwnTransportStartQ(reason: context)
         _rejoinArmedQ = false
-        return (playerNode, engine)
+        return true
     }
 
     /// La riga dell'arresto locale di una crisi, dopo `stop()` di lettore e motore. `server`: com'era il server
@@ -3873,6 +3895,23 @@ class AudioEngine: ObservableObject {
     private func logLocalStop(context: String, server: String) {
         os_log("[Q-BEATS][CRISI] arresto locale contesto:%{public}@ serverAudio:%{public}@ - nessuno Stop a Link",
                log: .default, type: .default, context, server)
+    }
+
+    /// A420 (23/10/2026) — L'ARRESTO SULLA CODA (mandato A420, par. 2.1; U10 (B) del referto A419; BOX5, scelta 4 dell'uscita
+    /// audio): lettore e motore si fermano qui, su audioQueue, nello stesso blocco che abbassa `isRunning`, per ogni strada
+    /// (`stopSync`, inizio di un'interruzione, Reset, Lost, cambio di modo, ripartenza per la frequenza, rientro che non
+    /// parte). Così «`isRunning` falso sulla coda» vuol dire «lettore e motore fermi», e un blocco della coda che passa dopo
+    /// non trova un motore che si sta fermando su un altro thread (BUGS, `TD-finestra-dell-arresto-fuori-dalla-coda`). Una
+    /// riga [ARRESTO] col contesto e i millisecondi dei due stop. Chiamare SOLO su audioQueue, e mai da dentro un richiamo di
+    /// fine buffer (Apple, `AVAudioPlayerNode`: lì lo stop del lettore può bloccarsi; i nostri richiami accodano e tornano).
+    private func stopPlayerAndEngineQ(context: String) {
+        let stopStart = mach_absolute_time()
+        playerNode.stop()
+        engine.stop()
+        let stopEnd = mach_absolute_time()
+        os_log("[Q-BEATS][ARRESTO] sulla coda contesto:%{public}@ ms:%.3f",
+               log: .default, type: .default,
+               context, machTicksToSeconds(stopEnd - stopStart) * 1000.0)
     }
 
     /// A412 — il Solo a una crisi della sessione audio col click in moto (mandato §2.7): come lo Stop della sua
@@ -4157,10 +4196,12 @@ class AudioEngine: ObservableObject {
             // diversa dalla copia, copia, DSP e campioni del click si portano lì adesso, a motore fermo (`isRunning` è
             // falso: la guardia qui sopra), e il grafo si ricollega coi formati nuovi; poi si parte. Ogni ramo qui sotto
             // riscrive la posizione del DSP dopo (`metronome_reset_for_start`, `metronome_set_beat_position`, il fuoco del
-            // rientro e dell'ingresso). Se il motore di sistema gira ancora (lo `stopSync` lo ferma fuori dalla coda, dopo
-            // aver abbassato `isRunning`) si ferma prima di ricollegare. Se il cambio arriva lo stesso con l'avvio (il
-            // 19/10 alle 10:50:59 l'iPad è partito coi nodi a 44100 e l'uscita a 48000), lo prende il cambio di
-            // configurazione (`handleEngineConfigChange`).
+            // rientro e dell'ingresso). ⚠️ RISCRITTO A420 (23/10/2026): qui si diceva «Se il motore di sistema gira ancora
+            // (lo `stopSync` lo ferma fuori dalla coda, dopo aver abbassato `isRunning`) si ferma prima di ricollegare.». Da
+            // A420 lo `stopSync` ferma lettore e motore sulla coda, nello stesso blocco che abbassa `isRunning`, e la guardia
+            // sta in testa a `reconnectGraphQ`, per chiunque ricolleghi (mandato A420, par. 2.1). Se il cambio arriva lo
+            // stesso con l'avvio (il 19/10 alle 10:50:59 l'iPad è partito coi nodi a 44100 e l'uscita a 48000), lo prende il
+            // cambio di configurazione (`handleEngineConfigChange`).
             // A416 · SEGUITO 2 (21/10/2026) — IL CAMBIO DI PERCORSO RIMANDATO durante un'interruzione, se la fine non l'ha
             // eseguito (non passava dalla ricostruzione del grafo, o non è arrivata): qui, prima della frequenza, una volta
             // (mandato «A416 · SEGUITO 2», §2.2). L'avvio tocca comunque sessione e motore. Oltre alla frequenza, che si
@@ -4180,12 +4221,10 @@ class AudioEngine: ObservableObject {
             let startFormat = self.applySampleRateQ(context: "avvio")
             let deferredModeChanged = deferredMode.map { $0 != self.audioMode } ?? false
             if startFormat.reconnectsGraph || deferredModeChanged {
-                if self.engine.isRunning {
-                    self.playerNode.stop()
-                    self.engine.stop()
-                }
+                // A420 — la guardia sul motore di sistema che gira ancora, che stava qui, sta in testa a `reconnectGraphQ`,
+                // per chiunque ricolleghi (mandato A420, par. 2.1).
                 let startMode = deferredMode ?? self.detectAudioMode()
-                self.reconnectGraphQ(for: startMode)
+                self.reconnectGraphQ(for: startMode, caller: "avvio")
                 self.applyChannelRouting(for: startMode)
                 let rateForScreen = self.sampleRate
                 DispatchQueue.main.async {
@@ -4270,6 +4309,12 @@ class AudioEngine: ObservableObject {
                 self.playerNode.reset()
                 self.playerNode.play()
                 self.isRunning = true
+                // A420 — OGNI PASSAGGIO DI `isRunning` DA FALSO A VERO APRE UNA GENERAZIONE DELLA CATENA (risposta del referee
+                // al mandato A420, par. 1): qui, nello stesso blocco, dopo `engine.start()` riuscito; il `catch` non la tocca.
+                // L'ingresso del Follower e il rientro del Direttore programmano i loro buffer al fuoco, più tardi: senza questa
+                // salita un richiamo della catena di prima, arrivato nell'attesa, avrebbe fatto partire una catena prima del
+                // fuoco, e sul Direttore anche l'assert su Link (referto A420, §1).
+                self.openBufferChainQ()
                 // A408 — la riga del primo avvio riuscito dopo una ricostruzione, una volta.
                 if self._firstStartAfterMediaResetQ {
                     self._firstStartAfterMediaResetQ = false
@@ -4371,6 +4416,9 @@ class AudioEngine: ObservableObject {
                                        log: .default, type: .default)
                             }
                         }
+                        // A420 — la catena comincia: una generazione nuova prima del primo dei tre buffer (mandato A420,
+                        // par. 2.2). Cade nello stesso blocco di quella di `isRunning` qui sopra, senza niente in mezzo.
+                        self.openBufferChainQ()
                         self.scheduleNextBuffer()
                         self.scheduleNextBuffer()
                         self.scheduleNextBuffer()
@@ -4479,6 +4527,9 @@ class AudioEngine: ObservableObject {
                                 }
                                 self.registerStartPhase(context: "battito-zero")
                             }
+                            // A420 — la catena comincia: una generazione nuova prima del primo dei tre buffer (mandato A420,
+                            // par. 2.2). Cade nello stesso blocco di quella di `isRunning` qui sopra, senza niente in mezzo.
+                            self.openBufferChainQ()
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
                             self.scheduleNextBuffer()
@@ -4511,9 +4562,17 @@ class AudioEngine: ObservableObject {
                            log: .default, type: .default)
                 }
 
-                let sr  = AVAudioSession.sharedInstance().sampleRate
-                let buf = AVAudioSession.sharedInstance().ioBufferDuration * sr
-                let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)"
+                // ⚠️ RISCRITTO A420 (23/10/2026) — U14 (mandato A420, par. 2.4). La riga di stato leggeva la sessione: «let sr  =
+                // AVAudioSession.sharedInstance().sampleRate» e «let buf = AVAudioSession.sharedInstance().ioBufferDuration *
+                // sr». Da A416 la frequenza che si usa è la copia del motore (`applySampleRateQ`): la riga dice quella, il buffer
+                // è la durata della sessione in campioni della copia, e se la sessione dice un'altra frequenza lo scrive in coda.
+                // Testo della vista di debug («Click: …»).
+                let statusSession = AVAudioSession.sharedInstance()
+                let sr  = self.sampleRate
+                let buf = statusSession.ioBufferDuration * sr
+                let sessionNote = SampleRateDecision.same(statusSession.sampleRate, sr)
+                    ? "" : " sessione:\(Int(statusSession.sampleRate))"
+                let statusStr = "started SR:\(Int(sr)) buf:\(Int(buf)) samples:\(self.clickSamples.count)\(sessionNote)"
                 DispatchQueue.main.async {
                     self.isPlaying            = true
                     self.playbackState        = .playing
@@ -4899,21 +4958,27 @@ class AudioEngine: ObservableObject {
         }
     }
 
-    /// Riavvia la catena di completion handler del playerNode dopo un drain
-    /// di sezione. Il branch drain fa `return` senza schedulare un nuovo
-    /// buffer al playerNode. Le sezioni lunghe (steady-state buffer al
-    /// minimo) lasciano la coda vuota dopo il drain, e la catena di
-    /// completion handler si esaurisce naturalmente. Sezioni brevi
-    /// sopravvivono per buffer residui del pre-roll iniziale non ancora
-    /// consumati. Questo metodo ripristina 3 buffer in coda
-    /// incondizionatamente, eliminando la dipendenza dalla fortuna.
-    /// Pattern identico al pre-roll iniziale (righe 586-588).
-    /// Chiamare SOLO dal ramo avanza di SetlistRunner, dopo scheduleBPMChange.
-    /// Wrappa in audioQueue.async perché il chiamante gira su main thread
-    /// (closure end dispatchata da DispatchQueue.main.async).
+    /// ⚠️ RISCRITTO A420 (23/10/2026) (risposta del referee al mandato A420, par. 4). Il testo di prima diceva: «Riavvia la
+    /// catena di completion handler del playerNode dopo un drain di sezione. Il branch drain fa `return` senza schedulare un
+    /// nuovo buffer al playerNode. Le sezioni lunghe (steady-state buffer al minimo) lasciano la coda vuota dopo il drain, e
+    /// la catena di completion handler si esaurisce naturalmente. Sezioni brevi sopravvivono per buffer residui del pre-roll
+    /// iniziale non ancora consumati. Questo metodo ripristina 3 buffer in coda incondizionatamente, eliminando la
+    /// dipendenza dalla fortuna. Pattern identico al pre-roll iniziale (righe 586-588). Chiamare SOLO dal ramo avanza di
+    /// SetlistRunner, dopo scheduleBPMChange. Wrappa in audioQueue.async perché il chiamante gira su main thread (closure end
+    /// dispatchata da DispatchQueue.main.async).»
+    /// Tre cose non reggono più. Nessuno la chiama: il ramo avanza di `SetlistRunner` non la chiama più dal commit `1f0a433`
+    /// («Strada A», i cambi di sezione senza drenaggio), e il suo commento lo dice. Le «righe 586-588» non sono più i tre
+    /// buffer d'avvio, che stanno nei rami di `start()`. E al drenaggio la catena non si esaurisce: il richiamo che entra nel
+    /// drenaggio non programma niente e abbassa `_sectionEndPending`, gli altri buffer in volo, ai loro richiami, programmano
+    /// come sempre, e la catena va avanti con un anello in meno finché qualcuno non ferma il motore (alla fine dell'ultima
+    /// sezione di una canzone, la chiusura del runner: `audioEngine.stop()`). La funzione resta: è del ticket
+    /// `TD-kickscheduling-morto-e-doccomment-falso` (BUGS). Se qualcuno la richiama, i suoi tre buffer sono una catena nuova,
+    /// con una generazione nuova prima del primo (mandato A420, par. 2.2).
     func kickScheduling() {
         audioQueue.async { [weak self] in
             guard let self else { return }
+            // A420 — una catena nuova: una generazione nuova prima del primo dei tre buffer (mandato A420, par. 2.2).
+            self.openBufferChainQ()
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
             self.scheduleNextBuffer()
@@ -5588,10 +5653,10 @@ class AudioEngine: ObservableObject {
         var directorStopped = false
         var directorFalseStart = false
         var silenceCleared = false
-        // A408 — `playerNode` ed `engine` si scrivono su audioQueue (la ricostruzione dopo il reset
-        // dei servizi audio): qui fuori si fermano le copie prese dentro il `sync`.
-        var runningPlayer: AVAudioPlayerNode? = nil
-        var runningEngine: AVAudioEngine? = nil
+        // ⚠️ RISCRITTO A420 (23/10/2026). Qui c'era «A408 — `playerNode` ed `engine` si scrivono su audioQueue (la
+        // ricostruzione dopo il reset dei servizi audio): qui fuori si fermano le copie prese dentro il `sync`.», con le due
+        // copie, fermate dopo il `sync`, sul principale. Da A420 lettore e motore si fermano sulla coda, in fondo al `sync`
+        // (mandato A420, par. 2.1): niente copie.
         audioQueue.sync {
             // A400 · R1 — ogni arresto abbassa il segno del proprio avvio, se l'eco non l'ha già
             // consumato. In testa al blocco, prima del `guard` più sotto: vale anche a motore già
@@ -5675,8 +5740,6 @@ class AudioEngine: ObservableObject {
             wasRunning = self.isRunning
             guard self.isRunning else { return }
             self.isRunning = false
-            runningPlayer = self.playerNode
-            runningEngine = self.engine
             bc = self.bufferCount
             bt = self.beatTotal
             
@@ -5794,6 +5857,11 @@ class AudioEngine: ObservableObject {
             self._sectionEndPending = false
             self._pendingEndClosure = nil
             self.backtrackPlayerNode.stop()
+            // === A420 (23/10/2026) — L'ARRESTO SULLA CODA (mandato A420, par. 2.1; U10 (B) del referto A419) ===
+            // Lettore e motore si fermano qui, in fondo al blocco che ha abbassato `isRunning`, e solo a motore in moto (la
+            // guardia più sopra). Lo Stop a Link resta prima, più sopra: la band non si ferma in ritardo della durata
+            // dell'arresto. Il thread che chiama aspetta anche i due stop; la riga [ARRESTO] ne dà i millisecondi.
+            self.stopPlayerAndEngineQ(context: "stop")
         }
         if directorStopped {
             // Su main, PRIMA del `.stopped` che `stop()` accoda dopo di noi (stessa coda, FIFO).
@@ -5810,9 +5878,7 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][DIR-TASTO] tasto:come-oggi motivo:stop-voluto - fascia e pedale playPause",
                    log: .default, type: .default)
         }
-        guard wasRunning, let playerToStop = runningPlayer, let engineToStop = runningEngine else { return }
-        playerToStop.stop()
-        engineToStop.stop()
+        guard wasRunning else { return }
         let statusStr = "stopped buf:\(bc) beats:\(bt)"
         DispatchQueue.main.async {
             self.isPlaying   = false
@@ -6074,10 +6140,16 @@ class AudioEngine: ObservableObject {
     }
 
     /// Costruisce la topologia del grafo AVAudioEngine in base alla modalità hardware.
-    /// Base: tutti i mixer al mainMixerNode (stereo). Ch3/Ch4 silenziate via outputVolume.
-    /// Pro:  connessione diretta a outputNode su bus fisici separati.
-    ///       Guard su maximumOutputNumberOfChannels — se l'hardware non supporta 4 canali,
-    ///       fallback automatico a topologia Base con log di errore.
+    /// Base: tutti i mixer al mainMixerNode (stereo), coi volumi salvati; Ch3/Ch4 le silenzia `applyChannelRouting`
+    ///       (outputVolume a 0), non questa funzione.
+    /// Pro: anche qui i quattro mixer passano dal mainMixerNode, col formato d'uscita a 4 canali; il mainMixerNode si collega
+    ///      all'outputNode con quel formato, e un channelMap manda ogni mixer al suo canale. Guardia sui canali del formato
+    ///      d'uscita del nodo d'uscita: sotto 4, topologia Base con una riga d'errore.
+    /// ⚠️ RISCRITTO A420 (23/10/2026). La riga del Base diceva «Base: tutti i mixer al mainMixerNode (stereo). Ch3/Ch4
+    /// silenziate via outputVolume.», e quelle del Pro «Pro:  connessione diretta a outputNode su bus fisici separati.» e
+    /// «Guard su maximumOutputNumberOfChannels — se l'hardware non supporta 4 canali, fallback automatico a topologia Base
+    /// con log di errore.»: il codice qui sotto non lo fa (precisazione (3) del referee sul referto A419, mandato A420,
+    /// par. 1; la riga del Base l'ha trovata il verificatore del diff di A420).
     /// Chiamare solo con engine fermo.
     private func connectAllNodes(for mode: AudioMode) {
         let monoFormat   = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
@@ -6155,16 +6227,33 @@ class AudioEngine: ObservableObject {
     /// A416 (21/10/2026) — prima di ricollegare porta la frequenza dalla fonte unica a tutte le copie (`applySampleRateQ`,
     /// mandato «USCITA-AUDIO-PASSO-1», §2.1): i formati dei nodi seguono la copia del motore. `context`: chi ricostruisce,
     /// per la riga [FORMATO] («pro», «fine-interruzione», «modo», «configurazione»). Il ricollegamento da solo è
-    /// `reconnectGraphQ`.
+    /// `reconnectGraphQ`. ⚠️ A420 (23/10/2026): «configurazione» non più; il cambio di configurazione passa dalla
+    /// ripartenza per la frequenza (`restartForRateChangeQ`), che chiama da sé `applySampleRateQ` e `reconnectGraphQ`
+    /// (mandato A420, par. 2.3).
     private func rebuildGraph(for mode: AudioMode, context: String) {
         applySampleRateQ(context: context)
-        reconnectGraphQ(for: mode)
+        reconnectGraphQ(for: mode, caller: context)
     }
 
     /// Il ricollegamento di `rebuildGraph` (fino ad A415 era tutto `rebuildGraph`), coi formati della copia del motore.
     /// Lo chiamano da soli l'avvio e il cambio di percorso, che la frequenza l'hanno già portata. Chiamare SOLO su
     /// audioQueue, con engine e playerNode già fermi.
-    private func reconnectGraphQ(for mode: AudioMode) {
+    /// ⚠️ A420 (23/10/2026): da solo lo chiama anche la ripartenza per la frequenza (`restartForRateChangeQ`, mandato A420,
+    /// par. 2.3), dopo aver portato la frequenza.
+    /// A420 (23/10/2026) — LA RETE, IN TESTA, PER CHIUNQUE RICOLLEGHI (mandato A420, par. 2.1): se il motore di sistema gira
+    /// ancora, lettore e motore si fermano prima di ricollegare. Fino ad A419 era la guardia del solo `start()`. Dopo il
+    /// pezzo 1 non dovrebbe scattare mai (l'invariante del mandato: «isRunning falso su audioQueue ⇒ lettore e motore
+    /// fermi»): se scatta, una riga col chiamante (`caller`: «avvio», «percorso», «configurazione», o il contesto di
+    /// `rebuildGraph`).
+    private func reconnectGraphQ(for mode: AudioMode, caller: String) {
+        if engine.isRunning {
+            let stopStart = mach_absolute_time()
+            playerNode.stop()
+            engine.stop()
+            os_log("[Q-BEATS][ARRESTO] rete del ricollegamento chiamante:%{public}@ isRunning:%d ms:%.3f - il motore girava: fermati lettore e motore prima di ricollegare",
+                   log: .default, type: .default,
+                   caller, isRunning ? 1 : 0, machTicksToSeconds(mach_absolute_time() - stopStart) * 1000.0)
+        }
         engine.disconnectNodeOutput(playerNode)
         engine.disconnectNodeOutput(backtrackPlayerNode)
         engine.disconnectNodeOutput(ch3PlayerNode)
@@ -6191,6 +6280,9 @@ class AudioEngine: ObservableObject {
     // Chi la chiama: `setupGraph` (avvio dell'app, ricostruzione dopo il reset), `rebuildGraph` (il Pro dopo la
     // `setActive`, la fine di un'interruzione, il cambio di modo, il cambio di configurazione), il cambio di percorso
     // (`handleRouteChange`) e l'avvio (`start()`, prima di `engine.start()`).
+    // ⚠️ A420 (23/10/2026): il cambio di configurazione non passa più da `rebuildGraph`; la chiama la ripartenza per la
+    // frequenza (`restartForRateChangeQ`), la funzione sola del cambio di configurazione e del cambio di percorso a motore in
+    // moto (mandato A420, par. 2.3).
 
     /// La frequenza del formato d'uscita del nodo d'uscita del motore (Apple: il formato dell'hardware; zero = uscita non
     /// abilitata). Chiamare SOLO su audioQueue.
@@ -6500,6 +6592,34 @@ class AudioEngine: ObservableObject {
         return fallback
     }
 
+    /// A420 — una generazione nuova della catena dei buffer (`BufferChainGeneration`): a ogni passaggio di `isRunning` da
+    /// falso a vero (`start()`) e prima del primo buffer di ogni catena che comincia. Chiamare SOLO su audioQueue.
+    private func openBufferChainQ() {
+        _bufferChainGenerationQ = BufferChainGeneration.opened(after: _bufferChainGenerationQ)
+    }
+
+    /// A420 — IL RICHIAMO DI FINE BUFFER, SULLA CODA (mandato A420, par. 2.2): `chain` è la generazione con cui il buffer è
+    /// stato programmato. Se non è la corrente, il buffer è di una catena finita (tolto da uno stop, di un lettore vecchio,
+    /// o arrivato fra l'avvio del motore e il fuoco di un ingresso o di un rientro): il richiamo si scarta senza programmare
+    /// niente, si conta, e scrive una riga al primo scarto e poi una ogni dieci. È la guardia che lavora, non un errore.
+    /// Con la generazione corrente fa quello di sempre: la riga del buffer ancorato del rientro (`anchoredRenderTicks`),
+    /// poi il buffer dopo. Chiamare SOLO su audioQueue.
+    private func bufferCallbackQ(chain: Int, anchoredRenderTicks: UInt64?) {
+        guard BufferChainGeneration.accepts(callbackGeneration: chain, current: _bufferChainGenerationQ) else {
+            _bufferChainDiscardedQ += 1
+            if BufferChainGeneration.writesDiscardLine(discarded: _bufferChainDiscardedQ) {
+                os_log("[Q-BEATS][SCHED] richiamo di un'altra catena scartato catena:%d corrente:%d scartati:%d",
+                       log: .default, type: .default,
+                       chain, _bufferChainGenerationQ, _bufferChainDiscardedQ)
+            }
+            return
+        }
+        if let requestedRenderTicks = anchoredRenderTicks {
+            anchoredBufferConsumedQ(requestedRenderTicks: requestedRenderTicks)
+        }
+        scheduleNextBuffer()
+    }
+
     // Chiamare SOLO su audioQueue.
     private func scheduleNextBuffer() {
         guard isRunning, let h = metronomeHandle else { return }
@@ -6546,8 +6666,14 @@ class AudioEngine: ObservableObject {
             }
             os_log("[Q-BEATS][DRAIN] return — no buffer scheduled to playerNode",
                    log: .default, type: .default)
-            // A416 (21/10/2026) — la catena dei buffer si ferma qui e la riprende `kickScheduling` coi suoi tre buffer: il
-            // misuratore del buco riprende il riferimento dopo di loro, così la pausa non è un buco (`RenderGapMeter`).
+            // ⚠️ RISCRITTO A420 (23/10/2026) (risposta del referee al mandato A420, par. 4). Il testo di prima diceva «A416
+            // (21/10/2026) — la catena dei buffer si ferma qui e la riprende `kickScheduling` coi suoi tre buffer: il
+            // misuratore del buco riprende il riferimento dopo di loro, così la pausa non è un buco (`RenderGapMeter`).». Qui
+            // si ferma un anello solo: questo richiamo non programma niente e abbassa `_sectionEndPending`, e gli altri buffer
+            // in volo, ai loro richiami, programmano come sempre; la catena va avanti con un anello in meno finché qualcuno
+            // non ferma il motore. `kickScheduling` non ha chiamanti dal commit `1f0a433` (BUGS,
+            // `TD-kickscheduling-morto-e-doccomment-falso`). Il misuratore riprende il riferimento qui, com'era: senza una
+            // pausa, le tre chiamate di scorta e il riferimento nuovo cadono sulla catena che continua (referto A420, Aperto).
             self._renderGapMeterQ.restart(sampleRate: self.sampleRate)
             return
         }
@@ -7096,19 +7222,22 @@ class AudioEngine: ObservableObject {
         // campioni non è valida (Apple, `AVAudioPlayerNode`). I buffer dopo vanno in coda come sempre. Al consumo, la
         // riga con l'ora chiesta e l'ultimo ciclo di rendering.»: il buffer ancorato era quello del bersaglio; da qui
         // è il primo della scorta, muto, e l'«uno» esce qualche buffer dopo (`_rejoinLeadInQ`).
+        // A420 — LA CATENA DEI BUFFER HA UN NUMERO (mandato A420, par. 2.2): il richiamo porta la generazione della catena
+        // che ha programmato il buffer, un intero copiato qui; il confronto si fa sulla coda (`bufferCallbackQ`). Il
+        // richiamo fa solo l'accodamento di sempre.
+        let chain = self._bufferChainGenerationQ
         if let anchoredAt = self._anchoredFirstBufferQ {
             self._anchoredFirstBufferQ = nil
             let requestedRenderTicks = anchoredAt.hostTime
             playerNode.scheduleBuffer(buffer, at: anchoredAt, options: [], completionHandler: { [weak self] in
                 self?.audioQueue.async {
-                    self?.anchoredBufferConsumedQ(requestedRenderTicks: requestedRenderTicks)
-                    self?.scheduleNextBuffer()
+                    self?.bufferCallbackQ(chain: chain, anchoredRenderTicks: requestedRenderTicks)
                 }
             })
             return
         }
         playerNode.scheduleBuffer(buffer) { [weak self] in
-            self?.audioQueue.async { self?.scheduleNextBuffer() }
+            self?.audioQueue.async { self?.bufferCallbackQ(chain: chain, anchoredRenderTicks: nil) }
         }
     }
 
@@ -7140,9 +7269,9 @@ class AudioEngine: ObservableObject {
         case .began:
             var shouldStop = false
             var soloStop = false
-            // A408 — come in `stopSync`: le copie di `playerNode` ed `engine` si prendono nel `sync`.
-            var interruptedPlayer: AVAudioPlayerNode? = nil
-            var interruptedEngine: AVAudioEngine? = nil
+            // ⚠️ RISCRITTO A420 (23/10/2026). Qui c'era «A408 — come in `stopSync`: le copie di `playerNode` ed `engine` si
+            // prendono nel `sync`.», con le due copie, fermate dopo il `sync`, sul principale. Da A420 lettore e motore si
+            // fermano sulla coda, in fondo al `sync` (mandato A420, par. 2.1): niente copie.
             // A412 — il motivo che il sistema dà dell'interruzione, come numero grezzo e solo per il registro
             // (Aperto del referto A412: un inizio tardivo dopo un rientro). Non si legge la chiave
             // `AVAudioSessionInterruptionWasSuspendedKey`, deprecata da iOS 14.5, e i casi del motivo non si
@@ -7211,8 +7340,6 @@ class AudioEngine: ObservableObject {
                 self.isAudioInterrupted = true
                 self.isRunning          = false
                 shouldStop              = true
-                interruptedPlayer       = self.playerNode
-                interruptedEngine       = self.engine
                 // RIENTRO-P1 (a) — questo arresto non passa da `stopSync`: se l'interruzione
                 // cade durante l'attesa d'ingresso, l'ingresso pendente si annulla QUI.
                 self.cancelPendingJoin(reason: "inizio interruzione")
@@ -7223,14 +7350,16 @@ class AudioEngine: ObservableObject {
                 if self._directorSilentInSongQ {
                     self.publishDirectorSilenceQ(context: "interruzione")
                 }
+                // A420 — L'ARRESTO SULLA CODA (mandato A420, par. 2.1): lettore e motore, qui in fondo al `sync`, nel solo
+                // ramo che ferma. Fino ad A419 si fermavano qui sotto, fuori dalla coda, sulle copie prese qui dentro. Il
+                // Solo si ferma con `stopSync`, qui sotto, come allo Stop della sua console.
+                self.stopPlayerAndEngineQ(context: "interruzione")
             }
             if soloStop {
                 stopForSoloCrisis(cause: .interruption)
                 return
             }
-            guard shouldStop, let playerToStop = interruptedPlayer, let engineToStop = interruptedEngine else { return }
-            playerToStop.stop()
-            engineToStop.stop()
+            guard shouldStop else { return }
             DispatchQueue.main.async {
                 self.isPlaying   = false
                 self.clickStatus = "audio muted — clock running"
@@ -7509,55 +7638,22 @@ class AudioEngine: ObservableObject {
                    "\(sampleRateChanged)", "\(modeChanged)")
 
             if format.action == .stopAndRebuild {
-                // A416 — L'ARRESTO ESPLICITO, come al cambio di configurazione (`handleEngineConfigChange`): la regola di
-                // ogni crisi (`CrisisStopDecision`) con la causa «configurazione» — per Apple un cambio di frequenza
-                // dell'hardware è un cambio di configurazione del motore, e la regola di A412 resta quella — col
-                // Direttore muto in canzone e l'àncora prima che `isRunning` vada a falso; poi `isRunning` a falso,
-                // lettore e motore fermi, l'ingresso pendente annullato, il segno del proprio avvio abbassato.
-                if self.crisisOutcomeQ(cause: .configuration) == .silentInSong {
-                    self.enterDirectorSilenceQ(cause: .configuration)
-                }
-                self.isRunning = false
-                self.playerNode.stop()
-                self.engine.stop()
-                self.cancelPendingJoin(reason: "cambio di frequenza")
-                self.lowerOwnTransportStartQ(reason: "frequenza")
-                // La frequenza a tutte le copie, a motore fermo, e il grafo coi formati nuovi.
-                self.applySampleRateQ(context: "percorso")
-                self.reconnectGraphQ(for: detectedMode)
-                self.applyChannelRouting(for: detectedMode)
-                let rateForScreen = self.sampleRate
-                DispatchQueue.main.async {
-                    self.audioMode = detectedMode
-                    self.sampleRateInfo = rateForScreen
-                }
-
-                let recoveryBeat: Double?
-                if let mh = self.midiEngineHandle {
-                    let hostTime = mach_absolute_time()
-                                 + self.outputLatencyTicks
-                                 + self.bufferDurationTicks
-                    recoveryBeat = midi_engine_get_beat_at_time(mh, hostTime)
-                } else {
-                    recoveryBeat = nil
-                }
-
-                os_log("[Q-BEATS][ROUTE] sampleRateChanged — recoveryBeat:%.4f",
-                       log: .default, type: .default, recoveryBeat ?? -1.0)
-
-                // Il tasto a stato finito, e la ripartenza dalla regola (`RecoveryDecision`): il Direttore muto in canzone
-                // va al coordinatore.
-                if self._directorSilentInSongQ {
-                    self.publishDirectorSilenceQ(context: "frequenza")
-                }
-                self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
-                                              trigger: .sampleRateChange)
+                // ⚠️ RISCRITTO A420 (23/10/2026). Qui c'era la strada «fermare-e-ricostruire» di A416, scritta a parte: «A416 —
+                // L'ARRESTO ESPLICITO, come al cambio di configurazione (`handleEngineConfigChange`): la regola di ogni crisi
+                // (`CrisisStopDecision`) con la causa «configurazione» [...]; poi `isRunning` a falso, lettore e motore fermi,
+                // l'ingresso pendente annullato, il segno del proprio avvio abbassato.», poi la frequenza, il grafo,
+                // l'instradamento e lo schermo, il battito (con le latenze di prima), la riga «sampleRateChanged —
+                // recoveryBeat» e la ripartenza `sample_rate_change`. Da A420 è la funzione sola, la stessa del cambio di
+                // configurazione (`restartForRateChangeQ`, mandato A420, par. 2.3). L'ordine dei due eventi non conta: se arriva
+                // prima questo, la configurazione trova `isRunning` basso, o il motore in moto, e si ignora; se arriva prima la
+                // configurazione, qui la copia è già uguale al nodo e non si ferma niente.
+                self.restartForRateChangeQ(source: .route, trigger: .sampleRateChange, mode: detectedMode)
                 return
             }
             if format.reconnectsGraph {
                 // A416 — motore fermo: la frequenza è già arrivata a tutte le copie (qui sopra); si ricollegano i nodi coi
                 // formati nuovi, e niente riparte (com'era).
-                self.reconnectGraphQ(for: detectedMode)
+                self.reconnectGraphQ(for: detectedMode, caller: "percorso")
                 self.applyChannelRouting(for: detectedMode)
                 os_log("[Q-BEATS][ROUTE] sampleRateChanged — engine fermo, no restart",
                        log: .default, type: .default)
@@ -7579,8 +7675,8 @@ class AudioEngine: ObservableObject {
                     self.enterDirectorSilenceQ(cause: .mode)
                 }
                 self.isRunning = false
-                self.playerNode.stop()
-                self.engine.stop()
+                // A420 — l'arresto sulla coda, con la sua riga (mandato A420, par. 2.1).
+                self.stopPlayerAndEngineQ(context: "modo")
                 // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso
                 // pendente, se c'è, si annulla qui.
                 self.cancelPendingJoin(reason: "cambio di topologia")
@@ -7683,9 +7779,8 @@ class AudioEngine: ObservableObject {
                     // Il tasto prima dello specchio «non suona»: un tocco in mezzo trova già il silenzio.
                     self.publishDirectorSilenceQ(context: "servizi-persi")
                 }
-                if let pair = self.beginLocalStopQ(context: "servizi-persi") {
-                    pair.player.stop()
-                    pair.engine.stop()
+                if self.beginLocalStopQ(context: "servizi-persi") {
+                    self.stopPlayerAndEngineQ(context: "servizi-persi")
                     DispatchQueue.main.async {
                         self.isPlaying = false
                     }
@@ -7730,7 +7825,7 @@ class AudioEngine: ObservableObject {
     @objc private func handleMediaReset(_ notification: Notification) {
         var followerStopSync = false
         var soloStop: CrisisCause? = nil
-        var stoppedPair: (player: AVAudioPlayerNode, engine: AVAudioEngine)? = nil
+        var stoppedLocally = false
         var stoppedContext = ""
         let action: MediaServicesAction = audioQueue.sync {
             self._mediaResetCountQ += 1
@@ -7749,7 +7844,7 @@ class AudioEngine: ObservableObject {
                         self.enterDirectorSilenceQ(cause: cause)
                     }
                     stoppedContext = cause.rawValue
-                    stoppedPair = self.beginLocalStopQ(context: cause.rawValue)
+                    stoppedLocally = self.beginLocalStopQ(context: cause.rawValue)
                 case .soloStopAsConsole:
                     soloStop = cause
                 case .asToday:
@@ -7762,11 +7857,14 @@ class AudioEngine: ObservableObject {
             if self._directorSilentInSongQ {
                 self.publishDirectorSilenceQ(context: "reset")
             }
+            // A420 — L'ARRESTO SULLA CODA, in fondo al `sync` (mandato A420, par. 2.1): fino ad A419 la coppia di
+            // `beginLocalStopQ` si fermava qui sotto, sul principale, dopo il `sync`.
+            if stoppedLocally {
+                self.stopPlayerAndEngineQ(context: "reset")
+            }
             return step.action
         }
-        if let pair = stoppedPair {
-            pair.player.stop()
-            pair.engine.stop()
+        if stoppedLocally {
             DispatchQueue.main.async {
                 self.isPlaying = false
             }
@@ -7901,6 +7999,110 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // =====================================================================================
+    // === A420 (23/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 1: LA RIPARTENZA PER LA FREQUENZA, UNA STRADA SOLA ===
+    // =====================================================================================
+    // Mandato A420, par. 2.3 (U12 del referto A419, §3.5; BUGS, `TD-nodo-d-uscita-con-la-frequenza-vecchia`). Fino ad A419
+    // erano due strade scritte a parte, che fermavano e ripartivano per lo stesso evento in un ordine che Apple non
+    // documenta: il cambio di configurazione del motore (`handleEngineConfigChange`, la strada documentata: il motore si
+    // ferma da solo e lo notifica) e il cambio di percorso col nodo d'uscita già alla frequenza nuova a motore in moto
+    // (`handleRouteChange`, esito «fermare-e-ricostruire» di `SampleRateDecision`, la riserva). Da qui una funzione sola, che
+    // fa quello che facevano tutte e due: dalla configurazione le latenze rilette prima del battito (la ripresa pendente la
+    // decide il gestore, e arriva qui come innesco); dal percorso lo stop anche del motore, l'instradamento dei canali e lo
+    // schermo. L'ordine dei due eventi non conta: se arriva prima il percorso, la configurazione trova `isRunning` basso, o
+    // il motore in moto, e si ignora (`EngineConfigChangeDecision`); se arriva prima la configurazione, il percorso trova la
+    // copia già uguale al nodo e non fa niente (`SampleRateDecision`). Gli inneschi restano quelli di oggi.
+
+    /// Chi chiama la ripartenza per la frequenza, coi nomi di oggi nelle righe.
+    private enum RateRestartSource {
+        /// Il cambio di configurazione del motore (`handleEngineConfigChange`).
+        case configuration
+        /// Il cambio di percorso col nodo d'uscita già alla frequenza nuova, a motore in moto (`handleRouteChange`).
+        case route
+
+        /// La riga [ARRESTO], il segno del proprio avvio e il tasto del Direttore muto.
+        var stopContext: String {
+            switch self {
+            case .configuration: return "configurazione"
+            case .route: return "frequenza"
+            }
+        }
+
+        /// La riga [FORMATO], il chiamante di `reconnectGraphQ` e la riga della ripartenza.
+        var formatContext: String {
+            switch self {
+            case .configuration: return "configurazione"
+            case .route: return "percorso"
+            }
+        }
+
+        /// Il motivo dell'annullo dell'ingresso pendente.
+        var joinReason: String {
+            switch self {
+            case .configuration: return "cambio di configurazione"
+            case .route: return "cambio di frequenza"
+            }
+        }
+    }
+
+    /// LA RIPARTENZA PER LA FREQUENZA: la regola delle crisi con la causa «configurazione», l'arresto sulla coda, la
+    /// frequenza a tutte le copie, il grafo, l'instradamento e lo schermo, il battito di ripresa, la ripartenza dalla regola
+    /// (`activateSessionAndStart`, `RecoveryDecision`). `mode`: il modo letto da chi chiama. Chiamare SOLO su audioQueue.
+    private func restartForRateChangeQ(source: RateRestartSource, trigger: RecoveryTrigger, mode: AudioMode) {
+        // A410 — l'àncora del conteggio in silenzio, prima che `isRunning` vada a falso.
+        // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`), con la causa «configurazione»: per Apple un cambio
+        // di frequenza dell'hardware è un cambio di configurazione del motore. Col Direttore muto in canzone l'àncora e il
+        // silenzio, e la ripartenza qui sotto passa dal coordinatore (`RecoveryDecision`); per tutti gli altri come oggi.
+        if crisisOutcomeQ(cause: .configuration) == .silentInSong {
+            enterDirectorSilenceQ(cause: .configuration)
+        }
+        // L'arresto sulla coda (mandato A420, par. 2.1): lettore e motore, anche quando il motore l'ha già fermato il sistema
+        // (cambio di configurazione: lo stop libera le risorse preparate, e il ricollegamento qui sotto le riprepara).
+        isRunning = false
+        stopPlayerAndEngineQ(context: source.stopContext)
+        // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso pendente, se c'è, si annulla qui. È il caso del
+        // collaudo del 17/09/2026 (G3, 10:19:39): cambio di configurazione durante l'attesa d'ingresso, e il riavvio armava
+        // un SECONDO ingresso accanto al primo.
+        cancelPendingJoin(reason: source.joinReason)
+        // A400 · R1 — arresto che non passa da `stopSync`: si abbassa qui anche il segno del proprio avvio.
+        lowerOwnTransportStartQ(reason: source.stopContext)
+        // La frequenza dalla fonte unica a tutte le copie, a motore fermo, e il grafo coi formati nuovi (A416: fino ad A415
+        // la ricostruzione della configurazione prendeva la copia del motore, e alle 10:51 del 19/10 l'iPad è ripartito coi
+        // nodi a 44100 e l'uscita a 48000).
+        applySampleRateQ(context: source.formatContext)
+        reconnectGraphQ(for: mode, caller: source.formatContext)
+        applyChannelRouting(for: mode)
+        let rateForScreen = sampleRate
+        DispatchQueue.main.async {
+            self.audioMode = mode
+            self.sampleRateInfo = rateForScreen
+        }
+        // Il battito di ripresa (Backlog #15), con le latenze rilette dalla sessione e copiate nel ponte, come faceva il
+        // cambio di configurazione: `link_engine_set_output_latency_ticks` scrive un numero atomico nel nostro ponte, non
+        // nella sessione di Link (`LinkEngine.mm`), e `start()` lo riscrive poco dopo.
+        let resumeBeat: Double?
+        if let mh = midiEngineHandle {
+            let avSession = AVAudioSession.sharedInstance()
+            outputLatencyTicks  = secondsToMachTicks(avSession.outputLatency)
+            bufferDurationTicks = secondsToMachTicks(avSession.ioBufferDuration)
+            if let lh = linkEngineHandle {
+                link_engine_set_output_latency_ticks(lh, outputLatencyTicks)
+            }
+            let hostTimeAtFirstSample = mach_absolute_time() + outputLatencyTicks + bufferDurationTicks
+            resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
+        } else {
+            resumeBeat = nil
+        }
+        os_log("[Q-BEATS][ENGINE] ripartenza per la frequenza innesco:%{public}@ contesto:%{public}@ modo:%{public}@ battito:%.4f",
+               log: .default, type: .default,
+               trigger.rawValue, source.formatContext, "\(mode)", resumeBeat ?? -1.0)
+        // Il tasto a stato finito, e la ripartenza dalla regola: il Direttore muto in canzone va al coordinatore.
+        if _directorSilentInSongQ {
+            publishDirectorSilenceQ(context: source.stopContext)
+        }
+        activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: trigger)
+    }
+
     @objc private func handleEngineConfigChange(_ notification: Notification) {
         // A416 (21/10/2026) — l'ora d'arrivo, letta qui prima del salto su audioQueue: la riga del buco del render la
         // confronta col buco (`RenderGapMeter`, mandato «USCITA-AUDIO-PASSO-1», §2.3).
@@ -7926,6 +8128,9 @@ class AudioEngine: ObservableObject {
             // notifica per lo stesso arresto si ignora con la sua riga; i tentativi ripetuti hanno il gettone di
             // `activateSessionAndStart`. La frequenza la prende la ricostruzione dalla fonte unica (`rebuildGraph` →
             // `applySampleRateQ`).
+            // ⚠️ A420 (23/10/2026): l'arresto esplicito, la ricostruzione e la ripartenza stanno nella funzione sola della
+            // frequenza (`restartForRateChangeQ`, mandato A420, par. 2.3), che ferma lettore e motore sulla coda; la frequenza
+            // la prende lì `applySampleRateQ`, non più `rebuildGraph`.
             let senderIsCurrent = (notification.object as? AVAudioEngine).map { $0 === self.engine } ?? false
             if senderIsCurrent {
                 self._lastConfigChangeTicksQ = arrivedTicks
@@ -7970,55 +8175,18 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][ENGINE] Config change detected — rebuilding graph and restarting",
                    log: .default, type: .default)
 
-            // A410 — l'àncora del conteggio in silenzio, prima che `isRunning` vada a falso.
-            // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`): col Direttore muto in canzone
-            // l'àncora e il silenzio, e la ripartenza qui sotto passa dal coordinatore (`RecoveryDecision`);
-            // per tutti gli altri come oggi.
-            if self.crisisOutcomeQ(cause: .configuration) == .silentInSong {
-                self.enterDirectorSilenceQ(cause: .configuration)
-            }
-            self.isRunning = false
-            self.playerNode.stop()
-            // RIENTRO-P1 (a) — arresto che non passa da `stopSync`. È il caso del collaudo
-            // del 17/09/2026 (G3, 10:19:39): cambio di configurazione durante l'attesa
-            // d'ingresso, e il riavvio qui sotto armava un SECONDO ingresso accanto al primo.
-            self.cancelPendingJoin(reason: "cambio di configurazione")
-            // A400 · R1 — arresto che non passa da `stopSync`: si abbassa qui anche il segno del
-            // proprio avvio.
-            self.lowerOwnTransportStartQ(reason: "configurazione")
-
-            // 1. Graph rebuild
-            // A416 — con la frequenza dalla fonte unica, a tutte le copie (`applySampleRateQ` in `rebuildGraph`): fino ad
-            // A415 la ricostruzione prendeva la copia del motore, e alle 10:51 del 19/10 l'iPad è ripartito coi nodi a
-            // 44100 e l'uscita a 48000.
-            self.rebuildGraph(for: self.detectAudioMode(), context: "configurazione")
-
-            // 2. Calcolo resumeBeat professionale (Backlog #15 fix)
-            let resumeBeat: Double?
-            if let mh = self.midiEngineHandle {
-                let avSession = AVAudioSession.sharedInstance()
-                self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
-                self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
-                
-                if let lh = self.linkEngineHandle {
-                    link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
-                }
-
-                let hostTimeAtFirstSample = mach_absolute_time() 
-                                            + self.outputLatencyTicks 
-                                            + self.bufferDurationTicks
-                resumeBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-            } else {
-                resumeBeat = nil
-            }
-
-            // 3. Riattivazione sessione e restart
-            if self._directorSilentInSongQ {
-                self.publishDirectorSilenceQ(context: "configurazione")
-            }
-            // A416 — la ripresa pendente col suo innesco di sempre; altrimenti la ripartenza del cambio di configurazione.
-            self.activateSessionAndStart(resumeAtBeat: resumeBeat,
-                                         trigger: recoverPending ? .pendingRecovery : .engineConfigChange)
+            // ⚠️ RISCRITTO A420 (23/10/2026). Da qui alla fine del blocco c'era il corpo di questa strada, scritto a parte: la
+            // regola delle crisi con la causa «configurazione», `isRunning` a falso e il solo `playerNode.stop()` (il motore
+            // l'aveva fermato il sistema), l'ingresso pendente annullato e il segno del proprio avvio abbassato,
+            // `rebuildGraph(for: self.detectAudioMode(), context: "configurazione")`, le latenze rilette e copiate nel ponte, il
+            // battito di ripresa, il tasto e la ripartenza, con l'innesco della ripresa pendente o del cambio di
+            // configurazione. Da A420 è la funzione sola `restartForRateChangeQ` (mandato A420, par. 2.3), la stessa del cambio
+            // di percorso con la frequenza nuova a motore in moto: in più ferma anche il motore sulla coda e rimette
+            // l'instradamento dei canali e lo schermo. Gli esiti di `EngineConfigChangeDecision` e gli inneschi restano quelli
+            // di oggi.
+            self.restartForRateChangeQ(source: .configuration,
+                                       trigger: recoverPending ? .pendingRecovery : .engineConfigChange,
+                                       mode: self.detectAudioMode())
         }
     }
 
