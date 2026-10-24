@@ -83,8 +83,6 @@ private struct OutputRig {
     // Le attese.
     var directorReturn: DirectorReturn? = nil
     var followerReturn: FollowerReturn? = nil
-    var raiseAt: Double? = nil
-    var raiseChain = 0
     var netAt: Double? = nil
     var rejoin: RejoinWait? = nil
     var engineStartDuration = 0.0
@@ -144,7 +142,6 @@ private struct OutputRig {
     mutating func cancelReturns() {
         directorReturn = nil
         followerReturn = nil
-        raiseAt = nil
     }
 
     mutating func silenceNow() {
@@ -235,18 +232,20 @@ private struct OutputRig {
         let step = OutputRouteDecision.step(routeClass: routeClass, playerRole: role, showOpen: showOpen,
                                             songInProgress: songInProgress, engineRunning: isRunning,
                                             stoppedByCrisis: stoppedByCrisis, inInterruption: systemInterruption)
-        // Lo stato puro, anche fuori da «normale» e dentro un'interruzione.
-        if step.raisesMissing {
-            apply(.removed)
-            cancelReturns()
-        }
+        // L'ordine del par. 2.3 a (alla lettera, dopo la verifica del diff): `mediaResetSkipsQ`; il silenzio (U3); lo stato
+        // puro «uscita mancante» e, a una tolta, l'annullo dei ritorni (anche nel rimando dentro un'interruzione, che poi
+        // esce); la crisi e l'arresto; i ritorni; la ripresa pendente; i rami di oggi. Fra la Lost e la Reset niente, nemmeno
+        // lo stato: la tolta persa la rilegge il primo avvio del Follower dopo la ricostruzione (`rebuiltAndPlay`).
+        guard mediaServicesNormal else { return }
+        if useRouteCrisis && step.silences { silenceNow() }
+        if step.raisesMissing { apply(.removed) }
         if step.lowersMissing { apply(.externalPresent) }
-        guard mediaServicesNormal, !systemInterruption else { return }
+        if routeClass == .removed { cancelReturns() }
+        guard !systemInterruption else { return }
         // Il Solo si ferma sul principale (`stopForSoloCrisis`, mai da audioQueue): dopo il blocco della coda, cioè dopo i
         // rami della frequenza e del modo qui sotto.
         var deferredSoloStop = false
         if useRouteCrisis {
-            if step.silences { silenceNow() }
             if let cause = step.crisisCause {
                 switch crisis(cause) {
                 case .silentInSong:
@@ -273,7 +272,18 @@ private struct OutputRig {
                 break
             }
         }
-        // I rami di oggi: la frequenza, il modo.
+        // La ripresa pendente che il gestore recupera subito: assorbita dal ritorno del Direttore se questa notizia l'ha
+        // armato (una ripartenza sola, dopo l'attesa di U6); se no, la ripresa come oggi, da `RecoveryDecision`.
+        if pendingResume {
+            pendingResume = false
+            if directorReturn == nil {
+                activateSessionAndStart(trigger: .pendingRecovery, at: t)
+                if deferredSoloStop { soloStop() }
+                return
+            }
+        }
+        // I rami di oggi: la frequenza, il modo. Il ramo del modo annulla i ritorni solo se riparte (par. 2.3 b): a motore già
+        // fermo da questa crisi il ritorno del Direttore resta (dopo la verifica del diff).
         if rateChanges {
             if isRunning {
                 restartForRateChange(trigger: .sampleRateChange, at: t)
@@ -284,7 +294,10 @@ private struct OutputRig {
             let wasRunning = isRunning
             if crisis(.mode) == .silentInSong { silentInSong = true }
             if isRunning { crisisStop() }
-            if wasRunning { activateSessionAndStart(trigger: .modeChange, at: t) }
+            if wasRunning {
+                cancelReturns()
+                activateSessionAndStart(trigger: .modeChange, at: t)
+            }
         }
         if deferredSoloStop { soloStop() }
     }
@@ -481,6 +494,11 @@ private struct OutputRig {
         }
         let outputStart = t + latency + bufferSeconds
         let outputEnd = outputStart + bufferSeconds
+        // Par. 2.3 b: un ritorno armato con una catena che non è più quella corrente si riarma con la stessa regola.
+        if var armed = followerReturn, !armed.armPending, armed.chain != chain {
+            armed.armPending = true
+            followerReturn = armed
+        }
         if var pending = followerReturn, pending.armPending {
             let nextOutput = ticks(outputStart)
             let end = OutputReturnDecision.programmedEndOutputTicks(nextBufferOutputTicks: nextOutput,
@@ -494,6 +512,18 @@ private struct OutputRig {
             pending.armPending = false
             pending.chain = chain
             followerReturn = pending
+        }
+        // U3 c: se questo buffer porta l'«uno», il volume torna ADESSO, prima che si calcoli il battito (due buffer prima del
+        // suo rendering), se le condizioni con cui il ritorno è stato armato reggono (par. 2.3 b).
+        if let pending = followerReturn, !pending.armPending, let uno = pending.unoAt,
+           OutputReturnDecision.bufferReachesUno(bufferOutputTicks: ticks(outputStart), bufferTicks: ticks(bufferSeconds),
+                                                 unoTicks: ticks(uno)) {
+            followerReturn = nil
+            if isRunning && !systemInterruption && !state.missing && state.muted && mediaServicesNormal {
+                volume = 1.0
+                apply(.volumeRestored(externalPresent: externalPresent))
+                raisedAt = t
+            }
         }
         var mutedThisBuffer = false
         if role == .direttore && !followsLink {
@@ -515,14 +545,6 @@ private struct OutputRig {
         position += bufferBeats
         queued.append(RigBuffer(outputStart: outputStart, outputEnd: outputEnd, chain: chain))
         if queued.count > 3 { queued.removeFirst() }
-        if let pending = followerReturn, let uno = pending.unoAt, pending.chain == chain,
-           OutputReturnDecision.bufferReachesUno(bufferOutputTicks: ticks(outputStart), bufferTicks: ticks(bufferSeconds),
-                                                 unoTicks: ticks(uno)) {
-            raiseAt = seconds(OutputReturnDecision.raiseTicks(bufferOutputTicks: ticks(outputStart),
-                                                              outputLatencyTicks: ticks(latency), nowTicks: ticks(t)))
-            raiseChain = chain
-            followerReturn = nil
-        }
     }
 
     /// I richiami a ogni buffer, da `from`, `count` volte.
@@ -539,14 +561,6 @@ private struct OutputRig {
         directorReturn = nil
         guard !isRunning, !systemInterruption, silentInSong, !state.missing else { return }
         activateSessionAndStart(trigger: waiting.trigger, at: t)
-    }
-
-    mutating func fireRaise(at t: Double) {
-        raiseAt = nil
-        guard isRunning, !systemInterruption, !state.missing, state.muted, raiseChain == chain else { return }
-        volume = 1.0
-        apply(.volumeRestored(externalPresent: externalPresent))
-        raisedAt = t
     }
 
     mutating func fireNet(at t: Double) {
@@ -571,14 +585,12 @@ private struct OutputRig {
         while true {
             var due: [(Double, Int)] = []
             if let d = directorReturn, d.fireAt <= t { due.append((d.fireAt, 0)) }
-            if let r = raiseAt, r <= t { due.append((r, 1)) }
             if let n = netAt, n <= t { due.append((n, 2)) }
             if let j = rejoin, j.fireAt <= t { due.append((j.fireAt, 3)) }
             guard let next = due.min(by: { $0.0 < $1.0 }) else { break }
             now = max(now, next.0)
             switch next.1 {
             case 0: fireDirectorReturn(at: next.0)
-            case 1: fireRaise(at: next.0)
             case 2: fireNet(at: next.0)
             default: fireRejoin(at: next.0)
             }
@@ -651,6 +663,9 @@ private struct OutputRig {
         mediaServicesNormal = true
         isRunning = false
         engineRunning = false
+        // Come `start()` dopo `rebuildAfterMediaResetQ`: il Follower rilegge il percorso dalla memoria (U5), per la tolta persa
+        // fra la Lost e la Reset.
+        if role == .follower { _ = recoveryRead() }
         start(at: t, recovery: nil)
     }
 
@@ -677,7 +692,8 @@ private struct OutputRig {
         advance(to: t)
         guard role == .follower else { return }
         apply(.speakerTap)
-        if isRunning && state.muted {
+        // Sul motore morto (fra la Lost e la Reset) solo lo stato: il volume lo riscrive `start()` dopo il reset (A408).
+        if isRunning && state.muted && mediaServicesNormal {
             followerReturn = FollowerReturn(noticeAt: t, armPending: true, unoAt: nil, chain: chain, fromTap: true)
         }
     }
@@ -685,7 +701,7 @@ private struct OutputRig {
     mutating func wakeup(at t: Double) {
         advance(to: t)
         guard TransportStateDecision.wakeupRecovers(engineRunning: isRunning, pendingResume: pendingResume,
-                                                    silentInSong: silentInSong, crisisCause: crisisCause) else { return }
+                                                    silentInSong: silentInSong) else { return }
         if pendingResume {
             pendingResume = false
             activateSessionAndStart(trigger: .wakeupPendingRecovery, at: t)
@@ -872,7 +888,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
     }
 
     /// (3) Lo stesso sul Follower: il volume a 0 col motore in moto, i richiami tardivi a volume 0, poi l'attacco; il render
-    /// riparte 684 ms dopo: il volume torna al primo «uno» di Link dopo le due ore, al rendering del suo buffer (U3 c).
+    /// riparte 684 ms dopo: il volume torna al primo «uno» di Link dopo le due ore, al calcolo del suo buffer (U3 c).
     func testWiredHeadphonesWithTheRenderRestarting684msLaterOnTheFollower() {
         var rig = playing(.follower, route: [headphones], at: 50.0)
         rig.routeChange(at: 55.0, to: [speaker])
@@ -897,8 +913,9 @@ final class OutputCrisisSequenceTests: XCTestCase {
         rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
         XCTAssertNotNil(rig.raisedAt)
-        XCTAssertLessThanOrEqual(rig.raisedAt!, uno - rig.latency + 1e-9, "prima del rendering dell'«uno»")
-        XCTAssertGreaterThanOrEqual(rig.raisedAt!, uno - rig.latency - 2 * rig.bufferSeconds)
+        XCTAssertLessThanOrEqual(rig.raisedAt!, uno - rig.latency - rig.bufferSeconds + 1e-9,
+                                 "al calcolo del buffer dell'«uno», prima del suo rendering (U3 c)")
+        XCTAssertGreaterThanOrEqual(rig.raisedAt!, uno - rig.latency - 2 * rig.bufferSeconds - 1e-9)
         XCTAssertNil(rig.followerReturn)
     }
 
@@ -1197,10 +1214,14 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertEqual(rig.lateBeatsMuted, 1)
     }
 
-    /// Il Follower dopo la Lost con un ritorno in attesa: nessun riarmo; il volume dopo il reset lo scrive `start()`.
+    /// Il Follower dopo la Lost con un ritorno in attesa: nessun riarmo; fra la Lost e la Reset la notizia non tocca nemmeno lo
+    /// stato (par. 2.3 a alla lettera); la tolta persa la rilegge il primo avvio dopo la ricostruzione (U5, dalla memoria
+    /// dell'ultima uscita a volume 1), e il volume lo scrive `start()`.
     func testTheFollowerAfterTheLostWithAReturnPendingDoesNotRearm() {
-        var rig = playing(.follower, route: [speaker])
-        rig.routeChange(at: 11.0, to: [headphones])
+        var rig = playing(.follower, route: [headphones])
+        rig.routeChange(at: 11.0, to: [speaker])
+        XCTAssertTrue(rig.state.missing)
+        rig.routeChange(at: 11.02, to: [headphones])
         rig.callbacks(from: 11.05, count: 3)
         XCTAssertNotNil(rig.followerReturn)
         rig.servicesLost(at: 11.1)
@@ -1208,13 +1229,120 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertTrue(rig.isRunning, "il Follower dopo la Lost resta in moto")
         XCTAssertEqual(rig.volume, 0.0)
         rig.routeChange(at: 11.5, to: [speaker])
-        XCTAssertTrue(rig.state.missing, "lo stato puro si aggiorna anche coi servizi persi")
+        XCTAssertFalse(rig.state.missing, "coi servizi persi la notizia non tocca nemmeno lo stato")
         XCTAssertNil(rig.followerReturn)
         rig.rebuiltAndPlay(at: 20.0)
+        XCTAssertTrue(rig.state.missing, "la rilettura al primo avvio dopo la ricostruzione: l'ultima uscita era esterna")
         XCTAssertEqual(rig.volume, 0.0, "il volume lo scrive start(), dallo stato: l'uscita manca")
         rig.routeChange(at: 21.0, to: [headphones])
         rig.callbacks(from: 21.05, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
+    }
+
+    /// Dopo la verifica del diff (U16): il Direttore fuori da una canzone fermato da una tolta NON riparte al ritorno in primo
+    /// piano quando l'uscita torna: riparte solo col Play. La guardia del risveglio non guarda la causa viva.
+    func testTheWakeupAfterARemovedOutOfASongDoesNotRestartWhenTheOutputReturns() {
+        var rig = playing(.direttore, route: [headphones])
+        rig.songInProgress = false
+        rig.routeChange(at: 11.0, to: [speaker])
+        XCTAssertFalse(rig.isRunning, "U16: arresto locale")
+        XCTAssertTrue(rig.state.missing)
+        XCTAssertEqual(rig.crisisCause, .outputRemoved)
+        rig.routeChange(at: 12.0, to: [headphones])
+        XCTAssertFalse(rig.state.missing, "l'aggiunta fuori da una canzone abbassa «uscita mancante»")
+        XCTAssertFalse(rig.isRunning)
+        rig.wakeup(at: 13.0)
+        rig.advance(to: 15.0)
+        XCTAssertFalse(rig.isRunning, "nessuna ripartenza automatica: riparte col Play")
+        XCTAssertEqual(rig.starts, 1)
+        rig.start(at: 16.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning)
+        XCTAssertEqual(rig.volume, 1.0)
+    }
+
+    /// Dopo la verifica del diff (U6, par. 2.3 a): un'aggiunta che cambia anche il modo (una scheda USB a quattro canali) col
+    /// Direttore in canzone: il ramo del modo aggiorna le copie e non annulla il ritorno appena armato; il Direttore rientra da
+    /// solo.
+    func testAnAddedWithAModeChangeOnTheDirectorInASongKeepsTheReturn() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.routeChange(at: 11.0, to: [usb], modeChanges: true)
+        XCTAssertFalse(rig.isRunning)
+        XCTAssertTrue(rig.silentInSong)
+        XCTAssertNotNil(rig.directorReturn, "il ritorno sopravvive al ramo del modo a motore fermo")
+        XCTAssertEqual(rig.starts, 1)
+        rig.advance(to: 14.0)
+        XCTAssertEqual(rig.rejoins, 1, "il Direttore rientra da solo")
+        XCTAssertTrue(rig.isRunning)
+    }
+
+    /// Dopo la verifica del diff (U3 b, par. 2.3 b): nessun motore in moto resta a volume 0 senza la sua strada di ritorno —
+    /// per il Follower un ritorno in attesa, oppure «uscita mancante» su (la strada è un'esterna o il tocco), oppure i servizi
+    /// audio persi (la strada è `start()` dopo il reset); il Direttore in moto non è mai a volume 0. Lungo le sequenze, passo
+    /// per passo.
+    func testNoRunningEngineStaysMutedWithoutItsReturnPath() {
+        func check(_ rig: OutputRig, _ tag: String, file: StaticString = #filePath, line: UInt = #line) {
+            if rig.isRunning && rig.state.muted {
+                XCTAssertTrue(rig.followerReturn != nil || rig.state.missing || !rig.mediaServicesNormal,
+                              "motore in moto a volume 0 senza strada di ritorno: \(tag)", file: file, line: line)
+            }
+            if rig.role == .direttore {
+                XCTAssertFalse(rig.isRunning && rig.state.muted, "il Direttore in moto a volume 0: \(tag)", file: file, line: line)
+            }
+        }
+        var rig = playing(.follower, route: [headphones])
+        rig.routeChange(at: 11.0, to: [speaker]); check(rig, "tolta")
+        rig.callbacks(from: 11.05, count: 50); check(rig, "richiami a volume 0")
+        rig.routeChange(at: 12.0, to: [headphones]); check(rig, "aggiunta")
+        rig.callbacks(from: 12.05, count: 1); check(rig, "ritorno armato")
+        rig.callbacks(from: 12.05 + rig.bufferSeconds, count: 400); check(rig, "volume tornato")
+        XCTAssertEqual(rig.volume, 1.0)
+        rig.routeChange(at: 20.0, to: [speaker]); check(rig, "seconda tolta")
+        rig.speakerTap(at: 21.0); check(rig, "tocco")
+        rig.callbacks(from: 21.01, count: 400); check(rig, "dopo il tocco")
+        XCTAssertEqual(rig.volume, 1.0)
+        var card = playing(.follower, route: [usb])
+        card.routeChange(at: 11.0, to: [speaker], modeChanges: true); check(card, "USB via col modo")
+        card.routeChange(at: 20.0, to: [usb], modeChanges: true); check(card, "USB torna col modo")
+        var director = playing(.direttore, route: [headphones])
+        director.routeChange(at: 11.0, to: [speaker]); check(director, "Direttore tolta")
+        director.routeChange(at: 12.0, to: [headphones]); check(director, "Direttore aggiunta")
+        director.advance(to: 15.0); check(director, "Direttore rientrato")
+        XCTAssertTrue(director.isRunning)
+    }
+
+    /// Dopo la verifica del diff (A408): il tocco «altoparlante» fra la Lost e la Reset abbassa solo lo stato; il volume lo
+    /// riscrive `start()` dopo il reset.
+    func testTheTapAfterTheLostDoesNotArmAReturn() {
+        var rig = playing(.follower, route: [headphones])
+        rig.routeChange(at: 11.0, to: [speaker])
+        rig.callbacks(from: 11.05, count: 3)
+        rig.servicesLost(at: 11.1)
+        XCTAssertTrue(rig.isRunning, "il Follower resta in moto fino alla Reset")
+        rig.speakerTap(at: 12.0)
+        XCTAssertFalse(rig.state.missing)
+        XCTAssertNil(rig.followerReturn, "nessun ritorno sul motore morto")
+        rig.callbacks(from: 12.01, count: 400)
+        XCTAssertEqual(rig.volume, 0.0, "il volume non si scrive sul motore morto")
+        rig.rebuiltAndPlay(at: 20.0)
+        XCTAssertEqual(rig.volume, 1.0, "dopo il reset decide start(): l'ultima uscita scelta e' l'altoparlante")
+    }
+
+    /// Dopo la verifica del diff (U6): col Direttore muto e una ripresa pendente, un'aggiunta arma il ritorno e la ripresa
+    /// pendente è assorbita dal ritorno: una ripartenza sola, dopo l'assestamento, non subito nel mezzo del buco.
+    func testAnAddedWithAPendingResumeIsAbsorbedByTheDirectorReturn() {
+        var rig = playing(.direttore, route: [headphones], at: 10.0)
+        rig.routeChange(at: 11.0, to: [speaker])
+        XCTAssertFalse(rig.isRunning)
+        rig.pendingResume = true
+        rig.routeChange(at: 12.0, to: [headphones])
+        XCTAssertNotNil(rig.directorReturn)
+        XCTAssertFalse(rig.pendingResume, "assorbita dal ritorno")
+        XCTAssertEqual(rig.starts, 1, "non riparte subito")
+        rig.advance(to: 12.05)
+        XCTAssertEqual(rig.starts, 1, "non prima dei 100 ms")
+        rig.advance(to: 15.0)
+        XCTAssertEqual(rig.rejoins, 1)
+        XCTAssertEqual(rig.starts, 2, "una ripartenza sola")
     }
 
     /// Il tocco «altoparlante» del Follower (par. 2.2 g): abbassa «uscita mancante» e il volume torna al primo «uno» almeno

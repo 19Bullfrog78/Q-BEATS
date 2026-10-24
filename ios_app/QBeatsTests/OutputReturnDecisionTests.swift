@@ -126,16 +126,6 @@ final class OutputReturnDecisionTests: XCTestCase {
         XCTAssertTrue(OutputReturnDecision.bufferReachesUno(bufferOutputTicks: UInt64.max, bufferTicks: 1, unoTicks: uno))
     }
 
-    /// L'ora in cui rimettere il volume (U3 c): l'ora di rendering del buffer dell'«uno», mai prima di adesso.
-    func testTheRaiseTime() {
-        let output = t(100.5)
-        let render = OutputReturnDecision.raiseTicks(bufferOutputTicks: output, outputLatencyTicks: t(latency), nowTicks: t(100.45))
-        XCTAssertEqual(s(render), 100.5 - latency, accuracy: 1e-6)
-        XCTAssertEqual(OutputReturnDecision.raiseTicks(bufferOutputTicks: output, outputLatencyTicks: t(latency), nowTicks: t(100.49)),
-                       t(100.49))
-        XCTAssertEqual(OutputReturnDecision.raiseTicks(bufferOutputTicks: 10, outputLatencyTicks: 100, nowTicks: 5), 5)
-    }
-
     /// `ticks(_:plusSeconds:)`: avanti, indietro (si ferma a zero), ai bordi.
     func testTicksPlusSeconds() {
         XCTAssertEqual(OutputReturnDecision.ticks(t(100), plusSeconds: 0.5, ticksPerSecond: tps), t(100.5))

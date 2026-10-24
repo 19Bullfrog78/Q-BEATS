@@ -888,8 +888,8 @@ class AudioEngine: ObservableObject {
     private var _directorReturnQ: DirectorReturnWaitQ? = nil
     private lazy var _directorReturnTimerQ = StrictOneShotTimer(queue: audioQueue)
     /// Il ritorno del Follower (par. 2.2 c, g): l'ora della notizia (o del tocco), l'armamento alla prima chiamata di
-    /// `scheduleNextBuffer` dopo, l'ora dell'«uno», la catena dei buffer con cui è armato; il timer che rimette il volume
-    /// al rendering del buffer dell'«uno» (U3 c), e la catena di quel timer.
+    /// `scheduleNextBuffer` dopo, l'ora dell'«uno», la catena dei buffer con cui è armato. Il volume torna nella chiamata che
+    /// produce il buffer dell'«uno», prima di calcolarlo (U3 c): nessun timer.
     private struct FollowerReturnQ {
         let noticeTicks: UInt64
         let fromTap: Bool
@@ -898,8 +898,6 @@ class AudioEngine: ObservableObject {
         var chain: Int
     }
     private var _followerReturnQ: FollowerReturnQ? = nil
-    private lazy var _outputVolumeTimerQ = StrictOneShotTimer(queue: audioQueue)
-    private var _volumeRaiseChainQ: Int = 0
     /// La rete del motore fermo dal sistema (par. 2.2 a): il timer, la catena con cui è armata, i richiami contati e
     /// l'ora dell'ultimo buffer programmato.
     private lazy var _stoppedEngineNetTimerQ = StrictOneShotTimer(queue: audioQueue)
@@ -907,7 +905,7 @@ class AudioEngine: ObservableObject {
     private var _stoppedEngineCallbacksQ: Int = 0
     private var _lastScheduledTicksQ: UInt64 = 0
     /// L'origine del DSP, il battito passato a `metronome_reset_for_start` (U9: la griglia dei battiti è l'origine più un
-    /// intero); il battito zittito in questo buffer; i battiti zittiti dall'avvio dell'app.
+    /// intero); il battito zittito in questo buffer; i battiti zittiti dall'avvio del motore (azzerato a ogni `start()`).
     private var _dspOriginBeatQ: Double = 0
     private var _muteLateBeatThisBufferQ: Bool = false
     private var _lateBeatsMutedQ: Int = 0
@@ -2810,8 +2808,12 @@ class AudioEngine: ObservableObject {
                 self._songInProgressQ = false
                 self.leaveDirectorSilenceQ(reason: "show-chiuso", closeAnchor: false)
                 // A421 — la chiusura dello show abbassa «uscita mancante» e «uscita zittita» (U5) e annulla i ritorni
-                // (par. 2.3 b).
+                // (par. 2.3 b). Col motore in moto a volume 0 (il Follower muto) il volume torna qui: lo stato «uscita
+                // zittita» e il mixer restano una cosa sola.
                 self.cancelOutputReturnsQ(reason: "show-chiuso")
+                if self.isRunning && self._outputSilenceQ.muted {
+                    self.writeOutputVolumeQ(1, reason: "show-chiuso")
+                }
                 self.noteOutputStateQ(.showClosed, from: "show-chiuso")
             }
         }
@@ -3747,7 +3749,8 @@ class AudioEngine: ObservableObject {
             lastText = String(renderTime.hostTime)
             gapText = String(format: "%.1f", signedMilliseconds(from: requestedRenderTicks, to: renderTime.hostTime))
         }
-        let (expected, overflow) = requestedRenderTicks.addingReportingOverflow(bufferDurationTicks)
+        // La convenzione del misuratore: il buffer del lettore (512 campioni alla copia), non il buffer d'I/O della sessione.
+        let (expected, overflow) = requestedRenderTicks.addingReportingOverflow(secondsToMachTicks(Double(bufferSize) / max(sampleRate, 1)))
         let callbackLateMs = overflow ? 0.0 : signedMilliseconds(from: expected, to: mach_absolute_time())
         os_log("[Q-BEATS][DIR-RIENTRO] primo buffer consumato oraChiesta:%llu ultimoRender:%{public}@ ultimoRenderMenoChiesta_ms:%{public}@ buffer_ms:%.1f richiamoMenoAtteso_ms:%.1f - ancorato con scheduleBuffer(at:)",
                log: .default, type: .default,
@@ -3936,7 +3939,7 @@ class AudioEngine: ObservableObject {
     /// ripubblica (`noteNoRestartQ`).
     private func recoveryRouteQ(trigger: RecoveryTrigger, stage: String) -> RecoveryRoute {
         let role = playerRoleQ
-        let outputMissing = refreshOutputMissingQ(context: stage)
+        let outputMissing = refreshOutputMissingQ()
         let route = RecoveryDecision.route(trigger: trigger,
                                            playerRole: role,
                                            silentInSong: _directorSilentInSongQ,
@@ -4209,10 +4212,10 @@ class AudioEngine: ObservableObject {
                isRunning ? "in-moto" : "fermo")
     }
 
-    /// U5: la rilettura del percorso a ogni rientro automatico (anche il ritorno dallo sfondo): dalla memoria e
-    /// dall'uscita di adesso. Rende «uscita mancante» dopo. Chiamare SOLO su audioQueue.
-    private func refreshOutputMissingQ(context: String) -> Bool {
-        noteOutputStateQ(.recoveryRead(externalPresent: hasExternalOutputNowQ()), from: "lettura-\(context)")
+    /// U5: la rilettura del percorso a ogni rientro automatico (anche il ritorno dallo sfondo), e al primo avvio del Follower
+    /// dopo la ricostruzione: dalla memoria e dall'uscita di adesso. Rende «uscita mancante» dopo. Chiamare SOLO su audioQueue.
+    private func refreshOutputMissingQ() -> Bool {
+        noteOutputStateQ(.recoveryRead(externalPresent: hasExternalOutputNowQ()), from: "lettura")
         return _outputSilenceQ.missing
     }
 
@@ -4254,11 +4257,10 @@ class AudioEngine: ObservableObject {
     /// motore. Chiamare SOLO su audioQueue.
     private func cancelOutputReturnsQ(reason: String) {
         let hadDirector = _directorReturnQ != nil
-        let hadFollower = _followerReturnQ != nil || _outputVolumeTimerQ.isArmed
+        let hadFollower = _followerReturnQ != nil
         _directorReturnQ = nil
         _directorReturnTimerQ.cancel()
         _followerReturnQ = nil
-        _outputVolumeTimerQ.cancel()
         guard hadDirector || hadFollower else { return }
         os_log("[Q-BEATS][USCITA] ritorno annullato motivo:%{public}@ direttore:%d follower:%d",
                log: .default, type: .default, reason, hadDirector ? 1 : 0, hadFollower ? 1 : 0)
@@ -4370,7 +4372,9 @@ class AudioEngine: ObservableObject {
 
     /// Par. 2.3 c: un cambio di ruolo, o Link spento dall'utente, col motore in moto a volume 0: arresto locale come lo Stop,
     /// nessuno Stop a Link, «uscita mancante» e «uscita zittita» giù, i ritorni annullati; il click riparte col Play, nel
-    /// ruolo nuovo. Col volume a 1 il motore resta com'è (oggi). Chiamare SOLO su audioQueue, prima che il ruolo cambi.
+    /// ruolo nuovo. Col volume a 1 il motore resta com'è (oggi). Chiamare SOLO su audioQueue: in `applySettings` prima del
+    /// ruolo nuovo, in `noteUserLinkSwitchQ` dopo la levetta (la logica non dipende dal ruolo: cambia solo il campo `ruolo:`
+    /// delle righe).
     private func handleRoleOrLinkChangeQ(reason: String) {
         cancelOutputReturnsQ(reason: reason)
         if isRunning && _outputSilenceQ.muted {
@@ -4403,7 +4407,7 @@ class AudioEngine: ObservableObject {
         os_log("[Q-BEATS][USCITA] ritorno del Direttore armato innesco:%{public}@ attesa:%{public}@ ms:%.0f timer:stretto leeway_ms:%d",
                log: .default, type: .default, trigger.rawValue, wait.rawValue, seconds * 1000.0,
                StrictOneShotTimer.leewayMilliseconds)
-        let reason = (wait == .settle) ? "assestamento" : "riserva"
+        let reason = (wait == .settle) ? "assestamento" : "scaduta"
         let work = DispatchWorkItem { [weak self] in
             self?.fireDirectorReturnQ(reason: reason)
         }
@@ -4444,7 +4448,6 @@ class AudioEngine: ObservableObject {
     /// di `scheduleNextBuffer` dopo, con la catena dei buffer di quel momento (durante l'attesa d'ingresso del Follower non
     /// ci sono chiamate: si arma al fuoco). Chiamare SOLO su audioQueue.
     private func armFollowerReturnQ(noticeTicks: UInt64, fromTap: Bool) {
-        _outputVolumeTimerQ.cancel()
         _followerReturnQ = FollowerReturnQ(noticeTicks: noticeTicks, fromTap: fromTap, armPending: true, unoTicks: nil,
                                            chain: _bufferChainGenerationQ)
         os_log("[Q-BEATS][USCITA] ritorno del Follower prenotato da:%{public}@ - si arma alla prossima chiamata della catena",
@@ -4477,6 +4480,14 @@ class AudioEngine: ObservableObject {
     /// latenza compresa — e il primo «uno» di battuta dopo tutte e due. Col tocco (par. 2.2 g) la sola ora «0,3 s dopo il
     /// tocco». Senza un «uno» calcolabile, la scadenza stessa. Chiamare SOLO su audioQueue.
     private func armFollowerReturnIfPendingQ(nowTicks: UInt64) {
+        // Par. 2.3 b: un ritorno armato con una catena che non è più quella corrente (il motore in moto, il volume a 0,
+        // «uscita mancante» giù) si riarma con la stessa regola: le due ore si rifanno da questa chiamata.
+        if var armed = _followerReturnQ, !armed.armPending, armed.chain != _bufferChainGenerationQ {
+            os_log("[Q-BEATS][USCITA] ritorno del Follower: catena cambiata %d -> %d - si riarma con la stessa regola",
+                   log: .default, type: .default, armed.chain, _bufferChainGenerationQ)
+            armed.armPending = true
+            _followerReturnQ = armed
+        }
         guard var pending = _followerReturnQ, pending.armPending else { return }
         let bufferTicks = secondsToMachTicks(Double(bufferSize) / max(sampleRate, 1))
         let end = OutputReturnDecision.programmedEndOutputTicks(nextBufferOutputTicks: nextBufferOutputHostTime(),
@@ -4491,7 +4502,7 @@ class AudioEngine: ObservableObject {
         pending.unoTicks = uno ?? deadline
         pending.chain = _bufferChainGenerationQ
         _followerReturnQ = pending
-        os_log("[Q-BEATS][USCITA] ritorno del Follower armato da:%{public}@ scadenza_ms:%.1f uno_ms:%.1f orologio:%{public}@ catena:%d - il volume torna al rendering del buffer dell'uno",
+        os_log("[Q-BEATS][USCITA] ritorno del Follower armato da:%{public}@ scadenza_ms:%.1f uno_ms:%.1f orologio:%{public}@ catena:%d - il volume torna al calcolo del buffer dell'uno",
                log: .default, type: .default,
                pending.fromTap ? "tocco" : "notizia",
                signedMilliseconds(from: nowTicks, to: deadline),
@@ -4500,46 +4511,29 @@ class AudioEngine: ObservableObject {
                pending.chain)
     }
 
-    /// A ogni buffer prodotto da `scheduleNextBuffer`: se il buffer porta l'«uno» (la sua fine d'uscita è oltre), il volume
-    /// si rimette al suo rendering (U3 c: l'ora d'uscita meno la latenza), sul timer stretto, con la catena di adesso.
+    /// A ogni buffer prodotto da `scheduleNextBuffer`, prima di `metronome_processBuffer`: se il buffer porta l'«uno» (la sua
+    /// fine d'uscita è oltre), il volume torna ADESSO, prima che si calcoli il battito dell'«uno» (U3 c: circa due buffer
+    /// prima del suo rendering, i due già programmati davanti), se le condizioni con cui il ritorno è stato armato reggono
+    /// (par. 2.3 b: motore in moto, interruzione di sistema bassa, uscita non mancante, volume ancora a 0, servizi audio
+    /// normali). ⚠️ RISCRITTO A421 dopo la verifica indipendente del diff: la prima stesura rimetteva il volume al rendering
+    /// stimato di quel buffer, su un timer, con un margine da zero a una frazione di buffer (un «uno» tagliato possibile).
     /// Chiamare SOLO su audioQueue.
-    private func checkFollowerReturnQ(nowTicks: UInt64, bufferOutputTicks: UInt64) {
+    private func checkFollowerReturnQ(bufferOutputTicks: UInt64) {
         guard let pending = _followerReturnQ, !pending.armPending, let uno = pending.unoTicks else { return }
-        guard pending.chain == _bufferChainGenerationQ else {
-            _followerReturnQ = nil
-            os_log("[Q-BEATS][USCITA] ritorno del Follower lasciato: catena cambiata %d -> %d",
-                   log: .default, type: .default, pending.chain, _bufferChainGenerationQ)
-            return
-        }
         let bufferTicks = secondsToMachTicks(Double(bufferSize) / max(sampleRate, 1))
         guard OutputReturnDecision.bufferReachesUno(bufferOutputTicks: bufferOutputTicks, bufferTicks: bufferTicks,
                                                     unoTicks: uno) else { return }
         _followerReturnQ = nil
-        let raiseAt = OutputReturnDecision.raiseTicks(bufferOutputTicks: bufferOutputTicks, outputLatencyTicks: outputLatencyTicks,
-                                                      nowTicks: nowTicks)
-        let delay = raiseAt > nowTicks ? machTicksToSeconds(raiseAt - nowTicks) : 0
-        _volumeRaiseChainQ = _bufferChainGenerationQ
-        os_log("[Q-BEATS][USCITA] ritorno del Follower: il buffer dell'uno uscita:%llu uno:%llu volume tra_ms:%.1f timer:stretto",
-               log: .default, type: .default, bufferOutputTicks, uno, delay * 1000.0)
-        let work = DispatchWorkItem { [weak self] in
-            self?.fireFollowerVolumeReturnQ()
-        }
-        _outputVolumeTimerQ.arm(afterSeconds: delay, work: work)
-    }
-
-    /// Lo scatto del ritorno del Follower: le condizioni con cui è stato armato (par. 2.3 b: motore in moto, interruzione
-    /// di sistema bassa, uscita non mancante, volume ancora a 0, la stessa catena), poi il volume a 1. Chiamare SOLO su
-    /// audioQueue.
-    private func fireFollowerVolumeReturnQ() {
         guard isRunning, !_interruptionRouteQ.systemInterruption, !_outputSilenceQ.missing, _outputSilenceQ.muted,
-              _volumeRaiseChainQ == _bufferChainGenerationQ else {
-            os_log("[Q-BEATS][USCITA] ritorno del Follower non eseguito motore:%{public}@ interruzione:%d mancante:%d zittito:%d catena:%d corrente:%d",
+              MediaServicesResetDecision.allowsAudioWork(_mediaServicesQ) else {
+            os_log("[Q-BEATS][USCITA] ritorno del Follower non eseguito motore:%{public}@ interruzione:%d mancante:%d zittito:%d servizi:%{public}@",
                    log: .default, type: .default,
                    isRunning ? "in-moto" : "fermo", _interruptionRouteQ.systemInterruption ? 1 : 0,
-                   _outputSilenceQ.missing ? 1 : 0, _outputSilenceQ.muted ? 1 : 0, _volumeRaiseChainQ,
-                   _bufferChainGenerationQ)
+                   _outputSilenceQ.missing ? 1 : 0, _outputSilenceQ.muted ? 1 : 0, describe(_mediaServicesQ))
             return
         }
+        os_log("[Q-BEATS][USCITA] ritorno del Follower: il buffer dell'uno si calcola adesso uscita:%llu uno:%llu - volume a 1 prima del calcolo (U3 c)",
+               log: .default, type: .default, bufferOutputTicks, uno)
         writeOutputVolumeQ(1, reason: "ritorno-follower")
     }
 
@@ -4559,7 +4553,13 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default,
                    self._outputSilenceQ.missing ? 1 : 0, self._outputSilenceQ.muted ? 1 : 0,
                    self.isRunning ? "in-moto" : "fermo")
-            self.noteOutputStateQ(.speakerTap, from: "tocco-altoparlante")
+            self.noteOutputStateQ(.speakerTap, from: "tocco")
+            guard MediaServicesResetDecision.allowsAudioWork(self._mediaServicesQ) else {
+                // A408: sul motore morto non si scrive niente; il volume lo riscrive `start()` dopo il reset (par. 2.3 b).
+                os_log("[Q-BEATS][USCITA] tocco altoparlante coi servizi audio persi - solo lo stato, il volume lo riscrive l'avvio dopo il reset",
+                       log: .default, type: .default)
+                return
+            }
             if self.isRunning && self._outputSilenceQ.muted {
                 self.armFollowerReturnQ(noticeTicks: now, fromTap: true)
             }
@@ -4648,7 +4648,10 @@ class AudioEngine: ObservableObject {
         stopForOutputCrisisQ(context: "buco-del-render")
         publishDirectorSilenceQ(context: "buco-del-render")
         cancelOutputReturnsQ(reason: "buco-del-render")
-        armDirectorReturnQ(trigger: .renderGap, sessionRateDiffers: false)
+        // Come U6: se la frequenza della sessione è già diversa dalla copia si aspetta la configurazione (la lettura della
+        // sessione viene dopo il silenzio).
+        armDirectorReturnQ(trigger: .renderGap,
+                           sessionRateDiffers: !SampleRateDecision.same(AVAudioSession.sharedInstance().sampleRate, sampleRate))
     }
 
     /// U9 — ai due punti della correzione (la fase di Link; l'orologio proprio del Follower DA-SOLO), prima di
@@ -4756,7 +4759,7 @@ class AudioEngine: ObservableObject {
                     return
                 }
             } else if self.playerRoleQ == .direttore {
-                self.noteOutputStateQ(.directorPlay(externalPresent: self.hasExternalOutputNowQ()), from: "play-\(trigger)")
+                self.noteOutputStateQ(.directorPlay(externalPresent: self.hasExternalOutputNowQ()), from: "play")
             }
 
             // A361 (16/09/2026) — LA DECISIONE D'AVVIO DEL FOLLOWER, PRIMA DI TUTTO.
@@ -4874,6 +4877,13 @@ class AudioEngine: ObservableObject {
                     return
                 }
                 self._firstStartAfterMediaResetQ = true
+                // A421 — fra la Lost e la Reset il cambio di percorso esce a `mediaResetSkipsQ` (par. 2.3 a): una tolta in
+                // quella finestra non ha aggiornato «uscita mancante». Al primo avvio dopo la ricostruzione il Follower rilegge
+                // il percorso dalla memoria dell'ultima uscita a volume 1 (U5), così `applyStartVolumeQ` scrive 0 se le cuffie
+                // non ci sono più. Solo il Follower: il Play del Direttore sceglie l'uscita che c'è (D2, qui sopra).
+                if self.playerRoleQ == .follower {
+                    _ = self.refreshOutputMissingQ()
+                }
             default:
                 break
             }
@@ -6549,8 +6559,12 @@ class AudioEngine: ObservableObject {
                 self.closeDrainOnCrisisStopQ(context: origin == .soloCrisis ? "crisi-solo" : "reset-follower")
             }
             // A421 — par. 2.2 e: la pulizia dello Stop (contatori, cambi armati nel DSP e in Swift, `_pendingNext*`,
-            // drenaggio, lettore della base) anche a motore già fermo: il testo di prima sta in `cleanupAfterStopQ`.
-            self.cleanupAfterStopQ()
+            // drenaggio, lettore della base) anche a motore già fermo, per lo Stop voluto e per quello come la console del Solo:
+            // il testo di prima sta in `cleanupAfterStopQ`. Per la Reset del Follower a motore già fermo no (il mandato non la
+            // nomina, e `backtrackPlayerNode.stop()` toccherebbe un nodo del motore morto, A408): com'era.
+            if origin != .followerReset || wasRunning {
+                self.cleanupAfterStopQ()
+            }
             if wasRunning {
                 // === A420 (23/10/2026) — L'ARRESTO SULLA CODA (mandato A420, par. 2.1; U10 (B) del referto A419) ===
                 // Lettore e motore si fermano qui, in fondo al blocco che ha abbassato `isRunning`, e solo a motore in moto (la
@@ -7456,12 +7470,12 @@ class AudioEngine: ObservableObject {
 
         // A416 — in più la frequenza del DSP (lo specchio di `applySampleRateQ`) e quella del nodo d'uscita (mandato §2.7,
         // riga 3). `hardwareSR` resta la frequenza della sessione, com'era. A421 — e `volume:0|1`, lo stato «uscita zittita»
-        // (U3 b).
+        // (U3 b), e `battitiZittiti:` (U9: il conto dall'avvio del motore; in una canzone senza buchi, zero).
         if bufferCount == 0 || bufferCount % 100 == 0 {
-            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f dspSR:%.0f uscitaSR:%.0f volume:%d",
+            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f dspSR:%.0f uscitaSR:%.0f volume:%d battitiZittiti:%d",
                    log: .default, type: .default,
                    bufferCount, AVAudioSession.sharedInstance().sampleRate, self.sampleRate,
-                   self._dspSampleRateQ, self.outputSampleRateQ(), self._outputSilenceQ.muted ? 0 : 1)
+                   self._dspSampleRateQ, self.outputSampleRateQ(), self._outputSilenceQ.muted ? 0 : 1, self._lateBeatsMutedQ)
         }
         // A421 — l'ora d'uscita di questo buffer (la convenzione della correzione di fase, `_bufferOutTicksQ`) e il battito del
         // DSP al suo inizio: per il buffer dell'«uno» del ritorno del Follower (par. 2.2 c) e per l'«uno» uscito DA-SOLO.
@@ -7594,8 +7608,9 @@ class AudioEngine: ObservableObject {
                 midi_engine_process(mh, UInt32(bufferSize))
             }
         }
-        // A421 — par. 2.2 c: se questo buffer porta l'«uno» del ritorno del Follower, il volume torna al suo rendering (U3 c).
-        self.checkFollowerReturnQ(nowTicks: gapNowTicks, bufferOutputTicks: thisBufferOutTicks)
+        // A421 — par. 2.2 c: se questo buffer porta l'«uno» del ritorno del Follower, il volume torna adesso, prima che il DSP
+        // calcoli il battito (U3 c).
+        self.checkFollowerReturnQ(bufferOutputTicks: thisBufferOutTicks)
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return }
         buffer.frameLength = bufferSize
@@ -8398,13 +8413,9 @@ class AudioEngine: ObservableObject {
             // (U4, U16); la ripresa pendente (da `RecoveryDecision`, con «uscita mancante»); poi i rami di oggi della
             // frequenza, del modo e dello schermo, che per un ruolo appena fermato da questa crisi aggiornano le copie e non
             // ripartono (la ripartenza è il ritorno, U6, o il Play), e per il Follower, che la crisi zittisce e non ferma,
-            // ripartono come oggi col volume dallo stato puro (U3 b).
-            // ⚠️ SCELTA DI CC (dichiarata nel referto A421, §2): lo stato puro «uscita mancante» si aggiorna PRIMA di
-            // `mediaResetSkipsQ`, senza leggere la sessione (l'uscita di adesso viene dalla classe). Alla lettera il mandato
-            // lo mette dopo (dentro il rimando, e in U5): ma fra la Lost e la Reset il gestore esce lì, e una tolta arrivata
-            // in quella finestra andrebbe persa — dopo la ricostruzione il Play (non un rientro automatico: niente rilettura
-            // di U5) farebbe partire il Follower a volume 1 dall'altoparlante. Volume, crisi e ritorno restano dopo
-            // `mediaResetSkipsQ`, come scritto: sul motore morto non si scrive niente (A408).
+            // ripartono come oggi col volume dallo stato puro (U3 b). Fra la Lost e la Reset il blocco esce a
+            // `mediaResetSkipsQ` anche per lo stato puro, come scritto: la tolta persa in quella finestra la rilegge il primo
+            // avvio del Follower dopo la ricostruzione (`start()`, U5).
             let outputStep = OutputRouteDecision.step(routeClass: classification.routeClass,
                                                       playerRole: self.playerRoleQ,
                                                       showOpen: self._showOpenQ,
@@ -8419,17 +8430,6 @@ class AudioEngine: ObservableObject {
                    self._interruptionRouteQ.systemInterruption ? 1 : 0, outputStep.silences ? 1 : 0,
                    outputStep.crisisCause?.rawValue ?? "-", outputStep.raisesMissing ? 1 : 0,
                    outputStep.lowersMissing ? 1 : 0, outputStep.armsReturn?.rawValue ?? "-")
-            if classification.routeClass == .removed {
-                // Par. 2.3 b: una tolta annulla ogni ritorno in attesa.
-                self.cancelOutputReturnsQ(reason: "percorso-tolta")
-            }
-            if outputStep.raisesMissing {
-                self.noteOutputStateQ(.removed, from: "percorso-tolta", externalPresent: externalNow)
-            }
-            if outputStep.lowersMissing {
-                self.noteOutputStateQ(.externalPresent, from: "percorso-aggiunta", externalPresent: externalNow)
-            }
-
             // A408 — fuori da «normale» (dalla Lost alla ricostruzione) niente: né ripresa, né
             // setupGraph o rebuildGraph sul motore vecchio, né frequenza letta da una sessione morta.
             // La ricostruzione al primo avvio rilegge percorso, modo e frequenza dalla sessione.
@@ -8442,6 +8442,18 @@ class AudioEngine: ObservableObject {
             // 2.2 c) o del Play (il Solo; il Direttore fuori da una canzone).
             if outputStep.silences {
                 self.silenceOutputNowQ(reason: "percorso-\(classification.routeClass.rawValue)")
+            }
+            // A421 — U5: lo stato puro «uscita mancante» (anche dentro un'interruzione: il rimando qui sotto esce dopo), e a una
+            // tolta ogni ritorno in attesa si annulla (par. 2.3 b). L'uscita di adesso viene dalla classe: nessuna lettura
+            // della sessione.
+            if classification.routeClass == .removed {
+                self.cancelOutputReturnsQ(reason: "tolta")
+            }
+            if outputStep.raisesMissing {
+                self.noteOutputStateQ(.removed, from: "tolta", externalPresent: externalNow)
+            }
+            if outputStep.lowersMissing {
+                self.noteOutputStateQ(.externalPresent, from: "aggiunta", externalPresent: externalNow)
             }
 
             // A416 · SEGUITO 2 (21/10/2026) — CON L'INTERRUZIONE DI SISTEMA IN CORSO NON SI TOCCA NIENTE (mandato del
@@ -8491,6 +8503,9 @@ class AudioEngine: ObservableObject {
                 case .localStop:
                     if self.isRunning {
                         self.stopForOutputCrisisQ(context: "percorso-\(classification.routeClass.rawValue)")
+                        // U16: il Direttore fuori da una canzone riparte col Play: il player a «fermo», come allo Stop del Solo
+                        // (fuori da una canzone non c'è il silenzio del Direttore a tenere lo stato del tasto).
+                        DispatchQueue.main.async { self.playbackState = .stopped }
                     }
                 case .soloStopAsConsole:
                     soloStopCause = cause
@@ -8517,7 +8532,15 @@ class AudioEngine: ObservableObject {
 
             // --- pendingResume recovery (path esistente preservato) ---
             // A421 — la ripresa pendente passa da `RecoveryDecision` con «uscita mancante» (`recoveryRouteQ`): il Direttore con
-            // l'uscita mancante non riparte (U5), e il tasto si ripubblica.
+            // l'uscita mancante non riparte (U5), e il tasto si ripubblica. Se questa notizia ha appena armato il ritorno del
+            // Direttore (U6), la ripresa pendente è assorbita dal ritorno: una ripartenza sola, dopo l'assestamento o la
+            // configurazione, non subito nel mezzo del buco (dopo la verifica del diff).
+            if self.pendingResume && self._directorReturnQ != nil {
+                self.pendingResume = false
+                self.pendingResumeBeat = nil
+                os_log("[Q-BEATS][RESUME] pendingResume assorbito dal ritorno del Direttore armato da questa notizia",
+                       log: .default, type: .default)
+            }
             if self.pendingResume {
                 self.pendingResume = false
                 self.pendingResumeBeat = nil
@@ -8594,11 +8617,10 @@ class AudioEngine: ObservableObject {
                 self.isRunning = false
                 // A420 — l'arresto sulla coda, con la sua riga (mandato A420, par. 2.1).
                 self.stopPlayerAndEngineQ(context: "modo")
-                // A421 — il drenaggio consegnato (par. 2.2 j), lo specchio di `isRunning` (par. 2.2 e: il buco del ticket) e i
-                // ritorni annullati (par. 2.3 b: una ripartenza del motore; il volume lo riscrive `start()`, U3 b).
+                // A421 — il drenaggio consegnato (par. 2.2 j) e lo specchio di `isRunning` (par. 2.2 e: il buco del ticket). I
+                // ritorni in attesa si annullano solo se questo ramo riparte, più sotto (par. 2.3 b).
                 self.closeDrainOnCrisisStopQ(context: "modo")
                 self.publishIsPlayingQ(context: "modo")
-                self.cancelOutputReturnsQ(reason: "modo")
                 // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso
                 // pendente, se c'è, si annulla qui.
                 self.cancelPendingJoin(reason: "cambio di topologia")
@@ -8640,6 +8662,11 @@ class AudioEngine: ObservableObject {
                     return
                 }
 
+                // A421 — par. 2.3 b: la ripartenza del motore annulla i ritorni in attesa (il volume lo riscrive `start()`, U3 b).
+                // ⚠️ RISCRITTO dopo la verifica indipendente del diff: la prima stesura annullava anche a motore già fermo da
+                // questa crisi (un'aggiunta che cambia il modo: la scheda USB a quattro canali), e il ritorno del Direttore appena
+                // armato moriva qui, contro U6.
+                self.cancelOutputReturnsQ(reason: "modo")
                 self.activateSessionAndStart(resumeAtBeat: recoveryBeat,
                                              trigger: .modeChange,
                                              mode: detectedMode)
@@ -9134,12 +9161,13 @@ class AudioEngine: ObservableObject {
             // !self.isRunning»: leggeva `isPlaying` vero a motore fermo come «il click suonava», e vero a motore fermo lo
             // lasciavano solo due buchi (la ripartenza per la frequenza e il ramo del modo: il ticket
             // `TD-isplaying-resta-vero-dopo-lo-stop-del-direttore-muto`). Da A421 `isPlaying` è lo specchio di `isRunning`
-            // e la guardia dice quello che serve davvero: il motore è fermo per una crisi (la ripresa pendente, il
-            // Direttore muto, o una causa viva), non per uno Stop (`TransportStateDecision`, mandato A421, par. 2.2 e).
+            // e la guardia dice quello che serve davvero: il motore è fermo e c'è una strada che ci contava — la ripresa
+            // pendente, o il Direttore muto in canzone (`TransportStateDecision`, mandato A421, par. 2.2 e). Una causa di
+            // crisi viva non basta (dopo la verifica indipendente del diff): il Direttore fuori da una canzone fermato da una
+            // tolta riparte col Play (U16), il Solo aspetta il Play, il Follower fermato da una chiamata lo riprende la fine.
             guard TransportStateDecision.wakeupRecovers(engineRunning: self.isRunning,
                                                         pendingResume: self.pendingResume,
-                                                        silentInSong: self._directorSilentInSongQ,
-                                                        crisisCause: self._crisisCauseQ) else { return }
+                                                        silentInSong: self._directorSilentInSongQ) else { return }
 
             if self.pendingResume {
                 self.pendingResume = false

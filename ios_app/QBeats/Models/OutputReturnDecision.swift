@@ -16,7 +16,10 @@ import Foundation
 //    0,3 s dopo la notizia, e la fine d'uscita dei buffer programmati fino alla prima chiamata di `scheduleNextBuffer` dopo
 //    la notizia (compreso quello che quella chiamata produce) più la durata del click (40 ms), latenza d'uscita compresa.
 //    L'«uno» è di Link (la cattura senza commit, T11) o, DA-SOLO, della linea propria. Il volume si rimette prima che si
-//    calcoli il buffer dell'«uno» (U3 c): all'ora di rendering di quel buffer, che precede l'ora d'uscita della latenza;
+//    calcoli il battito dell'«uno» (U3 c): nella chiamata di `scheduleNextBuffer` che produce il buffer dell'«uno», prima di
+//    `metronome_processBuffer`, cioè circa due buffer prima che quel buffer vada al rendering (⚠️ RISCRITTO dopo la verifica
+//    indipendente del diff: la prima stesura lo rimetteva al rendering stimato del buffer, su un timer, con un margine da zero a
+//    una frazione di buffer);
 //  · il tocco «altoparlante» (par. 2.2 g): lo stesso ritorno, con la sola ora «0,3 s dopo il tocco»;
 //  · la rete del motore fermo dal sistema (par. 2.2 a): se un richiamo trova il motore di sistema fermo con `isRunning`
 //    vero non programma niente; se entro 2 s non arriva nessun gestore e lo stato è ancora quello, si usa la decisione
@@ -122,13 +125,6 @@ enum OutputReturnDecision {
     static func bufferReachesUno(bufferOutputTicks: UInt64, bufferTicks: UInt64, unoTicks: UInt64) -> Bool {
         let (end, overflow) = bufferOutputTicks.addingReportingOverflow(bufferTicks)
         return overflow || end > unoTicks
-    }
-
-    /// L'ora in cui rimettere il volume per il buffer dell'«uno» (U3 c): l'ora di rendering di quel buffer, cioè la sua
-    /// ora d'uscita meno la latenza; mai prima di adesso.
-    static func raiseTicks(bufferOutputTicks: UInt64, outputLatencyTicks: UInt64, nowTicks: UInt64) -> UInt64 {
-        let render = bufferOutputTicks >= outputLatencyTicks ? bufferOutputTicks - outputLatencyTicks : 0
-        return max(render, nowTicks)
     }
 
     /// La riga del motore fermo dal sistema: al richiamo numero `callbacks` (da 1), la prima volta e poi una ogni dieci.

@@ -347,6 +347,8 @@ final class OutputRouteDecisionTests: XCTestCase {
         let fromSpeaker = OutputSilenceState(muted: false, missing: false, lastOutputExternal: false)
         XCTAssertFalse(apply([.recoveryRead(externalPresent: false)], role: .direttore, from: fromSpeaker).missing)
         XCTAssertFalse(apply([.recoveryRead(externalPresent: false)], role: .direttore).missing)
+        // U5 è per Direttore e Follower: il Solo non ha «uscita mancante», nemmeno dalla rilettura (dopo la verifica del diff).
+        XCTAssertFalse(apply([.recoveryRead(externalPresent: false)], role: .solo, from: wasExternal).missing)
     }
 
     /// Tolta e aggiunta nella stessa interruzione: alla fine «uscita mancante» è giù.

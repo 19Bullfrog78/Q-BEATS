@@ -396,7 +396,7 @@ struct DebugView: View {
                         .foregroundColor(.gray)
                     // --- A421 (24/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 2: il tocco «altoparlante» del Follower (mandato
                     // «USCITA AUDIO PASSO 2a PEZZO 2», par. 2.2 g). Nessuna grafica in questo pezzo: il tasto di CD chiamerà la
-                    // stessa funzione. Testo del mandato.
+                    // stessa funzione. Testo in italiano, come chiede il mandato (che non dà il testo del tasto).
                     Button("Follower: usa l'altoparlante") {
                         os_log("[DebugView] Azione: Follower usa l'altoparlante", log: .default, type: .default)
                         audioEngine.followerSpeakerTapped()

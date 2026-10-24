@@ -101,9 +101,10 @@ enum OutputSilenceEvent: Equatable {
     case volumeRestored(externalPresent: Bool)
     /// Una tolta che alza «uscita mancante» (U5).
     case removed
-    /// Un'esterna presente alla notizia (aggiunta, o nessuna con un'esterna): «uscita mancante» si abbassa.
+    /// Un'esterna presente alla notizia «aggiunta»: «uscita mancante» si abbassa.
     case externalPresent
-    /// La rilettura del percorso a un rientro automatico (U5): la memoria decide.
+    /// La rilettura del percorso a un rientro automatico, e al primo avvio del Follower dopo la ricostruzione (U5): la memoria
+    /// decide. Per Direttore e Follower: il Solo non ha «uscita mancante».
     case recoveryRead(externalPresent: Bool)
     /// Il Play del batterista (Direttore): la scelta dell'uscita che c'è (D2).
     case directorPlay(externalPresent: Bool)
@@ -215,10 +216,12 @@ enum OutputRouteDecision {
         case .externalPresent:
             next.missing = false
         case .recoveryRead(let externalPresent):
-            if externalPresent {
-                next.missing = false
-            } else if next.lastOutputExternal == true {
-                next.missing = true
+            if playerRole != .solo {
+                if externalPresent {
+                    next.missing = false
+                } else if next.lastOutputExternal == true {
+                    next.missing = true
+                }
             }
         case .directorPlay(let externalPresent):
             if playerRole == .direttore {
@@ -251,12 +254,13 @@ enum OutputRouteDecision {
         (playerRole == .follower && state.missing) ? 0.0 : 1.0
     }
 
-    /// Un Direttore con l'uscita mancante non riparte da solo (U5, U16): ogni ripartenza automatica è «niente».
+    /// Un Direttore con l'uscita mancante non riparte da solo (U5, U16): ogni ripartenza automatica è «niente». Per il banco:
+    /// nel motore la regola è l'ingresso `outputMissing` di `RecoveryDecision.route`.
     static func directorAutoRestartBlocked(playerRole: PlayerRole, state: OutputSilenceState) -> Bool {
         playerRole == .direttore && state.missing
     }
 
-    /// Gli invarianti del mandato (U3 b, par. 2.3 b), per il banco e per le righe.
+    /// Gli invarianti del mandato (U3 b, par. 2.3 b), per il banco (il motore non li legge).
     static func volumeInvariantHolds(playerRole: PlayerRole, state: OutputSilenceState) -> Bool {
         !(playerRole == .follower && state.missing && !state.muted)
     }
