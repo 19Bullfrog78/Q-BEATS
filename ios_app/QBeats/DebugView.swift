@@ -394,6 +394,16 @@ struct DebugView: View {
                     Text("Chiede al sistema una frequenza d'uscita diversa. Il sistema decide se darla: il registro scrive chiesta e ottenuta.")
                         .font(.caption)
                         .foregroundColor(.gray)
+                    // --- A421 (24/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 2: il tocco «altoparlante» del Follower (mandato
+                    // «USCITA AUDIO PASSO 2a PEZZO 2», par. 2.2 g). Nessuna grafica in questo pezzo: il tasto di CD chiamerà la
+                    // stessa funzione. Testo del mandato.
+                    Button("Follower: usa l'altoparlante") {
+                        os_log("[DebugView] Azione: Follower usa l'altoparlante", log: .default, type: .default)
+                        audioEngine.followerSpeakerTapped()
+                    }
+                    Text("Follower muto perché l'uscita esterna manca: il click torna dall'altoparlante al primo «uno» di battuta almeno 0,3 s dopo il tocco. Nel ruolo Direttore o Solo non fa niente (una riga nel registro).")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
 
                 // --- BACKTRACK ---

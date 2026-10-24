@@ -238,8 +238,31 @@ final class RenderGapMeterTests: XCTestCase {
         XCTAssertNil(run.meter.referenceTicks)
     }
 
-    /// La fine di una sezione: la catena si ferma (il ramo che drena non consegna più) e riparte coi tre buffer di
-    /// `kickScheduling`. Il motore riprende il riferimento a mano (`restart`): la pausa non è un buco.
+    /// A421 — il drenaggio di fine sezione senza la ripartenza del misuratore (mandato A421, par. 2.2 i; referto A420,
+    /// Aperto 3): il richiamo che entra nel drenaggio non programma niente e il misuratore non lo vede; gli altri due
+    /// buffer in volo continuano la catena con un anello in meno, al passo di sempre. Lo scarto sale di un buffer e resta
+    /// lì, sotto la soglia di tre: nessun buco finto, per tutta la coda della canzone, e il misuratore resta sveglio.
+    func testTheDrainWithoutARestartIsNotAHole() {
+        var run = started()
+        regime(&run, calls: 100)
+        // Il richiamo del drenaggio: arriva al passo di un buffer ma non chiama il misuratore e non conta un buffer.
+        run.now += bufferSeconds(48_000)
+        // I due in volo e la catena dopo: una chiamata a ogni buffer, con un buffer in meno programmato.
+        regime(&run, calls: 2000)
+        XCTAssertTrue(run.gaps.isEmpty)
+        XCTAssertEqual(run.meter.gapsCounted, 0)
+        // Lo scarto è di un buffer sopra la base di prima, e la base lo riassorbe (un millisecondo al secondo).
+        let nextTime = run.now + bufferSeconds(48_000)
+        guard case .regular(let gap, let base) = run.call(at: nextTime, ticks: t(nextTime)) else {
+            return XCTFail("atteso il regime")
+        }
+        XCTAssertEqual(gap, bufferSeconds(48_000), accuracy: 0.0005)
+        XCTAssertLessThan(gap - base, RenderGapMeter.thresholdBuffers * bufferSeconds(48_000))
+    }
+
+    /// Con la ripartenza del misuratore al drenaggio (com'era fino ad A420, `restart`): il riferimento si rifà sulla
+    /// catena che continua, e nemmeno così c'è un buco. ⚠️ A421: la ripartenza al drenaggio è uscita dal motore
+    /// (`kickScheduling` non ha chiamanti, e la catena non si ferma); `restart` resta per gli avvii e la frequenza.
     func testTheChainAfterASectionEndIsNotAHole() {
         var run = started()
         regime(&run, calls: 100)

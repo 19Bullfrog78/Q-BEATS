@@ -25,11 +25,20 @@ import Foundation
 // In questo passo nessuna azione: una riga di registro e basta (l'assert del Direttore e la correzione del Follower
 // restano come sono; la cura è del passo 2). Aritmetica su numeri che il motore ha già, su audioQueue: niente nel
 // thread di rendering.
+// ⚠️ A421 (24/10/2026): «nessuna azione» era il passo 1. Dal pezzo 2 del passo 2a il buco è una crisi sul Direttore in
+// canzone da 75 ms in su (`crisisThresholdSeconds`, `RenderGapDecision`), e sotto, o fuori da una canzone, il Direttore
+// segue Link fino al Play dopo; il misuratore resta sveglio fino allo Stop (la ripartenza al drenaggio di fine sezione è
+// uscita: la catena non si ferma, referto A420, Aperto 3; mandato A421, par. 2.2 i).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 struct RenderGapMeter: Equatable {
 
     /// La soglia, in buffer sopra la base (provvisoria: la fissa il referee dopo il collaudo).
+    /// ⚠️ A421 (24/10/2026): resta a tre buffer per la riga; la soglia della crisi sta qui sotto, in millisecondi.
     static let thresholdBuffers: Double = 3
+    /// A421 — la soglia della crisi da misuratore, in secondi (U7, decisione del referee del 23/10: 75 ms, 26 ms sopra il
+    /// buco piccolo più grande misurato, 48,8, e 33 sotto il buco più piccolo con una notizia del percorso, 108,0). Solo per il
+    /// Direttore a show aperto con la canzone in corso (`RenderGapDecision`).
+    static let crisisThresholdSeconds: Double = 0.075
     /// Le chiamate prima del riferimento: la scorta dei tre buffer di ogni avvio.
     static let warmupCalls: Int = 3
     /// Quanto può salire la base, in secondi per secondo d'orologio.
