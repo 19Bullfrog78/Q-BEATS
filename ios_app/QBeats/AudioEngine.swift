@@ -2808,10 +2808,10 @@ class AudioEngine: ObservableObject {
                 self._songInProgressQ = false
                 self.leaveDirectorSilenceQ(reason: "show-chiuso", closeAnchor: false)
                 // A421 — la chiusura dello show abbassa «uscita mancante» e «uscita zittita» (U5) e annulla i ritorni
-                // (par. 2.3 b). Col motore in moto a volume 0 (il Follower muto) il volume torna qui: lo stato «uscita
-                // zittita» e il mixer restano una cosa sola.
+                // (par. 2.3 b). Col motore in moto a volume 0 (il Follower muto) il volume torna qui, coi servizi audio
+                // normali (A408: sul motore morto non si scrive niente): stato «uscita zittita» e mixer restano una cosa sola.
                 self.cancelOutputReturnsQ(reason: "show-chiuso")
-                if self.isRunning && self._outputSilenceQ.muted {
+                if self.isRunning && self._outputSilenceQ.muted && MediaServicesResetDecision.allowsAudioWork(self._mediaServicesQ) {
                     self.writeOutputVolumeQ(1, reason: "show-chiuso")
                 }
                 self.noteOutputStateQ(.showClosed, from: "show-chiuso")
@@ -4635,7 +4635,7 @@ class AudioEngine: ObservableObject {
     }
 
     /// U7: la crisi da misuratore. Il silenzio, la crisi «buco-del-render», l'arresto locale sulla coda, il tasto, il ritorno
-    /// dopo l'assestamento (`renderGap`); il buffer del buco non si programma: né assert né correzione. Chiamare SOLO su
+    /// con l'attesa di U6 (`renderGap`); il buffer del buco non si programma: né assert né correzione. Chiamare SOLO su
     /// audioQueue, da `scheduleNextBuffer`, con `isRunning` vero.
     private func handleRenderGapCrisisQ(_ gap: RenderGapMeter.Gap) {
         os_log("[Q-BEATS][USCITA] crisi da misuratore buco_ms:%.1f soglia_ms:%.0f buffer:%d - silenzio, arresto locale, il buffer del buco non si programma (U7)",
@@ -8535,7 +8535,7 @@ class AudioEngine: ObservableObject {
             // l'uscita mancante non riparte (U5), e il tasto si ripubblica. Se questa notizia ha appena armato il ritorno del
             // Direttore (U6), la ripresa pendente è assorbita dal ritorno: una ripartenza sola, dopo l'assestamento o la
             // configurazione, non subito nel mezzo del buco (dopo la verifica del diff).
-            if self.pendingResume && self._directorReturnQ != nil {
+            if self.pendingResume, let armed = self._directorReturnQ, armed.armedTicks >= arrivedTicks {
                 self.pendingResume = false
                 self.pendingResumeBeat = nil
                 os_log("[Q-BEATS][RESUME] pendingResume assorbito dal ritorno del Direttore armato da questa notizia",

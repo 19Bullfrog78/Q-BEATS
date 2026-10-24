@@ -22,6 +22,8 @@ private struct DirectorReturn {
     let wait: DirectorReturnWait
     let fireAt: Double
     let trigger: RecoveryTrigger
+    /// L'ora dell'armamento: la ripresa pendente è assorbita solo da un ritorno armato dalla stessa notizia.
+    let armedAt: Double
 }
 
 private struct FollowerReturn {
@@ -264,10 +266,13 @@ private struct OutputRig {
                 if silentInSong && !isRunning {
                     let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: hardwareRate != copyRate)
                     directorReturn = DirectorReturn(wait: wait, fireAt: t + OutputReturnDecision.directorWaitSeconds(wait),
-                                                    trigger: .outputAdded)
+                                                    trigger: .outputAdded, armedAt: t)
                 }
             case .follower?:
-                followerReturn = FollowerReturn(noticeAt: t, armPending: true, unoAt: nil, chain: chain, fromTap: false)
+                // Come il motore: solo col motore in moto e il volume a 0.
+                if isRunning && state.muted {
+                    followerReturn = FollowerReturn(noticeAt: t, armPending: true, unoAt: nil, chain: chain, fromTap: false)
+                }
             case nil:
                 break
             }
@@ -276,7 +281,8 @@ private struct OutputRig {
         // armato (una ripartenza sola, dopo l'attesa di U6); se no, la ripresa come oggi, da `RecoveryDecision`.
         if pendingResume {
             pendingResume = false
-            if directorReturn == nil {
+            let armedNow = directorReturn.map { $0.armedAt >= t } ?? false
+            if !armedNow {
                 activateSessionAndStart(trigger: .pendingRecovery, at: t)
                 if deferredSoloStop { soloStop() }
                 return
@@ -327,10 +333,11 @@ private struct OutputRig {
         }
     }
 
-    /// `restartForRateChangeQ`.
+    /// `restartForRateChangeQ`: l'arresto, gli annulli dei ritorni (par. 2.3 b), la frequenza, la ripartenza.
     mutating func restartForRateChange(trigger: RecoveryTrigger, at t: Double) {
         if crisis(.configuration) == .silentInSong { silentInSong = true }
         crisisStop()
+        cancelReturns()
         copyRate = hardwareRate
         activateSessionAndStart(trigger: trigger, at: t)
     }
@@ -394,12 +401,12 @@ private struct OutputRig {
         if recovery == nil && role == .direttore {
             apply(.directorPlay(externalPresent: externalPresent))
         }
-        // `prepareNormalStartQ`: l'avvio che non passa dal coordinatore azzera causa e Stop voluto.
+        // `prepareNormalStartQ`: l'avvio che non passa dal coordinatore azzera causa e Stop voluto. (Come il motore, `start()`
+        // non annulla i ritorni: li annullano le strade che fermano e ripartono.)
         if !(role == .direttore && silentInSong) {
             crisisCause = nil
             wantedStop = false
         }
-        cancelReturns()
         copyRate = hardwareRate
         // Il coordinatore, prima di `engine.start()`: il bersaglio col margine.
         var target: Double? = nil
@@ -483,8 +490,10 @@ private struct OutputRig {
                 silenceNow()
                 if crisis(.renderGap) == .silentInSong { silentInSong = true }
                 crisisStop()
-                directorReturn = DirectorReturn(wait: .settle, fireAt: t + OutputReturnDecision.directorSettleSeconds,
-                                                trigger: .renderGap)
+                // Come U6: l'attesa dipende dalla frequenza della sessione contro la copia.
+                let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: hardwareRate != copyRate)
+                directorReturn = DirectorReturn(wait: wait, fireAt: t + OutputReturnDecision.directorWaitSeconds(wait),
+                                                trigger: .renderGap, armedAt: t)
                 return
             case .followLink:
                 followsLink = true
