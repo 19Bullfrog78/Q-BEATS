@@ -2406,13 +2406,21 @@ final class OutputCrisisSequenceTests: XCTestCase {
     func testTheFollowerRereadAtStartInsideAnInterruptionIsAPureRead() {
         var rig = playing(.follower, route: [headphones], at: 10.0)
         rig.stop(at: 20.0)
+        rig.routeChange(at: 20.5, to: [speaker])
+        XCTAssertFalse(rig.state.missing, "a click fermo, senza una crisi, la tolta non alza «uscita mancante» (U5)")
         rig.interruptionBegan(at: 21.0)
-        rig.routeChange(at: 21.5, to: [speaker])
-        XCTAssertFalse(rig.state.missing)
         let writes = rig.sessionWrites
         rig.start(at: 22.0, recovery: nil)
         XCTAssertEqual(rig.sessionWrites, writes, "nessuna scrittura della sessione dalla rilettura")
-        XCTAssertTrue(rig.state.missing)
+        XCTAssertTrue(rig.state.missing, "la rilettura all'avvio: l'ultima uscita era esterna")
         XCTAssertEqual(rig.volume, 0.0)
+        // La tolta dopo l'inizio dell'interruzione col motore fermo: la regola delle crisi ha ricordato «interruzione» (anche
+        // per il Follower, «come oggi»), il motore è «fermo per una crisi» e la tolta alza «uscita mancante» da sola (U5).
+        var crisis = playing(.follower, route: [headphones], at: 10.0)
+        crisis.stop(at: 20.0)
+        crisis.interruptionBegan(at: 21.0)
+        crisis.routeChange(at: 21.5, to: [speaker])
+        XCTAssertTrue(crisis.state.missing, "fermo per la crisi dell'interruzione: la tolta alza «uscita mancante»")
+        XCTAssertEqual(crisis.crisisCause, .interruption)
     }
 }
