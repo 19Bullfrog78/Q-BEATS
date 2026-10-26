@@ -4605,8 +4605,11 @@ class AudioEngine: ObservableObject {
                                                         unoTicks: uno) else { return }
         }
         let read = nextBufferOutputReadQ()
+        // Il ciclo d'uscita della sessione (`bufferDurationTicks`, quello che `nextBufferOutputHostTime` somma), non il buffer da
+        // 512 campioni del lettore (`bufferTicks`, che vale per `bufferReachesUno` e per la fine dei buffer programmati): con
+        // un ciclo di 21,33 ms la differenza è 10,67 ms di guardia (dopo la verifica indipendente del diff).
         let firstSample = OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: read.ticks,
-                                                                           bufferTicks: bufferTicks,
+                                                                           cycleTicks: bufferDurationTicks,
                                                                            fallbackRead: read.fallback)
         let step = OutputReturnDecision.followerReturnStep(bufferOutputTicks: bufferOutputTicks, bufferTicks: bufferTicks,
                                                            unoTicks: pending.unoTicks, deadlineTicks: pending.deadlineTicks,

@@ -139,11 +139,13 @@ enum OutputReturnDecision {
 
     /// Il primo campione che può uscire a volume 1 dopo una scrittura di `outputVolume` in questa chiamata, nel caso peggiore
     /// (Apple non dice da quando la scrittura vale per il rendering; [Ipotesi: dal ciclo dopo]; si prende il ciclo in corso):
-    /// l'ora d'uscita del prossimo buffer da rendere (`nextBufferOutputHostTime`) meno un ciclo; con la lettura di riserva
-    /// (`lastRenderTime` non valido: `now + latenza + ciclo`, che sottostima) un ciclo in più. Si ferma a zero.
-    static func firstSampleAtVolumeOneTicks(nextBufferOutputTicks: UInt64, bufferTicks: UInt64, fallbackRead: Bool) -> UInt64 {
+    /// l'ora d'uscita del prossimo buffer da rendere (`nextBufferOutputHostTime`) meno un CICLO D'USCITA (`cycleTicks` =
+    /// `bufferDurationTicks`, la durata del buffer di I/O della sessione: 5,33-21,33 ms; non il buffer da 512 campioni del
+    /// lettore); con la lettura di riserva (`lastRenderTime` non valido: `now + latenza + ciclo`, che sottostima) un ciclo in
+    /// più. Si ferma a zero. (Dopo la verifica indipendente del diff: la prima stesura toglieva il buffer da 512 campioni.)
+    static func firstSampleAtVolumeOneTicks(nextBufferOutputTicks: UInt64, cycleTicks: UInt64, fallbackRead: Bool) -> UInt64 {
         let cycles: UInt64 = fallbackRead ? 2 : 1
-        let (back, overflow) = bufferTicks.multipliedReportingOverflow(by: cycles)
+        let (back, overflow) = cycleTicks.multipliedReportingOverflow(by: cycles)
         if overflow { return 0 }
         return nextBufferOutputTicks >= back ? nextBufferOutputTicks - back : 0
     }

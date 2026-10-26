@@ -108,16 +108,22 @@ final class OutputReturnDecisionTests: XCTestCase {
         XCTAssertEqual(s(noHole), tap + 0.3, accuracy: 1e-6)
     }
 
-    /// Par. 2.2: il primo campione che può uscire a volume 1, nel caso peggiore: un ciclo prima del prossimo buffer da rendere;
-    /// con la lettura di riserva un ciclo in più; si ferma a zero. La guardia: alla scadenza o dopo.
+    /// Par. 2.2: il primo campione che può uscire a volume 1, nel caso peggiore: un CICLO D'USCITA (`bufferDurationTicks`, non
+    /// il buffer da 512 campioni) prima del prossimo buffer da rendere; con la lettura di riserva un ciclo in più; si ferma a
+    /// zero. La guardia: alla scadenza o dopo. Con un ciclo di 21,33 ms il primo campione è 21,33 ms prima, non 10,67.
     func testTheFirstSampleAtVolumeOne() {
         let next = t(100.0)
-        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, bufferTicks: t(buffer), fallbackRead: false)),
+        let longCycle = 1024.0 / 48_000.0
+        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, cycleTicks: t(longCycle), fallbackRead: false)),
+                       100.0 - longCycle, accuracy: 1e-6)
+        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, cycleTicks: t(longCycle), fallbackRead: true)),
+                       100.0 - 2 * longCycle, accuracy: 1e-6)
+        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, cycleTicks: t(buffer), fallbackRead: false)),
                        100.0 - buffer, accuracy: 1e-6)
-        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, bufferTicks: t(buffer), fallbackRead: true)),
+        XCTAssertEqual(s(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: next, cycleTicks: t(buffer), fallbackRead: true)),
                        100.0 - 2 * buffer, accuracy: 1e-6)
-        XCTAssertEqual(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: t(0.005), bufferTicks: t(buffer), fallbackRead: false), 0)
-        XCTAssertEqual(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: 10, bufferTicks: UInt64.max, fallbackRead: true), 0)
+        XCTAssertEqual(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: t(0.005), cycleTicks: t(buffer), fallbackRead: false), 0)
+        XCTAssertEqual(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: 10, cycleTicks: UInt64.max, fallbackRead: true), 0)
         XCTAssertTrue(OutputReturnDecision.volumeMayReturn(firstSampleTicks: t(100.3), deadlineTicks: t(100.3)))
         XCTAssertTrue(OutputReturnDecision.volumeMayReturn(firstSampleTicks: t(100.31), deadlineTicks: t(100.3)))
         XCTAssertFalse(OutputReturnDecision.volumeMayReturn(firstSampleTicks: t(100.29), deadlineTicks: t(100.3)))
@@ -134,8 +140,8 @@ final class OutputReturnDecisionTests: XCTestCase {
         XCTAssertEqual(step(out: 100.49, uno: uno, deadline: deadline, first: deadline), .restore)
         XCTAssertEqual(step(out: 100.49, uno: uno, deadline: deadline, first: t(100.25)), .nextBar(earlyTicks: t(0.05)))
         let nextOut = t(100.32)
-        let hardware = OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: nextOut, bufferTicks: t(buffer), fallbackRead: false)
-        let fallback = OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: nextOut, bufferTicks: t(buffer), fallbackRead: true)
+        let hardware = OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: nextOut, cycleTicks: t(buffer), fallbackRead: false)
+        let fallback = OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: nextOut, cycleTicks: t(buffer), fallbackRead: true)
         XCTAssertEqual(step(out: 100.49, uno: uno, deadline: deadline, first: hardware), .restore)
         XCTAssertEqual(step(out: 100.49, uno: uno, deadline: deadline, first: fallback), .nextBar(earlyTicks: deadline - fallback))
     }

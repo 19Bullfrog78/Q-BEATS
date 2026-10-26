@@ -62,14 +62,20 @@ private struct RetryWait {
 
 private struct OutputRig {
     static let tps = 24_000_000.0
-    var bufferSeconds = 512.0 / 48_000.0
+    /// Il buffer del lettore: 512 campioni, sempre (`bufferSize`); è il passo dei richiami, la misura dei buffer programmati e
+    /// di `bufferReachesUno`.
+    let bufferSeconds = 512.0 / 48_000.0
+    /// Il ciclo d'uscita della sessione (`bufferDurationTicks`): la convenzione della correzione di fase e l'ora del rendering
+    /// lo sommano; il primo campione a volume 1 lo toglie. 5,33 / 6,67 / 10,67 / 21,33 ms (par. 2.3).
+    var cycleSeconds = 512.0 / 48_000.0
     let latency = 0.0233
     let margin = 0.150
     var bpm: Double
     let beatsPerBar: Int
 
     // A421 · SEGUITO 1 — le due ore (par. 2.3): lo scarto fra l'ora del rendering e la convenzione, in buffer (da -1 a +2), e
-    // la lettura di riserva; la linea del tempo di Link (àncora e tempo) e la linea propria DA-SOLO.
+    // la lettura di riserva; la linea del tempo di Link (àncora e tempo) e la linea propria DA-SOLO. Il richiamo in ritardo
+    // sposta la convenzione (`t`), non l'ora del rendering, che resta sull'ora attesa del richiamo (`idealAt`).
     var renderOffsetBuffers = 0.0
     var fallbackRead = false
     var linkAnchorTime = 0.0
@@ -174,12 +180,12 @@ private struct OutputRig {
     var deadChainsAtSetActive = 0
 
     init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
-         bufferSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
+         cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
         self.role = role
         self.route = route
         self.bpm = bpm
         self.beatsPerBar = beatsPerBar
-        self.bufferSeconds = bufferSeconds
+        self.cycleSeconds = cycleSeconds
         self.renderOffsetBuffers = renderOffsetBuffers
         self.fallbackRead = fallbackRead
     }
@@ -711,7 +717,7 @@ private struct OutputRig {
     /// `scheduleNextBuffer`: la guardia, il motore di sistema fermo (par. 2.2 a), il drenaggio, il misuratore (U7, U8), il
     /// ritorno del Follower (par. 2.2 c; seguito 1, par. 2.2: le due ore, la rilettura dell'«uno», la guardia del primo
     /// campione, la battuta dopo), l'assert o la correzione (U9), il buffer.
-    mutating func scheduleNextBuffer(at t: Double, gapSeconds: Double? = nil, correction: Double? = nil) {
+    mutating func scheduleNextBuffer(at t: Double, idealAt: Double? = nil, gapSeconds: Double? = nil, correction: Double? = nil) {
         guard isRunning else { return }
         if useStoppedEngineCheck && !engineRunning {
             stoppedCallbacks += 1
@@ -745,11 +751,12 @@ private struct OutputRig {
             // Seguito 1, par. 2.2: un buco visto dal misuratore con un ritorno armato: si riarma con la stessa regola.
             rearmFollowerReturn()
         }
-        // La convenzione della correzione di fase (l'ora d'uscita di questo buffer) e l'ora del rendering (il prossimo buffer
-        // da rendere, con lo scarto): la prima dà il buffer dell'«uno», la seconda le due ore.
-        let outputStart = t + latency + bufferSeconds
+        // La convenzione della correzione di fase (l'ora d'uscita di questo buffer: `now + latenza + ciclo`) e l'ora del rendering
+        // (`lastRenderTime + ciclo + latenza`, qui l'ora attesa del richiamo più il ciclo e lo scarto): la prima dà il buffer
+        // dell'«uno», la seconda le due ore. Un richiamo in ritardo sposta la prima e non la seconda.
+        let outputStart = t + latency + cycleSeconds
         let outputEnd = outputStart + bufferSeconds
-        let renderNext = outputStart + renderOffsetBuffers * bufferSeconds
+        let renderNext = (idealAt ?? t) + latency + cycleSeconds + renderOffsetBuffers * bufferSeconds
         // Par. 2.3 b: un ritorno armato con una catena che non è più quella corrente si riarma con la stessa regola.
         if let armed = followerReturn, !armed.armPending, armed.chain != chain {
             rearmFollowerReturn()
@@ -792,7 +799,7 @@ private struct OutputRig {
         // «uno» calcolabile, alla prima chiamata col primo campione alla scadenza o dopo.
         if var pending = followerReturn, !pending.armPending, let deadline = pending.deadlineAt {
             let firstSample = seconds(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: ticks(renderNext),
-                                                                                      bufferTicks: ticks(bufferSeconds),
+                                                                                      cycleTicks: ticks(cycleSeconds),
                                                                                       fallbackRead: fallbackRead))
             let step = OutputReturnDecision.followerReturnStep(bufferOutputTicks: ticks(outputStart), bufferTicks: ticks(bufferSeconds),
                                                                unoTicks: pending.unoAt.map(ticks), deadlineTicks: ticks(deadline),
@@ -844,12 +851,14 @@ private struct OutputRig {
         if queued.count > 3 { queued.removeFirst() }
     }
 
-    /// I richiami a ogni buffer, da `from`, `count` volte; `late`: ogni secondo richiamo in ritardo di tanti buffer.
+    /// I richiami a ogni buffer, da `from`, `count` volte; `late`: ogni secondo richiamo in ritardo di tanti buffer (l'ora del
+    /// rendering resta quella attesa).
     mutating func callbacks(from: Double, count: Int, correction: Double? = nil, late: Double = 0.0) {
         for i in 0..<count {
-            let t = from + Double(i) * bufferSeconds + (i % 2 == 1 ? late * bufferSeconds : 0.0)
+            let ideal = from + Double(i) * bufferSeconds
+            let t = ideal + (i % 2 == 1 ? late * bufferSeconds : 0.0)
             advance(to: t)
-            scheduleNextBuffer(at: t, correction: correction)
+            scheduleNextBuffer(at: t, idealAt: ideal, correction: correction)
         }
     }
 
@@ -1085,9 +1094,9 @@ final class OutputCrisisSequenceTests: XCTestCase {
 
     /// Un rig col click in moto in canzone, sul percorso dato.
     private func playing(_ role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
-                         at t: Double = 10.0, bufferSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0,
+                         at t: Double = 10.0, cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0,
                          fallbackRead: Bool = false) -> OutputRig {
-        var rig = OutputRig(role: role, route: route, bpm: bpm, beatsPerBar: beatsPerBar, bufferSeconds: bufferSeconds,
+        var rig = OutputRig(role: role, route: route, bpm: bpm, beatsPerBar: beatsPerBar, cycleSeconds: cycleSeconds,
                             renderOffsetBuffers: renderOffsetBuffers, fallbackRead: fallbackRead)
         rig.start(at: t, recovery: nil)
         rig.callbacks(from: t + rig.bufferSeconds, count: 50)
@@ -1288,7 +1297,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         rig.callbacks(from: 58.806 + 0.684, count: 1)
         let uno = rig.followerReturn!.unoAt!
         let firstCall = 58.806 + 0.684
-        let deadline = firstCall + rig.latency + rig.bufferSeconds + 3 * rig.bufferSeconds + 0.040
+        let deadline = firstCall + rig.latency + rig.cycleSeconds + 3 * rig.bufferSeconds + 0.040
         XCTAssertGreaterThan(deadline, 58.806 + 0.3, "vince la fine dei buffer programmati")
         XCTAssertEqual(rig.deadlineAt!, deadline, accuracy: 1e-6)
         XCTAssertGreaterThanOrEqual(uno, deadline)
@@ -1822,7 +1831,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
             rig.advance(to: firstCall)
             rig.scheduleNextBuffer(at: firstCall, gapSeconds: 0.68)
             XCTAssertFalse(rig.followerReturn!.armPending, "armato alla prima chiamata dopo il buco")
-            let end = firstCall + rig.latency + rig.bufferSeconds + offset * rig.bufferSeconds + 3 * rig.bufferSeconds
+            let end = firstCall + rig.latency + rig.cycleSeconds + offset * rig.bufferSeconds + 3 * rig.bufferSeconds
             XCTAssertEqual(rig.programmedEndAt!, end, accuracy: 1e-6, "offset \(offset)")
             XCTAssertEqual(rig.deadlineAt!, end + 0.040, accuracy: 1e-6, "vince la fine dei buffer, non il tocco + 0,3 s")
             XCTAssertGreaterThan(rig.deadlineAt!, 55.6 + 0.3)
@@ -1875,7 +1884,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         rig.scheduleNextBuffer(at: afterHole, gapSeconds: 0.68)
         XCTAssertEqual(rig.rearms, 1, "il ritorno si riarma")
         XCTAssertFalse(rig.followerReturn!.armPending, "e si arma di nuovo nella stessa chiamata")
-        let end = afterHole + rig.latency + 4 * rig.bufferSeconds
+        let end = afterHole + rig.latency + rig.cycleSeconds + 3 * rig.bufferSeconds
         XCTAssertEqual(rig.deadlineAt!, end + 0.040, accuracy: 1e-6, "le due ore rifatte dalla prima chiamata dopo il buco")
         XCTAssertGreaterThan(rig.deadlineAt!, firstDeadline)
         XCTAssertEqual(rig.volume, 0.0)
@@ -1969,10 +1978,31 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertNil(rig.raisedAt)
     }
 
-    /// L'invariante su tutta la griglia del par. 2.3: il ciclo d'uscita di 5,33, 6,67, 10,67 e 21,33 ms, lo scarto fra le due
-    /// ore da -1 a +2 buffer, il richiamo in ritardo fino a un buffer, la lettura di riserva; la notizia col buco del 24/10 e
-    /// il tocco senza buco, a 121 e a 180,5. In ogni caso nessun campione a volume 1 prima della scadenza, e il ritorno al più
-    /// una battuta dopo l'«uno» scelto all'armo.
+    /// Dopo la verifica indipendente del diff (rilievo 1): il primo campione a volume 1 si misura col ciclo d'uscita (qui 21,33
+    /// ms), non col buffer da 512 campioni. Col ciclo lungo e lo scarto -1, per dodici fasi del tocco intorno alla battuta,
+    /// nessun campione prima della scadenza; almeno una fase passa alla battuta dopo (col buffer al posto del ciclo la guardia
+    /// avrebbe lasciato passare fino a 10,67 ms di coda del click).
+    func testTheFirstSampleUsesTheOutputCycleNotTheBuffer() {
+        let bar = 30.0 * 4 * 60.0 / 121.0
+        let longCycle = 1024.0 / 48_000.0
+        var moves = 0
+        for k in 0..<12 {
+            var rig = playing(.follower, route: [headphones], at: 50.0, cycleSeconds: longCycle, renderOffsetBuffers: -1.0)
+            rig.routeChange(at: 55.0, to: [speaker])
+            rig.callbacks(from: 55.011, count: 100)
+            let tapAt = bar - 0.330 + Double(k) * 0.001
+            rig.speakerTap(at: tapAt)
+            rig.callbacks(from: tapAt + 0.004, count: 400)
+            checkReturnInvariants(rig, "ciclo lungo, fase \(k)")
+            moves += rig.nextBarMoves
+        }
+        XCTAssertGreaterThan(moves, 0, "almeno una fase passa alla battuta dopo: la guardia lavora col ciclo lungo")
+    }
+
+    /// L'invariante su tutta la griglia del par. 2.3: il ciclo d'uscita di 5,33, 6,67, 10,67 e 21,33 ms (col buffer del lettore
+    /// sempre da 512 campioni), lo scarto fra le due ore da -1 a +2 buffer, il richiamo in ritardo fino a un buffer, la lettura
+    /// di riserva; la notizia col buco del 24/10 e il tocco senza buco, a 121 e a 180,5. In ogni caso nessun campione a volume 1
+    /// prima della scadenza, e il ritorno al più una battuta dopo l'«uno» scelto all'armo.
     func testNoSampleAtVolumeOneBeforeTheDeadlineAcrossCyclesOffsetsAndLateCallbacks() {
         let cycles = [256.0 / 48_000.0, 320.0 / 48_000.0, 512.0 / 48_000.0, 1024.0 / 48_000.0]
         var cases = 0
@@ -1983,7 +2013,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
                         for bpm in [121.0, 180.5] {
                             let tag = "ciclo:\(cycle) scarto:\(offset) ritardo:\(late) riserva:\(fallback) tempo:\(bpm)"
                             // La notizia col buco del 24/10.
-                            var notice = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, bufferSeconds: cycle,
+                            var notice = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, cycleSeconds: cycle,
                                                  renderOffsetBuffers: offset, fallbackRead: fallback)
                             notice.routeChange(at: 55.0, to: [speaker])
                             notice.callbacks(from: 55.011, count: 30, late: late)
@@ -1991,10 +2021,10 @@ final class OutputCrisisSequenceTests: XCTestCase {
                             let firstCall = 58.806 + 0.684
                             notice.advance(to: firstCall)
                             notice.scheduleNextBuffer(at: firstCall, gapSeconds: 0.684)
-                            notice.callbacks(from: firstCall + cycle, count: 1200, late: late)
+                            notice.callbacks(from: firstCall + notice.bufferSeconds, count: 1200, late: late)
                             checkReturnInvariants(notice, "notizia " + tag)
                             // Il tocco senza buco.
-                            var tap = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, bufferSeconds: cycle,
+                            var tap = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, cycleSeconds: cycle,
                                               renderOffsetBuffers: offset, fallbackRead: fallback)
                             tap.routeChange(at: 55.0, to: [speaker])
                             tap.callbacks(from: 55.011, count: 30, late: late)
@@ -2099,21 +2129,27 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertEqual(rig.rejoins, 1)
     }
 
-    /// (e) La stessa catena con la `setActive` rifiutata ventuno volte (il tentativo 0 e i venti dopo): la rete a 5 s e il
-    /// tentativo dopo, come oggi; poi il rientro.
+    /// (e) La stessa catena con la `setActive` rifiutata ventuno volte (il tentativo 0 e i venti dopo): la rete a 5 s e i
+    /// tentativi dopo la rete (la rete fallisce una volta e il tentativo dopo riesce), come oggi, con l'eccezione a ogni
+    /// passo; poi il rientro.
     func testTheForegroundChainWithTwentyOneRefusedSetActives() {
         var rig = playing(.direttore, route: [speaker], at: 10.0)
         rig.interruptionBegan(at: 11.0)
-        rig.setActiveFailures = 21
+        rig.setActiveFailures = 22
         rig.wakeup(at: 20.0)
         rig.advance(to: 30.5)
         XCTAssertEqual(rig.setActiveAttempts, 21, "il tentativo 0 e i venti dopo")
         XCTAssertTrue(rig.pendingResume, "i tentativi esauriti: la ripresa pendente")
         XCTAssertNotNil(rig.safetyNet)
         XCTAssertEqual(rig.refusals, 0, "l'eccezione vale a ogni tentativo")
-        rig.advance(to: 36.0)
+        rig.advance(to: 35.2)
         XCTAssertEqual(rig.safetyNetFired, 1, "la rete a 5 s con lo stesso contatore della catena")
-        XCTAssertEqual(rig.setActiveAttempts, 22)
+        XCTAssertEqual(rig.setActiveAttempts, 22, "la rete prova la setActive, che fallisce")
+        XCTAssertNotNil(rig.retry, "e il tentativo dopo la rete")
+        XCTAssertFalse(rig.isRunning)
+        rig.advance(to: 36.0)
+        XCTAssertEqual(rig.setActiveAttempts, 23, "il tentativo dopo la rete, con l'eccezione")
+        XCTAssertEqual(rig.refusals, 0)
         XCTAssertTrue(rig.isRunning)
         rig.advance(to: 40.0)
         XCTAssertEqual(rig.rejoins, 1)
@@ -2176,6 +2212,31 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertEqual(rig.safetyNetFired, 0)
         XCTAssertEqual(rig.safetyNetSkipped, 1, "la rete non scatta: il contatore della catena e' cambiato")
         XCTAssertTrue(rig.isRunning)
+        // La ripresa pendente alzata dalla regola (il no al tentativo dopo, con l'interruzione cominciata in mezzo), non dai
+        // tentativi esauriti: il Play la chiude; l'aggiunta nel modo Pro e la fine tardiva non toccano il motore che gira.
+        var byRule = playing(.follower, route: [usb], at: 10.0)
+        byRule.proMode = true
+        byRule.setActiveFailures = 2
+        byRule.systemStopsEngine(at: 11.0)
+        byRule.configurationNotification(at: 11.1)
+        byRule.interruptionBegan(at: 11.3)
+        byRule.advance(to: 11.7)
+        XCTAssertEqual(byRule.refusals, 1)
+        XCTAssertTrue(byRule.pendingResume, "alzata dalla regola")
+        XCTAssertNil(byRule.retry)
+        byRule.start(at: 12.0, recovery: nil)
+        XCTAssertTrue(byRule.isRunning)
+        XCTAssertFalse(byRule.pendingResume, "par. 3.5: il Play la chiude")
+        XCTAssertFalse(byRule.systemInterruption)
+        let rebuildsByRule = byRule.rebuilds
+        let startsByRule = byRule.starts
+        byRule.routeChange(at: 13.0, to: [usb2])
+        XCTAssertTrue(byRule.engineRunning, "l'aggiunta Pro non ferma il motore")
+        XCTAssertEqual(byRule.rebuilds, rebuildsByRule)
+        byRule.interruptionEnded(at: 14.0)
+        XCTAssertEqual(byRule.rebuilds, rebuildsByRule, "la fine tardiva non ricostruisce")
+        XCTAssertEqual(byRule.starts, startsByRule, "e non riparte")
+        XCTAssertTrue(byRule.engineRunning)
     }
 
     /// (h) Uno Stop voluto durante l'interruzione con un tentativo in volo, con `isAudioInterrupted` vero (la catena è morta) e
