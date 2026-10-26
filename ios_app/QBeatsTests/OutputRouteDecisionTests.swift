@@ -444,4 +444,42 @@ final class OutputRouteDecisionTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - A421 · SEGUITO 1 (par. 4.3): l'apertura dello show
+
+    /// L'apertura dello show azzera la sola memoria dell'ultima uscita: «uscita mancante» e «uscita zittita» restano, per
+    /// ogni ruolo. Così il primo avvio di ogni show è come oggi: un click a volume 1 dalle cuffie fra due show (nel Solo) e poi
+    /// START SHOW come Follower senza cuffie non alza «uscita mancante» alla rilettura dell'avvio; dentro lo show la memoria
+    /// «esterna» del Direttore passa al Follower con il cambio di ruolo e la rilettura alza «uscita mancante».
+    func testTheShowOpenResetsOnlyTheMemory() {
+        for role in roles {
+            for muted in bools {
+                for missing in bools {
+                    for memory in [nil, false, true] as [Bool?] {
+                        let before = OutputSilenceState(muted: muted, missing: missing, lastOutputExternal: memory)
+                        let after = OutputRouteDecision.state(after: .showOpened, from: before, playerRole: role)
+                        XCTAssertEqual(after.muted, muted, "\(role)")
+                        XCTAssertEqual(after.missing, missing, "\(role)")
+                        XCTAssertNil(after.lastOutputExternal, "\(role)")
+                    }
+                }
+            }
+        }
+        // Fra due show: il Solo suona nelle cuffie, lo show si apre, il Follower parte senza cuffie: come oggi.
+        var between = OutputRouteDecision.state(after: .volumeRestored(externalPresent: true), from: .initial, playerRole: .solo)
+        between = OutputRouteDecision.state(after: .roleChange, from: between, playerRole: .solo)
+        XCTAssertEqual(between.lastOutputExternal, true, "il cambio di ruolo tiene la memoria")
+        between = OutputRouteDecision.state(after: .showOpened, from: between, playerRole: .follower)
+        between = OutputRouteDecision.state(after: .recoveryRead(externalPresent: false), from: between, playerRole: .follower)
+        XCTAssertFalse(between.missing, "il primo avvio dello show e' come oggi")
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: between), 1.0)
+        // Dentro lo show: il Direttore nelle cuffie, Stop, tolta a click fermo, il ruolo passa a Follower, l'avvio senza cuffie.
+        var inside = OutputRouteDecision.state(after: .showOpened, from: .initial, playerRole: .direttore)
+        inside = OutputRouteDecision.state(after: .volumeRestored(externalPresent: true), from: inside, playerRole: .direttore)
+        inside = OutputRouteDecision.state(after: .directorStop, from: inside, playerRole: .direttore)
+        inside = OutputRouteDecision.state(after: .roleChange, from: inside, playerRole: .direttore)
+        inside = OutputRouteDecision.state(after: .recoveryRead(externalPresent: false), from: inside, playerRole: .follower)
+        XCTAssertTrue(inside.missing, "la memoria esterna dello show alza «uscita mancante» all'avvio del Follower")
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: inside), 0.0)
+    }
 }

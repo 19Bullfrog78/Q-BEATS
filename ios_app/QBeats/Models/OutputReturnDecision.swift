@@ -20,7 +20,15 @@ import Foundation
 //    `metronome_processBuffer`, cioè circa due buffer prima che quel buffer vada al rendering (⚠️ RISCRITTO dopo la verifica
 //    indipendente del diff: la prima stesura lo rimetteva al rendering stimato del buffer, su un timer, con un margine da zero a
 //    una frazione di buffer);
-//  · il tocco «altoparlante» (par. 2.2 g): lo stesso ritorno, con la sola ora «0,3 s dopo il tocco»;
+//  · il tocco «altoparlante» (par. 2.2 g): lo stesso ritorno. ⚠️ RISCRITTO A421 · SEGUITO 1 (26/10/2026): qui si diceva «con la
+//    sola ora "0,3 s dopo il tocco"». Due difetti erano del mandato A421 (seguito 1, par. 1): il tocco con una regola sua, e
+//    la scadenza scritta per l'«uno». Da qui (seguito 1, par. 2): il tocco ha le due ore della notizia, con l'ora del tocco; e
+//    la scadenza vale per il PRIMO CAMPIONE A VOLUME 1, non per l'«uno»: il volume torna al calcolo del buffer dell'«uno» coi
+//    buffer già programmati davanti, e il primo campione che può suonare a volume 1 (`firstSampleAtVolumeOneTicks`, dal
+//    rendering, caso peggiore) deve essere alla scadenza o dopo; se no il ritorno passa all'«uno» della battuta dopo. L'«uno»
+//    si porta come battito col suo orologio (`FollowerReturnUno`) e si rilegge a ogni chiamata (`refreshUno`): un cambio di
+//    tempo lo tiene sulla battuta, un cambio d'orologio o un'ora non rileggibile riarmano; senza un «uno» calcolabile il
+//    volume torna alla prima chiamata col primo campione alla scadenza o dopo; un buco del render visto dal misuratore riarma;
 //  · la rete del motore fermo dal sistema (par. 2.2 a): se un richiamo trova il motore di sistema fermo con `isRunning`
 //    vero non programma niente; se entro 2 s non arriva nessun gestore e lo stato è ancora quello, si usa la decisione
 //    della configurazione (`EngineConfigChangeDecision`).
@@ -34,6 +42,37 @@ enum DirectorReturnWait: String, Equatable {
     case settle = "assestamento"
     /// La notifica di configurazione (la frequenza della sessione è già diversa dalla copia), con la riserva.
     case configuration = "configurazione"
+}
+
+/// A421 · SEGUITO 1 — l'orologio da cui viene l'«uno» del ritorno del Follower (par. 2.2): Link, o la linea propria DA-SOLO.
+enum FollowerReturnClock: String, Equatable {
+    case link = "link"
+    case own = "proprio"
+}
+
+/// A421 · SEGUITO 1 — l'«uno» scelto all'armo: il battito e il suo orologio. Nel motore `nil` è il segno «uno non calcolabile».
+struct FollowerReturnUno: Equatable {
+    let beat: Double
+    let clock: FollowerReturnClock
+}
+
+/// A421 · SEGUITO 1 — la rilettura dell'«uno» a ogni chiamata (par. 2.2).
+enum FollowerUnoRefresh: Equatable {
+    /// L'orologio non è più quello salvato, o l'ora dell'«uno» non si rilegge: si riarma con la stessa regola.
+    case rearm(reason: String)
+    /// L'ora dell'«uno» riletta dal battito salvato.
+    case ticks(UInt64)
+}
+
+/// A421 · SEGUITO 1 — che cosa fa la chiamata di `scheduleNextBuffer` col ritorno del Follower armato (par. 2.2).
+enum FollowerReturnStep: Equatable {
+    /// Non ancora: il buffer non porta l'«uno» (o, senza un «uno», il primo campione a volume 1 è prima della scadenza).
+    case wait
+    /// Il volume torna adesso.
+    case restore
+    /// Il buffer porta l'«uno» ma il primo campione a volume 1 sarebbe prima della scadenza (di `earlyTicks`): all'«uno»
+    /// della battuta dopo, con la stessa scadenza.
+    case nextBar(earlyTicks: UInt64)
 }
 
 enum OutputReturnDecision {
@@ -86,16 +125,73 @@ enum OutputReturnDecision {
         return overflow2 ? UInt64.max : sum
     }
 
-    /// La seconda ora del Follower: la fine d'uscita dei buffer programmati più la coda del click.
+    /// La scadenza del Follower: le due ore — 0,3 s dalla notizia e la fine d'uscita dei buffer programmati più la coda del
+    /// click — e vince la più tarda. A421 · SEGUITO 1 (par. 2.1): la stessa regola per il tocco «altoparlante», con l'ora del
+    /// tocco al posto di quella della notizia (`tapDeadlineTicks`, la sola ora «0,3 s dopo il tocco», è uscito: dentro un buco
+    /// del render la prima chiamata dopo il tocco è quella dopo il buco, e i buffer programmati prima uscivano a volume 1).
     static func followerDeadlineTicks(noticeTicks: UInt64, programmedEndOutputTicks: UInt64, ticksPerSecond: Double) -> UInt64 {
         let byNotice = ticks(noticeTicks, plusSeconds: followerMinimumSeconds, ticksPerSecond: ticksPerSecond)
         let byBuffers = ticks(programmedEndOutputTicks, plusSeconds: clickTailSeconds, ticksPerSecond: ticksPerSecond)
         return max(byNotice, byBuffers)
     }
 
-    /// Il tocco «altoparlante»: la sola ora «0,3 s dopo il tocco».
-    static func tapDeadlineTicks(tapTicks: UInt64, ticksPerSecond: Double) -> UInt64 {
-        ticks(tapTicks, plusSeconds: followerMinimumSeconds, ticksPerSecond: ticksPerSecond)
+    // === A421 · SEGUITO 1 (26/10/2026) — LA SCADENZA VALE PER IL PRIMO CAMPIONE A VOLUME 1, NON PER L'«UNO» (par. 2.2) ===
+
+    /// Il primo campione che può uscire a volume 1 dopo una scrittura di `outputVolume` in questa chiamata, nel caso peggiore
+    /// (Apple non dice da quando la scrittura vale per il rendering; [Ipotesi: dal ciclo dopo]; si prende il ciclo in corso):
+    /// l'ora d'uscita del prossimo buffer da rendere (`nextBufferOutputHostTime`) meno un ciclo; con la lettura di riserva
+    /// (`lastRenderTime` non valido: `now + latenza + ciclo`, che sottostima) un ciclo in più. Si ferma a zero.
+    static func firstSampleAtVolumeOneTicks(nextBufferOutputTicks: UInt64, bufferTicks: UInt64, fallbackRead: Bool) -> UInt64 {
+        let cycles: UInt64 = fallbackRead ? 2 : 1
+        let (back, overflow) = bufferTicks.multipliedReportingOverflow(by: cycles)
+        if overflow { return 0 }
+        return nextBufferOutputTicks >= back ? nextBufferOutputTicks - back : 0
+    }
+
+    /// La guardia del primo campione: il volume torna solo se il primo campione a volume 1 non è prima della scadenza.
+    static func volumeMayReturn(firstSampleTicks: UInt64, deadlineTicks: UInt64) -> Bool {
+        firstSampleTicks >= deadlineTicks
+    }
+
+    /// L'orologio dell'«uno»: Link quando il Follower segue Link (`followsLinkQ`), se no la linea propria DA-SOLO.
+    static func unoClock(followsLink: Bool) -> FollowerReturnClock {
+        followsLink ? .link : .own
+    }
+
+    /// A ogni chiamata, prima della guardia: se l'orologio non è più quello salvato il ritorno si riarma con la stessa regola;
+    /// se è lo stesso, l'ora dell'«uno» riletta dal battito salvato (Link: `link_engine_time_at_beat`; DA-SOLO: `ownTicks`
+    /// sulla linea propria), così regge un cambio di tempo fra l'armo e l'«uno»; se non si può rileggere (`nil`), si riarma.
+    static func refreshUno(saved: FollowerReturnUno, clockNow: FollowerReturnClock, rereadTicks: UInt64?) -> FollowerUnoRefresh {
+        if saved.clock != clockNow { return .rearm(reason: "orologio-cambiato") }
+        guard let ticks = rereadTicks else { return .rearm(reason: "uno-non-rileggibile") }
+        return .ticks(ticks)
+    }
+
+    /// L'«uno» della battuta dopo: il battito scelto più una battuta (Link: il quantum; DA-SOLO: i battiti della battuta),
+    /// sullo stesso orologio. Non si ricalcola con `nextBarBeat(atOrAfter: scadenza)`, che darebbe lo stesso «uno».
+    static func nextBarUno(_ uno: FollowerReturnUno, beatsPerBar: Int) -> FollowerReturnUno? {
+        guard uno.beat.isFinite, beatsPerBar > 0 else { return nil }
+        return FollowerReturnUno(beat: uno.beat + Double(beatsPerBar), clock: uno.clock)
+    }
+
+    /// La chiamata col ritorno armato (le condizioni del motore — motore in moto, interruzione bassa, uscita non mancante,
+    /// volume a 0, servizi normali — le guarda il motore). Con un «uno»: se il buffer non lo porta, si aspetta; se lo porta e il
+    /// primo campione a volume 1 non è prima della scadenza, il volume torna; se è prima, all'«uno» della battuta dopo, con la
+    /// stessa scadenza. Senza un «uno» calcolabile: il volume torna alla prima chiamata in cui il primo campione non è prima
+    /// della scadenza.
+    static func followerReturnStep(bufferOutputTicks: UInt64,
+                                   bufferTicks: UInt64,
+                                   unoTicks: UInt64?,
+                                   deadlineTicks: UInt64,
+                                   firstSampleTicks: UInt64) -> FollowerReturnStep {
+        let mayReturn = volumeMayReturn(firstSampleTicks: firstSampleTicks, deadlineTicks: deadlineTicks)
+        guard let uno = unoTicks else {
+            return mayReturn ? .restore : .wait
+        }
+        guard bufferReachesUno(bufferOutputTicks: bufferOutputTicks, bufferTicks: bufferTicks, unoTicks: uno) else {
+            return .wait
+        }
+        return mayReturn ? .restore : .nextBar(earlyTicks: deadlineTicks - firstSampleTicks)
     }
 
     /// Il primo «uno» di battuta di Link non prima di `beat`: il multiplo del quantum uguale o seguente.

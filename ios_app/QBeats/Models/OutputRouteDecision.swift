@@ -29,7 +29,10 @@ import Foundation
 //    una canzone e l'altra a click fermo); a ogni rientro automatico si rilegge il percorso di adesso (se l'ultima uscita
 //    era esterna e adesso un'esterna non c'è, si alza; se un'esterna c'è, si abbassa); si abbassa con un'esterna presente,
 //    per il Direttore anche al suo Play, allo Stop, a fine canzone e alla chiusura dello show, per il Follower col tocco
-//    «altoparlante» o alla chiusura dello show (risposta 3 di Mauro del 23/10: a fine canzone resta);
+//    «altoparlante» o alla chiusura dello show (risposta 3 di Mauro del 23/10: a fine canzone resta). A421 · SEGUITO 1
+//    (par. 4, risposta «A» di Mauro del 25/10): il Follower che si stacca le cuffie fra una canzone e l'altra, a click fermo,
+//    parte muto alla canzone dopo (la rilettura con la memoria a ogni avvio del Follower; il tocco o un'esterna lo riaccendono);
+//    il primo avvio di ogni show è come oggi (l'apertura dello show azzera la memoria, `showOpened`); il Direttore no (D2);
 //  · dentro un'interruzione di sistema la notizia aggiorna solo lo stato (la regola del referee del 21/10, BOX5): niente
 //    volume, crisi, ritorno. Un cambio di ruolo, o Link spento dall'utente, abbassa tutto (par. 2.3 c).
 // Il volume ha un solo padrone: lo stato `muted` qui, scritto dal motore solo su audioQueue, letto da `start()` prima di
@@ -103,8 +106,9 @@ enum OutputSilenceEvent: Equatable {
     case removed
     /// Un'esterna presente alla notizia «aggiunta»: «uscita mancante» si abbassa.
     case externalPresent
-    /// La rilettura del percorso a un rientro automatico, e al primo avvio del Follower dopo la ricostruzione (U5): la memoria
-    /// decide. Per Direttore e Follower: il Solo non ha «uscita mancante».
+    /// La rilettura del percorso a un rientro automatico e, da A421 · SEGUITO 1 (par. 4.3, risposta «A» di Mauro del 25/10),
+    /// a ogni avvio del Follower che prosegue (prima di `applyStartVolumeQ`; fino al seguito solo al primo avvio dopo la
+    /// ricostruzione): la memoria decide. Per Direttore e Follower: il Solo non ha «uscita mancante».
     case recoveryRead(externalPresent: Bool)
     /// Il Play del batterista (Direttore): la scelta dell'uscita che c'è (D2).
     case directorPlay(externalPresent: Bool)
@@ -116,6 +120,10 @@ enum OutputSilenceEvent: Equatable {
     case speakerTap
     /// La chiusura dello show.
     case showClosed
+    /// A421 · SEGUITO 1 (par. 4.3): l'apertura dello show azzera la memoria dell'ultima uscita (`lastOutputExternal` nullo,
+    /// come alla chiusura) senza toccare «uscita mancante» né «uscita zittita»: il primo avvio di ogni show è come oggi,
+    /// qualunque uscita abbia usato il click prima dello show.
+    case showOpened
     /// Un cambio di ruolo, o Link spento dall'utente (par. 2.3 c).
     case roleChange
 }
@@ -240,6 +248,8 @@ enum OutputRouteDecision {
         case .showClosed:
             next.missing = false
             next.muted = false
+            next.lastOutputExternal = nil
+        case .showOpened:
             next.lastOutputExternal = nil
         case .roleChange:
             next.missing = false

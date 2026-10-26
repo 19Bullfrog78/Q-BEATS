@@ -10,6 +10,15 @@ import XCTest
 // dove le regole vogliono i tick; la griglia di Link con la sessione partita a 0.
 // Le sequenze del 24/10 coi tempi veri (registri delle 12:37, 13:59, 14:37); quelle del par. 2.3; quelle dei punti U5, U9,
 // par. 2.2 a e c. Le tre difese (la notizia, il motore di sistema fermo, il misuratore) si possono spegnere una per una.
+// === A421 · SEGUITO 1 (26/10/2026, mandato «A421 · SEGUITO 1», par. 2.3, 3.4, 4.4, 3.5) ===
+// Due ore per il ritorno del Follower: la fine dei buffer programmati e il primo campione a volume 1 dall'ora del rendering;
+// il buffer dell'«uno» dalla convenzione della correzione di fase. Lo scarto fra le due ore da -1 a +2 buffer (il commento di
+// `nextBufferOutputHostTime`: circa 15 ms), il richiamo in ritardo fino a un buffer, il ciclo d'uscita di 5,33, 6,67, 10,67 e
+// 21,33 ms (il giro di prove del 22/10), la lettura di riserva. La linea del tempo di Link con un'àncora (un cambio di tempo
+// ri-àncora) e la linea propria DA-SOLO. Per il par. 3: il contatore della catena, gli inizi d'interruzione, il segno
+// dell'eccezione, i tentativi ogni 0,5 s e la rete a 5 s, le scritture della sessione, gli inizi d'interruzione iniettati fra
+// `setCategory` e la `setActive` e fra la `setActive` e `start()`, il modo Pro con la ricostruzione che ferma il motore.
+// Per il par. 4: la rilettura del Follower a ogni avvio, l'apertura e la chiusura dello show.
 
 /// Un buffer programmato: l'ora d'uscita (inizio e fine) e la catena.
 private struct RigBuffer {
@@ -29,9 +38,12 @@ private struct DirectorReturn {
 private struct FollowerReturn {
     let noticeAt: Double
     var armPending: Bool
-    var unoAt: Double?
     var chain: Int
     let fromTap: Bool
+    /// A421 · SEGUITO 1 — la scadenza, il battito dell'«uno» col suo orologio (`nil` = «uno non calcolabile»), l'ora riletta.
+    var deadlineAt: Double? = nil
+    var uno: FollowerReturnUno? = nil
+    var unoAt: Double? = nil
 }
 
 private struct RejoinWait {
@@ -40,13 +52,35 @@ private struct RejoinWait {
     let skips: Int
 }
 
+/// A421 · SEGUITO 1 — un tentativo di `activateSessionAndStart` in volo (ogni 0,5 s), o la rete a 5 s dopo i tentativi esauriti.
+private struct RetryWait {
+    let fireAt: Double
+    let trigger: RecoveryTrigger
+    let attempt: Int
+    let token: Int
+}
+
 private struct OutputRig {
     static let tps = 24_000_000.0
-    let bufferSeconds = 512.0 / 48_000.0
+    var bufferSeconds = 512.0 / 48_000.0
     let latency = 0.0233
     let margin = 0.150
-    let bpm: Double
+    var bpm: Double
     let beatsPerBar: Int
+
+    // A421 · SEGUITO 1 — le due ore (par. 2.3): lo scarto fra l'ora del rendering e la convenzione, in buffer (da -1 a +2), e
+    // la lettura di riserva; la linea del tempo di Link (àncora e tempo) e la linea propria DA-SOLO.
+    var renderOffsetBuffers = 0.0
+    var fallbackRead = false
+    var linkAnchorTime = 0.0
+    var linkAnchorBeat = 0.0
+    var followerClock: FollowerReturnClock = .link
+    var ownTimeline: OwnClockTimeline? = nil
+    var ownTimelineBPM = 0.0
+    var ownBeatAtChange = 0.0
+    var ownChangeTime = 0.0
+    var ownRepinPending = false
+    var lastUnoBeat: Double? = nil
 
     // Il ruolo e la canzone.
     var role: PlayerRole
@@ -63,6 +97,7 @@ private struct OutputRig {
     var hardwareRate = 48_000.0
     var copyRate = 48_000.0
     var mediaServicesNormal = true
+    var proMode = false
 
     // Le crisi e le riprese.
     var silentInSong = false
@@ -73,6 +108,17 @@ private struct OutputRig {
     var systemInterruption = false
     var pendingResume = false
     var hardwareBusy = false
+    // A421 · SEGUITO 1 (par. 3): il contatore della catena, gli inizi, il segno dell'eccezione, le `setActive` da far fallire, i
+    // tentativi e la rete a 5 s, gli inizi iniettati nelle due finestre.
+    var resumeToken = 0
+    var beginsCount = 0
+    var exceptionMark: InterruptionActivationException? = nil
+    var setActiveFailures = 0
+    var retry: RetryWait? = nil
+    var safetyNet: RetryWait? = nil
+    var injectBeginBeforeSetActive = false
+    var injectBeginBeforeStart = false
+    var injectStopBeforeSetActive = false
 
     // La catena.
     var chain = 0
@@ -110,26 +156,76 @@ private struct OutputRig {
     var raisedAt: Double? = nil
     var firstClickAt: Double? = nil
     var netFired = 0
+    // A421 · SEGUITO 1: le ore dell'ultimo ritorno del Follower (par. 2.3), le scritture della sessione e le `setActive`
+    // tentate (par. 3.4), le ricostruzioni, i no della regola, le reti a 5 s scattate o saltate.
+    var deadlineAt: Double? = nil
+    var programmedEndAt: Double? = nil
+    var armedUnoAt: Double? = nil
+    var restoredUnoAt: Double? = nil
+    var firstSampleAt: Double? = nil
+    var nextBarMoves = 0
+    var rearms = 0
+    var sessionWrites = 0
+    var setActiveAttempts = 0
+    var rebuilds = 0
+    var refusals = 0
+    var safetyNetFired = 0
+    var safetyNetSkipped = 0
+    var deadChainsAtSetActive = 0
 
-    init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4) {
+    init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
+         bufferSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
         self.role = role
         self.route = route
         self.bpm = bpm
         self.beatsPerBar = beatsPerBar
+        self.bufferSeconds = bufferSeconds
+        self.renderOffsetBuffers = renderOffsetBuffers
+        self.fallbackRead = fallbackRead
     }
 
     // MARK: - Aritmetica
 
     func ticks(_ seconds: Double) -> UInt64 { UInt64((seconds * OutputRig.tps).rounded()) }
     func seconds(_ t: UInt64) -> Double { Double(t) / OutputRig.tps }
-    func linkBeat(at t: Double) -> Double { t * bpm / 60.0 }
-    func time(ofBeat beat: Double) -> Double { beat * 60.0 / bpm }
+    /// Il battito di Link all'ora `t`, sulla linea con l'àncora (un cambio di tempo ri-àncora).
+    func linkBeat(at t: Double) -> Double { linkAnchorBeat + (t - linkAnchorTime) * bpm / 60.0 }
+    func time(ofBeat beat: Double) -> Double { linkAnchorTime + (beat - linkAnchorBeat) * 60.0 / bpm }
     var bufferBeats: Double { bufferSeconds * bpm / 60.0 }
+    var barSeconds: Double { Double(beatsPerBar) * 60.0 / bpm }
 
     /// Il primo «uno» di battuta di Link non prima di `t`.
     func nextBarTime(atOrAfter t: Double) -> Double {
         let beat = OutputReturnDecision.nextBarBeat(atOrAfter: linkBeat(at: t), quantum: Double(beatsPerBar))!
         return time(ofBeat: beat)
+    }
+
+    /// A421 · SEGUITO 1 — il primo «uno» non prima di `t`, come battito col suo orologio e la sua ora (`nextUnoQ`): Link, o la
+    /// linea propria DA-SOLO (dall'ultimo «uno» uscito); `nil` = «uno non calcolabile».
+    func nextUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
+        switch followerClock {
+        case .link:
+            guard let bar = OutputReturnDecision.nextBarBeat(atOrAfter: linkBeat(at: t), quantum: Double(beatsPerBar)) else { return nil }
+            return (FollowerReturnUno(beat: bar, clock: .link), time(ofBeat: bar))
+        case .own:
+            guard let timeline = ownTimeline, let last = lastUnoBeat,
+                  let beat = OutputReturnDecision.nextOwnUnoBeat(atOrAfter: timeline.beat(atTicks: ticks(t), ticksPerSecond: OutputRig.tps),
+                                                                  lastUnoBeat: last, beatsPerBar: beatsPerBar),
+                  let at = OutputReturnDecision.ownTicks(atBeat: beat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
+            return (FollowerReturnUno(beat: beat, clock: .own), seconds(at))
+        }
+    }
+
+    /// A421 · SEGUITO 1 — l'ora dell'«uno» riletta dal battito (`unoTicksQ`): `nil` se la linea propria manca.
+    func unoTime(for uno: FollowerReturnUno) -> Double? {
+        switch uno.clock {
+        case .link:
+            return time(ofBeat: uno.beat)
+        case .own:
+            guard let timeline = ownTimeline,
+                  let at = OutputReturnDecision.ownTicks(atBeat: uno.beat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
+            return seconds(at)
+        }
     }
 
     var externalPresent: Bool { OutputRouteDecision.hasExternal(route) }
@@ -153,6 +249,13 @@ private struct OutputRig {
 
     mutating func publishIsPlaying() {
         isPlaying = TransportStateDecision.isPlaying(engineRunning: isRunning)
+    }
+
+    /// `clearPendingResumeQ`: la ripresa pendente, l'interruzione e il contatore della catena che sale.
+    mutating func clearPendingResume() {
+        pendingResume = false
+        interrupted = false
+        resumeToken += 1
     }
 
     /// La regola di ogni crisi, con la causa ricordata.
@@ -187,7 +290,7 @@ private struct OutputRig {
         drainPending = false
     }
 
-    /// Lo Stop voluto (`stopSync(.wanted)`).
+    /// Lo Stop voluto (`stopSync(.wanted)`): durante un'interruzione chiude la ripresa pendente e alza il contatore della catena.
     mutating func stop(at t: Double) {
         advance(to: t)
         wantedStop = true
@@ -198,6 +301,9 @@ private struct OutputRig {
             if !isRunning { linkStops += 1 }
         }
         if role == .direttore { apply(.directorStop) }
+        if interrupted {
+            clearPendingResume()
+        }
         if isRunning {
             isRunning = false
             engineRunning = false
@@ -224,6 +330,26 @@ private struct OutputRig {
         playbackStopped = true
     }
 
+    /// L'apertura e la chiusura dello show (`setShowOpen`).
+    mutating func openShow(at t: Double) {
+        advance(to: t)
+        showOpen = true
+        apply(.showOpened)
+    }
+
+    mutating func closeShow(at t: Double) {
+        advance(to: t)
+        showOpen = false
+        songInProgress = false
+        silentInSong = false
+        cancelReturns()
+        if isRunning && state.muted && mediaServicesNormal {
+            volume = 1.0
+            apply(.volumeRestored(externalPresent: externalPresent))
+        }
+        apply(.showClosed)
+    }
+
     /// Il cambio di percorso: la classe sul thread della notizia, poi il blocco della coda nell'ordine del par. 2.3 a.
     mutating func routeChange(at t: Double, to current: [OutputPort], rateChanges: Bool = false, modeChanges: Bool = false) {
         advance(to: t)
@@ -237,7 +363,7 @@ private struct OutputRig {
         // L'ordine del par. 2.3 a (alla lettera, dopo la verifica del diff): `mediaResetSkipsQ`; il silenzio (U3); lo stato
         // puro «uscita mancante» e, a una tolta, l'annullo dei ritorni (anche nel rimando dentro un'interruzione, che poi
         // esce); la crisi e l'arresto; i ritorni; la ripresa pendente; i rami di oggi. Fra la Lost e la Reset niente, nemmeno
-        // lo stato: la tolta persa la rilegge il primo avvio del Follower dopo la ricostruzione (`rebuiltAndPlay`).
+        // lo stato: la tolta persa la rilegge l'avvio del Follower dopo la ricostruzione (la rilettura a ogni avvio, par. 4.3).
         guard mediaServicesNormal else { return }
         if useRouteCrisis && step.silences { silenceNow() }
         if step.raisesMissing { apply(.removed) }
@@ -255,6 +381,7 @@ private struct OutputRig {
                     if isRunning { crisisStop() }
                 case .localStop:
                     crisisStop()
+                    playbackStopped = true
                 case .soloStopAsConsole:
                     deferredSoloStop = true
                 case .asToday, .nothing:
@@ -271,7 +398,7 @@ private struct OutputRig {
             case .follower?:
                 // Come il motore: solo col motore in moto e il volume a 0.
                 if isRunning && state.muted {
-                    followerReturn = FollowerReturn(noticeAt: t, armPending: true, unoAt: nil, chain: chain, fromTap: false)
+                    followerReturn = FollowerReturn(noticeAt: t, armPending: true, chain: chain, fromTap: false)
                 }
             case nil:
                 break
@@ -342,14 +469,43 @@ private struct OutputRig {
         activateSessionAndStart(trigger: trigger, at: t)
     }
 
-    /// La rilettura del percorso a un rientro automatico (U5).
+    /// La rilettura del percorso a un rientro automatico (U5) e, dal seguito 1, a ogni avvio del Follower (par. 4.3).
     mutating func recoveryRead() -> Bool {
         apply(.recoveryRead(externalPresent: externalPresent))
         return state.missing
     }
 
-    /// `activateSessionAndStart`, con le due letture di `RecoveryDecision`.
-    mutating func activateSessionAndStart(trigger: RecoveryTrigger, at t: Double) {
+    /// La ricostruzione del grafo (`rebuildGraph` → `reconnectGraphQ`, A420): ferma il motore di sistema che girava, con
+    /// `isRunning` che resta vero (lo riprende la rete del motore fermo).
+    mutating func rebuildGraph() {
+        rebuilds += 1
+        if engineRunning { engineRunning = false }
+    }
+
+    /// A421 · SEGUITO 1 (par. 3.2-3.3) — la regola con l'eccezione, e il no.
+    func activationAllowed(_ point: InterruptionActivationPoint, token: Int) -> Bool {
+        InterruptionActivationDecision.allowsActivation(point: point, systemInterruption: systemInterruption,
+                                                        mark: exceptionMark, chainToken: token, beginsCount: beginsCount,
+                                                        playerRole: role, silentInSong: silentInSong)
+    }
+
+    mutating func refuseActivation() {
+        refusals += 1
+        switch InterruptionActivationDecision.refusal(playerRole: role, isAudioInterrupted: interrupted,
+                                                      wantedStopSinceCrisis: wantedStop) {
+        case .nothing:
+            break
+        case .raisePending:
+            pendingResume = true
+        case .soloStop:
+            crisisCause = CrisisStopDecision.rememberedCause(previous: crisisCause, new: .interruption, playerRole: .solo)
+            soloStop()
+        }
+    }
+
+    /// `activateSessionAndStart`, con le due letture di `RecoveryDecision`, il contatore della catena, i tre punti della regola
+    /// del par. 3, i tentativi ogni 0,5 s e la rete a 5 s, le due finestre in cui un inizio d'interruzione passa in mezzo.
+    mutating func activateSessionAndStart(trigger: RecoveryTrigger, at t: Double, attempt: Int = 0, token: Int = -1) {
         guard mediaServicesNormal else { return }
         let missing = recoveryRead()
         let first = RecoveryDecision.route(trigger: trigger, playerRole: role, silentInSong: silentInSong,
@@ -358,14 +514,70 @@ private struct OutputRig {
             noteNoRestart(trigger: trigger, missing: missing)
             return
         }
-        if hardwareBusy {
-            pendingResume = true
+        var activeToken = token
+        if attempt == 0 {
+            resumeToken += 1
+            activeToken = resumeToken
+            exceptionMark = InterruptionActivationDecision.exceptionMark(trigger: trigger, attempt: attempt,
+                                                                         systemInterruption: systemInterruption, playerRole: role,
+                                                                         silentInSong: silentInSong, chainToken: activeToken,
+                                                                         beginsCount: beginsCount)
+            // Punto 1, al tentativo 0: prima di `setCategory`, della preferenza degli avvisi, dei canali, di `isOtherAudioPlaying`.
+            guard activationAllowed(.entry, token: activeToken) else {
+                refuseActivation()
+                return
+            }
+            sessionWrites += 1
+            if hardwareBusy {
+                pendingResume = true
+                return
+            }
+        } else if activeToken != resumeToken {
+            // La catena morta: come oggi, niente.
+            return
+        } else {
+            // Punto 1, ai tentativi dopo.
+            guard activationAllowed(.entry, token: activeToken) else {
+                refuseActivation()
+                return
+            }
+        }
+        // Il blocco della `setActive` (`audioQueue.async`): un inizio d'interruzione, o uno Stop voluto, può passare in mezzo.
+        if injectBeginBeforeSetActive {
+            injectBeginBeforeSetActive = false
+            interruptionBegan(at: t)
+        }
+        if injectStopBeforeSetActive {
+            injectStopBeforeSetActive = false
+            stop(at: t)
+        }
+        // Punto 2: prima il contatore della catena, poi la regola.
+        guard activeToken == resumeToken else {
+            deadChainsAtSetActive += 1
             return
         }
-        // La setActive riuscita.
+        guard activationAllowed(.setActive, token: activeToken) else {
+            refuseActivation()
+            return
+        }
+        setActiveAttempts += 1
+        if setActiveFailures > 0 {
+            setActiveFailures -= 1
+            if attempt >= 20 {
+                // I tentativi esauriti: la ripresa pendente e la rete a 5 s, con lo stesso contatore della catena.
+                pendingResume = true
+                safetyNet = RetryWait(fireAt: t + 5.0, trigger: .safetyNet, attempt: 1, token: activeToken)
+                return
+            }
+            retry = RetryWait(fireAt: t + 0.5, trigger: trigger, attempt: attempt + 1, token: activeToken)
+            return
+        }
+        // La setActive riuscita: lo stato giù, la ricostruzione Pro.
+        sessionWrites += 1
         interrupted = false
         pendingResume = false
         systemInterruption = false
+        if proMode { rebuildGraph() }
         let second = RecoveryDecision.route(trigger: trigger, playerRole: role, silentInSong: silentInSong,
                                             wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause,
                                             outputMissing: recoveryRead())
@@ -373,15 +585,22 @@ private struct OutputRig {
             noteNoRestart(trigger: trigger, missing: state.missing)
             return
         }
+        // `start()` in un suo blocco della coda: un inizio d'interruzione può passare in mezzo.
+        if injectBeginBeforeStart {
+            injectBeginBeforeStart = false
+            interruptionBegan(at: t)
+        }
         start(at: t, recovery: trigger)
     }
 
-    /// A ogni «niente» per l'uscita mancante (U5): l'interruzione giù se l'hardware è libero, se no la ripresa pendente in piedi.
+    /// A ogni «niente» per l'uscita mancante (U5): l'interruzione giù se l'hardware è libero, se no la ripresa pendente in piedi;
+    /// A421 · SEGUITO 1 (par. 5.2): col Direttore fuori da una canzone il player a «fermo».
     mutating func noteNoRestart(trigger: RecoveryTrigger, missing: Bool) {
         let reason = RecoveryDecision.noRestartReason(trigger: trigger, playerRole: role, silentInSong: silentInSong,
                                                       wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause,
                                                       outputMissing: missing)
         guard reason == .outputMissing else { return }
+        if role == .direttore && !silentInSong { playbackStopped = true }
         if !systemInterruption && !hardwareBusy {
             interrupted = false
         } else if hardwareBusy {
@@ -395,6 +614,12 @@ private struct OutputRig {
         guard !isRunning else { return }
         if recovery != nil && role == .direttore && recoveryRead() {
             refusedForMissing += 1
+            publishIsPlaying()
+            return
+        }
+        // A421 · SEGUITO 1 (par. 3.3, punto 3): per le sole ripartenze automatiche, la regola senza eccezione.
+        if recovery != nil && !activationAllowed(.start, token: resumeToken) {
+            refuseActivation()
             publishIsPlaying()
             return
         }
@@ -413,6 +638,8 @@ private struct OutputRig {
         if role == .direttore && silentInSong {
             target = nextBarTime(atOrAfter: t + margin)
         }
+        // A421 · SEGUITO 1 (par. 4.3): a ogni avvio del Follower che prosegue, la rilettura del percorso con la memoria.
+        if role == .follower { _ = recoveryRead() }
         volume = OutputRouteDecision.volumeForStart(playerRole: role, state: state)
         if volume == 0.0 {
             apply(.silenced)
@@ -421,8 +648,14 @@ private struct OutputRig {
         }
         engineRunning = true
         isRunning = true
-        // `engine.start()` riuscito chiude l'interruzione di sistema (A416 · SEGUITO 2).
+        // `engine.start()` riuscito chiude l'interruzione di sistema (A416 · SEGUITO 2) e — A421 · SEGUITO 1 (par. 3.5) — ogni
+        // ripresa in sospeso: il contatore della catena sale sempre.
         systemInterruption = false
+        if InterruptionActivationDecision.startClearsPendingWithLine(pendingResume: pendingResume, isAudioInterrupted: interrupted) {
+            clearPendingResume()
+        } else {
+            resumeToken += 1
+        }
         chain += 1
         starts += 1
         publishIsPlaying()
@@ -467,8 +700,17 @@ private struct OutputRig {
         scheduleNextBuffer(at: t)
     }
 
+    /// A421 · SEGUITO 1 — il ritorno del Follower si riarma con la stessa regola (`rearmFollowerReturnQ`).
+    mutating func rearmFollowerReturn() {
+        guard var armed = followerReturn, !armed.armPending else { return }
+        armed.armPending = true
+        followerReturn = armed
+        rearms += 1
+    }
+
     /// `scheduleNextBuffer`: la guardia, il motore di sistema fermo (par. 2.2 a), il drenaggio, il misuratore (U7, U8), il
-    /// ritorno del Follower (par. 2.2 c), l'assert o la correzione (U9), il buffer.
+    /// ritorno del Follower (par. 2.2 c; seguito 1, par. 2.2: le due ore, la rilettura dell'«uno», la guardia del primo
+    /// campione, la battuta dopo), l'assert o la correzione (U9), il buffer.
     mutating func scheduleNextBuffer(at t: Double, gapSeconds: Double? = nil, correction: Double? = nil) {
         guard isRunning else { return }
         if useStoppedEngineCheck && !engineRunning {
@@ -500,38 +742,84 @@ private struct OutputRig {
             case .lineOnly:
                 break
             }
+            // Seguito 1, par. 2.2: un buco visto dal misuratore con un ritorno armato: si riarma con la stessa regola.
+            rearmFollowerReturn()
         }
+        // La convenzione della correzione di fase (l'ora d'uscita di questo buffer) e l'ora del rendering (il prossimo buffer
+        // da rendere, con lo scarto): la prima dà il buffer dell'«uno», la seconda le due ore.
         let outputStart = t + latency + bufferSeconds
         let outputEnd = outputStart + bufferSeconds
+        let renderNext = outputStart + renderOffsetBuffers * bufferSeconds
         // Par. 2.3 b: un ritorno armato con una catena che non è più quella corrente si riarma con la stessa regola.
-        if var armed = followerReturn, !armed.armPending, armed.chain != chain {
-            armed.armPending = true
-            followerReturn = armed
+        if let armed = followerReturn, !armed.armPending, armed.chain != chain {
+            rearmFollowerReturn()
+        }
+        // Seguito 1, par. 2.2: la rilettura dell'«uno», a ogni chiamata col ritorno armato e un «uno» scelto.
+        if var armed = followerReturn, !armed.armPending, let uno = armed.uno {
+            switch OutputReturnDecision.refreshUno(saved: uno, clockNow: followerClock, rereadTicks: unoTime(for: uno).map(ticks)) {
+            case .rearm:
+                rearmFollowerReturn()
+            case .ticks(let at):
+                armed.unoAt = seconds(at)
+                followerReturn = armed
+            }
         }
         if var pending = followerReturn, pending.armPending {
-            let nextOutput = ticks(outputStart)
-            let end = OutputReturnDecision.programmedEndOutputTicks(nextBufferOutputTicks: nextOutput,
+            let end = OutputReturnDecision.programmedEndOutputTicks(nextBufferOutputTicks: ticks(renderNext),
                                                                     queuedAhead: OutputReturnDecision.queuedAheadBuffers,
                                                                     bufferTicks: ticks(bufferSeconds))
-            let deadline = pending.fromTap
-                ? OutputReturnDecision.tapDeadlineTicks(tapTicks: ticks(pending.noticeAt), ticksPerSecond: OutputRig.tps)
-                : OutputReturnDecision.followerDeadlineTicks(noticeTicks: ticks(pending.noticeAt), programmedEndOutputTicks: end,
-                                                             ticksPerSecond: OutputRig.tps)
-            pending.unoAt = nextBarTime(atOrAfter: seconds(deadline))
+            let deadline = OutputReturnDecision.followerDeadlineTicks(noticeTicks: ticks(pending.noticeAt), programmedEndOutputTicks: end,
+                                                                      ticksPerSecond: OutputRig.tps)
+            let next = nextUno(atOrAfter: seconds(deadline))
+            pending.deadlineAt = seconds(deadline)
+            pending.uno = next?.uno
+            pending.unoAt = next?.at
             pending.armPending = false
             pending.chain = chain
             followerReturn = pending
+            deadlineAt = pending.deadlineAt
+            programmedEndAt = seconds(end)
+            armedUnoAt = next?.at
         }
-        // U3 c: se questo buffer porta l'«uno», il volume torna ADESSO, prima che si calcoli il battito (due buffer prima del
-        // suo rendering), se le condizioni con cui il ritorno è stato armato reggono (par. 2.3 b).
-        if let pending = followerReturn, !pending.armPending, let uno = pending.unoAt,
-           OutputReturnDecision.bufferReachesUno(bufferOutputTicks: ticks(outputStart), bufferTicks: ticks(bufferSeconds),
-                                                 unoTicks: ticks(uno)) {
-            followerReturn = nil
-            if isRunning && !systemInterruption && !state.missing && state.muted && mediaServicesNormal {
-                volume = 1.0
-                apply(.volumeRestored(externalPresent: externalPresent))
-                raisedAt = t
+        // DA-SOLO: la linea propria si ri-àncora al buffer dopo il cambio di tempo (`ownClockPinQ`), fra l'armo e la guardia.
+        if ownRepinPending && followerClock == .own {
+            ownRepinPending = false
+            let beatNow = ownBeatAtChange + (t - ownChangeTime) * ownTimelineBPM / 60.0
+            ownTimeline = OwnClockTimeline(anchorTicks: ticks(t), anchorBeat: beatNow, bpm: ownTimelineBPM)
+        }
+        // U3 c e la guardia del primo campione (seguito 1, par. 2.2): se questo buffer porta l'«uno», il volume torna ADESSO, se
+        // le condizioni reggono e il primo campione a volume 1 non è prima della scadenza; se no la battuta dopo. Senza un
+        // «uno» calcolabile, alla prima chiamata col primo campione alla scadenza o dopo.
+        if var pending = followerReturn, !pending.armPending, let deadline = pending.deadlineAt {
+            let firstSample = seconds(OutputReturnDecision.firstSampleAtVolumeOneTicks(nextBufferOutputTicks: ticks(renderNext),
+                                                                                      bufferTicks: ticks(bufferSeconds),
+                                                                                      fallbackRead: fallbackRead))
+            let step = OutputReturnDecision.followerReturnStep(bufferOutputTicks: ticks(outputStart), bufferTicks: ticks(bufferSeconds),
+                                                               unoTicks: pending.unoAt.map(ticks), deadlineTicks: ticks(deadline),
+                                                               firstSampleTicks: ticks(firstSample))
+            let conditions = isRunning && !systemInterruption && !state.missing && state.muted && mediaServicesNormal
+            switch step {
+            case .wait:
+                break
+            case .nextBar:
+                if !conditions {
+                    followerReturn = nil
+                } else if let uno = pending.uno, let next = OutputReturnDecision.nextBarUno(uno, beatsPerBar: beatsPerBar) {
+                    pending.uno = next
+                    pending.unoAt = unoTime(for: next)
+                    if pending.unoAt == nil { pending.armPending = true }
+                    followerReturn = pending
+                    nextBarMoves += 1
+                }
+            case .restore:
+                followerReturn = nil
+                if conditions {
+                    volume = 1.0
+                    apply(.volumeRestored(externalPresent: externalPresent))
+                    raisedAt = t
+                    firstSampleAt = firstSample
+                    restoredUnoAt = pending.unoAt
+                }
             }
         }
         var mutedThisBuffer = false
@@ -556,10 +844,10 @@ private struct OutputRig {
         if queued.count > 3 { queued.removeFirst() }
     }
 
-    /// I richiami a ogni buffer, da `from`, `count` volte.
-    mutating func callbacks(from: Double, count: Int, correction: Double? = nil) {
+    /// I richiami a ogni buffer, da `from`, `count` volte; `late`: ogni secondo richiamo in ritardo di tanti buffer.
+    mutating func callbacks(from: Double, count: Int, correction: Double? = nil, late: Double = 0.0) {
         for i in 0..<count {
-            let t = from + Double(i) * bufferSeconds
+            let t = from + Double(i) * bufferSeconds + (i % 2 == 1 ? late * bufferSeconds : 0.0)
             advance(to: t)
             scheduleNextBuffer(at: t, correction: correction)
         }
@@ -588,6 +876,21 @@ private struct OutputRig {
         }
     }
 
+    /// Il tentativo ogni 0,5 s e la rete a 5 s (par. 3): la rete rientra solo con la ripresa pendente e lo stesso contatore.
+    mutating func fireRetry(_ wait: RetryWait, at t: Double) {
+        activateSessionAndStart(trigger: wait.trigger, at: t, attempt: wait.attempt, token: wait.token)
+    }
+
+    mutating func fireSafetyNet(_ wait: RetryWait, at t: Double) {
+        guard pendingResume, resumeToken == wait.token else {
+            safetyNetSkipped += 1
+            return
+        }
+        safetyNetFired += 1
+        pendingResume = false
+        activateSessionAndStart(trigger: .safetyNet, at: t, attempt: 1, token: wait.token)
+    }
+
     /// Il tempo passa fino a `t`: le attese scadute scattano nell'ordine.
     mutating func advance(to t: Double) {
         guard t > now else { return }
@@ -596,23 +899,41 @@ private struct OutputRig {
             if let d = directorReturn, d.fireAt <= t { due.append((d.fireAt, 0)) }
             if let n = netAt, n <= t { due.append((n, 2)) }
             if let j = rejoin, j.fireAt <= t { due.append((j.fireAt, 3)) }
+            if let r = retry, r.fireAt <= t { due.append((r.fireAt, 4)) }
+            if let s = safetyNet, s.fireAt <= t { due.append((s.fireAt, 5)) }
             guard let next = due.min(by: { $0.0 < $1.0 }) else { break }
             now = max(now, next.0)
             switch next.1 {
             case 0: fireDirectorReturn(at: next.0)
             case 2: fireNet(at: next.0)
-            default: fireRejoin(at: next.0)
+            case 3: fireRejoin(at: next.0)
+            case 4:
+                let wait = retry!
+                retry = nil
+                fireRetry(wait, at: next.0)
+            default:
+                let wait = safetyNet!
+                safetyNet = nil
+                fireSafetyNet(wait, at: next.0)
             }
         }
         now = t
     }
 
-    // MARK: - Interruzioni, servizi, ruolo, tocco, risveglio
+    // MARK: - Interruzioni, servizi, ruolo, tocco, risveglio, orologi
 
     mutating func interruptionBegan(at t: Double) {
         advance(to: t)
         systemInterruption = true
+        beginsCount += 1
         cancelReturns()
+        // Seguito 1, par. 3.3: il Solo con la ripresa pendente già alzata dalla sua catena la perde e si ferma come allo Stop.
+        if InterruptionActivationDecision.soloLosesPendingAtBegin(playerRole: role, pendingResume: pendingResume) {
+            clearPendingResume()
+            crisisCause = CrisisStopDecision.rememberedCause(previous: crisisCause, new: .interruption, playerRole: .solo)
+            soloStop()
+            return
+        }
         switch crisis(.interruption) {
         case .soloStopAsConsole:
             soloStop()
@@ -631,6 +952,7 @@ private struct OutputRig {
         crisisStop()
     }
 
+    /// La fine dell'interruzione: la ripresa pendente, la guardia, l'hardware occupato, la ricostruzione del grafo e la ripartenza.
     mutating func interruptionEnded(at t: Double, hardwareBusy busy: Bool = false) {
         advance(to: t)
         systemInterruption = false
@@ -645,6 +967,7 @@ private struct OutputRig {
             pendingResume = true
             return
         }
+        rebuildGraph()
         activateSessionAndStart(trigger: .interruptionEnded, at: t)
     }
 
@@ -667,14 +990,11 @@ private struct OutputRig {
         interrupted = false
     }
 
-    /// La ricostruzione al Play dopo il reset.
+    /// La ricostruzione al Play dopo il reset (la rilettura del Follower la fa `start()`, a ogni avvio: par. 4.3).
     mutating func rebuiltAndPlay(at t: Double) {
         mediaServicesNormal = true
         isRunning = false
         engineRunning = false
-        // Come `start()` dopo `rebuildAfterMediaResetQ`: il Follower rilegge il percorso dalla memoria (U5), per la tolta persa
-        // fra la Lost e la Reset.
-        if role == .follower { _ = recoveryRead() }
         start(at: t, recovery: nil)
     }
 
@@ -703,7 +1023,7 @@ private struct OutputRig {
         apply(.speakerTap)
         // Sul motore morto (fra la Lost e la Reset) solo lo stato: il volume lo riscrive `start()` dopo il reset (A408).
         if isRunning && state.muted && mediaServicesNormal {
-            followerReturn = FollowerReturn(noticeAt: t, armPending: true, unoAt: nil, chain: chain, fromTap: true)
+            followerReturn = FollowerReturn(noticeAt: t, armPending: true, chain: chain, fromTap: true)
         }
     }
 
@@ -723,6 +1043,36 @@ private struct OutputRig {
     mutating func pedalPlayPause(at t: Double) {
         if isPlaying { stop(at: t) } else { start(at: t, recovery: nil) }
     }
+
+    /// Un cambio di tempo della sessione Link: la linea si ri-àncora qui, i battiti restano dove sono.
+    mutating func linkTempoChange(to newBPM: Double, at t: Double) {
+        advance(to: t)
+        linkAnchorBeat = linkBeat(at: t)
+        linkAnchorTime = t
+        bpm = newBPM
+    }
+
+    /// La soglia di DA SOLO: il Follower passa alla linea propria, ancorata qui sulla griglia di Link, con l'ultimo «uno».
+    mutating func goOwnClock(at t: Double) {
+        advance(to: t)
+        followerClock = .own
+        ownTimelineBPM = bpm
+        let beat = linkBeat(at: t)
+        ownTimeline = OwnClockTimeline(anchorTicks: ticks(t), anchorBeat: beat, bpm: bpm)
+        lastUnoBeat = (beat / Double(beatsPerBar)).rounded(.down) * Double(beatsPerBar)
+    }
+
+    /// Un cambio di tempo della sezione DA-SOLO: la linea propria si butta e si ri-àncora al buffer dopo.
+    mutating func ownSectionTempoChange(to newBPM: Double, at t: Double) {
+        advance(to: t)
+        if let timeline = ownTimeline {
+            ownBeatAtChange = timeline.beat(atTicks: ticks(t), ticksPerSecond: OutputRig.tps)
+        }
+        ownChangeTime = t
+        ownTimelineBPM = newBPM
+        ownTimeline = nil
+        ownRepinPending = true
+    }
 }
 
 final class OutputCrisisSequenceTests: XCTestCase {
@@ -731,14 +1081,37 @@ final class OutputCrisisSequenceTests: XCTestCase {
     private let headphones = OutputPort(type: "Headphones", uid: "Wired Headphones")
     private let bluetooth = OutputPort(type: "BluetoothA2DPOutput", uid: "00:11:22:33:44:55-tacl")
     private let usb = OutputPort(type: "USBAudio", uid: "AppleUSBAudioEngine:Focusrite")
+    private let usb2 = OutputPort(type: "USBAudio", uid: "AppleUSBAudioEngine:Behringer")
 
     /// Un rig col click in moto in canzone, sul percorso dato.
     private func playing(_ role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
-                         at t: Double = 10.0) -> OutputRig {
-        var rig = OutputRig(role: role, route: route, bpm: bpm, beatsPerBar: beatsPerBar)
+                         at t: Double = 10.0, bufferSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0,
+                         fallbackRead: Bool = false) -> OutputRig {
+        var rig = OutputRig(role: role, route: route, bpm: bpm, beatsPerBar: beatsPerBar, bufferSeconds: bufferSeconds,
+                            renderOffsetBuffers: renderOffsetBuffers, fallbackRead: fallbackRead)
         rig.start(at: t, recovery: nil)
         rig.callbacks(from: t + rig.bufferSeconds, count: 50)
         return rig
+    }
+
+    /// L'invariante del par. 2.3: nessun campione a volume 1 prima della scadenza, e senza buchi né cambi d'orologio il ritorno
+    /// al più una battuta dopo l'«uno» scelto all'armo.
+    private func checkReturnInvariants(_ rig: OutputRig, _ tag: String, oneBarAtMost: Bool = true,
+                                       file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(rig.volume, 1.0, "il volume non e' tornato: \(tag)", file: file, line: line)
+        guard let first = rig.firstSampleAt, let deadline = rig.deadlineAt else {
+            XCTFail("nessun ritorno registrato: \(tag)", file: file, line: line)
+            return
+        }
+        XCTAssertGreaterThanOrEqual(first, deadline - 1e-9, "primo campione a volume 1 prima della scadenza: \(tag)", file: file, line: line)
+        if let end = rig.programmedEndAt {
+            XCTAssertGreaterThanOrEqual(first, end + 0.040 - 1e-9, "i buffer programmati non sono usciti: \(tag)", file: file, line: line)
+        }
+        if oneBarAtMost, let armed = rig.armedUnoAt, let restored = rig.restoredUnoAt {
+            XCTAssertLessThanOrEqual(restored, armed + rig.barSeconds + 1e-6, "piu' di una battuta dopo l'uno dell'armo: \(tag)",
+                                     file: file, line: line)
+            XCTAssertGreaterThanOrEqual(restored, armed - 1e-6, "prima dell'uno dell'armo: \(tag)", file: file, line: line)
+        }
     }
 
     // MARK: - Le sequenze del 24/10 (par. 4, punti 1-4)
@@ -897,7 +1270,8 @@ final class OutputCrisisSequenceTests: XCTestCase {
     }
 
     /// (3) Lo stesso sul Follower: il volume a 0 col motore in moto, i richiami tardivi a volume 0, poi l'attacco; il render
-    /// riparte 684 ms dopo: il volume torna al primo «uno» di Link dopo le due ore, al calcolo del suo buffer (U3 c).
+    /// riparte 684 ms dopo: il volume torna al primo «uno» di Link dopo le due ore, al calcolo del suo buffer (U3 c), col
+    /// primo campione a volume 1 alla scadenza o dopo (seguito 1, par. 2.2).
     func testWiredHeadphonesWithTheRenderRestarting684msLaterOnTheFollower() {
         var rig = playing(.follower, route: [headphones], at: 50.0)
         rig.routeChange(at: 55.0, to: [speaker])
@@ -916,9 +1290,11 @@ final class OutputCrisisSequenceTests: XCTestCase {
         let firstCall = 58.806 + 0.684
         let deadline = firstCall + rig.latency + rig.bufferSeconds + 3 * rig.bufferSeconds + 0.040
         XCTAssertGreaterThan(deadline, 58.806 + 0.3, "vince la fine dei buffer programmati")
+        XCTAssertEqual(rig.deadlineAt!, deadline, accuracy: 1e-6)
         XCTAssertGreaterThanOrEqual(uno, deadline)
         let bars = uno / (4 * 60.0 / 121.0)
         XCTAssertEqual(bars, bars.rounded(), accuracy: 1e-6, "un «uno» di battuta di Link")
+        XCTAssertEqual(rig.followerReturn!.uno!.clock, .link)
         rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
         XCTAssertNotNil(rig.raisedAt)
@@ -926,6 +1302,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
                                  "al calcolo del buffer dell'«uno», prima del suo rendering (U3 c)")
         XCTAssertGreaterThanOrEqual(rig.raisedAt!, uno - rig.latency - 2 * rig.bufferSeconds - 1e-9)
         XCTAssertNil(rig.followerReturn)
+        checkReturnInvariants(rig, "684 ms")
     }
 
     /// (3) Nel Solo la tolta ferma come allo Stop («Resume from», pulizia, `isPlaying` falso); l'uscita che compare resta
@@ -1180,6 +1557,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertTrue(rig.state.missing)
         rig.interruptionEnded(at: 12.0)
         XCTAssertFalse(rig.isRunning, "nessuna ripartenza automatica")
+        XCTAssertTrue(rig.playbackStopped, "seguito 1, par. 5.2: il player a fermo")
         rig.advance(to: 15.0)
         XCTAssertEqual(rig.starts, 1)
         rig.start(at: 16.0, recovery: nil)
@@ -1204,6 +1582,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertNotNil(rig.followerReturn?.unoAt)
         rig.callbacks(from: 10.9 + rig.bufferSeconds, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
+        checkReturnInvariants(rig, "attesa d'ingresso")
     }
 
     /// Il battito in ritardo zittito (U9): una correzione che scavalca il pendente di più di un buffer non scrive campioni e
@@ -1224,8 +1603,8 @@ final class OutputCrisisSequenceTests: XCTestCase {
     }
 
     /// Il Follower dopo la Lost con un ritorno in attesa: nessun riarmo; fra la Lost e la Reset la notizia non tocca nemmeno lo
-    /// stato (par. 2.3 a alla lettera); la tolta persa la rilegge il primo avvio dopo la ricostruzione (U5, dalla memoria
-    /// dell'ultima uscita a volume 1), e il volume lo scrive `start()`.
+    /// stato (par. 2.3 a alla lettera); la tolta persa la rilegge l'avvio dopo la ricostruzione (U5, dalla memoria dell'ultima
+    /// uscita a volume 1: dal seguito 1 la rilettura di ogni avvio del Follower), e il volume lo scrive `start()`.
     func testTheFollowerAfterTheLostWithAReturnPendingDoesNotRearm() {
         var rig = playing(.follower, route: [headphones])
         rig.routeChange(at: 11.0, to: [speaker])
@@ -1241,7 +1620,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertFalse(rig.state.missing, "coi servizi persi la notizia non tocca nemmeno lo stato")
         XCTAssertNil(rig.followerReturn)
         rig.rebuiltAndPlay(at: 20.0)
-        XCTAssertTrue(rig.state.missing, "la rilettura al primo avvio dopo la ricostruzione: l'ultima uscita era esterna")
+        XCTAssertTrue(rig.state.missing, "la rilettura all'avvio dopo la ricostruzione: l'ultima uscita era esterna")
         XCTAssertEqual(rig.volume, 0.0, "il volume lo scrive start(), dallo stato: l'uscita manca")
         rig.routeChange(at: 21.0, to: [headphones])
         rig.callbacks(from: 21.05, count: 400)
@@ -1355,7 +1734,8 @@ final class OutputCrisisSequenceTests: XCTestCase {
     }
 
     /// Il tocco «altoparlante» del Follower (par. 2.2 g): abbassa «uscita mancante» e il volume torna al primo «uno» almeno
-    /// 0,3 s dopo il tocco; una tolta dopo rimette la regola.
+    /// 0,3 s dopo il tocco (seguito 1: con la regola della notizia, senza buco vince l'ora del tocco); una tolta dopo rimette la
+    /// regola.
     func testTheSpeakerTap() {
         var rig = playing(.follower, route: [headphones])
         rig.routeChange(at: 11.0, to: [speaker])
@@ -1366,8 +1746,10 @@ final class OutputCrisisSequenceTests: XCTestCase {
         rig.callbacks(from: 12.01, count: 1)
         let uno = rig.followerReturn!.unoAt!
         XCTAssertGreaterThanOrEqual(uno, 12.3)
+        XCTAssertEqual(rig.deadlineAt!, 12.3, accuracy: 1e-6, "senza buco vince l'ora del tocco")
         rig.callbacks(from: 12.01 + rig.bufferSeconds, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
+        checkReturnInvariants(rig, "tocco")
         rig.routeChange(at: 20.0, to: [headphones])
         rig.callbacks(from: 20.05, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
@@ -1420,5 +1802,617 @@ final class OutputCrisisSequenceTests: XCTestCase {
         wanted.drainPending = true
         wanted.stop(at: 11.0)
         XCTAssertEqual(wanted.drainDelivered, 0, "lo Stop voluto chiude senza consegnare")
+    }
+
+    // MARK: - A421 · SEGUITO 1, par. 2.3: nessun campione a volume 1 prima della scadenza
+
+    /// Il tocco col render che riparte circa 680 ms dopo (il buco del 24/10, 13:59): la prima chiamata dopo il tocco è quella
+    /// dopo il buco; la scadenza è la fine dei buffer programmati più la coda del click, non «0,3 s dopo il tocco»: i due
+    /// buffer di prima del buco escono a volume 0, e il volume torna all'«uno» dopo.
+    func testTheTapInsideARenderHoleWaitsForTheProgrammedBuffers() {
+        for (offset, fallback) in [(0.0, false), (-1.0, false), (2.0, false), (0.0, true), (-1.0, true)] {
+            var rig = playing(.follower, route: [headphones], at: 50.0, renderOffsetBuffers: offset, fallbackRead: fallback)
+            rig.routeChange(at: 55.0, to: [speaker])
+            rig.callbacks(from: 55.011, count: 40)
+            XCTAssertEqual(rig.volume, 0.0)
+            // Il tocco dentro il buco: nessuna chiamata fino alla ripartenza del render.
+            rig.speakerTap(at: 55.6)
+            XCTAssertTrue(rig.followerReturn!.armPending)
+            let firstCall = 55.6 + 0.68
+            rig.advance(to: firstCall)
+            rig.scheduleNextBuffer(at: firstCall, gapSeconds: 0.68)
+            XCTAssertFalse(rig.followerReturn!.armPending, "armato alla prima chiamata dopo il buco")
+            let end = firstCall + rig.latency + rig.bufferSeconds + offset * rig.bufferSeconds + 3 * rig.bufferSeconds
+            XCTAssertEqual(rig.programmedEndAt!, end, accuracy: 1e-6, "offset \(offset)")
+            XCTAssertEqual(rig.deadlineAt!, end + 0.040, accuracy: 1e-6, "vince la fine dei buffer, non il tocco + 0,3 s")
+            XCTAssertGreaterThan(rig.deadlineAt!, 55.6 + 0.3)
+            XCTAssertEqual(rig.volume, 0.0, "nessun ritorno nella chiamata dopo il buco")
+            rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
+            checkReturnInvariants(rig, "tocco nel buco offset:\(offset) riserva:\(fallback)")
+            XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, end + 0.040 - 1e-9, "i due buffer di prima del buco a volume 0")
+        }
+    }
+
+    /// Il tocco senza buco: la scadenza è l'ora del tocco più 0,3 s; il volume torna al primo «uno» dopo, o alla battuta dopo
+    /// se il primo campione a volume 1 cadrebbe prima della scadenza (lo scarto negativo e la lettura di riserva).
+    func testTheTapWithoutAHoleReturnsAtTheFirstUnoAfterTheTwoTimesOrTheNextBar() {
+        // L'«uno» subito dopo la scadenza: a 121, 4/4, la battuta 30 cade a 59.504; il tocco 0,305 s prima.
+        let bar = 30.0 * 4 * 60.0 / 121.0
+        for (offset, fallback, moves) in [(2.0, false, 0), (0.0, false, 1), (-1.0, false, 1), (0.0, true, 1)] {
+            var rig = playing(.follower, route: [headphones], at: 50.0, renderOffsetBuffers: offset, fallbackRead: fallback)
+            rig.routeChange(at: 55.0, to: [speaker])
+            rig.callbacks(from: 55.011, count: 100)
+            let tapAt = bar - 0.305
+            rig.speakerTap(at: tapAt)
+            rig.callbacks(from: tapAt + 0.004, count: 1)
+            XCTAssertEqual(rig.deadlineAt!, tapAt + 0.3, accuracy: 1e-6)
+            XCTAssertEqual(rig.armedUnoAt!, bar, accuracy: 1e-6, "il primo uno dopo le due ore")
+            rig.callbacks(from: tapAt + 0.004 + rig.bufferSeconds, count: 400)
+            checkReturnInvariants(rig, "tocco senza buco offset:\(offset) riserva:\(fallback)")
+            XCTAssertEqual(rig.nextBarMoves, moves, "offset:\(offset) riserva:\(fallback)")
+            if moves == 1 {
+                XCTAssertEqual(rig.restoredUnoAt!, bar + rig.barSeconds, accuracy: 1e-6, "la battuta dopo")
+            } else {
+                XCTAssertEqual(rig.restoredUnoAt!, bar, accuracy: 1e-6)
+            }
+        }
+    }
+
+    /// Un buco del render che comincia dopo la chiamata dell'armo: il misuratore lo vede alla prima chiamata dopo, il ritorno
+    /// si riarma e le due ore si rifanno da lì; i buffer programmati prima del buco escono a volume 0.
+    func testAHoleAfterTheArmingCallRearmsTheReturn() {
+        var rig = playing(.follower, route: [headphones], at: 50.0)
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.011, count: 40)
+        rig.routeChange(at: 58.0, to: [headphones])
+        rig.callbacks(from: 58.004, count: 2)
+        XCTAssertFalse(rig.followerReturn!.armPending)
+        let firstDeadline = rig.deadlineAt!
+        XCTAssertEqual(firstDeadline, 58.3, accuracy: 1e-6)
+        // Il buco: nessuna chiamata per 0,68 s, poi la prima dopo col buco visto dal misuratore.
+        let afterHole = 58.004 + 2 * rig.bufferSeconds + 0.68
+        rig.advance(to: afterHole)
+        rig.scheduleNextBuffer(at: afterHole, gapSeconds: 0.68)
+        XCTAssertEqual(rig.rearms, 1, "il ritorno si riarma")
+        XCTAssertFalse(rig.followerReturn!.armPending, "e si arma di nuovo nella stessa chiamata")
+        let end = afterHole + rig.latency + 4 * rig.bufferSeconds
+        XCTAssertEqual(rig.deadlineAt!, end + 0.040, accuracy: 1e-6, "le due ore rifatte dalla prima chiamata dopo il buco")
+        XCTAssertGreaterThan(rig.deadlineAt!, firstDeadline)
+        XCTAssertEqual(rig.volume, 0.0)
+        rig.callbacks(from: afterHole + rig.bufferSeconds, count: 400)
+        checkReturnInvariants(rig, "buco dopo l'armo", oneBarAtMost: false)
+        XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, end + 0.040 - 1e-9)
+    }
+
+    /// L'orologio che passa da Link a DA-SOLO mentre il ritorno aspetta: alla chiamata dopo il ritorno si riarma e l'«uno»
+    /// viene dalla linea propria.
+    func testAClockChangeFromLinkToOwnWhileWaitingRearms() {
+        var rig = playing(.follower, route: [headphones], at: 50.0)
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.011, count: 40)
+        rig.routeChange(at: 58.0, to: [headphones])
+        rig.callbacks(from: 58.004, count: 2)
+        XCTAssertEqual(rig.followerReturn!.uno!.clock, .link)
+        rig.goOwnClock(at: 58.05)
+        rig.callbacks(from: 58.06, count: 1)
+        XCTAssertEqual(rig.rearms, 1)
+        XCTAssertEqual(rig.followerReturn!.uno!.clock, .own, "l'uno dalla linea propria")
+        XCTAssertFalse(rig.followerReturn!.armPending)
+        rig.callbacks(from: 58.06 + rig.bufferSeconds, count: 400)
+        checkReturnInvariants(rig, "Link -> proprio", oneBarAtMost: false)
+    }
+
+    /// Un cambio di tempo fra l'armo e l'«uno»: il battito dell'«uno» resta sulla battuta, la sua ora si rilegge a ogni chiamata
+    /// e il volume torna al calcolo del buffer dell'«uno» all'ora nuova.
+    func testATempoChangeBetweenTheArmingAndTheUnoKeepsTheUnoOnTheBar() {
+        var rig = playing(.follower, route: [headphones], at: 50.0)
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.011, count: 40)
+        rig.routeChange(at: 58.0, to: [headphones])
+        rig.callbacks(from: 58.004, count: 2)
+        let unoBeat = rig.followerReturn!.uno!.beat
+        let unoBefore = rig.followerReturn!.unoAt!
+        rig.linkTempoChange(to: 160, at: 58.1)
+        rig.callbacks(from: 58.11, count: 1)
+        XCTAssertEqual(rig.rearms, 0, "nessun riarmo: lo stesso orologio")
+        XCTAssertEqual(rig.followerReturn!.uno!.beat, unoBeat, "il battito resta")
+        let unoAfter = rig.followerReturn!.unoAt!
+        XCTAssertEqual(unoAfter, rig.time(ofBeat: unoBeat), accuracy: 1e-9)
+        XCTAssertLessThan(unoAfter, unoBefore, "a 160 l'uno arriva prima")
+        rig.callbacks(from: 58.11 + rig.bufferSeconds, count: 400)
+        XCTAssertEqual(rig.volume, 1.0)
+        XCTAssertEqual(rig.restoredUnoAt!, unoAfter, accuracy: 1e-9, "all'ora nuova")
+        XCTAssertLessThanOrEqual(rig.raisedAt!, unoAfter - rig.latency - rig.bufferSeconds + 1e-9)
+        XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, rig.deadlineAt! - 1e-9)
+    }
+
+    /// L'ora dell'«uno» che non si può rileggere (DA-SOLO, un cambio di tempo della sezione butta la linea propria): il ritorno
+    /// si riarma; senza un «uno» calcolabile il volume torna alla prima chiamata col primo campione alla scadenza o dopo.
+    func testAnUnreadableUnoRearmsAndFallsBackToTheDeadline() {
+        var rig = playing(.follower, route: [headphones], at: 50.0)
+        rig.goOwnClock(at: 54.0)
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.011, count: 40)
+        rig.routeChange(at: 58.0, to: [headphones])
+        rig.callbacks(from: 58.004, count: 2)
+        XCTAssertEqual(rig.followerReturn!.uno!.clock, .own)
+        rig.ownSectionTempoChange(to: 140, at: 58.05)
+        rig.callbacks(from: 58.06, count: 1)
+        XCTAssertEqual(rig.rearms, 1, "l'uno non si rilegge: si riarma")
+        XCTAssertNil(rig.followerReturn!.uno, "all'armo la linea propria manca: uno non calcolabile")
+        XCTAssertNotNil(rig.ownTimeline, "la linea si ri-àncora al buffer dopo")
+        XCTAssertEqual(rig.volume, 0.0)
+        rig.callbacks(from: 58.06 + rig.bufferSeconds, count: 400)
+        XCTAssertEqual(rig.volume, 1.0)
+        XCTAssertNil(rig.restoredUnoAt, "senza un uno")
+        XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, rig.deadlineAt! - 1e-9)
+        XCTAssertLessThan(rig.firstSampleAt!, rig.deadlineAt! + 2 * rig.bufferSeconds + 1e-9, "alla prima chiamata dopo la scadenza")
+    }
+
+    /// Dentro un'interruzione (BOX5 :1735, seconda parte): un ritorno passato alla battuta dopo e un inizio d'interruzione
+    /// prima dell'«uno»: il ritorno si annulla e il volume non si scrive.
+    func testAReturnMovedToTheNextBarIsCancelledByAnInterruptionBegin() {
+        let bar = 30.0 * 4 * 60.0 / 121.0
+        var rig = playing(.follower, route: [headphones], at: 50.0, renderOffsetBuffers: -1.0)
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.011, count: 100)
+        rig.speakerTap(at: bar - 0.305)
+        rig.callbacks(from: bar - 0.301, count: 40)
+        XCTAssertEqual(rig.nextBarMoves, 1, "alla battuta dopo")
+        XCTAssertNotNil(rig.followerReturn, "resta armato")
+        XCTAssertEqual(rig.volume, 0.0)
+        rig.interruptionBegan(at: bar + 0.5)
+        XCTAssertNil(rig.followerReturn, "l'inizio dell'interruzione annulla il ritorno")
+        XCTAssertFalse(rig.isRunning)
+        rig.callbacks(from: bar + 0.6, count: 400)
+        XCTAssertEqual(rig.volume, 0.0, "il volume non si scrive")
+        XCTAssertNil(rig.raisedAt)
+    }
+
+    /// L'invariante su tutta la griglia del par. 2.3: il ciclo d'uscita di 5,33, 6,67, 10,67 e 21,33 ms, lo scarto fra le due
+    /// ore da -1 a +2 buffer, il richiamo in ritardo fino a un buffer, la lettura di riserva; la notizia col buco del 24/10 e
+    /// il tocco senza buco, a 121 e a 180,5. In ogni caso nessun campione a volume 1 prima della scadenza, e il ritorno al più
+    /// una battuta dopo l'«uno» scelto all'armo.
+    func testNoSampleAtVolumeOneBeforeTheDeadlineAcrossCyclesOffsetsAndLateCallbacks() {
+        let cycles = [256.0 / 48_000.0, 320.0 / 48_000.0, 512.0 / 48_000.0, 1024.0 / 48_000.0]
+        var cases = 0
+        for cycle in cycles {
+            for offset in [-1.0, 0.0, 1.0, 2.0] {
+                for late in [0.0, 0.5, 1.0] {
+                    for fallback in [false, true] {
+                        for bpm in [121.0, 180.5] {
+                            let tag = "ciclo:\(cycle) scarto:\(offset) ritardo:\(late) riserva:\(fallback) tempo:\(bpm)"
+                            // La notizia col buco del 24/10.
+                            var notice = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, bufferSeconds: cycle,
+                                                 renderOffsetBuffers: offset, fallbackRead: fallback)
+                            notice.routeChange(at: 55.0, to: [speaker])
+                            notice.callbacks(from: 55.011, count: 30, late: late)
+                            notice.routeChange(at: 58.806, to: [headphones])
+                            let firstCall = 58.806 + 0.684
+                            notice.advance(to: firstCall)
+                            notice.scheduleNextBuffer(at: firstCall, gapSeconds: 0.684)
+                            notice.callbacks(from: firstCall + cycle, count: 1200, late: late)
+                            checkReturnInvariants(notice, "notizia " + tag)
+                            // Il tocco senza buco.
+                            var tap = playing(.follower, route: [headphones], bpm: bpm, at: 50.0, bufferSeconds: cycle,
+                                              renderOffsetBuffers: offset, fallbackRead: fallback)
+                            tap.routeChange(at: 55.0, to: [speaker])
+                            tap.callbacks(from: 55.011, count: 30, late: late)
+                            tap.speakerTap(at: 56.0)
+                            tap.callbacks(from: 56.004, count: 1200, late: late)
+                            checkReturnInvariants(tap, "tocco " + tag)
+                            cases += 2
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(cases, 4 * 4 * 3 * 2 * 2 * 2)
+    }
+
+    // MARK: - A421 · SEGUITO 1, par. 3.4: con l'interruzione in corso nessuna ripartenza automatica tocca sessione o motore
+
+    /// (a) Il ritorno del Direttore (uscita_aggiunta) con `setCategory` fatto e un inizio d'interruzione prima del blocco della
+    /// `setActive`: niente `setActive`; alla fine il rientro passa dal coordinatore.
+    func testTheDirectorReturnWithABeginBeforeTheSetActiveBlock() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.routeChange(at: 11.0, to: [headphones])
+        XCTAssertNotNil(rig.directorReturn)
+        let setActives = rig.setActiveAttempts
+        rig.injectBeginBeforeSetActive = true
+        rig.advance(to: 12.0)
+        XCTAssertEqual(rig.setActiveAttempts, setActives, "niente setActive con l'interruzione in corso")
+        XCTAssertEqual(rig.refusals, 1)
+        XCTAssertTrue(rig.systemInterruption)
+        XCTAssertTrue(rig.interrupted)
+        XCTAssertFalse(rig.pendingResume, "isAudioInterrupted vero: niente da alzare")
+        XCTAssertEqual(rig.starts, 1)
+        rig.interruptionEnded(at: 13.0)
+        rig.advance(to: 17.0)
+        XCTAssertEqual(rig.rejoins, 1, "alla fine il rientro dal coordinatore")
+        XCTAssertEqual(rig.setActiveAttempts, setActives + 1)
+    }
+
+    /// (b) I tentativi ogni 0,5 s di una catena che non è quella del ritorno in primo piano (uscita_aggiunta) con
+    /// un'interruzione che comincia in mezzo: il tentativo dopo non scrive niente; alla fine il rientro.
+    func testTheRetriesOfAnotherChainWithABeginInBetween() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.setActiveFailures = 3
+        rig.routeChange(at: 11.0, to: [headphones])
+        rig.advance(to: 11.2)
+        XCTAssertEqual(rig.setActiveAttempts, 1, "il tentativo 0 ha provato la setActive")
+        XCTAssertNotNil(rig.retry)
+        rig.interruptionBegan(at: 11.3)
+        rig.advance(to: 12.0)
+        XCTAssertEqual(rig.setActiveAttempts, 1, "il tentativo dopo non scrive niente")
+        XCTAssertEqual(rig.refusals, 1)
+        XCTAssertNil(rig.retry, "la catena finisce li'")
+        XCTAssertFalse(rig.pendingResume)
+        rig.interruptionEnded(at: 13.0)
+        rig.advance(to: 17.0)
+        XCTAssertEqual(rig.rejoins, 1)
+    }
+
+    /// (c) La ripresa pendente rimasta e un risveglio dentro una seconda interruzione, per il Follower e per il Direttore fuori
+    /// da una canzone: il risveglio la toglie, la regola non scrive niente e la rialza (`isAudioInterrupted` falso); alla fine
+    /// la recupera.
+    func testTheWakeupWithAPendingResumeInsideASecondInterruption() {
+        for role in [PlayerRole.follower, .direttore] {
+            var rig = playing(role, route: [speaker], at: 10.0)
+            if role == .direttore { rig.songInProgress = false }
+            // Una catena di ripartenza in volo (la configurazione) col motore già fermo quando l'interruzione comincia.
+            rig.setActiveFailures = 2
+            rig.systemStopsEngine(at: 11.0)
+            rig.configurationNotification(at: 11.1)
+            XCTAssertEqual(rig.setActiveAttempts, 1, "\(role)")
+            rig.interruptionBegan(at: 11.3)
+            XCTAssertFalse(rig.interrupted, "\(role): motore già fermo, isAudioInterrupted resta basso")
+            rig.advance(to: 11.7)
+            XCTAssertEqual(rig.setActiveAttempts, 1, "\(role): il tentativo dopo non scrive niente")
+            XCTAssertTrue(rig.pendingResume, "\(role): la ripresa pendente alzata dalla regola")
+            let writes = rig.sessionWrites
+            rig.wakeup(at: 12.0)
+            XCTAssertEqual(rig.sessionWrites, writes, "\(role): il risveglio dentro l'interruzione non scrive la sessione")
+            XCTAssertTrue(rig.pendingResume, "\(role): rialzata")
+            XCTAssertFalse(rig.isRunning, "\(role)")
+            rig.interruptionEnded(at: 13.0)
+            rig.advance(to: 15.0)
+            XCTAssertTrue(rig.isRunning, "\(role): alla fine la recupera")
+            XCTAssertFalse(rig.pendingResume, "\(role)")
+        }
+    }
+
+    /// (d) Il Direttore muto in canzone che torna in primo piano con lo stato alto e la fine mai arrivata: la riattivazione
+    /// come oggi (l'eccezione D5), e il rientro.
+    func testTheSilentDirectorForegroundReturnWithTheStateHighAndNoEnd() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.interruptionBegan(at: 11.0)
+        XCTAssertTrue(rig.silentInSong)
+        XCTAssertTrue(rig.systemInterruption)
+        rig.wakeup(at: 20.0)
+        XCTAssertNotNil(rig.exceptionMark, "il segno dell'eccezione")
+        XCTAssertEqual(rig.refusals, 0)
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        XCTAssertTrue(rig.isRunning, "la riattivazione come oggi")
+        XCTAssertFalse(rig.systemInterruption, "la setActive riuscita abbassa lo stato")
+        rig.advance(to: 24.0)
+        XCTAssertEqual(rig.rejoins, 1)
+    }
+
+    /// (e) La stessa catena con la `setActive` rifiutata ventuno volte (il tentativo 0 e i venti dopo): la rete a 5 s e il
+    /// tentativo dopo, come oggi; poi il rientro.
+    func testTheForegroundChainWithTwentyOneRefusedSetActives() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.interruptionBegan(at: 11.0)
+        rig.setActiveFailures = 21
+        rig.wakeup(at: 20.0)
+        rig.advance(to: 30.5)
+        XCTAssertEqual(rig.setActiveAttempts, 21, "il tentativo 0 e i venti dopo")
+        XCTAssertTrue(rig.pendingResume, "i tentativi esauriti: la ripresa pendente")
+        XCTAssertNotNil(rig.safetyNet)
+        XCTAssertEqual(rig.refusals, 0, "l'eccezione vale a ogni tentativo")
+        rig.advance(to: 36.0)
+        XCTAssertEqual(rig.safetyNetFired, 1, "la rete a 5 s con lo stesso contatore della catena")
+        XCTAssertEqual(rig.setActiveAttempts, 22)
+        XCTAssertTrue(rig.isRunning)
+        rig.advance(to: 40.0)
+        XCTAssertEqual(rig.rejoins, 1)
+    }
+
+    /// (f) Un inizio d'interruzione fra una `setActive` riuscita e il blocco di `start()`: `start()` non tocca sessione né
+    /// motore; alla fine il rientro.
+    func testABeginBetweenTheSetActiveAndTheStartBlock() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.interruptionBegan(at: 11.0)
+        rig.injectBeginBeforeStart = true
+        rig.interruptionEnded(at: 12.0)
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        XCTAssertEqual(rig.starts, 1, "start() non avvia il motore")
+        XCTAssertEqual(rig.refusals, 1)
+        XCTAssertTrue(rig.systemInterruption)
+        XCTAssertTrue(rig.interrupted)
+        XCTAssertFalse(rig.pendingResume)
+        XCTAssertFalse(rig.isRunning)
+        rig.interruptionEnded(at: 13.0)
+        rig.advance(to: 17.0)
+        XCTAssertEqual(rig.rejoins, 1)
+        XCTAssertEqual(rig.starts, 2)
+    }
+
+    /// (g) e par. 3.5: una ripresa pendente alzata dalla regola e la fine che non arriva; il Play del batterista la chiude;
+    /// poi, a click in moto: nel modo Pro un'aggiunta e il motore non si ferma; una fine d'interruzione tardiva e niente si
+    /// ricostruisce né riparte; la rete a 5 s di una catena vecchia non scatta.
+    func testAPlayClosesThePendingResumeRaisedByTheRule() {
+        var rig = playing(.follower, route: [usb], at: 10.0)
+        rig.proMode = true
+        rig.setActiveFailures = 21
+        rig.systemStopsEngine(at: 11.0)
+        rig.configurationNotification(at: 11.1)
+        rig.advance(to: 21.5)
+        XCTAssertEqual(rig.setActiveAttempts, 21)
+        XCTAssertTrue(rig.pendingResume)
+        XCTAssertNotNil(rig.safetyNet)
+        rig.interruptionBegan(at: 22.0)
+        XCTAssertFalse(rig.interrupted)
+        // Il Play del batterista a click fermo, con l'interruzione ancora in corso.
+        rig.start(at: 23.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning)
+        XCTAssertFalse(rig.pendingResume, "par. 3.5: l'avvio riuscito chiude la ripresa pendente")
+        XCTAssertFalse(rig.systemInterruption, "e l'interruzione di sistema")
+        let rebuilds = rig.rebuilds
+        let starts = rig.starts
+        // Nel modo Pro un'aggiunta: il cambio di percorso non recupera nessuna ripresa, il motore non si ferma.
+        rig.routeChange(at: 24.0, to: [usb2])
+        XCTAssertTrue(rig.engineRunning, "il motore di sistema gira ancora")
+        XCTAssertEqual(rig.rebuilds, rebuilds)
+        XCTAssertEqual(rig.starts, starts)
+        // Una fine d'interruzione tardiva.
+        rig.interruptionEnded(at: 25.0)
+        XCTAssertEqual(rig.rebuilds, rebuilds, "niente si ricostruisce")
+        XCTAssertEqual(rig.starts, starts, "niente riparte")
+        XCTAssertTrue(rig.engineRunning)
+        // La rete a 5 s della catena vecchia.
+        rig.advance(to: 28.0)
+        XCTAssertEqual(rig.safetyNetFired, 0)
+        XCTAssertEqual(rig.safetyNetSkipped, 1, "la rete non scatta: il contatore della catena e' cambiato")
+        XCTAssertTrue(rig.isRunning)
+    }
+
+    /// (h) Uno Stop voluto durante l'interruzione con un tentativo in volo, con `isAudioInterrupted` vero (la catena è morta) e
+    /// falso (lo Stop non cambia il contatore): in tutti e due i casi nessuna ripresa pendente rinasce.
+    func testAWantedStopDuringTheInterruptionWithAnAttemptInFlight() {
+        // isAudioInterrupted vero: il Follower fermato dall'interruzione, la fine, la setActive che fallisce, un inizio nuovo.
+        var dead = playing(.follower, route: [speaker], at: 10.0)
+        dead.interruptionBegan(at: 11.0)
+        XCTAssertTrue(dead.interrupted)
+        dead.setActiveFailures = 5
+        dead.interruptionEnded(at: 12.0)
+        XCTAssertNotNil(dead.retry)
+        dead.interruptionBegan(at: 12.1)
+        XCTAssertTrue(dead.interrupted)
+        dead.stop(at: 12.2)
+        XCTAssertFalse(dead.interrupted, "lo Stop chiude la ripresa e alza il contatore")
+        dead.advance(to: 13.0)
+        XCTAssertFalse(dead.pendingResume)
+        XCTAssertEqual(dead.refusals, 0, "la catena morta esce prima della regola")
+        // isAudioInterrupted falso: una catena della configurazione col motore già fermo quando l'interruzione comincia.
+        var alive = playing(.follower, route: [speaker], at: 10.0)
+        alive.setActiveFailures = 5
+        alive.systemStopsEngine(at: 11.0)
+        alive.configurationNotification(at: 11.1)
+        alive.interruptionBegan(at: 11.2)
+        XCTAssertFalse(alive.interrupted)
+        let token = alive.resumeToken
+        alive.stop(at: 11.3)
+        XCTAssertEqual(alive.resumeToken, token, "lo Stop non cambia il contatore")
+        alive.advance(to: 12.0)
+        XCTAssertFalse(alive.pendingResume, "nessuna ripresa pendente rinasce")
+        XCTAssertEqual(alive.refusals, 1)
+    }
+
+    /// (h') Il punto 2 guarda prima il contatore della catena: uno Stop voluto fra l'ingresso e il blocco della `setActive`
+    /// (l'interruzione in corso, `isAudioInterrupted` vero: lo Stop alza il contatore) lascia un blocco di una catena morta,
+    /// che esce senza `setActive` e senza ripresa pendente; niente riparte.
+    func testAWantedStopBetweenTheEntryAndTheSetActiveBlockKillsTheChain() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.interruptionBegan(at: 11.0)
+        XCTAssertTrue(rig.interrupted)
+        rig.injectStopBeforeSetActive = true
+        rig.interruptionEnded(at: 12.0)
+        XCTAssertEqual(rig.deadChainsAtSetActive, 1, "il blocco e' di una catena morta")
+        XCTAssertEqual(rig.setActiveAttempts, 0, "nessuna setActive")
+        XCTAssertEqual(rig.refusals, 0, "non e' la regola: e' il contatore")
+        XCTAssertFalse(rig.pendingResume)
+        XCTAssertFalse(rig.interrupted)
+        XCTAssertTrue(rig.wantedStop)
+        XCTAssertFalse(rig.isRunning)
+        rig.advance(to: 20.0)
+        XCTAssertEqual(rig.starts, 1, "niente riparte dopo lo Stop voluto")
+    }
+
+    /// (i) La catena del ritorno in primo piano partita con lo stato basso e un'interruzione che comincia durante i suoi
+    /// tentativi: l'eccezione non vale, e il tentativo dopo non scrive niente.
+    func testTheForegroundChainStartedWithTheStateLowLosesAtANewBegin() {
+        var rig = playing(.direttore, route: [headphones], at: 10.0)
+        rig.routeChange(at: 11.0, to: [speaker])
+        XCTAssertTrue(rig.silentInSong)
+        XCTAssertFalse(rig.systemInterruption)
+        rig.route = [headphones]
+        rig.setActiveFailures = 3
+        rig.wakeup(at: 12.0)
+        XCTAssertNil(rig.exceptionMark, "partita con lo stato basso: nessun segno")
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        rig.interruptionBegan(at: 12.2)
+        rig.advance(to: 13.0)
+        XCTAssertEqual(rig.setActiveAttempts, 1, "il tentativo dopo non scrive niente")
+        XCTAssertEqual(rig.refusals, 1)
+        XCTAssertNil(rig.retry)
+    }
+
+    /// (j) La stessa catena partita con lo stato già alto e un inizio nuovo durante i suoi tentativi: da lì l'eccezione non vale;
+    /// alla fine il rientro; senza la fine, il Direttore aspetta il ritorno in primo piano dopo, che passa.
+    func testTheForegroundChainWithANewBeginDuringItsRetries() {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.interruptionBegan(at: 11.0)
+        rig.setActiveFailures = 3
+        rig.wakeup(at: 12.0)
+        XCTAssertEqual(rig.exceptionMark, InterruptionActivationException(chainToken: rig.resumeToken, beginsCount: 1))
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        rig.interruptionBegan(at: 12.2)
+        XCTAssertEqual(rig.beginsCount, 2)
+        rig.advance(to: 13.0)
+        XCTAssertEqual(rig.setActiveAttempts, 1, "da li' l'eccezione non vale")
+        XCTAssertEqual(rig.refusals, 1)
+        // Con la fine: il rientro.
+        var ended = rig
+        ended.setActiveFailures = 0
+        ended.interruptionEnded(at: 14.0)
+        ended.advance(to: 18.0)
+        XCTAssertEqual(ended.rejoins, 1)
+        // Senza la fine: il ritorno in primo piano dopo ha il suo segno e passa.
+        var again = rig
+        again.setActiveFailures = 0
+        again.wakeup(at: 20.0)
+        XCTAssertEqual(again.exceptionMark?.beginsCount, 2)
+        XCTAssertTrue(again.isRunning)
+        again.advance(to: 24.0)
+        XCTAssertEqual(again.rejoins, 1)
+    }
+
+    /// (k) Il Solo con una catena di ripartenza in volo (dopo un cambio di configurazione) e un inizio d'interruzione: nessuna
+    /// ripresa pendente, fermo come allo Stop della console, con la causa «interruzione» (`RecoveryDecision`: «niente» a ogni
+    /// innesco); alla fine niente riparte; riparte col Play.
+    func testTheSoloWithAChainInFlightAndABegin() {
+        var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.setActiveFailures = 2
+        rig.systemStopsEngine(at: 11.0)
+        rig.configurationNotification(at: 11.1)
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        rig.interruptionBegan(at: 11.3)
+        rig.advance(to: 11.7)
+        XCTAssertEqual(rig.setActiveAttempts, 1)
+        XCTAssertFalse(rig.pendingResume, "il Solo non alza mai la ripresa pendente")
+        XCTAssertTrue(rig.playbackStopped, "fermo come allo Stop della console")
+        XCTAssertEqual(rig.crisisCause, .interruption)
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false, wantedStopSinceCrisis: rig.wantedStop,
+                                                  crisisCause: rig.crisisCause), .noRestart, "\(trigger)")
+        }
+        rig.interruptionEnded(at: 13.0)
+        rig.advance(to: 15.0)
+        XCTAssertEqual(rig.starts, 1, "alla fine niente riparte")
+        rig.start(at: 16.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning, "riparte col Play")
+    }
+
+    /// (k') Il Solo con la ripresa pendente già alzata dalla sua catena (tentativi esauriti), poi un inizio d'interruzione e la
+    /// fine entro i 5 s della rete: la ripresa si perde all'inizio, la causa è «interruzione», niente riparte.
+    func testTheSoloWithAPendingResumeAndABeginBeforeTheNet() {
+        var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.setActiveFailures = 21
+        rig.systemStopsEngine(at: 11.0)
+        rig.configurationNotification(at: 11.1)
+        rig.advance(to: 21.5)
+        XCTAssertTrue(rig.pendingResume)
+        XCTAssertNotNil(rig.safetyNet)
+        let token = rig.resumeToken
+        rig.interruptionBegan(at: 22.0)
+        XCTAssertFalse(rig.pendingResume, "la ripresa si perde all'inizio")
+        XCTAssertEqual(rig.resumeToken, token + 1, "clearPendingResumeQ alza il contatore")
+        XCTAssertEqual(rig.crisisCause, .interruption)
+        XCTAssertTrue(rig.playbackStopped)
+        rig.interruptionEnded(at: 23.0)
+        XCTAssertEqual(rig.starts, 1, "la fine non fa ripartire niente")
+        rig.advance(to: 28.0)
+        XCTAssertEqual(rig.safetyNetFired, 0)
+        XCTAssertEqual(rig.safetyNetSkipped, 1)
+        XCTAssertEqual(rig.starts, 1)
+    }
+
+    // MARK: - A421 · SEGUITO 1, par. 4.4: il Follower fra una canzone e l'altra (risposta «A» di Mauro)
+
+    /// Follower, canzone nelle cuffie, Stop a fine canzone, tolta a click fermo: la canzone dopo parte a volume 0 con «uscita
+    /// mancante» alzata; il tocco: il volume a 1 al primo «uno» dopo le due ore.
+    func testTheFollowerBetweenSongsStartsMutedAfterARemovedAtClickStopped() {
+        var rig = playing(.follower, route: [headphones], at: 10.0)
+        XCTAssertEqual(rig.state.lastOutputExternal, true)
+        rig.stop(at: 20.0)
+        rig.routeChange(at: 21.0, to: [speaker])
+        XCTAssertFalse(rig.state.missing, "a click fermo la tolta non alza «uscita mancante» (U5)")
+        rig.start(at: 25.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning)
+        XCTAssertTrue(rig.state.missing, "la rilettura all'avvio: l'ultima uscita era esterna")
+        XCTAssertEqual(rig.volume, 0.0, "la canzone dopo parte muta")
+        rig.callbacks(from: 25.011, count: 100)
+        XCTAssertEqual(rig.volume, 0.0)
+        rig.speakerTap(at: 27.0)
+        XCTAssertFalse(rig.state.missing)
+        rig.callbacks(from: 27.004, count: 400)
+        XCTAssertEqual(rig.volume, 1.0)
+        XCTAssertGreaterThanOrEqual(rig.restoredUnoAt!, 27.3)
+        checkReturnInvariants(rig, "fra due canzoni, il tocco")
+    }
+
+    /// Gli altri casi del par. 4.4: la canzone prima dall'altoparlante e la dopo senza cuffie (volume 1); tolta e riattacco a
+    /// click fermo (volume 1); la chiusura dello show azzera la memoria e il primo avvio dello show dopo è come oggi; un click
+    /// a volume 1 dalle cuffie fra due show (nel Solo) e poi START SHOW come Follower senza cuffie (come oggi); un cambio di
+    /// ruolo in Follower dentro uno show con la memoria «esterna» e senza cuffie (l'avvio dopo è muto).
+    func testTheFollowerBetweenSongsOtherCases() {
+        var fromSpeaker = playing(.follower, route: [speaker], at: 10.0)
+        fromSpeaker.stop(at: 20.0)
+        fromSpeaker.start(at: 25.0, recovery: nil)
+        XCTAssertEqual(fromSpeaker.volume, 1.0, "la canzone prima dall'altoparlante: come oggi")
+        XCTAssertFalse(fromSpeaker.state.missing)
+        var reattached = playing(.follower, route: [headphones], at: 10.0)
+        reattached.stop(at: 20.0)
+        reattached.routeChange(at: 21.0, to: [speaker])
+        reattached.routeChange(at: 22.0, to: [headphones])
+        reattached.start(at: 25.0, recovery: nil)
+        XCTAssertEqual(reattached.volume, 1.0, "tolta e riattacco a click fermo: volume 1")
+        var closed = playing(.follower, route: [headphones], at: 10.0)
+        closed.stop(at: 20.0)
+        closed.closeShow(at: 21.0)
+        XCTAssertNil(closed.state.lastOutputExternal, "la chiusura dello show azzera la memoria")
+        closed.routeChange(at: 22.0, to: [speaker])
+        closed.openShow(at: 30.0)
+        closed.songInProgress = true
+        closed.start(at: 31.0, recovery: nil)
+        XCTAssertEqual(closed.volume, 1.0, "il primo avvio dello show dopo e' come oggi")
+        var between = playing(.solo, route: [headphones], at: 10.0)
+        between.showOpen = false
+        between.stop(at: 20.0)
+        XCTAssertEqual(between.state.lastOutputExternal, true)
+        between.roleChange(to: .follower, at: 21.0)
+        XCTAssertEqual(between.state.lastOutputExternal, true, "il cambio di ruolo tiene la memoria")
+        between.routeChange(at: 22.0, to: [speaker])
+        between.openShow(at: 30.0)
+        between.songInProgress = true
+        between.start(at: 31.0, recovery: nil)
+        XCTAssertEqual(between.volume, 1.0, "START SHOW come Follower senza cuffie: come oggi")
+        XCTAssertFalse(between.state.missing)
+        var inside = playing(.direttore, route: [headphones], at: 10.0)
+        inside.stop(at: 20.0)
+        inside.routeChange(at: 21.0, to: [speaker])
+        inside.roleChange(to: .follower, at: 22.0)
+        XCTAssertEqual(inside.state.lastOutputExternal, true)
+        inside.start(at: 25.0, recovery: nil)
+        XCTAssertEqual(inside.volume, 0.0, "il cambio di ruolo dentro lo show con la memoria esterna: l'avvio e' muto")
+        XCTAssertTrue(inside.state.missing)
+    }
+
+    /// Dentro un'interruzione (BOX5 :1735, seconda parte): la rilettura all'avvio del Follower è una lettura del percorso e uno
+    /// stato puro, nessuna scrittura della sessione; il Play della sessione Link che arriva con l'interruzione in corso parte
+    /// muto se la memoria dice un'esterna che non c'è più.
+    func testTheFollowerRereadAtStartInsideAnInterruptionIsAPureRead() {
+        var rig = playing(.follower, route: [headphones], at: 10.0)
+        rig.stop(at: 20.0)
+        rig.interruptionBegan(at: 21.0)
+        rig.routeChange(at: 21.5, to: [speaker])
+        XCTAssertFalse(rig.state.missing)
+        let writes = rig.sessionWrites
+        rig.start(at: 22.0, recovery: nil)
+        XCTAssertEqual(rig.sessionWrites, writes, "nessuna scrittura della sessione dalla rilettura")
+        XCTAssertTrue(rig.state.missing)
+        XCTAssertEqual(rig.volume, 0.0)
     }
 }
