@@ -89,9 +89,10 @@ final class StrictOneShotTimer {
 // === A421 · SEGUITO 2 (30/10/2026) — IL TIMER CHE SI RIARMA SENZA RIFARSI: il guardiano del buco (mandato, par. 4.2) ===
 // Il guardiano si arma a ogni buffer programmato, circa cento volte al secondo: col timer qui sopra sarebbero una sorgente GCD
 // creata e una annullata a ogni buffer (due operazioni di sistema, piu' una chiusura). Qui la sorgente e' una sola, viva finche'
-// vive il timer: ogni armamento la ri-programma (`schedule(deadline:)`, che sostituisce la scadenza di prima) e le da' un gestore
-// nuovo col numero dell'armamento (`setEventHandler`); un gestore vecchio gia' consegnato alla coda non trova il suo numero e non
-// fa niente, come nel timer qui sopra. Il costo per armamento: una chiusura e due chiamate sulla sorgente, nessuna creazione e
+// vive il timer: ogni armamento la ri-programma (`schedule(deadline:)`, che sostituisce la scadenza di prima e scarta l'evento in
+// sospeso: e' questa la guardia contro lo scatto vecchio) e le da' un gestore nuovo col numero dell'armamento (`setEventHandler`);
+// il numero e' la seconda guardia, per un evento gia' consegnato alla coda prima della ri-programmazione. Il costo per armamento:
+// una chiusura e due chiamate sulla sorgente, nessuna creazione e
 // nessun annullo. L'annullo ri-programma a mai e alza il numero. Le regole:
 //  - un'attesa sola alla volta: armare sostituisce quella di prima;
 //  - allo scatto il lavoro si consegna PRIMA di eseguirlo: un armamento fatto dal lavoro resta l'unico armato;

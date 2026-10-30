@@ -116,7 +116,12 @@ enum RenderGapDecision {
             let windowThreshold = RenderGapMeter.crisisThresholdSeconds(bpm: s.bpm, bufferFrames: s.bufferFrames,
                                                                         sampleRate: s.sampleRate,
                                                                         projectionSeconds: s.windowProjectionSeconds)
-            if let rise = s.windowRiseSeconds, rise.isFinite, rise >= windowThreshold {
+            // Correzione B3 del verificatore: senza una misura della salita (la finestra aperta prima del riferimento) conta il buco.
+            let rise: Double = {
+                if let measured = s.windowRiseSeconds, measured.isFinite { return measured }
+                return s.holeSeconds
+            }()
+            if rise.isFinite, rise >= windowThreshold {
                 return RenderGapVerdict(outcome: .crisis, crisisReason: .window, thresholdSeconds: windowThreshold)
             }
             return RenderGapVerdict(outcome: .followLink, crisisReason: nil, thresholdSeconds: windowThreshold)

@@ -9,7 +9,7 @@ import XCTest
 // ms; la scorta; l'uscita esterna presente e sparita; la finestra «sync skip»; la cassa del 29/10 col primo buco dopo il Play
 // di 130 ms (crisi: senza P la prima correzione sarebbe di 0,51 battiti); il buco di 70,0 ms del 29/10 (segue Link). Le
 // asserzioni di A421 sulla soglia di 75 ms (testTheThreshold, testTheDirectorThatFollowsLinkStillGoesIntoCrisis,
-// testTheSilentDirectorWithTheEngineRunning, testBelowTheThresholdTheDirectorFollowsLink e la matrice) sono riscritte qui
+// testBelowTheThresholdTheDirectorFollowsLink e la matrice; testTheSilentDirectorWithTheEngineRunning tolto: ripeteva la regola) sono riscritte qui
 // sulla soglia nuova, col motivo nel referto.
 
 final class RenderGapDecisionTests: XCTestCase {
@@ -190,9 +190,12 @@ final class RenderGapDecisionTests: XCTestCase {
         // Nella finestra il buco da solo non decide: 151 ms con una salita sotto la soglia segue Link (la salita comprende il buco).
         XCTAssertEqual(RenderGapDecision.verdict(situation(151.0, .direttore, follows: true, windowOpen: true, windowRiseMs: 60.0)).outcome,
                        .followLink, "nella finestra conta la salita, non il buco")
-        // Senza una misura della salita (la finestra aperta prima del riferimento): segue Link.
+        // Senza una misura della salita (la finestra aperta prima del riferimento) conta il buco: 151 ms e' una crisi, 100 no
+        // (correzione B3 del verificatore).
         XCTAssertEqual(RenderGapDecision.verdict(situation(151.0, .direttore, follows: true, windowOpen: true, windowRiseMs: nil)).outcome,
-                       .followLink)
+                       .crisis)
+        XCTAssertEqual(RenderGapDecision.verdict(situation(100.0, .direttore, follows: true, windowOpen: true, windowRiseMs: nil)).outcome,
+                       .followLink, "senza misura, sotto la soglia")
         // P dell'apertura: all'apertura il Direttore non seguiva Link con la cassa (123 ms): a 121 BPM la soglia della finestra è
         // circa 93 ms, e una salita di 100 ms è una crisi anche se adesso segue Link.
         let withP = RenderGapDecision.verdict(situation(60.0, .direttore, follows: true, windowOpen: true, windowRiseMs: 100.0, windowP: 123.0))
@@ -230,13 +233,6 @@ final class RenderGapDecisionTests: XCTestCase {
     }
 
     // MARK: - Il Direttore muto, fuori da una canzone, Follower e Solo, motore fermo
-
-    /// Il Direttore muto in canzone col motore in moto (l'attesa del rientro): la stessa regola, con la soglia nuova.
-    func testTheSilentDirectorWithTheEngineRunning() {
-        XCTAssertEqual(outcome(160.0, .direttore), .crisis)
-        XCTAssertEqual(outcome(100.0, .direttore), .followLink)
-        XCTAssertEqual(outcome(40.0, .direttore), .followLink)
-    }
 
     /// Sotto la soglia col Direttore in canzone: segue Link (U8, la (iii) del referto A419), fino a 149 ms a 121 BPM.
     func testBelowTheThresholdTheDirectorFollowsLink() {

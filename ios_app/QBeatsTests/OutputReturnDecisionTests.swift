@@ -348,10 +348,4 @@ final class OutputReturnDecisionTests: XCTestCase {
         XCTAssertTrue(OutputReturnDecision.noUnoLimitReached(nowTicks: deadline + bar, deadlineTicks: deadline, barTicks: bar))
         XCTAssertFalse(OutputReturnDecision.noUnoLimitReached(nowTicks: UInt64.max, deadlineTicks: UInt64.max - 1, barTicks: 10))
     }
-
-    func testTheGapReturnNames() {
-        XCTAssertEqual(GapReturnStep.wait, .wait)
-        XCTAssertNotEqual(GapReturnStep.restore, GapReturnStep.externalVanished)
-        XCTAssertNotEqual(FollowerReturnStep.nextBarInWindow, FollowerReturnStep.wait)
-    }
 }

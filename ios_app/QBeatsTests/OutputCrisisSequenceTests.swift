@@ -97,7 +97,9 @@ private struct OutputRig {
     static let tps = 24_000_000.0
     /// Il buffer del lettore: 512 campioni, sempre (`bufferSize`); è il passo dei richiami, la misura dei buffer programmati e
     /// di `bufferReachesUno`.
-    let bufferSeconds = 512.0 / 48_000.0
+    /// La frequenza dei nodi (48 o 44,1 kHz): il buffer da 512 campioni dura di conseguenza (correzione B4).
+    var nodeRate = 48_000.0
+    var bufferSeconds: Double { 512.0 / nodeRate }
     /// Il ciclo d'uscita della sessione (`bufferDurationTicks`): la convenzione della correzione di fase e l'ora del rendering
     /// lo sommano; il primo campione a volume 1 lo toglie. 5,33 / 6,67 / 10,67 / 21,33 ms (par. 2.3).
     var cycleSeconds = 512.0 / 48_000.0
@@ -244,6 +246,8 @@ private struct OutputRig {
     var firstSampleAt: Double? = nil
     var nextBarMoves = 0
     var rearms = 0
+    var gapReturnsDroppedForFollower = 0
+    var gapVanishedBack = 0
     var sessionWrites = 0
     var setActiveAttempts = 0
     var rebuilds = 0
@@ -434,6 +438,8 @@ private struct OutputRig {
         cancelReturns()
         cancelGuardian()
         rejoin = nil
+        windowOpen = false
+        firstCorrectionPending = false
         closeAnchor(at: t)
         if silentInSong {
             silentInSong = false
@@ -554,6 +560,10 @@ private struct OutputRig {
                 // Come il motore: solo col motore in moto e il volume a 0.
                 if isRunning && state.muted {
                     followerReturn = FollowerReturn(noticeAt: t, armPending: true, chain: chain, fromTap: false)
+                    // A421 · SEGUITO 2 (par. 4.4, «un padrone solo»): come `armFollowerReturnQ`, toglie il ritorno dopo il buco e la riserva.
+                    if gapReturn != nil { gapReturnsDroppedForFollower += 1 }
+                    gapReturn = nil
+                    gapVanishedAt = nil
                 }
             case nil:
                 break
@@ -898,6 +908,9 @@ private struct OutputRig {
             closeAnchor(at: t)
         }
         dspOrigin = linkBeat(at: wait.targetAt)
+        // Correzione B3: la finestra «sync skip» è della catena.
+        windowOpen = false
+        firstCorrectionPending = false
         position = dspOrigin
         chain += 1
         cancelGuardian()
@@ -968,7 +981,14 @@ private struct OutputRig {
     /// A421 · SEGUITO 2 (par. 4.4): la crisi per l'uscita sparita, dalla riserva di 2 s (il Direttore), o la rilettura di U5 (il Follower).
     mutating func fireGapVanished(at t: Double) {
         gapVanishedAt = nil
-        guard let waiting = gapReturn, waiting.vanishedSince != nil else { return }
+        guard var waiting = gapReturn, waiting.vanishedSince != nil else { return }
+        // Correzione B2: allo scatto il percorso si rilegge; con l'esterna di nuovo presente il ritorno resta alla sua regola.
+        if externalPresent {
+            waiting.vanishedSince = nil
+            gapReturn = waiting
+            gapVanishedBack += 1
+            return
+        }
         gapReturn = nil
         gapVanishedFired += 1
         switch role {
@@ -1052,7 +1072,7 @@ private struct OutputRig {
             if useMeterCrisis, let verdict = RenderGapDecision.windowCloseVerdict(riseSeconds: meterScarto - windowRiseBase, playerRole: role,
                                                                                   showOpen: showOpen, songInProgress: songInProgress,
                                                                                   engineRunning: isRunning, bpm: bpm, bufferFrames: 512,
-                                                                                  sampleRate: 48_000, windowProjectionSeconds: windowProjection) {
+                                                                                  sampleRate: nodeRate, windowProjectionSeconds: windowProjection) {
                 _ = verdict
                 renderGapCrisis(at: t, reason: .window)
                 return
@@ -1067,7 +1087,7 @@ private struct OutputRig {
                 holeSeconds: hole, playerRole: role, showOpen: showOpen, songInProgress: songInProgress, engineRunning: isRunning,
                 followsLink: followsLink, inLeadIn: inLeadIn, externalVanished: role == .direttore && externalVanishedNow,
                 windowOpen: windowOpen && skipAtCallStart > 0, windowRiseSeconds: windowOpen ? meterScarto - windowRiseBase : nil,
-                windowProjectionSeconds: windowProjection, bpm: bpm, bufferFrames: 512, sampleRate: 48_000,
+                windowProjectionSeconds: windowProjection, bpm: bpm, bufferFrames: 512, sampleRate: nodeRate,
                 projectionSeconds: latency + cycleSeconds))
             switch verdict.outcome {
             case .crisis:
@@ -1213,6 +1233,13 @@ private struct OutputRig {
                                                                                               fallbackRead: fallbackRead))
                     let deadline = waiting.programmedEndAt + OutputReturnDecision.clickTailSeconds
                     let wouldReturn = !skipsCorrection && firstSample >= deadline - 1e-9
+                    // Correzione B2: con la riserva in corsa il percorso si rilegge a ogni chiamata.
+                    if waiting.vanishedSince != nil, externalPresent {
+                        waiting.vanishedSince = nil
+                        gapReturn = waiting
+                        gapVanishedAt = nil
+                        gapVanishedBack += 1
+                    }
                     let vanished = wouldReturn && externalVanishedNow
                     switch OutputReturnDecision.gapReturnStep(firstSampleTicks: ticks(firstSample), deadlineTicks: ticks(deadline),
                                                               skipsCorrection: skipsCorrection, externalVanished: vanished) {
@@ -1246,7 +1273,7 @@ private struct OutputRig {
         } else if let delta = correction {
             corrections += 1
             if LateBeatDecision.mutes(origin: dspOrigin, before: position, after: position + delta, bpm: bpm,
-                                      bufferFrames: 512, sampleRate: 48_000) {
+                                      bufferFrames: 512, sampleRate: nodeRate) {
                 lateBeatsMuted += 1
                 mutedThisBuffer = true
             }
@@ -1384,7 +1411,6 @@ private struct OutputRig {
             break
         case .clearPendingOnly:
             clearPendingResume()
-            crisisCause = CrisisStopDecision.rememberedCause(previous: crisisCause, new: .interruption, playerRole: .solo)
             return
         case .clearPendingAndStop:
             clearPendingResume()
@@ -1490,6 +1516,10 @@ private struct OutputRig {
         // Sul motore morto (fra la Lost e la Reset) solo lo stato: il volume lo riscrive `start()` dopo il reset (A408).
         if isRunning && state.muted && mediaServicesNormal {
             followerReturn = FollowerReturn(noticeAt: t, armPending: true, chain: chain, fromTap: true)
+            // A421 · SEGUITO 2 (par. 4.4, «un padrone solo»): come `armFollowerReturnQ`, toglie il ritorno dopo il buco e la riserva.
+            if gapReturn != nil { gapReturnsDroppedForFollower += 1 }
+            gapReturn = nil
+            gapVanishedAt = nil
         }
     }
 
@@ -1552,10 +1582,11 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// Un rig col click in moto in canzone, sul percorso dato.
     private func playing(_ role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
                          at t: Double = 10.0, cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0,
-                         fallbackRead: Bool = false, guardian: Bool = false) -> OutputRig {
+                         fallbackRead: Bool = false, guardian: Bool = false, nodeRate: Double = 48_000.0) -> OutputRig {
         var rig = OutputRig(role: role, route: route, bpm: bpm, beatsPerBar: beatsPerBar, cycleSeconds: cycleSeconds,
                             renderOffsetBuffers: renderOffsetBuffers, fallbackRead: fallbackRead)
         rig.useGuardian = guardian
+        rig.nodeRate = nodeRate
         rig.start(at: t, recovery: nil)
         rig.callbacks(from: t + rig.bufferSeconds, count: 50)
         return rig
@@ -3438,25 +3469,39 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// ciclo d'uscita fino a 21,33 e 23,2 ms: il silenzio dopo un buco alla soglia dura meno di un battito, quindi al piu' un
     /// battito per buco cade nel silenzio.
     func testAtMostOneBeatFallsInTheSilenceUpTo200BPM() {
-        for bpm in [121.0, 165.0, 180.0, 200.0] {
-            for cycle in [512.0 / 48_000.0, 2 * 512.0 / 48_000.0, 1024.0 / 44_100.0] {
-                var rig = playing(.direttore, route: [speaker], bpm: bpm, at: 10.0, cycleSeconds: cycle, guardian: true)
-                rig.followsLink = true
-                let threshold = RenderGapMeter.crisisThresholdSeconds(bpm: bpm, bufferFrames: 512, sampleRate: 48_000, projectionSeconds: 0)
-                let hole = threshold - 0.001
-                let lastCall = rig.now
-                let resumeAt = lastCall + rig.bufferSeconds + hole
-                rig.advance(to: resumeAt)
-                rig.scheduleNextBuffer(at: resumeAt, gapSeconds: hole)
-                XCTAssertTrue(rig.isRunning, "bpm:\(bpm) ciclo:\(cycle)")
-                rig.callbacks(from: resumeAt + rig.bufferSeconds, count: 60, correction: 0.001)
-                XCTAssertEqual(rig.gapReturnRestores, 1, "bpm:\(bpm) ciclo:\(cycle)")
-                let silence = rig.gapFirstSampleAt! - rig.guardianFiredAt!
-                XCTAssertLessThan(silence, 60.0 / bpm, "bpm:\(bpm) ciclo:\(cycle) silenzio:\(silence)")
-                let beatsInside = Int(rig.linkBeat(at: rig.gapFirstSampleAt!).rounded(.down)) - Int(rig.linkBeat(at: rig.guardianFiredAt!).rounded(.up)) + 1
-                XCTAssertLessThanOrEqual(beatsInside, 1, "bpm:\(bpm) ciclo:\(cycle)")
+        var worstFromHoleStart = 0.0
+        for nodeRate in [48_000.0, 44_100.0] {
+            for bpm in [121.0, 165.0, 180.0, 200.0] {
+                for cycle in [512.0 / nodeRate, 1024.0 / 48_000.0, 1024.0 / 44_100.0] {
+                    let tag = "nodi:\(nodeRate) bpm:\(bpm) ciclo_ms:\(cycle * 1000)"
+                    var rig = playing(.direttore, route: [speaker], bpm: bpm, at: 10.0, cycleSeconds: cycle, guardian: true,
+                                      nodeRate: nodeRate)
+                    rig.followsLink = true
+                    let threshold = RenderGapMeter.crisisThresholdSeconds(bpm: bpm, bufferFrames: 512, sampleRate: nodeRate,
+                                                                          projectionSeconds: 0)
+                    let hole = threshold - 0.001
+                    let lastCall = rig.now
+                    // La coda vecchia: i tre buffer in coda suonano ancora; da qui il render è fermo (il guardiano scatta qui).
+                    let queueEnd = lastCall + 3 * rig.bufferSeconds
+                    let resumeAt = lastCall + rig.bufferSeconds + hole
+                    rig.advance(to: resumeAt)
+                    rig.scheduleNextBuffer(at: resumeAt, gapSeconds: hole)
+                    XCTAssertTrue(rig.isRunning, tag)
+                    rig.callbacks(from: resumeAt + rig.bufferSeconds, count: 60, correction: 0.001)
+                    XCTAssertEqual(rig.gapReturnRestores, 1, tag)
+                    guard let restored = rig.gapFirstSampleAt else { continue }
+                    let silenceFromHoleStart = restored - lastCall
+                    worstFromHoleStart = max(worstFromHoleStart, silenceFromHoleStart)
+                    XCTAssertLessThan(silenceFromHoleStart, 60.0 / bpm, "\(tag) silenzio dall'inizio del buco: \(silenceFromHoleStart)")
+                    // I battiti caduti nel silenzio: dalla fine della coda vecchia al primo campione a volume 1.
+                    let beatsInside = Int(rig.linkBeat(at: restored).rounded(.down)) - Int(rig.linkBeat(at: queueEnd).rounded(.up)) + 1
+                    XCTAssertLessThanOrEqual(beatsInside, 1, tag)
+                }
             }
         }
+        // Il limite di tempo vero del banco (par. 4.4): sotto il battito a 200 BPM (300 ms).
+        XCTAssertLessThan(worstFromHoleStart, 0.300)
+        XCTAssertGreaterThan(worstFromHoleStart, 0.150, "il caso peggiore sta sopra la soglia piu' alta: la misura e' viva")
     }
 
     /// Un buco nella scorta (par. 4.7): la crisi, motivo «scorta».
@@ -3602,7 +3647,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertFalse(rig.pendingResume)
         XCTAssertEqual(rig.resumeToken, token + 1)
         XCTAssertEqual(rig.soloStops, stops, "nessun secondo Stop: lo schermo resta su Resume from")
-        XCTAssertEqual(rig.crisisCause, .interruption)
+        XCTAssertNil(rig.crisisCause, "m2: solo lo sgombero, la causa ricordata non cambia (correzione B9)")
     }
 
     /// m4: la sequenza del verificatore: la setActive fallita a 11,1 s, l'interruzione da 11,3 a 11,5 s, il tentativo a 11,6 s:
@@ -3672,4 +3717,219 @@ final class OutputCrisisSequenceTests: XCTestCase {
         debug.start(at: 10.0, recovery: nil)
         XCTAssertFalse(debug.songInProgress)
     }
+// MARK: - A421 · SEGUITO 2, le correzioni dopo il verificatore del diff (commit 3: B2, B3, B4)
+
+/// Correzione B2: l'esterna sparita vista dal ritorno dopo il buco, poi una finestra «sync skip» che tiene il volume, l'esterna
+/// di nuovo presente senza notizia e la riserva di 2 s che scatta dentro la finestra: il percorso si rilegge, il ritorno resta
+/// e il volume torna per la sua regola; nessuna crisi sul Direttore, nessun Follower a volume 0 senza strada.
+func testTheReserveFindsTheExternalOutputBackAndKeepsTheReturn() {
+    for role in [PlayerRole.follower, .direttore] {
+        var rig = playing(role, route: [headphones], at: 10.0)
+        rig.followsLink = true
+        let holeAt = rig.now + rig.bufferSeconds + 0.060
+        rig.advance(to: holeAt)
+        rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.060)
+        XCTAssertNotNil(rig.gapReturn, "\(role)")
+        XCTAssertEqual(rig.volume, 0.0, "\(role)")
+        // Il cavo si stacca prima della scadenza, senza la notizia: la chiamata che rimetterebbe il volume trova l'esterna sparita.
+        rig.physicalRoute = [speaker]
+        rig.callbacks(from: holeAt + rig.bufferSeconds, count: 12)
+        XCTAssertEqual(rig.gapVanishedWaits, 1, "\(role): la riga e la riserva di 2 s")
+        XCTAssertNotNil(rig.gapReturn, "\(role)")
+        // Una finestra «sync skip» (un cambio di sezione): nessuna chiamata puo' rimettere il volume.
+        rig.sectionChange(at: rig.now + rig.bufferSeconds)
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 20)
+        // L'esterna torna senza notizia; la riserva scatta dentro la finestra.
+        rig.physicalRoute = nil
+        rig.advance(to: rig.now + 2.1)
+        XCTAssertEqual(rig.gapVanishedBack, 1, "\(role): allo scatto il percorso si rilegge e l'esterna c'e'")
+        XCTAssertEqual(rig.gapVanishedFired, 0, "\(role): niente «quello che farebbe la tolta»")
+        XCTAssertEqual(rig.vanishedCrises, 0, "\(role)")
+        XCTAssertNotNil(rig.gapReturn, "\(role): il ritorno resta")
+        XCTAssertTrue(rig.isRunning, "\(role)")
+        // Dopo la finestra il volume torna per la regola del ritorno.
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 150, correction: 0.0)
+        XCTAssertEqual(rig.volume, 1.0, "\(role)")
+        XCTAssertEqual(rig.gapReturnRestores, 1, "\(role)")
+    }
+}
+
+/// Correzione B3: la finestra «sync skip» e' della catena. Uno Stop e un Play dentro la finestra: la catena nuova parte senza
+/// finestra (nessun verdetto di chiusura con la base vecchia, nessun riarmo alla prima correzione); un rientro del Direttore
+/// dopo una crisi con la finestra aperta: la catena del rientro parte senza finestra.
+func testAStopOrARejoinInsideTheWindowLeavesNoWindowToTheNextChain() {
+    var rig = playing(.direttore, route: [speaker], at: 10.0)
+    rig.followsLink = true
+    rig.sectionChange(at: 20.0)
+    XCTAssertTrue(rig.windowOpen)
+    rig.callbacks(from: 20.011, count: 10)
+    rig.stop(at: 20.2)
+    XCTAssertFalse(rig.windowOpen, "lo Stop chiude la finestra senza verdetto")
+    rig.start(at: 21.0, recovery: nil)
+    rig.callbacks(from: 21.011, count: 120, correction: 0.03)
+    XCTAssertFalse(rig.windowOpen)
+    XCTAssertFalse(rig.firstCorrectionPending)
+    XCTAssertEqual(rig.windowCrises, 0)
+    XCTAssertEqual(rig.firstCorrectionRearms, 0)
+    var muted = playing(.direttore, route: [speaker], at: 10.0)
+    let crisisAt = muted.now + muted.bufferSeconds + 0.300
+    muted.advance(to: crisisAt)
+    muted.scheduleNextBuffer(at: crisisAt, gapSeconds: 0.300)
+    XCTAssertTrue(muted.silentInSong)
+    muted.sectionChange(at: crisisAt + 0.5)
+    XCTAssertTrue(muted.windowOpen)
+    muted.advance(to: 30.0)
+    XCTAssertEqual(muted.rejoins, 1)
+    XCTAssertFalse(muted.windowOpen, "il fuoco del rientro apre una catena nuova senza finestra")
+    XCTAssertEqual(muted.windowCrises, 0)
+}
+
+/// Par. 4.4 e 4.7, «un padrone solo»: il ritorno del Follower che si prenota (un'aggiunta, il tocco «altoparlante») mentre il
+/// ritorno dopo il buco aspetta lo toglie, e il volume lo rimette lui.
+func testTheFollowerReturnTakesOverTheGapReturn() {
+    for tap in [false, true] {
+        var rig = playing(.follower, route: tap ? [headphones] : [speaker], at: 10.0)
+        rig.followsLink = true
+        let holeAt = rig.now + rig.bufferSeconds + 0.060
+        rig.advance(to: holeAt)
+        rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.060)
+        XCTAssertNotNil(rig.gapReturn, "tocco:\(tap)")
+        XCTAssertNil(rig.followerReturn, "tocco:\(tap)")
+        if tap {
+            rig.speakerTap(at: holeAt + 0.010)
+        } else {
+            rig.routeChange(at: holeAt + 0.010, to: [headphones])
+        }
+        XCTAssertNil(rig.gapReturn, "tocco:\(tap): un padrone solo")
+        XCTAssertNotNil(rig.followerReturn, "tocco:\(tap)")
+        XCTAssertEqual(rig.gapReturnsDroppedForFollower, 1, "tocco:\(tap)")
+        rig.callbacks(from: holeAt + 0.020, count: 400)
+        XCTAssertEqual(rig.volume, 1.0, "tocco:\(tap)")
+        XCTAssertEqual(rig.gapReturnRestores, 0, "tocco:\(tap): il volume lo rimette il ritorno del Follower")
+    }
+}
+
+/// Par. 2.3: il lettore da 528,3 ms con la cassa e un bersaglio a circa 0,6 s dalla decisione: all'armamento il bersaglio non e'
+/// piu' raggiungibile → il segno «lettore-lento», il fuoco subito, il coordinatore sceglie la battuta dopo con lo stesso conto dei
+/// salti (nessun salto tolto), poi il fuoco in tempo.
+func testTheSlowPlayerWithTheSpeakerAndANearTarget() {
+    var rig = playing(.direttore, route: [bluetooth], at: 10.0, cycleSeconds: 512.0 / 44_100.0)
+    rig.latency = 0.1116
+    rig.engineStartDuration = 0.5283
+    let bar = rig.nextBarTime(atOrAfter: 21.5)
+    rig.routeChange(at: bar - 0.600 - 0.1, to: [bluetooth, usb])
+    rig.advance(to: 30.0)
+    XCTAssertEqual(rig.slowPlayerFires, 1, "il segno al bersaglio irraggiungibile")
+    XCTAssertEqual(rig.lateSkips, 0, "nessun salto tolto")
+    XCTAssertEqual(rig.rejoins, 1)
+    XCTAssertEqual(rig.firstClickAt!, bar + rig.barSeconds, accuracy: 1e-6, "la battuta dopo")
+    XCTAssertEqual(rig.lastRejoinSkipsLeft, DirectorRejoinDecision.maxLateSkips, "i salti restano tutti")
+}
+
+/// Par. 2.3: il segno sull'ultimo bersaglio dei salti: nessun «non certo» per il lettore, il coordinatore con lo stesso conto.
+func testTheSlowPlayerMarkOnTheLastTargetOfTheSkipsIsNotUncertain() {
+    var rig = playing(.direttore, route: [bluetooth], at: 10.0, cycleSeconds: 512.0 / 44_100.0)
+    rig.latency = 0.1116
+    rig.routeChange(at: 20.0, to: [bluetooth, usb])
+    rig.advance(to: 20.2)   // il ritorno dell'aggiunta (0,1 s) e l'avvio: il rientro armato
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertNotNil(rig.rejoin)
+    rig.armRejoin(targetAt: rig.now + 0.100, skips: DirectorRejoinDecision.maxLateSkips)
+    XCTAssertTrue(rig.rejoin!.slowPlayer, "il bersaglio troppo vicino: il segno")
+    rig.advance(to: 30.0)
+    XCTAssertEqual(rig.slowPlayerFires, 1)
+    XCTAssertEqual(rig.uncertainRejoins, 0, "nessun «non certo» per il lettore")
+    XCTAssertEqual(rig.rejoins, 1)
+    XCTAssertTrue(rig.isRunning)
+}
+
+/// Par. 2.3: una decisione dentro un'interruzione: solo letture, il margine con la latenza letta (anche zero → 150 ms), nessuna
+/// scrittura della sessione.
+func testADecisionInsideAnInterruptionOnlyReads() {
+    var rig = playing(.direttore, route: [speaker], at: 10.0)
+    rig.scheduleNextBuffer(at: 20.0, gapSeconds: 0.300)
+    XCTAssertTrue(rig.silentInSong)
+    rig.directorReturn = nil
+    rig.interruptionBegan(at: 20.5)
+    rig.latency = 0.0
+    XCTAssertEqual(rig.margin, 0.150, accuracy: 1e-9, "la latenza letta zero: il margine di base")
+    let writes = rig.sessionWrites
+    rig.start(at: 21.0, recovery: nil)
+    XCTAssertEqual(rig.sessionWrites, writes, "solo letture")
+    XCTAssertNotNil(rig.rejoin, "la decisione: il bersaglio col margine letto adesso")
+}
+
+/// Par. 5.6 (F1): senza «uno» (il ritorno dopo il buco) il volume aspetta la finestra; sulla chiamata che consuma l'ultimo salto
+/// (contatore 1 → 0: all'inizio della chiamata e' ancora > 0) il volume non torna; torna alla chiamata dopo, se la prima
+/// correzione dopo la finestra non sposta di un buffer.
+func testF1WithoutAnUnoAndOnTheLastSkipCall() {
+    var rig = playing(.follower, route: [headphones], bpm: 180.5, at: 10.0)
+    rig.followsLink = true
+    rig.sectionChange(at: 20.0)
+    let holeAt = 20.0 + rig.bufferSeconds + 0.050
+    rig.advance(to: holeAt)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.050)
+    XCTAssertNotNil(rig.gapReturn)
+    XCTAssertNil(rig.followerReturn)
+    var t = holeAt + rig.bufferSeconds
+    var calls = 0
+    while rig.syncSkip > 0 {
+        let skipBefore = rig.syncSkip
+        rig.callbacks(from: t, count: 1, correction: 0.0)
+        XCTAssertEqual(rig.volume, 0.0, "salti all'inizio della chiamata: \(skipBefore)")
+        t += rig.bufferSeconds
+        calls += 1
+    }
+    XCTAssertGreaterThan(calls, 50)
+    XCTAssertEqual(rig.volume, 0.0, "la chiamata che consuma l'ultimo salto non rimette il volume")
+    rig.callbacks(from: t, count: 1, correction: 0.0005)
+    XCTAssertEqual(rig.volume, 1.0, "la chiamata dopo, con una correzione sotto un buffer")
+    XCTAssertEqual(rig.firstCorrectionRearms, 0)
+}
+
+/// Par. 5.6 (F1): un cambio di metro 4/4 → 3/4 e 3/4 → 4/4 col battito di Link che cambia solo nome: la prima correzione dopo
+/// la finestra e' di un numero intero di battiti e non riarma il ritorno (la regola «a meno di un intero»).
+func testAMeterChangeRenamesTheBeatWithoutRearmingTheReturn() {
+    for (from, to, renaming) in [(4, 3, -1.0), (3, 4, 1.0), (4, 3, 3.0)] {
+        var rig = playing(.follower, route: [headphones], bpm: 121, beatsPerBar: from, at: 10.0)
+        rig.followsLink = true
+        rig.sectionChange(at: 20.0)
+        rig.meterChange(to: to, at: 20.0)
+        let holeAt = 20.0 + rig.bufferSeconds + 0.050
+        rig.advance(to: holeAt)
+        rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.050)
+        XCTAssertNotNil(rig.gapReturn, "\(from)/4 → \(to)/4")
+        var t = holeAt + rig.bufferSeconds
+        while rig.syncSkip > 0 {
+            rig.callbacks(from: t, count: 1)
+            t += rig.bufferSeconds
+        }
+        rig.callbacks(from: t, count: 1, correction: renaming)
+        XCTAssertEqual(rig.firstCorrectionRearms, 0, "\(from)/4 → \(to)/4: la rinomina di \(renaming) battiti non riarma")
+        XCTAssertEqual(rig.volume, 1.0, "\(from)/4 → \(to)/4")
+    }
+}
+
+/// Par. 4.7: il buco di 70,0 ms del 29/10 coi suoi richiami dopo: segue Link, la prima correzione (il buco piu' P) sotto mezzo
+/// battito; poi tre pezzi del Centro di Controllo messi nella base (41,0 · 53,3 · 48,2 ms), senza crisi.
+func testTheSeventyMsHoleWithItsCallbacksAndThePiecesInTheBase() {
+    var rig = playing(.direttore, route: [speaker], bpm: 121, at: 10.0)
+    let projection = rig.latency + rig.cycleSeconds
+    let holeAt = rig.now + rig.bufferSeconds + 0.070
+    rig.advance(to: holeAt)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.070)
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertTrue(rig.followsLink, "sotto la soglia: segue Link")
+    let firstCorrectionBeats = (0.070 + projection) * 121.0 / 60.0
+    XCTAssertLessThan(firstCorrectionBeats, 0.5, "il buco piu' P sotto mezzo battito: \(firstCorrectionBeats)")
+    rig.callbacks(from: holeAt + rig.bufferSeconds, count: 3, correction: firstCorrectionBeats)
+    for piece in [0.0410, 0.0533, 0.0482] {
+        rig.absorbedPiece(piece)
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 2)
+    }
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: 200, correction: 0.0)
+    XCTAssertEqual(rig.vanishedCrises + rig.windowCrises + rig.leadInCrises, 0)
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertEqual(rig.volume, 1.0)
+}
 }
