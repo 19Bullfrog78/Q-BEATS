@@ -85,3 +85,70 @@ final class StrictOneShotTimer {
         return item
     }
 }
+
+// === A421 · SEGUITO 2 (30/10/2026) — IL TIMER CHE SI RIARMA SENZA RIFARSI: il guardiano del buco (mandato, par. 4.2) ===
+// Il guardiano si arma a ogni buffer programmato, circa cento volte al secondo: col timer qui sopra sarebbero una sorgente GCD
+// creata e una annullata a ogni buffer (due operazioni di sistema, piu' una chiusura). Qui la sorgente e' una sola, viva finche'
+// vive il timer: ogni armamento la ri-programma (`schedule(deadline:)`, che sostituisce la scadenza di prima) e le da' un gestore
+// nuovo col numero dell'armamento (`setEventHandler`); un gestore vecchio gia' consegnato alla coda non trova il suo numero e non
+// fa niente, come nel timer qui sopra. Il costo per armamento: una chiusura e due chiamate sulla sorgente, nessuna creazione e
+// nessun annullo. L'annullo ri-programma a mai e alza il numero. Le regole:
+//  - un'attesa sola alla volta: armare sostituisce quella di prima;
+//  - allo scatto il lavoro si consegna PRIMA di eseguirlo: un armamento fatto dal lavoro resta l'unico armato;
+//  - si arma, si annulla e si legge SOLO sulla coda del timer (per il motore: audioQueue).
+final class StrictRearmableTimer {
+
+    static let leewayMilliseconds: Int = StrictOneShotTimer.leewayMilliseconds
+
+    private let queue: DispatchQueue
+    private var source: DispatchSourceTimer?
+    private var work: (() -> Void)?
+    private var armings: UInt64 = 0
+
+    init(queue: DispatchQueue) {
+        self.queue = queue
+    }
+
+    deinit {
+        source?.cancel()
+    }
+
+    /// C'e' un'attesa armata, non ancora scattata ne' annullata.
+    var isArmed: Bool { work != nil }
+
+    /// Arma `work` fra `seconds` secondi da adesso (zero o meno: subito), al posto dell'attesa di prima, se c'e'.
+    func arm(afterSeconds seconds: Double, work: @escaping () -> Void) {
+        armings &+= 1
+        let arming = armings
+        self.work = work
+        let timer: DispatchSourceTimer
+        let fresh: Bool
+        if let existing = source {
+            timer = existing
+            fresh = false
+        } else {
+            timer = DispatchSource.makeTimerSource(flags: .strict, queue: queue)
+            source = timer
+            fresh = true
+        }
+        timer.setEventHandler { [weak self] in
+            guard let self, self.armings == arming, let item = self.work else { return }
+            self.work = nil
+            item()
+        }
+        timer.schedule(deadline: .now() + max(seconds, 0), repeating: .never,
+                       leeway: .milliseconds(StrictRearmableTimer.leewayMilliseconds))
+        if fresh {
+            timer.resume()
+        }
+    }
+
+    /// Annulla l'attesa armata, se c'e': il lavoro non parte; la sorgente resta, programmata a mai.
+    func cancel() {
+        guard work != nil else { return }
+        armings &+= 1
+        work = nil
+        source?.schedule(deadline: .distantFuture, repeating: .never,
+                         leeway: .milliseconds(StrictRearmableTimer.leewayMilliseconds))
+    }
+}

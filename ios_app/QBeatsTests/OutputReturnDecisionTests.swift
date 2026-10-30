@@ -158,22 +158,30 @@ final class OutputReturnDecisionTests: XCTestCase {
     /// Par. 2.2: l'«uno» della battuta dopo è lo stesso battito più una battuta, sullo stesso orologio (Link: il quantum;
     /// DA-SOLO: i battiti della battuta); non si ricalcola dalla scadenza, che darebbe lo stesso «uno».
     func testTheNextBarUno() {
-        let link = FollowerReturnUno(beat: 48, clock: .link)
-        XCTAssertEqual(OutputReturnDecision.nextBarUno(link, beatsPerBar: 4), FollowerReturnUno(beat: 52, clock: .link))
-        let own = FollowerReturnUno(beat: 13.5, clock: .own)
-        XCTAssertEqual(OutputReturnDecision.nextBarUno(own, beatsPerBar: 3), FollowerReturnUno(beat: 16.5, clock: .own))
-        XCTAssertNil(OutputReturnDecision.nextBarUno(link, beatsPerBar: 0))
-        XCTAssertNil(OutputReturnDecision.nextBarUno(FollowerReturnUno(beat: .nan, clock: .link), beatsPerBar: 4))
+        // A421 · SEGUITO 2 (E.9): la battuta dopo usa il quantum con cui l'«uno» è stato scelto.
+        let link = FollowerReturnUno(beat: 48, clock: .link, beatsPerBar: 4)
+        XCTAssertEqual(OutputReturnDecision.nextBarUno(link), FollowerReturnUno(beat: 52, clock: .link, beatsPerBar: 4))
+        let own = FollowerReturnUno(beat: 13.5, clock: .own, beatsPerBar: 3)
+        XCTAssertEqual(OutputReturnDecision.nextBarUno(own), FollowerReturnUno(beat: 16.5, clock: .own, beatsPerBar: 3))
+        XCTAssertNil(OutputReturnDecision.nextBarUno(FollowerReturnUno(beat: 48, clock: .link, beatsPerBar: 0)))
+        XCTAssertNil(OutputReturnDecision.nextBarUno(FollowerReturnUno(beat: .nan, clock: .link, beatsPerBar: 4)))
         XCTAssertEqual(OutputReturnDecision.nextBarBeat(atOrAfter: 47.2, quantum: 4), 48, "il ricalcolo dalla scadenza darebbe lo stesso uno")
     }
 
     /// Par. 2.2: la rilettura dell'«uno» a ogni chiamata: l'orologio cambiato riarma; l'ora non rileggibile riarma; se no l'ora
     /// riletta. DA-SOLO un cambio di tempo tiene il battito e sposta l'ora (la linea propria col tempo nuovo).
+    /// A421 · SEGUITO 2 (E.9): anche il metro cambiato riarma, prima di rileggere l'ora.
     func testTheUnoRefresh() {
-        let uno = FollowerReturnUno(beat: 48, clock: .link)
-        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .own, rereadTicks: t(101.0)), .rearm(reason: "orologio-cambiato"))
-        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .link, rereadTicks: nil), .rearm(reason: "uno-non-rileggibile"))
-        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .link, rereadTicks: t(101.0)), .ticks(t(101.0)))
+        let uno = FollowerReturnUno(beat: 48, clock: .link, beatsPerBar: 4)
+        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .own, beatsPerBarNow: 4, rereadTicks: t(101.0)),
+                       .rearm(reason: "orologio-cambiato"))
+        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .link, beatsPerBarNow: 3, rereadTicks: t(101.0)),
+                       .rearm(reason: "metro-cambiato"))
+        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .own, beatsPerBarNow: 3, rereadTicks: t(101.0)),
+                       .rearm(reason: "orologio-cambiato"), "l'orologio prima del metro")
+        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .link, beatsPerBarNow: 4, rereadTicks: nil),
+                       .rearm(reason: "uno-non-rileggibile"))
+        XCTAssertEqual(OutputReturnDecision.refreshUno(saved: uno, clockNow: .link, beatsPerBarNow: 4, rereadTicks: t(101.0)), .ticks(t(101.0)))
         XCTAssertEqual(OutputReturnDecision.unoClock(followsLink: true), .link)
         XCTAssertEqual(OutputReturnDecision.unoClock(followsLink: false), .own)
         XCTAssertEqual(FollowerReturnClock.link.rawValue, "link")
@@ -241,5 +249,109 @@ final class OutputReturnDecisionTests: XCTestCase {
     func testTheStoppedEngineLineFirstThenEveryTen() {
         let written = (0...35).filter { OutputReturnDecision.writesStoppedEngineLine(callbacks: $0) }
         XCTAssertEqual(written, [1, 11, 21, 31])
+    }
+
+    // MARK: - A421 · SEGUITO 2 (par. 4.4, 5.1, 5.2, 5.5): il ritorno dopo il buco, la scadenza riletta, la finestra, il limite
+
+    /// Par. 4.4: la fine dei buffer programmati alla chiamata dell'armo, riletta adesso e mai in discesa. Senza buchi dopo l'armo la
+    /// rilettura dà la stessa ora (la fine di adesso meno i buffer programmati dall'armo); con un buco di 50 ms dopo l'armo il
+    /// prossimo buffer da rendere è 50 ms più tardi e la fine sale di 50 ms; una lettura che darebbe meno non scende.
+    func testTheProgrammedEndIsRereadAndNeverDecreases() {
+        let armCall = 100.0
+        let endAtArm = programmedEnd(firstCallAt: armCall)
+        // Tre chiamate dopo, senza buchi: il prossimo buffer da rendere è tre buffer più tardi.
+        let same = OutputReturnDecision.rereadProgrammedEndTicks(previous: endAtArm, nextBufferOutputTicks: t(armCall + 3 * buffer + buffer + latency),
+                                                                  queuedAhead: 2, bufferTicks: t(buffer), buffersSinceArm: 3)
+        XCTAssertEqual(s(same), s(endAtArm), accuracy: 1e-6)
+        // Un buco di 50 ms fra la chiamata dell'armo e la terza dopo: la fine sale di 50 ms.
+        let moved = OutputReturnDecision.rereadProgrammedEndTicks(previous: endAtArm,
+                                                                   nextBufferOutputTicks: t(armCall + 3 * buffer + 0.050 + buffer + latency),
+                                                                   queuedAhead: 2, bufferTicks: t(buffer), buffersSinceArm: 3)
+        XCTAssertEqual(s(moved), s(endAtArm) + 0.050, accuracy: 1e-6)
+        // Una lettura che darebbe meno (un richiamo in anticipo, la lettura di riserva): non scende.
+        let lower = OutputReturnDecision.rereadProgrammedEndTicks(previous: moved, nextBufferOutputTicks: t(armCall + 3 * buffer + latency),
+                                                                   queuedAhead: 2, bufferTicks: t(buffer), buffersSinceArm: 3)
+        XCTAssertEqual(lower, moved)
+        // Ai bordi: più buffer dall'armo di quanti ne copra la lettura (zero), e un conto negativo (zero buffer).
+        XCTAssertEqual(OutputReturnDecision.rereadProgrammedEndTicks(previous: 0, nextBufferOutputTicks: t(0.001), queuedAhead: 2,
+                                                                      bufferTicks: t(buffer), buffersSinceArm: 1000), 0)
+        XCTAssertEqual(OutputReturnDecision.rereadProgrammedEndTicks(previous: 0, nextBufferOutputTicks: t(100), queuedAhead: 2,
+                                                                      bufferTicks: t(buffer), buffersSinceArm: -5),
+                       OutputReturnDecision.programmedEndOutputTicks(nextBufferOutputTicks: t(100), queuedAhead: 2, bufferTicks: t(buffer)))
+        // La scadenza del ritorno dopo il buco: la fine più la coda del click.
+        XCTAssertEqual(s(OutputReturnDecision.gapReturnDeadlineTicks(programmedEndOutputTicks: endAtArm, ticksPerSecond: tps)),
+                       s(endAtArm) + 0.040, accuracy: 1e-6)
+    }
+
+    /// Par. 4.4: la chiamata col ritorno dopo il buco: il volume torna al primo campione alla scadenza o dopo, senza l'«uno»; mai in
+    /// una chiamata che salta la correzione; con l'esterna sparita si aspetta.
+    func testTheGapReturnStep() {
+        let deadline = t(100.3)
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: t(100.29), deadlineTicks: deadline, skipsCorrection: false,
+                                                          externalVanished: false), .wait)
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: deadline, deadlineTicks: deadline, skipsCorrection: false,
+                                                          externalVanished: false), .restore)
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: t(100.4), deadlineTicks: deadline, skipsCorrection: false,
+                                                          externalVanished: false), .restore)
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: t(100.4), deadlineTicks: deadline, skipsCorrection: true,
+                                                          externalVanished: false), .wait, "la finestra sync skip")
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: t(100.4), deadlineTicks: deadline, skipsCorrection: false,
+                                                          externalVanished: true), .externalVanished)
+        XCTAssertEqual(OutputReturnDecision.gapReturnStep(firstSampleTicks: t(100.2), deadlineTicks: deadline, skipsCorrection: false,
+                                                          externalVanished: true), .wait, "prima della scadenza non si legge l'uscita")
+    }
+
+    /// Par. 5.1 (F1): in una chiamata che salta la correzione il ritorno del Follower non rimette il volume: con l'«uno» raggiunto la
+    /// battuta dopo (`nextBarInWindow`), senza «uno» si aspetta anche dopo la scadenza.
+    func testTheWindowBlocksTheFollowerReturn() {
+        let deadline = t(100.3)
+        let uno = t(100.5)
+        XCTAssertEqual(OutputReturnDecision.followerReturnStep(bufferOutputTicks: t(100.49), bufferTicks: t(buffer), unoTicks: uno,
+                                                               deadlineTicks: deadline, firstSampleTicks: t(100.45), skipsCorrection: true),
+                       .nextBarInWindow)
+        XCTAssertEqual(OutputReturnDecision.followerReturnStep(bufferOutputTicks: t(100.4), bufferTicks: t(buffer), unoTicks: uno,
+                                                               deadlineTicks: deadline, firstSampleTicks: t(100.45), skipsCorrection: true),
+                       .wait, "il buffer non porta l'uno")
+        XCTAssertEqual(OutputReturnDecision.followerReturnStep(bufferOutputTicks: t(100.49), bufferTicks: t(buffer), unoTicks: nil,
+                                                               deadlineTicks: deadline, firstSampleTicks: t(100.45), skipsCorrection: true),
+                       .wait, "senza uno si aspetta")
+        XCTAssertEqual(OutputReturnDecision.followerReturnStep(bufferOutputTicks: t(100.49), bufferTicks: t(buffer), unoTicks: uno,
+                                                               deadlineTicks: deadline, firstSampleTicks: t(100.45), skipsCorrection: false),
+                       .restore, "senza la finestra, come prima")
+    }
+
+    /// Par. 5.1 (F1): la prima correzione dopo la finestra sposta di almeno un buffer, a meno di un intero di battiti. A 121 BPM un
+    /// buffer è 0,0215 battiti: 0,03 sposta, 0,01 no; a un cambio di metro il battito cambia solo nome (4,01: la distanza
+    /// dall'intero è 0,01: no); 3,97 è 0,03 dall'intero: sì.
+    func testTheFirstCorrectionAfterTheWindow() {
+        let bpm = 121.0
+        XCTAssertTrue(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 10.03, bpm: bpm, bufferSeconds: buffer))
+        XCTAssertFalse(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 10.01, bpm: bpm, bufferSeconds: buffer))
+        XCTAssertFalse(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 14.01, bpm: bpm, bufferSeconds: buffer),
+                       "un cambio di metro: il battito cambia solo nome")
+        XCTAssertTrue(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 13.97, bpm: bpm, bufferSeconds: buffer))
+        XCTAssertTrue(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 9.97, bpm: bpm, bufferSeconds: buffer),
+                      "anche all'indietro")
+        XCTAssertFalse(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 10.0, bpm: bpm, bufferSeconds: buffer))
+        XCTAssertFalse(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: .nan, afterBeat: 10.0, bpm: bpm, bufferSeconds: buffer))
+        XCTAssertFalse(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 10.0, afterBeat: 10.5, bpm: 0, bufferSeconds: buffer))
+        // Il 29/10: la prima correzione dopo il buco di 70 ms, 0,1883 battiti: sposta.
+        XCTAssertTrue(OutputReturnDecision.correctionMovesAtLeastABuffer(beforeBeat: 54.1435, afterBeat: 54.3318, bpm: bpm, bufferSeconds: buffer))
+    }
+
+    /// Par. 5.2 (E.1): il limite di una battuta dopo la scadenza senza un «uno» calcolabile.
+    func testTheNoUnoLimit() {
+        let deadline = t(100.3)
+        let bar = t(4 * 60.0 / 121.0)
+        XCTAssertFalse(OutputReturnDecision.noUnoLimitReached(nowTicks: t(100.3), deadlineTicks: deadline, barTicks: bar))
+        XCTAssertFalse(OutputReturnDecision.noUnoLimitReached(nowTicks: deadline + bar - 1, deadlineTicks: deadline, barTicks: bar))
+        XCTAssertTrue(OutputReturnDecision.noUnoLimitReached(nowTicks: deadline + bar, deadlineTicks: deadline, barTicks: bar))
+        XCTAssertFalse(OutputReturnDecision.noUnoLimitReached(nowTicks: UInt64.max, deadlineTicks: UInt64.max - 1, barTicks: 10))
+    }
+
+    func testTheGapReturnNames() {
+        XCTAssertEqual(GapReturnStep.wait, .wait)
+        XCTAssertNotEqual(GapReturnStep.restore, GapReturnStep.externalVanished)
+        XCTAssertNotEqual(FollowerReturnStep.nextBarInWindow, FollowerReturnStep.wait)
     }
 }

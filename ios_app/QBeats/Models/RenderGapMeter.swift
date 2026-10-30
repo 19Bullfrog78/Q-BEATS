@@ -38,7 +38,28 @@ struct RenderGapMeter: Equatable {
     /// A421 — la soglia della crisi da misuratore, in secondi (U7, decisione del referee del 23/10: 75 ms, 26 ms sopra il
     /// buco piccolo più grande misurato, 48,8, e 33 sotto il buco più piccolo con una notizia del percorso, 108,0). Solo per il
     /// Direttore a show aperto con la canzone in corso (`RenderGapDecision`).
-    static let crisisThresholdSeconds: Double = 0.075
+    /// ⚠️ A421 · SEGUITO 2 (30/10/2026, la «B» di Mauro): da 75 a 150 ms, il tetto della soglia al tempo del motore
+    /// (`crisisThresholdSeconds(bpm:bufferFrames:sampleRate:projectionSeconds:)`): 33,5 ms sopra il buco senza notizia più
+    /// grande misurato sul Direttore (116,5, l'iPad col Centro di Controllo) e sopra i buchi degli stacchi visti prima della
+    /// notizia (112,4 · 118,0 · 119,3). Sotto, il click va avanti sulla griglia che la correzione ha già rimesso, dopo il
+    /// silenzio del buco (il guardiano, `guardianTicks`, e il ritorno dopo il buco: `OutputReturnDecision`).
+    static let crisisThresholdSeconds: Double = 0.150
+
+    /// A421 · SEGUITO 2 (par. 4.3) — la soglia della crisi al tempo del motore: min(150 ms, mezzo battito meno tre buffer del
+    /// lettore meno P). Mezzo battito: il DSP rinomina il battito pendente quando la correzione arriva a mezzo battito
+    /// (`MetronomeDSP.cpp`, `setBeatPositionTimeOnly`), e il conto della sezione si perderebbe. I tre buffer del lettore (la
+    /// soglia della riga) per la banda morta dell'assert e lo scarto fra le letture dell'ora. P: la proiezione della correzione
+    /// di fase (latenza d'uscita più ciclo d'uscita) quando il Direttore non segue ancora Link — la prima correzione dopo un buco
+    /// è il buco più P, perché l'assert mette su Link il battito di adesso proiettato all'ora d'uscita della convenzione, e la
+    /// correzione mette nel motore il battito di Link a quell'ora; zero se lo segue già. Con valori non validi resta il tetto;
+    /// mai sotto zero. A 48 kHz: 150 ms fino a circa 165 BPM, 134,7 a 180, 118,0 a 200, 93,0 a 240.
+    static func crisisThresholdSeconds(bpm: Double, bufferFrames: Int, sampleRate: Double, projectionSeconds: Double) -> Double {
+        guard bpm > 0, bpm.isFinite, bufferFrames > 0, SampleRateDecision.isUsable(sampleRate) else { return crisisThresholdSeconds }
+        let projection = (projectionSeconds.isFinite && projectionSeconds > 0) ? projectionSeconds : 0
+        let halfBeat = 30.0 / bpm
+        let playerBuffers = thresholdBuffers * Double(bufferFrames) / sampleRate
+        return max(min(crisisThresholdSeconds, halfBeat - playerBuffers - projection), 0)
+    }
     /// Le chiamate prima del riferimento: la scorta dei tre buffer di ogni avvio.
     static let warmupCalls: Int = 3
     /// Quanto può salire la base, in secondi per secondo d'orologio.
@@ -74,6 +95,9 @@ struct RenderGapMeter: Equatable {
     private(set) var lastTicks: UInt64 = 0
     /// I buchi contati dall'ultimo riferimento preso dopo un avvio (per il banco e per le righe).
     private(set) var gapsCounted: Int = 0
+    /// A421 · SEGUITO 2 (par. 4.3) — lo scarto dell'ultima chiamata in regime o di buco (sempre dallo stesso riferimento): la
+    /// salita nella finestra «sync skip» si misura da qui. `nil` prima del riferimento.
+    private(set) var lastGapSeconds: Double? = nil
 
     init(bufferFrames: Int, sampleRate: Double, ticksPerSecond: Double) {
         self.bufferFrames = bufferFrames
@@ -92,6 +116,24 @@ struct RenderGapMeter: Equatable {
         baseSeconds = nil
         lastTicks = 0
         gapsCounted = 0
+        lastGapSeconds = nil
+    }
+
+    /// A421 · SEGUITO 2 (par. 4.2) — IL GUARDIANO: l'ora in cui la chiamata dopo sarebbe un buco per il misuratore, con la base
+    /// salvata — riferimento + (buffer programmati dal riferimento, compreso quello di questa chiamata) × buffer / frequenza dei
+    /// nodi + base + soglia della riga (la disuguaglianza di `observe`). Una chiamata che arriva dopo quest'ora è un buco per il
+    /// misuratore, una che arriva prima no. `nil` fuori dal regime: senza riferimento (la scorta) o con la base da riprendere
+    /// (la chiamata dopo un buco). Il motore ci arma un timer stretto e, allo scatto, zittisce prima che il buffer in ritardo
+    /// arrivi al rendering (`AudioEngine`, il guardiano).
+    func guardianTicks(bufferCountAfterCall: Int) -> UInt64? {
+        guard let reference = referenceTicks, let base = baseSeconds,
+              ticksPerSecond > 0, SampleRateDecision.isUsable(sampleRate), bufferFrames > 0 else { return nil }
+        let scheduled = Double(bufferCountAfterCall - referenceBufferCount) * Double(bufferFrames) / sampleRate
+        let threshold = RenderGapMeter.thresholdBuffers * Double(bufferFrames) / sampleRate
+        let seconds = scheduled + base + threshold
+        guard seconds.isFinite, seconds >= 0 else { return nil }
+        let (sum, overflow) = reference.addingReportingOverflow(UInt64(seconds * ticksPerSecond))
+        return overflow ? nil : sum
     }
 
     /// Una chiamata di `scheduleNextBuffer`. `bufferCount`: i buffer già consegnati in questo avvio (0 = il primo, e il
@@ -110,6 +152,7 @@ struct RenderGapMeter: Equatable {
             referenceBufferCount = bufferCount
             baseSeconds = 0
             lastTicks = nowTicks
+            lastGapSeconds = 0
             return .regular(gapSeconds: 0, baseSeconds: 0)
         }
         let elapsed = signedSeconds(from: reference, to: nowTicks)
@@ -117,6 +160,7 @@ struct RenderGapMeter: Equatable {
         let gap = elapsed - scheduled
         let sinceLast = max(signedSeconds(from: lastTicks, to: nowTicks), 0)
         lastTicks = nowTicks
+        lastGapSeconds = gap
         guard let base = baseSeconds else {
             // La chiamata dopo un buco: la base si riprende da qui.
             baseSeconds = gap

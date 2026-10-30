@@ -306,4 +306,86 @@ final class RenderGapMeterTests: XCTestCase {
         XCTAssertEqual(run.gaps.count, 1)
         XCTAssertEqual(Double(run.gaps[0].startTicks) / tps, resumed - run.gaps[0].holeSeconds, accuracy: 0.0001)
     }
+
+    // MARK: - A421 · SEGUITO 2 (par. 4.2): il guardiano
+
+    /// Il guardiano coincide col misuratore: con la stessa base, una chiamata che arriva un tick dopo l'ora del guardiano è un
+    /// buco, una che arriva un tick prima no (all'ora esatta decide l'arrotondamento dei tick: il mandato dice «dopo» e
+    /// «prima»). In regime, dopo la deriva, e dopo un buco (la base si riprende e il guardiano torna). Fuori dal regime (la
+    /// scorta, la chiamata dopo un buco) il guardiano non c'è.
+    func testTheGuardianCoincidesWithTheMeter() {
+        var run = started()
+        regime(&run, calls: 100)
+        // `bufferCount` dopo la chiamata: il conto con cui il motore arma il guardiano.
+        let due = run.meter.guardianTicks(bufferCountAfterCall: run.bufferCount)!
+        let dueSeconds = Double(due) / tps
+        // Un buffer dopo l'ultima chiamata più tre buffer di soglia più la base (zero).
+        XCTAssertEqual(dueSeconds, run.now + 4 * bufferSeconds(48_000), accuracy: 1e-6)
+        var early = run
+        if case .gap = early.call(at: dueSeconds, ticks: due - 1) { XCTFail("un tick prima dell'ora del guardiano non e' un buco") }
+        var late = run
+        guard case .gap(let gap) = late.call(at: dueSeconds, ticks: due + 1) else {
+            return XCTFail("un tick dopo l'ora del guardiano e' un buco")
+        }
+        XCTAssertEqual(gap.holeSeconds, 3 * bufferSeconds(48_000), accuracy: 1e-6)
+        // Dopo il buco la base è da riprendere: nessun guardiano; alla chiamata dopo torna.
+        XCTAssertNil(late.meter.guardianTicks(bufferCountAfterCall: late.bufferCount))
+        let next = late.now + bufferSeconds(48_000)
+        _ = late.call(at: next, ticks: t(next))
+        XCTAssertNotNil(late.meter.guardianTicks(bufferCountAfterCall: late.bufferCount))
+    }
+
+    /// Nella scorta e prima del riferimento il guardiano non c'è; con la base che segue la deriva il guardiano la segue.
+    func testTheGuardianIsNilBeforeTheReferenceAndFollowsTheBase() {
+        var run = Run(meter: RenderGapMeter(bufferFrames: 512, sampleRate: 48_000, ticksPerSecond: tps), bufferCount: 0, now: 100.0, rate: 48_000)
+        for _ in 0..<3 {
+            _ = run.call(at: 100.0, ticks: t(100.0))
+            XCTAssertNil(run.meter.guardianTicks(bufferCountAfterCall: run.bufferCount))
+        }
+        _ = run.call(at: 100.005, ticks: t(100.005))
+        XCTAssertNotNil(run.meter.guardianTicks(bufferCountAfterCall: run.bufferCount), "al riferimento la base e' zero")
+        // La deriva: l'orologio più lento di 100 ppm per un minuto; la base sale e il guardiano con lei, e la chiamata un tick
+        // dopo il guardiano è ancora un buco per il misuratore.
+        regime(&run, calls: 5625, step: bufferSeconds(48_000) * (1 + 100e-6))
+        let due = run.meter.guardianTicks(bufferCountAfterCall: run.bufferCount)!
+        var late = run
+        guard case .gap = late.call(at: Double(due) / tps, ticks: due + 1) else {
+            return XCTFail("un tick dopo il guardiano e' un buco anche dopo la deriva")
+        }
+        var early = run
+        if case .gap = early.call(at: Double(due) / tps, ticks: due - 1) { XCTFail("un tick prima del guardiano no") }
+    }
+
+    /// Col drenaggio (una chiamata che non arriva al misuratore e non conta un buffer) il guardiano della chiamata prima resta
+    /// valido: la chiamata dopo il drenaggio ha lo stesso conto dei buffer.
+    func testTheGuardianWithTheDrain() {
+        var run = started()
+        regime(&run, calls: 100)
+        let due = run.meter.guardianTicks(bufferCountAfterCall: run.bufferCount)!
+        // Il drenaggio: il tempo passa di un buffer, niente al misuratore.
+        run.now += bufferSeconds(48_000)
+        var late = run
+        guard case .gap = late.call(at: Double(due) / tps, ticks: due + 1) else {
+            return XCTFail("dopo il drenaggio un tick dopo il guardiano e' un buco")
+        }
+        var early = run
+        if case .gap = early.call(at: Double(due) / tps, ticks: due - 1) { XCTFail("un tick prima del guardiano no") }
+    }
+
+    /// `lastGapSeconds`: lo scarto dell'ultima chiamata, per la salita nella finestra: zero al riferimento, il buco al buco, e dopo
+    /// il buco resta sul livello nuovo (si conta sempre dallo stesso riferimento).
+    func testTheLastGapFollowsTheMeter() {
+        var run = started()
+        XCTAssertEqual(run.meter.lastGapSeconds!, 0, accuracy: 1e-9)
+        regime(&run, calls: 50)
+        XCTAssertEqual(run.meter.lastGapSeconds!, 0, accuracy: 1e-6)
+        let resumed = run.now + bufferSeconds(48_000) + 0.1
+        _ = run.call(at: resumed, ticks: t(resumed))
+        XCTAssertEqual(run.meter.lastGapSeconds!, 0.1, accuracy: 1e-6)
+        regime(&run, calls: 10)
+        XCTAssertEqual(run.meter.lastGapSeconds!, 0.1, accuracy: 1e-6, "la salita si conta dallo stesso riferimento")
+        XCTAssertEqual(run.meter.baseSeconds!, 0.1, accuracy: 1e-6)
+        run.meter.restart(sampleRate: 48_000)
+        XCTAssertNil(run.meter.lastGapSeconds)
+    }
 }

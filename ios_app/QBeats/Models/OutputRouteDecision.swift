@@ -104,8 +104,10 @@ enum OutputSilenceEvent: Equatable {
     case volumeRestored(externalPresent: Bool)
     /// Una tolta che alza «uscita mancante» (U5).
     case removed
-    /// Un'esterna presente alla notizia «aggiunta»: «uscita mancante» si abbassa.
-    case externalPresent
+    /// Un'esterna presente alla notizia «aggiunta»: «uscita mancante» si abbassa. A421 · SEGUITO 2 (par. 5.3, E.7): col motore
+    /// in moto e il volume a 1 che non si scrive (il Direttore fuori da una canzone, U16) la memoria prende l'esterna presente
+    /// (`playingAtVolumeOne`), così il controllo dell'uscita sparita scatta allo stacco dopo; se no la memoria resta.
+    case externalPresent(playingAtVolumeOne: Bool)
     /// La rilettura del percorso a un rientro automatico e, da A421 · SEGUITO 1 (par. 4.3, risposta «A» di Mauro del 25/10),
     /// a ogni avvio del Follower che prosegue (prima di `applyStartVolumeQ`; fino al seguito solo al primo avvio dopo la
     /// ricostruzione): la memoria decide. Per Direttore e Follower: il Solo non ha «uscita mancante».
@@ -122,8 +124,10 @@ enum OutputSilenceEvent: Equatable {
     case showClosed
     /// A421 · SEGUITO 1 (par. 4.3): l'apertura dello show azzera la memoria dell'ultima uscita (`lastOutputExternal` nullo,
     /// come alla chiusura) senza toccare «uscita mancante» né «uscita zittita»: il primo avvio di ogni show è come oggi,
-    /// qualunque uscita abbia usato il click prima dello show.
-    case showOpened
+    /// qualunque uscita abbia usato il click prima dello show. A421 · SEGUITO 2 (par. 5.3, E.7): col motore in moto e il volume
+    /// a 1 la memoria prende l'uscita di adesso (`playingOutputExternal`: esterna o interna); col motore fermo o a volume 0,
+    /// `nil` come prima.
+    case showOpened(playingOutputExternal: Bool?)
     /// Un cambio di ruolo, o Link spento dall'utente (par. 2.3 c).
     case roleChange
 }
@@ -221,8 +225,9 @@ enum OutputRouteDecision {
             next.lastOutputExternal = externalPresent
         case .removed:
             if playerRole != .solo { next.missing = true }
-        case .externalPresent:
+        case .externalPresent(let playingAtVolumeOne):
             next.missing = false
+            if playingAtVolumeOne { next.lastOutputExternal = true }
         case .recoveryRead(let externalPresent):
             if playerRole != .solo {
                 if externalPresent {
@@ -249,8 +254,8 @@ enum OutputRouteDecision {
             next.missing = false
             next.muted = false
             next.lastOutputExternal = nil
-        case .showOpened:
-            next.lastOutputExternal = nil
+        case .showOpened(let playingOutputExternal):
+            next.lastOutputExternal = playingOutputExternal
         case .roleChange:
             next.missing = false
             next.muted = false

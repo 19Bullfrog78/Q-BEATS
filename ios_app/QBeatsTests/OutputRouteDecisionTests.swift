@@ -354,10 +354,26 @@ final class OutputRouteDecisionTests: XCTestCase {
     /// Tolta e aggiunta nella stessa interruzione: alla fine «uscita mancante» è giù.
     func testRemovedThenAddedInTheSameInterruption() {
         for role in [PlayerRole.direttore, .follower] {
-            let state = apply([.removed, .externalPresent], role: role)
+            let state = apply([.removed, .externalPresent(playingAtVolumeOne: false)], role: role)
             XCTAssertFalse(state.missing, "\(role)")
-            XCTAssertTrue(apply([.removed, .externalPresent, .removed], role: role).missing, "\(role)")
+            XCTAssertTrue(apply([.removed, .externalPresent(playingAtVolumeOne: false), .removed], role: role).missing, "\(role)")
         }
+    }
+
+    /// A421 · SEGUITO 2 (par. 5.3, E.7): un'aggiunta col motore in moto e il volume a 1 che resta (il Direttore fuori da una
+    /// canzone, U16) porta la memoria sull'esterna; col volume a 0, o a motore fermo, la memoria resta quella di prima.
+    func testAnAddedAtVolumeOneUpdatesTheMemory() {
+        let fromSpeaker = OutputSilenceState(muted: false, missing: false, lastOutputExternal: false)
+        let playing = apply([.externalPresent(playingAtVolumeOne: true)], role: .direttore, from: fromSpeaker)
+        XCTAssertEqual(playing.lastOutputExternal, true)
+        XCTAssertFalse(playing.missing)
+        let notPlaying = apply([.externalPresent(playingAtVolumeOne: false)], role: .direttore, from: fromSpeaker)
+        XCTAssertEqual(notPlaying.lastOutputExternal, false, "la memoria resta")
+        let never = apply([.externalPresent(playingAtVolumeOne: false)], role: .follower)
+        XCTAssertNil(never.lastOutputExternal)
+        // Allo stacco dopo la rilettura alza «uscita mancante» solo se la memoria dice esterna.
+        XCTAssertTrue(apply([.recoveryRead(externalPresent: false)], role: .direttore, from: playing).missing)
+        XCTAssertFalse(apply([.recoveryRead(externalPresent: false)], role: .direttore, from: notPlaying).missing)
     }
 
     /// Il Direttore abbassa «uscita mancante» al suo Play (la scelta dell'uscita che c'è: la memoria diventa quella), allo
@@ -457,10 +473,18 @@ final class OutputRouteDecisionTests: XCTestCase {
                 for missing in bools {
                     for memory in [nil, false, true] as [Bool?] {
                         let before = OutputSilenceState(muted: muted, missing: missing, lastOutputExternal: memory)
-                        let after = OutputRouteDecision.state(after: .showOpened, from: before, playerRole: role)
+                        let after = OutputRouteDecision.state(after: .showOpened(playingOutputExternal: nil), from: before, playerRole: role)
                         XCTAssertEqual(after.muted, muted, "\(role)")
                         XCTAssertEqual(after.missing, missing, "\(role)")
                         XCTAssertNil(after.lastOutputExternal, "\(role)")
+                        // A421 · SEGUITO 2 (E.7): col motore in moto e il volume a 1 la memoria prende l'uscita di adesso.
+                        for playing in [false, true] {
+                            let playingAfter = OutputRouteDecision.state(after: .showOpened(playingOutputExternal: playing), from: before,
+                                                                         playerRole: role)
+                            XCTAssertEqual(playingAfter.lastOutputExternal, playing, "\(role)")
+                            XCTAssertEqual(playingAfter.muted, muted, "\(role)")
+                            XCTAssertEqual(playingAfter.missing, missing, "\(role)")
+                        }
                     }
                 }
             }
@@ -469,12 +493,17 @@ final class OutputRouteDecisionTests: XCTestCase {
         var between = OutputRouteDecision.state(after: .volumeRestored(externalPresent: true), from: .initial, playerRole: .solo)
         between = OutputRouteDecision.state(after: .roleChange, from: between, playerRole: .solo)
         XCTAssertEqual(between.lastOutputExternal, true, "il cambio di ruolo tiene la memoria")
-        between = OutputRouteDecision.state(after: .showOpened, from: between, playerRole: .follower)
+        between = OutputRouteDecision.state(after: .showOpened(playingOutputExternal: nil), from: between, playerRole: .follower)
         between = OutputRouteDecision.state(after: .recoveryRead(externalPresent: false), from: between, playerRole: .follower)
         XCTAssertFalse(between.missing, "il primo avvio dello show e' come oggi")
         XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: between), 1.0)
+        // E.7: START SHOW a click in moto in cuffia: la memoria dice esterna, e lo stacco dopo alza «uscita mancante».
+        var inCuffia = OutputRouteDecision.state(after: .showOpened(playingOutputExternal: true), from: .initial, playerRole: .follower)
+        XCTAssertEqual(inCuffia.lastOutputExternal, true)
+        inCuffia = OutputRouteDecision.state(after: .recoveryRead(externalPresent: false), from: inCuffia, playerRole: .follower)
+        XCTAssertTrue(inCuffia.missing)
         // Dentro lo show: il Direttore nelle cuffie, Stop, tolta a click fermo, il ruolo passa a Follower, l'avvio senza cuffie.
-        var inside = OutputRouteDecision.state(after: .showOpened, from: .initial, playerRole: .direttore)
+        var inside = OutputRouteDecision.state(after: .showOpened(playingOutputExternal: nil), from: .initial, playerRole: .direttore)
         inside = OutputRouteDecision.state(after: .volumeRestored(externalPresent: true), from: inside, playerRole: .direttore)
         inside = OutputRouteDecision.state(after: .directorStop, from: inside, playerRole: .direttore)
         inside = OutputRouteDecision.state(after: .roleChange, from: inside, playerRole: .direttore)

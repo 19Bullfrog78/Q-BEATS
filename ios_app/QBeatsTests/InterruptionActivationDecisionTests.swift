@@ -130,18 +130,29 @@ final class InterruptionActivationDecisionTests: XCTestCase {
         XCTAssertEqual(InterruptionActivationPoint.start.rawValue, "start")
     }
 
-    /// L'innesco e il tentativo non entrano nella regola: contano solo per il segno. Una catena con il segno passa a ogni
-    /// tentativo e con la rete a 5 s (`safety_net`, che porta lo stesso contatore della catena).
+    /// L'innesco e il tentativo entrano solo nel segno (`exceptionMark`): il segno nasce solo al tentativo 0 dei due inneschi del
+    /// ritorno in primo piano, con lo stato alto, il Direttore muto in canzone; con un segno dato la regola non li legge più.
+    /// ⚠️ RISCRITTO A421 · SEGUITO 2 (par. 6.4, m7): la prima stesura girava su innesco e tentativo senza passarli a niente.
     func testTheRuleDoesNotDependOnTheTriggerOrTheAttempt() {
-        let exception = mark(7, 3)
         for trigger in RecoveryTrigger.allCases {
             for attempt in [0, 1, 20] {
-                _ = trigger
-                _ = attempt
-                XCTAssertTrue(allows(.entry, high: true, mark: exception, token: 7, begins: 3, role: .direttore, silent: true))
-                XCTAssertFalse(allows(.entry, high: true, mark: nil, token: 7, begins: 3, role: .direttore, silent: true))
+                let mark = InterruptionActivationDecision.exceptionMark(trigger: trigger, attempt: attempt, systemInterruption: true,
+                                                                        playerRole: .direttore, silentInSong: true, chainToken: 7,
+                                                                        beginsCount: 3)
+                let foreground = InterruptionActivationDecision.isForegroundReturn(trigger)
+                if attempt == 0 && foreground {
+                    XCTAssertEqual(mark, self.mark(7, 3), "\(trigger) \(attempt)")
+                } else {
+                    XCTAssertNil(mark, "\(trigger) \(attempt): il segno nasce solo al tentativo 0 del ritorno in primo piano")
+                }
             }
         }
+        XCTAssertEqual(RecoveryTrigger.allCases.filter { InterruptionActivationDecision.isForegroundReturn($0) },
+                       [.wakeupPendingRecovery, .appWakeup])
+        // La regola legge solo il segno: col segno di questa catena passa, senza segno no, qualunque sia l'innesco di chi chiede.
+        let exception = mark(7, 3)
+        XCTAssertTrue(allows(.entry, high: true, mark: exception, token: 7, begins: 3, role: .direttore, silent: true))
+        XCTAssertFalse(allows(.entry, high: true, mark: nil, token: 7, begins: 3, role: .direttore, silent: true))
     }
 
     // MARK: - Con la regola che dice no (par. 3.3)
@@ -175,10 +186,15 @@ final class InterruptionActivationDecisionTests: XCTestCase {
         let mark0 = InterruptionActivationDecision.exceptionMark(trigger: .appWakeup, attempt: 0, systemInterruption: true,
                                                                   playerRole: .direttore, silentInSong: true, chainToken: 7, beginsCount: begins)
         XCTAssertEqual(mark0, mark(7, 3))
-        for attempt in 0...20 {
-            _ = attempt
-            XCTAssertTrue(allows(.entry, high: true, mark: mark0, token: 7, begins: begins, role: .direttore, silent: true))
-            XCTAssertTrue(allows(.setActive, high: true, mark: mark0, token: 7, begins: begins, role: .direttore, silent: true))
+        // ⚠️ RISCRITTO A421 · SEGUITO 2 (par. 6.4, m7): la catena passo per passo. Il segno lo prende solo il tentativo 0: ai
+        // tentativi dopo `exceptionMark` non ne dà uno nuovo (il motore tiene quello del tentativo 0), e con quello la regola passa
+        // ai due punti fino al ventesimo tentativo.
+        for attempt in 1...20 {
+            XCTAssertNil(InterruptionActivationDecision.exceptionMark(trigger: .appWakeup, attempt: attempt, systemInterruption: true,
+                                                                      playerRole: .direttore, silentInSong: true, chainToken: 7,
+                                                                      beginsCount: begins), "tentativo \(attempt)")
+            XCTAssertTrue(allows(.entry, high: true, mark: mark0, token: 7, begins: begins, role: .direttore, silent: true), "tentativo \(attempt)")
+            XCTAssertTrue(allows(.setActive, high: true, mark: mark0, token: 7, begins: begins, role: .direttore, silent: true), "tentativo \(attempt)")
         }
         XCTAssertTrue(allows(.entry, high: true, mark: mark0, token: 7, begins: begins, role: .direttore, silent: true), "la rete a 5 s, stesso contatore")
         begins += 1
@@ -217,6 +233,65 @@ final class InterruptionActivationDecisionTests: XCTestCase {
         // La causa ricordata del Solo a quel punto: «interruzione», che lo tiene fermo fino al Play (`RecoveryDecision`).
         let cause = CrisisStopDecision.rememberedCause(previous: .configuration, new: .interruption, playerRole: .solo)
         XCTAssertEqual(cause, .interruption)
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false, wantedStopSinceCrisis: false,
+                                                  crisisCause: cause), .noRestart, "\(trigger)")
+        }
+    }
+
+    // MARK: - A421 · SEGUITO 2 (par. 6): il Solo all'inizio di un'interruzione, i quattro esiti
+
+    private typealias Step = InterruptionActivationDecision.SoloInterruptionBeginStep
+
+    private func solo(running: Bool, pending: Bool, wanted: Bool, cause: CrisisCause?) -> Step {
+        InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: .solo, engineRunning: running, pendingResume: pending,
+                                                               wantedStopSinceCrisis: wanted, crisisCause: cause)
+    }
+
+    /// m2: il Solo già fermo per uno Stop voluto («Resume from») con la ripresa pendente in piedi perde solo la ripresa; senza uno
+    /// Stop voluto, lo sgombero e fermo come allo Stop della console (oggi).
+    func testTheSoloWithAPendingResumeAtTheBegin() {
+        for running in bools {
+            for cause in [nil, CrisisCause.configuration, .interruption] {
+                XCTAssertEqual(solo(running: running, pending: true, wanted: true, cause: cause), .clearPendingOnly, "\(running) \(String(describing: cause))")
+                XCTAssertEqual(solo(running: running, pending: true, wanted: false, cause: cause), .clearPendingAndStop, "\(running) \(String(describing: cause))")
+            }
+        }
+    }
+
+    /// m4: il Solo a motore fermo senza ripresa pendente: la catena chiusa e la causa «interruzione»; lo stato fermo solo con una
+    /// ripartenza in corso — la causa di prima non lo ferma come la console (configurazione, modo) e nessuno Stop voluto dopo.
+    /// Mai suonato, già fermo per uno Stop o per una crisi che lo ferma: niente Stop.
+    func testTheSoloAtEngineStoppedClosesTheChainAndStopsOnlyWithARestartInProgress() {
+        XCTAssertEqual(solo(running: false, pending: false, wanted: false, cause: .configuration), .closeChainAndRemember(stop: true))
+        XCTAssertEqual(solo(running: false, pending: false, wanted: false, cause: .mode), .closeChainAndRemember(stop: true))
+        XCTAssertEqual(solo(running: false, pending: false, wanted: false, cause: .outputAdded), .closeChainAndRemember(stop: true))
+        XCTAssertEqual(solo(running: false, pending: false, wanted: false, cause: nil), .closeChainAndRemember(stop: false), "mai suonato")
+        XCTAssertEqual(solo(running: false, pending: false, wanted: true, cause: .configuration), .closeChainAndRemember(stop: false), "fermo per uno Stop")
+        for cause in [CrisisCause.interruption, .servicesLost, .resetWithoutLost, .resetAfterLost, .outputRemoved] {
+            XCTAssertEqual(solo(running: false, pending: false, wanted: false, cause: cause), .closeChainAndRemember(stop: false),
+                           "\(cause): gia' fermo come allo Stop della console")
+        }
+        // Col motore in moto decide la regola delle crisi, come oggi.
+        for cause in [nil, CrisisCause.configuration, .interruption] {
+            for wanted in bools {
+                XCTAssertEqual(solo(running: true, pending: false, wanted: wanted, cause: cause), .nothing, "\(String(describing: cause))")
+            }
+        }
+        // Gli altri ruoli: niente, qualunque stato.
+        for role in [PlayerRole.direttore, .follower] {
+            for running in bools {
+                for pending in bools {
+                    for wanted in bools {
+                        XCTAssertEqual(InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: role, engineRunning: running,
+                                                                                               pendingResume: pending, wantedStopSinceCrisis: wanted,
+                                                                                               crisisCause: .configuration), .nothing, "\(role)")
+                    }
+                }
+            }
+        }
+        // Dopo: la causa «interruzione» tiene il Solo fermo fino al Play, per ogni innesco.
+        let cause = CrisisStopDecision.rememberedCause(previous: .configuration, new: .interruption, playerRole: .solo)
         for trigger in RecoveryTrigger.allCases {
             XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false, wantedStopSinceCrisis: false,
                                                   crisisCause: cause), .noRestart, "\(trigger)")

@@ -184,4 +184,110 @@ final class StrictOneShotTimerTests: XCTestCase {
         XCTAssertNil(owned)
         wait(for: [fired], timeout: 0.5)
     }
+
+    // MARK: - A421 · SEGUITO 2 (par. 4.2): il timer che si riarma senza rifarsi (`StrictRearmableTimer`, il guardiano)
+
+    func testTheRearmableTimerFiresOnceAndCanBeArmedAgain() {
+        let first = expectation(description: "il primo scatto")
+        first.assertForOverFulfill = true
+        let second = expectation(description: "il secondo scatto, dopo un armamento nuovo")
+        second.assertForOverFulfill = true
+        let timer = StrictRearmableTimer(queue: queue)
+        XCTAssertEqual(StrictRearmableTimer.leewayMilliseconds, 1)
+        let armed = queue.sync { () -> Bool in
+            timer.arm(afterSeconds: 0.02) { first.fulfill() }
+            return timer.isArmed
+        }
+        XCTAssertTrue(armed)
+        wait(for: [first], timeout: 5.0)
+        XCTAssertFalse(queue.sync { timer.isArmed })
+        queue.sync { timer.arm(afterSeconds: 0.02) { second.fulfill() } }
+        wait(for: [second], timeout: 5.0)
+        let settle = expectation(description: "attesa larga")
+        queue.asyncAfter(deadline: .now() + 0.3) { settle.fulfill() }
+        wait(for: [settle], timeout: 5.0)
+        XCTAssertFalse(queue.sync { timer.isArmed })
+    }
+
+    /// Un armamento nuovo sostituisce il vecchio (una sorgente sola, ri-programmata); l'annullo ferma il lavoro.
+    func testTheRearmableTimerReplacesAndCancels() {
+        let old = expectation(description: "il vecchio non deve scattare")
+        old.isInverted = true
+        let new = expectation(description: "il nuovo scatta")
+        let timer = StrictRearmableTimer(queue: queue)
+        queue.sync {
+            timer.arm(afterSeconds: 0.05) { old.fulfill() }
+            timer.arm(afterSeconds: 0.1) { new.fulfill() }
+        }
+        wait(for: [new], timeout: 5.0)
+        wait(for: [old], timeout: 0.5)
+        let cancelled = expectation(description: "annullato: non deve scattare")
+        cancelled.isInverted = true
+        let armedThenCancelled = queue.sync { () -> (Bool, Bool) in
+            timer.arm(afterSeconds: 0.05) { cancelled.fulfill() }
+            let before = timer.isArmed
+            timer.cancel()
+            return (before, timer.isArmed)
+        }
+        XCTAssertTrue(armedThenCancelled.0)
+        XCTAssertFalse(armedThenCancelled.1)
+        wait(for: [cancelled], timeout: 0.5)
+        // Dopo l'annullo si arma di nuovo e scatta.
+        let again = expectation(description: "dopo l'annullo scatta")
+        queue.sync { timer.arm(afterSeconds: 0.02) { again.fulfill() } }
+        wait(for: [again], timeout: 5.0)
+    }
+
+    /// Cento armamenti di fila, come il guardiano a ogni buffer: scatta solo l'ultimo.
+    func testTheRearmableTimerWithAHundredRearmsFiresOnlyTheLast() {
+        let last = expectation(description: "solo l'ultimo scatta")
+        last.assertForOverFulfill = true
+        let timer = StrictRearmableTimer(queue: queue)
+        var fired: [Int] = []
+        queue.sync {
+            for i in 0..<100 {
+                timer.arm(afterSeconds: 0.03) {
+                    fired.append(i)
+                    if i == 99 { last.fulfill() }
+                }
+            }
+        }
+        wait(for: [last], timeout: 5.0)
+        let settle = expectation(description: "attesa larga")
+        queue.asyncAfter(deadline: .now() + 0.3) { settle.fulfill() }
+        wait(for: [settle], timeout: 5.0)
+        XCTAssertEqual(queue.sync { fired }, [99])
+    }
+
+    /// Un armamento fatto dentro lo scatto resta l'unico armato e scatta.
+    func testTheRearmableTimerArmedInsideTheFire() {
+        let first = expectation(description: "il primo")
+        let second = expectation(description: "il secondo, armato dentro lo scatto del primo")
+        let timer = StrictRearmableTimer(queue: queue)
+        let record = Record()
+        queue.sync {
+            timer.arm(afterSeconds: 0.02) {
+                record.armedWhenTheFirstWorkStarts = timer.isArmed
+                timer.arm(afterSeconds: 0.02) { second.fulfill() }
+                record.armedAfterRearming = timer.isArmed
+                first.fulfill()
+            }
+        }
+        wait(for: [first, second], timeout: 5.0, enforceOrder: true)
+        let seen = queue.sync { () -> (Bool, Bool) in (record.armedWhenTheFirstWorkStarts, record.armedAfterRearming) }
+        XCTAssertFalse(seen.0, "allo scatto il lavoro si consegna prima di eseguirlo")
+        XCTAssertTrue(seen.1)
+    }
+
+    func testTheRearmableTimerLeftByItsOwnerDoesNotFire() {
+        let fired = expectation(description: "timer lasciato: non deve scattare")
+        fired.isInverted = true
+        var owned: StrictRearmableTimer? = StrictRearmableTimer(queue: queue)
+        queue.sync { [owned] in
+            owned?.arm(afterSeconds: 0.05) { fired.fulfill() }
+        }
+        owned = nil
+        XCTAssertNil(owned)
+        wait(for: [fired], timeout: 0.5)
+    }
 }

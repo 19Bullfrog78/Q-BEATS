@@ -144,8 +144,46 @@ enum InterruptionActivationDecision {
     }
 
     /// Par. 3.3: all'inizio di un'interruzione il Solo con la ripresa pendente già alzata dalla sua catena la perde e si
-    /// ferma come allo Stop della console.
+    /// ferma come allo Stop della console. ⚠️ A421 · SEGUITO 2 (par. 6): la regola intera è `soloAtInterruptionBegin`, che
+    /// distingue il Solo già fermo per uno Stop voluto (m2) e il Solo a motore fermo senza ripresa pendente (m4).
     static func soloLosesPendingAtBegin(playerRole: PlayerRole, pendingResume: Bool) -> Bool {
         playerRole == .solo && pendingResume
+    }
+
+    // === A421 · SEGUITO 2 (30/10/2026) — IL SOLO ALL'INIZIO DI UN'INTERRUZIONE (mandato, par. 6.1-6.3) ===
+    // m2: col Solo già fermo per uno Stop voluto (lo schermo «Resume from») e la ripresa pendente in piedi, l'inizio lo fermava
+    // una seconda volta e lo schermo tornava a «fermo»: da qui perde solo la ripresa pendente. m4 (= E.5): col Solo a motore
+    // fermo e senza ripresa pendente la regola delle crisi diceva «niente» e la causa ricordata restava quella di prima
+    // («configurazione»): una catena di ripartenza in volo (i tentativi ogni 0,5 s, la rete a 5 s) dopo un'interruzione più corta
+    // del mezzo secondo fra due tentativi faceva ripartire il Solo da solo. Da qui il Solo a motore fermo ricorda la causa
+    // «interruzione» e chiude ogni catena in volo (il contatore della catena sale); e si ferma come allo Stop della console solo
+    // se una ripartenza era in corso: sulla coda non si legge `playbackState`, e «in moto per il player» vuol dire che l'ultima
+    // crisi che l'ha fermato non lo ferma come la console (configurazione, modo: ripartono da sole) e nessuno Stop voluto è
+    // arrivato dopo. Mai suonato (nessuna causa), già fermo per uno Stop o per una crisi che lo ferma: niente Stop e niente
+    // riga di Stop. `_wantedStopSinceCrisisQ` non si tocca; fino al suo Play `RecoveryDecision` dice «niente».
+
+    /// I quattro esiti del par. 6.3.
+    enum SoloInterruptionBeginStep: Equatable {
+        /// Non è il Solo, o il Solo col motore in moto: decide la regola delle crisi, come oggi.
+        case nothing
+        /// m2: la ripresa pendente in piedi e uno Stop voluto dopo la crisi: solo lo sgombero.
+        case clearPendingOnly
+        /// Oggi: la ripresa pendente in piedi, senza uno Stop voluto: lo sgombero e fermo come allo Stop della console.
+        case clearPendingAndStop
+        /// m4: il motore fermo senza ripresa pendente: la catena chiusa e la causa «interruzione»; lo stato fermo solo con una
+        /// ripartenza in corso (`stop`).
+        case closeChainAndRemember(stop: Bool)
+    }
+
+    static func soloAtInterruptionBegin(playerRole: PlayerRole,
+                                        engineRunning: Bool,
+                                        pendingResume: Bool,
+                                        wantedStopSinceCrisis: Bool,
+                                        crisisCause: CrisisCause?) -> SoloInterruptionBeginStep {
+        guard playerRole == .solo else { return .nothing }
+        if pendingResume { return wantedStopSinceCrisis ? .clearPendingOnly : .clearPendingAndStop }
+        guard !engineRunning else { return .nothing }
+        let restartInProgress = !wantedStopSinceCrisis && (crisisCause.map { !$0.stopsSolo } ?? false)
+        return .closeChainAndRemember(stop: restartInProgress)
     }
 }
