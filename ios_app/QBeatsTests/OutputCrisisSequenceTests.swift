@@ -379,10 +379,13 @@ private struct OutputRig {
             crisisCause = CrisisStopDecision.rememberedCause(previous: crisisCause, new: cause, playerRole: role)
             wantedStop = false
         }
-        // A421 · SEGUITO 2 (par. 3): il Direttore che entra nel silenzio col motore in moto prende l'àncora (nel banco c'è sempre
-        // un battito contato già uscito); un'àncora tenuta dal rientro torna del silenzio.
+        // A421 · SEGUITO 2 (par. 3): il Direttore che entra nel silenzio col motore in moto prende l'àncora come il motore
+        // (`takeSilenceAnchorQ`: l'ultimo battito contato già uscito): il primo battito della catena è uscito (al Play il
+        // primo buffer porta il battito zero, al fuoco il bersaglio porta l'«uno») o un richiamo ha già portato un battito.
+        // Un'àncora tenuta dal rientro torna del silenzio.
         if outcome == .silentInSong {
-            if isRunning && !anchor && countedBeatOut { anchor = true }
+            let firstBeatOut = firstBeatOutAt.map { now >= $0 } ?? false
+            if isRunning && !anchor && (countedBeatOut || firstBeatOut) { anchor = true }
             if anchorHeld { anchorHeld = false }
         }
         return outcome
@@ -832,6 +835,8 @@ private struct OutputRig {
         windowOpen = false
         firstCorrectionPending = false
         countedBeatOut = false
+        // Il Play parte a beat zero: il primo buffer porta il primo battito, che esce circa una latenza dopo l'avvio.
+        firstBeatOutAt = t + latency
         starts += 1
         publishIsPlaying()
         playbackStopped = false
@@ -2388,9 +2393,13 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, rig.deadlineAt! - 1e-9)
     }
 
-    /// L'ora dell'«uno» che non si può rileggere (DA-SOLO, un cambio di tempo della sezione butta la linea propria): il ritorno
-    /// si riarma; senza un «uno» calcolabile il volume torna alla prima chiamata col primo campione alla scadenza o dopo.
-    func testAnUnreadableUnoRearmsAndFallsBackToTheDeadline() {
+    /// A421 · SEGUITO 2 (par. 5.2, E.1, la cura (a)): l'ora dell'«uno» che non si può rileggere (DA-SOLO, un cambio di tempo
+    /// della sezione butta la linea propria): il ritorno si riarma e resta prenotato («uno non calcolabile»); il volume NON torna
+    /// alla scadenza: le due ore si rifanno al primo «uno» calcolabile, sulla linea ri-ancorata al buffer dopo, e il click torna
+    /// sull'«1» (fra la scadenza e una battuta dopo: il limite di una battuta di E.1 non scatta).
+    /// ⚠️ RISCRITTO A421 · SEGUITO 2: fino al seguito 1 si chiamava testAnUnreadableUnoRearmsAndFallsBackToTheDeadline e
+    /// attendeva il volume alla prima chiamata dopo la scadenza, senza «uno» (smentito dal par. 5.2 del seguito 2).
+    func testAnUnreadableUnoRearmsAndWaitsForTheUnoOfTheReanchoredLine() {
         var rig = playing(.follower, route: [headphones], at: 50.0)
         rig.goOwnClock(at: 54.0)
         rig.routeChange(at: 55.0, to: [speaker])
@@ -2398,17 +2407,29 @@ final class OutputCrisisSequenceTests: XCTestCase {
         rig.routeChange(at: 58.0, to: [headphones])
         rig.callbacks(from: 58.004, count: 2)
         XCTAssertEqual(rig.followerReturn!.uno!.clock, .own)
+        let unoBeat = rig.followerReturn!.uno!.beat
+        let deadline = rig.followerReturn!.deadlineAt!
+        XCTAssertEqual(deadline, 58.3, accuracy: 1e-9, "la scadenza della notizia")
         rig.ownSectionTempoChange(to: 140, at: 58.05)
         rig.callbacks(from: 58.06, count: 1)
         XCTAssertEqual(rig.rearms, 1, "l'uno non si rilegge: si riarma")
-        XCTAssertNil(rig.followerReturn!.uno, "all'armo la linea propria manca: uno non calcolabile")
+        XCTAssertTrue(rig.followerReturn!.armPending, "senza un uno calcolabile il ritorno resta prenotato (E.1)")
         XCTAssertNotNil(rig.ownTimeline, "la linea si ri-àncora al buffer dopo")
         XCTAssertEqual(rig.volume, 0.0)
         rig.callbacks(from: 58.06 + rig.bufferSeconds, count: 400)
         XCTAssertEqual(rig.volume, 1.0)
-        XCTAssertNil(rig.restoredUnoAt, "senza un uno")
-        XCTAssertGreaterThanOrEqual(rig.firstSampleAt!, rig.deadlineAt! - 1e-9)
-        XCTAssertLessThan(rig.firstSampleAt!, rig.deadlineAt! + 2 * rig.bufferSeconds + 1e-9, "alla prima chiamata dopo la scadenza")
+        XCTAssertNil(rig.followerReturn)
+        XCTAssertEqual(rig.rearms, 1, "un riarmo solo")
+        XCTAssertEqual(rig.nextBarMoves, 0)
+        guard let restored = rig.restoredUnoAt, let raised = rig.raisedAt, let firstSample = rig.firstSampleAt else {
+            return XCTFail("il volume deve tornare su un uno")
+        }
+        XCTAssertGreaterThan(raised, deadline + 0.5, "non alla scadenza: sull'uno della linea nuova")
+        XCTAssertGreaterThanOrEqual(firstSample, deadline - 1e-9)
+        XCTAssertLessThanOrEqual(restored, deadline + 4 * 60.0 / 140.0 + 1e-6,
+                                 "entro una battuta dopo la scadenza: il limite di E.1 non scatta")
+        XCTAssertEqual(restored, 59.3068, accuracy: 0.002, "l'uno di beat \(unoBeat) sulla linea ri-ancorata a 140 (modello)")
+        XCTAssertLessThanOrEqual(raised, restored - rig.latency - rig.bufferSeconds + 1e-9)
     }
 
     /// Dentro un'interruzione (BOX5 :1735, seconda parte): un ritorno passato alla battuta dopo e un inizio d'interruzione
