@@ -1833,8 +1833,18 @@ class AudioEngine: ObservableObject {
             // sovrascrive con 3; la riga di log si scrive dopo i tre `scheduleNextBuffer`.
             let skipBuffersAtFire = self.linkSyncSkipBuffers
             self.linkSyncSkipBuffers = 3
-            // A421 · SEGUITO 2 (par. 7) — il segno della mappa non sopravvive al fuoco dell'ingresso: per il Follower che aspetta
-            // l'ingresso è la strada di norma (il suo `start()` esce a `stayStopped` senza consumarlo); qui si abbassa, con la riga.
+            // A421 · SEGUITO 2 (par. 7) — il segno della mappa non sopravvive al fuoco dell'ingresso: qui si abbassa, con la riga.
+            // ⚠️ RISCRITTO A421 · SEGUITO 3 (par. 7). Qui si diceva «per il Follower che aspetta l'ingresso è la strada di norma (il
+            // suo `start()` esce a `stayStopped` senza consumarlo)»: la strada vera è un'altra. Sul Follower la mappa arriva DOPO il
+            // primo `start()`: `followerRun(.start)`, sul principale, chiama `start()` (che mette il suo blocco in coda e torna) e
+            // poi `linkStartedSubject.send()` → `QLiveSession.orchestrateDirectorPlay` → `SetlistRunner.startCurrentSection` →
+            // `prepareAndStartCurrentSection`, che chiama `setSongMap` (il suo blocco in coda DOPO quello del primo `start()`) e il
+            // secondo `start()`, che trova il motore già in moto ed esce alla guardia senza consumare. Il primo `start()` passa da
+            // `prepareNormalStartQ` prima che il blocco di `setSongMap` alzi il segno: lo abbassa questo fuoco. Con l'attesa
+            // d'ingresso zero il fuoco è un `asyncAfter(.now())`, che libdispatch manda con un `dispatch_async` (fonte nel referto
+            // del seguito 3): l'ordine fra il fuoco e il blocco di `setSongMap` dipende da chi arriva prima in coda — il blocco del
+            // primo `start()`, che arma il fuoco in fondo, o il filo principale, che mette in coda `setSongMap` dopo `send()` — e se
+            // il fuoco passa prima il segno resta alto fino al prossimo avvio che passa da `prepareNormalStartQ` (Aperto del referto).
             self.lowerSongMapForNextStartQ(reason: "fuoco-ingresso-follower")
             // A420 — la catena dell'ingresso comincia qui: una generazione nuova prima del primo dei tre buffer (mandato A420,
             // par. 2.2). Un richiamo della catena di prima arrivato fra l'avvio del motore e questo fuoco si è già scartato:
@@ -3313,6 +3323,12 @@ class AudioEngine: ObservableObject {
     /// La regola di ogni crisi (`CrisisStopDecision`) dalle copie di coda, con la sua riga. Chiamare SOLO su
     /// audioQueue, PRIMA di toccare `isRunning`. Una crisi che trova qualcosa da fermare (o il Direttore già
     /// muto) ricorda la sua causa per le ripartenze (`RecoveryDecision`) e azzera «Stop voluto dopo la crisi».
+    /// ⚠️ A421 · SEGUITO 3 (par. 2): «qualcosa da fermare» alla lettera (`CrisisMemoryDecision`). Per il Solo con una causa che
+    /// non lo ferma (configurazione, modo, «uscita-aggiunta», «buco-del-render») l'esito è «come oggi» anche a motore fermo, e
+    /// fino al seguito 2 la memoria si riscriveva pure lì: il Solo fermo su «Resume from» perdeva lo Stop voluto a un cambio di
+    /// modo a motore fermo (una scheda USB alla stessa frequenza) e la chiamata dopo lo fermava una seconda volta, o lo faceva
+    /// ripartire al tentativo dopo di una catena in volo. Da qui, Solo + motore fermo + causa che non lo ferma: la causa
+    /// ricordata e lo Stop voluto restano, con la riga; l'esito e la riga «decisione» non cambiano.
     private func crisisOutcomeQ(cause: CrisisCause) -> CrisisStopOutcome {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
         let outcome = CrisisStopDecision.outcome(playerRole: role,
@@ -3321,16 +3337,23 @@ class AudioEngine: ObservableObject {
                                                  songInProgress: _songInProgressQ,
                                                  engineRunning: isRunning,
                                                  silentInSong: _directorSilentInSongQ)
-        if outcome != .nothing {
-            // A421 — la causa ricordata: per il Solo una causa che lo ferma resta finché non riparte col Play (U4).
-            _crisisCauseQ = CrisisStopDecision.rememberedCause(previous: _crisisCauseQ, new: cause, playerRole: role)
-            _wantedStopSinceCrisisQ = false
-        }
+        let memoryStep = CrisisMemoryDecision.step(playerRole: role, cause: cause, engineRunning: isRunning, outcome: outcome)
+        // A421 — con «riscrive» la causa ricordata (per il Solo una causa che lo ferma resta finché non riparte col Play, U4) e lo
+        // Stop voluto a falso; con «invariati» e «niente» la coppia resta com'è (`CrisisMemoryDecision.memoryAfter`, la stessa del banco).
+        let memory = CrisisMemoryDecision.memoryAfter(step: memoryStep, previousCause: _crisisCauseQ,
+                                                      wantedStopSinceCrisis: _wantedStopSinceCrisisQ, cause: cause, playerRole: role)
+        _crisisCauseQ = memory.cause
+        _wantedStopSinceCrisisQ = memory.wantedStopSinceCrisis
         os_log("[Q-BEATS][CRISI] decisione causa:%{public}@ ruolo:%{public}@ show:%d canzone:%d motore:%{public}@ muto:%d -> esito:%{public}@ stopALink:%d",
                log: .default, type: .default,
                cause.rawValue, role.rawValue, _showOpenQ ? 1 : 0, _songInProgressQ ? 1 : 0,
                isRunning ? "in-moto" : "fermo", _directorSilentInSongQ ? 1 : 0, outcome.rawValue,
                outcome.sendsStopToLink ? 1 : 0)
+        if memoryStep == .keep {
+            os_log("[Q-BEATS][CRISI] Solo a motore fermo, la crisi non trova niente da fermare causa:%{public}@ - causa ricordata:%{public}@ e stopVoluto:%d invariati",
+                   log: .default, type: .default,
+                   cause.rawValue, _crisisCauseQ?.rawValue ?? "-", _wantedStopSinceCrisisQ ? 1 : 0)
+        }
         return outcome
     }
 
@@ -4448,6 +4471,9 @@ class AudioEngine: ObservableObject {
     private func noteOutputStateQ(_ event: OutputSilenceEvent, from: String, externalPresent: Bool? = nil) {
         let before = _outputSilenceQ
         _outputSilenceQ = OutputRouteDecision.state(after: event, from: before, playerRole: playerRoleQ)
+        // A421 · SEGUITO 3 (par. 5) — la chiusura dello show e il cambio di ruolo abbassano `muted`: il ricordo del silenzio in
+        // vigore se ne va, prima della guardia qui sotto (che esce quando «mancante» non cambia).
+        noteSilenceLiftedQ(before: before)
         guard before.missing != _outputSilenceQ.missing else { return }
         let memoryText: String = _outputSilenceQ.lastOutputExternal.map { $0 ? "esterna" : "interna" } ?? "-"
         let external = externalPresent ?? hasExternalOutputNowQ()
@@ -4471,18 +4497,36 @@ class AudioEngine: ObservableObject {
     /// («ritorno-dopo-buco», A421 · SEGUITO 2) e la chiusura dello show: `muted` ha un solo padrone. Chiamare SOLO su audioQueue.
     private func writeOutputVolumeQ(_ volume: Float, reason: String) {
         engine.mainMixerNode.outputVolume = volume
+        let before = _outputSilenceQ
         if volume == 0 {
             _outputSilenceQ = OutputRouteDecision.state(after: .silenced, from: _outputSilenceQ, playerRole: playerRoleQ)
             // A421 · SEGUITO 2 (par. 4.5) — l'ultima scrittura del silenzio, per la riga della misura.
-            _lastSilenceWriteQ = SilenceWrite(ticks: mach_absolute_time(), reason: reason)
+            // A421 · SEGUITO 3 (par. 5) — è il silenzio in vigore e chi l'ha scritto: si scrive solo quando lo 0 trova lo stato non
+            // muto («muted» ha un solo padrone, qui sopra); uno 0 con lo stato già muto non cambia chi ha scritto (la crisi da
+            // misuratore dopo lo 0 «buco», la tolta dopo il guardiano, lo 0 «avvio» sul mixer nuovo dopo una ricostruzione). Fino
+            // al seguito 2 ogni 0 lo riscriveva, e alla tolta `scrittoDa` diceva sempre «percorso-tolta» (Aperto B.12).
+            if !before.muted {
+                _lastSilenceWriteQ = SilenceWrite(ticks: mach_absolute_time(), reason: reason)
+            }
         } else {
             _outputSilenceQ = OutputRouteDecision.state(after: .volumeRestored(externalPresent: hasExternalOutputNowQ()),
                                                         from: _outputSilenceQ, playerRole: playerRoleQ)
         }
+        noteSilenceLiftedQ(before: before)
         os_log("[Q-BEATS][USCITA] volume:%d motivo:%{public}@ ruolo:%{public}@ mancante:%d motore:%{public}@",
                log: .default, type: .default,
                volume == 0 ? 0 : 1, reason, playerRoleQ.rawValue, _outputSilenceQ.missing ? 1 : 0,
                isRunning ? "in-moto" : "fermo")
+    }
+
+    /// A421 · SEGUITO 3 (par. 5) — il ricordo del silenzio in vigore (`_lastSilenceWriteQ`) si toglie a ogni passaggio di `muted`
+    /// da vero a falso, giudicato sullo stato puro e non sul mixer: il volume a 1 (`writeOutputVolumeQ`), la chiusura dello show e
+    /// il cambio di ruolo (`noteOutputStateQ`: gli unici eventi di `OutputRouteDecision.state` che abbassano `muted`). Chiamare
+    /// SOLO su audioQueue, subito dopo la scrittura dello stato.
+    private func noteSilenceLiftedQ(before: OutputSilenceState) {
+        if before.muted && !_outputSilenceQ.muted {
+            _lastSilenceWriteQ = nil
+        }
     }
 
     /// U3: il silenzio subito, prima di ogni lettura della sessione (il cambio di percorso) o prima dell'assert e della
@@ -5207,6 +5251,22 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    /// A421 · SEGUITO 3 (par. 4) — nei rami del blocco della fase senza correzione (il Solo, il Direttore che fa l'assert) il
+    /// segno della prima correzione dopo la finestra si abbassa alla prima chiamata dopo la finestra, senza riarmo: lì la prima
+    /// correzione non arriva mai, e fino al seguito 2 il segno restava alto fino a un arresto, a una catena nuova o a una finestra
+    /// nuova; sul Direttore, al primo buco sotto la soglia dopo una finestra, anche molto dopo, la chiamata del buco passava a
+    /// seguire Link e la sua correzione lo consumava, con le righe «prima correzione dopo la finestra» e «ritorno dopo il buco
+    /// riarmato motivo:prima correzione dopo la finestra», che al collaudo dell'iPad Direttore col Centro di Controllo ingannano
+    /// (F1 non c'entra; il riarmo cadeva nella stessa chiamata: il comportamento non cambia). Una riga sola per finestra. Gli
+    /// altri rami senza correzione (la scorta del rientro, l'orologio proprio senza la linea) tengono il segno: la prima
+    /// correzione arriva dopo. Chiamare SOLO su audioQueue, dal blocco della fase.
+    private func lowerFirstCorrectionMarkWithoutCorrectionQ() {
+        guard _firstCorrectionAfterWindowPendingQ else { return }
+        _firstCorrectionAfterWindowPendingQ = false
+        os_log("[Q-BEATS][USCITA] prima chiamata dopo la finestra senza correzione ruolo:%{public}@ - segno abbassato, nessun riarmo",
+               log: .default, type: .default, playerRoleQ.rawValue)
+    }
+
     /// Par. 4.4 — il ritorno dopo il buco si arma alla chiamata del buco (quando non è una crisi) e alla prima chiamata della
     /// stessa catena che arriva al misuratore dopo uno scatto del guardiano; si riarma da questa chiamata a un buco nuovo e alla
     /// prima correzione dopo la finestra. Non se il volume lo tiene già un'altra strada: il ritorno del Follower armato o
@@ -5417,17 +5477,19 @@ class AudioEngine: ObservableObject {
         return (first...(first + 2)).map { describeProgrammedBuffer(chainIndex: $0, nowTicks: nowTicks) }.joined(separator: ",")
     }
 
-    /// Par. 4.5 — la riga della misura a ogni buco visto dal misuratore, per ogni ruolo: se il silenzio è stato scritto prima
-    /// del primo richiamo dopo il buco (dal guardiano o dalla notizia) o dopo (da questa chiamata, o mai), da chi e quando, e i
-    /// buffer passati al rendering dopo la ripresa [Ipotesi: i tre in coda al buco, che la raffica rende prima che una scrittura
-    /// fatta a questa chiamata valga]. Chiamare SOLO su audioQueue, alla chiamata del buco, dopo il silenzio di questa chiamata.
+    /// Par. 4.5 — la riga della misura a ogni buco visto dal misuratore, per ogni ruolo: se il silenzio in vigore è stato scritto
+    /// prima del primo richiamo dopo il buco (dal guardiano, dalla notizia, o da prima del buco: un Follower già muto) o lo scrive
+    /// questa chiamata (o nessuno), da chi e quando, e i buffer passati al rendering dopo la ripresa [Ipotesi: i tre in coda al
+    /// buco, che la raffica rende prima che una scrittura fatta a questa chiamata valga]. Chiamare SOLO su audioQueue, alla
+    /// chiamata del buco, dopo il silenzio di questa chiamata.
+    /// A421 · SEGUITO 3 (par. 5) — `_lastSilenceWriteQ` è il silenzio in vigore e chi l'ha scritto: la riga lo scrive anche se è
+    /// nato prima del buco (`silenzioPrima:1`, `scritto_ms` più negativo del buco). Fino al seguito 2 guardava solo le scritture
+    /// nate dopo l'inizio del buco, e un Follower già muto usciva «scrittoDa:nessuno» con `volume:0`.
     private func logRenderGapMeasureQ(holeSeconds: Double, nowTicks: UInt64, guardianWroteBefore: Bool) {
-        let holeStart = OutputReturnDecision.ticks(nowTicks, plusSeconds: -(holeSeconds + Double(bufferSize) / max(sampleRate, 1)),
-                                                   ticksPerSecond: ticksPerSecond)
         var writtenBy = "nessuno"
         var writtenMsText = "-"
         var before = false
-        if let write = _lastSilenceWriteQ, write.ticks >= holeStart {
+        if let write = _lastSilenceWriteQ {
             writtenBy = write.reason
             writtenMsText = String(format: "%.1f", signedMilliseconds(from: nowTicks, to: write.ticks))
             before = write.ticks < nowTicks
@@ -5439,8 +5501,10 @@ class AudioEngine: ObservableObject {
     }
 
     /// Par. 4.5 — la riga della misura a ogni tolta col click in moto: i millisecondi dall'ultimo richiamo, se il misuratore aveva
-    /// già visto il buco (un buco entro un secondo prima della notizia), se il silenzio era già scritto o lo scrive la notizia, e i
-    /// buffer in coda. Chiamare SOLO su audioQueue, dal blocco del cambio di percorso, dopo il silenzio della notizia.
+    /// già visto il buco (un buco entro un secondo prima della notizia), se il silenzio era già scritto o lo scrive la notizia, da
+    /// chi (A421 · SEGUITO 3, par. 5: il silenzio in vigore — il guardiano, la chiamata del buco o la notizia stessa; fino al
+    /// seguito 2 sempre «percorso-tolta», perché ogni 0 riscriveva il ricordo), e i buffer in coda. Chiamare SOLO su audioQueue,
+    /// dal blocco del cambio di percorso, dopo il silenzio della notizia.
     private func logRemovedMeasureQ(arrivedTicks: UInt64, silenceWrittenNow: Bool) {
         let sinceCallbackMs: Double = _lastCallbackTicksQ > 0 ? signedMilliseconds(from: _lastCallbackTicksQ, to: arrivedTicks) : -1
         let gapSeen = _lastMeterGapTicksQ.map {
@@ -5453,13 +5517,54 @@ class AudioEngine: ObservableObject {
                writtenBy, _chainCallbacksQ, queuedAtHoleText(nowTicks: arrivedTicks), _bufferChainGenerationQ)
     }
 
+    /// A421 · SEGUITO 3 (par. 3) — i valori della coda che la riga del contesto scrive, presi nella chiamata del buco: l'ora del buco,
+    /// le ore dei richiami di Link, dei cambi di stato dell'app e dell'ultima notifica della sessione col nome. Le letture della
+    /// sessione e lo stato termico non stanno qui: li legge `writeRenderGapContextLineQ`, dove e quando la riga si scrive.
+    private struct RenderGapContextSnapshot {
+        let nowTicks: UInt64
+        let linkTempoTicks: UInt64?
+        let linkConnectedTicks: UInt64?
+        let linkPeersTicks: UInt64?
+        let linkTransportTicks: UInt64?
+        let sceneBackgroundTicks: UInt64?
+        let sceneActiveTicks: UInt64?
+        let appWakeupTicks: UInt64?
+        let sessionNotice: SessionNotice?
+    }
+
+    /// Chiamare SOLO su audioQueue, nella chiamata del buco.
+    private func renderGapContextSnapshotQ(nowTicks: UInt64) -> RenderGapContextSnapshot {
+        RenderGapContextSnapshot(nowTicks: nowTicks,
+                                 linkTempoTicks: _lastLinkTempoCallbackTicksQ,
+                                 linkConnectedTicks: _lastLinkConnectedCallbackTicksQ,
+                                 linkPeersTicks: _lastLinkPeersCallbackTicksQ,
+                                 linkTransportTicks: _lastLinkTransportCallbackTicksQ,
+                                 sceneBackgroundTicks: _lastSceneBackgroundTicksQ,
+                                 sceneActiveTicks: _lastSceneActiveTicksQ,
+                                 appWakeupTicks: _lastAppWakeupTicksQ,
+                                 sessionNotice: _lastSessionNotificationQ)
+    }
+
     /// Par. 8 — la riga del contesto di un buco, per ogni ruolo, dopo la decisione e la scrittura del volume: i millisecondi
     /// dall'ultimo richiamo di Link (tempo, collegato, collegati, trasporto), dall'ultimo cambio di stato dell'app (sfondo,
     /// attivo, risveglio) e dall'ultima notifica della sessione audio (col nome); il ciclo d'uscita e la latenza letti dalla
     /// sessione, il suggerimento di silenzio secondario e lo stato termico. Letture, mai scritture. Chiamare SOLO su audioQueue.
+    /// A421 · SEGUITO 3 (par. 3) — qui subito, nella chiamata del buco, solo nei due rami della crisi (finiscono con `return`, senza
+    /// un buffer da proteggere, e un blocco in coda leggerebbe la sessione dopo l'arresto). Nel caso senza crisi la riga si scrive
+    /// in un blocco `audioQueue.async` messo in coda dalla chiamata del buco, con i valori della coda presi allora
+    /// (`renderGapContextSnapshotQ`): il blocco gira dopo lo `scheduleBuffer` di quella chiamata, e le letture della sessione
+    /// (`ioBufferDuration`, `outputLatency`, `secondaryAudioShouldBeSilencedHint`) e lo stato termico non ritardano il buffer del
+    /// buco (quanto costino Apple non lo dice: non si rischia). Protegge il buffer del buco, non le chiamate dopo della raffica: il
+    /// blocco gira prima dei richiami che arrivano dopo di lui; e le letture della sessione possono essere di dopo un cambio di
+    /// percorso già in coda.
     private func logRenderGapContextQ(nowTicks: UInt64) {
+        writeRenderGapContextLineQ(renderGapContextSnapshotQ(nowTicks: nowTicks))
+    }
+
+    /// Le letture della sessione, lo stato termico e la riga. Chiamare SOLO su audioQueue.
+    private func writeRenderGapContextLineQ(_ snapshot: RenderGapContextSnapshot) {
         func since(_ ticks: UInt64?) -> String {
-            ticks.map { String(format: "%.0f", signedMilliseconds(from: $0, to: nowTicks)) } ?? "-"
+            ticks.map { String(format: "%.0f", signedMilliseconds(from: $0, to: snapshot.nowTicks)) } ?? "-"
         }
         let session = AVAudioSession.sharedInstance()
         let thermal: String
@@ -5472,9 +5577,9 @@ class AudioEngine: ObservableObject {
         }
         os_log("[Q-BEATS][RENDER] contesto linkTempo_ms:%{public}@ linkCollegato_ms:%{public}@ linkCollegati_ms:%{public}@ linkTrasporto_ms:%{public}@ sfondo_ms:%{public}@ attivo_ms:%{public}@ risveglio_ms:%{public}@ notificaSessione:%{public}@ notificaSessione_ms:%{public}@ bufferIO_ms:%.2f latenza_ms:%.1f silenzioSecondario:%d termico:%{public}@",
                log: .default, type: .default,
-               since(_lastLinkTempoCallbackTicksQ), since(_lastLinkConnectedCallbackTicksQ), since(_lastLinkPeersCallbackTicksQ),
-               since(_lastLinkTransportCallbackTicksQ), since(_lastSceneBackgroundTicksQ), since(_lastSceneActiveTicksQ),
-               since(_lastAppWakeupTicksQ), _lastSessionNotificationQ?.name ?? "-", since(_lastSessionNotificationQ?.ticks),
+               since(snapshot.linkTempoTicks), since(snapshot.linkConnectedTicks), since(snapshot.linkPeersTicks),
+               since(snapshot.linkTransportTicks), since(snapshot.sceneBackgroundTicks), since(snapshot.sceneActiveTicks),
+               since(snapshot.appWakeupTicks), snapshot.sessionNotice?.name ?? "-", since(snapshot.sessionNotice?.ticks),
                session.ioBufferDuration * 1000.0, session.outputLatency * 1000.0,
                session.secondaryAudioShouldBeSilencedHint ? 1 : 0, thermal)
     }
@@ -8543,7 +8648,14 @@ class AudioEngine: ObservableObject {
             if guards {
                 self.armGapReturnQ(reason: String(format: "buco del render %.1f ms", renderGap.holeSeconds * 1000.0))
             }
-            self.logRenderGapContextQ(nowTicks: gapNowTicks)
+            // A421 · SEGUITO 3 (par. 3) — la riga del contesto dopo il buffer di questa chiamata: i valori della coda si prendono
+            // adesso, le letture della sessione e lo stato termico nel blocco in coda, che gira dopo lo `scheduleBuffer` di questa
+            // chiamata e prima dei richiami della raffica che arrivano dopo di lui. Nei due rami della crisi qui sopra la riga
+            // resta subito (`logRenderGapContextQ`).
+            let contextSnapshot = self.renderGapContextSnapshotQ(nowTicks: gapNowTicks)
+            self.audioQueue.async { [weak self] in
+                self?.writeRenderGapContextLineQ(contextSnapshot)
+            }
         } else if let guardianSilence = self._guardianSilenceQ {
             // Par. 4.4 — la prima chiamata della stessa catena che arriva al misuratore dopo uno scatto del guardiano, anche se il
             // misuratore non dice buco: il silenzio del guardiano ha sempre il suo ritorno.
@@ -8608,10 +8720,18 @@ class AudioEngine: ObservableObject {
                     // Direttore con la levetta spenta né `link_engine_sync_phase`: il click va col suo
                     // orologio, come a Link spento (dove `sync_phase` esce senza correggere). Nessuna riga:
                     // gira a ogni buffer.
+                    // A421 · SEGUITO 3 (par. 4) — qui nessuna correzione arriva mai: il segno della prima correzione dopo la
+                    // finestra si abbassa alla prima chiamata dopo la finestra, senza riarmo (una riga per finestra).
+                    self.lowerFirstCorrectionMarkWithoutCorrectionQ()
                 } else if _linkMode == .direttore && !self._directorFollowsLinkQ {
                     // A412 — dopo un rientro il Direttore segue Link (il ramo `link_engine_sync_phase` qui
                     // sotto) fino all'avvio dopo (scelta T4): niente assert, che riscriverebbe la griglia di
                     // tutti con la posizione del rientro.
+                    // A421 · SEGUITO 3 (par. 4) — l'assert non è una correzione: il segno della prima correzione dopo la finestra
+                    // si abbassa qui, senza riarmo. Un buco sotto la soglia proprio nella prima chiamata dopo la finestra non
+                    // arriva qui: la chiamata passa a seguire Link prima di questo blocco, la sua correzione (il ramo di
+                    // `link_engine_sync_phase`) è davvero la prima dopo la finestra, e F1 vale come oggi.
+                    self.lowerFirstCorrectionMarkWithoutCorrectionQ()
                     // Modalità Direttore in play (siamo dentro scheduleNextBuffer,
                     // quindi isRunning è già garantito true dal guard a riga 1359).
                     // Q-BEATS impone BPM e fase al session state in un singolo

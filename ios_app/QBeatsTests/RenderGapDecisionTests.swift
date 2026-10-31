@@ -125,6 +125,56 @@ final class RenderGapDecisionTests: XCTestCase {
         XCTAssertEqual(outcome(150.0, .direttore), .crisis)
     }
 
+    /// A421 · SEGUITO 3 (par. 8.1; seguito 2, par. 4.7): la tabella coi ruoli (Direttore, Follower, Solo), lo show e la canzone
+    /// (aperti e chiusi), i buchi 33,2 · 116,5 · 119,3 · 149 · 151 ms, la scorta (sì e no), l'uscita esterna presente e sparita, col
+    /// Direttore che segue già Link o no: 5 × 3 × 2 × 2 × 2 × 2 × 2 = 480 celle, a 121 BPM con l'altoparlante (P 23,3 ms: la soglia
+    /// resta al tetto di 150 ms, con e senza P). Per ogni cella l'esito e il motivo, scritti qui dalla regola del mandato del seguito
+    /// 2 (par. 4.3) e non ricavati dal tipo: chi non è il Direttore solo la riga; l'uscita sparita prima di tutto, in canzone o
+    /// fuori, senza soglia; fuori da una canzone segue Link; in canzone la scorta è una crisi a ogni buco; poi il buco contro la
+    /// soglia (149 segue Link, 151 crisi).
+    func testTheTableOfTheSeguito2Holes() {
+        var cells = 0
+        var crises = 0
+        for ms in [33.2, 116.5, 119.3, 149.0, 151.0] {
+            for role in roles {
+                for show in bools {
+                    for song in bools {
+                        for leadIn in bools {
+                            for vanished in bools {
+                                for follows in bools {
+                                    cells += 1
+                                    let got = RenderGapDecision.verdict(situation(ms, role, show: show, song: song, follows: follows,
+                                                                                  leadIn: leadIn, vanished: vanished))
+                                    let tag = "\(ms) ruolo:\(role) show:\(show) canzone:\(song) scorta:\(leadIn) sparita:\(vanished) segue:\(follows)"
+                                    let expected: (outcome: RenderGapOutcome, reason: RenderGapCrisisReason?, threshold: Double?) = {
+                                        if role != .direttore { return (.lineOnly, nil, nil) }
+                                        if vanished { return (.crisis, .outputVanished, nil) }
+                                        if !(show && song) { return (.followLink, nil, nil) }
+                                        if leadIn { return (.crisis, .leadIn, 0.150) }
+                                        if ms >= 150.0 { return (.crisis, .hole, 0.150) }
+                                        return (.followLink, nil, 0.150)
+                                    }()
+                                    XCTAssertEqual(got.outcome, expected.outcome, tag)
+                                    XCTAssertEqual(got.crisisReason, expected.reason, tag)
+                                    if let threshold = expected.threshold {
+                                        XCTAssertEqual(got.thresholdSeconds ?? -1, threshold, accuracy: 1e-9, tag)
+                                    } else {
+                                        XCTAssertNil(got.thresholdSeconds, tag)
+                                    }
+                                    if got.outcome == .crisis { crises += 1 }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(cells, 5 * 3 * 2 * 2 * 2 * 2 * 2)
+        // Le crisi: l'uscita sparita (5 buchi × 4 show/canzone × 2 scorta × 2 segue = 80), la scorta in canzone con l'uscita
+        // presente (5 × 2 segue = 10), il buco di 151 ms in canzone fuori dalla scorta con l'uscita presente (2 segue = 2).
+        XCTAssertEqual(crises, 80 + 10 + 2)
+    }
+
     /// Il 29/10: il buco di 70,0 ms sul Direttore in canzone (0,1412 battiti a 121), la prima correzione di 0,1883 battiti (il
     /// buco più P di 0,0469): sotto mezzo battito, segue Link. La cassa Bluetooth (P circa 123 ms) col primo buco dopo il Play
     /// di 130 ms: crisi — senza P la prima correzione sarebbe di 0,51 battiti e il DSP rinominerebbe il battito.
