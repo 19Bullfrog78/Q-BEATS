@@ -8,6 +8,11 @@ import XCTest
 // ferma come allo Stop della console e a configurazione e modo è com'è; il Follower è sempre com'è; il
 // ruolo Direttore con la levetta spenta è un Solo. E il cuore del mandato: nessuna crisi manda Stop a
 // Link, per nessun ruolo.
+// ⚠️ A421 (24/10/2026): le cause sono nove (mandato A421, par. 2.1 U4: «uscita-tolta», «uscita-aggiunta»,
+// «buco-del-render»), la matrice 3 × 9 × 2 × 2 × 2 × 2 = 432 celle. Il Solo si ferma come allo Stop della
+// console alle cause che lo fermano (`stopsSolo`: le quattro della sessione audio e «uscita-tolta»); a
+// «uscita-aggiunta» e «buco-del-render» è com'è, come a configurazione e modo. La causa ricordata per le
+// ripartenze è appiccicosa per il Solo (`rememberedCause`).
 
 final class CrisisStopDecisionTests: XCTestCase {
 
@@ -73,13 +78,45 @@ final class CrisisStopDecisionTests: XCTestCase {
         }
     }
 
-    /// Configurazione e modo nel Solo: com'è oggi (ripartono da sole, non sono interruzioni).
+    /// Configurazione e modo nel Solo: com'è oggi (ripartono da sole, non sono interruzioni). A421: anche
+    /// «uscita-aggiunta» (par. 2.2 f: la cura è del pezzo 3) e «buco-del-render» (il Solo non ha una band).
     func testSoloAsTodayOnConfigurationAndMode() {
-        for cause in [CrisisCause.configuration, .mode] {
+        for cause in [CrisisCause.configuration, .mode, .outputAdded, .renderGap] {
             for running in bools {
                 XCTAssertEqual(outcome(.solo, cause, running: running), .asToday, "causa:\(cause) motore:\(running)")
             }
         }
+    }
+
+    /// A421 — «uscita-tolta» nel Solo: come lo Stop della console col click in moto (le cuffie staccate: il Solo si ferma e
+    /// riparte col Play, decisione di Mauro del 20/10); a motore fermo niente.
+    func testSoloStopsAsItsConsoleOnOutputRemoved() {
+        XCTAssertEqual(outcome(.solo, .outputRemoved), .soloStopAsConsole)
+        XCTAssertEqual(outcome(.solo, .outputRemoved, show: false, song: false), .soloStopAsConsole)
+        XCTAssertEqual(outcome(.solo, .outputRemoved, running: false), .nothing)
+        XCTAssertTrue(CrisisCause.outputRemoved.stopsSolo)
+        XCTAssertFalse(CrisisCause.outputRemoved.isAudioSessionCrisis)
+    }
+
+    /// A421 — la causa ricordata (`rememberedCause`): per il Solo una causa che lo ferma resta finché non riparte col Play;
+    /// una crisi dopo che non lo ferma (configurazione, modo, un'uscita che compare, un buco) non la cancella. Per il
+    /// Direttore e il Follower, e per il Solo senza una causa che lo ferma, la causa è la nuova.
+    func testRememberedCauseIsStickyForTheSolo() {
+        for sticky in CrisisCause.allCases where sticky.stopsSolo {
+            for later in CrisisCause.allCases where !later.stopsSolo {
+                XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: sticky, new: later, playerRole: .solo), sticky,
+                               "prima:\(sticky) dopo:\(later)")
+                XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: sticky, new: later, playerRole: .direttore), later,
+                               "prima:\(sticky) dopo:\(later)")
+                XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: sticky, new: later, playerRole: .follower), later,
+                               "prima:\(sticky) dopo:\(later)")
+            }
+            // Una causa che ferma dopo una che ferma: la nuova.
+            XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: sticky, new: .interruption, playerRole: .solo), .interruption)
+        }
+        XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: .configuration, new: .mode, playerRole: .solo), .mode)
+        XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: nil, new: .mode, playerRole: .solo), .mode)
+        XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: .mode, new: .outputRemoved, playerRole: .solo), .outputRemoved)
     }
 
     /// Il ruolo Direttore con la levetta spenta è un Solo (`PlayerRoleDecision`).
@@ -117,7 +154,8 @@ final class CrisisStopDecisionTests: XCTestCase {
         case .follower:
             return .asToday
         case .solo:
-            if cause == .configuration || cause == .mode { return .asToday }
+            // A421: le cause che fermano il Solo sono le quattro della sessione audio e «uscita-tolta».
+            if !cause.stopsSolo { return .asToday }
             return running ? .soloStopAsConsole : .nothing
         case .direttore:
             if silent { return .silentInSong }
@@ -151,7 +189,8 @@ final class CrisisStopDecisionTests: XCTestCase {
                 }
             }
         }
-        XCTAssertEqual(cells, 3 * 6 * 2 * 2 * 2 * 2)
+        // A421: nove cause.
+        XCTAssertEqual(cells, 3 * 9 * 2 * 2 * 2 * 2)
     }
 
     // MARK: - Nessuno Stop a Link; le cause
@@ -164,19 +203,31 @@ final class CrisisStopDecisionTests: XCTestCase {
     }
 
     func testTheCauses() {
-        XCTAssertEqual(CrisisCause.allCases.count, 6)
+        // A421: nove cause (le sei di A412 più le tre dell'uscita audio).
+        XCTAssertEqual(CrisisCause.allCases.count, 9)
         XCTAssertTrue(CrisisCause.interruption.isAudioSessionCrisis)
         XCTAssertTrue(CrisisCause.servicesLost.isAudioSessionCrisis)
         XCTAssertTrue(CrisisCause.resetWithoutLost.isAudioSessionCrisis)
         XCTAssertTrue(CrisisCause.resetAfterLost.isAudioSessionCrisis)
         XCTAssertFalse(CrisisCause.configuration.isAudioSessionCrisis)
         XCTAssertFalse(CrisisCause.mode.isAudioSessionCrisis)
+        XCTAssertFalse(CrisisCause.outputRemoved.isAudioSessionCrisis)
+        XCTAssertFalse(CrisisCause.outputAdded.isAudioSessionCrisis)
+        XCTAssertFalse(CrisisCause.renderGap.isAudioSessionCrisis)
+        // `stopsSolo`: le quattro della sessione audio e «uscita-tolta», nessun'altra.
+        for cause in CrisisCause.allCases {
+            XCTAssertEqual(cause.stopsSolo, cause.isAudioSessionCrisis || cause == .outputRemoved, "\(cause)")
+        }
+        XCTAssertEqual(CrisisCause.allCases.filter { $0.stopsSolo }.count, 5)
         XCTAssertEqual(CrisisCause.interruption.rawValue, "interruzione")
         XCTAssertEqual(CrisisCause.servicesLost.rawValue, "servizi-persi")
         XCTAssertEqual(CrisisCause.resetWithoutLost.rawValue, "reset-senza-lost")
         XCTAssertEqual(CrisisCause.resetAfterLost.rawValue, "reset-dopo-la-lost")
         XCTAssertEqual(CrisisCause.configuration.rawValue, "configurazione")
         XCTAssertEqual(CrisisCause.mode.rawValue, "modo")
+        XCTAssertEqual(CrisisCause.outputRemoved.rawValue, "uscita-tolta")
+        XCTAssertEqual(CrisisCause.outputAdded.rawValue, "uscita-aggiunta")
+        XCTAssertEqual(CrisisCause.renderGap.rawValue, "buco-del-render")
         XCTAssertEqual(CrisisStopOutcome.silentInSong.rawValue, "muto-in-canzone")
         XCTAssertEqual(CrisisStopOutcome.soloStopAsConsole.rawValue, "come-lo-stop-della-console")
     }

@@ -21,6 +21,17 @@ import Foundation
 // In più la fine dell'interruzione senza `shouldResume` (referto A410, Aperto 4): rialzava la ripresa
 // pendente e la sua rete di sicurezza anche senza un'interruzione attiva e dopo uno Stop voluto; ora la
 // rialza solo con un'interruzione attiva e nessuno Stop voluto dopo la crisi.
+// === A421 (24/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 2 (mandato, par. 2.1 U4, U5, U6, U7, par. 2.2 a) ===
+//  · tre inneschi nuovi: `outputAdded` (il ritorno del Direttore dopo le cuffie, U6), `renderGap` (il ritorno
+//    dopo la crisi da misuratore, U7), `engineStoppedBySystem` (la rete del motore fermo dal sistema, par.
+//    2.2 a). Come gli altri: l'esito non dipende dall'innesco;
+//  · un ingresso nuovo, «uscita mancante» (U5, `OutputRouteDecision`): il Direttore con l'uscita mancante
+//    (muto in canzone, o fermo fuori da una canzone) ⇒ niente, per ogni innesco, compresa la ripresa pendente
+//    che recupera il gestore del percorso. Il Play del batterista non passa di qui (D2);
+//  · il Solo: niente dopo una causa che lo ferma (`CrisisCause.stopsSolo`: le crisi della sessione audio e
+//    «uscita-tolta»), al posto di `isAudioSessionCrisis`.
+// L'ordine della regola: Follower come oggi; uno Stop voluto; il Direttore con l'uscita mancante; il
+// Direttore muto in canzone al coordinatore; il Solo dopo una causa che lo ferma; tutto il resto come oggi.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Gli inneschi delle ripartenze automatiche (referto A409 §4.1), col nome che il motore scrive già
@@ -35,6 +46,19 @@ enum RecoveryTrigger: String, CaseIterable, Equatable {
     case modeChange = "mode_change"
     case wakeupPendingRecovery = "wakeup_pending_recovery"
     case appWakeup = "app_wakeup"
+    // A421 — il ritorno del Direttore dopo le cuffie (U6), dopo il buco del render (U7), e la rete del
+    // motore fermo dal sistema (par. 2.2 a).
+    case outputAdded = "uscita_aggiunta"
+    case renderGap = "buco_del_render"
+    case engineStoppedBySystem = "motore_fermo_dal_sistema"
+}
+
+/// A421 — perché una ripartenza automatica è «niente» (per la riga e per il motore, che all'uscita mancante
+/// abbassa l'interruzione e ripubblica il tasto: mandato U5).
+enum NoRestartReason: String, Equatable {
+    case wantedStop = "stop-voluto"
+    case outputMissing = "uscita-mancante"
+    case soloAfterCrisis = "solo-dopo-la-crisi"
 }
 
 /// Dove va una ripartenza automatica.
@@ -50,17 +74,35 @@ enum RecoveryRoute: String, Equatable {
 
 enum RecoveryDecision {
 
-    /// La regola. `crisisCause`: la causa dell'ultima crisi (`nil` = nessuna dall'ultimo avvio).
+    /// La regola. `crisisCause`: la causa dell'ultima crisi (`nil` = nessuna dall'ultimo avvio). `outputMissing`:
+    /// «uscita mancante» (A421, U5; il valore di default è per i chiamanti di prima e il banco di A412).
     static func route(trigger: RecoveryTrigger,
                       playerRole: PlayerRole,
                       silentInSong: Bool,
                       wantedStopSinceCrisis: Bool,
-                      crisisCause: CrisisCause?) -> RecoveryRoute {
+                      crisisCause: CrisisCause?,
+                      outputMissing: Bool = false) -> RecoveryRoute {
         if playerRole == .follower { return .startAsToday }
         if wantedStopSinceCrisis { return .noRestart }
+        if playerRole == .direttore && outputMissing { return .noRestart }
         if playerRole == .direttore && silentInSong { return .coordinator }
-        if playerRole == .solo, let cause = crisisCause, cause.isAudioSessionCrisis { return .noRestart }
+        if playerRole == .solo, let cause = crisisCause, cause.stopsSolo { return .noRestart }
         return .startAsToday
+    }
+
+    /// A421 — il motivo di un esito «niente», nell'ordine della regola; `nil` se l'esito non è «niente».
+    static func noRestartReason(trigger: RecoveryTrigger,
+                                playerRole: PlayerRole,
+                                silentInSong: Bool,
+                                wantedStopSinceCrisis: Bool,
+                                crisisCause: CrisisCause?,
+                                outputMissing: Bool) -> NoRestartReason? {
+        guard route(trigger: trigger, playerRole: playerRole, silentInSong: silentInSong,
+                    wantedStopSinceCrisis: wantedStopSinceCrisis, crisisCause: crisisCause,
+                    outputMissing: outputMissing) == .noRestart else { return nil }
+        if wantedStopSinceCrisis { return .wantedStop }
+        if playerRole == .direttore && outputMissing { return .outputMissing }
+        return .soloAfterCrisis
     }
 
     /// La fine dell'interruzione senza `shouldResume` rialza la ripresa pendente (e la sua rete di

@@ -61,6 +61,91 @@ final class DirectorRejoinDecisionTests: XCTestCase {
                            marginSeconds: margin, windowSeconds: window ?? self.window)
     }
 
+    // MARK: - A421 · SEGUITO 2 (par. 2.2): il margine con le uscite lente e il lettore lento
+
+    private let buffer48 = 512.0 / 48_000.0
+    private let buffer44 = 512.0 / 44_100.0
+
+    /// D: la scorta intera (5 buffer a 48 kHz col ciclo di 10,67 ms; 6 sull'iPad col ciclo di 21,33) più la latenza. Il 29/10:
+    /// cuffie col filo 56,0 ms (latenza 2,7), altoparlante 65,9 (12,6), cassa Bluetooth 169,6 (a 44,1 kHz, ciclo 11,61: 5 buffer
+    /// da 11,61 = 58,0, più la latenza della cassa 111,6).
+    func testTheFirstBufferDistance() {
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: buffer48, outputLatencySeconds: 0.0027),
+                       5 * buffer48 + 0.0027, accuracy: 1e-9)
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: buffer48, outputLatencySeconds: 0.0027) * 1000.0,
+                       56.0, accuracy: 0.1)
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: buffer48, outputLatencySeconds: 0.0126) * 1000.0,
+                       65.9, accuracy: 0.1)
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer44, ioBufferSeconds: buffer44, outputLatencySeconds: 0.1116) * 1000.0,
+                       169.6, accuracy: 0.1)
+        // L'iPad: il ciclo di 21,33 ms dà 6 buffer di scorta (64 ms).
+        XCTAssertEqual(Decision.leadInBuffers(bufferSeconds: buffer48, ioBufferSeconds: 2 * buffer48), 6)
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: 2 * buffer48, outputLatencySeconds: 0.006) * 1000.0,
+                       70.0, accuracy: 0.1)
+        // Senza una scorta possibile (valori non validi) resta la sola latenza; una latenza non valida vale zero.
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: 0, ioBufferSeconds: buffer48, outputLatencySeconds: 0.0126), 0.0126)
+        XCTAssertEqual(Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: buffer48, outputLatencySeconds: .nan),
+                       5 * buffer48, accuracy: 1e-9)
+    }
+
+    /// Il margine: max(150 ms, D + 80 ms). Cuffie e altoparlante restano a 150; la cassa del 29/10 249,6; un'uscita lenta da 2 s
+    /// 2080; sull'iPad sopra 150 appena la latenza passa 6 ms.
+    func testTheMargin() {
+        XCTAssertEqual(Decision.baseMarginSeconds, 0.150)
+        XCTAssertEqual(Decision.marginReserveSeconds, 0.080)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: 0.0560), 0.150, accuracy: 1e-9)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: 0.0659), 0.150, accuracy: 1e-9)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: 0.1696), 0.2496, accuracy: 1e-9)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: 2.0), 2.080, accuracy: 1e-9)
+        let iPad6 = Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: 2 * buffer48, outputLatencySeconds: 0.006)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: iPad6), 0.150, accuracy: 1e-6)
+        let iPad7 = Decision.firstBufferDistanceSeconds(bufferSeconds: buffer48, ioBufferSeconds: 2 * buffer48, outputLatencySeconds: 0.007)
+        XCTAssertGreaterThan(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: iPad7), 0.150)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: 0), 0.150)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: .nan), 0.150)
+        XCTAssertEqual(Decision.rejoinMarginSeconds(firstBufferDistanceSeconds: -1), 0.150)
+        // Con la cassa del 29/10 l'armamento 249,6 ms prima dell'ora d'uscita arriva 80 ms prima dell'ora chiesta al lettore.
+        let target: UInt64 = 2_138_880_036_696
+        let armAt = Decision.armingTicks(targetOutputTicks: target, marginSeconds: 0.2496, ticksPerSecond: tps)
+        let render = Decision.firstBufferRenderTicks(targetOutputTicks: target, outputLatencyTicks: UInt64(0.1696 * tps))
+        XCTAssertEqual(Double(render - armAt) / tps, 0.080, accuracy: 1e-6)
+        XCTAssertFalse(Decision.isLate(nowTicks: armAt, renderTicks: render, minLeadTicks: UInt64(Decision.minLeadSeconds * tps)))
+        // Col margine fisso di 150 ms (com'era) l'armamento cadeva 19,6 ms DOPO l'ora chiesta: il fuoco in ritardo del 29/10.
+        let oldArm = Decision.armingTicks(targetOutputTicks: target, marginSeconds: 0.150, ticksPerSecond: tps)
+        XCTAssertTrue(Decision.isLate(nowTicks: oldArm, renderTicks: render, minLeadTicks: UInt64(Decision.minLeadSeconds * tps)))
+    }
+
+    /// Il lettore lento (par. 2.2 b): il 30/10 il bersaglio a 413,1 ms dalla decisione e il lettore partito in 684,9 ms:
+    /// all'armamento adesso più l'anticipo minimo supera l'ora d'uscita meno D (65,9 ms): il segno «lettore-lento». Con la cassa
+    /// (D 169,6) e il lettore da 528,3 con un bersaglio a 1294,1 ms: in tempo, nessun segno. All'ora giusta (80 ms prima) no.
+    func testTheSlowPlayerAtArming() {
+        let decided: UInt64 = 100 * 24_000_000
+        let target = decided + UInt64(0.4131 * tps)
+        let armingAfterSlowPlayer = decided + UInt64(0.6849 * tps)
+        XCTAssertTrue(Decision.slowPlayerAtArming(nowTicks: armingAfterSlowPlayer, targetOutputTicks: target,
+                                                  distanceTicks: UInt64(0.0659 * tps), minLeadTicks: UInt64(Decision.minLeadSeconds * tps)))
+        let farTarget = decided + UInt64(1.2941 * tps)
+        XCTAssertFalse(Decision.slowPlayerAtArming(nowTicks: decided + UInt64(0.5283 * tps), targetOutputTicks: farTarget,
+                                                   distanceTicks: UInt64(0.1696 * tps), minLeadTicks: UInt64(Decision.minLeadSeconds * tps)))
+        let onTime = farTarget - UInt64(0.2496 * tps)
+        XCTAssertFalse(Decision.slowPlayerAtArming(nowTicks: onTime, targetOutputTicks: farTarget,
+                                                   distanceTicks: UInt64(0.1696 * tps), minLeadTicks: UInt64(Decision.minLeadSeconds * tps)))
+        // Il confine: adesso esattamente all'ora chiesta meno l'anticipo minimo non è in ritardo; un tick dopo sì.
+        let render = farTarget - UInt64(0.1696 * tps)
+        let minLead = UInt64(Decision.minLeadSeconds * tps)
+        XCTAssertFalse(Decision.slowPlayerAtArming(nowTicks: render - minLead, targetOutputTicks: farTarget,
+                                                   distanceTicks: UInt64(0.1696 * tps), minLeadTicks: minLead))
+        XCTAssertTrue(Decision.slowPlayerAtArming(nowTicks: render - minLead + 1, targetOutputTicks: farTarget,
+                                                  distanceTicks: UInt64(0.1696 * tps), minLeadTicks: minLead))
+        // Una distanza più grande dell'ora del bersaglio: l'ora chiesta si ferma a zero, in ritardo.
+        XCTAssertTrue(Decision.slowPlayerAtArming(nowTicks: 10, targetOutputTicks: 5, distanceTicks: 100, minLeadTicks: 1))
+        // L'altoparlante con un lettore da 140 ms e un bersaglio a 160 ms dalla decisione: all'armamento (140 ms) adesso + 30 >
+        // 160 − 65,9: lettore lento (fino al seguito un fuoco in ritardo e un salto).
+        let near = decided + UInt64(0.160 * tps)
+        XCTAssertTrue(Decision.slowPlayerAtArming(nowTicks: decided + UInt64(0.140 * tps), targetOutputTicks: near,
+                                                  distanceTicks: UInt64(0.0659 * tps), minLeadTicks: minLead))
+    }
+
     // MARK: - Il bersaglio, scritto per esteso
 
     /// Battuta 11, battito 2,5 dell'Intro (1,5 battiti dopo l'àncora, 0,9 s). Margine 150 ms a 100 =

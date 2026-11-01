@@ -76,6 +76,20 @@ private struct ChainRig {
         return removed
     }
 
+    /// A421 — le chiusure di fine sezione consegnate dagli arresti delle crisi (mandato A421, par. 2.2 j).
+    private(set) var drainDeliveries = 0
+
+    /// A421 — l'arresto di una crisi sulla coda (la Lost, il reset, l'inizio di un'interruzione, il modo, la frequenza, le
+    /// cuffie, il buco del render, il rientro che non parte): come lo stop, ma un drenaggio aperto si consegna una volta
+    /// (la canzone era finita mentre suonava) e si chiude. Uno Stop voluto (`stop`) lo chiude senza consegnarlo.
+    mutating func crisisStop() -> [RigBuffer] {
+        precondition(running)
+        if drainPending {
+            drainDeliveries += 1
+        }
+        return stop()
+    }
+
     /// Il richiamo sulla coda (`bufferCallbackQ`).
     mutating func callback(_ buffer: RigBuffer) {
         guard BufferChainGeneration.accepts(callbackGeneration: buffer.generation, current: current) else {
@@ -322,6 +336,45 @@ final class BufferChainGenerationTests: XCTestCase {
         rig.cycle(10)
         XCTAssertEqual(rig.queued.count, 3)
         XCTAssertEqual(rig.liveQueued, 3)
+    }
+
+    /// A421 — un arresto di crisi che trova il drenaggio aperto consegna la chiusura di fine sezione una volta e lo chiude;
+    /// uno Stop voluto lo chiude senza consegnarla; e l'avvio dopo non trova un drenaggio vecchio (mandato A421, par. 2.2 j;
+    /// referto A420, Aperto 9).
+    func testACrisisStopDeliversTheDrainOnceAndAWantedStopDoesNot() {
+        var crisis = ChainRig()
+        crisis.startMotor()
+        crisis.startChain()
+        crisis.cycle(7)
+        crisis.drainPending = true
+        let removed = crisis.crisisStop()
+        XCTAssertEqual(crisis.drainDeliveries, 1)
+        XCTAssertFalse(crisis.drainPending)
+        XCTAssertEqual(removed.count, 3)
+        // Il drenaggio già entrato prima della crisi: niente da consegnare.
+        var entered = ChainRig()
+        entered.startMotor()
+        entered.startChain()
+        entered.cycle(7)
+        entered.drainPending = true
+        entered.cycle(1)
+        _ = entered.crisisStop()
+        XCTAssertEqual(entered.drainDeliveries, 0)
+        // Lo Stop voluto: chiude senza consegnare.
+        var wanted = ChainRig()
+        wanted.startMotor()
+        wanted.startChain()
+        wanted.drainPending = true
+        _ = wanted.stop()
+        XCTAssertEqual(wanted.drainDeliveries, 0)
+        XCTAssertFalse(wanted.drainPending)
+        // Nessun avvio dopo una crisi trova un drenaggio vecchio: i tre buffer nuovi si programmano tutti.
+        crisis.startMotor()
+        crisis.startChain()
+        XCTAssertEqual(crisis.queued.count, 3)
+        XCTAssertEqual(crisis.liveQueued, 3)
+        crisis.cycle(10)
+        XCTAssertEqual(crisis.queued.count, 3)
     }
 
     /// Le due salite nello stesso blocco (ripresa e ramo standalone/Direttore): con la sola salita della catena o con tutte

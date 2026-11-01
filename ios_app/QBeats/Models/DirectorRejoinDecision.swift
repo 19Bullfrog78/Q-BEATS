@@ -302,6 +302,52 @@ enum DirectorRejoinDecision {
         return overflow || sum > renderTicks
     }
 
+    // MARK: - A421 · SEGUITO 2 (30/10/2026) — IL MARGINE CON LE USCITE LENTE E IL LETTORE LENTO (mandato «A421 · SEGUITO 2», par. 2.2)
+    //
+    // Il fatto (par. 2.1, collaudo del 29-30/10). Con la cassa Bluetooth la distanza fra l'ora d'uscita del bersaglio e l'ora
+    // chiesta al lettore per il primo buffer (la scorta muta più la latenza della cassa) era 169,6 ms, e l'armamento a 150 ms
+    // prima dell'ora d'uscita girava 20,8 ms DOPO l'ora chiesta: cinque fuochi in ritardo di fila e «non-certo(ritardo-oltre-i-
+    // salti)»; con le cuffie col filo (56,0 ms) e l'altoparlante (65,9 ms) il fuoco arrivava con 82-91 ms d'anticipo. E dopo una
+    // chiamata il lettore è partito in 684,9 ms con un bersaglio a 413,1 ms dalla decisione: un salto consumato per un ritardo
+    // che era già certo all'armamento. Da qui il margine è max(150 ms, D + 80 ms), con D la distanza del primo buffer letta
+    // dalla sessione in quel momento; e un bersaglio non raggiungibile già all'armamento si arma per adesso col segno
+    // «lettore-lento»: al fuoco in ritardo il coordinatore riceve l'innesco «lettore-lento» senza consumare un salto.
+
+    /// Il margine di base del bersaglio e dell'armamento (A376 P9: 150 ms). Fino al seguito 2 era il margine fisso
+    /// (`AudioEngine.kRejoinMarginSeconds`).
+    static let baseMarginSeconds: Double = 0.150
+    /// La riserva sopra la distanza del primo buffer: l'anticipo minimo di oggi (30 ms) più 50 ms per il timer (al più 1,6 ms
+    /// nei 24 fuochi del 29-30/10), la coda occupata e una latenza al fuoco diversa da quella letta prima.
+    static let marginReserveSeconds: Double = 0.080
+
+    /// D: la distanza fra l'ora d'uscita del bersaglio e l'ora chiesta al lettore per il primo buffer — la scorta intera
+    /// (`leadInBuffers` per il buffer del lettore) più la latenza d'uscita, con la latenza (`outputLatency`) e il ciclo d'uscita
+    /// (`ioBufferDuration`) letti dalla sessione in quel momento e non dalle copie, che `start()` rinfresca dopo. Senza una
+    /// scorta possibile (valori non validi) resta la sola latenza; una latenza non valida vale zero.
+    static func firstBufferDistanceSeconds(bufferSeconds: Double, ioBufferSeconds: Double, outputLatencySeconds: Double) -> Double {
+        let latency = (outputLatencySeconds.isFinite && outputLatencySeconds > 0) ? outputLatencySeconds : 0
+        guard let buffers = leadInBuffers(bufferSeconds: bufferSeconds, ioBufferSeconds: ioBufferSeconds) else { return latency }
+        return Double(buffers) * bufferSeconds + latency
+    }
+
+    /// Il margine del bersaglio e dell'armamento: max(150 ms, D + 80 ms). Sull'iPhone con le cuffie col filo (56,0 + 80 = 136,0)
+    /// e con l'altoparlante (65,9 + 80 = 145,9) resta 150 ms; con la cassa del 29/10 (169,6) è 249,6 ms. Con una distanza non
+    /// valida resta il margine di base.
+    static func rejoinMarginSeconds(firstBufferDistanceSeconds distance: Double) -> Double {
+        guard distance.isFinite, distance > 0 else { return baseMarginSeconds }
+        return max(baseMarginSeconds, distance + marginReserveSeconds)
+    }
+
+    /// Il bersaglio non raggiungibile già all'armamento (par. 2.2 b): adesso più l'anticipo minimo supera l'ora d'uscita del
+    /// bersaglio meno D (la disuguaglianza di `isLate`), cioè il fuoco sarebbe in ritardo comunque. Allora si arma per adesso
+    /// (attesa zero) col segno «lettore-lento»; al fuoco, se è in ritardo per le copie, il ramo del ritardo va al coordinatore
+    /// con l'innesco «lettore-lento», con lo stesso conto dei salti e senza la guardia dei salti esauriti; il bersaglio scelto
+    /// così si arma senza questo controllo. Se al fuoco non è in ritardo, il fuoco è quello di oggi.
+    static func slowPlayerAtArming(nowTicks: UInt64, targetOutputTicks: UInt64, distanceTicks: UInt64, minLeadTicks: UInt64) -> Bool {
+        let renderTicks = targetOutputTicks >= distanceTicks ? targetOutputTicks - distanceTicks : 0
+        return isLate(nowTicks: nowTicks, renderTicks: renderTicks, minLeadTicks: minLeadTicks)
+    }
+
     /// A412 — LO STOP DI FINE CANZONE (mandato §2.3, D1): l'ora a cui il telefono del Direttore lo manda.
     /// Mai prima della fine: la più tarda fra l'ora della mappa e quella del ponte (0 = ponte spento),
     /// più `marginBeats` (1/8 di battito, la tolleranza di T2) al tempo dell'ultima sezione. `nil` se

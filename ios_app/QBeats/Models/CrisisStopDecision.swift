@@ -27,6 +27,17 @@ import Foundation
 // (`PlayerRoleDecision`): il ruolo Direttore con la levetta spenta è un Solo.
 // «Canzone in corso»: il motore è partito per una canzone del runner (la mappa consegnata subito
 // prima dell'avvio) e nessuno Stop lo ha fermato dopo; la tiene il motore, su audioQueue.
+// === A421 (24/10/2026) — USCITA AUDIO, PASSO 2a, PEZZO 2: TRE CAUSE NUOVE (mandato, par. 2.1 U4) ===
+// «uscita-tolta» e «uscita-aggiunta» (il cambio di percorso con un'uscita esterna che sparisce o compare,
+// `OutputRouteDecision`) e «buco-del-render» (il misuratore a 75 ms, `RenderGapDecision`). La regola non
+// cambia: per il Direttore muto in canzone o arresto locale come alle altre; per il Solo «uscita-tolta» ferma
+// come lo Stop della console (`stopsSolo`, al posto di `isAudioSessionCrisis` nella regola e in
+// `RecoveryDecision`: il Solo dopo «uscita-tolta» non riparte da solo, riparte col Play); «uscita-aggiunta»
+// e «buco-del-render» nel Solo sono «come oggi» (a un'uscita che compare il Solo non dichiara nemmeno la
+// crisi: par. 2.2 f, la cura è del pezzo 3). Una crisi dopo (configurazione, modo) non cancella una causa che
+// ferma il Solo finché il Solo non riparte col Play (`rememberedCause`): se no un cambio di modo nello stesso
+// blocco (una scheda USB che si stacca) lo farebbe ripartire da solo. Il Follower resta «come oggi» (la crisi
+// delle cuffie lo zittisce senza fermarlo: `OutputRouteDecision`).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Le cause per cui il click tace senza Stop, col nome che va nelle righe di registro.
@@ -37,6 +48,10 @@ enum CrisisCause: String, CaseIterable, Equatable {
     case resetAfterLost = "reset-dopo-la-lost"
     case configuration = "configurazione"
     case mode = "modo"
+    // A421 — le cuffie (un'uscita esterna tolta o aggiunta a canzone in corso) e il buco del render.
+    case outputRemoved = "uscita-tolta"
+    case outputAdded = "uscita-aggiunta"
+    case renderGap = "buco-del-render"
 
     /// Una crisi della sessione audio (interruzione, servizi persi, reset): dopo una di queste il
     /// click del Solo non riparte da solo (mandato §2.7). Configurazione e modo no.
@@ -44,9 +59,15 @@ enum CrisisCause: String, CaseIterable, Equatable {
         switch self {
         case .interruption, .servicesLost, .resetWithoutLost, .resetAfterLost:
             return true
-        case .configuration, .mode:
+        case .configuration, .mode, .outputRemoved, .outputAdded, .renderGap:
             return false
         }
+    }
+
+    /// A421 — ferma il Solo come lo Stop della console, e il Solo non riparte da solo: le crisi della sessione
+    /// audio e «uscita-tolta» (mandato A421, par. 2.1 U4; referto A419, par. 3.1.4).
+    var stopsSolo: Bool {
+        isAudioSessionCrisis || self == .outputRemoved
     }
 }
 
@@ -87,12 +108,24 @@ enum CrisisStopDecision {
         case .follower:
             return .asToday
         case .solo:
-            guard cause.isAudioSessionCrisis else { return .asToday }
+            // A421 — `stopsSolo`: le crisi della sessione audio e «uscita-tolta».
+            guard cause.stopsSolo else { return .asToday }
             return engineRunning ? .soloStopAsConsole : .nothing
         case .direttore:
             if silentInSong { return .silentInSong }
             guard engineRunning else { return .nothing }
             return (showOpen && songInProgress) ? .silentInSong : .localStop
         }
+    }
+
+    /// A421 — la causa che il motore ricorda per le ripartenze (`RecoveryDecision`) dopo una crisi nuova con un esito
+    /// che non è «niente». Per il Solo una causa che lo ferma resta finché non riparte col Play: una crisi dopo che non lo
+    /// ferma (configurazione, modo, «uscita-aggiunta», «buco-del-render») non la cancella. Per gli altri ruoli, e per il
+    /// Solo senza una causa che lo ferma, la causa è la nuova.
+    static func rememberedCause(previous: CrisisCause?, new: CrisisCause, playerRole: PlayerRole) -> CrisisCause {
+        if playerRole == .solo, let previous, previous.stopsSolo, !new.stopsSolo {
+            return previous
+        }
+        return new
     }
 }
