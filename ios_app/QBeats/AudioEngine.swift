@@ -355,10 +355,10 @@ class AudioEngine: ObservableObject {
     /// silenzio, il velo della stessa canzone (`DirectorRunnerAction`). Emesso su main; la stanza (`QLiveSession`)
     /// lo ascolta accanto a `followerRunnerActionSubject`.
     let directorRunnerActionSubject = PassthroughSubject<DirectorRunnerAction, Never>()
-    /// Il tasto della fascia (e il pedale playPause) col Direttore muto in canzone: l'esito di
-    /// `DirectorTransportDecision` (Play = rientra, Stop = ferma la band e chiude la canzone); `nil` = nessun
-    /// silenzio, il tasto com'è oggi. Solo main: lo scrivono `publishDirectorSilenceQ` (da audioQueue, con
-    /// `main.async`) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
+    /// Il tasto della fascia (e il pedale playPause) col Direttore muto in canzone: l'esito di `DirectorTransportDecision`.
+    /// ⚠️ RISCRITTO A425 (P13), qui c'era «(Play = rientra, Stop = ferma la band e chiude la canzone)»: le facce Play sono
+    /// due, «rientra» e «lascia finire». `nil` = nessun silenzio, il tasto com'è oggi. Solo main: lo scrivono `publishDirectorSilenceQ`
+    /// (da audioQueue, con `main.async`) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
     @Published private(set) var directorSilence: DirectorSilence? = nil
 
     // UX-3 — state machine playback
