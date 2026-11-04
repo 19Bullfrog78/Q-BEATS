@@ -1854,8 +1854,8 @@ private struct OutputRig {
 
     /// La ricostruzione al Play dopo il reset (la rilettura del Follower la fa `start()`, a ogni avvio: par. 4.3).
     /// A421 · SEGUITO 4 (par. 3.2): prima la Reset (`mediaReset`). Le prove la usano sul Follower: il Play dopo e' il suo `start()`
-    /// dalla sessione Link (`followerRun(.start)`), senza mappa; la mappa del runner, che arriva dopo, la abbassa il fuoco
-    /// dell'ingresso.
+    /// dalla sessione Link (`followerRun(.start)`), senza mappa. ⚠️ RISCRITTO A425 (P4), c'era «la mappa del runner, che arriva dopo, la
+    /// abbassa il fuoco dell'ingresso.»: da A425 la consuma l'avvio in corso (il secondo `start()` del runner, o il fuoco se viene prima).
     mutating func rebuiltAndPlay(at t: Double) {
         mediaReset()
         mediaServicesNormal = true
@@ -5260,13 +5260,13 @@ func testACrisisAfterTheHeldAnchorClosesTakesTheAnchorFromTheUno() throws {
 
 // MARK: - A421 · SEGUITO 4, par. 3.2: «canzone in corso» come il motore
 
-/// «Canzone in corso» nei punti del motore che la scrivono. Il Play dal runner: Direttore e Solo in canzone, con la mappa prima
-/// dell'avvio; il Follower no (la mappa arriva dopo il suo primo `start()` e la abbassa il fuoco dell'ingresso). Lo Stop voluto e
-/// l'arresto della crisi del Solo (`stopSync`), l'arresto locale del cambio di ruolo col volume a 0 e la Reset del Follower la
-/// abbassano; un avvio senza mappa, anche una ripartenza automatica, la lascia falsa (`prepareNormalStartQ`); la fine della canzone e
-/// la chiusura dello show come prima. Il Direttore ripartito col pedale dopo uno Stop (un avvio senza mappa) e' fuori canzone come
-/// nel motore: un buco di 300 ms segue Link, senza il silenzio in canzone. Col rig di prima (interruttore spento) restava vera dopo lo
-/// Stop, l'arresto del Solo, il cambio di ruolo e la Reset, e un avvio senza mappa la lasciava com'era.
+/// «Canzone in corso» nei punti del motore che la scrivono. Il Play dal runner: Direttore e Solo in canzone, con la mappa prima dell'avvio;
+/// il Follower anche (⚠️ RISCRITTO A425, P4, c'era «no (… e la abbassa il fuoco dell'ingresso)»: la mappa, dopo il primo `start()`, la
+/// consuma il secondo). Lo Stop voluto e l'arresto della crisi del Solo (`stopSync`), l'arresto locale del cambio di ruolo col volume a 0 e
+/// la Reset del Follower la abbassano; un avvio senza mappa, anche una ripartenza automatica, la lascia falsa (`prepareNormalStartQ`); la
+/// fine della canzone e la chiusura dello show come prima. Il Direttore ripartito col pedale dopo uno Stop (un avvio senza mappa) e' fuori
+/// canzone come nel motore: un buco di 300 ms segue Link, senza il silenzio in canzone. Col rig di prima (interruttore spento) restava vera
+/// dopo lo Stop, l'arresto del Solo, il cambio di ruolo e la Reset, e un avvio senza mappa la lasciava com'era.
 func testSongInProgressFollowsTheEngineAtEveryStopAndStart() {
     for engine in [true, false] {
         let tag = "motore:\(engine)"
@@ -5596,11 +5596,15 @@ func testTheRejoinFireClearsTheMemoryAndU16DecidesOnTheNewCause() throws {
         rig.start(at: 13.0, recovery: nil)
         XCTAssertEqual(rig.crisisCause, .outputRemoved, "\(tag): il Play del Direttore muto passa dal coordinatore, non da prepareNormalStartQ")
         let fireAt = try XCTUnwrap(rig.rejoin, "\(tag): il rientro armato").fireAt
+        // A425 (nota 1 del verificatore V3): nel rig un fuoco con lo Stop voluto alto non si raggiunge (lo alzano `stop`, che chiude il
+        // silenzio e toglie il rientro, la fine della canzone e il cambio di ruolo): lo si alza a mano, come la ripresa pendente del
+        // test di U16, perché la prova cada anche senza l'altra metà dell'azzeramento al fuoco.
+        rig.wantedStop = true
         rig.advance(to: fireAt)
         XCTAssertEqual(rig.rejoins, 1, tag)
         XCTAssertFalse(rig.silentInSong, tag)
         XCTAssertEqual(rig.crisisCause, clears ? nil : .outputRemoved, "\(tag): al fuoco del rientro")
-        XCTAssertFalse(rig.wantedStop, tag)
+        XCTAssertEqual(rig.wantedStop, !clears, "\(tag): lo Stop voluto al fuoco del rientro")
         XCTAssertEqual(rig.memoryClearedAtRejoinFire, clears ? 1 : 0, tag)
         rig.callbacks(from: rig.now + rig.bufferSeconds, count: 100)
         rig.songEnd(at: rig.now + 0.01)
