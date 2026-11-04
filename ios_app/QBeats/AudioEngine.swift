@@ -608,6 +608,8 @@ class AudioEngine: ObservableObject {
     private var _songSectionsQ: [SongSection] = []
     /// La mappa è arrivata per il prossimo avvio (`setSongMap`, subito prima di `start()` nel runner): quell'avvio
     /// è l'avvio di una canzone. Lo consuma l'avvio che non passa dal coordinatore (`prepareNormalStartQ`).
+    /// A425 (P4) — e l'avvio in corso: la guardia «avvio-gia-in-moto» col motore in moto e il fuoco dell'ingresso del Follower
+    /// (`consumeSongMapForRunningStartQ`).
     private var _songMapForNextStartQ: Bool = false
     /// «Canzone in corso» per `CrisisStopDecision`: il motore è partito per una canzone del runner e nessuno Stop
     /// lo ha fermato dopo. Lo abbassano `stopSync`, lo Stop di fine canzone, la sessione ferma da altri e la
@@ -844,6 +846,11 @@ class AudioEngine: ObservableObject {
     private var pendingResumeBeat: Double? = nil
     private var currentResumeToken: Int = 0
     // Beat assoluto di clock al momento del Play originale — usato per snap relativo.
+    // ⚠️ RISCRITTO A425 (04/11/2026, P1: referto A423, par. 3.1 a; mandato A425, par. 2.1). Fino ad A424 era la proiezione del
+    // sequencer MIDI all'ora d'uscita prevista del primo buffer (circa 0,09 battiti dopo l'origine del DSP al Play fresco), e lo
+    // scatto della ripresa cadeva fuori dalla griglia del DSP. Da A425 è l'origine del DSP: si scrive subito dopo ogni
+    // `metronome_reset_for_start` (`= _dspOriginBeatQ`; al rientro `= startBeat`, lo stesso battito), e solo lì. Accesso su audioQueue
+    // (la riga `[START] ENTRY` la legge sul filo del chiamante, come `originePrecedente=`).
     private var _startAbsoluteBeat: Double = 0.0
     // Bug 2.b ramo X — offset d'ingresso del Follower in BEAT (multiplo di bpb
     // su downbeat); 0 per Director/standalone/resume. Seminato nel work item
@@ -1761,6 +1768,8 @@ class AudioEngine: ObservableObject {
                 metronome_reset_for_start(h, 0.0)
                 // A421 — la copia dell'origine del DSP (U9).
                 self._dspOriginBeatQ = 0
+                // A425 (P1) — un'origine sola: lo scatto di una ripresa dopo questo ingresso conta dall'origine del DSP.
+                self._startAbsoluteBeat = self._dspOriginBeatQ
             }
             // === Bug 2.b ramo X — SEED contatore sezione del Follower ===
             // Il Follower entra dopo il count-in del Director (≥1 bar).
@@ -1790,6 +1799,9 @@ class AudioEngine: ObservableObject {
             // tocchiamo _startAbsoluteBeat (snap resume)»: vero solo di questo blocco.
             // `startBeat` è locale al blocco del seme, ma questo stesso work item
             // `_startAbsoluteBeat` lo SCRIVE poco più sotto, dopo i tre `scheduleNextBuffer`.
+            // ⚠️ RISCRITTO A425 (P1): «lo SCRIVE poco più sotto, dopo i tre `scheduleNextBuffer`» non è più vero. Lo scrive il
+            // blocco qui sopra, subito dopo `metronome_reset_for_start`: è l'origine del DSP (0). Il battito del sequencer
+            // all'ora d'uscita resta solo come campo `sequencerAllUscita:` della riga «downbeat raggiunto».
             if let mh = self.midiEngineHandle {
                 let startBeat = midi_engine_get_beat_at_time(
                     mh,
@@ -1845,7 +1857,12 @@ class AudioEngine: ObservableObject {
             // del seguito 3): l'ordine fra il fuoco e il blocco di `setSongMap` dipende da chi arriva prima in coda — il blocco del
             // primo `start()`, che arma il fuoco in fondo, o il filo principale, che mette in coda `setSongMap` dopo `send()` — e se
             // il fuoco passa prima il segno resta alto fino al prossimo avvio che passa da `prepareNormalStartQ` (Aperto del referto).
-            self.lowerSongMapForNextStartQ(reason: "fuoco-ingresso-follower")
+            // ⚠️ RISCRITTO A425 (P4: referto A423, par. 3.1 c; mandato A425, par. 2.2). «qui si abbassa» e «il segno resta alto fino
+            // al prossimo avvio» non sono più veri: la mappa consegnata a un avvio in corso è di quell'avvio. Qui, col segno alto,
+            // «canzone in corso» si alza e il segno si abbassa (`consumeSongMapForRunningStartQ`, la riga «mappa consumata»); nei due
+            // ordini della gara con l'attesa zero la mappa la consuma chi viene dopo il suo blocco: questo fuoco, o il secondo
+            // `start()` alla guardia «avvio-gia-in-moto».
+            self.consumeSongMapForRunningStartQ(context: "fuoco-ingresso-follower")
             // A420 — la catena dell'ingresso comincia qui: una generazione nuova prima del primo dei tre buffer (mandato A420,
             // par. 2.2). Un richiamo della catena di prima arrivato fra l'avvio del motore e questo fuoco si è già scartato:
             // `start()` ha aperto una generazione alzando `isRunning` (risposta del referee, par. 1).
@@ -1867,14 +1884,19 @@ class AudioEngine: ObservableObject {
             // buffer, l'ora chiesta precede l'àncora e `midi_engine_get_beat_at_time` ripiega
             // sulla posizione corrente del sequencer (MIDIEngine.mm, guardia
             // `hostTime < engine->lastMachTime`), che è l'inizio del terzo buffer.
+            // ⚠️ RISCRITTO A425 (P1). «Qui `_startAbsoluteBeat` viene sovrascritto» non è più vero: `_startAbsoluteBeat` è
+            // l'origine del DSP, scritta dopo `metronome_reset_for_start` (qui sopra). Il battito del sequencer all'ora d'uscita
+            // prevista si legge come prima e va solo nelle righe, `sequencerAllUscita:` (la misura di BUGS, «il valore di
+            // "downbeat raggiunto"»); `startBeat:` della riga è l'origine.
+            var sequencerAtOutput: Double = -1
             if let mh = self.midiEngineHandle {
-                self._startAbsoluteBeat = midi_engine_get_beat_at_time(
+                sequencerAtOutput = midi_engine_get_beat_at_time(
                     mh,
                     futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
             }
-            os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f",
+            os_log("[Q-BEATS][LINK][SHARED] downbeat raggiunto — avvio motore startBeat:%.4f sequencerAllUscita:%.4f",
                    log: .default, type: .default,
-                   self._startAbsoluteBeat)
+                   self._startAbsoluteBeat, sequencerAtOutput)
             // A400 · R1 — la riga del segno alzato, a buffer accodati (`logOwnTransportStartRaisedQ`).
             if writesPlayToLink && lhCaptured != nil {
                 self.logOwnTransportStartRaisedQ(write: "ingresso")
@@ -1910,9 +1932,10 @@ class AudioEngine: ObservableObject {
                 let fireHostTime = futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks
                 let probeFire = link_engine_probe_session(lhSpy, fireHostTime, quantum)
                 let midiBeatFire = midi_engine_get_beat_at_time(mhSpy, fireHostTime)
-                os_log("[Q-BEATS][Bug2b-SPY-ATTACH] linkPhase_schedule:%.4f linkPhase_fire:%.4f midiBeat_fire:%.4f quantum:%.1f startAbs:%.4f",
+                // A425 (P1) — `startAbs:` è l'origine del DSP; il battito del sequencer all'ora d'uscita è `sequencerAllUscita:`.
+                os_log("[Q-BEATS][Bug2b-SPY-ATTACH] linkPhase_schedule:%.4f linkPhase_fire:%.4f midiBeat_fire:%.4f quantum:%.1f startAbs:%.4f sequencerAllUscita:%.4f",
                        log: .default, type: .default,
-                       phase, probeFire.phaseAtHost, midiBeatFire, quantum, self._startAbsoluteBeat)
+                       phase, probeFire.phaseAtHost, midiBeatFire, quantum, self._startAbsoluteBeat, sequencerAtOutput)
             }
 #endif
         }
@@ -3408,31 +3431,63 @@ class AudioEngine: ObservableObject {
     /// `directorSilence`, con la riga [DIR-TASTO] a ogni cambio. «Un rientro adesso è possibile» = il
     /// coordinatore, letto adesso, dice «rientra» e nessun rientro è già armato. `plan`: il conto già letto da
     /// chi chiama (il battito a 1 s), per non catturare due volte. Chiamare SOLO su audioQueue.
+    /// A425 (P13) — la faccia la calcola `directorFaceNowQ`, la stessa strada del tocco su una faccia Play; in più «la canzone
+    /// finisce col conto certo» (il coordinatore dice «canzone finita»): il tasto dice Play, «lascia finire».
     private func publishDirectorSilenceQ(context: String, plan: DirectorRejoinDecision.Plan? = nil) {
+        publishDirectorFaceQ(directorFaceNowQ(plan: plan), context: context)
+    }
+
+    /// A425 (P13) — la faccia del tasto letta adesso, con la sua ragione.
+    private struct DirectorFaceQ {
+        let silence: DirectorSilence?
+        let reason: DirectorTransportDecision.Reason?
+    }
+
+    /// A425 (P13) — LA FACCIA DEL TASTO, UNA STRADA SOLA per la pubblicazione e per il tocco su una faccia Play: il ruolo, una
+    /// cattura sola del coordinatore (`plan`, o `currentRejoinPlanQ` qui) col Direttore muto e nessun rientro armato, l'interruzione
+    /// e i servizi audio, `DirectorTransportDecision.silence`. «Rientro possibile» = il coordinatore dice «rientra»; «fine certa» =
+    /// dice «canzone finita» (`.songEnded`, che esce solo col conto certo). Chiamare SOLO su audioQueue.
+    private func directorFaceNowQ(plan: DirectorRejoinDecision.Plan?) -> DirectorFaceQ {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
         var possible = false
+        var songEnds = false
         if _directorSilentInSongQ && !_rejoinArmedQ {
             let current = plan ?? currentRejoinPlanQ().plan
-            if case .rejoin = current.outcome { possible = true }
+            switch current.outcome {
+            case .rejoin:
+                possible = true
+            case .songEnded:
+                songEnds = true
+            case .notCoordinated, .uncertain, .sessionStoppedElsewhere:
+                break
+            }
         }
         let interrupted = isAudioInterrupted
         let lost = _mediaServicesQ == .servicesLost
         let silence = DirectorTransportDecision.silence(playerRole: role,
                                                         silentInSong: _directorSilentInSongQ,
                                                         rejoinPossibleNow: possible,
+                                                        songEndsCertainNow: songEnds,
                                                         interruptionActive: interrupted,
                                                         servicesLost: lost)
-        guard silence != _directorSilencePublishedQ else { return }
-        _directorSilencePublishedQ = silence
         let reason = DirectorTransportDecision.reason(playerRole: role,
                                                       silentInSong: _directorSilentInSongQ,
                                                       rejoinPossibleNow: possible,
+                                                      songEndsCertainNow: songEnds,
                                                       interruptionActive: interrupted,
                                                       servicesLost: lost)
+        return DirectorFaceQ(silence: silence, reason: reason)
+    }
+
+    /// La faccia allo specchio, solo se è cambiata, con la riga [DIR-TASTO]. Chiamare SOLO su audioQueue.
+    private func publishDirectorFaceQ(_ face: DirectorFaceQ, context: String) {
+        let silence = face.silence
+        guard silence != _directorSilencePublishedQ else { return }
+        _directorSilencePublishedQ = silence
         let key: String = silence.map { $0.showsPlay ? "play" : "stop" } ?? "come-oggi"
         os_log("[Q-BEATS][DIR-TASTO] tasto:%{public}@ tocco:%{public}@ motivo:%{public}@ rientroArmato:%d contesto:%{public}@ - fascia e pedale playPause",
                log: .default, type: .default,
-               key, silence?.tap.rawValue ?? "-", reason?.rawValue ?? "-", _rejoinArmedQ ? 1 : 0, context)
+               key, silence?.tap.rawValue ?? "-", face.reason?.rawValue ?? "-", _rejoinArmedQ ? 1 : 0, context)
         DispatchQueue.main.async {
             self.directorSilence = silence
         }
@@ -3926,6 +3981,16 @@ class AudioEngine: ObservableObject {
         scheduleNextBuffer()
         let scheduledAt = mach_absolute_time()
         _rejoinArmedQ = false
+        // A425 (P14: referto A424, par. 2.3 b; decisione del referee su P14 e nota N-P4-1 di VR-3a; mandato A425, par. 2.4) — il
+        // rientro è fatto (il motore suona) e il Direttore non passa da `prepareNormalStartQ`: la crisi è alle spalle come dopo un
+        // Play. La causa ricordata e lo Stop voluto si azzerano qui, con la riga; il fuoco che non parte (`stopRejoinEngineQ`) non
+        // azzera niente: la causa resta per il coordinatore.
+        let causeBefore = _crisisCauseQ?.rawValue ?? "-"
+        let wantedBefore = _wantedStopSinceCrisisQ
+        _crisisCauseQ = nil
+        _wantedStopSinceCrisisQ = false
+        os_log("[Q-BEATS][DIR-RIENTRO] causa ricordata e Stop voluto azzerati al fuoco del rientro causaPrima:%{public}@ stopVolutoPrima:%d",
+               log: .default, type: .default, causeBefore, wantedBefore ? 1 : 0)
         // A421 · SEGUITO 2 (par. 3) — il silenzio finisce come prima, ma l'àncora resta viva, «tenuta dal rientro», finché il primo
         // battito contato del rientro non è uscito (`checkAnchorHeldByRejoinQ`, da `scheduleNextBuffer`): il 29/10 sull'iPad una
         // seconda crisi 175 ms dopo il fuoco, nella scorta, non trovava più l'àncora («nessun battito contato gia' uscito») e il
@@ -4161,11 +4226,27 @@ class AudioEngine: ObservableObject {
     /// (o Link spento) e alla chiusura dello show. Il 29/10 lo Start del DEBUG a show chiuso ha preso per «canzone in corso» il
     /// segno alzato dalla canzone dell'iPhone Follower di un'ora prima (il suo `start()` era uscito a `stayStopped` senza
     /// consumarlo). Una riga solo se era alto. Chiamare SOLO su audioQueue.
+    /// ⚠️ RISCRITTO A425 (P4). «al fuoco dell'ingresso del Follower» non è più vero: lì la mappa si consuma
+    /// (`consumeSongMapForRunningStartQ`). Si abbassa senza consumarla al cambio di ruolo (o Link spento) e alla chiusura dello show.
     private func lowerSongMapForNextStartQ(reason: String) {
         guard _songMapForNextStartQ else { return }
         _songMapForNextStartQ = false
         os_log("[Q-BEATS][CONTEGGIO] segno della mappa per il prossimo avvio abbassato motivo:%{public}@ - non consumato",
                log: .default, type: .default, reason)
+    }
+
+    /// A425 (P4: referto A423, par. 3.1 c; mandato A425, par. 2.2) — LA MAPPA CONSEGNATA A UN AVVIO IN CORSO È DI QUELL'AVVIO: alla
+    /// guardia «avvio-gia-in-moto» di `start()` (solo col motore in moto) e al fuoco dell'ingresso del Follower, col segno alto,
+    /// «canzone in corso» si alza e il segno si abbassa (`SongInProgressDecision.runningStart`), con la riga; col segno basso niente.
+    /// Chiamare SOLO su audioQueue.
+    private func consumeSongMapForRunningStartQ(context: String) {
+        let step = SongInProgressDecision.runningStart(SongMapMark(mapForNextStart: _songMapForNextStartQ,
+                                                                   songInProgress: _songInProgressQ))
+        guard step.consumed else { return }
+        _songMapForNextStartQ = step.mark.mapForNextStart
+        _songInProgressQ = step.mark.songInProgress
+        os_log("[Q-BEATS][CONTEGGIO] mappa consumata dall'avvio in corso contesto:%{public}@ songIdx:%d",
+               log: .default, type: .default, context, _songMapSongIdxQ)
     }
 
     /// Un avvio che non passa dal coordinatore (mandato §2.2, T4): torna l'assert del Direttore se dopo un rientro
@@ -4177,8 +4258,11 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][DIR-RIENTRO] assert ripreso all'avvio innesco:%{public}@ - il Direttore torna a dare la fase a Link (T4)",
                    log: .default, type: .default, trigger)
         }
-        _songInProgressQ = _songMapForNextStartQ
-        _songMapForNextStartQ = false
+        // A425 (P4) — la stessa mossa di prima dal tipo puro del banco: «canzone in corso» è il segno di questo avvio, il segno giù.
+        let mark = SongInProgressDecision.normalStart(SongMapMark(mapForNextStart: _songMapForNextStartQ,
+                                                                  songInProgress: _songInProgressQ))
+        _songInProgressQ = mark.songInProgress
+        _songMapForNextStartQ = mark.mapForNextStart
         _crisisCauseQ = nil
         _wantedStopSinceCrisisQ = false
         closeSilenceAnchorQ(reason: "avvio")
@@ -4199,18 +4283,23 @@ class AudioEngine: ObservableObject {
                                            wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
                                            crisisCause: _crisisCauseQ,
                                            outputMissing: outputMissing)
-        os_log("[Q-BEATS][RESUME] ripartenza automatica innesco:%{public}@ fase:%{public}@ ruolo:%{public}@ muto:%d stopVoluto:%d crisi:%{public}@ uscitaMancante:%d -> %{public}@",
+        // A425 (P14) — il motivo del «niente» anche nella riga (`motivo:`, «-» quando si riparte): il «direttore-fermo-dalla-tolta»
+        // di U16 si vede qui.
+        let reason: NoRestartReason? = route == .noRestart
+            ? RecoveryDecision.noRestartReason(trigger: trigger,
+                                               playerRole: role,
+                                               silentInSong: _directorSilentInSongQ,
+                                               wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
+                                               crisisCause: _crisisCauseQ,
+                                               outputMissing: outputMissing)
+            : nil
+        os_log("[Q-BEATS][RESUME] ripartenza automatica innesco:%{public}@ fase:%{public}@ ruolo:%{public}@ muto:%d stopVoluto:%d crisi:%{public}@ uscitaMancante:%d -> %{public}@ motivo:%{public}@",
                log: .default, type: .default,
                trigger.rawValue, stage, role.rawValue, _directorSilentInSongQ ? 1 : 0,
-               _wantedStopSinceCrisisQ ? 1 : 0, _crisisCauseQ?.rawValue ?? "-", outputMissing ? 1 : 0, route.rawValue)
+               _wantedStopSinceCrisisQ ? 1 : 0, _crisisCauseQ?.rawValue ?? "-", outputMissing ? 1 : 0, route.rawValue,
+               reason?.rawValue ?? "-")
         if route == .noRestart {
-            noteNoRestartQ(trigger: trigger, stage: stage,
-                           reason: RecoveryDecision.noRestartReason(trigger: trigger,
-                                                                    playerRole: role,
-                                                                    silentInSong: _directorSilentInSongQ,
-                                                                    wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
-                                                                    crisisCause: _crisisCauseQ,
-                                                                    outputMissing: outputMissing))
+            noteNoRestartQ(trigger: trigger, stage: stage, reason: reason)
         }
         return route
     }
@@ -4285,14 +4374,53 @@ class AudioEngine: ObservableObject {
     /// dal coordinatore dentro `start()` (mai `runner.startCurrentSection`, W1 o il ramo fresco); Stop = lo Stop
     /// voluto (`stop()`), che col Direttore muto manda lo Stop a Link e chiude la canzone anche a motore fermo.
     /// Solo main.
+    /// ⚠️ RISCRITTO A425 (P13: referto A423, par. 3.4; referto A424, par. 2.3 a; decisione del referee su P13; mandato A425, par.
+    /// 2.3). «Play = rientra» non basta più: le facce Play sono due, «rientra» e «lascia finire» (l'ultimo tratto della canzone
+    /// col conto certo), e un tocco su una faccia Play non chiama più `start()` da qui: si rilegge sulla coda
+    /// (`directorPlayFaceTappedQ`). La faccia Stop resta `stop()`, come oggi (anche dentro un'interruzione, dove la faccia è Stop).
     func directorTransportTapped(_ tap: DirectorTransportTap, origin: String) {
         os_log("[Q-BEATS][DIR-TASTO] tocco:%{public}@ origine:%{public}@",
                log: .default, type: .default, tap.rawValue, origin)
         switch tap {
-        case .rejoin:
-            start(trigger: origin)
         case .stopBand:
             stop()
+        case .rejoin, .letSongEnd:
+            audioQueue.async { [weak self] in
+                self?.directorPlayFaceTappedQ(face: tap, origin: origin)
+            }
+        }
+    }
+
+    /// A425 (P13) — LA REGOLA DEL TOCCO SU UNA FACCIA PLAY, sulla coda: la faccia si rilegge adesso con gli stessi ingressi e la
+    /// stessa strada di quella pubblicata (`directorFaceNowQ`: una cattura sola del coordinatore), e decide la faccia riletta
+    /// (`DirectorTransportDecision.playFaceTap`), non quella toccata:
+    ///  · «rientra» ⇒ `start(trigger:)`, il rientro dal coordinatore;
+    ///  · «lascia finire» ⇒ la riga e la faccia ripubblicata: niente sessione, niente motore, niente Link (lo Stop di fine canzone
+    ///    resta quello armato dal controllo al secondo: il tocco non lo arma);
+    ///  · Stop (il conto non più certo, un'interruzione, i servizi persi) ⇒ il tocco non ferma niente e la faccia si ripubblica Stop;
+    ///  · fuori dal silenzio (il rientro già fatto, lo Stop di fine canzone, uno Stop voluto, fra il tocco e la coda) ⇒ niente.
+    /// Da una faccia Play non nasce mai un «ferma la band». Chiamare SOLO su audioQueue.
+    private func directorPlayFaceTappedQ(face: DirectorTransportTap, origin: String) {
+        let now = directorFaceNowQ(plan: nil)
+        let outcome = DirectorTransportDecision.playFaceTap(rereadNow: now.silence)
+        let detail: String
+        switch outcome {
+        case .rejoin:
+            detail = "il rientro dal coordinatore"
+        case .letSongEnd:
+            detail = "il tocco non ferma la band, nessun avvio: la canzone finisce da sola"
+        case .nothingStop:
+            detail = "il tocco non ferma niente, la faccia diventa Stop"
+        case .nothingOutsideSilence:
+            detail = "nessun start, nessuno stop"
+        }
+        os_log("[Q-BEATS][DIR-TASTO] tocco faccia:play esito:%{public}@ origine:%{public}@ toccata:%{public}@ riletta:%{public}@ motivo:%{public}@ - %{public}@",
+               log: .default, type: .default,
+               outcome.rawValue, origin, face.rawValue, now.silence?.tap.rawValue ?? "-", now.reason?.rawValue ?? "-", detail)
+        if outcome.startsEngine {
+            start(trigger: origin)
+        } else {
+            publishDirectorFaceQ(now, context: "tocco-\(origin)")
         }
     }
 
@@ -5625,14 +5753,26 @@ class AudioEngine: ObservableObject {
     /// Par. 2.2 h: una riga per avvio coi millisecondi da `[START] ENTRY` (sul thread del chiamante) all'inizio del blocco
     /// della coda, alla fine di `engine.start()`, alla fine di `playerNode.play()` e a `hostNow` (solo il ramo fresco: la
     /// ripresa e il rientro non ce l'hanno). Nessun cambio di comportamento. Chiamare SOLO su audioQueue.
+    /// A425 (P1) — `origine:`, l'origine che l'avvio ha usato: il battito per il ramo fresco e la ripresa (l'origine del DSP, il
+    /// battito passato a `metronome_reset_for_start`); «al-fuoco» dove il DSP si azzera dopo, al fuoco (rientro, ingresso del
+    /// Follower, ingresso condiviso: l'origine la porta la riga del fuoco); «-» senza ramo.
     private func logStartTimingQ(trigger: String, branch: String, entry: UInt64, block: UInt64, engineStarted: UInt64,
                                  played: UInt64, hostNow: UInt64?) {
         let hostNowText: String = hostNow.map { String(format: "%.1f", signedMilliseconds(from: entry, to: $0)) } ?? "-"
-        os_log("[Q-BEATS][START] tempi innesco:%{public}@ ramo:%{public}@ coda_ms:%.1f motore_ms:%.1f lettore_ms:%.1f hostNow_ms:%{public}@ - da [START] ENTRY",
+        let originText: String
+        switch branch {
+        case "fresco", "ripresa":
+            originText = String(format: "%.6f", _dspOriginBeatQ)
+        case "rientro", "ingresso-follower", "ingresso-condiviso":
+            originText = "al-fuoco"
+        default:
+            originText = "-"
+        }
+        os_log("[Q-BEATS][START] tempi innesco:%{public}@ ramo:%{public}@ coda_ms:%.1f motore_ms:%.1f lettore_ms:%.1f hostNow_ms:%{public}@ origine:%{public}@ - da [START] ENTRY",
                log: .default, type: .default,
                trigger, branch,
                signedMilliseconds(from: entry, to: block), signedMilliseconds(from: entry, to: engineStarted),
-               signedMilliseconds(from: entry, to: played), hostNowText)
+               signedMilliseconds(from: entry, to: played), hostNowText, originText)
     }
 
     /// La condizione «hardware ancora occupato» della fine dell'interruzione (la stessa del suo gestore): la sessione in un
@@ -5730,7 +5870,8 @@ class AudioEngine: ObservableObject {
     func start(resumeAtBeat: Double? = nil, trigger: String = "comando", recovery: RecoveryTrigger? = nil) {
         // A421 — par. 2.2 h: l'ora di [START] ENTRY, sul thread del chiamante.
         let entryTicks = mach_absolute_time()
-        os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ _startAbsoluteBeat=%.6f innesco:%{public}@",
+        // A425 (P1) — il campo è l'origine dell'avvio di prima (`_startAbsoluteBeat`, da A425 l'origine del DSP): `originePrecedente=`.
+        os_log("[Q-BEATS][START] ENTRY resumeAtBeat=%{public}@ originePrecedente=%.6f innesco:%{public}@",
                log: .default, type: .default,
                resumeAtBeat.map { String(format: "%.6f", $0) } ?? "nil",
                self._startAbsoluteBeat, trigger)
@@ -5741,6 +5882,11 @@ class AudioEngine: ObservableObject {
             guard !self.isRunning, let _ = self.metronomeHandle else {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
+                // A425 (P4) — la mappa consegnata a un avvio che trova il motore in moto è di quell'avvio: solo quando la guardia
+                // esce perché il motore è in moto (col metronomo assente niente consumo).
+                if self.isRunning {
+                    self.consumeSongMapForRunningStartQ(context: "avvio-gia-in-moto")
+                }
                 // A421 — par. 2.2 e: lo specchio a ogni uscita di `start()` senza avvio.
                 self.publishIsPlayingQ(context: "avvio-gia-in-moto")
                 return
@@ -6097,14 +6243,11 @@ class AudioEngine: ObservableObject {
 
                     if let beat = resumeBeat {
                         // CALCOLO SNAP RELATIVO ALLA FASE DEL PLAY
-                        let beatsPerBarD = Double(self._beatsPerBarQ)
-
-                        // 1. Distanza dal beat di inizio del Playback originale
-                        let relativePhase = beat - self._startAbsoluteBeat
-                        // 2. Snappa alla prossima misura relativa
-                        let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
-                        // 3. Torna al beat assoluto del clock di sistema
-                        let snappedBeat = self._startAbsoluteBeat + snappedRelative
+                        // A425 (P1) — l'aritmetica di sempre (la distanza dall'origine, la prossima battuta intera, di nuovo nella
+                        // numerazione del battito) sta nel tipo puro `ResumeSnapDecision`, col suo banco; l'origine è quella del DSP
+                        // (`_startAbsoluteBeat`), quindi il battito scattato è un «uno» della griglia del DSP.
+                        let snappedBeat = ResumeSnapDecision.snappedBeat(beat: beat, origin: self._startAbsoluteBeat,
+                                                                         beatsPerBar: Double(self._beatsPerBarQ))
 
                         os_log("[Q-BEATS][RESUME] Snap: %.4f -> %.4f (startBeat:%.4f)",
                                log: .default, type: .default, beat, snappedBeat, self._startAbsoluteBeat)
@@ -6138,10 +6281,12 @@ class AudioEngine: ObservableObject {
                         // Bug 2.b ramo X — resume non semina: snap già gestito da
                         // _startAbsoluteBeat. Offset azzerato.
                         self.startBeatOffset = 0
-                        let beatsPerBarD = Double(self._beatsPerBarQ)
-                        let relativePhase = (resumeBeatForStart ?? 0.0) - self._startAbsoluteBeat
-                        let snappedRelative = ceil(relativePhase / beatsPerBarD) * beatsPerBarD
-                        let snappedBeatLocal = self._startAbsoluteBeat + snappedRelative
+                        // A425 (P1) — lo stesso scatto (`ResumeSnapDecision`), dall'origine del DSP: il Direttore fuori da una
+                        // canzone scrive su Link un battito sulla griglia del suo DSP (cambia il valore, non è una scrittura nuova; il
+                        // Solo non scrive, lucchetto qui sotto).
+                        let snappedBeatLocal = ResumeSnapDecision.snappedBeat(beat: resumeBeatForStart ?? 0.0,
+                                                                              origin: self._startAbsoluteBeat,
+                                                                              beatsPerBar: Double(self._beatsPerBarQ))
                         self.linkSyncSkipBuffers = 3
                         if let lh = self.linkEngineHandle {
                             // A400 · R1 — IL SEGNO DEL PROPRIO AVVIO si alza subito prima della scrittura
@@ -6270,6 +6415,8 @@ class AudioEngine: ObservableObject {
                                 metronome_reset_for_start(h, 0.0)
                                 // A421 — la copia dell'origine del DSP (U9).
                                 self._dspOriginBeatQ = 0
+                                // A425 (P1) — un'origine sola: lo scatto di una ripresa dopo questo Play conta dall'origine del DSP.
+                                self._startAbsoluteBeat = self._dspOriginBeatQ
                             }
                             self.linkSyncSkipBuffers = 3
                             if let lh = self.linkEngineHandle {
@@ -6369,18 +6516,12 @@ class AudioEngine: ObservableObject {
                     link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
                 }
 
-                // Registra il beat di partenza (solo fresh play, latenza inclusa).
-                // Build #309: per il ramo "sessione condivisa" (peers > 0) questo
-                // valore verrà sovrascritto al fire del work item (vedi flow sopra),
-                // perché il primo sample reale parte a futureHostTime, non a "now".
-                // Per standalone resta corretto.
-                // A412 — non per il rientro: lo scrive il suo fuoco (il battito di Link del bersaglio).
-                if resumeBeatForStart == nil, rejoinTarget == nil, let mh = self.midiEngineHandle {
-                    let hostTimeAtFirstSample = mach_absolute_time()
-                                                + self.outputLatencyTicks
-                                                + self.bufferDurationTicks
-                    self._startAbsoluteBeat = midi_engine_get_beat_at_time(mh, hostTimeAtFirstSample)
-                }
+                // A425 (P1: referto A423, par. 3.1 a; mandato A425, par. 2.1) — qui c'era la proiezione del sequencer MIDI all'ora
+                // d'uscita del primo campione («Registra il beat di partenza (solo fresh play, latenza inclusa)»: per ogni avvio senza
+                // ripresa e senza rientro, `_startAbsoluteBeat = midi_engine_get_beat_at_time(mh, adesso + latenza + un buffer)`, poi
+                // sovrascritta al fuoco dell'ingresso): circa 0,09 battiti dopo l'origine del DSP al Play fresco, e lo scatto di una
+                // ripresa cadeva fuori dalla griglia del DSP. Via: `_startAbsoluteBeat` è l'origine del DSP, scritta dopo
+                // `metronome_reset_for_start` nel ramo fresco, al fuoco dell'ingresso e al fuoco del rientro.
 
                 // Build #309: rimosso il scheduleNextBuffer × 3 ridondante per il
                 // resume (ora è già chiamato esplicitamente dentro il branch RESUME
@@ -7375,6 +7516,8 @@ class AudioEngine: ObservableObject {
             // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
             // Play = rientra, Stop = ferma la band e chiude la canzone (`directorSilence`, deciso dal motore). Fuori
             // dal silenzio com'è oggi. Il pedale stop resta sempre Stop (`handleStop` → `stop()` sul Direttore).
+            // A425 (P13) — le facce Play sono due, «rientra» e «lascia finire», e il tocco su una faccia Play si rilegge sulla
+            // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`.
             if let silence = directorSilence {
                 directorTransportTapped(silence.tap, origin: "pedale")
             } else if isPlaying { stop() } else { start() }

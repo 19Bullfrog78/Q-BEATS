@@ -32,6 +32,14 @@ import Foundation
 //    «uscita-tolta»), al posto di `isAudioSessionCrisis`.
 // L'ordine della regola: Follower come oggi; uno Stop voluto; il Direttore con l'uscita mancante; il
 // Direttore muto in canzone al coordinatore; il Solo dopo una causa che lo ferma; tutto il resto come oggi.
+// === A425 (04/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3a: U16 (referto A423, par. 3.5 a; decisione del referee su P14) ===
+// Il Direttore che non è muto in canzone, con la causa ricordata «uscita-tolta» (l'arresto locale di U16 fuori da una canzone,
+// che `crisisOutcomeQ(cause: .outputRemoved)` ricorda), non riparte da nessun innesco, ripresa pendente compresa: riparte col Play
+// (D2), che azzera la causa (`prepareNormalStartQ`). È la stessa forma del Solo dopo «uscita-tolta». Il Direttore muto in canzone
+// non cambia: va al coordinatore, prima. Il motivo nuovo «direttore-fermo-dalla-tolta». Da A425 l'ordine della regola: Follower
+// come oggi; uno Stop voluto; il Direttore con l'uscita mancante; il Direttore muto in canzone al coordinatore; il Direttore fermo
+// dalla tolta; il Solo dopo una causa che lo ferma; tutto il resto come oggi. (Al fuoco del rientro il motore azzera causa e Stop
+// voluto, come il Play: `fireDirectorRejoinQ`.)
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Gli inneschi delle ripartenze automatiche (referto A409 §4.1), col nome che il motore scrive già
@@ -59,6 +67,8 @@ enum NoRestartReason: String, Equatable {
     case wantedStop = "stop-voluto"
     case outputMissing = "uscita-mancante"
     case soloAfterCrisis = "solo-dopo-la-crisi"
+    /// A425 — U16: il Direttore fuori dal silenzio fermato da una tolta riparte col Play.
+    case directorStoppedByRemoval = "direttore-fermo-dalla-tolta"
 }
 
 /// Dove va una ripartenza automatica.
@@ -86,6 +96,8 @@ enum RecoveryDecision {
         if wantedStopSinceCrisis { return .noRestart }
         if playerRole == .direttore && outputMissing { return .noRestart }
         if playerRole == .direttore && silentInSong { return .coordinator }
+        // A425 — U16 (P14): il Direttore non muto in canzone, fermato dalla tolta, riparte col Play.
+        if playerRole == .direttore && !silentInSong && crisisCause == .outputRemoved { return .noRestart }
         if playerRole == .solo, let cause = crisisCause, cause.stopsSolo { return .noRestart }
         return .startAsToday
     }
@@ -102,6 +114,8 @@ enum RecoveryDecision {
                     outputMissing: outputMissing) == .noRestart else { return nil }
         if wantedStopSinceCrisis { return .wantedStop }
         if playerRole == .direttore && outputMissing { return .outputMissing }
+        // A425 — U16 (P14), prima dell'ultima riga: se no il Direttore uscirebbe col motivo «solo-dopo-la-crisi».
+        if playerRole == .direttore && !silentInSong && crisisCause == .outputRemoved { return .directorStoppedByRemoval }
         return .soloAfterCrisis
     }
 

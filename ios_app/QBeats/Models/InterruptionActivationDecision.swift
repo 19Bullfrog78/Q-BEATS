@@ -2,7 +2,7 @@ import Foundation
 
 // === A421 · SEGUITO 1 (26/10/2026) — CON L'INTERRUZIONE DI SISTEMA IN CORSO NESSUNA RIPARTENZA AUTOMATICA TOCCA SESSIONE O
 // MOTORE (mandato del referee «A421 · SEGUITO 1», par. 3) ===
-// Il fatto (par. 3.1). La regola del 21/10 (BOX5 :1735): «durante un'interruzione niente che possa attivare la sessione; e un
+// Il fatto (par. 3.1). La regola del referee del 21/10 (BOX5, capitolo «L'USCITA AUDIO»): «durante un'interruzione niente che possa attivare la sessione; e un
 // ramo nuovo che tocca sessione o motore si prova anche dentro un'interruzione.» `activateSessionAndStart` lo stato
 // «interruzione di sistema» non lo guardava: il risveglio di A421 riparte con la ripresa pendente per ogni ruolo, e la
 // ripresa pendente può essere alzata dentro un'interruzione o restare da una fine con l'hardware occupato; al risveglio
