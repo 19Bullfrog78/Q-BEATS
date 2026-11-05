@@ -358,7 +358,9 @@ class AudioEngine: ObservableObject {
     /// Il tasto della fascia (e il pedale playPause) col Direttore muto in canzone: l'esito di `DirectorTransportDecision`. ⚠️ RISCRITTO
     /// A425 (P13), c'era «(Play = rientra, Stop = ferma la band e chiude la canzone)»: ⚠️ RISCRITTO A426, c'era «le facce Play sono
     /// due, «rientra» e «lascia finire»»: le facce Play sono tre, «rientra», «lascia finire» e «rientro in arrivo» (il rientro armato).
-    /// `nil` = nessun silenzio, il tasto com'è oggi. Solo main: lo scrivono `publishDirectorFaceQ` (da audioQueue con `main.async`, alla
+    /// ⚠️ RISCRITTO A427, c'era «`nil` = nessun silenzio, il tasto com'è oggi.»: `nil` = nessun silenzio e nessun primo click del
+    /// rientro in arrivo (A427: dal fuoco all'«uno» uscito la faccia resta «rientro in arrivo»), il tasto com'è oggi. Solo main: lo
+    /// scrivono `publishDirectorFaceQ` (da audioQueue con `main.async`, alla
     /// pubblicazione e al tocco) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
     @Published private(set) var directorSilence: DirectorSilence? = nil
 
@@ -630,8 +632,16 @@ class AudioEngine: ObservableObject {
     private var _directorFollowsLinkQ: Bool = false
     /// Il rientro è armato e non ancora suonato (`armDirectorRejoinQ` → `fireDirectorRejoinQ`): ⚠️ RISCRITTO A426, c'era «il
     /// tasto, in attesa, dice Stop»: il tasto, in attesa, dice Play («rientro in arrivo», `DirectorTransportDecision`) e il suo
-    /// tocco non fa niente; il pedale Stop ferma la band anche qui.
+    /// tocco non fa niente; il pedale Stop ferma la band anche qui. ⚠️ A427: al fuoco questo segno va giù ma l'attesa no: dura fino
+    /// al primo click del rientro (`_rejoinClickUnoTicksQ`, qui sotto).
     private var _rejoinArmedQ: Bool = false
+    /// A427 — IL PRIMO CLICK DEL RIENTRO IN ARRIVO (mandato A427, par. 2.1): l'ora d'uscita dell'«uno» del fuoco del rientro
+    /// (`targetTicks` di `fireDirectorRejoinQ`, la `oraUscita` della sua riga), dal fuoco finché quell'ora non è passata. `nil` =
+    /// nessun rientro partito che aspetti il suo primo click. Lo alza solo il fuoco che entra, dove il rientro armato va giù; lo
+    /// abbassano il controllo a ogni buffer (`checkRejoinFirstClickOutQ`, l'«uno» uscito) e `lowerRejoinClickPendingQ` (ogni
+    /// arresto, ogni crisi, ogni Stop voluto, ogni avvio che comincia): mai alto a motore fermo. La faccia lo legge con la regola
+    /// pura dell'ora (`DirectorTransportDecision.rejoinClickPending`). Accesso SOLO su audioQueue.
+    private var _rejoinClickUnoTicksQ: UInt64? = nil
     /// La chiusura di fine sezione del runner, l'ultima consegnata (`loadSection`, `preloadNextSection`): è una
     /// sola per la vita del runner e legge gli indici al momento dell'esecuzione (`SetlistRunner`, in testa).
     private var _songSectionEndClosureQ: (() -> Void)? = nil
@@ -3220,6 +3230,41 @@ class AudioEngine: ObservableObject {
         closeSilenceAnchorQ(reason: "rientro")
     }
 
+    /// A427 — L'«UNO» DEL RIENTRO USCITO (mandato A427, par. 2.1 a): quando l'ora d'uscita dell'«uno» del fuoco è passata, il primo
+    /// click in arrivo va giù, con la riga, e la faccia si ripubblica (contesto «uno-uscito»). A ogni chiamata di
+    /// `scheduleNextBuffer`, accanto a `checkAnchorHeldByRejoinQ`, senza dipendere dall'àncora (che può non esserci). Il criterio è
+    /// l'ora dell'«uno» del fuoco, non quella del battito contato (scelta del referee: al registro cadono insieme, e l'ora del
+    /// fuoco non dipende dai battiti contati). La riga è diversa da «[DIR-RIENTRO] primo click» (`noteRejoinFirstClickQ`), che esce
+    /// quando l'«uno» si programma, prima che si senta. Chiamare SOLO su audioQueue.
+    private func checkRejoinFirstClickOutQ() {
+        guard let uno = _rejoinClickUnoTicksQ else { return }
+        let now = mach_absolute_time()
+        guard !DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: now) else { return }
+        _rejoinClickUnoTicksQ = nil
+        os_log("[Q-BEATS][DIR-TASTO] uno del rientro uscito ms_dopo_uno:%.1f - il tasto torna com'e' oggi",
+               log: .default, type: .default, signedMilliseconds(from: uno, to: now))
+        publishDirectorSilenceQ(context: "uno-uscito")
+    }
+
+    /// A427 — IL PRIMO CLICK DEL RIENTRO IN ARRIVO GIÙ PRIMA DELL'«UNO» (mandato A427, par. 2.1 b): a ogni arresto del motore, a
+    /// ogni crisi, a ogni Stop voluto, a ogni avvio che comincia e dove il rientro armato va giù (salvo il fuoco, che lo alza). Rende
+    /// `true` se era alto, con la riga. `publish`: la faccia si ripubblica qui, subito (col Direttore non muto e senza click in
+    /// arrivo è `nil`), prima di ogni `.stopped` che chi chiama accoda dopo sul principale (stessa coda, FIFO): la vista scarta il
+    /// `.stopped` finché la faccia non è `nil` (`LiveView`). `false` dove chi chiama pubblica la faccia a stato finito
+    /// (`enterDirectorSilenceQ`: la pubblica chi chiama la crisi) o la toglie da sé (`stopSync`, dopo l'avviso alla stanza).
+    /// Chiamare SOLO su audioQueue.
+    @discardableResult
+    private func lowerRejoinClickPendingQ(context: String, publish: Bool) -> Bool {
+        guard let uno = _rejoinClickUnoTicksQ else { return false }
+        _rejoinClickUnoTicksQ = nil
+        os_log("[Q-BEATS][DIR-TASTO] click in arrivo giu' contesto:%{public}@ ms_all_uno:%.1f - il tasto si ricalcola",
+               log: .default, type: .default, context, signedMilliseconds(from: mach_absolute_time(), to: uno))
+        if publish {
+            publishDirectorSilenceQ(context: context)
+        }
+        return true
+    }
+
     /// La riga al secondo dell'àncora viva, dal battito a 1 s (`transportPulse`): la posizione dai
     /// due righelli, lo scarto, il tempo della sessione, «suona», l'avvio della sessione (mandato A410,
     /// §2.4). La fase della scena la scrive già la riga [LIFECYCLE] (`QBeatsApp`). Chiamare SOLO su
@@ -3386,6 +3431,8 @@ class AudioEngine: ObservableObject {
     /// motore suona ancora) e lo stato; un rientro armato non vale più (l'ingresso lo annulla chi ferma). Chiamare
     /// SOLO su audioQueue, PRIMA di `isRunning = false`: l'àncora prende l'ultimo battito contato già uscito. Il
     /// tasto lo pubblica chi chiama, a stato finito (`publishDirectorSilenceQ`).
+    /// A427 — una crisi fra il fuoco e il primo click del rientro: col rientro armato va giù anche il primo click in arrivo, senza
+    /// pubblicare (la faccia la pubblica chi chiama, a stato finito: Stop, «rientra» o «lascia finire» dalla regola di oggi).
     private func enterDirectorSilenceQ(cause: CrisisCause) {
         if isRunning {
             takeSilenceAnchorQ(cause: cause.rawValue)
@@ -3398,6 +3445,7 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default, cause.rawValue)
         }
         _rejoinArmedQ = false
+        lowerRejoinClickPendingQ(context: "crisi:\(cause.rawValue)", publish: false)
         guard !_directorSilentInSongQ else {
             os_log("[Q-BEATS][CRISI] Direttore gia' muto in canzone - causa nuova:%{public}@ - resta muto, ancora:%d",
                    log: .default, type: .default, cause.rawValue, _silenceAnchorQ != nil ? 1 : 0)
@@ -3412,6 +3460,9 @@ class AudioEngine: ObservableObject {
     /// Il silenzio finisce (rientro, Stop di fine canzone, sessione ferma da altri, uscita dal coordinatore,
     /// cambio di ruolo, levetta spenta, chiusura dello show; lo Stop voluto lo chiude in `stopSync`). Chiamare
     /// SOLO su audioQueue.
+    /// A427 — non abbassa il primo click del rientro in arrivo (mandato A427, par. 2.1): il fuoco la chiama col click in arrivo
+    /// appena alzato e col Direttore ancora muto, e la faccia che pubblica è già «rientro in arrivo»; dopo il fuoco, fino all'«uno»,
+    /// la sua guardia sul silenzio non passa e non pubblica niente.
     private func leaveDirectorSilenceQ(reason: String, closeAnchor: Bool) {
         if closeAnchor {
             closeSilenceAnchorQ(reason: reason)
@@ -3433,16 +3484,20 @@ class AudioEngine: ObservableObject {
     /// `directorSilence`, con la riga [DIR-TASTO] a ogni cambio. «Un rientro adesso è possibile» = il
     /// coordinatore, letto adesso, dice «rientra» e nessun rientro è già armato. `plan`: il conto già letto da
     /// chi chiama (il battito a 1 s), per non catturare due volte. Chiamare SOLO su audioQueue.
-    /// A425 (P13) — la faccia la calcola `directorFaceNowQ`, la stessa strada del tocco su una faccia Play; in più «la canzone
-    /// finisce col conto certo» (il coordinatore dice «canzone finita»): il tasto dice Play, «lascia finire».
+    /// A425 (P13) — la faccia la calcola `directorFaceNowQ`, la stessa strada del tocco su una faccia Play; ⚠️ RISCRITTO A427, c'era
+    /// «in più «la canzone finisce col conto certo» (il coordinatore dice «canzone finita»): il tasto dice Play, «lascia finire».»:
+    /// in più «la canzone finisce col conto certo» (il coordinatore dice «canzone finita»): il tasto dice Play, «lascia finire»; e
+    /// col rientro armato (A426) o col primo click del rientro in arrivo (A427) il tasto dice Play, «rientro in arrivo».
     private func publishDirectorSilenceQ(context: String, plan: DirectorRejoinDecision.Plan? = nil) {
         publishDirectorFaceQ(directorFaceNowQ(plan: plan), context: context)
     }
 
     /// A425 (P13) — la faccia del tasto letta adesso, con la sua ragione.
+    /// A427 — e l'ingresso «primo click in arrivo» con cui è stata calcolata, per la riga.
     private struct DirectorFaceQ {
         let silence: DirectorSilence?
         let reason: DirectorTransportDecision.Reason?
+        let clickPending: Bool
     }
 
     /// A425 (P13) — LA FACCIA DEL TASTO, UNA STRADA SOLA per la pubblicazione e per il tocco su una faccia Play: il ruolo, una
@@ -3451,9 +3506,15 @@ class AudioEngine: ObservableObject {
     /// dice «canzone finita» (`.songEnded`, che esce solo col conto certo). Chiamare SOLO su audioQueue.
     /// A426 — e il rientro armato (`_rejoinArmedQ`), letto qui con gli altri ingressi: col rientro armato la faccia è «rientro in
     /// arrivo» (Play) e il coordinatore non si legge.
+    /// A427 — e il primo click del rientro in arrivo, letto qui con gli altri ingressi: lo stato alto (`_rejoinClickUnoTicksQ`) E
+    /// l'ora dell'«uno» non ancora passata (`DirectorTransportDecision.rejoinClickPending`), così una rilettura dopo l'«uno», prima
+    /// del controllo di `scheduleNextBuffer`, dice già «fuori». Col primo click in arrivo il Direttore non è muto: il coordinatore
+    /// non si legge (come prima, fuori dal silenzio).
     private func directorFaceNowQ(plan: DirectorRejoinDecision.Plan?) -> DirectorFaceQ {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
         let armed = _rejoinArmedQ
+        let clickPending = DirectorTransportDecision.rejoinClickPending(unoOutputTicks: _rejoinClickUnoTicksQ,
+                                                                        nowTicks: mach_absolute_time())
         var possible = false
         var songEnds = false
         if _directorSilentInSongQ && !armed {
@@ -3472,6 +3533,7 @@ class AudioEngine: ObservableObject {
         let silence = DirectorTransportDecision.silence(playerRole: role,
                                                         silentInSong: _directorSilentInSongQ,
                                                         rejoinArmedNow: armed,
+                                                        rejoinClickPendingNow: clickPending,
                                                         rejoinPossibleNow: possible,
                                                         songEndsCertainNow: songEnds,
                                                         interruptionActive: interrupted,
@@ -3479,11 +3541,12 @@ class AudioEngine: ObservableObject {
         let reason = DirectorTransportDecision.reason(playerRole: role,
                                                       silentInSong: _directorSilentInSongQ,
                                                       rejoinArmedNow: armed,
+                                                      rejoinClickPendingNow: clickPending,
                                                       rejoinPossibleNow: possible,
                                                       songEndsCertainNow: songEnds,
                                                       interruptionActive: interrupted,
                                                       servicesLost: lost)
-        return DirectorFaceQ(silence: silence, reason: reason)
+        return DirectorFaceQ(silence: silence, reason: reason, clickPending: clickPending)
     }
 
     /// La faccia allo specchio, solo se è cambiata, con la riga [DIR-TASTO]. Chiamare SOLO su audioQueue.
@@ -3492,9 +3555,11 @@ class AudioEngine: ObservableObject {
         guard silence != _directorSilencePublishedQ else { return }
         _directorSilencePublishedQ = silence
         let key: String = silence.map { $0.showsPlay ? "play" : "stop" } ?? "come-oggi"
-        os_log("[Q-BEATS][DIR-TASTO] tasto:%{public}@ tocco:%{public}@ motivo:%{public}@ rientroArmato:%d contesto:%{public}@ - fascia e pedale playPause",
+        // A427 — `clickInArrivo`: l'ingresso «primo click in arrivo» con cui la faccia è stata calcolata (mandato A427, par. 2.1).
+        os_log("[Q-BEATS][DIR-TASTO] tasto:%{public}@ tocco:%{public}@ motivo:%{public}@ rientroArmato:%d clickInArrivo:%d contesto:%{public}@ - fascia e pedale playPause",
                log: .default, type: .default,
-               key, silence?.tap.rawValue ?? "-", face.reason?.rawValue ?? "-", _rejoinArmedQ ? 1 : 0, context)
+               key, silence?.tap.rawValue ?? "-", face.reason?.rawValue ?? "-", _rejoinArmedQ ? 1 : 0,
+               face.clickPending ? 1 : 0, context)
         DispatchQueue.main.async {
             self.directorSilence = silence
         }
@@ -3988,6 +4053,12 @@ class AudioEngine: ObservableObject {
         scheduleNextBuffer()
         let scheduledAt = mach_absolute_time()
         _rejoinArmedQ = false
+        // A427 (mandato A427, par. 2.1) — il primo click del rientro in arrivo si alza qui, dove il rientro armato va giù e prima che
+        // il silenzio finisca (`leaveDirectorSilenceQ`, più sotto), con l'ora d'uscita dell'«uno» di questo fuoco (`targetTicks`, la
+        // `oraUscita` della riga del fuoco): la faccia che si ripubblica alla fine del silenzio è già «rientro in arrivo», la stessa
+        // dell'armamento, e la cache la scarta. Al fuoco nessuna riga del tasto: il tasto non torna Stop. Va giù all'«uno» uscito
+        // (`checkRejoinFirstClickOutQ`, da `scheduleNextBuffer`), a ogni arresto, crisi o Stop voluto (`lowerRejoinClickPendingQ`).
+        _rejoinClickUnoTicksQ = targetTicks
         // A425 (P14: referto A424, par. 2.3 b; decisione del referee su P14 e nota N-P4-1 di VR-3a; mandato A425, par. 2.4) — il
         // rientro è fatto (il motore suona) e il Direttore non passa da `prepareNormalStartQ`: la crisi è alle spalle come dopo un
         // Play. La causa ricordata e lo Stop voluto si azzerano qui, con la riga; il fuoco che non parte (`stopRejoinEngineQ`) non
@@ -4026,6 +4097,9 @@ class AudioEngine: ObservableObject {
     /// Link. Chiamare SOLO su audioQueue.
     private func stopRejoinEngineQ(reason: String) {
         _rejoinArmedQ = false
+        // A427 — con l'armato, il primo click in arrivo. Qui è già giù: lo chiamano solo i rami del fuoco prima che lo alzi, e ogni
+        // armamento nasce col Direttore muto, cioè dopo una crisi che l'ha abbassato (`enterDirectorSilenceQ`).
+        lowerRejoinClickPendingQ(context: "rientro-non-eseguito", publish: true)
         _anchoredFirstBufferQ = nil
         _anchoredPreRollLeftQ = 0
         _rejoinLeadInQ = nil
@@ -4096,7 +4170,8 @@ class AudioEngine: ObservableObject {
                chainTicks, signedMilliseconds(from: lead.targetTicks, to: chainTicks))
     }
 
-    /// Al battito a 1 s col Direttore muto in canzone: il tasto (dipende dal conto di adesso) e lo Stop di fine
+    /// Al battito a 1 s col Direttore muto in canzone: ⚠️ RISCRITTO A427, c'era «il tasto (dipende dal conto di adesso)»: il tasto
+    /// (dipende dal conto di adesso; col rientro armato è «rientro in arrivo» e il conto non entra nella faccia) e lo Stop di fine
     /// canzone (mandato §2.3). Scelta: il battito a 1 s ARMA un timer unico all'ora giusta, e lo riarma a ogni
     /// battito finché l'ora si sposta (nell'ultima sezione l'ora del ponte non ha più cambi di tempo davanti):
     /// col solo battito lo Stop uscirebbe fino a un secondo in ritardo. Chiamare SOLO su audioQueue.
@@ -4273,6 +4348,8 @@ class AudioEngine: ObservableObject {
         _crisisCauseQ = nil
         _wantedStopSinceCrisisQ = false
         closeSilenceAnchorQ(reason: "avvio")
+        // A427 — ogni avvio che comincia abbassa il primo click del rientro in arrivo (qui il motore è fermo: è già giù).
+        lowerRejoinClickPendingQ(context: "avvio", publish: true)
     }
 
     /// LE RIPARTENZE AUTOMATICHE (mandato §2.6): dove va ognuna (`RecoveryDecision`), con la riga. Chiamare SOLO
@@ -4324,6 +4401,8 @@ class AudioEngine: ObservableObject {
         cancelPendingJoin(reason: context)
         lowerOwnTransportStartQ(reason: context)
         _rejoinArmedQ = false
+        // A427 — e il primo click del rientro in arrivo, con la faccia (`nil` fuori dal silenzio) prima di ogni `.stopped` dopo.
+        lowerRejoinClickPendingQ(context: context, publish: true)
         // A421 — un arresto di crisi consegna il drenaggio aperto (par. 2.2 j) e pubblica lo specchio (par. 2.2 e).
         closeDrainOnCrisisStopQ(context: context)
         publishIsPlayingQ(context: context)
@@ -4383,8 +4462,9 @@ class AudioEngine: ObservableObject {
     /// Solo main.
     /// ⚠️ RISCRITTO A425 (P13: referto A423, par. 3.4; referto A424, par. 2.3 a; decisione del referee su P13; mandato A425, par.
     /// 2.3). «Play = rientra» non basta più: ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le
-    /// facce Play sono tre, «rientra», «lascia finire» (l'ultimo tratto della canzone col conto certo) e «rientro in arrivo» (il
-    /// rientro armato, A426), e un tocco su una faccia Play non chiama più `start()` da qui: si rilegge sulla coda
+    /// facce Play sono tre, «rientra», «lascia finire» (l'ultimo tratto della canzone col conto certo) e «rientro in arrivo» (⚠️
+    /// RISCRITTO A427, c'era «il rientro armato, A426»: il rientro armato, A426, e dal fuoco al primo click del rientro, A427, col
+    /// Direttore non più muto), e un tocco su una faccia Play non chiama più `start()` da qui: si rilegge sulla coda
     /// (`directorPlayFaceTappedQ`). La faccia Stop resta `stop()`, come oggi (anche dentro un'interruzione, dove la faccia è Stop).
     /// A426 — il ramo lo decide la regola pura `DirectorTransportDecision.tapRoute`, col suo banco.
     func directorTransportTapped(_ tap: DirectorTransportTap, origin: String) {
@@ -4407,9 +4487,11 @@ class AudioEngine: ObservableObject {
     ///  · «lascia finire» ⇒ la riga e la faccia ripubblicata: niente sessione, niente motore, niente Link (lo Stop di fine canzone
     ///    resta quello armato dal controllo al secondo: il tocco non lo arma);
     ///  · Stop (il conto non più certo, un'interruzione, i servizi persi) ⇒ il tocco non ferma niente e la faccia si ripubblica Stop;
-    ///  · fuori dal silenzio (il rientro già fatto, lo Stop di fine canzone, uno Stop voluto, fra il tocco e la coda) ⇒ niente.
-    ///  · A426 (⚠️ RISCRITTO: l'elenco qui sopra aveva quattro voci, nessuna per il rientro armato) — «rientro in arrivo» (il
-    ///    rientro armato, il click sta per tornare) ⇒ niente, né `start()` né `stop()`: la faccia si ripubblica.
+    ///  · fuori dal silenzio (⚠️ RISCRITTO A427, c'era «il rientro già fatto»: il rientro già fatto e il suo primo click già uscito,
+    ///    lo Stop di fine canzone, uno Stop voluto, fra il tocco e la coda) ⇒ niente.
+    ///  · A426 (⚠️ RISCRITTO: l'elenco qui sopra aveva quattro voci, nessuna per il rientro armato) — «rientro in arrivo» (⚠️
+    ///    RISCRITTO A427, c'era «il rientro armato, il click sta per tornare»: il rientro armato, il click sta per tornare, e da A427
+    ///    il rientro partito col suo primo click non ancora uscito) ⇒ niente, né `start()` né `stop()`: la faccia si ripubblica.
     /// Da una faccia Play non nasce mai un «ferma la band». Chiamare SOLO su audioQueue.
     private func directorPlayFaceTappedQ(face: DirectorTransportTap, origin: String) {
         let now = directorFaceNowQ(plan: nil)
@@ -4715,6 +4797,10 @@ class AudioEngine: ObservableObject {
         cancelPendingJoin(reason: context)
         lowerOwnTransportStartQ(reason: context)
         _rejoinArmedQ = false
+        // A427 — e il primo click del rientro in arrivo, con la faccia (`nil` fuori dal silenzio) prima del `.stopped` che il ramo
+        // «arresto locale» di chi chiama accoda dopo (il buco del render, il percorso). Nel ramo «muto in canzone» è già giù
+        // (`enterDirectorSilenceQ`, prima di qui).
+        lowerRejoinClickPendingQ(context: context, publish: true)
         closeDrainOnCrisisStopQ(context: context)
         publishIsPlayingQ(context: context)
         logLocalStop(context: context, server: "presente")
@@ -4750,6 +4836,9 @@ class AudioEngine: ObservableObject {
     /// La pulizia dello Stop (`stopSync`): i contatori, i cambi armati nel DSP e in Swift, i `_pendingNext*`, il drenaggio
     /// senza consegna, il lettore della base. Par. 2.2 e: anche a motore già fermo. Chiamare SOLO su audioQueue.
     private func cleanupAfterStopQ() {
+        // A427 — ogni pulizia dello Stop abbassa il primo click del rientro in arrivo. I due chiamanti l'hanno già abbassato prima
+        // (`stopSync`, col suo ordine della faccia; `handleRoleOrLinkChangeQ`, prima del suo `.stopped`): qui è già giù.
+        lowerRejoinClickPendingQ(context: "pulizia-stop", publish: true)
         // QA-1 drift analysis reset
         qa1BeatCounter  = 0
         qa1StartTime    = 0
@@ -4824,6 +4913,11 @@ class AudioEngine: ObservableObject {
             cancelPendingJoin(reason: reason)
             lowerOwnTransportStartQ(reason: reason)
             _rejoinArmedQ = false
+            // A427 — e il primo click del rientro in arrivo, con la faccia (`nil`: il Direttore non è muto, e col ruolo già cambiato,
+            // come dopo la levetta, la regola dà `nil` comunque) PRIMA del `.stopped` qui sotto. Col volume a 1 il motore resta in
+            // moto e il click in arrivo resta: la faccia segue la regola (`nil` fuori dal Direttore) alla prima rilettura, al più
+            // tardi all'«uno» (mandato A427, par. 2.1).
+            lowerRejoinClickPendingQ(context: reason, publish: true)
             _songInProgressQ = false
             _wantedStopSinceCrisisQ = true
             cleanupAfterStopQ()
@@ -7642,6 +7736,15 @@ class AudioEngine: ObservableObject {
             // A412 · SEGUITO 3 — col work item si ferma il timer del rientro del Direttore.
             self._rejoinArmTimerQ.cancel()
             self._rejoinArmedQ = false
+            // A427 (mandato A427, par. 2.1) — e il primo click del rientro in arrivo. Nella finestra fra il fuoco e l'«uno» il
+            // Direttore non è più muto: lo Stop voluto prende il ramo del motore in moto (lo Stop a Link come sempre, più sotto), e
+            // la faccia torna `nil` come al silenzio chiuso: la cache qui, lo specchio sul principale DOPO l'avviso alla stanza e
+            // PRIMA del `.stopped` che `stop()` accoda dopo di noi (`silenceCleared`, in fondo). La vista scarta il `.stopped`
+            // finché la faccia non è `nil` (`LiveView`): senza questo la sessione resterebbe «in corso».
+            if self.lowerRejoinClickPendingQ(context: "stop", publish: false) {
+                self._directorSilencePublishedQ = nil
+                silenceCleared = true
+            }
             if isWaitingForLinkDownbeat {
                 DispatchQueue.main.async {
                     self.isWaitingForLinkDownbeat = false
@@ -8618,6 +8721,9 @@ class AudioEngine: ObservableObject {
         guard isRunning, let h = metronomeHandle else { return }
         // A421 · SEGUITO 2 (par. 3.3) — l'àncora tenuta dal rientro si chiude quando il primo battito contato del rientro è uscito.
         checkAnchorHeldByRejoinQ()
+        // A427 — il primo click del rientro in arrivo va giù quando l'ora d'uscita dell'«uno» del fuoco è passata, e il tasto torna
+        // com'è oggi (mandato A427, par. 2.1 a).
+        checkRejoinFirstClickOutQ()
         // A421 · SEGUITO 2 (par. 4.3, 5.1) — la finestra «sync skip» all'inizio della chiamata: con il contatore maggiore di zero
         // la chiamata salta la correzione (il volume non torna, F1); a zero dopo una finestra è la prima chiamata dopo.
         let skipAtCallStart = self.linkSyncSkipBuffers
@@ -9567,6 +9673,8 @@ class AudioEngine: ObservableObject {
                     self.isAudioInterrupted = true
                     self.cancelPendingJoin(reason: "inizio interruzione")
                     self._rejoinArmedQ = false
+                    // A427 — e il primo click del rientro in arrivo (col Direttore già muto è già giù).
+                    self.lowerRejoinClickPendingQ(context: "interruzione", publish: true)
                     os_log("[Q-BEATS][CRISI] interruzione col Direttore gia' muto - segnata, niente da fermare",
                            log: .default, type: .default)
                     self.publishDirectorSilenceQ(context: "interruzione")
@@ -9604,6 +9712,9 @@ class AudioEngine: ObservableObject {
                 }
                 self.isAudioInterrupted = true
                 self.isRunning          = false
+                // A427 — a motore fermo il primo click del rientro in arrivo va giù, con la faccia (`nil` fuori dal silenzio). Col
+                // Direttore muto in canzone è già giù (`enterDirectorSilenceQ`, qui sopra).
+                self.lowerRejoinClickPendingQ(context: "interruzione", publish: true)
                 shouldStop              = true
                 // RIENTRO-P1 (a) — questo arresto non passa da `stopSync`: se l'interruzione
                 // cade durante l'attesa d'ingresso, l'ingresso pendente si annulla QUI.
@@ -10077,6 +10188,8 @@ class AudioEngine: ObservableObject {
                     self.enterDirectorSilenceQ(cause: .mode)
                 }
                 self.isRunning = false
+                // A427 — a motore fermo il primo click del rientro in arrivo va giù, con la faccia (`nil` fuori dal silenzio).
+                self.lowerRejoinClickPendingQ(context: "modo", publish: true)
                 // A420 — l'arresto sulla coda, con la sua riga (mandato A420, par. 2.1).
                 self.stopPlayerAndEngineQ(context: "modo")
                 // A421 — il drenaggio consegnato (par. 2.2 j) e lo specchio di `isRunning` (par. 2.2 e: il buco del ticket). I
@@ -10481,6 +10594,8 @@ class AudioEngine: ObservableObject {
         // L'arresto sulla coda (mandato A420, par. 2.1): lettore e motore, anche quando il motore l'ha già fermato il sistema
         // (cambio di configurazione: lo stop libera le risorse preparate, e il ricollegamento qui sotto le riprepara).
         isRunning = false
+        // A427 — a motore fermo il primo click del rientro in arrivo va giù, con la faccia (`nil` fuori dal silenzio).
+        lowerRejoinClickPendingQ(context: source.stopContext, publish: true)
         stopPlayerAndEngineQ(context: source.stopContext)
         // A421 — un arresto di crisi consegna il drenaggio aperto (par. 2.2 j), pubblica lo specchio (par. 2.2 e: il buco del
         // ticket `TD-isplaying-resta-vero-dopo-lo-stop-del-direttore-muto`) e annulla i ritorni in attesa (par. 2.3 b).

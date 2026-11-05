@@ -2,8 +2,9 @@ import XCTest
 
 // === A412 — banco della regola del tasto della fascia (`DirectorTransportDecision`, banco Models), mandato §2.4 ===
 // La matrice: ruolo del player × muto in canzone × rientro possibile adesso × interruzione in corso ×
-// servizi audio persi = 3 × 2 × 2 × 2 × 2 = 48 celle (⚠️ RISCRITTO A426: c'era «48 celle» senza data; 48 in A412, 96 da A425,
-// 192 da A426, nei blocchi qui sotto), con l'atteso scritto dalla regola del mandato. Poi
+// servizi audio persi = 3 × 2 × 2 × 2 × 2 = 48 celle (⚠️ RISCRITTO A426: c'era «48 celle» senza data; ⚠️ RISCRITTO A427, c'era
+// «48 in A412, 96 da A425, 192 da A426, nei blocchi qui sotto»: 48 in A412, 96 da A425, 192 da A426, 384 da A427, nei blocchi qui
+// sotto), con l'atteso scritto dalla regola del mandato. Poi
 // i casi del collaudo: dopo un reset dei servizi audio (il solo silenzio che finisce col tocco) il tasto
 // dice Play; fra la Lost e la Reset, durante un'interruzione o col conto non certo dice Stop; fuori dal
 // silenzio il tasto è quello di oggi (`nil`). E la ragione, nell'ordine della regola.
@@ -15,13 +16,23 @@ import XCTest
 // rientro e la fine insieme, fuori dal silenzio `nil`; i quattro casi della regola del tocco su una faccia Play (riletta sulla
 // coda: decide la faccia di adesso, mai un «ferma la band»).
 // === A426 (mandato A426, par. 2.2-2.3) — l'ingresso nuovo «il rientro è armato» e il ramo del tocco ===
-// La matrice segue l'ingresso nuovo: 3 × 2 × 2 × 2 × 2 × 2 × 2 = 192 celle (erano 96). Il tasto dice Play in sette celle:
+// ⚠️ RISCRITTO A427, c'era «La matrice segue l'ingresso nuovo: 3 × 2 × 2 × 2 × 2 × 2 × 2 = 192 celle (erano 96). Il tasto dice Play
+// in sette celle»: in A426 192 celle e Play in sette; da A427 384 celle e Play in ventitré (blocco A427 qui sotto). In A426:
 // «rientro in arrivo» in quattro (il rientro armato, con e senza il rientro possibile e la fine certa: vince l'armato),
 // «rientra» in due (non armato, rientro possibile, con e senza la fine certa), «lascia finire» in una (non armato, la sola fine
 // certa). I casi nuovi: l'armato con e senza interruzione o servizi persi, l'armato col rientro possibile e con la fine certa,
 // fuori dal silenzio `nil`; il tocco su «rientro in arrivo» (riletto «rientro in arrivo», «rientra», `nil`, Stop); il ramo del
 // tocco su ogni faccia (`tapRoute`). E le due debolezze del banco viste dai verificatori del referee su A425 (mandato A426,
 // par. 2.2): l'attesa sempre vera della proprietà sulla matrice e il nome di un test che prometteva più di quello che prova.
+// === A427 (mandato A427, par. 2.2) — l'ingresso nuovo «il primo click del rientro in arrivo» e la regola pura dell'ora ===
+// La matrice segue l'ingresso nuovo: 3 × 2 × 2 × 2 × 2 × 2 × 2 × 2 = 384 celle (erano 192). «Rientro in arrivo» in venti celle
+// (il rientro armato in dodici, il primo click in arrivo senza l'armato in otto, col Direttore muto e non muto), «rientra» in due,
+// «lascia finire» in una: il tasto dice Play in ventitré, Stop in settantatré, `nil` in duecentottantotto (Solo e Follower, e il
+// Direttore né muto né col primo click in arrivo). I casi nuovi: il primo click in arrivo col Direttore non muto e muto, con e
+// senza interruzione o servizi persi, col rientro possibile e con la fine certa, insieme al rientro armato; il secondo tocco fra
+// il fuoco e l'«uno» (riletto «rientro in arrivo»: niente) e il tocco proprio sull'«uno» (riletto `nil`: niente); la regola pura
+// dell'ora (prima, proprio all'ora, dopo, nessuna ora). E i due test di A426 che cadono solo dalla parte del ramo, col nome e il
+// commento che dicono che cosa provano (note dei verificatori del referee su A426: auditor N4, B2-1 N6).
 
 final class DirectorTransportDecisionTests: XCTestCase {
 
@@ -30,16 +41,19 @@ final class DirectorTransportDecisionTests: XCTestCase {
 
     // A426 — `armed` (il rientro armato) vale `false` se il test non lo dice: i test di prima di A426 provano il mondo senza un
     // rientro armato, come prima. La regola invece non ha valori di default: questi due aiuti lo passano sempre.
-    private func silence(_ role: PlayerRole, silent: Bool = true, armed: Bool = false, possible: Bool = true, ends: Bool = false,
-                         interrupted: Bool = false, lost: Bool = false) -> DirectorSilence? {
+    // A427 — lo stesso per `pending` (il primo click del rientro in arrivo): i test di prima di A427 provano il mondo senza.
+    private func silence(_ role: PlayerRole, silent: Bool = true, armed: Bool = false, pending: Bool = false, possible: Bool = true,
+                         ends: Bool = false, interrupted: Bool = false, lost: Bool = false) -> DirectorSilence? {
         DirectorTransportDecision.silence(playerRole: role, silentInSong: silent, rejoinArmedNow: armed,
+                                          rejoinClickPendingNow: pending,
                                           rejoinPossibleNow: possible,
                                           songEndsCertainNow: ends, interruptionActive: interrupted, servicesLost: lost)
     }
 
-    private func reason(_ role: PlayerRole, silent: Bool = true, armed: Bool = false, possible: Bool = true, ends: Bool = false,
-                        interrupted: Bool = false, lost: Bool = false) -> DirectorTransportDecision.Reason? {
+    private func reason(_ role: PlayerRole, silent: Bool = true, armed: Bool = false, pending: Bool = false, possible: Bool = true,
+                        ends: Bool = false, interrupted: Bool = false, lost: Bool = false) -> DirectorTransportDecision.Reason? {
         DirectorTransportDecision.reason(playerRole: role, silentInSong: silent, rejoinArmedNow: armed,
+                                         rejoinClickPendingNow: pending,
                                          rejoinPossibleNow: possible,
                                          songEndsCertainNow: ends, interruptionActive: interrupted, servicesLost: lost)
     }
@@ -61,7 +75,9 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertEqual(silence(.direttore, possible: false)?.showsPlay, false)
     }
 
-    /// Fuori dal silenzio, e per il Solo e il Follower, il tasto è quello di oggi.
+    /// ⚠️ RISCRITTO A427, c'era «Fuori dal silenzio, e per il Solo e il Follower, il tasto è quello di oggi.»: fuori dal silenzio e
+    /// senza il primo click del rientro in arrivo (gli aiuti, se il test non lo dice), e per il Solo e il Follower, il tasto è quello
+    /// di oggi.
     func testOutsideTheSilenceTheButtonIsTodays() {
         XCTAssertNil(silence(.direttore, silent: false))
         for role in [PlayerRole.solo, .follower] {
@@ -77,11 +93,16 @@ final class DirectorTransportDecisionTests: XCTestCase {
     /// servizi persi ⇒ Stop; rientro possibile ⇒ rientra; fine certa ⇒ lascia finire; se no Stop.»: A426 — dalla regola del
     /// mandato A426, par. 2.1, nell'ordine: interruzione o servizi persi ⇒ Stop; rientro armato ⇒ rientro in arrivo; rientro
     /// possibile ⇒ rientra; fine certa ⇒ lascia finire; se no Stop.
-    private func expected(_ role: PlayerRole, silent: Bool, armed: Bool, possible: Bool, ends: Bool, interrupted: Bool,
-                          lost: Bool) -> DirectorTransportTap? {
-        guard role == .direttore, silent else { return nil }
+    /// A427 — dalla regola del mandato A427, par. 2.1, nell'ordine: ruolo diverso dal Direttore ⇒ `nil`; Direttore né muto né col
+    /// primo click in arrivo ⇒ `nil`; interruzione o servizi persi ⇒ Stop; rientro armato ⇒ rientro in arrivo; primo click in
+    /// arrivo ⇒ rientro in arrivo; rientro possibile ⇒ rientra; fine certa ⇒ lascia finire; se no Stop.
+    private func expected(_ role: PlayerRole, silent: Bool, armed: Bool, pending: Bool, possible: Bool, ends: Bool,
+                          interrupted: Bool, lost: Bool) -> DirectorTransportTap? {
+        guard role == .direttore else { return nil }
+        guard silent || pending else { return nil }
         if interrupted || lost { return .stopBand }
         if armed { return .rejoinComing }
+        if pending { return .rejoinComing }
         if possible { return .rejoin }
         return ends ? .letSongEnd : .stopBand
     }
@@ -92,23 +113,30 @@ final class DirectorTransportDecisionTests: XCTestCase {
         var letSongEnds = 0
         var rejoinComings = 0
         var plays = 0
+        var stops = 0
+        var nils = 0
         for role in roles {
             for silent in bools {
                 for armed in bools {
-                    for possible in bools {
-                        for ends in bools {
-                            for interrupted in bools {
-                                for lost in bools {
-                                    cells += 1
-                                    let got = silence(role, silent: silent, armed: armed, possible: possible, ends: ends,
-                                                      interrupted: interrupted, lost: lost)
-                                    let tag = "ruolo:\(role) muto:\(silent) armato:\(armed) possibile:\(possible) fine:\(ends) interruzione:\(interrupted) persi:\(lost)"
-                                    XCTAssertEqual(got?.tap, expected(role, silent: silent, armed: armed, possible: possible,
-                                                                      ends: ends, interrupted: interrupted, lost: lost), tag)
-                                    if got?.tap == .rejoin { rejoins += 1 }
-                                    if got?.tap == .letSongEnd { letSongEnds += 1 }
-                                    if got?.tap == .rejoinComing { rejoinComings += 1 }
-                                    if got?.showsPlay == true { plays += 1 }
+                    for pending in bools {
+                        for possible in bools {
+                            for ends in bools {
+                                for interrupted in bools {
+                                    for lost in bools {
+                                        cells += 1
+                                        let got = silence(role, silent: silent, armed: armed, pending: pending, possible: possible,
+                                                          ends: ends, interrupted: interrupted, lost: lost)
+                                        let tag = "ruolo:\(role) muto:\(silent) armato:\(armed) clickInArrivo:\(pending) possibile:\(possible) fine:\(ends) interruzione:\(interrupted) persi:\(lost)"
+                                        XCTAssertEqual(got?.tap, expected(role, silent: silent, armed: armed, pending: pending,
+                                                                          possible: possible, ends: ends, interrupted: interrupted,
+                                                                          lost: lost), tag)
+                                        if got?.tap == .rejoin { rejoins += 1 }
+                                        if got?.tap == .letSongEnd { letSongEnds += 1 }
+                                        if got?.tap == .rejoinComing { rejoinComings += 1 }
+                                        if got?.showsPlay == true { plays += 1 }
+                                        if got?.tap == .stopBand { stops += 1 }
+                                        if got == nil { nils += 1 }
+                                    }
                                 }
                             }
                         }
@@ -120,12 +148,21 @@ final class DirectorTransportDecisionTests: XCTestCase {
         // fine certa: vince il rientro), «lascia finire» in una (la sola fine certa); ⚠️ RISCRITTO A426, c'era «il tasto dice Play
         // in tre.»: A426 — il rientro armato raddoppia ancora le celle (96 → 192): «rientra» e «lascia finire» restano nelle celle
         // senza l'armato (due e una), «rientro in arrivo» esce in quattro (l'armato, con e senza il rientro possibile e la fine
-        // certa: vince l'armato); il tasto dice Play in sette.
-        XCTAssertEqual(cells, 192)
-        XCTAssertEqual(rejoins, 2, "rientra: Direttore muto, nessun rientro armato, rientro possibile, nessuna interruzione, servizi presenti")
+        // certa: vince l'armato); ⚠️ RISCRITTO A427, c'era «il tasto dice Play in sette.»: in A426 il tasto diceva Play in sette.
+        // A427 — il primo click in arrivo raddoppia ancora le celle (192 → 384): «rientra» e «lascia finire» restano due e una (il
+        // Direttore muto, né armato né col click in arrivo); «rientro in arrivo» esce in venti: dodici col rientro armato (il
+        // Direttore muto, o non muto col click in arrivo), otto col solo click in arrivo (muto e non muto), sempre senza
+        // interruzione e coi servizi presenti, con e senza il rientro possibile e la fine certa; il tasto dice Play in ventitré, Stop
+        // in settantatré (le settantadue celle con l'interruzione o i servizi persi, e la cella senza niente), `nil` nelle altre
+        // duecentottantotto (Solo e Follower in duecentocinquantasei, il Direttore né muto né col click in arrivo in trentadue).
+        XCTAssertEqual(cells, 384)
+        XCTAssertEqual(rejoins, 2, "rientra: Direttore muto, nessun rientro armato né click in arrivo, rientro possibile, nessuna interruzione, servizi presenti")
         XCTAssertEqual(letSongEnds, 1, "lascia finire: in più nessun rientro possibile e la fine certa")
-        XCTAssertEqual(rejoinComings, 4, "rientro in arrivo: Direttore muto, rientro armato, nessuna interruzione, servizi presenti")
-        XCTAssertEqual(plays, 7, "il tasto dice Play nelle celle di rientra, di lascia finire e di rientro in arrivo")
+        XCTAssertEqual(rejoinComings, 20, "rientro in arrivo: rientro armato o primo click in arrivo, nessuna interruzione, servizi presenti")
+        XCTAssertEqual(plays, 23, "il tasto dice Play nelle celle di rientra, di lascia finire e di rientro in arrivo")
+        XCTAssertEqual(stops, 73, "Stop: interruzione o servizi persi, o il Direttore muto senza niente")
+        XCTAssertEqual(nils, 288, "nil: Solo, Follower, e il Direttore né muto né col primo click in arrivo")
+        XCTAssertEqual(plays + stops + nils, cells)
     }
 
     // MARK: - La ragione
@@ -149,23 +186,38 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertEqual(reason(.direttore, armed: true, possible: true, lost: true), .servicesLost)
         XCTAssertNil(reason(.direttore, silent: false, armed: true))
         XCTAssertNil(reason(.follower, armed: true))
+        // A427 — il primo click in arrivo: dopo interruzione, servizi persi e rientro armato, prima del rientro possibile e della
+        // fine certa; col Direttore non muto la ragione c'è (la faccia non è `nil`).
+        XCTAssertEqual(reason(.direttore, silent: false, pending: true, possible: false), .rejoinClickPending)
+        XCTAssertEqual(reason(.direttore, silent: false, pending: true, possible: true, ends: true), .rejoinClickPending)
+        XCTAssertEqual(reason(.direttore, silent: false, pending: true, interrupted: true), .interruptionActive)
+        XCTAssertEqual(reason(.direttore, silent: false, pending: true, lost: true), .servicesLost)
+        XCTAssertEqual(reason(.direttore, silent: false, armed: true, pending: true), .rejoinArmed)
+        XCTAssertNil(reason(.direttore, silent: false, pending: false))
+        XCTAssertNil(reason(.solo, silent: false, pending: true))
         // La ragione «possibile» c'è se e solo se il tasto dice «rientra»; A425: la ragione «fine certa» se e solo se dice
-        // «lascia finire»; A426: la ragione «rientro armato» se e solo se dice «rientro in arrivo».
+        // «lascia finire»; A426: ⚠️ RISCRITTO A427, c'era «la ragione «rientro armato» se e solo se dice «rientro in arrivo».» (e
+        // il controllo `tap == .rejoinComing` ⇔ `why == .rejoinArmed`, che col primo click in arrivo cade): da A427 «rientro in
+        // arrivo» se e solo se la ragione è «rientro armato» o «primo click in arrivo»; e «primo click in arrivo» solo senza
+        // l'armato, che viene prima.
         for role in roles {
             for silent in bools {
                 for armed in bools {
-                    for possible in bools {
-                        for ends in bools {
-                            for interrupted in bools {
-                                for lost in bools {
-                                    let tap = silence(role, silent: silent, armed: armed, possible: possible, ends: ends,
-                                                      interrupted: interrupted, lost: lost)?.tap
-                                    let why = reason(role, silent: silent, armed: armed, possible: possible, ends: ends,
-                                                     interrupted: interrupted, lost: lost)
-                                    XCTAssertEqual(tap == nil, why == nil)
-                                    XCTAssertEqual(tap == .rejoin, why == .rejoinPossible)
-                                    XCTAssertEqual(tap == .letSongEnd, why == .songEndCertain)
-                                    XCTAssertEqual(tap == .rejoinComing, why == .rejoinArmed)
+                    for pending in bools {
+                        for possible in bools {
+                            for ends in bools {
+                                for interrupted in bools {
+                                    for lost in bools {
+                                        let tap = silence(role, silent: silent, armed: armed, pending: pending, possible: possible,
+                                                          ends: ends, interrupted: interrupted, lost: lost)?.tap
+                                        let why = reason(role, silent: silent, armed: armed, pending: pending, possible: possible,
+                                                         ends: ends, interrupted: interrupted, lost: lost)
+                                        XCTAssertEqual(tap == nil, why == nil)
+                                        XCTAssertEqual(tap == .rejoin, why == .rejoinPossible)
+                                        XCTAssertEqual(tap == .letSongEnd, why == .songEndCertain)
+                                        XCTAssertEqual(tap == .rejoinComing, why == .rejoinArmed || why == .rejoinClickPending)
+                                        XCTAssertEqual(why == .rejoinClickPending, tap == .rejoinComing && !armed)
+                                    }
                                 }
                             }
                         }
@@ -242,7 +294,8 @@ final class DirectorTransportDecisionTests: XCTestCase {
         }
     }
 
-    /// Faccia Play toccata, il Direttore già fuori dal silenzio (il rientro fatto, lo Stop di fine canzone, uno Stop voluto): niente.
+    /// Faccia Play toccata, il Direttore già fuori dal silenzio (⚠️ RISCRITTO A427, c'era «il rientro fatto»: il rientro fatto e il
+    /// suo primo click già uscito, lo Stop di fine canzone, uno Stop voluto): niente.
     func testATapOnAPlayFaceWithTheDirectorAlreadyOutOfTheSilenceDoesNothing() {
         let outcome = DirectorTransportDecision.playFaceTap(rereadNow: silence(.direttore, silent: false))
         XCTAssertEqual(outcome, .nothingOutsideSilence)
@@ -262,18 +315,21 @@ final class DirectorTransportDecisionTests: XCTestCase {
         for role in roles {
             for silent in bools {
                 for armed in bools {
-                    for possible in bools {
-                        for ends in bools {
-                            for interrupted in bools {
-                                for lost in bools {
-                                    let reread = silence(role, silent: silent, armed: armed, possible: possible, ends: ends,
-                                                         interrupted: interrupted, lost: lost)
-                                    let outcome = DirectorTransportDecision.playFaceTap(rereadNow: reread)
-                                    XCTAssertEqual(outcome.startsEngine, reread?.tap == .rejoin)
-                                    XCTAssertEqual(outcome, expectedOutcome(reread?.tap))
-                                    if outcome.startsEngine { starts += 1 }
-                                    if interrupted && role == .direttore && silent {
-                                        XCTAssertEqual(reread?.showsPlay, false, "dentro un'interruzione la faccia è Stop")
+                    for pending in bools {
+                        for possible in bools {
+                            for ends in bools {
+                                for interrupted in bools {
+                                    for lost in bools {
+                                        let reread = silence(role, silent: silent, armed: armed, pending: pending,
+                                                             possible: possible, ends: ends, interrupted: interrupted, lost: lost)
+                                        let outcome = DirectorTransportDecision.playFaceTap(rereadNow: reread)
+                                        XCTAssertEqual(outcome.startsEngine, reread?.tap == .rejoin)
+                                        XCTAssertEqual(outcome, expectedOutcome(reread?.tap))
+                                        if outcome.startsEngine { starts += 1 }
+                                        // A427 — anche col primo click in arrivo (il Direttore non muto): dentro un'interruzione Stop.
+                                        if interrupted && role == .direttore && (silent || pending) {
+                                            XCTAssertEqual(reread?.showsPlay, false, "dentro un'interruzione la faccia è Stop")
+                                        }
                                     }
                                 }
                             }
@@ -282,6 +338,7 @@ final class DirectorTransportDecisionTests: XCTestCase {
                 }
             }
         }
+        // A427 — col primo click in arrivo gli avvii restano due: «rientra» esce solo senza l'armato e senza il click in arrivo.
         XCTAssertEqual(starts, 2)
         XCTAssertEqual(DirectorPlayFaceTapOutcome.allCases.filter { $0.startsEngine }, [.rejoin])
     }
@@ -316,6 +373,8 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertEqual(DirectorPlayFaceTapOutcome.nothingRejoinComing.rawValue, "niente(rientro-in-arrivo)")
         XCTAssertEqual(DirectorTransportTap.allCases.map { $0.rawValue },
                        ["rientra", "ferma-la-band", "lascia-finire", "rientro-in-arrivo"])
+        // A427 — il motivo nuovo della riga del tasto.
+        XCTAssertEqual(DirectorTransportDecision.Reason.rejoinClickPending.rawValue, "primo-click-in-arrivo")
     }
 
     // MARK: - A426 — il rientro armato (mandato A426, par. 2.1)
@@ -345,7 +404,9 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertEqual(silence(.direttore, armed: true, possible: false, ends: true), DirectorSilence(tap: .rejoinComing))
     }
 
-    /// Fuori dal silenzio, e per Solo e Follower, il rientro armato non cambia niente: `nil`.
+    /// ⚠️ RISCRITTO A427, c'era «Fuori dal silenzio, e per Solo e Follower, il rientro armato non cambia niente: `nil`.»: fuori dal
+    /// silenzio senza il primo click in arrivo (gli aiuti, se il test non lo dice), e per Solo e Follower, il rientro armato non
+    /// cambia niente: `nil`.
     func testOutsideTheSilenceTheArmedRejoinGivesNil() {
         XCTAssertNil(silence(.direttore, silent: false, armed: true))
         for role in [PlayerRole.solo, .follower] {
@@ -366,16 +427,25 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertFalse(outcome.startsEngine)
     }
 
-    /// Faccia «rientro in arrivo» toccata, riletta «rientra» (il rientro annullato e di nuovo possibile): `start()`, il rientro.
-    func testATapOnRejoinComingThatRereadsRejoinRejoins() {
+    /// ⚠️ RISCRITTO A427 (mandato A427, par. 2.2; note dei verificatori del referee su A426: auditor N4, B2-1 N6), c'era «Faccia
+    /// «rientro in arrivo» toccata, riletta «rientra» (il rientro annullato e di nuovo possibile): `start()`, il rientro.» e il nome
+    /// `testATapOnRejoinComingThatRereadsRejoinRejoins`: il test prova il ramo del tocco su «rientro in arrivo» (`tapRoute`, A426: la
+    /// rilettura) e la regola della rilettura di A425 (riletta «rientra» ⇒ `start()`). La faccia riletta la scrive il test con gli
+    /// aiuti: cade se cambia il ramo o la regola del tocco, non se cambia la regola della faccia.
+    func testATapOnRejoinComingTakesTheRereadRouteAndARereadRejoinRejoins() {
         XCTAssertEqual(DirectorTransportDecision.tapRoute(face: .rejoinComing), .reread)
         let outcome = DirectorTransportDecision.playFaceTap(rereadNow: silence(.direttore, armed: false, possible: true))
         XCTAssertEqual(outcome, .rejoin)
         XCTAssertTrue(outcome.startsEngine)
     }
 
-    /// Faccia «rientro in arrivo» toccata, riletta `nil` (il fuoco già fatto: il silenzio è finito): niente.
-    func testATapOnRejoinComingAfterTheFireDoesNothing() {
+    /// ⚠️ RISCRITTO A427 (mandato A427, par. 2.2; note dei verificatori del referee su A426: auditor N4, B2-1 N6), c'era «Faccia
+    /// «rientro in arrivo» toccata, riletta `nil` (il fuoco già fatto: il silenzio è finito): niente.» e il nome
+    /// `testATapOnRejoinComingAfterTheFireDoesNothing`: da A427 dopo il fuoco, fino al primo click, la rilettura dice ancora
+    /// «rientro in arrivo» (`testASecondTapBetweenTheFireAndTheFirstClickDoesNothing`). Il test prova il ramo del tocco su
+    /// «rientro in arrivo» (`tapRoute`) e la regola della rilettura di A425 (riletta `nil` ⇒ niente), con la faccia `nil` scritta
+    /// dal test (fuori dal silenzio e senza il primo click in arrivo: dopo il primo click).
+    func testATapOnRejoinComingTakesTheRereadRouteAndARereadOutsideTheSilenceDoesNothing() {
         XCTAssertEqual(DirectorTransportDecision.tapRoute(face: .rejoinComing), .reread)
         let outcome = DirectorTransportDecision.playFaceTap(rereadNow: silence(.direttore, silent: false))
         XCTAssertEqual(outcome, .nothingOutsideSilence)
@@ -410,5 +480,100 @@ final class DirectorTransportDecisionTests: XCTestCase {
         }
         XCTAssertEqual(DirectorTransportTap.allCases.count, 4)
         XCTAssertEqual(DirectorTapRoute.allCases.count, 2)
+    }
+
+    // MARK: - A427 — il primo click del rientro in arrivo (mandato A427, par. 2.1-2.2)
+
+    /// Dal fuoco al primo click del rientro: il Direttore non è più muto e il primo click è in arrivo; il tasto dice Play,
+    /// «rientro in arrivo», col motivo «primo-click-in-arrivo» (la «B» di Mauro del 05/11: il click sta già tornando).
+    func testFromTheFireToTheFirstClickTheButtonSaysPlayRejoinComing() {
+        let s = silence(.direttore, silent: false, pending: true, possible: false)
+        XCTAssertEqual(s, DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(s?.showsPlay, true, "la faccia è il Play di oggi")
+        XCTAssertEqual(reason(.direttore, silent: false, pending: true, possible: false), .rejoinClickPending)
+        // Col Direttore muto (nel motore non succede: il fuoco alza il click in arrivo e chiude il silenzio) la regola dice lo stesso.
+        XCTAssertEqual(silence(.direttore, silent: true, pending: true, possible: false), DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(reason(.direttore, silent: true, pending: true, possible: false), .rejoinClickPending)
+    }
+
+    /// Il primo click in arrivo con un'interruzione in corso o coi servizi audio persi: Stop (la D4 (a) del 16/10 vince su tutto),
+    /// col Direttore non muto e muto.
+    func testTheClickPendingWithAnInterruptionOrTheServicesLostStaysStop() {
+        for silent in bools {
+            XCTAssertEqual(silence(.direttore, silent: silent, pending: true, interrupted: true), DirectorSilence(tap: .stopBand),
+                           "muto:\(silent)")
+            XCTAssertEqual(silence(.direttore, silent: silent, pending: true, lost: true), DirectorSilence(tap: .stopBand),
+                           "muto:\(silent)")
+            XCTAssertEqual(silence(.direttore, silent: silent, pending: true, interrupted: true, lost: true),
+                           DirectorSilence(tap: .stopBand), "muto:\(silent)")
+            XCTAssertEqual(silence(.direttore, silent: silent, pending: true, interrupted: true)?.showsPlay, false, "muto:\(silent)")
+        }
+    }
+
+    /// Il primo click in arrivo vince sul rientro possibile e sulla fine certa; insieme al rientro armato (nel motore non succede:
+    /// il fuoco abbassa l'armato dove alza il click in arrivo) la regola dice «rientro in arrivo», col motivo dell'armato, che
+    /// viene prima.
+    func testTheClickPendingWinsOverPossibleAndSongEndAndWithTheArmedRejoinSaysRejoinComing() {
+        XCTAssertEqual(silence(.direttore, silent: false, pending: true, possible: true), DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(silence(.direttore, silent: false, pending: true, possible: false, ends: true),
+                       DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(silence(.direttore, silent: true, pending: true, possible: true, ends: true),
+                       DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(reason(.direttore, silent: true, pending: true, possible: true, ends: true), .rejoinClickPending)
+        XCTAssertEqual(silence(.direttore, silent: true, armed: true, pending: true), DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(silence(.direttore, silent: false, armed: true, pending: true), DirectorSilence(tap: .rejoinComing))
+        XCTAssertEqual(reason(.direttore, silent: true, armed: true, pending: true), .rejoinArmed)
+        XCTAssertEqual(reason(.direttore, silent: false, armed: true, pending: true), .rejoinArmed)
+    }
+
+    /// Fuori dal Direttore il primo click in arrivo non cambia niente (`nil`); e il Direttore né muto né col primo click in arrivo
+    /// (dopo il primo click) ha il tasto di oggi.
+    func testOutsideTheDirectorTheClickPendingGivesNilAndAfterTheFirstClickTheButtonIsTodays() {
+        for role in [PlayerRole.solo, .follower] {
+            for silent in bools {
+                XCTAssertNil(silence(role, silent: silent, pending: true), "ruolo:\(role) muto:\(silent)")
+                XCTAssertNil(reason(role, silent: silent, pending: true), "ruolo:\(role) muto:\(silent)")
+            }
+        }
+        XCTAssertNil(silence(.direttore, silent: false, pending: false))
+        XCTAssertNil(reason(.direttore, silent: false, pending: false))
+    }
+
+    /// Il secondo tocco fra il fuoco e l'«uno»: faccia «rientro in arrivo» toccata, va alla rilettura (mai a `stop()`), riletta
+    /// «rientro in arrivo» col primo click ancora in arrivo: niente, né `start()` né `stop()`.
+    func testASecondTapBetweenTheFireAndTheFirstClickDoesNothing() {
+        XCTAssertEqual(DirectorTransportDecision.tapRoute(face: .rejoinComing), .reread)
+        let reread = silence(.direttore, silent: false, pending: true, possible: false)
+        XCTAssertEqual(reread?.tap, .rejoinComing)
+        let outcome = DirectorTransportDecision.playFaceTap(rereadNow: reread)
+        XCTAssertEqual(outcome, .nothingRejoinComing)
+        XCTAssertFalse(outcome.startsEngine)
+    }
+
+    /// Il tocco proprio sull'«uno», col primo click già uscito ma prima del controllo del motore: la regola dell'ora dice «non più
+    /// in arrivo», la rilettura è `nil` e il tocco non fa niente (nessuno `stop()`: il ramo è la rilettura).
+    func testATapRightAtTheFirstClickRereadsOutsideAndDoesNothing() {
+        let uno: UInt64 = 1_000_000
+        let pending = DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: uno)
+        XCTAssertFalse(pending)
+        let reread = silence(.direttore, silent: false, pending: pending, possible: false)
+        XCTAssertNil(reread)
+        XCTAssertEqual(DirectorTransportDecision.tapRoute(face: .rejoinComing), .reread)
+        let outcome = DirectorTransportDecision.playFaceTap(rereadNow: reread)
+        XCTAssertEqual(outcome, .nothingOutsideSilence)
+        XCTAssertFalse(outcome.startsEngine)
+    }
+
+    /// La regola pura dell'ora: in arrivo prima dell'ora d'uscita dell'«uno»; proprio all'ora e dopo, uscito; nessuna ora, niente
+    /// click in arrivo.
+    func testTheFirstClickTimeRule() {
+        let uno: UInt64 = 24_000_000
+        XCTAssertTrue(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: uno - 1), "prima")
+        XCTAssertTrue(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: 0), "molto prima")
+        XCTAssertFalse(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: uno), "proprio all'ora")
+        XCTAssertFalse(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: uno + 1), "dopo")
+        XCTAssertFalse(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: uno, nowTicks: UInt64.max), "molto dopo")
+        XCTAssertFalse(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: nil, nowTicks: 0), "nessuna ora")
+        XCTAssertFalse(DirectorTransportDecision.rejoinClickPending(unoOutputTicks: nil, nowTicks: uno), "nessuna ora")
     }
 }
