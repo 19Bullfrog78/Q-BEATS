@@ -356,7 +356,8 @@ class AudioEngine: ObservableObject {
     /// lo ascolta accanto a `followerRunnerActionSubject`.
     let directorRunnerActionSubject = PassthroughSubject<DirectorRunnerAction, Never>()
     /// Il tasto della fascia (e il pedale playPause) col Direttore muto in canzone: l'esito di `DirectorTransportDecision`. ⚠️ RISCRITTO
-    /// A425 (P13), c'era «(Play = rientra, Stop = ferma la band e chiude la canzone)»: le facce Play sono due, «rientra» e «lascia finire».
+    /// A425 (P13), c'era «(Play = rientra, Stop = ferma la band e chiude la canzone)»: ⚠️ RISCRITTO A426, c'era «le facce Play sono
+    /// due, «rientra» e «lascia finire»»: le facce Play sono tre, «rientra», «lascia finire» e «rientro in arrivo» (il rientro armato).
     /// `nil` = nessun silenzio, il tasto com'è oggi. Solo main: lo scrivono `publishDirectorFaceQ` (da audioQueue con `main.async`, alla
     /// pubblicazione e al tocco) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
     @Published private(set) var directorSilence: DirectorSilence? = nil
@@ -627,8 +628,9 @@ class AudioEngine: ObservableObject {
     /// Dopo un rientro il Direttore segue Link — la correzione di fase del Follower in `scheduleNextBuffer` —
     /// invece dell'assert, fino all'avvio dopo (scelta T4); il richiamo del tempo di Link non rilancia `_audioBPM`.
     private var _directorFollowsLinkQ: Bool = false
-    /// Il rientro è armato e non ancora suonato (`armDirectorRejoinQ` → `fireDirectorRejoinQ`): il tasto, in
-    /// attesa, dice Stop.
+    /// Il rientro è armato e non ancora suonato (`armDirectorRejoinQ` → `fireDirectorRejoinQ`): ⚠️ RISCRITTO A426, c'era «il
+    /// tasto, in attesa, dice Stop»: il tasto, in attesa, dice Play («rientro in arrivo», `DirectorTransportDecision`) e il suo
+    /// tocco non fa niente; il pedale Stop ferma la band anche qui.
     private var _rejoinArmedQ: Bool = false
     /// La chiusura di fine sezione del runner, l'ultima consegnata (`loadSection`, `preloadNextSection`): è una
     /// sola per la vita del runner e legge gli indici al momento dell'esecuzione (`SetlistRunner`, in testa).
@@ -3447,11 +3449,14 @@ class AudioEngine: ObservableObject {
     /// cattura sola del coordinatore (`plan`, o `currentRejoinPlanQ` qui) col Direttore muto e nessun rientro armato, l'interruzione
     /// e i servizi audio, `DirectorTransportDecision.silence`. «Rientro possibile» = il coordinatore dice «rientra»; «fine certa» =
     /// dice «canzone finita» (`.songEnded`, che esce solo col conto certo). Chiamare SOLO su audioQueue.
+    /// A426 — e il rientro armato (`_rejoinArmedQ`), letto qui con gli altri ingressi: col rientro armato la faccia è «rientro in
+    /// arrivo» (Play) e il coordinatore non si legge.
     private func directorFaceNowQ(plan: DirectorRejoinDecision.Plan?) -> DirectorFaceQ {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        let armed = _rejoinArmedQ
         var possible = false
         var songEnds = false
-        if _directorSilentInSongQ && !_rejoinArmedQ {
+        if _directorSilentInSongQ && !armed {
             let current = plan ?? currentRejoinPlanQ().plan
             switch current.outcome {
             case .rejoin:
@@ -3466,12 +3471,14 @@ class AudioEngine: ObservableObject {
         let lost = _mediaServicesQ == .servicesLost
         let silence = DirectorTransportDecision.silence(playerRole: role,
                                                         silentInSong: _directorSilentInSongQ,
+                                                        rejoinArmedNow: armed,
                                                         rejoinPossibleNow: possible,
                                                         songEndsCertainNow: songEnds,
                                                         interruptionActive: interrupted,
                                                         servicesLost: lost)
         let reason = DirectorTransportDecision.reason(playerRole: role,
                                                       silentInSong: _directorSilentInSongQ,
+                                                      rejoinArmedNow: armed,
                                                       rejoinPossibleNow: possible,
                                                       songEndsCertainNow: songEnds,
                                                       interruptionActive: interrupted,
@@ -4375,16 +4382,18 @@ class AudioEngine: ObservableObject {
     /// voluto (`stop()`), che col Direttore muto manda lo Stop a Link e chiude la canzone anche a motore fermo.
     /// Solo main.
     /// ⚠️ RISCRITTO A425 (P13: referto A423, par. 3.4; referto A424, par. 2.3 a; decisione del referee su P13; mandato A425, par.
-    /// 2.3). «Play = rientra» non basta più: le facce Play sono due, «rientra» e «lascia finire» (l'ultimo tratto della canzone
-    /// col conto certo), e un tocco su una faccia Play non chiama più `start()` da qui: si rilegge sulla coda
+    /// 2.3). «Play = rientra» non basta più: ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le
+    /// facce Play sono tre, «rientra», «lascia finire» (l'ultimo tratto della canzone col conto certo) e «rientro in arrivo» (il
+    /// rientro armato, A426), e un tocco su una faccia Play non chiama più `start()` da qui: si rilegge sulla coda
     /// (`directorPlayFaceTappedQ`). La faccia Stop resta `stop()`, come oggi (anche dentro un'interruzione, dove la faccia è Stop).
+    /// A426 — il ramo lo decide la regola pura `DirectorTransportDecision.tapRoute`, col suo banco.
     func directorTransportTapped(_ tap: DirectorTransportTap, origin: String) {
         os_log("[Q-BEATS][DIR-TASTO] tocco:%{public}@ origine:%{public}@",
                log: .default, type: .default, tap.rawValue, origin)
-        switch tap {
-        case .stopBand:
+        switch DirectorTransportDecision.tapRoute(face: tap) {
+        case .wantedStop:
             stop()
-        case .rejoin, .letSongEnd:
+        case .reread:
             audioQueue.async { [weak self] in
                 self?.directorPlayFaceTappedQ(face: tap, origin: origin)
             }
@@ -4399,6 +4408,8 @@ class AudioEngine: ObservableObject {
     ///    resta quello armato dal controllo al secondo: il tocco non lo arma);
     ///  · Stop (il conto non più certo, un'interruzione, i servizi persi) ⇒ il tocco non ferma niente e la faccia si ripubblica Stop;
     ///  · fuori dal silenzio (il rientro già fatto, lo Stop di fine canzone, uno Stop voluto, fra il tocco e la coda) ⇒ niente.
+    ///  · A426 (⚠️ RISCRITTO: l'elenco qui sopra aveva quattro voci, nessuna per il rientro armato) — «rientro in arrivo» (il
+    ///    rientro armato, il click sta per tornare) ⇒ niente, né `start()` né `stop()`: la faccia si ripubblica.
     /// Da una faccia Play non nasce mai un «ferma la band». Chiamare SOLO su audioQueue.
     private func directorPlayFaceTappedQ(face: DirectorTransportTap, origin: String) {
         let now = directorFaceNowQ(plan: nil)
@@ -4413,6 +4424,8 @@ class AudioEngine: ObservableObject {
             detail = "il tocco non ferma niente, la faccia diventa Stop"
         case .nothingOutsideSilence:
             detail = "nessun start, nessuno stop"
+        case .nothingRejoinComing:
+            detail = "il click sta gia' tornando, nessun avvio, nessuno stop"
         }
         os_log("[Q-BEATS][DIR-TASTO] tocco faccia:play esito:%{public}@ origine:%{public}@ toccata:%{public}@ riletta:%{public}@ motivo:%{public}@ - %{public}@",
                log: .default, type: .default,
@@ -7514,10 +7527,13 @@ class AudioEngine: ObservableObject {
         switch action {
         case .playPause:
             // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
-            // Play = rientra, Stop = ferma la band e chiude la canzone (`directorSilence`, deciso dal motore). Fuori
+            // ⚠️ RISCRITTO A426, c'era «Play = rientra, Stop = ferma la band e chiude la canzone»: la faccia la decide il motore
+            // (`directorSilence`), Stop = ferma la band e chiude la canzone, le facce Play qui sotto. Fuori
             // dal silenzio com'è oggi. Il pedale stop resta sempre Stop (`handleStop` → `stop()` sul Direttore).
-            // A425 (P13) — le facce Play sono due, «rientra» e «lascia finire», e il tocco su una faccia Play si rilegge sulla
-            // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`.
+            // A425 (P13) — ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le facce Play sono tre,
+            // «rientra», «lascia finire» e «rientro in arrivo» (il rientro armato), e il tocco su una faccia Play si rilegge sulla
+            // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`. A426 — anche durante l'attesa
+            // del rientro il pedale stop ferma la band; un tocco di playPause su «rientro in arrivo» non fa niente.
             if let silence = directorSilence {
                 directorTransportTapped(silence.tap, origin: "pedale")
             } else if isPlaying { stop() } else { start() }
