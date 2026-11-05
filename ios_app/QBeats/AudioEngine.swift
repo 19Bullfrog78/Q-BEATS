@@ -630,10 +630,10 @@ class AudioEngine: ObservableObject {
     /// Dopo un rientro il Direttore segue Link — la correzione di fase del Follower in `scheduleNextBuffer` —
     /// invece dell'assert, fino all'avvio dopo (scelta T4); il richiamo del tempo di Link non rilancia `_audioBPM`.
     private var _directorFollowsLinkQ: Bool = false
-    /// Il rientro è armato e non ancora suonato (`armDirectorRejoinQ` → `fireDirectorRejoinQ`): ⚠️ RISCRITTO A426, c'era «il
-    /// tasto, in attesa, dice Stop»: il tasto, in attesa, dice Play («rientro in arrivo», `DirectorTransportDecision`) e il suo
-    /// tocco non fa niente; il pedale Stop ferma la band anche qui. ⚠️ A427: al fuoco questo segno va giù ma l'attesa no: dura fino
-    /// al primo click del rientro (`_rejoinClickUnoTicksQ`, qui sotto).
+    /// ⚠️ RISCRITTO A427, c'era «Il rientro è armato e non ancora suonato»: il rientro è armato e il suo fuoco non c'è ancora (dal
+    /// fuoco al primo click l'attesa la tiene `_rejoinClickUnoTicksQ`, qui sotto) (`armDirectorRejoinQ` → `fireDirectorRejoinQ`):
+    /// ⚠️ RISCRITTO A426, c'era «il tasto, in attesa, dice Stop»: il tasto, in attesa, dice Play («rientro in arrivo»,
+    /// `DirectorTransportDecision`) e il suo tocco non fa niente; il pedale Stop ferma la band anche qui.
     private var _rejoinArmedQ: Bool = false
     /// A427 — IL PRIMO CLICK DEL RIENTRO IN ARRIVO (mandato A427, par. 2.1): l'ora d'uscita dell'«uno» del fuoco del rientro
     /// (`targetTicks` di `fireDirectorRejoinQ`, la `oraUscita` della sua riga), dal fuoco finché quell'ora non è passata. `nil` =
@@ -7622,10 +7622,13 @@ class AudioEngine: ObservableObject {
         case .playPause:
             // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
             // ⚠️ RISCRITTO A426, c'era «Play = rientra, Stop = ferma la band e chiude la canzone»: la faccia la decide il motore
-            // (`directorSilence`), Stop = ferma la band e chiude la canzone, le facce Play qui sotto. Fuori
-            // dal silenzio com'è oggi. Il pedale stop resta sempre Stop (`handleStop` → `stop()` sul Direttore).
+            // (`directorSilence`), Stop = ferma la band e chiude la canzone, le facce Play qui sotto. ⚠️ RISCRITTO A427, c'era
+            // «Fuori dal silenzio com'è oggi.»: fuori dal silenzio e senza il primo click del rientro in arrivo com'è oggi; dal fuoco
+            // all'«uno» uscito il pedale segue la faccia «rientro in arrivo» (A427). Il pedale stop resta sempre Stop (`handleStop` →
+            // `stop()` sul Direttore).
             // A425 (P13) — ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le facce Play sono tre,
-            // «rientra», «lascia finire» e «rientro in arrivo» (il rientro armato), e il tocco su una faccia Play si rilegge sulla
+            // «rientra», «lascia finire» e «rientro in arrivo» (⚠️ RISCRITTO A427, c'era «il rientro armato»: il rientro armato e,
+            // da A427, dal fuoco al primo click), e il tocco su una faccia Play si rilegge sulla
             // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`. A426 — anche durante l'attesa
             // del rientro il pedale stop ferma la band; un tocco di playPause su «rientro in arrivo» non fa niente.
             if let silence = directorSilence {

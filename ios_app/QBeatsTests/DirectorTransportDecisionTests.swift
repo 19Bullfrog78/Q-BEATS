@@ -6,8 +6,9 @@ import XCTest
 // «48 in A412, 96 da A425, 192 da A426, nei blocchi qui sotto»: 48 in A412, 96 da A425, 192 da A426, 384 da A427, nei blocchi qui
 // sotto), con l'atteso scritto dalla regola del mandato. Poi
 // i casi del collaudo: dopo un reset dei servizi audio (il solo silenzio che finisce col tocco) il tasto
-// dice Play; fra la Lost e la Reset, durante un'interruzione o col conto non certo dice Stop; fuori dal
-// silenzio il tasto è quello di oggi (`nil`). E la ragione, nell'ordine della regola.
+// dice Play; fra la Lost e la Reset, durante un'interruzione o col conto non certo dice Stop; ⚠️ RISCRITTO A427, c'era «fuori dal
+// silenzio il tasto è quello di oggi (`nil`).»: fuori dal silenzio e senza il primo click del rientro in arrivo il tasto è quello
+// di oggi (`nil`). E la ragione, nell'ordine della regola.
 // === A425 (mandato A425, par. 2.3) — l'ingresso nuovo «la canzone finisce col conto certo» e la regola del tocco ===
 // ⚠️ RISCRITTO A426, c'era «La matrice segue l'ingresso nuovo: 3 × 2 × 2 × 2 × 2 × 2 = 96 celle (erano 48). Il tasto dice Play in
 // tre celle»: in A425 96 celle e Play in tre; da A426 192 celle e Play in sette (blocco A426 qui sotto). In A425: «rientra»
@@ -254,7 +255,9 @@ final class DirectorTransportDecisionTests: XCTestCase {
         XCTAssertEqual(silence(.direttore, possible: true, ends: true), DirectorSilence(tap: .rejoin))
     }
 
-    /// Fuori dal silenzio, e per Solo e Follower, la fine certa non cambia niente: `nil`.
+    /// ⚠️ RISCRITTO A427, c'era «Fuori dal silenzio, e per Solo e Follower, la fine certa non cambia niente: `nil`.»: fuori dal
+    /// silenzio senza il primo click in arrivo (gli aiuti, se il test non lo dice), e per Solo e Follower, la fine certa non cambia
+    /// niente: `nil`.
     func testOutsideTheSilenceTheSongEndGivesNil() {
         XCTAssertNil(silence(.direttore, silent: false, possible: false, ends: true))
         for role in [PlayerRole.solo, .follower] {
