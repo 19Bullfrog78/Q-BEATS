@@ -40,10 +40,14 @@ final class TransportStateDecisionTests: XCTestCase {
     /// U16 dopo la verifica del diff: il Direttore fuori da una canzone fermato da una tolta ha la causa viva e, con l'uscita
     /// tornata, `RecoveryDecision` direbbe «come oggi» a un risveglio: è la guardia che lo ferma, perché non guarda la causa.
     /// Lo stesso per il Follower fermato da un'interruzione con uno Stop voluto in mezzo («come oggi» prima dello Stop voluto).
+    /// ⚠️ A425 (mandato A425, par. 2.4; U16, decisione del referee su P14): «`RecoveryDecision` direbbe «come oggi»» non è più vero:
+    /// col Direttore non muto in canzone e la causa ricordata «uscita-tolta» la regola stessa dice «niente» (motivo
+    /// «direttore-fermo-dalla-tolta»). Qui c'era `.startAsToday, "la regola sola ripartirebbe: la guardia deve fermare prima"`. La
+    /// guardia del risveglio resta, e la prova che per lei la causa viva non basta (l'ultima attesa) non cambia.
     func testALiveCrisisCauseAloneNeverRecovers() {
         XCTAssertEqual(RecoveryDecision.route(trigger: .appWakeup, playerRole: .direttore, silentInSong: false,
                                               wantedStopSinceCrisis: false, crisisCause: .outputRemoved, outputMissing: false),
-                       .startAsToday, "la regola sola ripartirebbe: la guardia deve fermare prima")
+                       .noRestart, "A425 (U16): la regola stessa non riparte; anche la guardia del risveglio la ferma prima")
         XCTAssertEqual(RecoveryDecision.route(trigger: .appWakeup, playerRole: .follower, silentInSong: false,
                                               wantedStopSinceCrisis: true, crisisCause: .interruption, outputMissing: false),
                        .startAsToday, "il Follower: «come oggi» viene prima dello Stop voluto")

@@ -11,6 +11,10 @@ import XCTest
 // cause nove, e c'è l'ingresso «uscita mancante» (mandato A421, par. 2.1 U4, U5, U6, U7, par. 2.2 a): la
 // matrice senza l'uscita mancante è 12 × 3 × 2 × 2 × 10 = 1440 celle, con l'uscita mancante altre 1440. Il
 // Direttore con l'uscita mancante ⇒ niente, per ogni innesco; il Solo dopo «uscita-tolta» ⇒ niente.
+// ⚠️ A425 (mandato A425, par. 2.4; U16, decisione del referee su P14): il Direttore non muto in canzone con la causa ricordata
+// «uscita-tolta» ⇒ niente, per ogni innesco, col motivo «direttore-fermo-dalla-tolta». La matrice e
+// `testDirectorNotSilentIsAsToday` seguono la regola nuova (la cella Direttore, non muto, «uscita-tolta», senza Stop voluto: da
+// «avvio-come-oggi» a «niente»): è la regola che il mandato cambia, non un indebolimento.
 
 final class RecoveryDecisionTests: XCTestCase {
 
@@ -121,6 +125,8 @@ final class RecoveryDecisionTests: XCTestCase {
         XCTAssertEqual(NoRestartReason.wantedStop.rawValue, "stop-voluto")
         XCTAssertEqual(NoRestartReason.outputMissing.rawValue, "uscita-mancante")
         XCTAssertEqual(NoRestartReason.soloAfterCrisis.rawValue, "solo-dopo-la-crisi")
+        // A425 — U16.
+        XCTAssertEqual(NoRestartReason.directorStoppedByRemoval.rawValue, "direttore-fermo-dalla-tolta")
     }
 
     /// Il Direttore muto in canzone senza l'uscita mancante: il coordinatore, anche coi tre inneschi nuovi.
@@ -147,10 +153,72 @@ final class RecoveryDecisionTests: XCTestCase {
     }
 
     /// Il Direttore che non è muto in canzone (senza show, senza canzone): come oggi.
+    /// ⚠️ A425 (U16, P14): salvo dopo «uscita-tolta», dove non riparte da solo (riparte col Play).
     func testDirectorNotSilentIsAsToday() {
         for cause in causes {
-            XCTAssertEqual(route(.engineConfigChange, .direttore, silent: false, cause: cause), .startAsToday,
+            let want: RecoveryRoute = cause == .outputRemoved ? .noRestart : .startAsToday
+            XCTAssertEqual(route(.engineConfigChange, .direttore, silent: false, cause: cause), want,
                            "causa:\(String(describing: cause))")
+        }
+    }
+
+    // MARK: - A425 — U16: il Direttore fuori dal silenzio fermato da una tolta (mandato A425, par. 2.4)
+
+    /// Il Direttore non muto in canzone con la causa ricordata «uscita-tolta»: niente, da ogni innesco (ripresa pendente
+    /// compresa), col motivo nuovo; il motivo viene dopo lo Stop voluto e l'uscita mancante.
+    func testTheDirectorStoppedByARemovalDoesNotRestartFromAnyTrigger() {
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                  wantedStopSinceCrisis: false, crisisCause: .outputRemoved, outputMissing: false),
+                           .noRestart, "innesco:\(trigger)")
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: false, crisisCause: .outputRemoved,
+                                                            outputMissing: false),
+                           .directorStoppedByRemoval, "innesco:\(trigger)")
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: true, crisisCause: .outputRemoved,
+                                                            outputMissing: false),
+                           .wantedStop, "innesco:\(trigger): lo Stop voluto viene prima")
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: false, crisisCause: .outputRemoved,
+                                                            outputMissing: true),
+                           .outputMissing, "innesco:\(trigger): l'uscita mancante viene prima")
+        }
+    }
+
+    /// Il Direttore muto in canzone con «uscita-tolta» non cambia: il coordinatore, da ogni innesco.
+    func testTheSilentDirectorAfterARemovalStillGoesToTheCoordinator() {
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(route(trigger, .direttore, silent: true, cause: .outputRemoved), .coordinator, "innesco:\(trigger)")
+            XCTAssertNil(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: true,
+                                                          wantedStopSinceCrisis: false, crisisCause: .outputRemoved,
+                                                          outputMissing: false), "innesco:\(trigger)")
+        }
+    }
+
+    /// I due stati del fuoco del rientro: prima del fuoco (causa «uscita-tolta», muto in canzone) il coordinatore; dopo il fuoco
+    /// (causa nulla e Stop voluto falso, il Direttore fuori dal silenzio) come oggi, da ogni innesco. Una tolta dopo, fuori da una
+    /// canzone, ricorda la causa nuova: niente.
+    func testTheTwoStatesAroundTheRejoinFire() {
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(route(trigger, .direttore, silent: true, wanted: false, cause: .outputRemoved), .coordinator,
+                           "prima del fuoco, innesco:\(trigger)")
+            XCTAssertEqual(route(trigger, .direttore, silent: false, wanted: false, cause: nil), .startAsToday,
+                           "dopo il fuoco, innesco:\(trigger)")
+            XCTAssertEqual(route(trigger, .direttore, silent: false, wanted: false, cause: .outputRemoved), .noRestart,
+                           "una tolta nuova fuori canzone, innesco:\(trigger)")
+        }
+    }
+
+    /// Solo e Follower non cambiano con la riga nuova.
+    func testTheNewLineIsOnlyForTheDirector() {
+        for trigger in RecoveryTrigger.allCases {
+            XCTAssertEqual(route(trigger, .follower, silent: false, cause: .outputRemoved), .startAsToday, "innesco:\(trigger)")
+            XCTAssertEqual(route(trigger, .solo, silent: false, cause: .outputRemoved), .noRestart, "innesco:\(trigger)")
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                            wantedStopSinceCrisis: false, crisisCause: .outputRemoved,
+                                                            outputMissing: false),
+                           .soloAfterCrisis, "innesco:\(trigger)")
         }
     }
 
@@ -160,6 +228,8 @@ final class RecoveryDecisionTests: XCTestCase {
         if role == .follower { return .startAsToday }
         if wanted { return .noRestart }
         if role == .direttore && silent { return .coordinator }
+        // A425 — U16 (P14): il Direttore non muto in canzone dopo «uscita-tolta» non riparte da solo.
+        if role == .direttore && !silent && cause == .outputRemoved { return .noRestart }
         if role == .solo {
             switch cause {
             case .interruption?, .servicesLost?, .resetWithoutLost?, .resetAfterLost?, .outputRemoved?:

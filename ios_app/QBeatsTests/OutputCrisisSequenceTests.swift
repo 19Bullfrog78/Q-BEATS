@@ -27,6 +27,13 @@ import XCTest
 // dopo il buco (la scadenza riletta, il primo campione, l'esterna sparita con la riserva di 2 s); F1, E.1, E.7, E.9, F2; il Solo
 // all'inizio di un'interruzione (m2, m4); il segno della mappa per il prossimo avvio. Il misuratore del buco resta dato dal
 // banco (`gapSeconds`); lo scarto cumulato (`meterScarto`) dà la salita nella finestra.
+// === A425 (04/11/2026, mandato «USCITA AUDIO PASSO 2a PEZZO 3a», par. 2.2, 2.4, 2.5) — il rig più vicino al motore ===
+// La soglia della correzione di fase di Link (una correzione di al più 0,01 battiti fa il ramo «nessuna correzione» del motore);
+// l'assert del Direttore ripreso a ogni avvio che passa da `prepareNormalStartQ` (B.1 del seguito 4); il battito zero del Play nel
+// primo buffer, come il DSP (B.2); la Reset senza Lost (B.10); la mappa consegnata a un avvio in corso, consumata (P4); la causa
+// ricordata e lo Stop voluto azzerati al fuoco del rientro (P14). Ognuno col suo interruttore, acceso di base (spento = il rig di
+// prima). Il rig non ha il tasto del Direttore né le scritture verso Link: la regola del tocco (P13) e il valore scritto alla
+// ripresa (P1) stanno nel banco dei tipi puri (`DirectorTransportDecisionTests`, `ResumeSnapDecisionTests`).
 
 /// Un buffer programmato: l'ora d'uscita (inizio e fine) e la catena.
 private struct RigBuffer {
@@ -131,6 +138,9 @@ private struct RigLeadIn {
 
 private struct OutputRig {
     static let tps = 24_000_000.0
+    /// A425 (par. 2.5) — la soglia della correzione di fase di Link (`phaseJumpThresholdBeats_`, ios_app/QBeats/LinkEngine.mm:16;
+    /// il confronto `fabs(delta) > threshold`, :647): una correzione di al più 0,01 battiti il motore non la applica.
+    static let phaseJumpThresholdBeats = 0.01
     /// Il buffer del lettore: 512 campioni, sempre (`bufferSize`); è il passo dei richiami, la misura dei buffer programmati e
     /// di `bufferReachesUno`.
     /// La frequenza dei nodi (48 o 44,1 kHz): il buffer da 512 campioni dura di conseguenza (correzione B4).
@@ -346,6 +356,27 @@ private struct OutputRig {
     /// solo alla fine della canzone e alla chiusura dello show, e all'avvio alzata solo con la mappa).
     var useEngineLeadIn = true
     var useEngineSongInProgress = true
+    /// A425 (mandato A425, par. 2.2, 2.4, 2.5): il rig come il motore, spegnibile per il banco (spenti = il rig di prima).
+    ///  · `useEngineSyncThreshold` — una correzione di al più 0,01 battiti fa il ramo «nessuna correzione» del motore (il ramo `else`
+    ///    di `link_engine_sync_phase` in `scheduleNextBuffer`): non si applica, non si conta (nemmeno nella scorta), e il segno della
+    ///    prima correzione dopo la finestra si consuma senza spostare (`noteCorrectionAfterWindowQ` con prima = dopo);
+    ///  · `useEngineAssertAtStart` (B.1 del seguito 4) — l'avvio che passa da `prepareNormalStartQ` riporta il Direttore all'assert
+    ///    (`_directorFollowsLinkQ = false`);
+    ///  · `useEngineBeatZero` (B.2) — un buffer porta i battiti fra il suo primo campione, compreso, e l'ultimo, escluso, come il DSP:
+    ///    il battito zero del Play sta nel primo buffer (il rig di prima non lo contava); la sua ora d'uscita resta `firstBeatOutAt`,
+    ///    quindi non alza `countedBeatOut`;
+    ///  · `useRunningStartConsumesMap` (P4) — col rig della «canzone in corso» del motore, la mappa consegnata a un avvio che trova il
+    ///    motore in moto è di quell'avvio: alla guardia di `start()` e al fuoco dell'ingresso del Follower;
+    ///  · `useRejoinFireClearsMemory` (P14) — al fuoco del rientro la causa ricordata e lo Stop voluto si azzerano.
+    var useEngineSyncThreshold = true
+    var useEngineAssertAtStart = true
+    var useEngineBeatZero = true
+    var useRunningStartConsumesMap = true
+    var useRejoinFireClearsMemory = true
+    /// A425: le correzioni sotto la soglia non applicate, le mappe consumate dall'avvio in corso, gli azzeramenti al fuoco.
+    var correctionsUnderThreshold = 0
+    var mapsConsumedByRunningStart = 0
+    var memoryClearedAtRejoinFire = 0
 
     init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
          cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
@@ -635,14 +666,33 @@ private struct OutputRig {
         songMapPending = true
     }
 
+    /// Il fuoco dell'ingresso del Follower. A425 (P4): col rig della «canzone in corso» del motore la mappa si consuma
+    /// (`consumeSongMapForRunningStartQ`, «fuoco-ingresso-follower»); il rig di prima la abbassava senza consumarla.
     mutating func followerJoinFired() {
-        songMapPending = false
+        if useEngineSongInProgress && useRunningStartConsumesMap {
+            consumeMapForRunningStart()
+        } else {
+            songMapPending = false
+        }
+    }
+
+    /// A425 (P4) — `consumeSongMapForRunningStartQ`: col segno alto la mappa è dell'avvio in corso: «canzone in corso» vera e il segno
+    /// giù (`SongInProgressDecision.runningStart`); col segno basso niente.
+    mutating func consumeMapForRunningStart() {
+        let step = SongInProgressDecision.runningStart(SongMapMark(mapForNextStart: songMapPending, songInProgress: songInProgress))
+        guard step.consumed else { return }
+        songMapPending = step.mark.mapForNextStart
+        songInProgress = step.mark.songInProgress
+        mapsConsumedByRunningStart += 1
     }
 
     /// A421 · SEGUITO 4 (par. 3.2) — il Play come il motore, dal ruolo. Direttore e Solo dal runner: la mappa prima dell'avvio
     /// (`SetlistRunner.prepareAndStartCurrentSection`: `setSongMap`, poi `start`). Il Follower dalla sessione Link
     /// (`followerRun(.start)`): prima `start()`, poi la mappa del runner e il suo `start()`, che trova il motore in moto, poi il fuoco
     /// dell'ingresso che abbassa il segno: sul Follower «canzone in corso» resta falsa.
+    /// ⚠️ RISCRITTO A425 (P4). «il fuoco dell'ingresso che abbassa il segno: sul Follower «canzone in corso» resta falsa» non è più vero:
+    /// il secondo `start()`, che trova il motore in moto, consuma la mappa e «canzone in corso» è vera; il fuoco trova il segno basso.
+    /// Col rig di prima (`useEngineSongInProgress` o `useRunningStartConsumesMap` spenti) come prima.
     mutating func runnerPlay(at t: Double) {
         if role == .follower {
             start(at: t, recovery: nil)
@@ -942,7 +992,11 @@ private struct OutputRig {
     /// `start()`: `recovery` è l'innesco tipizzato delle ripartenze automatiche; `nil` è il Play del batterista.
     mutating func start(at t: Double, recovery: RecoveryTrigger?) {
         advance(to: t)
-        guard !isRunning else { return }
+        guard !isRunning else {
+            // A425 (P4): la guardia «avvio-gia-in-moto» col motore in moto consuma la mappa di questo avvio.
+            if useEngineSongInProgress && useRunningStartConsumesMap { consumeMapForRunningStart() }
+            return
+        }
         if recovery != nil && role == .direttore && recoveryRead() {
             refusedForMissing += 1
             publishIsPlaying()
@@ -967,6 +1021,8 @@ private struct OutputRig {
         if !(role == .direttore && silentInSong) {
             crisisCause = nil
             wantedStop = false
+            // A425 (B.1 del seguito 4): `prepareNormalStartQ` riporta il Direttore all'assert se dopo un rientro seguiva Link.
+            if useEngineAssertAtStart { followsLink = false }
             // A421 · SEGUITO 4 (par. 3.2): «canzone in corso» diventa la mappa di questo avvio, falsa senza mappa, anche per le
             // ripartenze automatiche; il rig di prima (interruttore spento) la alzava con la mappa e senza la lasciava com'era.
             if useEngineSongInProgress {
@@ -1120,6 +1176,13 @@ private struct OutputRig {
         scheduleNextBuffer(at: t)
         scheduleNextBuffer(at: t)
         scheduleNextBuffer(at: t)
+        // A425 (P14): dopo la catena del fuoco, il rientro è fatto: la causa ricordata e lo Stop voluto si azzerano, come il Play
+        // (`fireDirectorRejoinQ`, prima di `leaveDirectorSilenceQ`). Il fuoco che non parte (più sopra, `crisisStop`) non azzera niente.
+        if useRejoinFireClearsMemory {
+            crisisCause = nil
+            wantedStop = false
+            memoryClearedAtRejoinFire += 1
+        }
     }
 
     /// A421 · SEGUITO 2 (par. 4.3, 5.1): il cambio di sezione (o di tempo) apre la finestra «sync skip» dei 100 buffer.
@@ -1421,7 +1484,10 @@ private struct OutputRig {
             // Il rig di prima (interruttore spento): ogni chiamata della scorta senza correzione teneva il segno.
         } else if ownFirstPinThisCall {
             // L'orologio proprio appena ancorato (`ownClockPinQ` senza la linea): nessuna correzione, il segno resta.
-        } else if let delta = correction {
+        } else if let delta = correction,
+                  !(useEngineSyncThreshold && abs(delta) <= OutputRig.phaseJumpThresholdBeats) {
+            // A425 (par. 2.5): solo una correzione sopra la soglia di Link (`fabs(delta) > threshold`, LinkEngine.mm:647) arriva qui;
+            // quelle di al più 0,01 battiti fanno il ramo «nessuna correzione» qui sotto, come il motore.
             corrections += 1
             if LateBeatDecision.mutes(origin: dspOrigin, before: position, after: position + delta, bpm: bpm,
                                       bufferFrames: 512, sampleRate: nodeRate) {
@@ -1445,9 +1511,13 @@ private struct OutputRig {
                 rejoinLeadIn = lead
             }
             position += delta
-        } else if firstCorrectionPending {
-            // La chiamata di Link senza correzione: il segno si consuma come oggi (`noteCorrectionAfterWindowQ` con prima = dopo).
-            firstCorrectionPending = false
+        } else {
+            // A425 (par. 2.5): una correzione passata dal banco ma sotto la soglia non si applica: si conta a parte.
+            if correction != nil { correctionsUnderThreshold += 1 }
+            if firstCorrectionPending {
+                // La chiamata di Link senza correzione: il segno si consuma come oggi (`noteCorrectionAfterWindowQ` con prima = dopo).
+                firstCorrectionPending = false
+            }
         }
         // U3 c e la guardia del primo campione (seguito 1, par. 2.2): se questo buffer porta l'«uno», il volume torna ADESSO, se
         // le condizioni reggono e il primo campione a volume 1 non è prima della scadenza; se no la battuta dopo. Senza un
@@ -1553,9 +1623,19 @@ private struct OutputRig {
             beatInBuffer = unoHere
         } else {
             if leadInBuffersLeft > 0 { leadInBuffersLeft -= 1 }
-            beatInBuffer = (position + bufferBeats - dspOrigin).rounded(.down) > (position - dspOrigin).rounded(.down)
-                || mutedThisBuffer
-            if beatInBuffer { countedBeatOut = true }
+            if useEngineBeatZero {
+                // A425 (B.2 del seguito 4): come il DSP, il buffer porta i battiti dal suo primo campione, compreso, all'ultimo,
+                // escluso (core_engine/MetronomeDSP.cpp:435-439, il battito arrotondato in [cursore, cursore + 512)): il battito zero
+                // del Play sta nel primo buffer. Il primo battito del primo buffer di una catena esce a `firstBeatOutAt` (al Play una
+                // latenza dopo, al fuoco il bersaglio): non alza `countedBeatOut`, che il rig alza quando un battito si programma.
+                let firstBeat = (position - dspOrigin).rounded(.up)
+                beatInBuffer = firstBeat < position + bufferBeats - dspOrigin || mutedThisBuffer
+                if beatInBuffer && bufferCount > 0 { countedBeatOut = true }
+            } else {
+                beatInBuffer = (position + bufferBeats - dspOrigin).rounded(.down) > (position - dspOrigin).rounded(.down)
+                    || mutedThisBuffer
+                if beatInBuffer { countedBeatOut = true }
+            }
         }
         if beatInBuffer && !mutedThisBuffer {
             clickSamplesWritten += 1
@@ -1749,10 +1829,33 @@ private struct OutputRig {
         if useEngineSongInProgress && role == .follower { songInProgress = false }
     }
 
+    /// A425 (B.10 del seguito 4) — la Reset dei servizi audio senza la Lost (`handleMediaReset`, esito «da ricostruire»): la crisi
+    /// «reset-senza-lost» con la sua regola (il Solo in moto si ferma come allo Stop della console, `stopForSoloCrisis` →
+    /// `stopSync(.soloCrisis)`, che abbassa «canzone in corso»; il Direttore in canzone muto, fuori canzone l'arresto locale; il
+    /// Follower come oggi), la ripresa pendente sgomberata, i ritorni annullati; fino alla ricostruzione del primo avvio niente lavoro
+    /// audio automatico (`mediaResetSkipsQ`: lo stato non è «normale»), qui `mediaServicesNormal` falso. Il Play è `rebuiltAndPlay`.
+    mutating func mediaResetWithoutLost(at t: Double) {
+        advance(to: t)
+        switch crisis(.resetWithoutLost) {
+        case .silentInSong:
+            silentInSong = true
+            if isRunning { crisisStop() }
+        case .localStop:
+            if isRunning { crisisStop() }
+        case .soloStopAsConsole:
+            soloStop()
+        case .asToday, .nothing:
+            break
+        }
+        clearPendingResume()
+        cancelReturns()
+        mediaServicesNormal = false
+    }
+
     /// La ricostruzione al Play dopo il reset (la rilettura del Follower la fa `start()`, a ogni avvio: par. 4.3).
     /// A421 · SEGUITO 4 (par. 3.2): prima la Reset (`mediaReset`). Le prove la usano sul Follower: il Play dopo e' il suo `start()`
-    /// dalla sessione Link (`followerRun(.start)`), senza mappa; la mappa del runner, che arriva dopo, la abbassa il fuoco
-    /// dell'ingresso.
+    /// dalla sessione Link (`followerRun(.start)`), senza mappa. ⚠️ RISCRITTO A425 (P4), c'era «la mappa del runner, che arriva dopo, la
+    /// abbassa il fuoco dell'ingresso.»: da A425 la consuma l'avvio in corso (il secondo `start()` del runner, o il fuoco se viene prima).
     mutating func rebuiltAndPlay(at t: Double) {
         mediaReset()
         mediaServicesNormal = true
@@ -1857,6 +1960,9 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// Un rig col click in moto, sul percorso dato, partito col Play del suo ruolo (A421 · SEGUITO 4, par. 3.2: `runnerPlay`):
     /// Direttore e Solo in canzone, il Follower con «canzone in corso» falsa, come il motore. ⚠️ RISCRITTO A421 · SEGUITO 4: diceva
     /// «Un rig col click in moto in canzone» e partiva con `start` senza mappa, in canzone solo per il valore iniziale del rig.
+    /// ⚠️ RISCRITTO A425 (P4): «il Follower con «canzone in corso» falsa» non è più vero: la mappa del runner la consuma il secondo
+    /// `start()`, che trova il motore in moto, e il Follower è in canzone come il motore. Nessuna decisione del rig legge la canzone del
+    /// Follower (`CrisisStopDecision`, `RenderGapDecision`, `OutputRouteDecision` la guardano solo per il Direttore).
     /// `engineLeadIn` e `engineSongInProgress`: gli interruttori del par. 3, messi prima del Play (spenti: il rig di prima).
     private func playing(_ role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
                          at t: Double = 10.0, cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0,
@@ -2368,7 +2474,10 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// non arma la coda del click; i tre buffer dopo non portano niente di suo; le correzioni normali non zittiscono.
     func testTheLateBeatIsMutedAndTheNextBuffersCarryNoClick() {
         var rig = playing(.follower, route: [speaker])
-        rig.callbacks(from: 12.0, count: 200, correction: 0.0009)
+        // ⚠️ A425 (par. 2.5): le 200 correzioni erano da 0,0009 battiti, sotto la soglia di Link (0,01): il motore non le applica, e
+        // con la soglia nel rig `corrections` restava 0 e l'attesa qui sotto cadeva (una differenza fra rig e motore trovata). Una
+        // correzione normale del motore sta sopra la soglia: 0,015, meno di un buffer (0,0215 battiti a 121), che non zittisce.
+        rig.callbacks(from: 12.0, count: 200, correction: 0.015)
         XCTAssertEqual(rig.lateBeatsMuted, 0, "le correzioni normali non zittiscono")
         XCTAssertGreaterThan(rig.corrections, 0)
         // Un buco: la posizione va portata avanti di 0,25 battiti col pendente a 0,05.
@@ -2744,7 +2853,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertLessThanOrEqual(raised, restored - rig.latency - rig.bufferSeconds + 1e-9)
     }
 
-    /// Dentro un'interruzione (BOX5 :1735, seconda parte): un ritorno passato alla battuta dopo e un inizio d'interruzione
+    /// Dentro un'interruzione (la regola del referee del 21/10, seconda parte; BOX5, capitolo «L'USCITA AUDIO»): un ritorno passato alla battuta dopo e un inizio d'interruzione
     /// prima dell'«uno»: il ritorno si annulla e il volume non si scrive.
     func testAReturnMovedToTheNextBarIsCancelledByAnInterruptionBegin() {
         let bar = 30.0 * 4 * 60.0 / 121.0
@@ -3228,7 +3337,12 @@ final class OutputCrisisSequenceTests: XCTestCase {
             closed.openShow(at: 30.0)
             closed.runnerPlay(at: 31.0)
             XCTAssertEqual(closed.volume, 1.0, "il primo avvio dello show dopo e' come oggi (motore:\(engine))")
-            XCTAssertFalse(closed.songInProgress, "motore:\(engine): la chiusura dello show l'ha abbassata, l'avvio del Follower non la alza")
+            // ⚠️ A425 (P4): col rig del motore la mappa del runner, consegnata col motore in moto, è dell'avvio in corso: il secondo
+            // `start()` la consuma e «canzone in corso» è vera. Qui c'era `XCTAssertFalse(closed.songInProgress, …)`, che vale ancora col
+            // rig di prima.
+            XCTAssertEqual(closed.songInProgress, engine,
+                           engine ? "la mappa consumata dall'avvio in corso (P4)"
+                                  : "motore:\(engine): la chiusura dello show l'ha abbassata, l'avvio del Follower non la alza")
             var between = playing(.solo, route: [headphones], at: 10.0, engineSongInProgress: engine)
             between.showOpen = false
             between.stop(at: 20.0)
@@ -3240,8 +3354,11 @@ final class OutputCrisisSequenceTests: XCTestCase {
             between.runnerPlay(at: 31.0)
             XCTAssertEqual(between.volume, 1.0, "START SHOW come Follower senza cuffie: come oggi (motore:\(engine))")
             XCTAssertFalse(between.state.missing)
-            XCTAssertEqual(between.songInProgress, !engine, engine ? "sul Follower «canzone in corso» resta falsa, come il motore"
-                                                                   : "il rig di prima: lo Stop e l'avvio senza mappa la lasciavano vera")
+            // ⚠️ A425 (P4): col rig del motore la mappa consegnata al secondo `start()` è dell'avvio in corso: «canzone in corso» vera
+            // (prima: «sul Follower resta falsa, come il motore»); col rig di prima vera lo stesso, perché lo Stop e l'avvio senza mappa
+            // la lasciavano com'era.
+            XCTAssertTrue(between.songInProgress, engine ? "la mappa consumata dall'avvio in corso (P4)"
+                                                         : "il rig di prima: lo Stop e l'avvio senza mappa la lasciavano vera")
         }
         var inside = playing(.direttore, route: [headphones], at: 10.0)
         inside.stop(at: 20.0)
@@ -3253,7 +3370,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
         XCTAssertTrue(inside.state.missing)
     }
 
-    /// Dentro un'interruzione (BOX5 :1735, seconda parte): la rilettura all'avvio del Follower è una lettura del percorso e uno
+    /// Dentro un'interruzione (la regola del referee del 21/10, seconda parte; BOX5, capitolo «L'USCITA AUDIO»): la rilettura all'avvio del Follower è una lettura del percorso e uno
     /// stato puro, nessuna scrittura della sessione; il Play della sessione Link che arriva con l'interruzione in corso parte
     /// muto se la memoria dice un'esterna che non c'è più.
     func testTheFollowerRereadAtStartInsideAnInterruptionIsAPureRead() {
@@ -4054,6 +4171,8 @@ final class OutputCrisisSequenceTests: XCTestCase {
 
     /// Il segno non sopravvive alla canzone a cui appartiene: il Follower senza una sessione che suona esce da `start()` senza
     /// consumarlo; lo abbassano il fuoco dell'ingresso, il cambio di ruolo e la chiusura dello show; un avvio che prosegue lo consuma.
+    /// ⚠️ A425 (P4): il fuoco dell'ingresso non lo abbassa più senza consumarlo: lo consuma (la mappa è dell'avvio in corso). L'attesa
+    /// qui (il segno giù dopo il fuoco) vale ancora.
     func testTheSongMapMarkDoesNotSurviveItsSong() {
         var rig = OutputRig(role: .follower, route: [speaker])
         rig.songInProgress = false
@@ -4356,7 +4475,7 @@ func testTheSeventyMsHoleWithItsCallbacksAndThePiecesInTheBase() {
 /// (la scheda USB multicanale), poi un inizio d'interruzione: da qui la causa ricordata e lo Stop voluto restano (la riga «invariati»,
 /// `fermoPerCrisi:0`), m4 dice «niente Stop, era gia' fermo» e lo schermo resta su «Resume from»; com'era (regola spenta) la causa
 /// diventava «modo», lo Stop voluto falso (`fermoPerCrisi:1`), e m4 fermava il Solo una seconda volta. Nessuna ripartenza fino al
-/// Play. E lo stesso cambio di modo dentro un'interruzione: rimandato, niente tocca la memoria (BOX5 :1735).
+/// Play. E lo stesso cambio di modo dentro un'interruzione: rimandato, niente tocca la memoria (la regola del referee del 21/10; BOX5, capitolo «L'USCITA AUDIO»).
 func testTheSoloOnResumeFromKeepsItsMemoryThroughAModeChangeAndACall() {
     for rule in [true, false] {
         var rig = playing(.solo, route: [speaker], at: 10.0)
@@ -4734,9 +4853,11 @@ func testTheLeadInAfterItsFirstCorrectionAndTheOwnClockFirstPinKeepTheMarkAfterT
         if engine {
             XCTAssertEqual(try XCTUnwrap(corrected.rejoinLeadIn).corrections, 1, "contata nella scorta")
         }
-        // Dopo la prima correzione (0,005 battiti all'indietro): il segno resta fino alla fine della scorta.
+        // Dopo la prima correzione (0,02 battiti all'indietro): il segno resta fino alla fine della scorta.
+        // ⚠️ A425 (par. 2.5): era −0,005, sotto la soglia di Link (0,01, LinkEngine.mm:16): il motore non l'avrebbe applicata né
+        // contata nella scorta; −0,02 è la prima correzione della scorta, all'indietro, col significato di prima.
         var held = try rejoined(engineLeadIn: engine)
-        held.callbacks(from: held.now + held.bufferSeconds, count: 1, correction: -0.005)
+        held.callbacks(from: held.now + held.bufferSeconds, count: 1, correction: -0.02)
         XCTAssertEqual(held.corrections, 1, "motore:\(engine): la prima correzione")
         held.firstCorrectionPending = true
         let beforeSecond = held.position
@@ -4879,36 +5000,61 @@ func testTheMutedFollowerRebuiltKeepsTheWriterAndTheHoleMeasuresTheSilenceFromBe
 /// primo `start()` passa da `prepareNormalStartQ` senza il segno; il segno sale dopo; lo abbassa il fuoco dell'ingresso. Con
 /// l'attesa d'ingresso zero il fuoco puo' passare prima del blocco di `setSongMap`: il segno resta alto fino al prossimo avvio che
 /// passa da `prepareNormalStartQ`, che lo prende per «canzone in corso» (Aperto del referto).
+/// ⚠️ RISCRITTO A425 (P4: mandato A425, par. 2.2). Le attese di questa prova erano il difetto che P4 cura: il secondo `start()` usciva
+/// alla guardia senza consumare la mappa, il fuoco la abbassava, e col fuoco prima della mappa il segno restava alto fino all'avvio
+/// dopo. Da A425 la mappa consegnata a un avvio in corso è di quell'avvio: la consuma il secondo `start()`, o il fuoco se viene dopo il
+/// blocco di `setSongMap`; «canzone in corso» è vera per la canzone dove il Follower entra, e l'avvio dopo senza una mappa nuova è fuori
+/// canzone. Col rig di prima (`useRunningStartConsumesMap` spento) le attese di prima.
 func testTheFollowerMapArrivesAfterTheFirstStartAndTheFireLowersTheMark() {
-    var rig = OutputRig(role: .follower, route: [speaker])
-    rig.songInProgress = false
-    rig.followerSessionPlaying = true
-    rig.start(at: 10.0, recovery: nil)
-    XCTAssertTrue(rig.isRunning, "il primo start(): entra nella sessione che suona")
-    XCTAssertFalse(rig.songInProgress, "prepareNormalStartQ senza la mappa")
-    XCTAssertFalse(rig.songMapPending)
-    rig.setSongMap()
-    XCTAssertTrue(rig.songMapPending, "il blocco di setSongMap, dopo quello del primo start()")
-    rig.start(at: 10.0, recovery: nil)
-    XCTAssertEqual(rig.starts, 1, "il secondo start() esce alla guardia del motore in moto")
-    XCTAssertTrue(rig.songMapPending, "senza consumare il segno")
-    rig.followerJoinFired()
-    XCTAssertFalse(rig.songMapPending, "il fuoco dell'ingresso lo abbassa")
-    XCTAssertFalse(rig.songInProgress, "sul Follower canzone: resta 0")
-    // L'attesa zero nell'ordine «fuoco prima della mappa».
-    var zero = OutputRig(role: .follower, route: [speaker])
-    zero.songInProgress = false
-    zero.followerSessionPlaying = true
-    zero.start(at: 10.0, recovery: nil)
-    zero.followerJoinFired()
-    zero.setSongMap()
-    zero.start(at: 10.0, recovery: nil)
-    XCTAssertTrue(zero.songMapPending, "il segno resta alto")
-    XCTAssertFalse(zero.songInProgress)
-    zero.stop(at: 20.0)
-    zero.start(at: 21.0, recovery: nil)
-    XCTAssertTrue(zero.songInProgress, "l'avvio dopo, anche senza una mappa nuova, lo prende per «canzone in corso»")
-    XCTAssertFalse(zero.songMapPending)
+    for consume in [true, false] {
+        let tag = "regola:\(consume)"
+        var rig = OutputRig(role: .follower, route: [speaker])
+        rig.useRunningStartConsumesMap = consume
+        rig.songInProgress = false
+        rig.followerSessionPlaying = true
+        rig.start(at: 10.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning, "\(tag): il primo start(): entra nella sessione che suona")
+        XCTAssertFalse(rig.songInProgress, "\(tag): prepareNormalStartQ senza la mappa")
+        XCTAssertFalse(rig.songMapPending, tag)
+        rig.setSongMap()
+        XCTAssertTrue(rig.songMapPending, "\(tag): il blocco di setSongMap, dopo quello del primo start()")
+        rig.start(at: 10.0, recovery: nil)
+        XCTAssertEqual(rig.starts, 1, "\(tag): il secondo start() esce alla guardia del motore in moto")
+        XCTAssertEqual(rig.songMapPending, !consume, consume ? "il secondo start() consuma la mappa (P4)" : "senza consumare il segno")
+        XCTAssertEqual(rig.songInProgress, consume, tag)
+        rig.followerJoinFired()
+        XCTAssertFalse(rig.songMapPending, consume ? "il fuoco trova il segno basso" : "il fuoco dell'ingresso lo abbassa")
+        XCTAssertEqual(rig.songInProgress, consume, consume ? "canzone in corso per la canzone dove entra (P4)" : "sul Follower canzone: resta 0")
+        XCTAssertEqual(rig.mapsConsumedByRunningStart, consume ? 1 : 0, tag)
+        // L'attesa zero nell'ordine «fuoco prima della mappa».
+        var zero = OutputRig(role: .follower, route: [speaker])
+        zero.useRunningStartConsumesMap = consume
+        zero.songInProgress = false
+        zero.followerSessionPlaying = true
+        zero.start(at: 10.0, recovery: nil)
+        zero.followerJoinFired()
+        XCTAssertFalse(zero.songInProgress, "\(tag): il fuoco prima della mappa trova il segno basso")
+        zero.setSongMap()
+        zero.start(at: 10.0, recovery: nil)
+        XCTAssertEqual(zero.songMapPending, !consume, consume ? "il secondo start() la consuma (P4)" : "il segno resta alto")
+        XCTAssertEqual(zero.songInProgress, consume, tag)
+        zero.stop(at: 20.0)
+        zero.start(at: 21.0, recovery: nil)
+        XCTAssertEqual(zero.songInProgress, !consume, consume ? "l'avvio dopo, senza una mappa nuova, è fuori canzone"
+                                                             : "l'avvio dopo, anche senza una mappa nuova, lo prende per «canzone in corso»")
+        XCTAssertFalse(zero.songMapPending, tag)
+        // L'attesa zero nell'ordine «fuoco dopo il blocco di setSongMap e prima del secondo start()»: lo consuma il fuoco.
+        var fireFirst = OutputRig(role: .follower, route: [speaker])
+        fireFirst.useRunningStartConsumesMap = consume
+        fireFirst.songInProgress = false
+        fireFirst.followerSessionPlaying = true
+        fireFirst.start(at: 10.0, recovery: nil)
+        fireFirst.setSongMap()
+        fireFirst.followerJoinFired()
+        fireFirst.start(at: 10.0, recovery: nil)
+        XCTAssertFalse(fireFirst.songMapPending, tag)
+        XCTAssertEqual(fireFirst.songInProgress, consume, consume ? "lo consuma il fuoco (P4)" : "il fuoco lo abbassa senza consumarlo")
+    }
 }
 
 // MARK: - A421 · SEGUITO 3, par. 8.1: la fine della canzone dentro la finestra dell'àncora tenuta
@@ -5063,11 +5209,14 @@ func testTheLeadInEndsInTheCallThatCarriesTheUnoLikeTheDSP() throws {
         XCTAssertEqual(late.lateBeatsMuted, engine ? 1 : 0, "\(tag): il battito del fire-asap zittito")
         XCTAssertEqual(late.clickSamplesWritten, lateClicks, tag)
         // Dopo la prima correzione le correzioni non si applicano.
+        // ⚠️ A425 (par. 2.5): erano −0,005 e +0,004, sotto la soglia di Link (0,01): il motore non le avrebbe applicate, e nella scorta
+        // la prima correzione si conta solo se applicata; −0,02 e +0,015, sopra la soglia, col significato di prima (la prima
+        // correzione della scorta indietro, la seconda in avanti).
         var second = try rejoined(engineLeadIn: engine)
-        second.callbacks(from: second.now + second.bufferSeconds, count: 1, correction: -0.005)
+        second.callbacks(from: second.now + second.bufferSeconds, count: 1, correction: -0.02)
         let beforeSecond = second.position
-        second.callbacks(from: second.now + second.bufferSeconds, count: 1, correction: 0.004)
-        XCTAssertEqual(second.position, beforeSecond + (engine ? 0 : 0.004) + second.bufferBeats, accuracy: 1e-9, tag)
+        second.callbacks(from: second.now + second.bufferSeconds, count: 1, correction: 0.015)
+        XCTAssertEqual(second.position, beforeSecond + (engine ? 0 : 0.015) + second.bufferBeats, accuracy: 1e-9, tag)
         XCTAssertEqual(second.corrections, engine ? 1 : 2, tag)
         // Un buco di 40 ms nella chiamata dell'«uno» (la sesta della catena): ancora nella scorta, la crisi «scorta»; col rig di prima la
         // scorta era finita: sotto la soglia, segue Link.
@@ -5111,13 +5260,13 @@ func testACrisisAfterTheHeldAnchorClosesTakesTheAnchorFromTheUno() throws {
 
 // MARK: - A421 · SEGUITO 4, par. 3.2: «canzone in corso» come il motore
 
-/// «Canzone in corso» nei punti del motore che la scrivono. Il Play dal runner: Direttore e Solo in canzone, con la mappa prima
-/// dell'avvio; il Follower no (la mappa arriva dopo il suo primo `start()` e la abbassa il fuoco dell'ingresso). Lo Stop voluto e
-/// l'arresto della crisi del Solo (`stopSync`), l'arresto locale del cambio di ruolo col volume a 0 e la Reset del Follower la
-/// abbassano; un avvio senza mappa, anche una ripartenza automatica, la lascia falsa (`prepareNormalStartQ`); la fine della canzone e
-/// la chiusura dello show come prima. Il Direttore ripartito col pedale dopo uno Stop (un avvio senza mappa) e' fuori canzone come
-/// nel motore: un buco di 300 ms segue Link, senza il silenzio in canzone. Col rig di prima (interruttore spento) restava vera dopo lo
-/// Stop, l'arresto del Solo, il cambio di ruolo e la Reset, e un avvio senza mappa la lasciava com'era.
+/// «Canzone in corso» nei punti del motore che la scrivono. Il Play dal runner: Direttore e Solo in canzone, con la mappa prima dell'avvio;
+/// il Follower anche (⚠️ RISCRITTO A425, P4, c'era «no (… e la abbassa il fuoco dell'ingresso)»: la mappa, dopo il primo `start()`, la
+/// consuma il secondo). Lo Stop voluto e l'arresto della crisi del Solo (`stopSync`), l'arresto locale del cambio di ruolo col volume a 0 e
+/// la Reset del Follower la abbassano; un avvio senza mappa, anche una ripartenza automatica, la lascia falsa (`prepareNormalStartQ`); la
+/// fine della canzone e la chiusura dello show come prima. Il Direttore ripartito col pedale dopo uno Stop (un avvio senza mappa) e' fuori
+/// canzone come nel motore: un buco di 300 ms segue Link, senza il silenzio in canzone. Col rig di prima (interruttore spento) restava vera
+/// dopo lo Stop, l'arresto del Solo, il cambio di ruolo e la Reset, e un avvio senza mappa la lasciava com'era.
 func testSongInProgressFollowsTheEngineAtEveryStopAndStart() {
     for engine in [true, false] {
         let tag = "motore:\(engine)"
@@ -5126,8 +5275,12 @@ func testSongInProgressFollowsTheEngineAtEveryStopAndStart() {
         XCTAssertTrue(director.songInProgress, "\(tag): il Direttore dal runner, con la mappa")
         XCTAssertTrue(playing(.solo, route: [speaker], at: 10.0, engineSongInProgress: engine).songInProgress, "\(tag): il Solo")
         let follower = playing(.follower, route: [headphones], at: 10.0, engineSongInProgress: engine)
-        XCTAssertEqual(follower.songInProgress, !engine, "\(tag): il Follower, la mappa dopo il primo start()")
-        XCTAssertFalse(follower.songMapPending, "\(tag): il fuoco dell'ingresso abbassa il segno")
+        // ⚠️ A425 (P4): qui c'era `XCTAssertEqual(follower.songInProgress, !engine, …)`: col rig del motore la mappa, che arriva dopo
+        // il primo `start()`, la consuma il secondo `start()` che trova il motore in moto, e «canzone in corso» è vera; col rig di
+        // prima vera per il valore iniziale del rig.
+        XCTAssertTrue(follower.songInProgress, engine ? "\(tag): il Follower, la mappa consumata dall'avvio in corso (P4)"
+                                                      : "\(tag): il rig di prima, il valore iniziale")
+        XCTAssertFalse(follower.songMapPending, "\(tag): il segno giù (consumato, o abbassato dal fuoco col rig di prima)")
         // Lo Stop voluto, poi il pedale (un avvio senza mappa) e un buco di 300 ms.
         var pedal = director
         pedal.stop(at: 15.0)
@@ -5158,7 +5311,8 @@ func testSongInProgressFollowsTheEngineAtEveryStopAndStart() {
         XCTAssertEqual(restart.starts, 2, "\(tag): la ripartenza come oggi")
         XCTAssertEqual(restart.songInProgress, !engine, "\(tag): la ripartenza passa da prepareNormalStartQ senza mappa")
         // L'arresto locale del cambio di ruolo col volume a 0: il Follower muto con «canzone in corso» vera, messa a mano (sul Follower
-        // la lascia vera solo l'ordine dell'attesa zero: referto del seguito 3, Aperto §A.3).
+        // la lascia vera solo l'ordine dell'attesa zero: referto del seguito 3, Aperto §A.3). A425 (P4): col rig del motore è gia' vera
+        // (la mappa consumata dall'avvio in corso); la riga a mano resta per il rig di prima.
         var role = follower
         role.songInProgress = true
         role.routeChange(at: 12.0, to: [speaker])
@@ -5284,6 +5438,196 @@ func testTheRoleChangeLiftsTheSilenceInForceInMotionAndAtEngineStopped() {
         } else {
             XCTAssertEqual(stopped.lastSilenceWrite?.reason, "buco-del-render", "senza la regola il ricordo restava")
         }
+    }
+}
+
+// MARK: - A425 (mandato «USCITA AUDIO PASSO 2a PEZZO 3a», par. 2.4 e 2.5): il rig più vicino al motore, U16 e il fuoco del rientro
+
+/// La soglia di Link nel rig (par. 2.5): una correzione di al più 0,01 battiti fa il ramo «nessuna correzione» del motore — non
+/// sposta, non si conta, consuma il segno della prima correzione dopo la finestra; sopra la soglia si applica; proprio sulla soglia no
+/// (il confronto del motore è «maggiore di»). Nella scorta, a zero correzioni, una correzione sotto la soglia non è la prima della
+/// scorta e quella dopo si applica. Col rig di prima (interruttore spento) ogni correzione si applicava.
+func testTheLinkThresholdInTheRigLikeTheEngine() throws {
+    for threshold in [true, false] {
+        let tag = "soglia:\(threshold)"
+        var rig = playing(.follower, route: [speaker], at: 10.0)
+        rig.useEngineSyncThreshold = threshold
+        rig.sectionChange(at: rig.now + 0.001)
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 100)
+        XCTAssertTrue(rig.windowOpen, "\(tag): la finestra dei 100 buffer")
+        let positionBefore = rig.position
+        let correctionsBefore = rig.corrections
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 1, correction: 0.005)
+        XCTAssertFalse(rig.windowOpen, tag)
+        XCTAssertFalse(rig.firstCorrectionPending, "\(tag): il segno della prima correzione si consuma")
+        XCTAssertEqual(rig.firstCorrectionRearms, 0, tag)
+        XCTAssertEqual(rig.corrections, correctionsBefore + (threshold ? 0 : 1), tag)
+        XCTAssertEqual(rig.correctionsUnderThreshold, threshold ? 1 : 0, tag)
+        XCTAssertEqual(rig.position, positionBefore + (threshold ? 0 : 0.005) + rig.bufferBeats, accuracy: 1e-9, tag)
+        let positionAbove = rig.position
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 1, correction: 0.02)
+        XCTAssertEqual(rig.corrections, correctionsBefore + (threshold ? 1 : 2), "\(tag): sopra la soglia si applica")
+        XCTAssertEqual(rig.position, positionAbove + 0.02 + rig.bufferBeats, accuracy: 1e-9, tag)
+        let positionAt = rig.position
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 1, correction: OutputRig.phaseJumpThresholdBeats)
+        XCTAssertEqual(rig.position, positionAt + (threshold ? 0 : OutputRig.phaseJumpThresholdBeats) + rig.bufferBeats,
+                       accuracy: 1e-9, "\(tag): proprio sulla soglia")
+        // Nella scorta.
+        var lead = try rejoined()
+        lead.useEngineSyncThreshold = threshold
+        lead.callbacks(from: lead.now + lead.bufferSeconds, count: 1, correction: 0.005)
+        XCTAssertEqual(try XCTUnwrap(lead.rejoinLeadIn, "\(tag): ancora nella scorta").corrections, threshold ? 0 : 1, tag)
+        let leadBefore = lead.position
+        lead.callbacks(from: lead.now + lead.bufferSeconds, count: 1, correction: -0.02)
+        XCTAssertEqual(lead.position, leadBefore + (threshold ? -0.02 : 0) + lead.bufferBeats, accuracy: 1e-9,
+                       threshold ? "la prima correzione della scorta si applica" : "il rig di prima: la seconda della scorta no")
+    }
+}
+
+/// B.2 del seguito 4: il battito zero del Play sta nel primo buffer, come il DSP (il rig di prima non lo contava); la sua ora d'uscita
+/// resta una latenza dopo il Play (`firstBeatOutAt`): una crisi in canzone prima che esca non trova l'àncora, una dopo sì.
+func testThePlayBeatZeroIsInTheFirstBufferLikeTheDSP() {
+    for beatZero in [true, false] {
+        let tag = "regola:\(beatZero)"
+        var rig = OutputRig(role: .direttore, route: [speaker])
+        rig.useEngineBeatZero = beatZero
+        rig.runnerPlay(at: 10.0)
+        XCTAssertEqual(rig.clickSamplesWritten, beatZero ? 1 : 0, "\(tag): i tre buffer del Play")
+        XCTAssertFalse(rig.countedBeatOut, "\(tag): il battito zero esce a firstBeatOutAt, non alza countedBeatOut")
+        rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+        XCTAssertEqual(rig.clickSamplesWritten, beatZero ? 2 : 1, "\(tag): il battito 1, a 0,496 s")
+        XCTAssertTrue(rig.countedBeatOut, tag)
+    }
+    var early = OutputRig(role: .direttore, route: [headphones])
+    early.runnerPlay(at: 10.0)
+    early.routeChange(at: 10.005, to: [speaker])
+    XCTAssertTrue(early.silentInSong)
+    XCTAssertFalse(early.anchor, "il battito zero non e' ancora uscito: nessuna àncora")
+    early.start(at: 11.0, recovery: nil)
+    XCTAssertEqual(early.uncertainRejoins, 1, "senza àncora il conto non e' certo")
+    var late = OutputRig(role: .direttore, route: [headphones])
+    late.runnerPlay(at: 10.0)
+    late.callbacks(from: 10.0 + late.bufferSeconds, count: 3)
+    late.routeChange(at: late.now + 0.001, to: [speaker])
+    XCTAssertTrue(late.silentInSong)
+    XCTAssertTrue(late.anchor, "il battito zero e' uscito: l'àncora")
+}
+
+/// B.10 del seguito 4: la Reset dei servizi audio senza la Lost col Solo in moto lo ferma come allo Stop della console (`stopsSolo`),
+/// «canzone in corso» giù e la causa «reset-senza-lost»; niente lo fa ripartire da solo (il risveglio, un'aggiunta, un'interruzione e la
+/// sua fine), riparte col Play dopo la ricostruzione. Il Direttore in canzone resta muto; il Follower come oggi.
+func testTheResetWithoutLostStopsTheSoloAndNothingRestartsItByItself() {
+    var solo = playing(.solo, route: [speaker], at: 10.0)
+    XCTAssertTrue(solo.songInProgress)
+    solo.mediaResetWithoutLost(at: 12.0)
+    XCTAssertEqual(solo.soloStops, 1, "come allo Stop della console")
+    XCTAssertFalse(solo.isRunning)
+    XCTAssertFalse(solo.songInProgress, "stopSync(.soloCrisis) la abbassa")
+    XCTAssertEqual(solo.crisisCause, .resetWithoutLost)
+    XCTAssertTrue(CrisisCause.resetWithoutLost.stopsSolo)
+    solo.wakeup(at: 13.0)
+    solo.routeChange(at: 14.0, to: [headphones])
+    solo.interruptionBegan(at: 15.0)
+    solo.interruptionEnded(at: 16.0)
+    solo.advance(to: 20.0)
+    XCTAssertFalse(solo.isRunning, "nessuna ripartenza da sola")
+    XCTAssertEqual(solo.starts, 1)
+    XCTAssertEqual(solo.soloStops, 1)
+    solo.rebuiltAndPlay(at: 21.0)
+    XCTAssertTrue(solo.isRunning, "riparte col Play, dopo la ricostruzione")
+    XCTAssertNil(solo.crisisCause, "il Play azzera la causa")
+    var director = playing(.direttore, route: [speaker], at: 10.0)
+    director.mediaResetWithoutLost(at: 12.0)
+    XCTAssertTrue(director.silentInSong, "il Direttore in canzone resta muto")
+    XCTAssertFalse(director.isRunning)
+    XCTAssertTrue(director.anchor)
+    var follower = playing(.follower, route: [speaker], at: 10.0)
+    follower.mediaResetWithoutLost(at: 12.0)
+    XCTAssertTrue(follower.isRunning, "il Follower come oggi")
+}
+
+/// U16 (P14): il Direttore fuori da una canzone fermato da una tolta, con una ripresa pendente lasciata dall'hardware occupato: alle
+/// cuffie che tornano la ripresa si recupera e `RecoveryDecision` dice «niente» («direttore-fermo-dalla-tolta»); il Play lo fa
+/// ripartire. La ripresa pendente si mette con la strada del rig per l'uscita mancante e l'hardware occupato (`noteNoRestart`, come
+/// `noteNoRestartQ`), con un tentativo chiamato a mano: nel motore, dopo l'arresto locale della tolta, nessuna strada automatica arriva
+/// a quel tentativo da sola (referto A425, Aperto). Prima di A425 il click ripartiva da solo all'aggiunta.
+func testU16TheDirectorStoppedByARemovalOutOfASongWaitsForThePlay() {
+    var rig = playing(.direttore, route: [headphones], at: 10.0)
+    rig.songInProgress = false
+    rig.routeChange(at: 11.0, to: [speaker])
+    XCTAssertFalse(rig.isRunning, "U16: l'arresto locale")
+    XCTAssertEqual(rig.crisisCause, .outputRemoved)
+    XCTAssertTrue(rig.state.missing)
+    rig.hardwareBusy = true
+    rig.activateSessionAndStart(trigger: .appWakeup, at: 11.5)
+    XCTAssertTrue(rig.pendingResume, "la ripresa pendente lasciata dall'hardware occupato")
+    XCTAssertFalse(rig.isRunning)
+    rig.hardwareBusy = false
+    rig.routeChange(at: 12.0, to: [headphones])
+    XCTAssertFalse(rig.state.missing)
+    XCTAssertFalse(rig.pendingResume, "la ripresa recuperata dal cambio di percorso")
+    XCTAssertFalse(rig.isRunning, "nessun avvio: direttore-fermo-dalla-tolta")
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: .pendingRecovery, playerRole: .direttore, silentInSong: rig.silentInSong,
+                                                    wantedStopSinceCrisis: rig.wantedStop, crisisCause: rig.crisisCause,
+                                                    outputMissing: rig.state.missing),
+                   .directorStoppedByRemoval)
+    rig.wakeup(at: 13.0)
+    rig.advance(to: 15.0)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertEqual(rig.starts, 1)
+    rig.start(at: 16.0, recovery: nil)
+    XCTAssertTrue(rig.isRunning, "riparte col Play")
+    XCTAssertNil(rig.crisisCause, "il Play azzera la causa")
+}
+
+/// P14 e la sequenza di VR2 punto 3 d: una tolta in canzone, il Direttore muto, il Play che rientra; al fuoco del rientro la causa
+/// ricordata e lo Stop voluto si azzerano. Poi la canzone finisce, il pedale fa ripartire il click fuori da una canzone, un'aggiunta,
+/// una tolta, l'hardware occupato e un'aggiunta: U16 decide sulla causa nuova (la seconda tolta): niente. Senza l'azzeramento al fuoco
+/// la causa del rientro restava «uscita-tolta».
+func testTheRejoinFireClearsTheMemoryAndU16DecidesOnTheNewCause() throws {
+    for clears in [true, false] {
+        let tag = "regola:\(clears)"
+        var rig = playing(.direttore, route: [headphones], at: 10.0)
+        rig.useRejoinFireClearsMemory = clears
+        rig.routeChange(at: 12.0, to: [speaker])
+        XCTAssertTrue(rig.silentInSong, tag)
+        XCTAssertEqual(rig.crisisCause, .outputRemoved, tag)
+        rig.start(at: 13.0, recovery: nil)
+        XCTAssertEqual(rig.crisisCause, .outputRemoved, "\(tag): il Play del Direttore muto passa dal coordinatore, non da prepareNormalStartQ")
+        let fireAt = try XCTUnwrap(rig.rejoin, "\(tag): il rientro armato").fireAt
+        // A425 (nota 1 del verificatore V3): nel rig un fuoco con lo Stop voluto alto non si raggiunge (lo alzano `stop`, che chiude il
+        // silenzio e toglie il rientro, la fine della canzone e il cambio di ruolo): lo si alza a mano, come la ripresa pendente del
+        // test di U16, perché la prova cada anche senza l'altra metà dell'azzeramento al fuoco.
+        rig.wantedStop = true
+        rig.advance(to: fireAt)
+        XCTAssertEqual(rig.rejoins, 1, tag)
+        XCTAssertFalse(rig.silentInSong, tag)
+        XCTAssertEqual(rig.crisisCause, clears ? nil : .outputRemoved, "\(tag): al fuoco del rientro")
+        XCTAssertEqual(rig.wantedStop, !clears, "\(tag): lo Stop voluto al fuoco del rientro")
+        XCTAssertEqual(rig.memoryClearedAtRejoinFire, clears ? 1 : 0, tag)
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 100)
+        rig.songEnd(at: rig.now + 0.01)
+        XCTAssertFalse(rig.isRunning, tag)
+        rig.pedalPlayPause(at: rig.now + 1.0)
+        XCTAssertTrue(rig.isRunning, tag)
+        XCTAssertFalse(rig.songInProgress, "\(tag): fuori canzone")
+        XCTAssertNil(rig.crisisCause, "\(tag): il Play azzera la causa")
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 50)
+        rig.routeChange(at: rig.now + 0.01, to: [headphones])
+        XCTAssertTrue(rig.isRunning, "\(tag): fuori da una canzone un'aggiunta e' come oggi")
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 10)
+        rig.routeChange(at: rig.now + 0.01, to: [speaker])
+        XCTAssertFalse(rig.isRunning, "\(tag): U16, l'arresto locale")
+        XCTAssertEqual(rig.crisisCause, .outputRemoved, "\(tag): la causa nuova")
+        rig.hardwareBusy = true
+        rig.activateSessionAndStart(trigger: .appWakeup, at: rig.now + 0.1)
+        XCTAssertTrue(rig.pendingResume, tag)
+        rig.hardwareBusy = false
+        let starts = rig.starts
+        rig.routeChange(at: rig.now + 0.5, to: [headphones])
+        XCTAssertFalse(rig.isRunning, "\(tag): U16 decide sulla causa nuova: niente")
+        XCTAssertEqual(rig.starts, starts, tag)
     }
 }
 }
