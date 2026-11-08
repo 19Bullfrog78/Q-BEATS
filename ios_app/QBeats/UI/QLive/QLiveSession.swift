@@ -108,6 +108,14 @@ final class QLiveSession: ObservableObject {
     /// Guardia ESPLICITA della sottoscrizione — modello `directorPlaySubscribed`.
     private var connectionMemorySubscribed = false
 
+    // === A429 (08/11/2026) — IL BIVIO A TRE VIE, nella stanza (mandato A429, par. 2.3, ultimo punto) ===
+    /// Il bivio «SHOW STOPPED» e' aperto. Era `@State private var bivioAperto` di `QLiveRootView`: si sposta qui perche'
+    /// la porta del pedale del player lo legga viva (il bivio copre il player fermo, e col bivio aperto il Play/Pause del
+    /// pedale non fa niente). Gli stessi scrittori negli stessi momenti, tutti in `QLiveRootView`: lo alza solo
+    /// `leavePlayer()` a `.stopped` per chi comanda il trasporto; lo abbassano la X, SHOW DETAILS, END SHOW e `navigate`
+    /// verso una pagina che non e' il player. Solo main.
+    @Published var bivioAperto = false
+
     // MARK: - A337 — L'ascolto del Play del Direttore vive nella STANZA
 
     /// ⟦A337⟧ (09/09/2026) — Cassetto delle iscrizioni della stanza. Fino a

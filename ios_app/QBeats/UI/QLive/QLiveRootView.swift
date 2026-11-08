@@ -51,7 +51,9 @@ struct QLiveRootView: View {
     /// mostra, risolti ALL'ATTO DI AGIRE in `leavePlayer()` dal runner. Non e' una
     /// pagina (`QLivePage` resta a tre casi): e' un overlay sulla pagina `.metronome`,
     /// e si chiude in `navigate(to:)` a OGNI uscita da quella pagina.
-    @State private var bivioAperto = false
+    /// ⚠️ RISCRITTO A429, c'era «@State private var bivioAperto = false»: aperto/chiuso sta nella stanza,
+    /// `roomSession.bivioAperto` (`QLiveSession`), perche' la porta del pedale lo legga viva; gli scrittori sono gli
+    /// stessi, qui, negli stessi momenti. I due dati che mostra restano qui sotto.
     @State private var bivioCanzone = ""
     @State private var bivioMeta = ""
     /// ⟦A345⟧ (10/09/2026) — IL SEGNO DELLA TERZA FACCIA. La faccia la decide la PORTA
@@ -124,19 +126,27 @@ struct QLiveRootView: View {
     // BANDA, non può essere il sottoprodotto di un «indietro». Lo stop
     // legittimo al bordo-stanza (uscita da `.qLive`) vive in AppRootView
     // `.onChange(of: screen)` — FUORI da questo strato.
-    /// Porta UNICA di mutazione di `page`: nessuna assegnazione diretta fuori
-    /// da qui. A S4b ha zero chiamanti (la porta è installata per S5/S6).
+    /// ⚠️ RISCRITTO A429 · SEGUITO 3, c'era «Porta UNICA di mutazione di `page`: nessuna assegnazione diretta fuori
+    /// da qui. A S4b ha zero chiamanti (la porta è installata per S5/S6).»: porta UNICA di mutazione di `page`: nessuna
+    /// assegnazione diretta fuori da qui. «Zero chiamanti» valeva a S4b: oggi la chiamano tutti i passaggi fra lista,
+    /// dettagli e player. E' anche il punto dove si chiudono le porte del pedale: a ogni cambio di pagina vero, prima di
+    /// `page = newPage`, tutte (`AudioEngine.closeAllPedalDoors`); la pagina nuova apre la sua quando compare. Con la
+    /// pagina gia' a schermo non si chiude niente: la vista resta montata e non riaprirebbe la sua porta.
     private func navigate(to newPage: QLivePage) {
         // ⟦A343⟧ — il bivio non sopravvive alla pagina `.metronome`: OGNI uscita passa
         //    da questa porta unica, quindi e' l'unico punto che lo chiude per
         //    costruzione. `.onChange(of: page)` e' vietato anche inerte (decisione CD
         //    18/07, qui sopra); questa riga NON e' uno stop audio e non tocca il
         //    transport — abbassa un bit di stato della stanza.
-        if newPage != .metronome { bivioAperto = false }
+        if newPage != .metronome { roomSession.bivioAperto = false }
         // ⟦A345⟧ — il segno della terza faccia cade a ogni passaggio dalla porta unica;
         //    chi lo vuole alto lo alza DOPO aver navigato (solo `onShowDetails`, sotto).
         terzaFaccia = false
         terzaFacciaSezione = ""
+        // A429 · SEGUITO 3 (08/11/2026) — le porte del pedale si chiudono solo quando la pagina cambia davvero.
+        if newPage != page {
+            audioEngine.closeAllPedalDoors(reason: "pagina-\(newPage)")
+        }
         page = newPage
     }
 
@@ -227,7 +237,7 @@ struct QLiveRootView: View {
             }
             bivioCanzone = canzone
             bivioMeta = meta
-            bivioAperto = true
+            roomSession.bivioAperto = true
             os_log("[Q-BEATS][A343] bivio APERTO - stato:%{public}@ canzone:%{public}@ meta:%{public}@ sottoriga:%{public}@",
                    log: .default, type: .default,
                    String(describing: stato), canzone, meta, audioEngine.linkIsConnected ? "si" : "no")
@@ -305,6 +315,73 @@ struct QLiveRootView: View {
         navigate(to: .shows)
     }
 
+    /// A429 (08/11/2026) — START SHOW / BACK TO SHOW dei dettagli, in una funzione sola chiamata dal tasto e dal pedale
+    /// (seguito 1 di A429, par. 2.4; la «A» di Mauro dell'08/11): era la chiusura `onStart` del ramo `.detail`, qui sotto,
+    /// e cosa fa non cambia. `origin` e' quella del tasto («start-show») o del pedale («pedale»): questa strada non ha una
+    /// riga di registro sua, e il pedale la nomina nella riga [PEDALE].
+    private func startShowPressed(_ show: Setlist, origin: String) {
+        // A386 · FASE B2A (2D) — il PRIMO START SHOW arma anche la macchina del
+        //    Follower (R1: solo se «sento il Direttore» e la sessione è ferma,
+        //    altrimenti FUORI con la ragione per il velo). A slot pieno (la stessa
+        //    voce a show vivo) NON si riarma: da FUORI si rientra solo con RIENTRA
+        //    (D1). L'ordine resta sincrono e senza attese (⟦S5b⟧ `Cond (a)`):
+        //    installa, attacca, arma, naviga.
+        // ⚠️ A386 · B2b (A1, Mauro 25/09/2026) — START SHOW NON ARMA PIÙ: sul
+        //    Follower apre la lista d'ingresso («Join», foglio CD 2D-QUATER L2) e
+        //    il tocco su una riga arma con la porta di RIENTRA
+        //    (`QLiveSession.armRientra`). `armFollowerAtStartShow` è uscita; il
+        //    testo sopra resta come storia. L'ordine è ora: installa (che alza
+        //    «show aperto» per A2 e ricalcola la proposta), attacca, naviga.
+        let firstStart = roomSession.runner == nil
+        if firstStart {
+            roomSession.install(SetlistRunner(setlist: show,
+                                              store: QBeatsStore.shared),
+                                showName: show.name,
+                                audioEngine: audioEngine)
+        }
+        // ⟦A337⟧ (09/09/2026) — L'ASCOLTO DEL PLAY DEL DIRETTORE SI
+        //    ATTACCA ALLA STANZA QUI, non nel player: idempotente
+        //    (guardia booleana in `QLiveSession`), sincrono e senza
+        //    attese — l'invariante ⟦S5b⟧ `Cond (a)` qui sopra resta
+        //    intatta. Il motore entra per parametro, idioma di
+        //    `endShow(audioEngine:)`. Muore col cassetto della
+        //    stanza, cioe' col `switch` di `AppRootView`.
+        roomSession.attachDirectorPlay(audioEngine: audioEngine)
+        navigate(to: .metronome)
+    }
+
+    /// A429 (08/11/2026) — il RESUME della terza faccia dei dettagli, in una funzione sola chiamata dal tasto e dal pedale
+    /// (mandato A429, par. 2.2): era la chiusura `onResume` del ramo `.detail`, qui sotto, col cartello ⟦A345⟧ che resta
+    /// li' e vale per questa funzione. Cosa fa non cambia. `origin` e' quella del tasto («resume») o del pedale («pedale»):
+    /// le tre righe [A345] escono come prima, e chiamate dal pedale portano in coda « origine:pedale».
+    private func resumePressed(origin: String) {
+        let originSuffix = PedalPressDecision.originSuffix(origin)
+        // A360 — stessa regola della fascia e del velo (`FollowerDecision`).
+        let follower = audioEngine.followerDecision.isFollower
+        let inMoto = audioEngine.isPlaying
+        guard let runner = roomSession.runner else {
+            // Ramo DIFENSIVO, mai vivo nel codice: la terza faccia nasce dal bivio,
+            // che esige il runner (`leavePlayer()`). Se compare nel log, qualcuno
+            // ha aperto una via nuova.
+            os_log("[Q-BEATS][A345] RESUME - runner:nil ramo:difensivo -> shows%{public}@",
+                   log: .default, type: .default, originSuffix)
+            navigate(to: .shows)
+            return
+        }
+        if follower || inMoto {
+            navigate(to: .metronome)
+            os_log("[Q-BEATS][A345] RESUME - isPlaying:%{public}@ follower:%{public}@ ramo:solo-navigazione stato-scritto:nessuno -> metronome%{public}@",
+                   log: .default, type: .default,
+                   inMoto ? "true" : "false", follower ? "true" : "false", originSuffix)
+            return
+        }
+        roomSession.liveSession.playbackState = .starting
+        runner.startCurrentSection(audioEngine: audioEngine, session: roomSession.liveSession)
+        navigate(to: .metronome)
+        os_log("[Q-BEATS][A345] RESUME - isPlaying:false follower:false ramo:avvio stato-scritto:starting songIdx:%d sectionIdx:%d -> metronome%{public}@",
+               log: .default, type: .default, runner.currentSongIdx, runner.currentSectionIdx, originSuffix)
+    }
+
     var body: some View {
         switch page {
         case .shows:
@@ -373,36 +450,9 @@ struct QLiveRootView: View {
                     // `QBeatsStore.shared` è lo stesso accesso che la foglia usava
                     // per costruire (`QLiveShowDetailView.swift`, `store`): il
                     // singleton non cambia, cambia solo chi lo chiama.
-                    onStart: {
-                        // A386 · FASE B2A (2D) — il PRIMO START SHOW arma anche la macchina del
-                        //    Follower (R1: solo se «sento il Direttore» e la sessione è ferma,
-                        //    altrimenti FUORI con la ragione per il velo). A slot pieno (la stessa
-                        //    voce a show vivo) NON si riarma: da FUORI si rientra solo con RIENTRA
-                        //    (D1). L'ordine resta sincrono e senza attese (⟦S5b⟧ `Cond (a)`):
-                        //    installa, attacca, arma, naviga.
-                        // ⚠️ A386 · B2b (A1, Mauro 25/09/2026) — START SHOW NON ARMA PIÙ: sul
-                        //    Follower apre la lista d'ingresso («Join», foglio CD 2D-QUATER L2) e
-                        //    il tocco su una riga arma con la porta di RIENTRA
-                        //    (`QLiveSession.armRientra`). `armFollowerAtStartShow` è uscita; il
-                        //    testo sopra resta come storia. L'ordine è ora: installa (che alza
-                        //    «show aperto» per A2 e ricalcola la proposta), attacca, naviga.
-                        let firstStart = roomSession.runner == nil
-                        if firstStart {
-                            roomSession.install(SetlistRunner(setlist: show,
-                                                              store: QBeatsStore.shared),
-                                                showName: show.name,
-                                                audioEngine: audioEngine)
-                        }
-                        // ⟦A337⟧ (09/09/2026) — L'ASCOLTO DEL PLAY DEL DIRETTORE SI
-                        //    ATTACCA ALLA STANZA QUI, non nel player: idempotente
-                        //    (guardia booleana in `QLiveSession`), sincrono e senza
-                        //    attese — l'invariante ⟦S5b⟧ `Cond (a)` qui sopra resta
-                        //    intatta. Il motore entra per parametro, idioma di
-                        //    `endShow(audioEngine:)`. Muore col cassetto della
-                        //    stanza, cioe' col `switch` di `AppRootView`.
-                        roomSession.attachDirectorPlay(audioEngine: audioEngine)
-                        navigate(to: .metronome)
-                    },
+                    // ⚠️ A429 (08/11/2026) — il corpo di questa chiusura e' in `startShowPressed(_:origin:)`, qui sopra,
+                    //    identico: lo chiamano il tasto START SHOW / BACK TO SHOW e il pedale (seguito 1 di A429, par. 2.4).
+                    onStart: { origin in startShowPressed(show, origin: origin) },
                     // A253 — il SECONDO innesco di END SHOW: la voce del dettaglio
                     // (fogli CD 27/08 §② e 29/08 §B). STESSA funzione del primo,
                     // nessun percorso nuovo. La foglia dice «l'utente ha premuto
@@ -441,32 +491,10 @@ struct QLiveRootView: View {
                     //      `endShow` (`.stopped`). Strumentazione (3): stato letto, ramo, stato
                     //      scritto. Il log sta DOPO `navigate`, cosi' fra avvio e navigazione
                     //      non c'e' nemmeno una riga.
-                    onResume: {
-                        // A360 — stessa regola della fascia e del velo (`FollowerDecision`).
-                        let follower = audioEngine.followerDecision.isFollower
-                        let inMoto = audioEngine.isPlaying
-                        guard let runner = roomSession.runner else {
-                            // Ramo DIFENSIVO, mai vivo nel codice: la terza faccia nasce dal bivio,
-                            // che esige il runner (`leavePlayer()`). Se compare nel log, qualcuno
-                            // ha aperto una via nuova.
-                            os_log("[Q-BEATS][A345] RESUME - runner:nil ramo:difensivo -> shows",
-                                   log: .default, type: .default)
-                            navigate(to: .shows)
-                            return
-                        }
-                        if follower || inMoto {
-                            navigate(to: .metronome)
-                            os_log("[Q-BEATS][A345] RESUME - isPlaying:%{public}@ follower:%{public}@ ramo:solo-navigazione stato-scritto:nessuno -> metronome",
-                                   log: .default, type: .default,
-                                   inMoto ? "true" : "false", follower ? "true" : "false")
-                            return
-                        }
-                        roomSession.liveSession.playbackState = .starting
-                        runner.startCurrentSection(audioEngine: audioEngine, session: roomSession.liveSession)
-                        navigate(to: .metronome)
-                        os_log("[Q-BEATS][A345] RESUME - isPlaying:false follower:false ramo:avvio stato-scritto:starting songIdx:%d sectionIdx:%d -> metronome",
-                               log: .default, type: .default, runner.currentSongIdx, runner.currentSectionIdx)
-                    }
+                    // ⚠️ A429 (08/11/2026) — il corpo di questa chiusura e' in `resumePressed(origin:)`, qui sopra, identico
+                    //    salvo l'origine in coda alle tre righe [A345] quando chiama il pedale: lo chiamano il tasto RESUME
+                    //    e il pedale (mandato A429, par. 2.2). Il cartello qui sopra vale per quella funzione.
+                    onResume: { origin in resumePressed(origin: origin) }
                 )
             } else {
                 EmptyView()
@@ -546,6 +574,8 @@ struct QLiveRootView: View {
                 //    e le due porte del Follower (`armRientra`, `followerMusicianStop`). ⛔ Il
                 //    runner NON si legge attraverso di lei: entra qui sotto, dal gate, come sempre
                 //    (VINCOLO DI PROPAGAZIONE, `QLiveSession.swift:26-38`).
+                // ⚠️ RISCRITTO A429, c'era «per DUE cose e basta»: per tre; la terza è il bivio
+                //    (`roomSession.bivioAperto`), che la porta del pedale del player legge viva.
                 LiveView(onExit: { leavePlayer() },
                          onEndShow: { endShowAndLeave() },
                          session: roomSession.liveSession,
@@ -572,7 +602,7 @@ struct QLiveRootView: View {
                     //    fermo · SHOW DETAILS → `.detail` · END SHOW → `endShowAndLeave()`,
                     //    che si CHIAMA e non si modifica.
                     .overlay {
-                        if bivioAperto {
+                        if roomSession.bivioAperto {
                             QLiveBivioView(
                                 songName: bivioCanzone,
                                 meta: bivioMeta,
@@ -596,12 +626,12 @@ struct QLiveRootView: View {
                                 onClose: {
                                     os_log("[Q-BEATS][A343] bivio uscita X -> resta sul player fermo",
                                            log: .default, type: .default)
-                                    bivioAperto = false
+                                    roomSession.bivioAperto = false
                                 },
                                 onShowDetails: {
                                     os_log("[Q-BEATS][A343] bivio uscita SHOW DETAILS -> detail",
                                            log: .default, type: .default)
-                                    bivioAperto = false
+                                    roomSession.bivioAperto = false
                                     navigate(to: .detail)
                                     // ⟦A345⟧ — LA PORTA DECIDE LA FACCIA: il segno si alza DOPO
                                     //    `navigate` (che lo abbassa), nella stessa closure sincrona —
@@ -617,7 +647,7 @@ struct QLiveRootView: View {
                                 onEndShow: {
                                     os_log("[Q-BEATS][A343] bivio uscita END SHOW -> endShowAndLeave",
                                            log: .default, type: .default)
-                                    bivioAperto = false
+                                    roomSession.bivioAperto = false
                                     endShowAndLeave()
                                 })
                         }

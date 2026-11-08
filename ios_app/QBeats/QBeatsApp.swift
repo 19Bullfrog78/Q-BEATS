@@ -7,7 +7,10 @@ struct QBeatsApp: App {
     @StateObject private var audioEngine = AudioEngine.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var pendingImportManifest: BackupManifest? = nil
-    @State private var showImportView = false
+    // A429 · SEGUITO 1 (par. 2.3) — era «@State private var showImportView = false»: lo stato «foglio dell'import aperto»
+    // vive in `ImportSheetPresence.shared`, cosi' la porta del pedale lo legge vivo. Gli stessi scrittori negli stessi
+    // momenti: l'apertura da `onOpenURL` qui sotto e la chiusura del foglio, attraverso il binding del foglio.
+    @StateObject private var importSheet = ImportSheetPresence.shared
 
     var body: some Scene {
         WindowGroup {
@@ -22,7 +25,7 @@ struct QBeatsApp: App {
                                error.localizedDescription)
                     }
                 }
-                .sheet(isPresented: $showImportView) {
+                .sheet(isPresented: $importSheet.isOpen) {
                     if let manifest = pendingImportManifest {
                         ImportView(manifest: manifest, store: QBeatsStore.shared)
                     }
@@ -35,7 +38,7 @@ struct QBeatsApp: App {
                         do {
                             let manifest = try await QBeatsBackupManager.parse(url)
                             pendingImportManifest = manifest
-                            showImportView = true
+                            importSheet.isOpen = true
                         } catch {
                             os_log("[QBeatsApp] parse error: %{public}@", log: .default, type: .error,
                                    error.localizedDescription)
@@ -87,4 +90,13 @@ struct QBeatsApp: App {
             }
         }
     }
+}
+
+/// A429 · SEGUITO 1 (08/11/2026, par. 2.3) — «il foglio dell'import e' aperto», in un oggetto solo. Lo scrivono l'apertura
+/// in `onOpenURL` e la chiusura del foglio, attraverso il binding `$importSheet.isOpen` di `.sheet(isPresented:)`; lo legge
+/// anche la porta del pedale (un foglio sopra il player copre il suo comando di partenza). Solo main, come lo `@State` di
+/// prima.
+final class ImportSheetPresence: ObservableObject {
+    static let shared = ImportSheetPresence()
+    @Published var isOpen = false
 }

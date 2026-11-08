@@ -7020,8 +7020,9 @@ class AudioEngine: ObservableObject {
     }
 
     func handleStop() {
-        // A386 · FASE B2A (2D) — Q12: sul Follower la stessa guardia del pedale (chiamanti:
-        // pedale `.stop` e STOP della schermata di debug, tutti e due su main).
+        // A386 · FASE B2A (2D) — Q12: sul Follower la stessa guardia del pedale (⚠️ RISCRITTO A429, c'era «chiamanti:
+        // pedale `.stop` e STOP della schermata di debug, tutti e due su main»: chiamanti: il pedale `.stop` solo col
+        // Direttore muto in canzone, `PedalPressDecision` punto (2), e lo STOP della schermata di debug, tutti e due su main).
         if followerDecision.isFollower {
             os_log("[Q-BEATS][2D][STOP] handleStop ignorato - apparecchio Follower",
                    log: .default, type: .default)
@@ -7582,17 +7583,41 @@ class AudioEngine: ObservableObject {
         // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL LAMPO: «questa azione agisce?» ===
         // Decide `MIDILampDecision` (Models/, col suo banco) sugli specchi di main: il ruolo del
         // player (`PlayerRoleDecision`, composta da `FollowerDecision` e `DirectorSongCloseDecision`),
-        // il trasporto in moto (`playbackState` `.playing` o `.countIn`: la condizione di
-        // `handleStop`) e la base che suona. La base nel player non parte (A387 §2.2): solo la
+        // ⚠️ RISCRITTO A429, c'era «il trasporto in moto (`playbackState` `.playing` o `.countIn`: la condizione di
+        // `handleStop`) e la base che suona.»: per Play/Pause e Stop il lampo della regola del pedale (`PedalPress.lamp`,
+        // qui sotto) e la base che suona. La base nel player non parte (A387 §2.2): solo la
         // schermata di debug la fa suonare (`DebugView`, `playBacktrack`). Decisione di Mauro del
         // 05/10/2026: Stop Backtrack spento, come dopo lo Stop, finché la base non arriva nel player;
-        // quindi l'ingresso è falso, con l'eccezione del debug dichiarata qui. Il comportamento delle
-        // azioni qui sotto NON cambia: si aggiunge solo il segnale, mandato dove l'azione agisce.
+        // quindi l'ingresso è falso, con l'eccezione del debug dichiarata qui. ⚠️ RISCRITTO A429, c'era «Il comportamento
+        // delle azioni qui sotto NON cambia: si aggiunge solo il segnale, mandato dove l'azione agisce.»: il comportamento
+        // di Play/Pause e Stop di Direttore e Solo lo decide da A429 la regola del pedale; le altre azioni non cambiano, e
+        // il segnale resta mandato dove l'azione agisce.
         let lampRole = PlayerRoleDecision.playerRole(role: currentLinkMode, userLinkEnabled: linkUserEnabled)
         let lampMoving = transportInMotion
+        // === A429 (08/11/2026) — IL PEDALE COME LO SCHERMO (mandato A429, par. 2.0-2.5; seguito 1, par. 2.1-2.4) ===
+        // Play/Pause e Stop di Direttore e Solo: la regola del pedale (`PedalPressDecision`, Models/, col suo banco) decide
+        // PRIMA del lampo, sugli specchi di main letti adesso (ruolo, silenzio del Direttore, `isPlaying`, il segno
+        // «partenza chiesta», il motore in moto) e sullo schermo che la porta aperta legge adesso. Per Direttore e Solo la
+        // riga [SOLO-M1][LAMPO] esce quindi dopo la decisione. Sul Follower niente di nuovo: nessuna porta letta, nessuna
+        // riga nuova, la guardia A360 qui sotto com'era. Le altre azioni non passano dalla regola.
+        let pedalTransport: PedalTransportAction? = followerDecision.isFollower ? nil : PedalTransportAction(midi: action)
+        let pedalDoor: PedalDoor? = pedalTransport == nil ? nil : _pedalDoors.last?.door
+        let pedalScreen: PedalScreen = pedalDoor?.screen() ?? .noDoor
+        let pedalSilent = directorSilence != nil
+        let pedalIsPlaying = isPlaying
+        let pedalStartRequested = _startRequestToken != nil
+        let pedalPress: PedalPress? = pedalTransport.map {
+            PedalPressDecision.decide(role: lampRole,
+                                      directorSilent: pedalSilent,
+                                      action: $0,
+                                      isPlaying: pedalIsPlaying,
+                                      startRequested: pedalStartRequested,
+                                      engineMoving: lampMoving,
+                                      screen: pedalScreen)
+        }
         let lampFires = MIDILampDecision.fires(action: action,
                                                role: lampRole,
-                                               transportInMotion: lampMoving,
+                                               transportPressed: pedalPress?.lamp ?? false,
                                                backtrackPlaying: false)
         os_log("[Q-BEATS][SOLO-M1][LAMPO] azione:%{public}@ ruolo:%{public}@ in-moto:%d lampo:%d",
                log: .default, type: .default,
@@ -7619,23 +7644,20 @@ class AudioEngine: ObservableObject {
             midiActionLampSubject.send(action)
         }
         switch action {
-        case .playPause:
-            // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
-            // ⚠️ RISCRITTO A426, c'era «Play = rientra, Stop = ferma la band e chiude la canzone»: la faccia la decide il motore
-            // (`directorSilence`), Stop = ferma la band e chiude la canzone, le facce Play qui sotto. ⚠️ RISCRITTO A427, c'era
-            // «Fuori dal silenzio com'è oggi.»: fuori dal silenzio e senza il primo click del rientro in arrivo com'è oggi; dal fuoco
-            // all'«uno» uscito il pedale segue la faccia «rientro in arrivo» (A427). Il pedale stop resta sempre Stop (`handleStop` →
-            // `stop()` sul Direttore).
-            // A425 (P13) — ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le facce Play sono tre,
-            // «rientra», «lascia finire» e «rientro in arrivo» (⚠️ RISCRITTO A427, c'era «il rientro armato»: il rientro armato e,
-            // da A427, dal fuoco al primo click), e il tocco su una faccia Play si rilegge sulla
-            // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`. A426 — anche durante l'attesa
-            // del rientro il pedale stop ferma la band; un tocco di playPause su «rientro in arrivo» non fa niente.
-            if let silence = directorSilence {
-                directorTransportTapped(silence.tap, origin: "pedale")
-            } else if isPlaying { stop() } else { start() }
-        case .stop:
-            handleStop()
+        case .playPause, .stop:
+            // A429 — qui arrivano solo Direttore e Solo (il Follower esce alla guardia A360 qui sopra): il comando deciso dalla
+            // regola del pedale, con la stessa funzione del tocco (`performPedalPress`, sotto), poi la riga [PEDALE].
+            guard let pedalTransport, let pedalPress else { break }
+            let pedalOutcome = performPedalPress(pedalPress, door: pedalDoor)
+            os_log("[Q-BEATS][PEDALE] azione:%{public}@ ruolo:%{public}@ silenzio:%d inMoto:%d partenza:%d schermo:%{public}@ -> preme:%{public}@ esito:%{public}@",
+                   log: .default, type: .default,
+                   pedalTransport.rawValue, lampRole.rawValue, pedalSilent ? 1 : 0,
+                   PedalPressDecision.inMotion(action: pedalTransport, isPlaying: pedalIsPlaying,
+                                               startRequested: pedalStartRequested, engineMoving: lampMoving) ? 1 : 0,
+                   pedalStartRequested ? 1 : 0,
+                   PedalPressDecision.screenName(pedalScreen),
+                   PedalPressDecision.commandName(pedalPress.command),
+                   pedalOutcome)
         case .muteClickToggle:
             appSettings.clickMuted.toggle()
         case .stopBacktrack:
@@ -7657,6 +7679,135 @@ class AudioEngine: ObservableObject {
         case .stopped, .pausedAwaitingChoice:
             return false
         }
+    }
+
+    /// A429 (08/11/2026) — il comando che la regola del pedale ha deciso, con la stessa funzione del tocco (mandato A429,
+    /// par. 2.2): il motore esegue i suoi tre (il tasto del silenzio, `handleStop`, `stop()`), gli altri li preme la porta
+    /// aperta. Torna l'esito per la riga [PEDALE]. Solo main.
+    private func performPedalPress(_ press: PedalPress, door: PedalDoor?) -> String {
+        guard let command = press.command else { return press.reason }
+        switch command {
+        case .directorSilenceTap:
+            // A412 — col Direttore muto in canzone il pedale segue la regola del tasto della fascia (mandato §2.4):
+            // ⚠️ RISCRITTO A426, c'era «Play = rientra, Stop = ferma la band e chiude la canzone»: la faccia la decide il motore
+            // (`directorSilence`), Stop = ferma la band e chiude la canzone, le facce Play qui sotto. ⚠️ RISCRITTO A427, c'era
+            // «Fuori dal silenzio com'è oggi.»: fuori dal silenzio e senza il primo click del rientro in arrivo com'è oggi; dal fuoco
+            // all'«uno» uscito il pedale segue la faccia «rientro in arrivo» (A427). ⚠️ RISCRITTO A429, c'era «fuori dal silenzio e
+            // senza il primo click del rientro in arrivo com'è oggi»: fuori dal silenzio decide la regola del pedale
+            // (`PedalPressDecision`): il comando che lo schermo mostra, lo Stop a click in moto, niente a click fermo. Il pedale
+            // stop resta sempre Stop (`handleStop` → `stop()` sul Direttore, qui sotto; fuori dal silenzio `stop()`).
+            // A425 (P13) — ⚠️ RISCRITTO A426, c'era «le facce Play sono due, «rientra» e «lascia finire»»: le facce Play sono tre,
+            // «rientra», «lascia finire» e «rientro in arrivo» (⚠️ RISCRITTO A427, c'era «il rientro armato»: il rientro armato e,
+            // da A427, dal fuoco al primo click), e il tocco su una faccia Play si rilegge sulla
+            // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`. A426 — anche durante l'attesa
+            // del rientro il pedale stop ferma la band; un tocco di playPause su «rientro in arrivo» non fa niente.
+            if let silence = directorSilence {
+                directorTransportTapped(silence.tap, origin: "pedale")
+            }
+            return "directorTransportTapped"
+        case .handleStopInSilence:
+            handleStop()
+            return "handleStop"
+        case .stop:
+            stop()
+            return "stop()"
+        case .directorVeil, .soloVeil, .consoleCenter, .directorStrip, .resume, .startShow, .backToShows:
+            guard let door else { return "porta-chiusa" }
+            return door.press(command, PedalPressDecision.pedalOrigin)
+        }
+    }
+
+    // === A429 (08/11/2026) — LA PORTA DEL PEDALE (mandato A429, par. 2.3; seguito 1, par. 2.6) ===
+    /// ⚠️ RISCRITTO A429 · SEGUITO 2, c'era «Chi mostra un comando di partenza (il player, i dettagli dello show) apre la
+    /// sua porta quando compare e la chiude quando sparisce;»: ⚠️ RISCRITTO A429 · SEGUITO 3, c'era «chi mostra un comando
+    /// (il player, anche con BACK TO SHOWS sulla fine scaletta, e i dettagli dello show) apre la sua porta quando compare e
+    /// la chiude quando sparisce; il player la chiude anche prima, quando la fine scaletta chiude lo show
+    /// (`LiveView.leaveEndShow`).»: una porta vale solo finche' la sua pagina della stanza e' a schermo. Chi mostra un
+    /// comando (il player, anche con BACK TO SHOWS sulla fine scaletta, e i dettagli dello show) apre la sua porta quando
+    /// compare e la chiude quando sparisce; a ogni cambio di pagina della stanza le porte si chiudono tutte prima
+    /// (`closeAllPedalDoors`, qui sotto, da `QLiveRootView.navigate(to:)`), e il player la chiude un passo prima ancora,
+    /// quando la fine scaletta chiude lo show (`LiveView.leaveEndShow`). Il pedale chiama
+    /// l'ultima aperta (in una navigazione la vista nuova puo' comparire prima che la
+    /// vecchia sparisca), in modo sincrono, e ne riceve l'esito. Nessuna porta aperta ⇒ niente, con la riga [PEDALE]
+    /// («schermo:nessuna-porta»). Il gettone: chi chiude chiude solo la propria. La porta non conserva copie: `screen`
+    /// legge adesso le fonti vive della vista (sessione, runner, motore, stanza, il foglio dell'import). E' una chiamata di
+    /// funzione diretta: non aspetta un ridisegno, quindi vale anche in sfondo e a schermo bloccato. Solo main.
+    struct PedalDoor {
+        /// Cosa mostra adesso la schermata, letto all'atto del pedale.
+        let screen: () -> PedalScreen
+        /// Preme il comando con la stessa funzione del tocco e con l'origine data; torna l'esito per il registro.
+        let press: (PedalCommand, String) -> String
+    }
+    private var _pedalDoors: [(token: Int, door: PedalDoor)] = []
+    private var _pedalDoorCounter = 0
+
+    /// Apre una porta e ne torna il gettone. Solo main.
+    func openPedalDoor(_ door: PedalDoor) -> Int {
+        _pedalDoorCounter += 1
+        _pedalDoors.append((token: _pedalDoorCounter, door: door))
+        return _pedalDoorCounter
+    }
+
+    /// Chiude la porta del gettone dato, e nessun'altra. Solo main.
+    func closePedalDoor(_ token: Int) {
+        _pedalDoors.removeAll { $0.token == token }
+    }
+
+    /// A429 · SEGUITO 3 (08/11/2026) — chiude tutte le porte. La chiama `QLiveRootView.navigate(to:)` a ogni cambio di
+    /// pagina vero, prima di cambiarla: cosi' il pedale non preme mai il comando di uno schermo che se ne sta andando, e
+    /// la pagina nuova apre la sua porta quando compare. Tocca solo l'elenco delle porte: il gettone di chi l'aveva aperta
+    /// non vale piu', e la sua `closePedalDoor` di dopo non trova niente. Una riga di registro col numero delle porte
+    /// chiuse e il motivo. Solo main.
+    func closeAllPedalDoors(reason: String) {
+        let closed = _pedalDoors.count
+        _pedalDoors.removeAll()
+        os_log("[Q-BEATS][PEDALE] porte chiuse:%d motivo:%{public}@",
+               log: .default, type: .default, closed, reason)
+    }
+
+    // === A429 · SEGUITO 1 (08/11/2026) — IL SEGNO «PARTENZA CHIESTA» (seguito 1, par. 2.1) ===
+    /// Il segno lo possiede il motore, si legge e si scrive solo sul principale, e ha un gettone: `_startRequestCounter`
+    /// cresce a ogni richiesta, `_startRequestToken` e' il gettone alzato oppure `nil` (giu'). Niente `@Published`: e' un
+    /// ingresso del pedale, non della grafica. Il tocco lo alza (passa dal runner) ma nessun tasto e nessun velo lo legge.
+    private var _startRequestCounter = 0
+    private var _startRequestToken: Int? = nil
+
+    /// La partenza di una canzone o di una sezione dal runner (`SetlistRunner.prepareAndStartCurrentSection`): velo, V1/V2,
+    /// H, fascia, RESUME, e la partenza del Follower. Chiamare SOLO sul principale. Nello stesso giro del principale:
+    /// (1) se l'apparecchio non e' Follower alza il segno con un gettone nuovo; (2) `start()` con gli stessi argomenti di
+    /// prima; (3) solo se ha alzato il segno, accoda su audioQueue un passo che fa soltanto `DispatchQueue.main.async` per
+    /// abbassarlo se il gettone e' ancora quello. La coda e' seriale (`audioQueue`, senza `.concurrent`), quindi il passo
+    /// gira dopo il blocco d'avvio di (2), le cui pubblicazioni dell'esito (`publishIsPlayingQ`, a ogni uscita) sono gia'
+    /// accodate sul principale, seriale anche lui: il segno scende dopo che l'esito e' arrivato, `isPlaying` vero oppure
+    /// niente se l'avvio e' rifiutato o fallisce. Un secondo avvio alza un gettone nuovo: il passo del primo non lo abbassa.
+    /// Fonti Apple dell'ordine nel referto A429 · seguito 1. Sul Follower solo `start()`, come prima: niente segno, niente
+    /// passo, nessuna riga.
+    func startRequestedByRunner() {
+        guard !followerDecision.isFollower else {
+            start()
+            return
+        }
+        _startRequestCounter += 1
+        let token = _startRequestCounter
+        _startRequestToken = token
+        os_log("[Q-BEATS][PARTENZA] chiesta gettone:%d",
+               log: .default, type: .default, token)
+        start()
+        // A429 · SEGUITO 1 (par. 2.1) — l'unico passo nuovo su audioQueue: non legge e non scrive niente della coda, non
+        // tocca il render, il DSP, Link; accoda soltanto l'abbassamento sul principale.
+        audioQueue.async { [weak self] in
+            DispatchQueue.main.async {
+                self?.lowerStartRequest(token: token)
+            }
+        }
+    }
+
+    /// Abbassa il segno se il gettone e' ancora quello alzato. Solo main.
+    private func lowerStartRequest(token: Int) {
+        guard _startRequestToken == token else { return }
+        _startRequestToken = nil
+        os_log("[Q-BEATS][PARTENZA] esito arrivato gettone:%d isPlaying:%d",
+               log: .default, type: .default, token, isPlaying ? 1 : 0)
     }
 
     // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL MONITOR DEL WI-FI ===

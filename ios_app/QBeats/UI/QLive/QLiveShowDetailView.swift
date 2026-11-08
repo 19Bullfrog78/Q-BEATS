@@ -144,7 +144,9 @@ struct QLiveShowDetailView: View {
     /// «l'utente ha premuto».
     /// ⇒ Con ciò il rilievo #1 del referto A125 è CHIUSO, e la divergenza
     ///   dichiarata sopra non esiste più.
-    let onStart: () -> Void
+    /// ⚠️ A429 (08/11/2026) — era «let onStart: () -> Void»: porta l'origine (il tasto «start-show», il pedale «pedale»);
+    /// la funzione la scrive la stanza (`QLiveRootView.startShowPressed`).
+    let onStart: (String) -> Void
 
     /// A253 — il SECONDO innesco di END SHOW (terza faccia del dettaglio, fogli
     /// CD 27/08 §② e 29/08 §B). Stessa forma di `onStart`, per la stessa
@@ -168,7 +170,9 @@ struct QLiveShowDetailView: View {
     /// ⟦A345⟧ — RESUME: la foglia dice soltanto «l'utente ha premuto RESUME»; chi riparte
     /// (stato, runner, motore) e chi naviga e' la stanza (`QLiveRootView`, `onResume`),
     /// come per `onStart` e `onEndShow`.
-    let onResume: () -> Void
+    /// ⚠️ A429 (08/11/2026) — era «let onResume: () -> Void»: porta l'origine (il tasto «resume», il pedale «pedale»);
+    /// la funzione la scrive la stanza (`QLiveRootView.resumePressed`).
+    let onResume: (String) -> Void
 
     /// A253 — il motore, DICHIARATO e non iniettato: arriva da
     /// `AppRootView.swift:53`, iniettato su `QLiveRootView` un livello sopra
@@ -183,6 +187,12 @@ struct QLiveShowDetailView: View {
     @EnvironmentObject private var audioEngine: AudioEngine
 
     @ObservedObject private var store = QBeatsStore.shared
+
+    /// A429 — il gettone della porta del pedale di questa vista (`AudioEngine.openPedalDoor`); ⚠️ RISCRITTO A429 ·
+    /// SEGUITO 3, c'era «`nil` = porta chiusa.»: `nil` = porta chiusa da questa vista; a un cambio di pagina della stanza
+    /// la porta si chiude anche col gettone ancora qui (`AudioEngine.closeAllPedalDoors`), e la `closePedalDoor` di dopo
+    /// non trova niente.
+    @State private var pedalDoorToken: Int? = nil
 
     /// ⟦A345⟧ — QUANDO RESUME C'E': terza faccia · sezione nominabile · l'apparecchio comanda
     /// il trasporto. Il terzo termine e' il predicato del PLAY (`TransportView.swift:59`,
@@ -230,6 +240,58 @@ struct QLiveShowDetailView: View {
             }
         }
         .background(Color(hex: "#0e0e10").ignoresSafeArea())
+        // A429 (08/11/2026) — la porta del pedale dei dettagli: ⚠️ RISCRITTO A429 · SEGUITO 3, c'era «aperta quando la vista
+        // compare, chiusa quando sparisce.»: aperta quando la vista compare, chiusa quando sparisce, oppure prima, a ogni
+        // cambio di pagina della stanza (`QLiveRootView.navigate(to:)`, che le chiude tutte: `AudioEngine.closeAllPedalDoors`).
+        .onAppear { pedalDoorOpened() }
+        .onDisappear { pedalDoorClosed() }
+    }
+
+    // MARK: - A429 — la porta del pedale dei dettagli (mandato A429, par. 2.3; seguito 1, par. 2.4)
+
+    /// Due comandi, uno per faccia: col RESUME a schermo il RESUME, con lo `startfoot` START SHOW o BACK TO SHOW se il
+    /// tasto e' acceso (la «A» di Mauro dell'08/11), niente se e' spento. Lo schermo si legge all'atto del pedale: il
+    /// foglio dell'import (`ImportSheetPresence`), il motore (`showsResume` legge il Follower dal motore), il catalogo
+    /// (`store`, per il tasto acceso). `isThirdFace`, `resumeSectionName` e `isShowLive` sono gli ingressi di questa vista:
+    /// non cambiano finche' la vista e' a schermo (la faccia la decide la porta d'ingresso, `QLiveRootView.navigate`; il
+    /// runner si installa e si toglie solo insieme a una navigazione, `QLiveSession.install` ed `endShow`).
+    private func pedalDoorOpened() {
+        if let old = pedalDoorToken { audioEngine.closePedalDoor(old) }
+        pedalDoorToken = audioEngine.openPedalDoor(AudioEngine.PedalDoor(
+            screen: { pedalScreen() },
+            press: { command, origin in pedalPress(command, origin: origin) }))
+    }
+
+    private func pedalDoorClosed() {
+        guard let token = pedalDoorToken else { return }
+        audioEngine.closePedalDoor(token)
+        pedalDoorToken = nil
+    }
+
+    private func pedalScreen() -> PedalScreen {
+        if ImportSheetPresence.shared.isOpen { return .covered(.importSheet) }
+        if showsResume { return .detail(.resume) }
+        return .detail(.startFoot(enabled: Self.startEnabled(isShowLive: isShowLive,
+                                                             songsEmpty: store.resolve(setlist).songs.isEmpty)))
+    }
+
+    private func pedalPress(_ command: PedalCommand, origin: String) -> String {
+        switch command {
+        case .resume:
+            onResume(origin)
+            return "onResume"
+        case .startShow:
+            onStart(origin)
+            return "onStart"
+        case .directorSilenceTap, .handleStopInSilence, .stop, .directorVeil, .soloVeil, .consoleCenter, .directorStrip, .backToShows:
+            return "comando-di-un-altro-schermo"
+        }
+    }
+
+    /// A429 — il tasto START SHOW / BACK TO SHOW e' acceso: la condizione di `startButton` (cartello ⟦PORTA-RIENTRO⟧ ③
+    /// li'), in un posto solo per il tasto e per la porta del pedale.
+    static func startEnabled(isShowLive: Bool, songsEmpty: Bool) -> Bool {
+        isShowLive || !songsEmpty
     }
 
     // MARK: - Navbar (§CSS `.frame.v4 .navbar`: height 54, padding 0 14, seg centrato)
@@ -742,7 +804,8 @@ struct QLiveShowDetailView: View {
     /// da `.vrow`) e «from ⟨sezione⟩». Si costruisce SOLO con `resumeSectionName` non vuoto
     /// (`showsResume`): mai «from» vuoto.
     private var resumeRow: some View {
-        Button(action: onResume) {
+        // A429 — con l'origine del tasto: la stessa funzione la chiama il pedale (`pedalPress`).
+        Button(action: { onResume("resume") }) {
             HStack(spacing: 11) {
                 // glifo (:270): viewBox 24, «M7 4.5l12 7.5-12 7.5z», riempito currentColor
                 // (bianco), reso 17×17. ⛔ NON `PlayGlyphShape` (:773-785, «M7 5l12 7-12 7z»,
@@ -800,7 +863,8 @@ struct QLiveShowDetailView: View {
         // dal cambiamento stesso.
         // ⛔ Cambia la CONDIZIONE, non il trattamento visivo dello spento (opacità
         //    0,4 · bordo · ombra): quello è pelle, e la pelle non si tocca.
-        let isEnabled = isShowLive || !resolved.songs.isEmpty
+        // A429 — la stessa condizione, da `startEnabled` (la legge anche la porta del pedale).
+        let isEnabled = Self.startEnabled(isShowLive: isShowLive, songsEmpty: resolved.songs.isEmpty)
         return Button {
             // ⟦S5b⟧ — ARMA, NON SUONA. Qui non si tocca l'audio: si costruisce il runner
             // con la setlist SCELTA e lo si consegna al presentatore.
@@ -817,7 +881,8 @@ struct QLiveShowDetailView: View {
             //    discussione — ARMA-NON-SUONA e il divieto su `startSetlist` sono
             //    esattamente ciò che questa porta continua a rispettare: anche il
             //    ramo di RIENTRO naviga e basta, senza toccare il transport.
-            onStart()
+            // A429 — con l'origine del tasto: la stessa funzione la chiama il pedale (`pedalPress`).
+            onStart("start-show")
         } label: {
             HStack(spacing: 10) {
                 // ⟦PORTA-RIENTRO⟧ ③ — IL GLIFO SPARISCE NELLO STATO DI RIENTRO. Un

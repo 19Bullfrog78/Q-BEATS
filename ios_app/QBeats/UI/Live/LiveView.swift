@@ -30,6 +30,8 @@ struct LiveView: View {
     //    cartello A242 lì) e questa vista la OSSERVA soltanto. ⛔ Nessun
     //    default: ogni sito di montaggio dichiara quale sessione passa.
     @ObservedObject var session: LiveSession
+    // ⚠️ RISCRITTO A429, c'era «per DUE cose e basta»: per tre; la terza è il bivio (`room.bivioAperto`), che la porta
+    // del pedale legge viva (`pedalScreen`, in fondo). Il resto del cartello vale com'è.
     // A386 · B2b (30/09/2026) — LA STANZA, per DUE cose e basta: la proposta di RIENTRA
     // (`rientraProposal`, un `@Published` della stanza — «chi la legge osserva la stanza per
     // QUESTO campo e basta», referto B2A §8) e le due porte del Follower (`armRientra`,
@@ -100,6 +102,10 @@ struct LiveView: View {
     @State private var soloAreaLogged: Bool = false
     // SOLO-G1-PEZZO-1-M3 · A398 — se la riga dei caratteri del pezzo del testo è già stata scritta nel log.
     @State private var soloFontsLogged: Bool = false
+    // A429 (08/11/2026) — il gettone della porta del pedale del player (`AudioEngine.openPedalDoor`); ⚠️ RISCRITTO A429 ·
+    // SEGUITO 3, c'era «`nil` = chiusa.»: `nil` = chiusa da questa vista; a un cambio di pagina della stanza la porta si
+    // chiude anche col gettone ancora qui (`AudioEngine.closeAllPedalDoors`), e la `closePedalDoor` di dopo non trova niente.
+    @State private var pedalDoorToken: Int? = nil
 
     // MARK: - Mirror UI per cambi sezione SEAMLESS (TD #38(a) + #40 fix, 17/05/2026)
     //
@@ -203,9 +209,8 @@ struct LiveView: View {
                                                            wifiConnected: audioEngine.wifiConnected,
                                                            midiConnected: audioEngine.midiDeviceConnected,
                                                            memory: room.connectionMemory)
-            let consoleFaces = SoloConsoleDecision.faces(transportRunning: audioEngine.isPlaying,
-                                                         backtrackPlaying: false,
-                                                         mixerOpen: session.showMixer)
+            // A429 — le stesse facce, da `liveConsoleFaces()` (le legge anche la porta del pedale).
+            let consoleFaces = liveConsoleFaces()
             // A386 · B2b (30/09/2026) — IL VELO DEL FOLLOWER: una decisione sola
             //    (`FollowerVeilDecision`, Models/, testata), letta qui dal motore (stato,
             //    ragione, segnale, Start Stop Sync, sessione Link in moto), dalla stanza (la
@@ -261,17 +266,9 @@ struct LiveView: View {
                     // A401 (10/10/2026) — Solo REV20, punto 116: il posto nello show della canzone del runner, da 1, per
                     //    «Song N» dove il player del Solo scrive una canzone senza nome (`SongNameDecision`).
                     let soloSongNumber = runner.currentSongIdx + 1
-                    let soloScreen = SoloScreenDecision.screen(state: session.playbackState,
-                                                               sectionIndex: runner.currentSectionIdx,
-                                                               sectionName: runner.currentSection?.name,
-                                                               currentSongName: runner.currentSong?.name,
-                                                               showName: room.showName,
-                                                               songNameInMotion: session.currentSongName,
-                                                               songNumber: soloSongNumber,
-                                                               displayWritten: session.macroBarCurrent > 0,
-                                                               sectionBPM: runner.currentSection?.bpm,
-                                                               sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
-                                                               sectionBeatUnit: runner.currentSection?.beatUnit)
+                    // A429 — lo stesso schermo, da `liveSoloScreen()` (lo leggono anche la riga dello schermo e la porta
+                    //    del pedale), con gli stessi ingressi di prima.
+                    let soloScreen = liveSoloScreen()
                     Group {
                         switch soloScreen.kind {
                         case .playing, .overlayStop:
@@ -288,7 +285,7 @@ struct LiveView: View {
                                            contentOpacity: 1.0,
                                            onExit: onExit,
                                            onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) })
+                                           onConsoleKey: { key in _ = consoleKeyTouched(key, faces: consoleFaces, origin: "console") })
                                 .onAppear { soloAreaShown(soloGeometry) }
                         case .veil:
                             SoloVeilView(screen: soloScreen,
@@ -298,7 +295,7 @@ struct LiveView: View {
                                          clickMuted: audioEngine.appSettings.clickMuted,
                                          onExit: onExit,
                                          onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                         onTap: { soloVeilTapped(soloScreen) },
+                                         onTap: { _ = soloVeilTapped(soloScreen, origin: "velo") },
                                          onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
                         case .resume:
                             SoloResumeView(screen: soloScreen,
@@ -309,8 +306,8 @@ struct LiveView: View {
                                            faces: consoleFaces,
                                            onExit: onExit,
                                            onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                           onConsoleKey: { key in consoleKeyTouched(key, faces: consoleFaces) },
-                                           onDeadTap: { soloVeilTapped(soloScreen) },
+                                           onConsoleKey: { key in _ = consoleKeyTouched(key, faces: consoleFaces, origin: "console") },
+                                           onDeadTap: { _ = soloVeilTapped(soloScreen, origin: "velo") },
                                            onShown: { texts in soloScreenShown(soloScreen, texts: texts) })
                         case .endShow:
                             EndShowView(geometry: soloGeometry,
@@ -319,9 +316,9 @@ struct LiveView: View {
                                         lights: statusLights,
                                         midiLampOff: midiLampOff,
                                         clickMuted: audioEngine.appSettings.clickMuted,
-                                        onExit: onExit,
+                                        onExit: { leaveEndShow(onExit) },
                                         onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                        onBackToShows: onEndShow)
+                                        onBackToShows: { leaveEndShow(onEndShow) })
                                 .onAppear {
                                     endShowShown(role: playerRole,
                                                  title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName))
@@ -461,14 +458,8 @@ struct LiveView: View {
                     let rule = audioEngine.followerDecision
                     // A398 — tempo e metrica della sezione che parte (`.qb-mt`, SYNC REV8 schermi 1, 1b e 9): lo
                     //    stesso dato e la stessa scritta dei veli del Solo (M3 §3.5 b).
-                    let veil = StandbyOverlayDecision(
-                        currentSectionIdx: runner.currentSectionIdx,
-                        currentSectionName: runner.currentSection?.name ?? "",
-                        songName: nextSong,
-                        isFollower: rule.isFollower,
-                        tempoLine: SoloScreenDecision.tempoLine(bpm: runner.currentSection?.bpm,
-                                                                beatsPerBar: runner.currentSection?.beatsPerBar,
-                                                                beatUnit: runner.currentSection?.beatUnit))
+                    // A429 — lo stesso velo, da `standbyVeil(nextSong:)` (lo legge anche la porta del pedale).
+                    let veil = standbyVeil(nextSong: nextSong)
                     VStack(spacing: 0) {
                         // Il velo si ferma SOTTO la testata (decisione 13): la fascia
                         // resta scoperta e freccia e muto arrivano ai loro `Button`.
@@ -481,7 +472,7 @@ struct LiveView: View {
                         StandbyOverlayView(decision: veil, followerVeil: followerVeil,
                                            scaleFactor: scaleFactor, headerHeight: headerHeight)
                             .contentShape(Rectangle())
-                            .onTapGesture { veilTapped(veil) }
+                            .onTapGesture { _ = veilTapped(veil, origin: "velo") }
                     }
                     .onAppear { veilShown(veil, rule) }
                     // ⚠️ B2b — la strumentazione A360 sullo slot E «nessuno collegato» è uscita con
@@ -556,9 +547,9 @@ struct LiveView: View {
                                 lights: statusLights,
                                 midiLampOff: midiLampOff,
                                 clickMuted: audioEngine.appSettings.clickMuted,
-                                onExit: onExit,
+                                onExit: { leaveEndShow(onExit) },
                                 onToggleMute: { audioEngine.appSettings.clickMuted.toggle() },
-                                onBackToShows: onEndShow)
+                                onBackToShows: { leaveEndShow(onEndShow) })
                         .onAppear {
                             endShowShown(role: playerRole,
                                          title: SoloScreenDecision.endShowHeaderTitle(role: playerRole, showName: room.showName))
@@ -793,6 +784,13 @@ struct LiveView: View {
                 session.currentBar = ((sectionBeat - 1) / bpb) + 1
             }
         }
+        // A429 (08/11/2026) — la porta del pedale del player: ⚠️ RISCRITTO A429 · SEGUITO 2, c'era «aperta quando il player
+        // compare, chiusa quando sparisce.»: ⚠️ RISCRITTO A429 · SEGUITO 3, c'era «aperta quando il player compare, chiusa
+        // quando sparisce, oppure prima, quando la fine scaletta chiude lo show (`leaveEndShow`).»: aperta quando il player
+        // compare, chiusa quando sparisce, oppure prima: a ogni cambio di pagina della stanza (`QLiveRootView.navigate(to:)`,
+        // che le chiude tutte) e, un passo prima ancora, quando la fine scaletta chiude lo show (`leaveEndShow`).
+        .onAppear { pedalDoorOpened() }
+        .onDisappear { pedalDoorClosed() }
         // MARK: - AudioEngine → LiveSession sync
         .onReceive(audioEngine.$playbackState) { state in
             switch state {
@@ -1215,7 +1213,10 @@ struct LiveView: View {
     /// la freccia (LIBRO 2026-09-09/11 «PERIMETRO DEL FOLLOWER A SHOW ATTIVO») e il
     /// RESUME glielo dà il Direttore (LIBRO 2026-09-09/11 «IL COMANDO DEL DIRETTORE
     /// FA RIPARTIRE ANCHE IL FOLLOWER»; il ramo sta in `QLiveSession.orchestrateDirectorPlay`).
-    private func veilTapped(_ veil: StandbyOverlayDecision) {
+    /// A429 — `origin`: quella del tocco («velo») o del pedale («pedale», dalla porta del player): la riga [A355] esce
+    /// come prima, e chiamata dal pedale porta in coda « origine:pedale». Torna l'esito per la riga [PEDALE].
+    @discardableResult
+    private func veilTapped(_ veil: StandbyOverlayDecision, origin: String) -> String {
         let ramo: String
         if veil.isFollower {
             ramo = "nessuna azione"
@@ -1224,14 +1225,17 @@ struct LiveView: View {
         } else {
             ramo = "canzone"
         }
-        os_log("[Q-BEATS][A355] tocco sul velo - ruolo:%{public}@ ramo:%{public}@ sectionIdx:%d",
+        os_log("[Q-BEATS][A355] tocco sul velo - ruolo:%{public}@ ramo:%{public}@ sectionIdx:%d%{public}@",
                log: .default, type: .default,
-               veil.isFollower ? "follower" : "comanda", ramo, runner.currentSectionIdx)
-        guard !veil.isFollower else { return }
+               veil.isFollower ? "follower" : "comanda", ramo, runner.currentSectionIdx,
+               PedalPressDecision.originSuffix(origin))
+        guard !veil.isFollower else { return "nessuna azione" }
         if veil.hasResumePoint {
             runner.startCurrentSection(audioEngine: audioEngine, session: session)
+            return "runner.startCurrentSection"
         } else {
             runner.startCurrentSong(audioEngine: audioEngine, session: session)
+            return "runner.startCurrentSong"
         }
     }
 
@@ -1256,7 +1260,11 @@ struct LiveView: View {
     /// quelle di oggi della fascia di chi comanda (`TransportView`): Stop → `audioEngine.stop()`, Play →
     /// `runner.startCurrentSection`; il Mixer apre e chiude il pannello (D1); Kill spento e List mode non fanno
     /// niente (Kill acceso chiamerebbe `stopBacktrack`, come oggi, ma nel Giro 1 la base nel player non suona).
-    private func consoleKeyTouched(_ key: SoloConsoleKey, faces: SoloConsoleFaces) {
+    /// A429 — `origin`: quella del tocco («console») o del pedale («pedale», solo il tasto centrale a Play, dalla porta
+    /// del player): la riga [SOLO-M2][CONSOLE] esce come prima, e chiamata dal pedale porta in coda « origine:pedale».
+    /// Torna l'esito per la riga [PEDALE].
+    @discardableResult
+    private func consoleKeyTouched(_ key: SoloConsoleKey, faces: SoloConsoleFaces, origin: String) -> String {
         let action = SoloConsoleDecision.action(for: key, faces: faces)
         let keyName: String
         switch key {
@@ -1287,8 +1295,9 @@ struct LiveView: View {
         case .none:
             outcome = "nessuna azione"
         }
-        os_log("[Q-BEATS][SOLO-M2][CONSOLE] tocco:%{public}@ esito:%{public}@",
-               log: .default, type: .default, keyName, outcome)
+        os_log("[Q-BEATS][SOLO-M2][CONSOLE] tocco:%{public}@ esito:%{public}@%{public}@",
+               log: .default, type: .default, keyName, outcome, PedalPressDecision.originSuffix(origin))
+        return outcome
     }
 
     /// Il pannello del mixer si è aperto o chiuso: una riga con la causa vera (`MixerCause`: tasto, zona-sopra,
@@ -1382,15 +1391,23 @@ struct LiveView: View {
 
     /// Il tocco sul velo: su V1/V2 fa partire la canzone con la chiamata di oggi (`runner.startCurrentSong`, come
     /// `veilTapped`); su H non fa niente (punto 87) e si scrive solo nel log. L'esito lo decide `SoloScreen.tap`.
-    private func soloVeilTapped(_ screen: SoloScreen) {
+    /// A429 — `origin`: quella del tocco («velo») o del pedale («pedale», solo V1/V2, dalla porta del player): le righe
+    /// [SOLO-M3][VELO] escono come prima, e chiamate dal pedale portano in coda « origine:pedale». Torna l'esito per la
+    /// riga [PEDALE].
+    @discardableResult
+    private func soloVeilTapped(_ screen: SoloScreen, origin: String) -> String {
         switch screen.tap {
         case .startSong:
-            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
-                   log: .default, type: .default, Self.screenName(screen.kind), "runner.startCurrentSong")
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "runner.startCurrentSong",
+                   PedalPressDecision.originSuffix(origin))
             runner.startCurrentSong(audioEngine: audioEngine, session: session)
+            return "runner.startCurrentSong"
         case .none:
-            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@",
-                   log: .default, type: .default, Self.screenName(screen.kind), "nessuna azione")
+            os_log("[Q-BEATS][SOLO-M3][VELO] tocco schermo:%{public}@ esito:%{public}@%{public}@",
+                   log: .default, type: .default, Self.screenName(screen.kind), "nessuna azione",
+                   PedalPressDecision.originSuffix(origin))
+            return "nessuna azione"
         }
     }
 
@@ -1403,17 +1420,8 @@ struct LiveView: View {
     ///    consegna l'H del montaggio (tempo 121 della prima canzone, mentre a schermo c'era il 120 della terza). Corpo,
     ///    righe e puntini del nome restano quelli del velo che li ha misurati, e solo se lo schermo di adesso è un velo.
     private func soloScreenShown(_ fromCaller: SoloScreen, texts: SoloVeilTexts?) {
-        let screen = SoloScreenDecision.screen(state: session.playbackState,
-                                               sectionIndex: runner.currentSectionIdx,
-                                               sectionName: runner.currentSection?.name,
-                                               currentSongName: runner.currentSong?.name,
-                                               showName: room.showName,
-                                               songNameInMotion: session.currentSongName,
-                                               songNumber: runner.currentSongIdx + 1,
-                                               displayWritten: session.macroBarCurrent > 0,
-                                               sectionBPM: runner.currentSection?.bpm,
-                                               sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
-                                               sectionBeatUnit: runner.currentSection?.beatUnit)
+        // A429 — gli stessi ingressi di prima, da `liveSoloScreen()`.
+        let screen = liveSoloScreen()
         let veilTexts = (screen.kind == .veil || screen.kind == .resume) ? texts : nil
         let sectionWritten: String = screen.relationSection
             ?? SectionNameDecision.displayName(runner.currentSection?.name ?? "", numberInSong: runner.currentSectionIdx + 1)
@@ -1453,6 +1461,124 @@ struct LiveView: View {
         let measurer = CoreTextWidthMeasurer.shared
         let report = SoloFonts.all.map { "\($0):\(measurer.resolves($0) ? "ok" : "MANCA")" }.joined(separator: " ")
         os_log("[Q-BEATS][SOLO-M3][CARATTERI] %{public}@", log: .default, type: .default, report)
+    }
+
+    // MARK: - A429 (08/11/2026) — lo schermo di adesso e la porta del pedale del player (mandato A429, par. 2.3; seguito 1)
+
+    /// Lo schermo del Solo: la regola dello schermo (`SoloScreenDecision`) con gli ingressi letti adesso, gli stessi che
+    /// il body usava (e la riga dello schermo, A405). Lo leggono il body, `soloScreenShown` e la porta del pedale.
+    private func liveSoloScreen() -> SoloScreen {
+        SoloScreenDecision.screen(state: session.playbackState,
+                                  sectionIndex: runner.currentSectionIdx,
+                                  sectionName: runner.currentSection?.name,
+                                  currentSongName: runner.currentSong?.name,
+                                  showName: room.showName,
+                                  songNameInMotion: session.currentSongName,
+                                  songNumber: runner.currentSongIdx + 1,
+                                  displayWritten: session.macroBarCurrent > 0,
+                                  sectionBPM: runner.currentSection?.bpm,
+                                  sectionBeatsPerBar: runner.currentSection?.beatsPerBar,
+                                  sectionBeatUnit: runner.currentSection?.beatUnit)
+    }
+
+    /// Le facce della console del Solo (`SoloConsoleDecision`), con gli ingressi di prima: `isPlaying` (D5), la base che
+    /// nel player non suona (A387 §2.2), il pannello del mixer. Le leggono il body e la porta del pedale.
+    private func liveConsoleFaces() -> SoloConsoleFaces {
+        SoloConsoleDecision.faces(transportRunning: audioEngine.isPlaying,
+                                  backtrackPlaying: false,
+                                  mixerOpen: session.showMixer)
+    }
+
+    /// Il velo di Direttore e Follower in `.standby` (`StandbyOverlayDecision`), con gli ingressi di prima. Lo leggono il
+    /// body e la porta del pedale.
+    private func standbyVeil(nextSong: String) -> StandbyOverlayDecision {
+        StandbyOverlayDecision(
+            currentSectionIdx: runner.currentSectionIdx,
+            currentSectionName: runner.currentSection?.name ?? "",
+            songName: nextSong,
+            isFollower: audioEngine.followerDecision.isFollower,
+            tempoLine: SoloScreenDecision.tempoLine(bpm: runner.currentSection?.bpm,
+                                                    beatsPerBar: runner.currentSection?.beatsPerBar,
+                                                    beatUnit: runner.currentSection?.beatUnit))
+    }
+
+    /// ⚠️ RISCRITTO A429 · SEGUITO 2, c'era «La porta si apre quando il player compare (col gettone che la chiude) e si
+    /// chiude quando sparisce.»: ⚠️ RISCRITTO A429 · SEGUITO 3, c'era «la porta si apre quando il player compare (col
+    /// gettone che la chiude) e si chiude quando sparisce, oppure prima, quando la fine scaletta chiude lo show
+    /// (`leaveEndShow`, sotto).»: la porta si apre quando il player compare (col gettone che la chiude) e si chiude quando
+    /// sparisce, oppure prima: a ogni cambio di pagina della stanza (`QLiveRootView.navigate(to:)` →
+    /// `AudioEngine.closeAllPedalDoors`) e, un passo prima ancora, quando la fine scaletta chiude lo show (`leaveEndShow`,
+    /// sotto). Un `onAppear`
+    /// ripetuto senza `onDisappear` chiude prima la porta di prima.
+    private func pedalDoorOpened() {
+        if let old = pedalDoorToken { audioEngine.closePedalDoor(old) }
+        pedalDoorToken = audioEngine.openPedalDoor(AudioEngine.PedalDoor(
+            screen: { pedalScreen() },
+            press: { command, origin in pedalPress(command, origin: origin) }))
+    }
+
+    private func pedalDoorClosed() {
+        guard let token = pedalDoorToken else { return }
+        audioEngine.closePedalDoor(token)
+        pedalDoorToken = nil
+    }
+
+    /// A429 · SEGUITO 2 (08/11/2026) — l'uscita dalla fine scaletta (V4, `EndShowView`): chiude prima la porta del pedale
+    /// del player e poi chiama la chiusura data: `onEndShow` (BACK TO SHOWS, col dito e col pedale) o `onExit` (la freccia
+    /// «<»). Sulla fine scaletta tutte e due chiudono lo show (`QLiveRootView.endShowAndLeave`; `leavePlayer`, ramo
+    /// `.fineSetlist`), che mette la sessione a `.stopped` e toglie il runner alla stanza: ⚠️ RISCRITTO A429 · SEGUITO 3,
+    /// c'era «da li' all'`onDisappear` la porta aperta leggerebbe `.stopped` (la fascia sul Direttore, lo schermo H con la
+    /// console a Play sul Solo), e un secondo colpo di pedale farebbe partire il click sul runner che la vista tiene
+    /// ancora.»: senza una porta chiusa, da li' all'`onDisappear` la porta aperta leggerebbe `.stopped` (la fascia sul
+    /// Direttore, lo schermo H con la console a Play sul Solo), e un secondo colpo di pedale farebbe partire il click sul
+    /// runner che la vista tiene ancora. Da A429 · seguito 3 le porte le chiude tutte `QLiveRootView.navigate(to:)`, a ogni
+    /// cambio di pagina (`AudioEngine.closeAllPedalDoors`): questa e' una seconda serratura, un passo prima di
+    /// `navigate(to:)`, e resta. Con la porta chiusa il pedale
+    /// trova «schermo:nessuna-porta»; l'`onDisappear` dopo non trova piu' il gettone. Per il dito non cambia niente di
+    /// visibile: le chiusure sono le stesse di prima.
+    private func leaveEndShow(_ close: () -> Void) {
+        pedalDoorClosed()
+        close()
+    }
+
+    /// Cosa mostra adesso il player, letto all'atto del pedale da fonti vive (nessuna copia presa all'apertura): il bivio
+    /// della stanza, il foglio dell'import, il ruolo, e poi lo schermo del Solo con le sue facce, oppure — per Direttore
+    /// (e Follower, che qui non arriva) — il pannello del mixer, che copre la fascia, e lo stato della sessione col velo.
+    /// Nel Solo il pannello del mixer non copre la console (BOX5, decisione 9) e non conta.
+    private func pedalScreen() -> PedalScreen {
+        if room.bivioAperto { return .covered(.bivio) }
+        if ImportSheetPresence.shared.isOpen { return .covered(.importSheet) }
+        let role = PlayerRoleDecision.playerRole(role: audioEngine.currentLinkMode,
+                                                 userLinkEnabled: audioEngine.linkUserEnabled)
+        if role == .solo {
+            return .solo(screen: liveSoloScreen(), faces: liveConsoleFaces())
+        }
+        if session.showMixer { return .covered(.mixer) }
+        let state = session.playbackState
+        if case .standby(let nextSong) = state {
+            return .director(state: state, veil: standbyVeil(nextSong: nextSong))
+        }
+        return .director(state: state, veil: nil)
+    }
+
+    /// Preme il comando con la funzione del tocco, col comando che porta lo schermo letto adesso (il velo, lo schermo, le
+    /// facce). Torna l'esito per la riga [PEDALE].
+    private func pedalPress(_ command: PedalCommand, origin: String) -> String {
+        switch command {
+        case .directorVeil(let veil):
+            return veilTapped(veil, origin: origin)
+        case .soloVeil(let screen):
+            return soloVeilTapped(screen, origin: origin)
+        case .consoleCenter(let faces):
+            return consoleKeyTouched(.center, faces: faces, origin: origin)
+        case .directorStrip:
+            return TransportView.commandStripTapped(audioEngine: audioEngine, runner: runner, session: session)
+        case .backToShows:
+            leaveEndShow(onEndShow)
+            return "onEndShow"
+        case .directorSilenceTap, .handleStopInSilence, .stop, .resume, .startShow:
+            return "comando-di-un-altro-schermo"
+        }
     }
 
     private func accentPatternToStrings(_ pattern: [UInt8]) -> [String] {

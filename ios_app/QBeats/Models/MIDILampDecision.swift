@@ -4,8 +4,10 @@ import Foundation
 // Punto 98 del foglio Solo REV17 (deciso): la spia MIDI «lampeggia solo quando il pedale fa fare
 // davvero qualcosa all'app». La regola dice, per ogni azione del MIDI Learn, se oggi agisce
 // (A393 §6.4, misure su `AudioEngine.executeMIDIAction` e sulle funzioni che chiama):
-//  · `.playPause`: agisce sempre (ferma se suona, altrimenti avvia);
-//  · `.stop`: `handleStop` agisce solo se il trasporto è in moto (suona o conta); da fermo niente;
+//  · `.playPause`: ⚠️ RISCRITTO A429, c'era «agisce sempre (ferma se suona, altrimenti avvia);»: per Direttore e Solo agisce
+//    quando la regola del pedale (`PedalPressDecision`) preme un comando (nel silenzio del Direttore sempre, com'era);
+//  · `.stop`: ⚠️ RISCRITTO A429, c'era «`handleStop` agisce solo se il trasporto è in moto (suona o conta); da fermo
+//    niente;»: lo stesso, dalla regola del pedale (in moto, o con la partenza chiesta; nel silenzio col motore in moto);
 //  · `.muteClickToggle`: agisce sempre, su tutti e tre i ruoli;
 //  · `.stopBacktrack`: ferma la base solo se la base suona;
 //  · `.tapTempo`: agisce sempre (ogni tocco entra nella misura del tempo);
@@ -24,22 +26,24 @@ enum MIDILampDecision {
     /// I cinque comandi che oggi non fanno niente nel player.
     static let silentActions: [MIDIAction] = [.nextSection, .prevSection, .nextSong, .startSong, .loopToggle]
 
-    /// `transportInMotion`: il motore suona o conta (`AudioEngine.playbackState` `.playing` o
-    /// `.countIn`), cioè la condizione sotto cui `handleStop` agisce.
+    /// ⚠️ RISCRITTO A429, c'era «`transportInMotion`: il motore suona o conta (`AudioEngine.playbackState` `.playing` o
+    /// `.countIn`), cioè la condizione sotto cui `handleStop` agisce.»: `transportPressed`: per Play/Pause e Stop, il lampo
+    /// della regola del pedale (`PedalPress.lamp`, mandato A429 par. 2.5): fuori dal silenzio del Direttore c'è se e solo
+    /// se il pedale ha premuto un comando; nel silenzio com'era (Play/Pause sempre, Stop col motore in moto).
     /// `backtrackPlaying`: la base sta suonando. Nel player la base non parte (A387 §2.2); decisione
     /// di Mauro del 05/10/2026: finché la base non arriva nel player, Stop Backtrack non lampeggia.
     static func fires(action: MIDIAction,
                       role: PlayerRole,
-                      transportInMotion: Bool,
+                      transportPressed: Bool,
                       backtrackPlaying: Bool) -> Bool {
         if role == .follower {
             return action == .muteClickToggle
         }
         switch action {
         case .playPause:
-            return true
+            return transportPressed
         case .stop:
-            return transportInMotion
+            return transportPressed
         case .muteClickToggle:
             return true
         case .stopBacktrack:

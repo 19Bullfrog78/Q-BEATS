@@ -336,7 +336,9 @@ final class SetlistRunner: ObservableObject {
 
         // 6: parte la catena audio.
         // L1.b v1: niente count-in tra canzoni. Da aggiungere in iterazione successiva.
-        audioEngine.start()
+        // A429 · SEGUITO 1 (par. 2.1) — era `audioEngine.start()`: la stessa partenza, col segno «partenza chiesta» che il
+        // pedale legge (sul Follower solo `start()`, come prima).
+        audioEngine.startRequestedByRunner()
     }
 
     /// A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — IL RIENTRO DEL DIRETTORE (mandato §2.2). Il motore è

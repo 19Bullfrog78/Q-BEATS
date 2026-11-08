@@ -147,23 +147,15 @@ struct TransportView: View {
                 // A412 — scritta e glifo da `playStopShowsStop` (fuori dal silenzio identici a prima: «stop» e «■»
                 // al conteggio o a motore in moto); col Direttore muto in canzone il tocco va al motore, che
                 // rientra o ferma la band (`directorTransportTapped`): mai `runner.startCurrentSection` né W1.
+                // ⚠️ RISCRITTO A429, c'era «il tocco va al motore»: il tocco sta in `commandStripTapped` (sotto), una funzione
+                // sola chiamata dal tasto e dal pedale (mandato A429, par. 2.2); col Direttore muto in canzone va al motore.
                 RubberBtnView(
                     label: playStopShowsStop ? "stop" : "play",
                     glyph: playStopShowsStop ? "■" : "▶",
                     primary: !isStopped,
                     disabled: isStandby,
                     scaleFactor: scaleFactor) {
-                        if let silence = session.directorSilence {
-                            audioEngine.directorTransportTapped(silence.tap, origin: "fascia")
-                        } else if audioEngine.isPlaying {
-                            audioEngine.stop()
-                        } else {
-                            // Modalità Direttore: Q-BEATS è sorgente, parte
-                            // standalone immediatamente.
-                            // ⚠️ A240 — era `startSetlist`: azzerava canzone e
-                            //    sezione, e il punto si perdeva QUI (A239, sito 1).
-                            runner.startCurrentSection(audioEngine: audioEngine, session: session)
-                        }
+                        _ = Self.commandStripTapped(audioEngine: audioEngine, runner: runner, session: session)
                 }
 
                 RubberBtnView(label: "next sez", glyph: "▶▶",
@@ -197,6 +189,29 @@ struct TransportView: View {
         }
         .padding(.vertical, 6)
         .gesture(mixerDrag)
+    }
+
+    /// A429 (08/11/2026) — il tocco del tasto Play/Stop della fascia di chi comanda, in una funzione sola chiamata dal
+    /// tasto e dal pedale (mandato A429, par. 2.2; il pedale la chiama dalla porta del player, `LiveView`). Era la chiusura
+    /// del tasto qui sopra, e cosa fa non cambia: col Direttore muto in canzone la chiamata a `directorTransportTapped`,
+    /// identica (origine «fascia»); motore in moto → `stop()`; altrimenti `startCurrentSection`. Non ha una riga di registro
+    /// sua (non l'aveva): il pedale la nomina nella riga [PEDALE]. Torna l'esito per quella riga. Solo main.
+    @discardableResult
+    static func commandStripTapped(audioEngine: AudioEngine, runner: SetlistRunner, session: LiveSession) -> String {
+        if let silence = session.directorSilence {
+            audioEngine.directorTransportTapped(silence.tap, origin: "fascia")
+            return "directorTransportTapped"
+        } else if audioEngine.isPlaying {
+            audioEngine.stop()
+            return "audioEngine.stop()"
+        } else {
+            // Modalità Direttore: Q-BEATS è sorgente, parte
+            // standalone immediatamente.
+            // ⚠️ A240 — era `startSetlist`: azzerava canzone e
+            //    sezione, e il punto si perdeva QUI (A239, sito 1).
+            runner.startCurrentSection(audioEngine: audioEngine, session: session)
+            return "runner.startCurrentSection"
+        }
     }
 
     // MARK: - A360 — La fascia del Follower (lastra ④: riga-regola + EMERG)
