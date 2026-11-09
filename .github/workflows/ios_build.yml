@@ -14,6 +14,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      # === A432 — Banco del DSP (core_engine/tests) nella CI (P31; VERIFICA_REFEREE_A424 par. 3.1) ===
+      # PRIMA del banco Swift e di tutto il resto: i banchi di core_engine segnalano gli errori solo
+      # con assert(), che con NDEBUG definito non fa niente: si compila in Debug
+      # (-DCMAKE_BUILD_TYPE=Debug), ogni banco nuovo rifiuta NDEBUG (#error) e test_assert_sentinel
+      # prova a runtime che assert() valuta la sua espressione. Si eseguono tutti gli add_test di
+      # core_engine/CMakeLists.txt. CMake sta nell'immagine del runner (actions/runner-images,
+      # images/macos/macos-26-arm64-Readme.md, voce «Cmake»); se mancasse, il passo lo installa.
+      # Un test rosso = run rossa: ctest torna diverso da 0, nessun || true.
+      - name: Run core_engine tests (CMake + CTest, Debug)
+        run: |
+          set -o pipefail
+          command -v cmake >/dev/null 2>&1 || brew install cmake
+          cmake --version
+          cmake -S core_engine -B "$RUNNER_TEMP/core_engine_build" -DCMAKE_BUILD_TYPE=Debug
+          grep '^CMAKE_BUILD_TYPE' "$RUNNER_TEMP/core_engine_build/CMakeCache.txt"
+          cmake --build "$RUNNER_TEMP/core_engine_build" --config Debug
+          ctest --test-dir "$RUNNER_TEMP/core_engine_build" -C Debug --output-on-failure --verbose
       - name: Install XcodeGen
         run: brew install xcodegen
       # LinkKit non sta nel deposito (licenza Ableton Link SDK): lo scarica

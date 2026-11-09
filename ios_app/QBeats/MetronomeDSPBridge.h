@@ -48,6 +48,23 @@ void            metronome_set_beat_position(MetronomeHandle handle, double beatP
 // la fase di battuta (_currentBeatInBar). Usata da Link sync_phase.
 void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
 
+// A424/A432 — rinomina il battito in attesa (MetronomeDSP::renamePendingBeat): cambia solo
+// l'etichetta nella battuta, mai il momento di un click. Chiamare SOLO su audioQueue, prima di
+// metronome_processBuffer. Scrive la riga [METRO] renamePendingBeat (os_log su audioQueue, come
+// le righe [METRO] delle due funzioni qui sopra).
+void            metronome_rename_pending_beat(MetronomeHandle handle, uint32_t beatInBar);
+
+// A431/A432 — il battito che il DSP suonera' per primo al prossimo metronome_processBuffer (P26, R1):
+// beat = l'identita' sulla linea dei battiti del DSP (origine + indice); samplesAhead = campioni
+// dall'inizio del prossimo buffer (0 = al primo campione, il battito messo a 'subito'). Sola lettura,
+// nessuna riga di registro. Chiamare SOLO su audioQueue, dopo l'ultima scrittura del DSP della
+// chiamata e prima di metronome_processBuffer.
+typedef struct {
+    double  beat;
+    int64_t samplesAhead;
+} MetronomePendingBeat;
+MetronomePendingBeat metronome_pending_beat(MetronomeHandle handle);
+
 // === Bug 2.b — SPIA passiva L1 (diagnostica, OFF di default) ===
 // Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
 void            metronome_set_diag_enabled(MetronomeHandle handle, bool enabled);

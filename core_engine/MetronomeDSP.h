@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -123,8 +124,28 @@ public:
     // Link sync_phase per non sfasare l'accento al cambio BPB in peer.
     void setBeatPositionTimeOnly(double beatPosition);
 
+    // A424/A432 — rinomina il battito in attesa: la sua posizione nella battuta diventa
+    // beatInBar (modulo i battiti per battuta). Non tocca la linea a campioni
+    // (_absoluteSamplePosition), il battito in attesa (_exactNextBeatSample, anche
+    // quando la correzione lo ha messo a «subito»), la sua identità (_pendingBeatIdx),
+    // le suddivisioni e lo swing, i cambi armati, l'origine (_startAbsoluteBeat).
+    // Chiamare SOLO su audioQueue, prima di processBuffer.
+    void renamePendingBeat(uint32_t beatInBar);
+
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
     uint32_t getCurrentBeatInBar() const { return _currentBeatInBar; }
+
+    // A431/A432 — il battito che processBuffer suonerà per primo (P26, R1): la sua identità
+    // sulla linea dei battiti del DSP, origine + indice. Sola lettura, chiamare SOLO su audioQueue.
+    double getPendingBeat() const { return _startAbsoluteBeat + (double)_pendingBeatIdx; }
+    // Campioni fra l'inizio del prossimo processBuffer e il battito in attesa: 0 = al primo
+    // campione (il battito messo a «subito»); il battito esce nel prossimo buffer se il valore
+    // è < bufferSize. La stessa regola d'arrotondamento e lo stesso confronto con cui
+    // processBuffer fa uscire il battito (roundedNextBeat == currentAbsolute). Sola lettura,
+    // chiamare SOLO su audioQueue.
+    int64_t getPendingSamplesAhead() const {
+        return (int64_t)(std::round(_exactNextBeatSample) - (double)_absoluteSamplePosition);
+    }
 
     // === Bug 2.b — SPIA passiva (diagnostica, OFF di default) ===
     // Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
@@ -149,6 +170,13 @@ private:
     double   _bpm;
     uint32_t _beatsPerBar;
     uint32_t _currentBeatInBar;
+    // A431/A432 — l'indice del battito in attesa rispetto all'origine (_startAbsoluteBeat): il battito
+    // che processBuffer suonerà per primo è _startAbsoluteBeat + _pendingBeatIdx. Lo scrivono solo:
+    // il costruttore e resetForStart (0), setBeatPosition (nextRelativeIdx), setBeatPositionTimeOnly
+    // (pendingRelIdx, anche col battito messo a «subito»), setAbsolutePositionForTesting (nextBeatIdx)
+    // e processBuffer (+1 a ogni battito, accanto a _exactNextBeatSample += spb). setBPM (riscala la
+    // distanza e tiene l'identità), setBeatsPerBar e renamePendingBeat non lo toccano.
+    int64_t  _pendingBeatIdx;
     uint64_t _absoluteSamplePosition;
     double   _exactNextBeatSample;
     // Phase origin: fissato al momento del Play originale.

@@ -6,6 +6,7 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
     , _bpm(bpm)
     , _beatsPerBar(4)
     , _currentBeatInBar(0)
+    , _pendingBeatIdx(0)
     , _absoluteSamplePosition(0)
     , _exactNextBeatSample(0.0)
     , _startAbsoluteBeat(0.0)
@@ -230,6 +231,7 @@ void MetronomeDSP::setAbsolutePositionForTesting(uint64_t pos) {
     double exactBeats       = (double)pos / spb;
     uint64_t nextBeatIdx    = (uint64_t)std::ceil(exactBeats - 1e-9);
     _exactNextBeatSample    = (double)nextBeatIdx * spb;
+    _pendingBeatIdx         = (int64_t)nextBeatIdx;   // A432 — qui l'origine è 0: l'indice è assoluto
 }
 
 void MetronomeDSP::resetForStart(double startBeat) {
@@ -239,6 +241,7 @@ void MetronomeDSP::resetForStart(double startBeat) {
     double spb              = (_sampleRate * 60.0) / _bpm;
     _absoluteSamplePosition = (uint64_t)std::round(startBeat * spb);
     _currentBeatInBar       = 0;
+    _pendingBeatIdx         = 0;   // A432 — il battito in attesa è l'origine stessa
     _exactNextBeatSample    = startBeat * spb;
     _swingPhase = false;
     // B7-A3 — nota di correttezza (ratifica 03/07): con startBeat=0 la
@@ -276,6 +279,7 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     int64_t beatInBar       = beatIdx % (int64_t)_beatsPerBar;
     if (beatInBar < 0) beatInBar += _beatsPerBar;
     _currentBeatInBar       = (uint32_t)beatInBar;
+    _pendingBeatIdx         = beatIdx;   // A432 — la stessa identità che dà il campione qui sotto
 
     // Sample del prossimo beat: phase origin + indice relativo
     double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
@@ -337,6 +341,9 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
     double relative         = beatPosition - _startAbsoluteBeat;
     double pendingRelIdx    = std::round(relative + aheadBeats);
     _exactNextBeatSample    = (_startAbsoluteBeat + pendingRelIdx) * spb;
+    // A432 — l'identità del battito in attesa nella linea nuova. Vale anche quando il fire-asap
+    // qui sotto mette il battito a «subito»: il clamp sposta il campione, non il nome.
+    _pendingBeatIdx         = (int64_t)pendingRelIdx;
 
     // Fire-asap: se la correzione ha scavalcato in avanti il mark pendente,
     // il suo sample è nel passato del nuovo cursore e l'uguaglianza stretta
@@ -363,6 +370,20 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
     } else {
         _exactNextSubdivSample = std::numeric_limits<double>::max();
     }
+}
+
+// === A424/A432 — rinomina il battito in attesa (P26) ===
+// Cambia solo l'etichetta del battito che processBuffer suonerà per primo (e, di seguito,
+// di tutti quelli dopo): _currentBeatInBar entra solo nell'accento, nel proprio incremento
+// e nel cancello dei cambi armati. Il momento di ogni click è _exactNextBeatSample sulla
+// linea _absoluteSamplePosition, che qui non si tocca; neanche _pendingBeatIdx
+// (l'identità), l'origine, le suddivisioni e i cambi armati.
+// Real-time (Costituzione V5, par. 4): una lettura e un confronto di un intero, un modulo
+// e una scrittura di un intero. Nessuna allocazione, nessun lucchetto, nessuna riga di
+// registro. Chiamare SOLO su audioQueue, prima di processBuffer.
+void MetronomeDSP::renamePendingBeat(uint32_t beatInBar) {
+    if (_beatsPerBar == 0) return;
+    _currentBeatInBar = beatInBar % _beatsPerBar;
 }
 
 // === Bug 2.b — SPIA passiva: drain consumer (thread NON-RT). ===
@@ -507,6 +528,7 @@ std::vector<BeatEvent> MetronomeDSP::processBuffer(uint32_t bufferSize) {
             }
             _currentBeatInBar = (_currentBeatInBar + 1) % _beatsPerBar;
             _exactNextBeatSample += spb;
+            ++_pendingBeatIdx;   // A432 — un intero in più per battito uscito (anche col click muto)
             if (_subdivisionMultiplier > 1) {
                 _swingPhase            = false;
                 _exactNextSubdivSample = (double)currentAbsolute + subdivIntervalForPhase(spb, false);
