@@ -270,7 +270,8 @@ class AudioEngine: ObservableObject {
     let beatTickSubject = PassthroughSubject<Int, Never>()
     // A432 · PARTE 2b (P10; referto A424 par. 3.3 b, passo 4) — il messaggio del riallineo del Follower (`SectionRealign`,
     // Models/): la sezione in cui sta la band, il prossimo tick e il battito della sezione che quel tick porta. Il motore
-    // lo manda sul principale dopo ogni riallineo, DOPO l'azione `.rejoin` al runner; la vista ne ricava il tick d'inizio
+    // lo manda sul principale dopo ogni riallineo dentro la canzone (non quando la band è oltre la fine: lì si consegna la
+    // chiusura di fine canzone), DOPO l'azione `.rejoin` al runner; la vista ne ricava il tick d'inizio
     // della sezione (`LiveView`). Nessun disegno nuovo: cambia solo lo stato della vista.
     let sectionRealignSubject = PassthroughSubject<SectionRealign, Never>()
     // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL LAMPO DEL PEDALE (A393 §6.4) ===
@@ -593,7 +594,7 @@ class AudioEngine: ObservableObject {
     /// L'ora dell'apparecchio in cui il Follower ha saputo del Play del Direttore che ha accettato (`snap.captureHostTime`
     /// in `followerHandleLinkTransport`): da lì il seme misura i secondi della band. `nil` = nessun Play di questa canzone.
     private var _followerPlayCallbackTicksQ: UInt64? = nil
-    /// I numeri del fuoco dell'ingresso (l'ora d'uscita prevista e il battito della sessione a quell'ora) tenuti quando al
+    /// I numeri del fuoco dell'ingresso (l'istante della battuta di Link e il battito della sessione a quell'ora) tenuti quando al
     /// fuoco la mappa di questo avvio non è ancora arrivata (la gara con l'attesa zero): l'àncora si prende quando arriva.
     private var _followerEntryPendingQ: (ticks: UInt64, linkBeat: Double)? = nil
     /// «Riallineo dovuto»: il motivo (buco | ingresso | al-secondo). Si consuma al punto R della prima chiamata in cui la
@@ -603,7 +604,7 @@ class AudioEngine: ObservableObject {
     /// d'accordo coi secondi» (un controllo sul conto dell'iPad fatto PRIMA del buco). I battiti contati fra il buco e il
     /// riallineo hanno il nome di prima, e si sa.
     private var _followerCountedAtDueQ: CountedBeat? = nil
-    /// I riallinei fatti dall'avvio del motore (la riga `[SCHED]`).
+    /// I riallinei fatti dall'ultimo avvio del motore (la riga `[SCHED]`); li azzera `start()`.
     private var _followerRealignsQ: Int = 0
     /// La correzione di fase valutata in QUESTA chiamata di `scheduleNextBuffer`: `nil` = non valutata (finestra «sync
     /// skip», scorta, assert del Direttore, Solo, prima àncora della linea propria); se no il salto, dopo meno prima, in
@@ -1775,6 +1776,9 @@ class AudioEngine: ObservableObject {
             // una nuova attesa calcolata dallo stato corrente. Bound: esauriti
             // i re-arm si entra col comportamento precedente (WARN del seed
             // compreso) — mai peggio della baseline.
+            // A432 · PARTE 2b — l'ingresso che entra lo stesso fuori battuta (i ri-armi esauriti, qui sotto): il conto del
+            // Follower non prende l'àncora, perché l'ora del fuoco non è l'istante di una battuta della band.
+            var enteredOffBar = false
             if let lhNow = lhCaptured {
                 let qNow = Double(self._beatsPerBarQ)
                 let probeNow = link_engine_probe_session(lhNow, futureHostTime, qNow)
@@ -1794,6 +1798,7 @@ class AudioEngine: ObservableObject {
                     }
                     os_log("[Q-BEATS][LINK][SHARED] WARN re-arm esauriti (dist:%.4f quantum:%.1f) — ingresso con comportamento pre-fix",
                            log: .default, type: .error, distToBar, qNow)
+                    enteredOffBar = true
                 }
             }
             DispatchQueue.main.async {
@@ -1897,11 +1902,17 @@ class AudioEngine: ObservableObject {
             // sezione e `scheduleBPMChange`, a 100). Si legge qui perché la riga sotto li
             // sovrascrive con 3; la riga di log si scrive dopo i tre `scheduleNextBuffer`.
             // A432 · PARTE 2b — L'ÀNCORA DEL CONTO DEL FOLLOWER, al fuoco dell'ingresso (referto A424 par. 3.3 a; A431 par. 3.1
-            // a): una lettura sola della sessione, senza commit, all'ora d'uscita prevista dell'ingresso (la stessa ora del
-            // seme locale qui sopra). Dopo il seme locale, che il seme dalla band può sostituire, e PRIMA che
-            // `consumeSongMapForRunningStartQ` abbassi il segno della mappa (il segno alto dice che la mappa è di questo
-            // avvio) e dei tre buffer. Per gli altri ruoli non fa niente.
-            self.followerBandEntryAtFireQ(entryOutTicks: futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
+            // a): una lettura sola della sessione, senza commit. Dopo il seme locale, che il seme dalla band può
+            // sostituire, e PRIMA che `consumeSongMapForRunningStartQ` abbassi il segno della mappa (il segno alto dice che
+            // la mappa è di questo avvio) e dei tre buffer. Per gli altri ruoli non fa niente.
+            // L'ORA DELL'ÀNCORA È L'ISTANTE DELLA BATTUTA DI LINK (`futureHostTime`: l'ora in cui la fase della sessione
+            // è zero, cioè l'ora in cui la band suona quell'«uno»), NON l'ora d'uscita del primo buffer dell'iPad
+            // (`futureHostTime` più latenza più un buffer, quella del seme locale qui sopra): a quell'ora la band è già
+            // oltre la battuta di (latenza + buffer) × tempo / 60 battiti, e un'àncora «inizio di battuta ↔ battito della
+            // sessione a quell'ora» sposterebbe tutti i posti di quella frazione: con una cassa Bluetooth (circa 180 ms) e
+            // un tempo sopra i 166 la frazione passa il mezzo battito e il conto direbbe un battito indietro per tutta la
+            // canzone (trovato dalla rilettura indipendente prima della CI; nel referto, Aperto).
+            self.followerBandEntryAtFireQ(barTicks: futureHostTime, onBar: !enteredOffBar)
             let skipBuffersAtFire = self.linkSyncSkipBuffers
             self.linkSyncSkipBuffers = 3
             // A421 · SEGUITO 2 (par. 7) — il segno della mappa non sopravvive al fuoco dell'ingresso: qui si abbassa, con la riga.
@@ -2947,8 +2958,9 @@ class AudioEngine: ObservableObject {
     /// Il conto finisce con la canzone: Stop (ogni `stopSync`, da `cleanupAfterStopQ`), Stop ricevuto dalla band, un Play
     /// nuovo della band accettato (un avvio diverso: prima di `enter`, P39), show chiuso, cambio di ruolo o levetta di Link
     /// spenta (`followerResetQ`). Con lui l'ora del Play, i numeri del fuoco tenuti e il riallineo dovuto. Una ripartenza
-    /// dell'iPad nella stessa canzone (configurazione, frequenza, la fine di un'interruzione) NON passa di qui: l'àncora
-    /// resta quella.
+    /// dell'iPad nella stessa canzone per un cambio di configurazione o di frequenza o per la fine di un'interruzione NON
+    /// passa di qui: l'àncora resta quella. Il reset dei servizi audio sul Follower sì (`stopSync(origin: .followerReset)`
+    /// passa dalla pulizia dello Stop): da lì fino al prossimo Play della band nessun conto, e l'iPad va come prima.
     private func resetFollowerBandCountQ(reason: String) {
         let had = _followerBandCountQ != nil
         _followerBandCountQ = nil
@@ -2984,27 +2996,36 @@ class AudioEngine: ObservableObject {
     }
 
     /// Al fuoco dell'ingresso del Follower (il lavoro di `armSharedJoin`), prima dei tre buffer: UNA lettura della
-    /// sessione senza commit all'ora d'uscita prevista dell'ingresso (`link_engine_read_session_at`: il battito nella
+    /// sessione senza commit all'istante della battuta di Link dell'ingresso (`link_engine_read_session_at`: il battito nella
     /// numerazione della sessione, la stessa delle letture al punto R). Col conto già vivo, o con la mappa di questo
     /// avvio già arrivata, l'ingresso si fa subito; se no (la gara con l'attesa zero: il fuoco prima del blocco di
     /// `setSongMap`) i numeri del fuoco si tengono e l'àncora si prende quando la mappa arriva
     /// (`consumeSongMapForRunningStartQ`). Solo il Follower; gli altri ruoli escono alla guardia.
-    private func followerBandEntryAtFireQ(entryOutTicks: UInt64) {
+    /// `barTicks`: l'istante della battuta di Link su cui cade l'ingresso (l'ora del fuoco prevista). `onBar` falso:
+    /// l'ingresso è entrato fuori battuta coi ri-armi esauriti: senza un conto vivo l'àncora non si prende.
+    private func followerBandEntryAtFireQ(barTicks: UInt64, onBar: Bool) {
         _followerEntryPendingQ = nil
         guard FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ),
               let lh = linkEngineHandle else { return }
-        let read = link_engine_read_session_at(lh, entryOutTicks, DirectorRejoinDecision.sessionQuantum)
+        if _followerBandCountQ == nil && !onBar {
+            os_log("[Q-BEATS][CONTO-BAND] ancora non presa contesto:ingresso motivo:ingresso-fuori-battuta - nessun conto in questa canzone, l'iPad va come prima",
+                   log: .default, type: .default)
+            return
+        }
+        let read = link_engine_read_session_at(lh, barTicks, DirectorRejoinDecision.sessionQuantum)
         guard read.linkEnabled else {
             os_log("[Q-BEATS][CONTO-BAND] ancora non presa contesto:ingresso motivo:ponte-di-link-spento",
                    log: .default, type: .default)
             return
         }
         if _followerBandCountQ != nil || _songMapForNextStartQ {
-            takeFollowerBandAnchorQ(entryTicks: entryOutTicks, entryLinkBeat: read.beatAtHostTimeQBig, atFire: true)
+            takeFollowerBandAnchorQ(entryTicks: barTicks, entryLinkBeat: read.beatAtHostTimeQBig, atFire: true)
         } else {
-            _followerEntryPendingQ = (ticks: entryOutTicks, linkBeat: read.beatAtHostTimeQBig)
-            os_log("[Q-BEATS][CONTO-BAND] ancora rinviata contesto:ingresso - la mappa di questo avvio non e' ancora arrivata oraIngresso:%llu battitoLink:%.4f",
-                   log: .default, type: .default, entryOutTicks, read.beatAtHostTimeQBig)
+            // Nessun conto e il segno della mappa basso: o la mappa di questo avvio non è ancora arrivata (la gara con
+            // l'attesa zero), o è una ripartenza senza conto. I numeri si tengono; li usa solo una mappa che arriva.
+            _followerEntryPendingQ = (ticks: barTicks, linkBeat: read.beatAtHostTimeQBig)
+            os_log("[Q-BEATS][CONTO-BAND] ancora rinviata contesto:ingresso - nessun conto e nessuna mappa consegnata per questo avvio: i numeri del fuoco si tengono oraBattuta:%llu battitoLink:%.4f",
+                   log: .default, type: .default, barTicks, read.beatAtHostTimeQBig)
         }
     }
 
@@ -3049,7 +3070,7 @@ class AudioEngine: ObservableObject {
             } else {
                 noteFollowerRealignDueQ(reason: "ingresso")
             }
-            os_log("[Q-BEATS][CONTO-BAND] ancora presa contesto:%{public}@ seme:%d sezione:%d battito:%d battitiMisurati:%.4f ritardo_battiti:%.4f battitoLink:%.4f oraIngresso:%llu oraPlay:%llu stato:%{public}@ semeApplicato:%d",
+            os_log("[Q-BEATS][CONTO-BAND] ancora presa contesto:%{public}@ seme:%d sezione:%d battito:%d battitiMisurati:%.4f ritardo_battiti:%.4f battitoLink:%.4f oraBattuta:%llu oraPlay:%llu stato:%{public}@ semeApplicato:%d",
                    log: .default, type: .default,
                    context, seed.songBeat, seed.section, seed.beatInSection, seed.measuredBeats, seed.callbackDelayBeats,
                    entryLinkBeat, entryTicks, playTicks, describe(count.renumbering), seedApplied ? 1 : 0)
@@ -6827,6 +6848,8 @@ class AudioEngine: ObservableObject {
                 // A421 — i contatori del pezzo 2 ripartono da questo avvio: i battiti zittiti (U9), l'«uno» uscito (par.
                 // 2.2 c), i richiami a motore fermo (par. 2.2 a).
                 self._lateBeatsMutedQ = 0
+                // A432 · PARTE 2b — e i riallinei del conto del Follower (la riga `[SCHED]`).
+                self._followerRealignsQ = 0
                 self._muteLateBeatThisBufferQ = false
                 self._lastUnoBeatQ = nil
                 self._stoppedEngineCallbacksQ = 0
