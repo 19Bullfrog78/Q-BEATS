@@ -7,6 +7,9 @@ import XCTest
 // orologi, A.2 coi casi 1-5 del referto A431 par. 2.5, i numeri del 29/10 e del 01/11 che il tipo puro sa
 // calcolare, A.9 e A.12 scritti come limiti, la ripartenza dell'iPad a metà sezione, le righe 2, 5 e 18 della
 // tabella delle cause di A431 par. 2.4 e, il limite delle due sezioni corte di seguito.
+// A432 parte 2b, in coda: A.11, il conto che nasce su un cambio di metro (VERIFICA_REFEREE_A432_PARTE2A_OPUS
+// par. 3.2): il seme all'inizio del metro nuovo e sulla sua seconda battuta, il primo battito contato dopo
+// l'àncora, il costo scritto come limite, una canzone senza cambi di metro, i confini passati in ordine.
 // 24.000.000 tick al secondo, come `ShowClockTests`. Gli attesi sono scritti per esteso, dai numeri dei casi.
 // Gli stessi casi, con gli stessi numeri, girano sul modello Python delle regole (fuori dal deposito), dove ogni
 // test cade se si toglie la riga della regola che prova: il controllo negativo del riferimento fisso («124 contro
@@ -769,6 +772,201 @@ final class FollowerBandCountTests: XCTestCase {
             assertCertain(r)
             XCTAssertEqual(try gap(r), 0.0, accuracy: 1e-9)
             XCTAssertEqual(r.place, inSong(section, beat, inBar))
+        }
+    }
+
+    // MARK: - A.11: il conto che nasce su un cambio di metro (A432 parte 2b)
+    //
+    // VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3.2: il conto che nasce dal seme parte nello stato in cui sarebbe un
+    // conto che leggeva dall'inizio della canzone (`FollowerBandCount.stateAtSeed`). I numeri li ha scelti CC.
+
+    /// Una battuta d'attacco in 4/4 e poi il 3/4, tutto a 180: il confine a 4 battiti (1,3333 s), una battuta di
+    /// 3/4 dura 1 s.
+    private var pickup180: SongMap { song([(4, 1, 180.0), (3, 16, 180.0)]) }
+    private let beat180 = 60.0 / 180.0
+    /// Il Direttore rinumera circa 1,08 s dopo il confine (referto A431 par. 2.5, caso 1).
+    private let renumberAfterBoundary = 1.08
+
+    /// Un ingresso senza conto: rende il conto, il seme e l'ora dell'ingresso.
+    private func seedAt(_ map: SongMap, _ measuredSeconds: Double, link: Double = 500.0,
+                        file: StaticString = #filePath,
+                        line: UInt = #line) throws -> (FollowerBandCount, FollowerBandSeed, UInt64) {
+        let entry = ticks(play, measuredSeconds)
+        let (c, s) = try anchored(enter(nil, map, entry: entry, link: link), file: file, line: line)
+        return (c, s, entry)
+    }
+
+    /// Un'ora a `seconds` dalla base, anche prima di lei.
+    private func ticksFrom(_ base: UInt64, signed seconds: Double) -> UInt64 {
+        if seconds >= 0 { return base + UInt64((seconds * tps).rounded()) }
+        return base - UInt64((-seconds * tps).rounded())
+    }
+
+    /// Una lettura coi secondi contati dall'ora dell'ingresso (l'àncora del seme).
+    private func readFrom(_ c: inout FollowerBandCount, _ entry: UInt64, _ link: Double, _ seconds: Double,
+                          last: (Int, Int, Double)? = nil) -> FollowerBandReading {
+        var counted: FollowerCountedBeat? = nil
+        if let l = last {
+            counted = FollowerCountedBeat(section: l.0, beatInSection: l.1, ticks: ticksFrom(entry, signed: l.2))
+        }
+        return c.read(pendingLinkBeat: link, pendingTicks: ticks(entry, seconds), ticksPerSecond: tps,
+                      lastCounted: counted)
+    }
+
+    /// L'iPad entra sul primo «uno» del 3/4: il seme è la sezione 1, battito 0. Il confine che porta lì è già
+    /// passato per la band: il conto nasce con lo stato aperto, come un conto che leggeva dall'inizio. Il Direttore
+    /// rinumera 1,08 s dopo il confine (+1,0188, scelto qui): riconosciuta, certo.
+    func testASeedAtTheStartOfTheNewMeterRecognizesTheRenumbering() throws {
+        let seeded = try seedAt(pickup180, 4.0 * beat180)
+        var c = seeded.0
+        let s = seeded.1
+        let entry = seeded.2
+        XCTAssertEqual(s.section, 1)
+        XCTAssertEqual(s.beatInSection, 0)
+        XCTAssertEqual(s.songBeat, 4)
+        XCTAssertEqual(c.renumbering, .open(boundary: 1, boundariesAfter: 0))
+        XCTAssertEqual(c.bandSection, 1)
+        // una lettura prima della rinumerazione: niente da riconoscere, lo stato resta aperto
+        var r = readFrom(&c, entry, 502.0, 2.0 * beat180, last: (1, 1, 1.0 * beat180))
+        assertCertain(r)
+        XCTAssertEqual(try gap(r), 0.0, accuracy: 1e-6)
+        XCTAssertNil(r.recognized)
+        XCTAssertEqual(c.renumbering, .open(boundary: 1, boundariesAfter: 0))
+        // la lettura al battito 5, 1,6667 s dopo il confine: dopo la rinumerazione
+        XCTAssertGreaterThan(5.0 * beat180, renumberAfterBoundary)
+        r = readFrom(&c, entry, 505.0 + 1.0188, 5.0 * beat180, last: (1, 4, 4.0 * beat180))
+        assertCertain(r)
+        let rec = try XCTUnwrap(r.recognized)
+        XCTAssertEqual(rec.boundary, 1)
+        XCTAssertEqual(rec.jump, 1.0188, accuracy: 1e-6)
+        XCTAssertEqual(r.place, inSong(1, 5, 2))
+        XCTAssertEqual(c.renumbering, .closed)
+        r = readFrom(&c, entry, 512.0 + 1.0188, 12.0 * beat180)
+        assertCertain(r)
+        XCTAssertEqual(try gap(r), 0.0, accuracy: 1e-6)
+        XCTAssertEqual(r.place, inSong(1, 12, 0))
+    }
+
+    /// L'iPad entra sulla seconda battuta del 3/4 (7 battiti, 2,3333 s; un secondo dopo il confine): la
+    /// rinumerazione del Direttore, 1,08 s dopo il confine, arriva 0,08 s dopo l'àncora. Riconosciuta, certo.
+    func testASeedOnTheSecondBarOfTheNewMeterRecognizesTheRenumbering() throws {
+        let seeded = try seedAt(pickup180, 7.0 * beat180)
+        var c = seeded.0
+        let s = seeded.1
+        let entry = seeded.2
+        XCTAssertEqual(s.section, 1)
+        XCTAssertEqual(s.beatInSection, 3)
+        XCTAssertEqual(s.songBeat, 7)
+        XCTAssertEqual(c.renumbering, .open(boundary: 1, boundariesAfter: 0))
+        XCTAssertLessThan(3.0 * beat180, renumberAfterBoundary)
+        XCTAssertGreaterThan(4.0 * beat180, renumberAfterBoundary)
+        let r = readFrom(&c, entry, 501.0 + 1.0188, 1.0 * beat180, last: (1, 3, 0.0))
+        assertCertain(r)
+        let rec = try XCTUnwrap(r.recognized)
+        XCTAssertEqual(rec.boundary, 1)
+        XCTAssertEqual(rec.jump, 1.0188, accuracy: 1e-6)
+        XCTAssertEqual(r.place, inSong(1, 4, 1))
+        XCTAssertEqual(c.renumbering, .closed)
+    }
+
+    /// «Il contatore d'accordo» vuole un battito contato dalla sezione dell'àncora in poi (B2b, nota 4). Senza
+    /// nessun battito contato, o con l'ultimo contato prima dell'àncora (nella sezione di prima), la rinumerazione
+    /// non si riconosce; col primo battito contato dopo l'àncora (il battito del seme, alla sua ora) sì.
+    func testTheFirstBeatCountedAfterTheAnchorGivesTheAgreement() throws {
+        let before: [(Int, Int, Double)?] = [nil, (0, 3, -1.0 * beat180)]
+        for last in before {
+            let seeded = try seedAt(pickup180, 4.0 * beat180)
+            var c = seeded.0
+            let r = readFrom(&c, seeded.2, 505.0 + 1.0188, 5.0 * beat180, last: last)
+            assertUncertain(r, .jumpWithoutCounterAgreement)
+        }
+        let seeded = try seedAt(pickup180, 4.0 * beat180)
+        var c = seeded.0
+        let r = readFrom(&c, seeded.2, 505.0 + 1.0188, 5.0 * beat180, last: (1, 0, 0.0))
+        assertCertain(r)
+        XCTAssertEqual(try XCTUnwrap(r.recognized).boundary, 1)
+        XCTAssertEqual(r.place, inSong(1, 5, 2))
+    }
+
+    /// L'ora del battito j della band dopo l'ingresso, suonata a 124.
+    private func at124(_ j: Int) -> Double { Double(j) * 60.0 / 124.0 }
+
+    /// Il costo (il limite scritto, lo stesso prezzo di A.2): 4/4 e poi 3/4 a 120, il confine a 2 s, il Direttore
+    /// rinumera a 3,08 s; l'iPad entra sulla seconda battuta del 3/4 (7 battiti, 3,5 s). La rinumerazione è GIÀ
+    /// passata e l'àncora prende il battito già rinumerato, ma lo stato nasce aperto lo stesso, a vuoto. Se la band
+    /// va a 124 da lì, il primo scarto oltre 1/8 (al battito 4: 0,129) col contatore d'accordo passa per
+    /// rinumerazione; la deriva continua e il «non certo» arriva al battito 8, 1,935 s dopo il salto preso.
+    func testARenumberingAlreadyPassedBeforeTheSeedIsTheWrittenCost() throws {
+        let map = song([(4, 1, 120.0), (3, 16, 120.0)])
+        XCTAssertGreaterThan(7.0 * 0.5, 4.0 * 0.5 + renumberAfterBoundary)
+        let seeded = try seedAt(map, 7.0 * 0.5, link: 600.0)
+        var c = seeded.0
+        let s = seeded.1
+        let entry = seeded.2
+        XCTAssertEqual(s.section, 1)
+        XCTAssertEqual(s.beatInSection, 3)
+        XCTAssertEqual(c.renumbering, .open(boundary: 1, boundariesAfter: 0))
+        var r = readFrom(&c, entry, 602.0, at124(2), last: (1, 4, at124(1)))
+        assertCertain(r)
+        XCTAssertEqual(try gap(r), 2.0 - 2.0 * 120.0 / 124.0, accuracy: 1e-6)
+        XCTAssertEqual(c.renumbering, .open(boundary: 1, boundariesAfter: 0))
+        r = readFrom(&c, entry, 604.0, at124(4), last: (1, 6, at124(3)))
+        assertCertain(r)
+        let rec = try XCTUnwrap(r.recognized)
+        XCTAssertEqual(rec.boundary, 1)
+        XCTAssertEqual(rec.jump, 4.0 - 4.0 * 120.0 / 124.0, accuracy: 1e-6)
+        XCTAssertEqual(c.renumbering, .closed)
+        XCTAssertEqual(r.place, inSong(1, 7, 1))
+        for j in [6, 7] {
+            r = readFrom(&c, entry, 600.0 + Double(j), at124(j), last: (1, 3 + j - 1, at124(j - 1)))
+            assertCertain(r)
+        }
+        r = readFrom(&c, entry, 608.0, at124(8), last: (1, 10, at124(7)))
+        assertUncertain(r, .jumpOutsideRenumbering)
+        let takenToUncertain = at124(8) - at124(4)
+        XCTAssertGreaterThanOrEqual(takenToUncertain, 1.9)
+        XCTAssertLessThanOrEqual(takenToUncertain, 2.9)
+    }
+
+    /// Tre sezioni in 4/4 con tempi diversi: nessun confine cambia metro, il conto nasce con lo stato chiuso
+    /// dovunque cada il seme, come prima della regola nuova; un salto dopo è fuori dallo stato.
+    func testASongWithoutMeterChangesIsSeededWithTheStateClosed() throws {
+        // i confini a 4 s (8 battiti) e a 9,3333 s (16)
+        let map = song([(4, 2, 120.0), (4, 2, 90.0), (4, 8, 150.0)])
+        let cases: [(Double, Int, Int)] = [(2.0, 0, 4), (4.0, 1, 0), (4.0 + 4.0 * 60.0 / 90.0, 1, 4),
+                                           (4.0 + 8.0 * 60.0 / 90.0, 2, 0)]
+        for (seconds, section, beat) in cases {
+            let seeded = try seedAt(map, seconds)
+            XCTAssertEqual(seeded.1.section, section)
+            XCTAssertEqual(seeded.1.beatInSection, beat)
+            XCTAssertEqual(seeded.0.renumbering, .closed)
+        }
+        let seeded = try seedAt(map, 4.0 + 8.0 * 60.0 / 90.0 + 4.0 * 0.4)
+        var c = seeded.0
+        XCTAssertEqual(seeded.1.section, 2)
+        XCTAssertEqual(seeded.1.beatInSection, 4)
+        XCTAssertEqual(c.renumbering, .closed)
+        let r = readFrom(&c, seeded.2, 502.0 + 1.0188, 2.0 * 0.4, last: (2, 5, 1.0 * 0.4))
+        assertUncertain(r, .jumpOutsideRenumbering)
+    }
+
+    /// I confini dall'inizio della canzone alla sezione dell'àncora passano in ordine per la tabella delle
+    /// transizioni: 4/4, poi tre sezioni in 3/4, poi 4/4. A 120 i confini sono a 2, 3,5, 5 e 6,5 s.
+    func testTheSeedWalksTheBoundariesFromTheStartInOrder() throws {
+        let map = song([(4, 1, 120.0), (3, 1, 120.0), (3, 1, 120.0), (3, 1, 120.0), (4, 8, 120.0)])
+        let cases: [(Double, Int, FollowerBandRenumbering)] = [
+            (0.0, 0, .closed),                                      // prima di ogni confine
+            (2.0, 1, .open(boundary: 1, boundariesAfter: 0)),       // sul cambio di metro
+            (3.5, 2, .open(boundary: 1, boundariesAfter: 1)),       // un confine dopo: ancora aperto (A.2)
+            (5.0, 3, .closed),                                      // il secondo confine dopo: chiuso
+            (6.5, 4, .open(boundary: 4, boundariesAfter: 0)),       // un altro cambio di metro: riaperto lì
+        ]
+        for (seconds, section, state) in cases {
+            let seeded = try seedAt(map, seconds)
+            XCTAssertEqual(seeded.1.section, section)
+            XCTAssertEqual(seeded.1.beatInSection, 0)
+            XCTAssertEqual(seeded.0.renumbering, state)
+            XCTAssertEqual(seeded.0.bandSection, section)
         }
     }
 }

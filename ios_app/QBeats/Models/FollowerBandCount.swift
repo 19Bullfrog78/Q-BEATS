@@ -31,6 +31,9 @@ import Foundation
 //    confine dopo quello, e un confine che cambia di nuovo il metro lo riapre da capo. Nello stato, il primo
 //    scarto oltre 1/8 col contatore dell'iPad d'accordo coi secondi è la rinumerazione: B0 prende il salto e lo
 //    stato si chiude. In una lettura vengono prima i confini, poi lo scarto. Solo eventi e stati, nessun tempo.
+//    Il conto che NASCE DAL SEME parte nello stato in cui sarebbe un conto che leggeva dall'inizio della
+//    canzone (A.11, VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3.2): i confini da 1 alla sezione dell'àncora
+//    passano in ordine per la stessa regola (`stateAtSeed`).
 //  · IL CONTO NON CERTO RESTA CHIUSO PER IL RESTO DELLA CANZONE, col suo motivo (`FollowerBandCountClosed`).
 //    Lo «stesso avvio» della band non si legge qui (P39): un avvio nuovo passa da uno Stop, che chiude l'àncora
 //    nel motore.
@@ -156,12 +159,23 @@ struct FollowerBandCount: Equatable {
     private(set) var bandSection: Int
 
     /// Un conto con l'àncora data: stato chiuso, la band nella sezione dell'àncora.
+    /// SOLO PER I TEST (VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3.4, B2b N8): nel motore il conto nasce solo da
+    /// `enter`, che passa dal seme e dà lo stato che il seme vuole (`stateAtSeed`).
     init(map: SongMap, anchor: ShowClockAnchor) {
         self.map = map
         self.anchor = anchor
         self.closed = nil
         self.renumbering = .closed
         self.bandSection = anchor.section
+    }
+
+    /// Il conto che nasce dal seme: l'àncora, e lo stato «rinumerazione attesa» che il seme ha calcolato.
+    private init(map: SongMap, seedAnchor: ShowClockAnchor, renumbering: FollowerBandRenumbering) {
+        self.map = map
+        self.anchor = seedAnchor
+        self.closed = nil
+        self.renumbering = renumbering
+        self.bandSection = seedAnchor.section
     }
 
     /// Un conto nato chiuso: il seme non è certo.
@@ -249,7 +263,29 @@ struct FollowerBandCount: Equatable {
                                      callbackDelayBeats: Double(songBeat) - measured.beatsFromAnchor)
         let seedAnchor = ShowClockAnchor(section: targetSection, beatInSection: targetBeat,
                                          linkBeat: input.entryLinkBeat, ticks: input.entryTicks)
-        return .anchored(FollowerBandCount(map: map, anchor: seedAnchor), taken)
+        let state = stateAtSeed(map: map, anchorSection: targetSection)
+        return .anchored(FollowerBandCount(map: map, seedAnchor: seedAnchor, renumbering: state), taken)
+    }
+
+    /// A.11 (VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3.2) — lo stato «rinumerazione attesa» di un conto che nasce
+    /// dal seme nella sezione `anchorSection`: quello in cui sarebbe un conto che leggeva dall'inizio della
+    /// canzone. I confini da 1 alla sezione dell'àncora passano, in ordine, per la regola delle transizioni
+    /// (`afterBoundary`) coi metri della mappa. Solo eventi e stati: nessun tempo e nessun segnale nuovo.
+    /// Perché: lo stato è un fatto della band sulla mappa, non dell'ora in cui l'iPad arriva. Un iPad che entra
+    /// sul primo «uno» di una sezione che cambia metro, o poco dopo, riceve la rinumerazione del Direttore DOPO
+    /// l'àncora: con lo stato chiuso sarebbe un «non certo» per tutta la canzone.
+    /// Il costo, lo stesso di A.2: se la rinumerazione è già passata prima dell'àncora lo stato resta aperto a
+    /// vuoto, al più fino al secondo confine, e lì un salto vero col contatore d'accordo passa una volta per
+    /// rinumerazione (il limite scritto, col suo test).
+    static func stateAtSeed(map: SongMap, anchorSection: Int) -> FollowerBandRenumbering {
+        var state: FollowerBandRenumbering = .closed
+        var boundary = 1
+        while boundary <= anchorSection && boundary < map.sections.count {
+            let meterChanges = map.sections[boundary].beatsPerBar != map.sections[boundary - 1].beatsPerBar
+            state = afterBoundary(state, boundary: boundary, meterChanges: meterChanges)
+            boundary += 1
+        }
+        return state
     }
 
     // MARK: La rinumerazione attesa
