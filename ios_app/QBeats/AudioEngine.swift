@@ -2790,7 +2790,7 @@ class AudioEngine: ObservableObject {
         metronome_set_beat_position_time_only(h, ownBeat)
         // A421 — U9: il secondo punto della correzione (l'orologio proprio): il battito scavalcato che uscirebbe in ritardo di
         // almeno un buffer si conta e non si suona.
-        noteLateBeatCorrectionQ(before: currentBeat, after: ownBeat, bpm: timeline.bpm, point: "orologio-proprio")
+        noteLateBeatCorrectionQ(metronome: h, before: currentBeat, after: ownBeat, bpm: timeline.bpm, point: "orologio-proprio")
         // A421 · SEGUITO 2 (F1) — la prima correzione dopo la finestra, anche sulla linea propria.
         noteCorrectionAfterWindowQ(before: currentBeat, after: ownBeat, bpm: timeline.bpm)
         _ownClockPinsQ += 1
@@ -5845,16 +5845,26 @@ class AudioEngine: ObservableObject {
     /// ritardo di almeno un buffer (`LateBeatDecision`, sull'origine che Swift ha passato al DSP), il primo battito di
     /// questo buffer si conta e non si suona (il ciclo dei battiti in `scheduleNextBuffer`). Una riga. Chiamare SOLO su
     /// audioQueue.
-    private func noteLateBeatCorrectionQ(before: Double, after: Double, bpm: Double, point: String) {
-        let late = LateBeatDecision.lateBeats(origin: _dspOriginBeatQ, before: before, after: after)
+    /// ⚠️ RISCRITTO A432 · PARTE 2b (P38; referto A431 par. 2.1). Qui sopra si dice «(`LateBeatDecision`, sull'origine che
+    /// Swift ha passato al DSP)»: da A432 il battito in attesa non si ricostruisce più dall'origine. Lo dice il DSP
+    /// (`metronome_pending_beat`), letto qui, subito dopo la correzione che il chiamante ha appena scritto
+    /// (`metronome_set_beat_position_time_only`) e prima di ogni altra scrittura del DSP: il ritardo è la posizione nuova
+    /// meno quel battito, se è alle sue spalle (`LateBeatDecision.lateBeats(pendingBeat:after:)`). La ricostruzione sbagliava
+    /// nelle chiamate dopo un salto frazionario in cui il DSP aveva saltato un battito: due righe false, mai un click
+    /// zittito a torto (il banco: `LateBeatDecisionTests`, la finestra). Una lettura del DSP senza scritture e senza righe
+    /// di registro nel DSP; su audioQueue.
+    private func noteLateBeatCorrectionQ(metronome h: MetronomeHandle, before: Double, after: Double, bpm: Double,
+                                         point: String) {
+        let pending = metronome_pending_beat(h)
+        let late = LateBeatDecision.lateBeats(pendingBeat: pending.beat, after: after)
         guard LateBeatDecision.mutesLateBeat(lateBeats: late, bpm: bpm, bufferFrames: Int(bufferSize), sampleRate: sampleRate) else {
             return
         }
         _muteLateBeatThisBufferQ = true
-        os_log("[Q-BEATS][USCITA] correzione che scavalca il battito punto:%{public}@ prima:%.4f dopo:%.4f origine:%.4f ritardo_ms:%.1f tempo:%.2f buffer:%d - il battito di questo buffer si conta e non si suona (U9)",
+        os_log("[Q-BEATS][USCITA] correzione che scavalca il battito punto:%{public}@ prima:%.4f dopo:%.4f origine:%.4f pendente:%.4f campioni:%lld ritardo_ms:%.1f tempo:%.2f buffer:%d - il battito di questo buffer si conta e non si suona (U9)",
                log: .default, type: .default,
-               point, before, after, _dspOriginBeatQ, LateBeatDecision.lateMilliseconds(lateBeats: late, bpm: bpm), bpm,
-               bufferCount)
+               point, before, after, _dspOriginBeatQ, pending.beat, pending.samplesAhead,
+               LateBeatDecision.lateMilliseconds(lateBeats: late, bpm: bpm), bpm, bufferCount)
     }
 
     /// Par. 2.2 h: una riga per avvio coi millisecondi da `[START] ENTRY` (sul thread del chiamante) all'inizio del blocco
@@ -6968,9 +6978,23 @@ class AudioEngine: ObservableObject {
                             subdivisionMultiplier: UInt8,
                             swingRatio: Double,
                             repetitions: Int,
+                            forSection: Int,
                             onEnd: @escaping () -> Void) {
         audioQueue.async { [weak self] in
             guard let self else { return }
+            // A432 · PARTE 2b (P41; referto A431 par. 2.3) — IL PRECARICO PORTA IL NUMERO DELLA SEZIONE CHE PRECARICA
+            // (`forSection`, da 0), e il motore lo prende solo se è la sezione dopo quella che conta adesso
+            // (`SectionPreloadDecision.accepts`; senza mappa passa sempre, com'era). Un precarico in ordine passa sempre:
+            // all'avvio `setSongMap` scrive la sezione di partenza prima di questo blocco (il runner li chiama in
+            // quest'ordine, tutti e due su questa coda), e la chiusura di fine sezione precarica dopo che lo scambio ha
+            // già alzato `_songMapSectionQ`. Uno vecchio, arrivato dopo un riallineo o un rientro che ha portato il motore
+            // in un'altra sezione, si scarta con la riga: senza, riscriverebbe il precarico giusto e al confine dopo il
+            // motore caricherebbe la sezione sbagliata. Vale per ogni ruolo. Su questa coda, fuori dal render.
+            guard SectionPreloadDecision.accepts(preloadSection: forSection, engineSection: self._songMapSectionQ) else {
+                os_log("[Q-BEATS][SEAMLESS] precarico scartato sezione:%d motoreSezione:%d - vecchio, dopo un riallineo o un rientro",
+                       log: .default, type: .default, forSection, self._songMapSectionQ)
+                return
+            }
             self._pendingNextBPM = bpm
             self._pendingNextBPB = beatsPerBar
             self._pendingNextAccentPattern = accentPattern
@@ -9194,7 +9218,7 @@ class AudioEngine: ObservableObject {
                     metronome_set_beat_position_time_only(h, newBeat)
                     // A421 — U9: il primo punto della correzione (la fase di Link): il battito scavalcato che uscirebbe in
                     // ritardo di almeno un buffer si conta e non si suona.
-                    self.noteLateBeatCorrectionQ(before: currentBeat, after: newBeat, bpm: self._engineTempoQ, point: "fase-link")
+                    self.noteLateBeatCorrectionQ(metronome: h, before: currentBeat, after: newBeat, bpm: self._engineTempoQ, point: "fase-link")
                     // A421 · SEGUITO 2 (F1) — la prima correzione dopo la finestra che sposta di almeno un buffer riarma i ritorni.
                     self.noteCorrectionAfterWindowQ(before: currentBeat, after: newBeat, bpm: self._engineTempoQ)
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",

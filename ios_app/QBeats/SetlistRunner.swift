@@ -328,6 +328,7 @@ final class SetlistRunner: ObservableObject {
                                            subdivisionMultiplier: n1.subdivisionMultiplier,
                                            swingRatio: n1.swingRatio,
                                            repetitions: n1.repetitions,
+                                           forSection: self.currentSectionIdx + 1,
                                            onEnd: closure)
         }
 
@@ -506,6 +507,7 @@ final class SetlistRunner: ObservableObject {
                                                    subdivisionMultiplier: n2.subdivisionMultiplier,
                                                    swingRatio: n2.swingRatio,
                                                    repetitions: n2.repetitions,
+                                                   forSection: self.currentSectionIdx + 1,
                                                    onEnd: closure)
                 }
                 // NESSUN sectionEndedSubject.send() — transizione intermedia.

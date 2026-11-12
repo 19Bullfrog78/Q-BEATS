@@ -155,4 +155,58 @@ final class LateBeatDecisionTests: XCTestCase {
         XCTAssertFalse(mutes(0, 10.9, 11.2, bpm: 0))
         XCTAssertFalse(LateBeatDecision.mutesLateBeat(lateBeats: 0.5, bpm: 120, bufferFrames: 512, sampleRate: 0))
     }
+
+    // MARK: - A432 parte 2b (P38): il battito in attesa lo dice il DSP
+
+    /// Fuori dalla finestra dopo un salto frazionario il battito in attesa del DSP è quello che la regola di prima
+    /// ricostruisce (`pendingBeatAfter`): con quel valore la regola nuova dà lo stesso ritardo, caso per caso.
+    func testWithTheDSPPendingBeatTheLateBeatIsTheSameOutsideTheWindow() {
+        let cases: [(Double, Double, Double)] = [
+            (0, 10.9, 11.2), (0, 10.3, 10.4), (0, 10.3, 10.9), (0, 10.95, 11.0), (0, 10.99, 11.03),
+            (0, 10.4, 10.2), (0, 9.302, 10.912), (0.25, 10.2, 10.3), (40.0943, 41.5, 42.2), (0, 20.9, 22.1),
+        ]
+        var lateOnes = 0
+        for (origin, before, after) in cases {
+            let dspPending = LateBeatDecision.pendingBeatAfter(origin: origin, before: before, after: after)
+            let old = late(origin, before, after)
+            let new = LateBeatDecision.lateBeats(pendingBeat: dspPending, after: after)
+            XCTAssertEqual(old == nil, new == nil, "origine \(origin) prima \(before) dopo \(after)")
+            if let o = old, let n = new {
+                XCTAssertEqual(o, n, accuracy: 1e-12)
+                lateOnes += 1
+            }
+        }
+        XCTAssertEqual(lateOnes, 4)   // dentro ci sono casi che scavalcano e casi che no
+    }
+
+    /// La finestra (referto A431 par. 2.1; il buco del 29/10 a 121, 1,61 battiti, col battito saltato 0,088 dopo la
+    /// posizione corretta): prima del buco la posizione è 9,302 e il battito in attesa è il 10; il DSP porta la
+    /// posizione a 10,912 e il battito in attesa al 12 (10 + round(1,61)): l'11 non esce mai. Nelle chiamate dopo,
+    /// finché la posizione non passa 11, la regola di prima ricostruisce «in attesa l'11»: una correzione da 10,99
+    /// a 11,03 le sembra uno scavalco di 0,03 battiti (14,9 ms a 121: più di un buffer) e alzerebbe il segno. Col
+    /// battito che dice il DSP (il 12) non c'è nessun battito scavalcato.
+    func testInTheWindowAfterAFractionalJumpTheDSPPendingBeatSeesNoLateBeat() throws {
+        XCTAssertEqual(LateBeatDecision.pendingBeat(origin: 0, beat: 9.302), 10)
+        XCTAssertEqual(LateBeatDecision.pendingBeatAfter(origin: 0, before: 9.302, after: 10.912), 12)
+        // la chiamata del buco: le due regole d'accordo (nessun battito alle spalle: il 12 è davanti)
+        XCTAssertNil(late(0, 9.302, 10.912))
+        XCTAssertNil(LateBeatDecision.lateBeats(pendingBeat: 12, after: 10.912))
+        // una chiamata dopo, nella finestra: la regola di prima vede uno scavalco che non c'è
+        let old = try XCTUnwrap(late(0, 10.99, 11.03))
+        XCTAssertEqual(old, 0.03, accuracy: 1e-9)
+        XCTAssertTrue(LateBeatDecision.mutesLateBeat(lateBeats: old, bpm: 121, bufferFrames: frames, sampleRate: rate48))
+        let new = LateBeatDecision.lateBeats(pendingBeat: 12, after: 11.03)
+        XCTAssertNil(new)
+        XCTAssertFalse(LateBeatDecision.mutesLateBeat(lateBeats: new, bpm: 121, bufferFrames: frames, sampleRate: rate48))
+    }
+
+    /// Il battito messo a «subito»: il DSP dice un battito in attesa alle spalle della posizione nuova, e il
+    /// ritardo è la distanza. Sul battito esatto e coi valori non finiti: niente.
+    func testTheLateBeatFromTheDSPPendingBeat() throws {
+        XCTAssertEqual(try XCTUnwrap(LateBeatDecision.lateBeats(pendingBeat: 11, after: 11.2)), 0.2, accuracy: 1e-12)
+        XCTAssertNil(LateBeatDecision.lateBeats(pendingBeat: 11, after: 11.0))
+        XCTAssertNil(LateBeatDecision.lateBeats(pendingBeat: 11, after: 10.7))
+        XCTAssertNil(LateBeatDecision.lateBeats(pendingBeat: .nan, after: 11.2))
+        XCTAssertNil(LateBeatDecision.lateBeats(pendingBeat: 11, after: .infinity))
+    }
 }

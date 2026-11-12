@@ -52,6 +52,19 @@ enum LateBeatDecision {
         return late > 1e-9 ? late : nil
     }
 
+    /// A432 parte 2b (P38; referto A431 par. 2.1) — lo stesso ritardo, col battito in attesa che DICE IL DSP subito
+    /// dopo la correzione (`metronome_pending_beat`), al posto di quello ricostruito qui sopra dall'origine. È la
+    /// regola che il motore usa da A432: una sola per il conto e per U9. Le due danno lo stesso numero finché la
+    /// ricostruzione è giusta; non lo è nelle chiamate dopo un salto frazionario in cui il DSP ha saltato un
+    /// battito (l'identità del battito in attesa è «di prima più l'arrotondamento del salto», non «il primo della
+    /// griglia non prima della posizione»): lì la ricostruzione vede un battito scavalcato che il DSP non ha.
+    /// `nil` se il battito in attesa non è alle spalle della posizione nuova.
+    static func lateBeats(pendingBeat: Double, after: Double) -> Double? {
+        guard pendingBeat.isFinite, after.isFinite else { return nil }
+        let late = after - pendingBeat
+        return late > 1e-9 ? late : nil
+    }
+
     /// Un buffer in secondi.
     static func bufferSeconds(bufferFrames: Int, sampleRate: Double) -> Double? {
         guard bufferFrames > 0, sampleRate > 0, sampleRate.isFinite else { return nil }

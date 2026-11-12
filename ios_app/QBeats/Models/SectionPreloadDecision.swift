@@ -9,7 +9,8 @@ import Foundation
 // La regola: il precarico porta il numero della sezione che precarica, e il motore lo prende solo se è la sezione
 // dopo quella che conta adesso. Senza mappa (il motore non conta le sezioni: indice negativo) passa sempre, com'è
 // oggi. Un precarico in ordine passa sempre; uno vecchio, dopo un riallineo in avanti o all'indietro, no.
-// Il tipo è solo la regola: in questa parte (2a) nessun codice dell'app lo chiama.
+// Il tipo è solo la regola. Dalla parte 2b la chiama il motore, sulla sua coda, in `AudioEngine.preloadNextSection`
+// (il runner passa il numero della sezione che precarica, `forSection`).
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 enum SectionPreloadDecision {
