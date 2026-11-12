@@ -177,6 +177,9 @@ private struct OutputRig {
     var linkAnchorTime = 0.0
     var linkAnchorBeat = 0.0
     var followerClock: FollowerReturnClock = .link
+    /// A432 · parte 2b (voce i) — il conto del Follower sulla band (`_followerBandCountQ`): `nil` = nessun conto, e l'«uno»
+    /// del ritorno è quello di sempre. La numerazione della sessione è la linea di Link del rig (`linkBeat(at:)`).
+    var bandCount: FollowerBandCount? = nil
     var ownTimeline: OwnClockTimeline? = nil
     var ownTimelineBPM = 0.0
     var ownBeatAtChange = 0.0
@@ -409,8 +412,13 @@ private struct OutputRig {
 
     /// A421 · SEGUITO 1 — il primo «uno» non prima di `t`, come battito col suo orologio e la sua ora (`nextUnoQ`): Link, o la
     /// linea propria DA-SOLO (dall'ultimo «uno» uscito); `nil` = «uno non calcolabile».
+    /// A432 · parte 2b (voce i): prima il conto sulla band, se è certo (`nextBandUnoQ`); se non dà un «uno», la regola di sempre.
     func nextUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
+        if let fromCount = nextBandUno(atOrAfter: t) { return fromCount }
         switch followerClock {
+        case .band:
+            // Non è un valore di `followsLinkQ`: l'orologio di sempre è Link o la linea propria.
+            return nil
         case .link:
             guard let bar = OutputReturnDecision.nextBarBeat(atOrAfter: linkBeat(at: t), quantum: Double(beatsPerBar)) else { return nil }
             return (FollowerReturnUno(beat: bar, clock: .link, beatsPerBar: beatsPerBar), time(ofBeat: bar))
@@ -432,7 +440,43 @@ private struct OutputRig {
             guard let timeline = ownTimeline,
                   let at = OutputReturnDecision.ownTicks(atBeat: uno.beat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
             return seconds(at)
+        case .band:
+            // A432 · parte 2b (voce i), come `unoTicksQ(for:)`: prima la conferma del conto; IN SYNC l'ora di Link nella
+            // numerazione della sessione; DA-SOLO l'ora della mappa portata sulla linea propria.
+            guard let count = bandCount, FollowerBandUno.confirms(count: count, uno: uno) else { return nil }
+            if followerClock == .link {
+                return time(ofBeat: uno.beat)
+            }
+            guard let timeline = ownTimeline, let lastUno = lastUnoBeat,
+                  let mapTicks = FollowerBandUno.mapTicks(count: count, uno: uno, ticksPerSecond: OutputRig.tps),
+                  let ownBeat = FollowerBandUno.ownBeat(mapTicks: mapTicks, timeline: timeline, lastUnoBeat: lastUno,
+                                                        ticksPerSecond: OutputRig.tps),
+                  let at = OutputReturnDecision.ownTicks(atBeat: ownBeat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
+            return seconds(at)
         }
+    }
+
+    /// A432 · parte 2b (voce i) — `nextBandUnoQ`: l'«uno» dal conto certo, col posto alla scadenza da Link (IN SYNC) o dal
+    /// righello dei secondi (DA-SOLO). `nil` senza conto, col conto chiuso, o se il conto non dà un «uno».
+    func nextBandUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
+        guard let count = bandCount, FollowerBandUno.isCertain(count) else { return nil }
+        let chosen: FollowerReturnUno?
+        if followerClock == .link {
+            chosen = FollowerBandUno.next(count: count, atOrAfterLinkBeat: linkBeat(at: t))
+        } else {
+            chosen = FollowerBandUno.next(count: count, atOrAfterTicks: ticks(t), ticksPerSecond: OutputRig.tps)
+        }
+        guard let uno = chosen, let at = unoTime(for: uno) else { return nil }
+        return (uno, at)
+    }
+
+    /// A432 · parte 2b (voce i) — `nextBarUnoQ(after:)`: per un «uno» del conto la prossima battuta della canzone.
+    func nextBarUno(after uno: FollowerReturnUno) -> FollowerReturnUno? {
+        if uno.clock == .band {
+            guard let count = bandCount else { return nil }
+            return FollowerBandUno.nextBar(count: count, after: uno)
+        }
+        return OutputReturnDecision.nextBarUno(uno)
     }
 
     var externalPresent: Bool { OutputRouteDecision.hasExternal(physicalRoute ?? route) }
@@ -1390,7 +1434,10 @@ private struct OutputRig {
         }
         // Seguito 1, par. 2.2: la rilettura dell'«uno», a ogni chiamata col ritorno armato e un «uno» scelto; seguito 2 (E.9): e il metro.
         if var armed = followerReturn, !armed.armPending, let uno = armed.uno {
-            switch OutputReturnDecision.refreshUno(saved: uno, clockNow: followerClock, beatsPerBarNow: beatsPerBar,
+            // A432 · parte 2b (voce i): un «uno» del conto resta del conto finché il conto è certo (`unoClockNow`).
+            let clockNow = OutputReturnDecision.unoClockNow(saved: uno.clock, followsLink: followerClock == .link,
+                                                            bandCountCertain: FollowerBandUno.isCertain(bandCount))
+            switch OutputReturnDecision.refreshUno(saved: uno, clockNow: clockNow, beatsPerBarNow: beatsPerBar,
                                                    rereadTicks: unoTime(for: uno).map(ticks)) {
             case .rearm:
                 rearmFollowerReturn()
@@ -1537,12 +1584,15 @@ private struct OutputRig {
             case .nextBar, .nextBarInWindow:
                 if !conditions {
                     followerReturn = nil
-                } else if let uno = pending.uno, let next = OutputReturnDecision.nextBarUno(uno) {
+                } else if let uno = pending.uno, let next = nextBarUno(after: uno) {
                     pending.uno = next
                     pending.unoAt = unoTime(for: next)
                     if pending.unoAt == nil { pending.armPending = true }
                     followerReturn = pending
                     nextBarMoves += 1
+                } else if let uno = pending.uno, uno.clock == .band {
+                    // A432 · parte 2b (voce i): la battuta dopo non data dal conto riarma con la stessa regola.
+                    rearmFollowerReturn()
                 }
             case .restore:
                 followerReturn = nil
@@ -5148,6 +5198,96 @@ func testF1TheUnoOnTheCallThatConsumesTheLastSkipMovesToTheNextBar() throws {
     XCTAssertEqual(rig.volume, 1.0)
     XCTAssertEqual(try XCTUnwrap(rig.restoredUnoAt), unoAt + rig.barSeconds, accuracy: 1e-6, "sull'uno della battuta dopo")
     checkReturnInvariants(rig, "F1 uno sull'ultimo salto", oneBarAtMost: true)
+}
+
+// MARK: - A432 · parte 2b (voce i): l'«uno» del ritorno del Follower dal conto sulla band
+
+/// A424, Aperto A.14, in sequenza: la canzone è 4/4 per due battute e poi 3/4 (a 120), l'àncora del conto al battito 96 della
+/// sessione (un multiplo di 12): gli «uno» del 3/4 sono 104, 107, 110… (resto 2 a dividere per 3), le battute di Link col quanto 3
+/// sono i multipli di 3. La cuffia tolta e rimessa nel 3/4: col conto certo il ritorno sceglie un «uno» della canzone, con
+/// l'orologio del conto, e il volume torna su un «uno» della canzone; la regola di prima avrebbe scelto la battuta di Link, che è
+/// il secondo battito di una battuta della canzone.
+func testTheFollowerReturnAfterAMeterChangeIsOnADownbeatOfTheSong() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    XCTAssertTrue(try XCTUnwrap(rig.followerReturn, "il ritorno del Follower prenotato").armPending)
+    let firstCall = 58.806 + 0.684
+    rig.callbacks(from: firstCall, count: 1)
+    let armed = try XCTUnwrap(rig.followerReturn)
+    let uno = try XCTUnwrap(armed.uno)
+    let unoAt = try XCTUnwrap(armed.unoAt)
+    let deadline = try XCTUnwrap(rig.deadlineAt)
+    XCTAssertEqual(uno.clock, .band, "l'«uno» viene dal conto")
+    XCTAssertEqual(uno.beatsPerBar, 3)
+    XCTAssertEqual((uno.beat - 104).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9, "un «uno» della canzone")
+    XCTAssertEqual(uno.beat.truncatingRemainder(dividingBy: 3), 2, accuracy: 1e-9, "che non è una battuta di Link col quanto 3")
+    XCTAssertEqual(unoAt, rig.time(ofBeat: uno.beat), accuracy: 1e-9, "la sua ora è quella di Link per quel battito")
+    XCTAssertGreaterThanOrEqual(unoAt, deadline - 1e-9)
+    XCTAssertLessThan(unoAt, deadline + rig.barSeconds, "il primo «uno» della canzone dopo la scadenza")
+    let old = try XCTUnwrap(OutputReturnDecision.nextBarBeat(atOrAfter: rig.linkBeat(at: deadline), quantum: 3))
+    XCTAssertEqual((old - 104).truncatingRemainder(dividingBy: 3), 1, accuracy: 1e-9,
+                   "la regola di prima: il secondo battito di una battuta della canzone")
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    let restored = try XCTUnwrap(rig.restoredUnoAt)
+    XCTAssertEqual((rig.linkBeat(at: restored) - 104).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-6,
+                   "il volume è tornato su un «uno» della canzone")
+    // Il gemello senza conto, stessa sequenza: gli stessi riarmi (il metro del motore e l'orologio non riarmano un «uno» del conto).
+    var twin = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    twin.routeChange(at: 55.0, to: [speaker])
+    twin.callbacks(from: 55.681, count: 30)
+    twin.routeChange(at: 58.806, to: [headphones])
+    twin.callbacks(from: firstCall, count: 1)
+    twin.callbacks(from: firstCall + twin.bufferSeconds, count: 400)
+    XCTAssertEqual(twin.volume, 1.0)
+    XCTAssertEqual(rig.rearms, twin.rearms, "il metro del motore e l'orologio non riarmano un «uno» del conto")
+    checkReturnInvariants(rig, "A.14")
+}
+
+/// Lo stesso buco: il conto si chiude (o si azzera) fra l'armo e l'«uno». L'orologio di adesso non è più quello salvato: il ritorno
+/// si riarma con la stessa regola, che senza il conto è quella di sempre (la battuta di Link), e il volume torna.
+func testTheFollowerReturnFromTheCountRearmsOnTheLinkBarWhenTheCountGoesAway() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    let firstCall = 58.806 + 0.684
+    rig.callbacks(from: firstCall, count: 1)
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno).clock, .band)
+    let rearmsBefore = rig.rearms
+    rig.bandCount = nil
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 1)
+    XCTAssertEqual(rig.rearms, rearmsBefore + 1, "l'orologio non è più quello salvato: si riarma")
+    let again = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(again.clock, .link, "senza il conto: l'«uno» di Link, come prima")
+    XCTAssertEqual(again.beat.truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9)
+    rig.callbacks(from: firstCall + 2 * rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    checkReturnInvariants(rig, "A.14 senza conto", oneBarAtMost: false)
+}
+
+/// Senza conto (com'era fino a qui) lo stesso buco sceglie la battuta di Link: il rig di prima non cambia.
+func testWithoutACountTheFollowerReturnIsOnTheLinkBarAsBefore() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    rig.callbacks(from: 58.806 + 0.684, count: 1)
+    let uno = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(uno.clock, .link)
+    XCTAssertEqual(uno.beat.truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9)
 }
 
 // MARK: - A421 · SEGUITO 4, par. 3.1: la scorta del rientro come il motore

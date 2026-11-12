@@ -5591,6 +5591,11 @@ class AudioEngine: ObservableObject {
     /// Link; DA-SOLO dalla linea propria e dall'ultimo «uno» uscito. `nil` se non si può calcolare (A421 · SEGUITO 1, par.
     /// 2.2: il segno «uno non calcolabile»). Chiamare SOLO su audioQueue.
     private func nextUnoQ(atOrAfter ticks: UInt64) -> (uno: FollowerReturnUno, ticks: UInt64)? {
+        // A432 · PARTE 2b (pezzo 3c-1, voce i; referto A424 par. 3.3 b e Aperto A.14) — col conto sulla band certo l'«uno»
+        // è il prossimo inizio di battuta DELLA CANZONE (dopo un cambio di metro la battuta di Link col quanto della
+        // sezione può non esserlo). Se il conto non lo sa dire (la canzone finisce prima, un ciclo, l'ora non si legge)
+        // vale la regola di sempre, qui sotto.
+        if let fromCount = nextBandUnoQ(atOrAfter: ticks) { return fromCount }
         let beatsPerBar = Int(max(_beatsPerBarQ, 1))
         let quantum = Double(beatsPerBar)
         if followsLinkQ() {
@@ -5614,6 +5619,38 @@ class AudioEngine: ObservableObject {
         return (uno, time)
     }
 
+    /// A432 · PARTE 2b (voce i) — l'«uno» del ritorno dal conto sulla band: il primo inizio di battuta della canzone non
+    /// prima di `ticks`, col battito nella numerazione della sessione (`FollowerBandUno`, orologio `.band`). IN SYNC il
+    /// posto a `ticks` viene da una cattura della sessione senza commit (`link_engine_read_session_at`, come la lettura
+    /// del conto); DA-SOLO dal righello dei secondi. `nil` senza conto, col conto chiuso, o se il conto non dà un «uno»:
+    /// chi chiama passa alla regola di sempre. Legge il conto e non lo cambia. Chiamare SOLO su audioQueue.
+    private func nextBandUnoQ(atOrAfter ticks: UInt64) -> (uno: FollowerReturnUno, ticks: UInt64)? {
+        guard let count = _followerBandCountQ, FollowerBandUno.isCertain(count) else { return nil }
+        let chosen: FollowerReturnUno?
+        if followsLinkQ() {
+            guard let lh = linkEngineHandle else { return nil }
+            let reading = link_engine_read_session_at(lh, ticks, DirectorRejoinDecision.sessionQuantum)
+            guard reading.linkEnabled else { return nil }
+            chosen = FollowerBandUno.next(count: count, atOrAfterLinkBeat: reading.beatAtHostTimeQBig)
+        } else {
+            chosen = FollowerBandUno.next(count: count, atOrAfterTicks: ticks, ticksPerSecond: ticksPerSecond)
+        }
+        guard let uno = chosen, let time = unoTicksQ(for: uno) else { return nil }
+        return (uno, time)
+    }
+
+    /// A432 · PARTE 2b (voce i) — l'«uno» della battuta dopo: per un «uno» del conto la prossima battuta della canzone
+    /// (`FollowerBandUno.nextBar`: al confine di sezione il metro può cambiare); per gli altri il battito più una battuta
+    /// (`OutputReturnDecision.nextBarUno`). `nil` se non c'è (per il conto: la canzone finisce prima, o il conto si è
+    /// chiuso). Chiamare SOLO su audioQueue.
+    private func nextBarUnoQ(after uno: FollowerReturnUno) -> FollowerReturnUno? {
+        if uno.clock == .band {
+            guard let count = _followerBandCountQ else { return nil }
+            return FollowerBandUno.nextBar(count: count, after: uno)
+        }
+        return OutputReturnDecision.nextBarUno(uno)
+    }
+
     /// A421 · SEGUITO 1 (par. 2.2) — l'ora dell'«uno» riletta dal battito salvato: Link con `link_engine_time_at_beat` (la
     /// lettura di A421, T11: nessuna scrittura); DA-SOLO con `ownTicks` sulla linea propria. `nil` se non si può rileggere
     /// (Link spento nella lettura; la linea propria assente, come dopo un cambio di tempo della sezione fino alla ri-àncora).
@@ -5628,6 +5665,23 @@ class AudioEngine: ObservableObject {
         case .own:
             guard let timeline = _ownTimelineQ else { return nil }
             return OutputReturnDecision.ownTicks(atBeat: uno.beat, timeline: timeline, ticksPerSecond: ticksPerSecond)
+        case .band:
+            // A432 · PARTE 2b (voce i) — l'«uno» del conto. Prima: è ancora un inizio di battuta della canzone per il
+            // conto di adesso (il conto chiuso, o un'àncora che ha preso un salto non di battute intere, riarmano).
+            // IN SYNC l'ora viene da Link col quanto della sessione, la numerazione del conto (nessuna scrittura);
+            // DA-SOLO è l'ora della mappa portata sulla linea propria (il battito intero più vicino, dall'ultimo «uno»
+            // uscito): senza la linea propria non si rilegge, come per `.own`.
+            guard let count = _followerBandCountQ, FollowerBandUno.confirms(count: count, uno: uno) else { return nil }
+            if followsLinkQ() {
+                guard let lh = linkEngineHandle else { return nil }
+                let time = link_engine_time_at_beat(lh, uno.beat, DirectorRejoinDecision.sessionQuantum)
+                return time.linkEnabled ? time.hostTime : nil
+            }
+            guard let timeline = _ownTimelineQ, let lastUno = _lastUnoBeatQ,
+                  let mapTicks = FollowerBandUno.mapTicks(count: count, uno: uno, ticksPerSecond: ticksPerSecond),
+                  let ownBeat = FollowerBandUno.ownBeat(mapTicks: mapTicks, timeline: timeline, lastUnoBeat: lastUno,
+                                                        ticksPerSecond: ticksPerSecond) else { return nil }
+            return OutputReturnDecision.ownTicks(atBeat: ownBeat, timeline: timeline, ticksPerSecond: ticksPerSecond)
         }
     }
 
@@ -5652,7 +5706,9 @@ class AudioEngine: ObservableObject {
         // A421 · SEGUITO 1 (par. 2.2): l'orologio e l'ora dell'«uno», a ogni chiamata col ritorno armato e un «uno» scelto.
         // A421 · SEGUITO 2 (E.9): e il metro, prima di rileggere l'ora: cambiato, si riarma («metro-cambiato»).
         if var armed = _followerReturnQ, !armed.armPending, let uno = armed.uno {
-            let clockNow = OutputReturnDecision.unoClock(followsLink: followsLinkQ())
+            // A432 · PARTE 2b (voce i): un «uno» del conto resta del conto finché il conto è certo.
+            let clockNow = OutputReturnDecision.unoClockNow(saved: uno.clock, followsLink: followsLinkQ(),
+                                                            bandCountCertain: FollowerBandUno.isCertain(_followerBandCountQ))
             switch OutputReturnDecision.refreshUno(saved: uno, clockNow: clockNow, beatsPerBarNow: Int(max(_beatsPerBarQ, 1)),
                                                    rereadTicks: unoTicksQ(for: uno)) {
             case .rearm(let reason):
@@ -5784,7 +5840,13 @@ class AudioEngine: ObservableObject {
         case .wait:
             return
         case .nextBar(let earlyTicks):
-            guard let uno = pending.uno, let next = OutputReturnDecision.nextBarUno(uno) else { return }
+            guard let uno = pending.uno else { return }
+            guard let next = nextBarUnoQ(after: uno) else {
+                // A432 · PARTE 2b (voce i): per un «uno» del conto la battuta dopo può non esserci (la canzone finisce
+                // prima, o il conto si è chiuso): si riarma con la stessa regola, che senza il conto è quella di sempre.
+                if uno.clock == .band { rearmFollowerReturnQ(reason: "battuta dopo non data dal conto battito:\(String(format: "%.2f", uno.beat))") }
+                return
+            }
             pending.uno = next
             pending.unoTicks = unoTicksQ(for: next)
             if pending.unoTicks == nil {
@@ -5799,7 +5861,13 @@ class AudioEngine: ObservableObject {
                    read.fallback ? "riserva" : "hardware")
         case .nextBarInWindow:
             // A421 · SEGUITO 2 (F1) — la chiamata salta la correzione: i click non sono ancora corretti, la battuta dopo.
-            guard let uno = pending.uno, let next = OutputReturnDecision.nextBarUno(uno) else { return }
+            guard let uno = pending.uno else { return }
+            guard let next = nextBarUnoQ(after: uno) else {
+                // A432 · PARTE 2b (voce i): per un «uno» del conto la battuta dopo può non esserci (la canzone finisce
+                // prima, o il conto si è chiuso): si riarma con la stessa regola, che senza il conto è quella di sempre.
+                if uno.clock == .band { rearmFollowerReturnQ(reason: "battuta dopo non data dal conto battito:\(String(format: "%.2f", uno.beat))") }
+                return
+            }
             pending.uno = next
             pending.unoTicks = unoTicksQ(for: next)
             if pending.unoTicks == nil {
