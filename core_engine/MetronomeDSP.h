@@ -133,8 +133,11 @@ public:
     // cui scattano: processBuffer apre lo scambio al battito con etichetta 0, quindi con
     // un cambio armato lo scambio scatta sul nuovo «uno» e i click DOPO cambiano campione
     // (un tempo armato cambia il passo dei battiti da lì; una suddivisione armata parte da
-    // lì). Chi non lo vuole annulla i cambi armati e usa i setter immediati prima della
-    // rinomina (A424 par. 2.2 a). Chiamare SOLO su audioQueue, prima di processBuffer.
+    // lì). Col SOLO metro armato i click dopo non cambiano campione: cambiano gli accenti,
+    // perché lo scambio del metro (processBuffer, «_beatsPerBar = _pendingBeatsPerBar») tocca
+    // solo il modulo delle etichette (A432 parte 2b). Chi non lo vuole annulla i cambi armati
+    // e usa i setter immediati prima della rinomina (A424 par. 2.2 a). Chiamare SOLO su
+    // audioQueue, prima di processBuffer.
     void renamePendingBeat(uint32_t beatInBar);
 
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
@@ -146,10 +149,24 @@ public:
     // Campioni fra l'inizio del prossimo processBuffer e il battito in attesa: 0 = al primo
     // campione (il battito messo a «subito»). La stessa regola d'arrotondamento e lo stesso
     // confronto con cui processBuffer fa uscire il battito (roundedNextBeat == currentAbsolute).
-    // Il valore non è mai negativo (A432 parte 2a): ogni scrittura del battito in attesa lo
-    // lascia col campione arrotondato sul cursore o dopo (setBPM e setBeatPosition lo portano
-    // al cursore se finirebbe prima; setBeatPositionTimeOnly ha il suo «subito»). Un valore
-    // < bufferSize vuol dire che il battito esce nel prossimo processBuffer, a quell'offset;
+    // Il valore non è mai negativo (A432 parti 2a e 2b), dentro questo dominio: un tempo finito
+    // maggiore di zero e un battito finito maggiore o uguale a zero. Il dominio lo tengono le
+    // guardie: setBPM e scheduleBPMChange ignorano un tempo fuori dominio; resetForStart,
+    // setBeatPosition e setBeatPositionTimeOnly ignorano un battito fuori dominio; la chiamata
+    // rifiutata non scrive nessun campo. Il costruttore e setSampleRate NON hanno guardia:
+    // vogliono un tempo e una frequenza finiti maggiori di zero (l'app crea il DSP a 120 e
+    // sceglie la frequenza con SampleRateDecision). Dentro il dominio ogni scrittura del
+    // battito in attesa lo lascia col campione arrotondato sul cursore o dopo:
+    // - il costruttore: campione e cursore a 0;
+    // - resetForStart: il cursore è l'arrotondamento del campione;
+    // - setAbsolutePositionForTesting: il primo battito della griglia non prima del cursore;
+    // - setBPM e setBeatPosition: lo portano al cursore se il campione ARROTONDATO finirebbe
+    //   prima (il confronto è sull'arrotondato, lo stesso di processBuffer);
+    // - setBeatPositionTimeOnly: il suo «subito» confronta il campione ESATTO (non
+    //   l'arrotondato) e lo porta al cursore: più largo, mai meno;
+    // - processBuffer: il battito avanza solo quando esce, e a fine buffer il suo campione
+    //   arrotondato sta sul cursore nuovo o dopo.
+    // Un valore < bufferSize vuol dire che il battito esce nel prossimo processBuffer, a quell'offset;
     // ma non che un click suona in quella chiamata: nel drenaggio di fine sezione Swift non
     // chiama processBuffer (ios_app/QBeats/AudioEngine.swift, `_sectionEndPending`), e col
     // click muto il battito avanza senza evento. Sola lettura, chiamare SOLO su audioQueue.

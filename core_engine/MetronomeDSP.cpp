@@ -39,6 +39,13 @@ MetronomeDSP::MetronomeDSP(double sampleRate, double bpm)
 }
 
 void MetronomeDSP::setBPM(double bpm) {
+    // A432 (parte 2b) — il DSP rifiuta un tempo fuori dominio (VERIFICA_REFEREE_A432_PARTE2A_OPUS, par. 3.3).
+    // Il dominio è un numero finito maggiore di zero. Con 0, un negativo, NaN o infinito la chiamata esce
+    // senza scrivere nessun campo, come setBeatPositionTimeOnly coi battiti fuori dominio: prima la riga in
+    // fondo scriveva _bpm comunque, e dal buffer dopo la durata del battito non era più un numero di campioni
+    // (infinita, negativa o NaN): i battiti non uscivano più. La forma «!(…)» rifiuta anche NaN.
+    // Real-time: una classificazione (std::isfinite) e un confronto di un double; su audioQueue.
+    if (!(std::isfinite(bpm) && bpm > 0.0)) return;
     // FIX-B hardening — il path IMMEDIATO (tempo-callback Link sul Follower,
     // AudioEngine:432) cambiava l'unità di misura del tempo senza ri-scalare
     // il mark pendente: la prima correzione successiva leggeva la distanza
@@ -73,6 +80,11 @@ void MetronomeDSP::setSampleRate(double sr) {
 }
 
 void MetronomeDSP::scheduleBPMChange(double newBPM) {
+    // A432 (parte 2b) — lo stesso dominio di setBPM (un numero finito maggiore di zero): un tempo armato fuori
+    // dominio diventerebbe _bpm al primo battito con etichetta 0 (lo scambio in processBuffer), e da lì i
+    // battiti non uscirebbero più. La chiamata rifiutata non scrive né il valore né il segno: un tempo sano
+    // armato prima resta armato. Real-time: una classificazione e un confronto; su audioQueue.
+    if (!(std::isfinite(newBPM) && newBPM > 0.0)) return;
     _pendingBPM = newBPM;
     _bpmChangeDirty.store(true, std::memory_order_release);
 }
@@ -248,6 +260,12 @@ void MetronomeDSP::setAbsolutePositionForTesting(uint64_t pos) {
 }
 
 void MetronomeDSP::resetForStart(double startBeat) {
+    // A432 (parte 2b) — il DSP rifiuta un battito fuori dominio (VERIFICA_REFEREE_A432_PARTE2A_OPUS, par. 3.3).
+    // Il dominio è un numero finito maggiore o uguale a zero. Con un negativo, NaN o infinito la chiamata esce
+    // senza scrivere nessun campo: prima il cursore nasceva dalla conversione di un double negativo o non
+    // finito in un intero senza segno (non definita), e l'origine e il battito in attesa prendevano il valore.
+    // Real-time: una classificazione (std::isfinite) e un confronto di un double; su audioQueue.
+    if (!(std::isfinite(startBeat) && startBeat >= 0.0)) return;
     // Fresh play: fissa la phase origin e azzera il contatore di battuta.
     // Primo click al sample corrispondente a _startAbsoluteBeat (downbeat).
     _startAbsoluteBeat      = startBeat;
@@ -281,6 +299,10 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     // setBeatPositionTimeOnly. Questa resta per il solo Resume.
     // Griglia coerente relativa a _startAbsoluteBeat per entrambi
     // _currentBeatInBar e _exactNextBeatSample.
+    // A432 (parte 2b) — lo stesso dominio di resetForStart (un numero finito maggiore o uguale a zero): la
+    // chiamata rifiutata esce senza scrivere nessun campo; prima il cursore qui sotto nasceva dalla conversione
+    // non definita di un double negativo o non finito. Real-time: una classificazione e un confronto.
+    if (!(std::isfinite(beatPosition) && beatPosition >= 0.0)) return;
     double spb              = (_sampleRate * 60.0) / _bpm;
     _absoluteSamplePosition = (uint64_t)std::round(beatPosition * spb);
     double epsilon          = 0.5 / _sampleRate * (_bpm / 60.0);
@@ -338,7 +360,11 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
     // click a sample 0. Hazard PRE-esistente e identico col vecchio ceil:
     // chiuso alla fonte. Nessuna correzione persa: il gate L2 richiama a
     // ogni buffer finché il beat non è ≥ 0.
-    if (beatPosition < 0.0) return;
+    // A432 (parte 2b) — la guardia prende lo stesso dominio delle altre (VERIFICA_REFEREE_A432_PARTE2A_OPUS,
+    // par. 3.7): un numero finito maggiore o uguale a zero. «beatPosition < 0.0» lasciava passare NaN e
+    // +infinito, che arrivavano al cast qui sotto e all'identità del battito in attesa. I battiti negativi di
+    // Link restano rifiutati come prima. Real-time: una classificazione e un confronto di un double.
+    if (!(std::isfinite(beatPosition) && beatPosition >= 0.0)) return;
 
     double spb              = (_sampleRate * 60.0) / _bpm;
 

@@ -89,8 +89,9 @@ add_test(NAME test_pending_beat COMMAND test_pending_beat)
 add_test(NAME test_assert_sentinel COMMAND test_assert_sentinel)
 add_test(NAME test_pending_beat_never_past COMMAND test_pending_beat_never_past)
 # Non con WILL_FAIL sull'eseguibile nudo: un assert falso finisce con abort(), una terminazione anomala che
-# WILL_FAIL non inverte. Lo script lancia l'eseguibile con execute_process e fallisce se esce con 0, se non
-# esiste o se la riga scritta prima dell'assert non arriva.
+# WILL_FAIL non inverte (https://cmake.org/cmake/help/latest/prop_test/WILL_FAIL.html). Lo script lancia
+# l'eseguibile con execute_process (https://cmake.org/cmake/help/latest/command/execute_process.html) e fallisce
+# se esce con 0, se non esiste o se la riga scritta prima dell'assert non arriva.
 add_test(NAME test_assert_false_turns_red
     COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:assert_false_probe>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_assert_failure.cmake)

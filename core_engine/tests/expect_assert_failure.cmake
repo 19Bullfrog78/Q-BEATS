@@ -6,8 +6,9 @@
 # - la riga scritta prima dell'assert non e' arrivata (l'eseguibile non e' partito davvero);
 # - l'eseguibile e' uscito con 0 (l'assert falso non ha fermato il processo: assert spenti o catena rotta).
 # Non si usa WILL_FAIL sull'eseguibile nudo: un assert falso finisce con abort(), una terminazione anomala che
-# WILL_FAIL non inverte. Con execute_process il risultato di una terminazione anomala e' un numero diverso da 0
-# oppure un testo che descrive l'errore: in tutti e due i casi «non 0».
+# WILL_FAIL non inverte (https://cmake.org/cmake/help/latest/prop_test/WILL_FAIL.html). Con execute_process
+# (https://cmake.org/cmake/help/latest/command/execute_process.html) il risultato di una terminazione anomala e'
+# un numero diverso da 0 oppure un testo che descrive l'errore: in tutti e due i casi «non 0».
 if(NOT DEFINED EXE)
   message(FATAL_ERROR "expect_assert_failure: manca -DEXE=<eseguibile>")
 endif()

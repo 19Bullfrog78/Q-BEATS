@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>   // std::llabs: fuori dal blocco per MSVC, cosi' il banco compila con ogni compilatore
 #include <cstring>
 #include <memory>
 #include <new>
@@ -39,7 +40,6 @@
 // sul runner della CI.
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
-#include <cstdlib>
 static void assertSuStderr() {
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);

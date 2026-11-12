@@ -12,6 +12,9 @@
 // campione va al cursore; l'identita' non cambia. Qui: la sonda dell'auditor, i casi di bordo.cpp, il battito a
 // cavallo del buffer, un controllo che i battiti che uscivano gia' non si spostano, una prova a tappeto dopo
 // ogni setter, le suddivisioni e lo swing dopo la cura.
+// A432, parte 2b (12/11/2026): in piu' i valori fuori dominio (VERIFICA_REFEREE_A432_PARTE2A_OPUS, par. 3.3 e
+// 3.7: un tempo zero, negativo o non finito, un battito negativo o non finito): il DSP rifiuta la chiamata senza
+// scrivere niente, provato con un gemello (test 7); lo 0 come battito e' nel dominio (test 8).
 // Gli oracoli non usano il getter: il campione di un click e' l'offset dell'evento che processBuffer rende.
 // I banchi di core_engine segnalano gli errori solo con assert(): con NDEBUG definito questo file non si compila.
 #ifdef NDEBUG
@@ -24,7 +27,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -33,7 +38,6 @@
 // sul runner della CI.
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
-#include <cstdlib>
 static void assertSuStderr() {
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
@@ -381,90 +385,155 @@ void test_a_tappeto_dopo_ogni_setter() {
     }
 
     // --- le sequenze a caso di tutti i setter ---
+    // A432 parte 2b (VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3.4, A N6): OGNI estrazione del generatore sta in una
+    // variabile con nome, una per riga. Prima alcune stavano in due nella stessa espressione o negli argomenti
+    // della stessa chiamata, e l'ordine in cui il compilatore le valuta non e' fissato dal linguaggio: con g++ il
+    // tappeto dava numeri diversi da quelli con MSVC. Cosi' la sequenza delle estrazioni, e con lei le chiamate
+    // per setter, e' la stessa con ogni compilatore.
     Lcg g { 0x432A2026ULL };
     const int corse = 2000, passi = 40;
     for (int r = 0; r < corse; ++r) {
-        double   bpm  = tempi[g.pick(8)];
+        const int qualeTempo = g.pick(8);
+        const int qualeBuf   = g.pick(6);
+        double   bpm  = tempi[qualeTempo];
         double   rate = kRate;
-        const uint32_t buf = bufs[g.pick(6)];
+        const uint32_t buf = bufs[qualeBuf];
         auto box = std::make_unique<MetronomeDSP>(rate, bpm);   // sullo heap, come metronome_create
         MetronomeDSP& d = *box;
         ++stati;
-        scrivi(d, t, kResetForStart, false, [&] { d.resetForStart((double)g.pick(16) + (g.pick(2) ? g.unit() : 0.0)); });
+        const int    avvioIntero   = g.pick(16);
+        const int    avvioConFraz  = g.pick(2);
+        const double avvioFrazione = avvioConFraz ? g.unit() : 0.0;
+        scrivi(d, t, kResetForStart, false, [&] { d.resetForStart((double)avvioIntero + avvioFrazione); });
         for (int p = 0; p < passi; ++p) {
             const double spb = rate * 60.0 / bpm;
             // la posizione di adesso in battiti, per generare posizioni vicine (solo per scegliere gli ingressi)
             const double adesso = d.getPendingBeat() - (double)d.getPendingSamplesAhead() / spb;
-            switch (g.pick(30)) {
-            case 0: case 1: case 2: case 3: case 4: case 5:
-                suona(d, t, 1 + g.pick(40), buf); break;
-            case 6: case 7: case 8:
-                bpm = tempi[g.pick(8)];
+            const int mossa = g.pick(30);
+            switch (mossa) {
+            case 0: case 1: case 2: case 3: case 4: case 5: {
+                const int quanti = 1 + g.pick(40);
+                suona(d, t, quanti, buf); break;
+            }
+            case 6: case 7: case 8: {
+                const int nuovoTempo = g.pick(8);
+                bpm = tempi[nuovoTempo];
                 scrivi(d, t, kSetBPM, true, [&] { d.setBPM(bpm); }); break;
+            }
             case 9: case 10: {
                 // vicino a un battito della griglia, da 0 a 1 campione dopo; oppure una posizione qualunque
-                const double pos = g.pick(3) ? std::floor(adesso + 1.0 + (double)g.pick(8)) + g.unit() / spb
-                                             : 1.0 + g.unit() * 64.0;
+                const int vicino = g.pick(3);
+                double pos;
+                if (vicino) {
+                    const int    avanti   = g.pick(8);
+                    const double frazione = g.unit();
+                    pos = std::floor(adesso + 1.0 + (double)avanti) + frazione / spb;
+                } else {
+                    const double frazione = g.unit();
+                    pos = 1.0 + frazione * 64.0;
+                }
                 scrivi(d, t, kSetBeatPosition, false, [&] { d.setBeatPosition(pos); }); break;
             }
             case 11: case 12: {
                 // una correzione piccola intorno alla posizione di adesso, o un salto
-                const double base = (adesso < 1.0) ? 1.0 : adesso;
-                const double pos  = g.pick(3) ? base + (g.unit() - 0.5) * 0.04 : base + g.unit() * 3.0;
+                const double base     = (adesso < 1.0) ? 1.0 : adesso;
+                const int    piccola  = g.pick(3);
+                const double frazione = g.unit();
+                const double pos      = piccola ? base + (frazione - 0.5) * 0.04 : base + frazione * 3.0;
                 scrivi(d, t, kSetBeatPositionTimeOnly, false, [&] { d.setBeatPositionTimeOnly(pos); }); break;
             }
-            case 13:
-                scrivi(d, t, kResetForStart, false, [&] { d.resetForStart((double)g.pick(64) + (g.pick(2) ? g.unit() : 0.0)); }); break;
-            case 14:
-                scrivi(d, t, kSetAbsolutePositionForTesting, false, [&] { d.setAbsolutePositionForTesting((uint64_t)g.pick(4000000)); }); break;
+            case 13: {
+                const int    intero   = g.pick(64);
+                const int    conFraz  = g.pick(2);
+                const double frazione = conFraz ? g.unit() : 0.0;
+                scrivi(d, t, kResetForStart, false, [&] { d.resetForStart((double)intero + frazione); }); break;
+            }
+            case 14: {
+                const int campione = g.pick(4000000);
+                scrivi(d, t, kSetAbsolutePositionForTesting, false, [&] { d.setAbsolutePositionForTesting((uint64_t)campione); }); break;
+            }
             case 15:
                 rate = (rate == 48000.0) ? 44100.0 : 48000.0;
                 scrivi(d, t, kSetSampleRate, true, [&] { d.setSampleRate(rate); }); break;
             case 16: {
-                const uint32_t bpb = 1 + (uint32_t)g.pick(16);
-                uint8_t pat[16]; for (auto& x : pat) x = (uint8_t)g.pick(2);
+                const int bpbEstratto = g.pick(16);
+                const uint32_t bpb = 1 + (uint32_t)bpbEstratto;
+                uint8_t pat[16];
+                for (auto& x : pat) {
+                    const int accento = g.pick(2);
+                    x = (uint8_t)accento;
+                }
                 scrivi(d, t, kSetBeatsPerBar, true, [&] { d.setBeatsPerBar(bpb); });
                 scrivi(d, t, kSetAccentPattern, true, [&] { d.setAccentPattern(pat, bpb); }); break;
             }
-            case 17:
-                scrivi(d, t, kSetSubdivision, true, [&] { d.setSubdivision((uint8_t)(1 + g.pick(4)), 0.5 + g.unit() * 0.4); }); break;
-            case 18:
-                scrivi(d, t, kScheduleBPMChange, true, [&] { d.scheduleBPMChange(tempi[g.pick(8)]); });
-                if (g.pick(3) == 0) scrivi(d, t, kCancelPendingBPM, true, [&] { d.cancelPendingBPM(); });
-                break;
-            case 19:
-                scrivi(d, t, kScheduleBeatsPerBarChange, true, [&] { d.scheduleBeatsPerBarChange(1 + (uint32_t)g.pick(16)); });
-                if (g.pick(3) == 0) scrivi(d, t, kCancelPendingBPB, true, [&] { d.cancelPendingBPB(); });
-                break;
-            case 20: {
-                uint8_t pat[16]; for (auto& x : pat) x = (uint8_t)g.pick(2);
-                scrivi(d, t, kScheduleAccentPatternChange, true, [&] { d.scheduleAccentPatternChange(pat, 1 + (uint32_t)g.pick(16)); }); break;
+            case 17: {
+                const int    moltiplicatore = g.pick(4);
+                const double swing          = g.unit();
+                scrivi(d, t, kSetSubdivision, true, [&] { d.setSubdivision((uint8_t)(1 + moltiplicatore), 0.5 + swing * 0.4); }); break;
             }
-            case 21:
-                scrivi(d, t, kScheduleSubdivisionChange, true, [&] { d.scheduleSubdivisionChange((uint8_t)(1 + g.pick(4)), 0.5 + g.unit() * 0.4); });
-                if (g.pick(3) == 0) scrivi(d, t, kCancelPendingSubdivision, true, [&] { d.cancelPendingSubdivision(); });
+            case 18: {
+                const int tempoArmato = g.pick(8);
+                scrivi(d, t, kScheduleBPMChange, true, [&] { d.scheduleBPMChange(tempi[tempoArmato]); });
+                const int annulla = g.pick(3);
+                if (annulla == 0) scrivi(d, t, kCancelPendingBPM, true, [&] { d.cancelPendingBPM(); });
                 break;
-            case 22:
-                scrivi(d, t, kSetAccentVolume, true, [&] { d.setAccentVolume(g.unit()); });
-                scrivi(d, t, kSetBeatVolume,   true, [&] { d.setBeatVolume(g.unit()); });
-                scrivi(d, t, kSetSubdivVolume, true, [&] { d.setSubdivVolume(g.unit()); }); break;
+            }
+            case 19: {
+                const int metroArmato = g.pick(16);
+                scrivi(d, t, kScheduleBeatsPerBarChange, true, [&] { d.scheduleBeatsPerBarChange(1 + (uint32_t)metroArmato); });
+                const int annulla = g.pick(3);
+                if (annulla == 0) scrivi(d, t, kCancelPendingBPB, true, [&] { d.cancelPendingBPB(); });
+                break;
+            }
+            case 20: {
+                uint8_t pat[16];
+                for (auto& x : pat) {
+                    const int accento = g.pick(2);
+                    x = (uint8_t)accento;
+                }
+                const int lunghezza = g.pick(16);
+                scrivi(d, t, kScheduleAccentPatternChange, true, [&] { d.scheduleAccentPatternChange(pat, 1 + (uint32_t)lunghezza); }); break;
+            }
+            case 21: {
+                const int    moltiplicatore = g.pick(4);
+                const double swing          = g.unit();
+                scrivi(d, t, kScheduleSubdivisionChange, true, [&] { d.scheduleSubdivisionChange((uint8_t)(1 + moltiplicatore), 0.5 + swing * 0.4); });
+                const int annulla = g.pick(3);
+                if (annulla == 0) scrivi(d, t, kCancelPendingSubdivision, true, [&] { d.cancelPendingSubdivision(); });
+                break;
+            }
+            case 22: {
+                const double volumeAccento = g.unit();
+                const double volumeBattito = g.unit();
+                const double volumeSuddiv  = g.unit();
+                scrivi(d, t, kSetAccentVolume, true, [&] { d.setAccentVolume(volumeAccento); });
+                scrivi(d, t, kSetBeatVolume,   true, [&] { d.setBeatVolume(volumeBattito); });
+                scrivi(d, t, kSetSubdivVolume, true, [&] { d.setSubdivVolume(volumeSuddiv); }); break;
+            }
             case 23:
                 // muto e subito di nuovo in voce: il secondo valore e' quello che processBuffer applica
                 scrivi(d, t, kSetMuted, true, [&] { d.setMuted(true); });
                 scrivi(d, t, kSetMuted, true, [&] { d.setMuted(false); }); break;
-            case 24: case 25:
-                scrivi(d, t, kRenamePendingBeat, true, [&] { d.renamePendingBeat((uint32_t)g.pick(20)); }); break;
+            case 24: case 25: {
+                const int etichetta = g.pick(20);
+                scrivi(d, t, kRenamePendingBeat, true, [&] { d.renamePendingBeat((uint32_t)etichetta); }); break;
+            }
             case 26: {
+                const int tempoA = g.pick(8);
+                const int tempoB = g.pick(8);
+                const int tempoC = g.pick(8);
                 TempoMap m;
-                const bool ok = TempoMap::make({ { 0, tempi[g.pick(8)] }, { 480000, tempi[g.pick(8)] }, { 960000, tempi[g.pick(8)] } },
+                const bool ok = TempoMap::make({ { 0, tempi[tempoA] }, { 480000, tempi[tempoB] }, { 960000, tempi[tempoC] } },
                                                rate, m);
                 assert(ok);
                 scrivi(d, t, kSetTempoMap, true, [&] { (void)d.setTempoMap(m); }); break;   // puo' rifiutare (guardia dei due buffer)
             }
             case 27:
                 scrivi(d, t, kClearTempoMap, true, [&] { d.clearTempoMap(); }); break;
-            case 28:
-                scrivi(d, t, kSetDiagEnabled, true, [&] { d.setDiagEnabled(g.pick(2) == 0); }); break;
+            case 28: {
+                const int accesa = g.pick(2);
+                scrivi(d, t, kSetDiagEnabled, true, [&] { d.setDiagEnabled(accesa == 0); }); break;
+            }
             default:
                 suona(d, t, 1, buf); break;
             }
@@ -584,6 +653,219 @@ void test_suddivisioni_e_swing_dopo_la_cura() {
     std::printf("PASS test_suddivisioni_e_swing_dopo_la_cura\n");
 }
 
+// ─────────────────────────── 7: i valori fuori dominio (A432 parte 2b) ───────────────────────────
+//
+// VERIFICA_REFEREE_A432_PARTE2A_OPUS, par. 3.3 e 3.7: il DSP rifiuta gli ingressi fuori dominio. setBPM e
+// scheduleBPMChange ignorano un tempo che non sia un numero finito maggiore di zero; resetForStart, setBeatPosition
+// e setBeatPositionTimeOnly ignorano un battito che non sia un numero finito maggiore o uguale a zero. La chiamata
+// rifiutata esce senza scrivere nessun campo.
+// La prova e' un GEMELLO: due DSP con la stessa storia, uno riceve la chiamata rifiutata e l'altro no. Devono dare
+// la stessa fotografia subito dopo (i getter) e gli stessi eventi (offset, accent, isBeat) buffer per buffer, per
+// almeno 300 buffer e comunque finche' il gemello ha passato almeno due «uno»: un tempo armato scatta solo al
+// battito con etichetta 0, quindi il danno di uno scheduleBPMChange fuori dominio esce solo li'. I getter da soli
+// non bastano: senza guardia, dopo setBPM o scheduleBPMChange con un valore fuori dominio restano spesso uguali e
+// il danno esce nei buffer dopo.
+
+struct Foto { double nome; int64_t campioni; double origine; uint32_t etichetta; bool adattivo; };
+Foto foto(const MetronomeDSP& d) {
+    return { d.getPendingBeat(), d.getPendingSamplesAhead(), d.getStartAbsoluteBeat(), d.getCurrentBeatInBar(),
+             d.isAdaptiveActive() };
+}
+// Con un NaN da una parte l'uguaglianza e' falsa: una fotografia con un NaN e' diversa da ogni altra.
+bool stessaFoto(const Foto& a, const Foto& b) {
+    return a.nome == b.nome && a.campioni == b.campioni && a.origine == b.origine && a.etichetta == b.etichetta
+        && a.adattivo == b.adattivo;
+}
+
+// Gli stati di partenza: il tempo con cui nasce il DSP, il buffer e quanti campioni si suonano dopo la chiamata
+// (almeno 300 buffer, e abbastanza da passare almeno due «uno»: lo controlla un'asserzione sul gemello).
+const int      kStatiFD = 8;
+const double   kTempoStatoFD[kStatiFD]    = { 121.0, 91.0, 60.5, 141.0, 121.0, 101.3, 121.0, 120.0 };
+const uint32_t kBufStatoFD[kStatiFD]      = { 512, 512, 256, 480, 512, 512, 512, 512 };
+const uint32_t kCampioniStatoFD[kStatiFD] = { 307200, 307200, 460800, 307200, 409600, 512000, 307200, 307200 };
+const int      kStatoConLaMappaFD = 7;
+
+// La stessa storia per i due gemelli: solo chiamate dentro il dominio.
+void storiaFD(int stato, MetronomeDSP& d) {
+    switch (stato) {
+    case 0:   // 121 in 4/4, a meta' del primo battito
+        d.setBeatsPerBar(4); d.resetForStart(0.0);
+        for (int b = 0; b < 7; ++b) d.processBuffer(512);
+        break;
+    case 1:   // 91 in 3/4, a meta' battuta
+        d.setBeatsPerBar(3); d.resetForStart(0.0);
+        for (int b = 0; b < 100; ++b) d.processBuffer(512);
+        break;
+    case 2:   // 60,5 in 4/4, l'avvio da un battito non intero, prima di ogni buffer
+        d.setBeatsPerBar(4); d.resetForStart(2.37);
+        break;
+    case 3:   // 141 in 4/4 con le crome swing 0,6, buffer da 480
+        d.setBeatsPerBar(4); d.setSubdivision(2, 0.6); d.resetForStart(0.0);
+        for (int b = 0; b < 53; ++b) d.processBuffer(480);
+        break;
+    case 4:   // 121 in 4/4 con un tempo (91) e un metro (3) sani gia' armati per il prossimo «uno»
+        d.setBeatsPerBar(4); d.resetForStart(0.0);
+        for (int b = 0; b < 30; ++b) d.processBuffer(512);
+        d.scheduleBPMChange(91.0); d.scheduleBeatsPerBarChange(3);
+        break;
+    case 5:   // 101,3 in 6 con le semicrome, dopo una ripresa (setBeatPosition) a meta' battuta
+        d.setBeatsPerBar(6); d.setSubdivision(4, 0.5); d.resetForStart(0.0); d.setBeatPosition(13.25);
+        for (int b = 0; b < 11; ++b) d.processBuffer(512);
+        break;
+    case 6:   // 121 in 4/4 col battito 1 al primo campione del buffer dopo (lo stato della strada 1 della parte 2a)
+        d.setBeatsPerBar(4); d.resetForStart(0.0);
+        for (int b = 0; b < 46; ++b) d.processBuffer(512);
+        d.processBuffer(250);
+        break;
+    default: {   // kStatoConLaMappaFD: 120 in 4/4 con la mappa adattiva attiva
+        TempoMap m;
+        const bool ok = TempoMap::make({ { 0, 120.0 }, { 480000, 100.0 }, { 960000, 140.0 } }, kRate, m);
+        assert(ok);
+        d.setBeatsPerBar(4); d.resetForStart(0.0);
+        const bool messa = d.setTempoMap(m);
+        assert(messa);
+        for (int b = 0; b < 10; ++b) d.processBuffer(512);
+        break;
+    }
+    }
+}
+
+struct EsitoFD {
+    bool negativo;       // il getter dei campioni sotto zero, subito dopo la chiamata o dopo un buffer
+    bool subito;         // la fotografia subito dopo la chiamata e' diversa da quella del gemello
+    bool dopo;           // eventi o fotografia diversi dal gemello in almeno un buffer dopo
+    int  primoBuffer;    // il primo buffer diverso (-1: nessuno)
+    int  uniDelGemello;  // quanti «uno» ha passato il gemello nei buffer suonati
+    int  buffers;
+};
+
+template <typename F>
+EsitoFD gemelloFD(int stato, F chiamata) {
+    auto boxA = std::make_unique<MetronomeDSP>(kRate, kTempoStatoFD[stato]);   // il gemello: senza la chiamata
+    auto boxB = std::make_unique<MetronomeDSP>(kRate, kTempoStatoFD[stato]);   // con la chiamata
+    MetronomeDSP& a = *boxA;
+    MetronomeDSP& b = *boxB;
+    storiaFD(stato, a);
+    storiaFD(stato, b);
+    assert(stessaFoto(foto(a), foto(b)));   // la stessa storia, lo stesso stato
+    chiamata(b);
+    EsitoFD e = { false, false, false, -1, 0, 0 };
+    if (b.getPendingSamplesAhead() < 0) e.negativo = true;
+    if (!stessaFoto(foto(a), foto(b))) e.subito = true;
+    const uint32_t buf = kBufStatoFD[stato];
+    e.buffers = (int)(kCampioniStatoFD[stato] / buf);
+    for (int i = 0; i < e.buffers; ++i) {
+        const std::vector<BeatEvent> ea = a.processBuffer(buf);
+        const std::vector<BeatEvent> eb = b.processBuffer(buf);
+        bool uguali = (ea.size() == eb.size());
+        for (size_t k = 0; uguali && k < ea.size(); ++k) {
+            uguali = (ea[k].offset == eb[k].offset) && (ea[k].accent == eb[k].accent) && (ea[k].isBeat == eb[k].isBeat);
+        }
+        if (uguali) uguali = stessaFoto(foto(a), foto(b));
+        if (!uguali) { e.dopo = true; if (e.primoBuffer < 0) e.primoBuffer = i; }
+        if (b.getPendingSamplesAhead() < 0) e.negativo = true;
+        for (const BeatEvent& x : ea) if (x.isBeat && x.accent) ++e.uniDelGemello;
+    }
+    return e;
+}
+
+enum GuardiaFD { kGSetBPM, kGScheduleBPMChange, kGResetForStart, kGSetBeatPosition, kGSetBeatPositionTimeOnly, kGuardieFD };
+const char* const kNomeGuardiaFD[kGuardieFD] = {
+    "setBPM", "scheduleBPMChange", "resetForStart", "setBeatPosition", "setBeatPositionTimeOnly"
+};
+
+void chiamaFD(MetronomeDSP& d, int guardia, double v) {
+    switch (guardia) {
+    case kGSetBPM:            d.setBPM(v); break;
+    case kGScheduleBPMChange: d.scheduleBPMChange(v); break;
+    case kGResetForStart:     d.resetForStart(v); break;
+    case kGSetBeatPosition:   d.setBeatPosition(v); break;
+    default:                  d.setBeatPositionTimeOnly(v); break;
+    }
+}
+
+void test_fuori_dominio_la_chiamata_rifiutata_non_cambia_niente() {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    struct Valore { const char* nome; double v; };
+    // i due tempi: 0, negativi, NaN, +infinito, -infinito
+    const Valore tempiFuori[]   = { { "0", 0.0 }, { "-0", -0.0 }, { "-5", -5.0 }, { "-120", -120.0 },
+                                    { "NaN", nan }, { "+inf", inf }, { "-inf", -inf } };
+    // i tre battiti: negativi, NaN, +infinito, -infinito (lo 0 e' nel dominio: il test dopo)
+    const Valore battitiFuori[] = { { "-1e-9", -1e-9 }, { "-0.25", -0.25 }, { "-1", -1.0 }, { "-1000.5", -1000.5 },
+                                    { "NaN", nan }, { "+inf", inf }, { "-inf", -inf } };
+    long long totNegativi = 0, totSubito = 0, totDopo = 0, totStati = 0;
+    int minUni = 1000000, minBuffers = 1000000;
+    for (int guardia = 0; guardia < kGuardieFD; ++guardia) {
+        const bool tempo = (guardia == kGSetBPM || guardia == kGScheduleBPMChange);
+        const Valore* valori = tempo ? tempiFuori : battitiFuori;
+        const int quanti = 7;
+        for (int q = 0; q < quanti; ++q) {
+            const double v = valori[q].v;
+            int stati = 0, negativi = 0, subito = 0, dopo = 0, primo = -1;
+            for (int stato = 0; stato < kStatiFD; ++stato) {
+                // per scheduleBPMChange solo stati senza la mappa adattiva: con la mappa lo scambio del tempo
+                // armato non avviene (processBuffer, il cancello «!adaptive») e la chiamata non avrebbe effetto
+                if (guardia == kGScheduleBPMChange && stato == kStatoConLaMappaFD) continue;
+                const EsitoFD e = gemelloFD(stato, [&](MetronomeDSP& d) { chiamaFD(d, guardia, v); });
+                ++stati;
+                if (e.negativo) ++negativi;
+                if (e.subito) ++subito;
+                if (e.dopo) { ++dopo; if (primo < 0 || e.primoBuffer < primo) primo = e.primoBuffer; }
+                if (e.uniDelGemello < minUni) minUni = e.uniDelGemello;
+                if (e.buffers < minBuffers) minBuffers = e.buffers;
+            }
+            std::printf("  fuori dominio %-24s %-8s stati:%d getterNegativo:%d diversiSubito:%d diversiDopo:%d primoBufferDiverso:%d\n",
+                        kNomeGuardiaFD[guardia], valori[q].nome, stati, negativi, subito, dopo, primo);
+            totStati += stati; totNegativi += negativi; totSubito += subito; totDopo += dopo;
+        }
+    }
+    std::printf("  fuori dominio stati:%lld getterNegativo:%lld diversiSubito:%lld diversiDopo:%lld bufferMinimi:%d uniMinimiDelGemello:%d\n",
+                totStati, totNegativi, totSubito, totDopo, minBuffers, minUni);
+    assert(totStati == 5 * 7 * 8 - 7);   // ogni guardia, ogni valore, ogni stato (scheduleBPMChange senza quello con la mappa)
+    assert(minBuffers >= 300);           // almeno 300 buffer dopo la chiamata
+    assert(minUni >= 2);                 // e almeno due «uno» passati: un tempo armato sarebbe scattato
+    assert(totSubito == 0 && totDopo == 0 && "il gemello: la chiamata rifiutata non cambia niente");
+    assert(totNegativi == 0 && "il getter resta >= 0");
+    std::printf("PASS test_fuori_dominio_la_chiamata_rifiutata_non_cambia_niente\n");
+}
+
+void test_lo_zero_e_nel_dominio() {
+    // Il battito 0 e' nel dominio: la chiamata e' ACCETTATA. Lo stesso gemello qui deve vedere il cambio (e' anche
+    // il controllo positivo del gemello: una chiamata che scrive si vede). Stato: 121 in 4/4, 30 buffer suonati
+    // (cursore 15360, in attesa il battito 1 a 23802, etichetta 1).
+    const double spb = spbOf(121.0);
+    for (int guardia = kGResetForStart; guardia <= kGSetBeatPositionTimeOnly; ++guardia) {
+        auto boxA = std::make_unique<MetronomeDSP>(kRate, 121.0);   // il gemello: senza la chiamata
+        auto boxB = std::make_unique<MetronomeDSP>(kRate, 121.0);   // con la chiamata a 0
+        MetronomeDSP& a = *boxA;
+        MetronomeDSP& b = *boxB;
+        for (MetronomeDSP* d : { &a, &b }) {
+            d->setBeatsPerBar(4);
+            d->resetForStart(0.0);
+            for (int i = 0; i < 30; ++i) d->processBuffer(512);
+        }
+        const Foto prima = foto(a);
+        assert(stessaFoto(prima, foto(b)));
+        assert(prima.nome == 1.0 && prima.campioni == (int64_t)std::llround(spb) - 15360 && prima.etichetta == 1);
+        chiamaFD(b, guardia, 0.0);
+        const Foto dopo = foto(b);
+        std::printf("  zero %-24s nome:%.1f campioni:%lld origine:%.1f etichetta:%u\n", kNomeGuardiaFD[guardia],
+                    dopo.nome, (long long)dopo.campioni, dopo.origine, dopo.etichetta);
+        assert(!stessaFoto(prima, dopo));                 // accettata: lo stato e' cambiato
+        assert(dopo.nome == 0.0 && dopo.campioni == 0);   // il cursore a 0, in attesa il battito 0 al primo campione
+        assert(dopo.origine == 0.0);
+        // resetForStart e setBeatPosition rifanno l'etichetta (0, l'«uno»); setBeatPositionTimeOnly non la tocca
+        const uint32_t etichettaAttesa = (guardia == kGSetBeatPositionTimeOnly) ? 1u : 0u;
+        assert(dopo.etichetta == etichettaAttesa);
+        const std::vector<BeatEvent> ev = b.processBuffer(512);
+        assert(ev.size() == 1 && ev[0].isBeat && ev[0].offset == 0);
+        assert(ev[0].accent == (etichettaAttesa == 0));
+        assert(b.getPendingBeat() == 1.0 && b.getPendingSamplesAhead() == (int64_t)std::llround(spb) - 512);
+    }
+    std::printf("PASS test_lo_zero_e_nel_dominio\n");
+}
+
 struct Test { const char* nome; void (*f)(); };
 const Test kTests[] = {
     { "sonda",       test_sonda_setBPM_piu_lento_dopo_resetForStart },
@@ -592,6 +874,8 @@ const Test kTests[] = {
     { "nonsisposta", test_chi_usciva_gia_non_si_sposta },
     { "tappeto",     test_a_tappeto_dopo_ogni_setter },
     { "suddivisioni", test_suddivisioni_e_swing_dopo_la_cura },
+    { "fuoridominio", test_fuori_dominio_la_chiamata_rifiutata_non_cambia_niente },
+    { "zero",        test_lo_zero_e_nel_dominio },
 };
 
 }  // namespace

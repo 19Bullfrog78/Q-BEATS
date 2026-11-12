@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>   // std::llabs: fuori dal blocco per MSVC, cosi' il banco compila con ogni compilatore
 #include <memory>
 #include <vector>
 
@@ -26,7 +27,6 @@
 // sul runner della CI.
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
-#include <cstdlib>
 static void assertSuStderr() {
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
@@ -485,20 +485,28 @@ void test_bordo_del_buffer_e_guardie() {
 
 struct CorsaH { std::vector<Ev> ev; std::vector<uint64_t> accenti; };
 
-// A 120 in 4/4 (24000 campioni per battito): usciti 0, 1, 2; in attesa il 3 con l'etichetta 3. Le crome si armano
-// li' (scheduleSubdivisionChange), poi la rinomina (rinomina < 0: nessuna). Rende gli eventi fino al campione 200192.
-CorsaH corsaH(int rinomina, double swing) {
-    auto dspBox = std::make_unique<MetronomeDSP>(kRate, 120.0);   // sullo heap, come metronome_create
+// In 4/4: usciti 0, 1, 2; in attesa il 3 con l'etichetta 3. Le crome si armano li' (scheduleSubdivisionChange),
+// poi la rinomina (rinomina < 0: nessuna). Rende gli eventi dei 273 buffer dopo.
+// A 120 (24000 campioni per battito, interi): l'armo al cursore 60416, il battito 3 a 72000, la fine a 200192.
+// A 121 (23801,65 campioni per battito, non interi: Costituzione V5, par. 6; A432 parte 2b, VERIFICA_REFEREE_A432_
+// PARTE2A_OPUS par. 3.4, A N1): l'armo al cursore 59904, il battito 3 a 71405, la fine a 199680.
+CorsaH corsaH(int rinomina, double swing, double bpm = 120.0) {
+    assert(bpm == 120.0 || bpm == 121.0);
+    const bool     a121      = (bpm == 121.0);
+    const uint64_t armo      = a121 ? 59904u : 60416u;
+    const int64_t  inAttesa  = a121 ? 71405 : 72000;
+    const uint64_t fine      = a121 ? 199680u : 200192u;
+    auto dspBox = std::make_unique<MetronomeDSP>(kRate, bpm);   // sullo heap, come metronome_create
     MetronomeDSP& dsp = *dspBox;
     dsp.setBeatsPerBar(4);
     dsp.resetForStart(0.0);
     uint64_t cursor = 0;
-    const int usciti = advanceUntil(dsp, cursor, 24000.0, 2.5);
-    assert(usciti == 3 && cursor == 60416 && dsp.getCurrentBeatInBar() == 3);
+    const int usciti = advanceUntil(dsp, cursor, spbOf(bpm), 2.5);
+    assert(usciti == 3 && cursor == armo && dsp.getCurrentBeatInBar() == 3);
     dsp.scheduleSubdivisionChange(2, swing);
     if (rinomina >= 0) dsp.renamePendingBeat((uint32_t)rinomina);
     const Pending g = readPending(dsp);
-    assert(ll(g.beat) == 3 && (int64_t)cursor + g.ahead == 72000);   // ne' l'armo ne' la rinomina toccano il battito in attesa
+    assert(ll(g.beat) == 3 && (int64_t)cursor + g.ahead == inAttesa);   // ne' l'armo ne' la rinomina toccano il battito in attesa
     CorsaH out;
     for (int b = 0; b < 273; ++b) {
         for (const auto& e : dsp.processBuffer(kBuf)) {
@@ -507,7 +515,7 @@ CorsaH corsaH(int rinomina, double swing) {
         }
         cursor += kBuf;
     }
-    assert(cursor == 200192);
+    assert(cursor == fine);
     return out;
 }
 
@@ -560,6 +568,48 @@ void test_scenario_H_cambio_di_suddivisione_armato() {
         for (const Ev& e : aZero.ev) if (e.isBeat) b0.push_back(e.sample);
         for (const Ev& e : aDue.ev)  if (e.isBeat) b2.push_back(e.sample);
         assert(bs.size() == 6 && bs == b0 && bs == b2);
+    }
+    // --- Lo stesso scenario a 121 (A432 parte 2b): 23801,65 campioni per battito, quindi battiti e crome cadono
+    // su campioni arrotondati. I battiti: 71405, 95207, 119008, 142810, 166612, 190413 (il 3, 4, ... 8 per 23801,65);
+    // ogni croma a round(campione del suo battito + mezzo battito), perche' ogni battito uscito riarma il tracker
+    // dal proprio campione. I campioni vengono da un modello a parte dell'aritmetica di processBuffer (fuori dal
+    // deposito), che a 120 rende i numeri scritti qui sopra.
+    {   // senza rinomina: lo scambio sul battito 4 (95207), la prima croma a 107108
+        const CorsaH c = corsaH(-1, 0.5, 121.0);
+        const uint64_t s[] = { 71405, 95207, 107108, 119008, 130909, 142810, 154711, 166612, 178513, 190413 };
+        const bool     b[] = { true,  true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 10);
+        assert(c.accenti.size() == 2 && c.accenti[0] == 95207 && c.accenti[1] == 190413);
+    }
+    {   // rinominato a 0: il battito 3 e' il nuovo «uno», lo scambio scatta li' (71405) e la prima croma e' a 83306
+        const CorsaH c = corsaH(0, 0.5, 121.0);
+        const uint64_t s[] = { 71405, 83306, 95207, 107108, 119008, 130909, 142810, 154711, 166612, 178513, 190413 };
+        const bool     b[] = { true,  false, true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 11);
+        assert(c.accenti.size() == 2 && c.accenti[0] == 71405 && c.accenti[1] == 166612);
+    }
+    {   // rinominato a 2: lo scambio due battiti dopo, sul 5 (119008), la prima croma a 130909
+        const CorsaH c = corsaH(2, 0.5, 121.0);
+        const uint64_t s[] = { 71405, 95207, 119008, 130909, 142810, 154711, 166612, 178513, 190413 };
+        const bool     b[] = { true,  true,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 9);
+        assert(c.accenti.size() == 1 && c.accenti[0] == 119008);
+    }
+    {   // con lo swing 0,6 e la rinomina a 0: la croma lunga a 0,6 * 23801,65 = 14280,99 campioni dal suo battito
+        const CorsaH c = corsaH(0, 0.6, 121.0);
+        const uint64_t s[] = { 71405, 85686, 95207, 109488, 119008, 133289, 142810, 157091, 166612, 180893, 190413 };
+        const bool     b[] = { true,  false, true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 11);
+    }
+    {   // i battiti a 121: gli stessi campioni con e senza la rinomina, e nei tre casi
+        const CorsaH senza = corsaH(-1, 0.5, 121.0), aZero = corsaH(0, 0.5, 121.0), aDue = corsaH(2, 0.5, 121.0);
+        std::vector<uint64_t> bs, b0, b2;
+        for (const Ev& e : senza.ev) if (e.isBeat) bs.push_back(e.sample);
+        for (const Ev& e : aZero.ev) if (e.isBeat) b0.push_back(e.sample);
+        for (const Ev& e : aDue.ev)  if (e.isBeat) b2.push_back(e.sample);
+        const uint64_t attesi[] = { 71405, 95207, 119008, 142810, 166612, 190413 };
+        assert(bs.size() == 6 && bs == b0 && bs == b2);
+        for (size_t i = 0; i < 6; ++i) assert(bs[i] == attesi[i]);
     }
     std::printf("PASS test_scenario_H_cambio_di_suddivisione_armato\n");
 }
