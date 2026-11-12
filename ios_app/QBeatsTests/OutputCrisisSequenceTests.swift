@@ -5303,6 +5303,46 @@ func testWithoutACountTheFollowerReturnIsOnTheLinkBarAsBefore() throws {
     XCTAssertEqual(uno.beat.truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9)
 }
 
+/// Dopo la nota N1 del verificatore V3 (referto della 2b, §8): lo stesso buco PRIMA del confine. La canzone è 4/4 per sei battute
+/// (24 battiti) e poi 3/4; l'àncora al battito 96 della sessione, il confine a 120 (60 s). Il motore è ancora nel 4/4 (il suo metro
+/// è 4); la scadenza cade nell'ultima battuta del 4/4 e l'«uno» del conto è il primo del 3/4: porta i 3 battiti per battuta della
+/// SUA sezione, non i 4 del motore. Il metro del motore non riarma un «uno» del conto (`refreshUno`): gli stessi riarmi del gemello
+/// senza conto, e l'«uno» resta quello. Senza quella regola il ritorno si riarmerebbe a ogni chiamata («metro-cambiato»).
+func testTheMeterOfTheEngineDoesNotRearmAnUnoOfTheCount() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 4, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 6, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    var twin = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 4, at: 50.0)
+    let firstCall = 58.806 + 0.684
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    rig.callbacks(from: firstCall, count: 1)
+    twin.routeChange(at: 55.0, to: [speaker])
+    twin.callbacks(from: 55.681, count: 30)
+    twin.routeChange(at: 58.806, to: [headphones])
+    twin.callbacks(from: firstCall, count: 1)
+    let uno = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(uno.clock, .band)
+    XCTAssertEqual(uno.beat, 120, accuracy: 1e-9, "il primo «uno» del 3/4")
+    XCTAssertEqual(uno.beatsPerBar, 3, "i battiti per battuta della sua sezione")
+    XCTAssertEqual(rig.beatsPerBar, 4, "il metro del motore è ancora quello di prima del confine")
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(twin.followerReturn).uno).clock, .link)
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 5)
+    twin.callbacks(from: firstCall + twin.bufferSeconds, count: 5)
+    XCTAssertEqual(rig.rearms, twin.rearms, "il metro del motore non riarma un «uno» del conto")
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(rig.followerReturn, "il ritorno è ancora armato").uno), uno, "l'«uno» resta quello")
+    rig.callbacks(from: firstCall + 6 * rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    let restored = try XCTUnwrap(rig.restoredUnoAt)
+    XCTAssertEqual((rig.linkBeat(at: restored) - 120).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-6,
+                   "il volume è tornato su un «uno» della canzone")
+    checkReturnInvariants(rig, "A.14 prima del confine")
+}
+
 // MARK: - A421 · SEGUITO 4, par. 3.1: la scorta del rientro come il motore
 
 /// Il fuoco del rientro come il motore: l'origine del DSP sull'«uno» e la posizione sul seme, l'«uno» meno la scorta
