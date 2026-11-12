@@ -128,8 +128,13 @@ public:
     // beatInBar (modulo i battiti per battuta). Non tocca la linea a campioni
     // (_absoluteSamplePosition), il battito in attesa (_exactNextBeatSample, anche
     // quando la correzione lo ha messo a «subito»), la sua identità (_pendingBeatIdx),
-    // le suddivisioni e lo swing, i cambi armati, l'origine (_startAbsoluteBeat).
-    // Chiamare SOLO su audioQueue, prima di processBuffer.
+    // l'origine (_startAbsoluteBeat): il battito in attesa esce allo stesso campione.
+    // I cambi armati (metro, tempo, suddivisione) non li scrive, ma sposta il battito a
+    // cui scattano: processBuffer apre lo scambio al battito con etichetta 0, quindi con
+    // un cambio armato lo scambio scatta sul nuovo «uno» e i click DOPO cambiano campione
+    // (un tempo armato cambia il passo dei battiti da lì; una suddivisione armata parte da
+    // lì). Chi non lo vuole annulla i cambi armati e usa i setter immediati prima della
+    // rinomina (A424 par. 2.2 a). Chiamare SOLO su audioQueue, prima di processBuffer.
     void renamePendingBeat(uint32_t beatInBar);
 
     double getStartAbsoluteBeat() const { return _startAbsoluteBeat; }
@@ -139,10 +144,15 @@ public:
     // sulla linea dei battiti del DSP, origine + indice. Sola lettura, chiamare SOLO su audioQueue.
     double getPendingBeat() const { return _startAbsoluteBeat + (double)_pendingBeatIdx; }
     // Campioni fra l'inizio del prossimo processBuffer e il battito in attesa: 0 = al primo
-    // campione (il battito messo a «subito»); il battito esce nel prossimo buffer se il valore
-    // è < bufferSize. La stessa regola d'arrotondamento e lo stesso confronto con cui
-    // processBuffer fa uscire il battito (roundedNextBeat == currentAbsolute). Sola lettura,
-    // chiamare SOLO su audioQueue.
+    // campione (il battito messo a «subito»). La stessa regola d'arrotondamento e lo stesso
+    // confronto con cui processBuffer fa uscire il battito (roundedNextBeat == currentAbsolute).
+    // Il valore non è mai negativo (A432 parte 2a): ogni scrittura del battito in attesa lo
+    // lascia col campione arrotondato sul cursore o dopo (setBPM e setBeatPosition lo portano
+    // al cursore se finirebbe prima; setBeatPositionTimeOnly ha il suo «subito»). Un valore
+    // < bufferSize vuol dire che il battito esce nel prossimo processBuffer, a quell'offset;
+    // ma non che un click suona in quella chiamata: nel drenaggio di fine sezione Swift non
+    // chiama processBuffer (ios_app/QBeats/AudioEngine.swift, `_sectionEndPending`), e col
+    // click muto il battito avanza senza evento. Sola lettura, chiamare SOLO su audioQueue.
     int64_t getPendingSamplesAhead() const {
         return (int64_t)(std::round(_exactNextBeatSample) - (double)_absoluteSamplePosition);
     }

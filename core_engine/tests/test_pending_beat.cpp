@@ -26,9 +26,12 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <memory>
+#include <new>
 #include <vector>
 
 // Solo per una compilazione locale su Windows con la CRT di debug di MSVC: un assert() fallito andrebbe in una
@@ -107,6 +110,12 @@ enum class Rename { none, getterEvery, swiftEvery, swiftOnceAfter };
 struct SyncResult {
     int beats = 0, corrections = 0, atSampleZero = 0;
     int asapAfterOvertake = 0;    // record che annunciavano un campione, poi scavalcato da una correzione: uscito a «subito»
+    // A432 parte 2a (VERIFICA_REFEREE_A432_PARTE1 par. 3.1, A.4) — il controllo stretto degli scavalchi: ogni
+    // scavalco contato qui sopra dev'essere uno scavalco vero (vedi runSync), e chi passa solo il controllo
+    // largo fa cadere il test.
+    int overtakeStrict = 0;       // scavalchi veri: correzione nella chiamata d'uscita, cursore oltre l'annuncio, campione mai suonato
+    int overtakeLaxOnly = 0;      // usciti al campione 0 piu' tardi dell'annuncio SENZA uno scavalco vero: devono essere zero
+    int annNotGrid = 0;           // scavalcati il cui campione annunciato non era quello di griglia del battito: devono essere zero
     int getterWrong = 0;          // identita' del getter diversa dal click uscito, o campione diverso senza scavalco
     int swiftWrongGapCall = 0;    // la regola Swift (pendingBeatAfter) nella chiamata del buco
     int swiftWrongOther = 0;      // la regola Swift (ceil della posizione) nelle chiamate dopo il buco
@@ -128,7 +137,7 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
     // correzione del buco cambia l'identita' del battito in attesa (le altre sono sotto mezzo battito e lo
     // lasciano sulla griglia): i record di prima del buco annunciano un battito che il buco fa sparire, e si
     // scartano li'; ogni altro record deve dire il click che esce: nome e campione.
-    struct Rec { double swiftP; double gBeat; int64_t gAhead; uint64_t cursor; uint32_t label; bool gapCall; };
+    struct Rec { double swiftP; double gBeat; int64_t gAhead; uint64_t cursor; uint32_t label; bool gapCall; bool corrected; };
     std::vector<Rec> pend;
     long long lastIdentity = -1;
     int sign = +1;
@@ -138,7 +147,9 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
         sign = -sign;
         const double before = (double)cursor / spb;
         double swiftP;
+        bool corrected = false;   // in questa chiamata c'e' stata una correzione
         if (std::fabs(reading - before) > 0.01) {
+            corrected = true;
             dsp.setBeatPositionTimeOnly(reading);
             cursor = cursorOf(reading, spb);
             swiftP = swiftCeil(before) + std::round(reading - before);   // LateBeatDecision.pendingBeatAfter
@@ -161,7 +172,7 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
             }
         }
         const uint32_t labelBefore = dsp.getCurrentBeatInBar();
-        pend.push_back({ swiftP, g.beat, g.ahead, cursor, labelBefore, n == gapBuffer });
+        pend.push_back({ swiftP, g.beat, g.ahead, cursor, labelBefore, n == gapBuffer, corrected });
         const auto evs = dsp.processBuffer(kBuf);
         bool none = true;
         for (const auto& e : evs) {
@@ -173,7 +184,8 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
             const long long k = ll((double)s / spb);   // la band: il battito intero piu' vicino al click
             if (k == lastIdentity) ++r.doubles;
             lastIdentity = k;
-            for (const Rec& p : pend) {
+            for (size_t pi = 0; pi < pend.size(); ++pi) {
+                const Rec& p = pend[pi];
                 if (ll(p.gBeat) != k) ++r.getterWrong;
                 // Il campione: uguale a quello annunciato, salvo il fire-asap di FIX-B: se la correzione di una
                 // chiamata dopo scavalca il battito in attesa di pochi campioni (lo scarto della lettura), il
@@ -181,7 +193,22 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
                 // chiamata d'uscita il getter e' comunque esatto (l'ultimo record).
                 const int64_t announced = (int64_t)p.cursor + p.gAhead;
                 if (announced != (int64_t)s) {
-                    if (e.offset == 0 && (int64_t)s > announced) ++r.asapAfterOvertake;
+                    if (e.offset == 0 && (int64_t)s > announced) {
+                        ++r.asapAfterOvertake;
+                        // Il controllo stretto (A.4): e' uno scavalco vero solo se la chiamata d'uscita ha avuto
+                        // una correzione, se il suo cursore sta oltre il campione annunciato, e se quel campione
+                        // non e' mai caduto in un buffer suonato fra l'annuncio e l'uscita (la linea a campioni lo
+                        // ha saltato). Un click uscito al campione 0 piu' tardi dell'annuncio per un altro motivo
+                        // (un annuncio troppo presto, un battito rinviato) passa solo il controllo largo.
+                        const Rec& ult = pend.back();
+                        bool maiSuonato = true;
+                        for (size_t q = pi; q + 1 < pend.size(); ++q)
+                            if ((int64_t)pend[q].cursor <= announced && announced < (int64_t)pend[q].cursor + (int64_t)kBuf)
+                                maiSuonato = false;
+                        if (ult.corrected && (int64_t)ult.cursor > announced && maiSuonato) ++r.overtakeStrict;
+                        else ++r.overtakeLaxOnly;
+                        if (announced != (int64_t)std::llround((double)k * spb)) ++r.annNotGrid;
+                    }
                     else ++r.getterWrong;
                 }
                 if (ll(p.swiftP) != k) { if (p.gapCall) ++r.swiftWrongGapCall; else ++r.swiftWrongOther; }
@@ -202,10 +229,15 @@ SyncResult runSync(double bpm, uint32_t bpb, double gapBeats, int gapBuffer, int
 
 struct Scenario { const char* nome; double bpm; uint32_t bpb; double gap; bool saltaUnBattito; };
 
-void test_casi_1_2_3_follower_in_sync() {
+void test_casi_1_2_3_getter_vero_e_d_accordo_con_la_regola_swift_senza_salto() {
     // Il caso 1 (121 con 1,61; 141 con 1,86; 180,5 in 9/8 con 1,61: FIX-B salta un battito e la regola Swift
     // sbaglia nelle chiamate dopo il buco), il caso 2 (nella chiamata del buco nessun errore, neanche oggi) e
-    // il caso 3 (91 con 1,19, 101 in 6/8 con 1,30, i salti interi 1, 2, 3: identita' = ceil(posizione) ovunque).
+    // il caso 3 (91 con 1,19, 101 in 6/8 con 1,30, i salti interi 1, 2, 3: nessun battito saltato).
+    // Che cosa prova il caso 3 (VERIFICA_REFEREE_A432_PARTE1 par. 3.1, A.11): dove il buco non fa saltare un
+    // battito, il getter e la regola Swift di oggi (LateBeatDecision: pendingBeat nelle chiamate senza
+    // correzione, pendingBeatAfter in quelle con una correzione) dicono lo stesso battito dopo OGNI correzione,
+    // ed e' quello che esce. NON prova «identita' = ceil(posizione)»: nelle chiamate con una correzione il ceil
+    // della posizione nuova non e' il click che esce (la frase di A431 par. 2.1, caso 3, era imprecisa).
     const Scenario scen[] = {
         { "121 4/4 1,61", 121.0, 4, 1.61, true  },
         { "141 4/4 1,86", 141.0, 4, 1.86, true  },
@@ -225,6 +257,8 @@ void test_casi_1_2_3_follower_in_sync() {
                 const SyncResult r = runSync(s.bpm, s.bpb, s.gap, 200 + f, 400, modes[m]);
                 tot[m].beats += r.beats; tot[m].corrections += r.corrections; tot[m].atSampleZero += r.atSampleZero;
                 tot[m].asapAfterOvertake += r.asapAfterOvertake;
+                tot[m].overtakeStrict += r.overtakeStrict; tot[m].overtakeLaxOnly += r.overtakeLaxOnly;
+                tot[m].annNotGrid += r.annNotGrid;
                 tot[m].getterWrong += r.getterWrong; tot[m].swiftWrongGapCall += r.swiftWrongGapCall;
                 tot[m].swiftWrongOther += r.swiftWrongOther; tot[m].labelWrongPerCall += r.labelWrongPerCall;
                 tot[m].labelWrongEmitted += r.labelWrongEmitted; tot[m].doubles += r.doubles;
@@ -238,8 +272,19 @@ void test_casi_1_2_3_follower_in_sync() {
                     tot[1].labelWrongPerCall, tot[2].labelWrongPerCall, tot[0].labelWrongEmitted,
                     tot[1].labelWrongEmitted, tot[2].labelWrongEmitted, tot[3].labelWrongEmitted,
                     tot[0].doubles + tot[1].doubles + tot[2].doubles + tot[3].doubles);
+        std::printf("  %-16s scavalchi[oggi]: stretti:%d soloLarghi:%d annuncioNonDiGriglia:%d | tuttiIModi: stretti:%d"
+                    " soloLarghi:%d annuncioNonDiGriglia:%d\n",
+                    s.nome, tot[0].overtakeStrict, tot[0].overtakeLaxOnly, tot[0].annNotGrid,
+                    tot[0].overtakeStrict + tot[1].overtakeStrict + tot[2].overtakeStrict + tot[3].overtakeStrict,
+                    tot[0].overtakeLaxOnly + tot[1].overtakeLaxOnly + tot[2].overtakeLaxOnly + tot[3].overtakeLaxOnly,
+                    tot[0].annNotGrid + tot[1].annNotGrid + tot[2].annNotGrid + tot[3].annNotGrid);
         for (int m = 0; m < 4; ++m) {
             assert(tot[m].getterWrong == 0);         // il getter dice il battito che esce: nome e campione, in ogni chiamata
+            // A.4 — ogni click uscito piu' tardi dell'annuncio e' uno scavalco vero, e l'annuncio scavalcato era il
+            // campione di griglia di quel battito: «allo stesso campione» (mandato, par. 2.1) salvo lo scavalco.
+            assert(tot[m].overtakeLaxOnly == 0);
+            assert(tot[m].overtakeStrict == tot[m].asapAfterOvertake);
+            assert(tot[m].annNotGrid == 0);
             assert(tot[m].swiftWrongGapCall == 0);   // caso 2: nella chiamata del buco la regola Swift e' giusta anche oggi
             assert(tot[m].doubles == 0);
             assert(tot[m].beats > 0);
@@ -255,13 +300,15 @@ void test_casi_1_2_3_follower_in_sync() {
             assert(tot[2].labelWrongPerCall > 0);
             assert(tot[3].labelWrongEmitted > 0);
         } else {
-            assert(tot[0].swiftWrongOther == 0);     // caso 3: identita' = ceil(posizione) su tutta la griglia
+            // caso 3: senza salto di battito la regola Swift di oggi dice il click che esce in ogni chiamata, come
+            // il getter (zero errori dopo ogni correzione); una rinomina fatta con quella regola da' le etichette giuste
+            assert(tot[0].swiftWrongOther == 0);
             assert(tot[2].labelWrongPerCall == 0);
             assert(tot[2].labelWrongEmitted == 0);
             assert(tot[3].labelWrongEmitted == 0);
         }
     }
-    std::printf("PASS test_casi_1_2_3_follower_in_sync\n");
+    std::printf("PASS test_casi_1_2_3_getter_vero_e_d_accordo_con_la_regola_swift_senza_salto\n");
 }
 
 // ─────────────────────────── caso 4: il battito messo a «subito», poi fuori griglia ───────────────────────────
@@ -623,12 +670,124 @@ void test_caso_10_dspPosition_sul_DSP_vero() {
     std::printf("PASS test_caso_10_dspPosition_sul_DSP_vero\n");
 }
 
+// ─────────────────────────── caso 11: il costruttore sopra una memoria sporca (A.12) ───────────────────────────
+
+void test_caso_11_costruttore_su_memoria_sporca() {
+    // (A432 parte 2a; VERIFICA_REFEREE_A432_PARTE1 par. 3.1, A.12.) Il DSP costruito SOPRA una memoria riempita
+    // apposta di un valore diverso da zero (placement new su un blocco preso dallo heap: il DSP pesa circa 420 KB
+    // e non va sulla pila), e letto prima di ogni altra chiamata: il battito in attesa e' l'origine (0), al primo
+    // campione. Senza l'inizializzazione di _pendingBeatIdx nel costruttore il valore sarebbe quello della
+    // memoria (0xA5A5...). Un DSP costruito su una memoria appena presa dal sistema, spesso a zero, passerebbe
+    // lo stesso: per questo la memoria si sporca prima.
+    static_assert(alignof(MetronomeDSP) <= alignof(std::max_align_t),
+                  "l'allineamento di operator new non basta per MetronomeDSP");
+    const size_t bytes = sizeof(MetronomeDSP);
+    void* mem = ::operator new(bytes);
+    std::memset(mem, 0xA5, bytes);
+    MetronomeDSP* d = new (mem) MetronomeDSP(kRate, 121.0);
+    const double  nome  = d->getPendingBeat();            // prima di ogni altra chiamata
+    const int64_t ahead = d->getPendingSamplesAhead();
+    std::printf("  costruttore sopra %zu byte a 0xA5: nome=%.1f campioni=%lld etichetta=%u origine=%.1f\n",
+                bytes, nome, (long long)ahead, d->getCurrentBeatInBar(), d->getStartAbsoluteBeat());
+    assert(nome == 0.0);
+    assert(ahead == 0);
+    assert(d->getCurrentBeatInBar() == 0 && d->getStartAbsoluteBeat() == 0.0);
+    const auto evs = d->processBuffer(kBuf);              // e il battito 0 esce al campione 0, accentato
+    assert(evs.size() == 1 && evs[0].isBeat && evs[0].offset == 0 && evs[0].accent);
+    assert(d->getPendingBeat() == 1.0);
+    d->~MetronomeDSP();
+    ::operator delete(mem);
+    std::printf("PASS test_caso_11_costruttore_su_memoria_sporca\n");
+}
+
+// ─────────────────────────── caso 12: il getter con la mappa adattiva attiva ───────────────────────────
+
+void test_caso_12_getter_con_la_mappa_adattiva() {
+    // (A432 parte 2a; il ramo scoperto di NOTE_VERIFICATORI_A432_PARTE1, A par. 5 e, 7.) Col Follower adattivo
+    // processBuffer riscrive _bpm a inizio buffer dalla mappa, senza toccare il battito in attesa: il tempo nuovo
+    // vale dal battito dopo. Il getter letto prima di ogni processBuffer deve dire lo stesso il battito che
+    // esce, nome e campione, in ogni chiamata.
+    {   // il gradino di test_adaptive_follower (120 fino a 239999, 60 da 240000; buffer 256), coi suoi campioni
+        // letterali: il battito a 240000 era gia' in attesa, il suo passo usa ancora il tempo di prima (264000),
+        // poi 48000 campioni per battito
+        auto dspBox = std::make_unique<MetronomeDSP>(kRate, 90.0);   // sullo heap, come metronome_create
+        MetronomeDSP& dsp = *dspBox;
+        TempoMap m;
+        const bool fatta = TempoMap::make({ { 0, 120.0 }, { 239999, 120.0 }, { 240000, 60.0 } }, kRate, m);
+        assert(fatta);
+        const bool accesa = dsp.setTempoMap(m);
+        assert(accesa && dsp.isAdaptiveActive());
+        dsp.resetForStart(0.0);
+        const uint64_t attesi[15] = { 0, 24000, 48000, 72000, 96000, 120000, 144000, 168000, 192000,
+                                      216000, 240000, 264000, 312000, 360000, 408000 };
+        uint64_t cursor = 0;
+        size_t usciti = 0;
+        int letture = 0;
+        while (usciti < 15) {
+            const Pending g = readPending(dsp);
+            assert(ll(g.beat) == (long long)usciti);                          // il nome: i battiti usciti dall'origine
+            assert((int64_t)cursor + g.ahead == (int64_t)attesi[usciti]);     // il campione vero, in ogni chiamata
+            bool out = false;
+            for (const auto& e : dsp.processBuffer(256)) {
+                if (!e.isBeat) continue;
+                assert(cursor + e.offset == attesi[usciti]);
+                assert(g.ahead == (int64_t)e.offset);
+                ++usciti;
+                out = true;
+            }
+            if (!out) assert(g.ahead >= 256);
+            cursor += 256;
+            ++letture;
+            assert(letture < 100000);
+        }
+    }
+    {   // una rampa (120 a 0, 150 a dieci secondi): il tempo cambia a ogni buffer; nessun campione letterale, ma
+        // ogni lettura fra un battito e l'altro deve annunciare il campione a cui quel battito poi esce
+        auto dspBox = std::make_unique<MetronomeDSP>(kRate, 90.0);   // sullo heap, come metronome_create
+        MetronomeDSP& dsp = *dspBox;
+        TempoMap m;
+        const bool fatta = TempoMap::make({ { 0, 120.0 }, { 480000, 150.0 } }, kRate, m);
+        assert(fatta);
+        const bool accesa = dsp.setTempoMap(m);
+        assert(accesa);
+        dsp.resetForStart(0.0);
+        uint64_t cursor = 0;
+        std::vector<int64_t> annunci;
+        std::vector<uint64_t> battiti;
+        int letture = 0;
+        while (battiti.size() < 30) {
+            const Pending g = readPending(dsp);
+            assert(ll(g.beat) == (long long)battiti.size());
+            annunci.push_back((int64_t)cursor + g.ahead);
+            bool out = false;
+            for (const auto& e : dsp.processBuffer(kBuf)) {
+                if (!e.isBeat) continue;
+                for (int64_t a : annunci) assert(a == (int64_t)(cursor + e.offset));   // tutte le letture dicevano questo campione
+                assert(g.ahead == (int64_t)e.offset);
+                battiti.push_back(cursor + e.offset);
+                annunci.clear();
+                out = true;
+            }
+            if (!out) assert(g.ahead >= (int64_t)kBuf);
+            cursor += kBuf;
+            ++letture;
+            assert(letture < 100000);
+        }
+        // la mappa ha davvero cambiato il tempo: il primo passo e' di 24000 campioni (120), l'ultimo e' sotto 20500
+        assert(battiti[1] - battiti[0] == 24000);
+        assert(battiti[29] - battiti[28] < 20500);
+        for (size_t i = 2; i < battiti.size(); ++i)
+            assert(battiti[i] - battiti[i - 1] <= battiti[i - 1] - battiti[i - 2] + 1);   // i passi si accorciano
+    }
+    std::printf("PASS test_caso_12_getter_con_la_mappa_adattiva\n");
+}
+
 }  // namespace
 
 int main() {
     assertSuStderr();
     setvbuf(stdout, nullptr, _IONBF, 0);   // le righe PASS subito, anche con l'uscita su un file
-    test_casi_1_2_3_follower_in_sync();
+    test_casi_1_2_3_getter_vero_e_d_accordo_con_la_regola_swift_senza_salto();
     test_caso_4_subito_e_le_chiamate_dopo_senza_correzione();
     test_caso_5_bordo_del_buffer();
     test_caso_6_swing();
@@ -636,6 +795,8 @@ int main() {
     test_caso_8_setter_fra_lettura_e_processBuffer();
     test_caso_9_dopo_il_buco_di_1_61_un_battito_non_esce();
     test_caso_10_dspPosition_sul_DSP_vero();
+    test_caso_11_costruttore_su_memoria_sporca();
+    test_caso_12_getter_con_la_mappa_adattiva();
     std::printf("\nALL TESTS PASSED (test_pending_beat)\n");
     return 0;
 }

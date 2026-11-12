@@ -481,6 +481,89 @@ void test_bordo_del_buffer_e_guardie() {
     std::printf("PASS test_bordo_del_buffer_e_guardie\n");
 }
 
+// ─────────────────────────── H: un cambio di suddivisione armato ───────────────────────────
+
+struct CorsaH { std::vector<Ev> ev; std::vector<uint64_t> accenti; };
+
+// A 120 in 4/4 (24000 campioni per battito): usciti 0, 1, 2; in attesa il 3 con l'etichetta 3. Le crome si armano
+// li' (scheduleSubdivisionChange), poi la rinomina (rinomina < 0: nessuna). Rende gli eventi fino al campione 200192.
+CorsaH corsaH(int rinomina, double swing) {
+    auto dspBox = std::make_unique<MetronomeDSP>(kRate, 120.0);   // sullo heap, come metronome_create
+    MetronomeDSP& dsp = *dspBox;
+    dsp.setBeatsPerBar(4);
+    dsp.resetForStart(0.0);
+    uint64_t cursor = 0;
+    const int usciti = advanceUntil(dsp, cursor, 24000.0, 2.5);
+    assert(usciti == 3 && cursor == 60416 && dsp.getCurrentBeatInBar() == 3);
+    dsp.scheduleSubdivisionChange(2, swing);
+    if (rinomina >= 0) dsp.renamePendingBeat((uint32_t)rinomina);
+    const Pending g = readPending(dsp);
+    assert(ll(g.beat) == 3 && (int64_t)cursor + g.ahead == 72000);   // ne' l'armo ne' la rinomina toccano il battito in attesa
+    CorsaH out;
+    for (int b = 0; b < 273; ++b) {
+        for (const auto& e : dsp.processBuffer(kBuf)) {
+            out.ev.push_back({ cursor + e.offset, e.isBeat });
+            if (e.isBeat && e.accent) out.accenti.push_back(cursor + e.offset);
+        }
+        cursor += kBuf;
+    }
+    assert(cursor == 200192);
+    return out;
+}
+
+void assertEventi(const CorsaH& c, const uint64_t* campioni, const bool* battito, size_t n) {
+    assert(c.ev.size() == n);
+    for (size_t i = 0; i < n; ++i) {
+        assert(c.ev[i].sample == campioni[i]);
+        assert(c.ev[i].isBeat == battito[i]);
+    }
+}
+
+void test_scenario_H_cambio_di_suddivisione_armato() {
+    // (A432 parte 2a; il ramo scoperto di VERIFICA_REFEREE_A432_PARTE1 par. 1 e NOTE_VERIFICATORI_A432_PARTE1,
+    // A par. 5 a e 7.) Lo scambio di una suddivisione armata scatta al battito con etichetta 0, come quelli del
+    // metro e del tempo (scenario G): la rinomina sposta quell'«uno», quindi sposta il battito da cui partono le
+    // suddivisioni. I BATTITI restano agli stessi campioni (la rinomina non tocca la linea a campioni e qui il
+    // tempo non cambia); le suddivisioni compaiono da un battito diverso. E' il contratto della rinomina: con un
+    // cambio armato lo scambio scatta sul nuovo «uno», quindi i click dopo cambiano campione.
+    {   // senza rinomina: etichette 3, 0, 1, 2, 3, 0; lo scambio sul battito 4 (96000), la prima croma a 108000
+        const CorsaH c = corsaH(-1, 0.5);
+        const uint64_t s[] = { 72000, 96000, 108000, 120000, 132000, 144000, 156000, 168000, 180000, 192000 };
+        const bool     b[] = { true,  true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 10);
+        assert(c.accenti.size() == 2 && c.accenti[0] == 96000 && c.accenti[1] == 192000);
+    }
+    {   // rinominato a 0: il battito 3 e' il nuovo «uno», lo scambio scatta li' (72000) e la prima croma e' a 84000
+        const CorsaH c = corsaH(0, 0.5);
+        const uint64_t s[] = { 72000, 84000, 96000, 108000, 120000, 132000, 144000, 156000, 168000, 180000, 192000 };
+        const bool     b[] = { true,  false, true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 11);
+        assert(c.accenti.size() == 2 && c.accenti[0] == 72000 && c.accenti[1] == 168000);
+    }
+    {   // rinominato a 2: etichette 2, 3, 0, 1, 2, 3; lo scambio due battiti dopo, sul 5 (120000), la prima croma a 132000
+        const CorsaH c = corsaH(2, 0.5);
+        const uint64_t s[] = { 72000, 96000, 120000, 132000, 144000, 156000, 168000, 180000, 192000 };
+        const bool     b[] = { true,  true,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 9);
+        assert(c.accenti.size() == 1 && c.accenti[0] == 120000);
+    }
+    {   // con lo swing 0,6 e la rinomina a 0: la croma lunga a 0,6 * 24000 = 14400 campioni dal nuovo «uno»
+        const CorsaH c = corsaH(0, 0.6);
+        const uint64_t s[] = { 72000, 86400, 96000, 110400, 120000, 134400, 144000, 158400, 168000, 182400, 192000 };
+        const bool     b[] = { true,  false, true,  false,  true,   false,  true,   false,  true,   false,  true   };
+        assertEventi(c, s, b, 11);
+    }
+    {   // i battiti: gli stessi campioni con e senza la rinomina, e nei tre casi
+        const CorsaH senza = corsaH(-1, 0.5), aZero = corsaH(0, 0.5), aDue = corsaH(2, 0.5);
+        std::vector<uint64_t> bs, b0, b2;
+        for (const Ev& e : senza.ev) if (e.isBeat) bs.push_back(e.sample);
+        for (const Ev& e : aZero.ev) if (e.isBeat) b0.push_back(e.sample);
+        for (const Ev& e : aDue.ev)  if (e.isBeat) b2.push_back(e.sample);
+        assert(bs.size() == 6 && bs == b0 && bs == b2);
+    }
+    std::printf("PASS test_scenario_H_cambio_di_suddivisione_armato\n");
+}
+
 }  // namespace
 
 int main() {
@@ -494,6 +577,7 @@ int main() {
     test_scenario_F_il_battito_a_subito_esce_una_volta_col_nome_nuovo();
     test_scenario_G_cambio_armato_e_riallineo();
     test_bordo_del_buffer_e_guardie();
+    test_scenario_H_cambio_di_suddivisione_armato();
     std::printf("\nALL TESTS PASSED (test_rename_pending_beat)\n");
     return 0;
 }

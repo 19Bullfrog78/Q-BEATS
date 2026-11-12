@@ -51,6 +51,19 @@ void MetronomeDSP::setBPM(double bpm) {
     if (bpm > 0.0 && _bpm > 0.0 && bpm != _bpm) {
         _exactNextBeatSample = (double)_absoluteSamplePosition
             + (_exactNextBeatSample - (double)_absoluteSamplePosition) * (_bpm / bpm);
+        // A432 (parte 2a) — il battito in attesa mai nel passato (VERIFICA_REFEREE_A432_PARTE1,
+        // par. 3.2). Se il battito stava meno di mezzo campione sotto il cursore (arrotondato
+        // uguale: esce al campione 0) e il tempo rallenta, la distanza riscalata passa il mezzo
+        // campione: il campione arrotondato finirebbe prima del cursore, e l'uguaglianza stretta
+        // di processBuffer non scatterebbe più, né per lui né per i battiti dopo. Il confronto è
+        // sul campione ARROTONDATO, lo stesso di processBuffer e di getPendingSamplesAhead: scatta
+        // solo su un battito che non uscirebbe più, e nessun battito che esce già si sposta. Il
+        // campione va al cursore, l'identità (_pendingBeatIdx) non cambia: il battito esce al
+        // campione 0 del prossimo buffer e lì riarma da sé il tracker delle suddivisioni.
+        // Real-time: uno std::round, un confronto, un'assegnazione; su audioQueue.
+        if (std::round(_exactNextBeatSample) < (double)_absoluteSamplePosition) {
+            _exactNextBeatSample = (double)_absoluteSamplePosition;
+        }
     }
     _bpm = bpm;
 }
@@ -284,6 +297,17 @@ void MetronomeDSP::setBeatPosition(double beatPosition) {
     // Sample del prossimo beat: phase origin + indice relativo
     double nextAbsoluteBeat = _startAbsoluteBeat + nextRelativeIdx;
     _exactNextBeatSample    = nextAbsoluteBeat * spb;
+    // A432 (parte 2a) — il battito in attesa mai nel passato (VERIFICA_REFEREE_A432_PARTE1,
+    // par. 3.2). Il cursore è round(posizione) e il battito in attesa è quello entro mezzo
+    // campione prima della posizione (epsilon): con la posizione fra 0,40 e 0,49 campioni dopo
+    // il battito i due arrotondamenti si separano e il campione arrotondato del battito resta un
+    // campione prima del cursore. Stessa regola di setBPM: confronto sul campione ARROTONDATO,
+    // il campione va al cursore, l'identità non cambia. Prima della risincronizzazione delle
+    // suddivisioni qui sotto, che parte dal campione già messo a posto.
+    // Real-time: uno std::round, un confronto, un'assegnazione; su audioQueue.
+    if (std::round(_exactNextBeatSample) < (double)_absoluteSamplePosition) {
+        _exactNextBeatSample = (double)_absoluteSamplePosition;
+    }
     // Sincronizza tracker suddivisioni al prossimo confine di beat
     _swingPhase = false;
     if (_subdivisionMultiplier > 1) {
@@ -374,10 +398,12 @@ void MetronomeDSP::setBeatPositionTimeOnly(double beatPosition) {
 
 // === A424/A432 — rinomina il battito in attesa (P26) ===
 // Cambia solo l'etichetta del battito che processBuffer suonerà per primo (e, di seguito,
-// di tutti quelli dopo): _currentBeatInBar entra solo nell'accento, nel proprio incremento
-// e nel cancello dei cambi armati. Il momento di ogni click è _exactNextBeatSample sulla
-// linea _absoluteSamplePosition, che qui non si tocca; neanche _pendingBeatIdx
-// (l'identità), l'origine, le suddivisioni e i cambi armati.
+// di tutti quelli dopo): _currentBeatInBar entra solo nell'accento, nella spia (la fotografia
+// _diagBeatInBar, che non cambia nessun click), nel proprio incremento e nel cancello dei
+// cambi armati. Il momento del click in attesa è _exactNextBeatSample sulla linea
+// _absoluteSamplePosition, che qui non si tocca; neanche _pendingBeatIdx (l'identità) e
+// l'origine. Con un cambio armato (metro, tempo, suddivisione) il cancello si apre sul nuovo
+// «uno»: i click dopo lo scambio cambiano campione (vedi il contratto in MetronomeDSP.h).
 // Real-time (Costituzione V5, par. 4): una lettura e un confronto di un intero, un modulo
 // e una scrittura di un intero. Nessuna allocazione, nessun lucchetto, nessuna riga di
 // registro. Chiamare SOLO su audioQueue, prima di processBuffer.

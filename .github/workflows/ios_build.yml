@@ -22,15 +22,23 @@ jobs:
       # core_engine/CMakeLists.txt. CMake sta nell'immagine del runner (actions/runner-images,
       # images/macos/macos-26-arm64-Readme.md, voce «Cmake»); se mancasse, il passo lo installa.
       # Un test rosso = run rossa: ctest torna diverso da 0, nessun || true.
+      # A432 parte 2a (VERIFICA_REFEREE_A432_PARTE1 par. 3.1, A.13): il tipo di compilazione letto dalla
+      # cache di CMake si CONTROLLA (se non e' Debug il passo fallisce: gli assert sarebbero spenti), e
+      # ctest fallisce anche se non trova nessun test (--no-tests=error).
       - name: Run core_engine tests (CMake + CTest, Debug)
         run: |
           set -o pipefail
           command -v cmake >/dev/null 2>&1 || brew install cmake
           cmake --version
           cmake -S core_engine -B "$RUNNER_TEMP/core_engine_build" -DCMAKE_BUILD_TYPE=Debug
-          grep '^CMAKE_BUILD_TYPE' "$RUNNER_TEMP/core_engine_build/CMakeCache.txt"
+          BUILD_TYPE_LINE=$(grep -E '^CMAKE_BUILD_TYPE(:[A-Z]+)?=' "$RUNNER_TEMP/core_engine_build/CMakeCache.txt")
+          echo "$BUILD_TYPE_LINE"
+          if [ "${BUILD_TYPE_LINE#*=}" != "Debug" ]; then
+            echo "::error::core_engine non e' compilato in Debug ($BUILD_TYPE_LINE): gli assert() dei banchi sarebbero spenti"
+            exit 1
+          fi
           cmake --build "$RUNNER_TEMP/core_engine_build" --config Debug
-          ctest --test-dir "$RUNNER_TEMP/core_engine_build" -C Debug --output-on-failure --verbose
+          ctest --test-dir "$RUNNER_TEMP/core_engine_build" -C Debug --output-on-failure --verbose --no-tests=error
       - name: Install XcodeGen
         run: brew install xcodegen
       # LinkKit non sta nel deposito (licenza Ableton Link SDK): lo scarica

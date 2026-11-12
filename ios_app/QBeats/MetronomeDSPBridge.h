@@ -49,16 +49,22 @@ void            metronome_set_beat_position(MetronomeHandle handle, double beatP
 void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
 
 // A424/A432 — rinomina il battito in attesa (MetronomeDSP::renamePendingBeat): cambia solo
-// l'etichetta nella battuta, mai il momento di un click. Chiamare SOLO su audioQueue, prima di
-// metronome_processBuffer. Scrive la riga [METRO] renamePendingBeat (os_log su audioQueue, come
-// le righe [METRO] delle due funzioni qui sopra).
+// l'etichetta nella battuta; il battito in attesa esce allo stesso campione. Con un cambio armato
+// (metro, tempo, suddivisione) lo scambio scatta sul nuovo «uno», quindi i click DOPO cambiano
+// campione: chi non lo vuole annulla i cambi armati e usa i setter immediati prima della rinomina
+// (A424 par. 2.2 a). Chiamare SOLO su audioQueue, prima di metronome_processBuffer. Scrive la riga
+// [METRO] renamePendingBeat (os_log su audioQueue, come le righe [METRO] delle due funzioni qui sopra).
 void            metronome_rename_pending_beat(MetronomeHandle handle, uint32_t beatInBar);
 
 // A431/A432 — il battito che il DSP suonera' per primo al prossimo metronome_processBuffer (P26, R1):
 // beat = l'identita' sulla linea dei battiti del DSP (origine + indice); samplesAhead = campioni
-// dall'inizio del prossimo buffer (0 = al primo campione, il battito messo a 'subito'). Sola lettura,
-// nessuna riga di registro. Chiamare SOLO su audioQueue, dopo l'ultima scrittura del DSP della
-// chiamata e prima di metronome_processBuffer.
+// dall'inizio del prossimo buffer (0 = al primo campione, il battito messo a 'subito'). samplesAhead
+// non e' mai negativo (A432 parte 2a: il DSP non lascia il battito in attesa nel passato). Un valore
+// sotto la lunghezza del buffer vuol dire che il battito esce nel prossimo metronome_processBuffer, a
+// quell'offset; ma non che un click suona in quella chiamata: nel drenaggio di fine sezione
+// metronome_processBuffer non si chiama (AudioEngine.swift, `_sectionEndPending`), e col click muto
+// il battito avanza senza evento. Sola lettura, nessuna riga di registro. Chiamare SOLO su
+// audioQueue, dopo l'ultima scrittura del DSP della chiamata e prima di metronome_processBuffer.
 typedef struct {
     double  beat;
     int64_t samplesAhead;
