@@ -7,8 +7,9 @@ import Foundation
 // `ShowClock` (i battiti della sessione di Link e i secondi sulla mappa) da un'àncora presa all'ingresso; quando
 // i battiti dell'iPad hanno un nome sbagliato il motore li rinomina, e non sposta mai un click nel tempo.
 //
-// Questo tipo è solo la regola: valori in ingresso, valori in uscita. Non chiama Link né il motore, e in questa
-// parte (2a) nessun codice dell'app lo chiama: i fili nel motore sono la parte 2b.
+// Questo tipo è solo la regola: valori in ingresso, valori in uscita. Non chiama Link né il motore. Dalla parte 2b
+// lo usa il motore, sulla sua coda (`AudioEngine`, blocco «A432 · il conto del Follower sulla band»): l'ingresso al
+// fuoco dell'ingresso del Follower, la lettura al punto R di `scheduleNextBuffer`.
 //
 // LE REGOLE, con le decisioni del referee:
 //  · IL SEME DALLA BAND (A423 par. 3.3 a, A424 par. 3.3 a). All'ingresso si misurano i secondi fra l'ora in cui

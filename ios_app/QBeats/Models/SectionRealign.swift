@@ -6,7 +6,8 @@ import Foundation
 // che vede dopo il cambio. Il motore le manderà questo messaggio, dopo aver mosso il runner: la sezione, il
 // prossimo tick e il battito della sezione che quel tick porta.
 // Il tipo è solo il messaggio, con l'identità che la vista usa già (`sectionStartTick = tick − sectionBeat + 1`):
-// in questa parte (2a) nessun codice dell'app lo manda né lo riceve.
+// dalla parte 2b lo manda il motore dopo ogni riallineo (`AudioEngine.sectionRealignSubject`, in `followerRealignQ`) e lo
+// riceve `LiveView`.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 struct SectionRealign: Equatable {

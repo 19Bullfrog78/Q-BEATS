@@ -268,6 +268,11 @@ class AudioEngine: ObservableObject {
 
     // Beat tick discreto — PassthroughSubject, no coalescing
     let beatTickSubject = PassthroughSubject<Int, Never>()
+    // A432 · PARTE 2b (P10; referto A424 par. 3.3 b, passo 4) — il messaggio del riallineo del Follower (`SectionRealign`,
+    // Models/): la sezione in cui sta la band, il prossimo tick e il battito della sezione che quel tick porta. Il motore
+    // lo manda sul principale dopo ogni riallineo, DOPO l'azione `.rejoin` al runner; la vista ne ricava il tick d'inizio
+    // della sezione (`LiveView`). Nessun disegno nuovo: cambia solo lo stato della vista.
+    let sectionRealignSubject = PassthroughSubject<SectionRealign, Never>()
     // === SOLO-G1-PEZZO-1-M1 · A394 (05/10/2026) — IL LAMPO DEL PEDALE (A393 §6.4) ===
     // Emesso sul main dentro `executeMIDIAction`, dopo il passaggio al main che c'è già
     // (`handleMIDIInput`), solo quando l'azione agisce davvero (`MIDILampDecision`, punto 98 del
@@ -571,6 +576,42 @@ class AudioEngine: ObservableObject {
     /// accodato (mandato A410, §2.3). Li azzera ogni avvio del motore.
     private var _lastCountedBeatQ: CountedBeat? = nil
     private var _prevCountedBeatQ: CountedBeat? = nil
+
+    // === A432 · PARTE 2b (12/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3c-1: IL CONTO DEL FOLLOWER SULLA BAND, NEL MOTORE ===
+    // Il fatto (referti A423 par. 3.3, A424 par. 2.2 e 3.3, A431 par. 2.1-2.3 e 3.1). Il Follower sa dov'è la band solo
+    // contando i battiti che ha suonato: un buco del suono gli fa saltare dei battiti nel tempo (la correzione di fase lo
+    // rimette sull'ora di Link) senza che contatore, accento, sezione e grafica li contino. La cura: un conto della canzone
+    // sulla band (`FollowerBandCount`, Models/: i due righelli da un'àncora presa all'ingresso), letto in un punto solo di
+    // `scheduleNextBuffer` (il punto R) e solo in quattro casi; quando i battiti dell'iPad hanno un nome sbagliato il
+    // motore li RINOMINA (contatore, etichetta del DSP, sezione, grafica) e non sposta mai un click nel tempo. Col conto
+    // non certo, in questo pezzo, l'iPad fa come prima: niente riallineo, niente silenzio, una riga col motivo.
+    // Tutto quello che segue vive SOLO su audioQueue. Niente di questo scrive su Link né manda Stop; nessun arresto nuovo
+    // del motore. Le funzioni stanno nel blocco «A432 · il conto del Follower sulla band», prima di `setSongMap`.
+    /// Il conto: una copia di coda. `nil` = nessun conto (nessuna àncora in questa canzone, o un altro ruolo). Nasce solo
+    /// da `FollowerBandCount.enter` al fuoco dell'ingresso; lo azzera `resetFollowerBandCountQ`.
+    private var _followerBandCountQ: FollowerBandCount? = nil
+    /// L'ora dell'apparecchio in cui il Follower ha saputo del Play del Direttore che ha accettato (`snap.captureHostTime`
+    /// in `followerHandleLinkTransport`): da lì il seme misura i secondi della band. `nil` = nessun Play di questa canzone.
+    private var _followerPlayCallbackTicksQ: UInt64? = nil
+    /// I numeri del fuoco dell'ingresso (l'ora d'uscita prevista e il battito della sessione a quell'ora) tenuti quando al
+    /// fuoco la mappa di questo avvio non è ancora arrivata (la gara con l'attesa zero): l'àncora si prende quando arriva.
+    private var _followerEntryPendingQ: (ticks: UInt64, linkBeat: Double)? = nil
+    /// «Riallineo dovuto»: il motivo (buco | ingresso | al-secondo). Si consuma al punto R della prima chiamata in cui la
+    /// correzione è stata valutata.
+    private var _followerRealignDueQ: String? = nil
+    /// L'ultimo battito contato nel momento in cui il riallineo è diventato dovuto per un buco: è lui che va al «contatore
+    /// d'accordo coi secondi» (un controllo sul conto dell'iPad fatto PRIMA del buco). I battiti contati fra il buco e il
+    /// riallineo hanno il nome di prima, e si sa.
+    private var _followerCountedAtDueQ: CountedBeat? = nil
+    /// I riallinei fatti dall'avvio del motore (la riga `[SCHED]`).
+    private var _followerRealignsQ: Int = 0
+    /// La correzione di fase valutata in QUESTA chiamata di `scheduleNextBuffer`: `nil` = non valutata (finestra «sync
+    /// skip», scorta, assert del Direttore, Solo, prima àncora della linea propria); se no il salto, dopo meno prima, in
+    /// battiti (0 = valutata senza spostare). Si azzera in testa a ogni chiamata.
+    private var _correctionJumpThisCallQ: Double? = nil
+    /// Il riferimento della riga del tempo del click si riprende al prossimo battito (dopo un riallineo che ha spostato
+    /// il contatore dei battiti).
+    private var _tempoLogRefRetakeQ: Bool = false
     /// L'àncora del silenzio del Direttore e l'avvio della sessione letto all'àncora (per il giudice
     /// «stesso avvio»). Il resto di quello che Link diceva all'àncora sta nella riga che la prende.
     /// A412 — e le sezioni della canzone della mappa: al rientro il motore carica da qui la sezione d'arrivo
@@ -1855,6 +1896,12 @@ class AudioEngine: ObservableObject {
             // restavano a QUESTO motore al momento dell'ingresso (li aprono lo scambio di
             // sezione e `scheduleBPMChange`, a 100). Si legge qui perché la riga sotto li
             // sovrascrive con 3; la riga di log si scrive dopo i tre `scheduleNextBuffer`.
+            // A432 · PARTE 2b — L'ÀNCORA DEL CONTO DEL FOLLOWER, al fuoco dell'ingresso (referto A424 par. 3.3 a; A431 par. 3.1
+            // a): una lettura sola della sessione, senza commit, all'ora d'uscita prevista dell'ingresso (la stessa ora del
+            // seme locale qui sopra). Dopo il seme locale, che il seme dalla band può sostituire, e PRIMA che
+            // `consumeSongMapForRunningStartQ` abbassi il segno della mappa (il segno alto dice che la mappa è di questo
+            // avvio) e dei tre buffer. Per gli altri ruoli non fa niente.
+            self.followerBandEntryAtFireQ(entryOutTicks: futureHostTime + self.outputLatencyTicks + self.bufferDurationTicks)
             let skipBuffersAtFire = self.linkSyncSkipBuffers
             self.linkSyncSkipBuffers = 3
             // A421 · SEGUITO 2 (par. 7) — il segno della mappa non sopravvive al fuoco dell'ingresso: qui si abbassa, con la riga.
@@ -2458,6 +2505,10 @@ class AudioEngine: ObservableObject {
         _sessionTempoSeenQ = snap.tempo
         // B2c (§3.d) — in DA SOLO, una riga al secondo col tempo misurato e la posizione di battuta.
         logOwnClockSecondQ(sessionTempo: snap.tempo)
+        // A432 · PARTE 2b — la rete del conto (il punto R, caso 3): al secondo si alza il riallineo dovuto, letto alla
+        // prima chiamata con la correzione valutata. È anche il punto dove si vede una rinumerazione che non dà nessuna
+        // correzione. Solo col motore in moto e il conto certo (`noteFollowerRealignDueQ`).
+        noteFollowerRealignDueQ(reason: "al-secondo")
     }
 
     // MARK: Il cancello del Follower nel richiamo avvio/stop (D6, D7-bis)
@@ -2550,12 +2601,21 @@ class AudioEngine: ObservableObject {
                 _startPhaseQ = snap.phaseAtStampQBig
                 os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:play-direttore fase:%.6f oraAvvio:%llu",
                        log: .default, type: .default, snap.phaseAtStampQBig, snap.timeForIsPlaying)
+                // A432 · PARTE 2b — un Play della band accettato è un avvio nuovo: il conto di prima, se c'era, finisce
+                // qui, PRIMA dell'ingresso (lo «stesso avvio» non si legge nel conto in moto, P39), e si tiene l'ora in
+                // cui l'iPad ha saputo del Play (l'ora della cattura, che non dipende dalla linea di Link): da lì il seme
+                // misura i secondi della band (referto A423 par. 3.3 a; A424 par. 3.3 a).
+                resetFollowerBandCountQ(reason: "play-direttore")
+                _followerPlayCallbackTicksQ = snap.captureHostTime
             }
             followerPublishQ(heardAction, transition.action)
         } else {
             let falseStart = falseStartAgainstRegisteredStart(stopPhase: snap.phaseAtStampQBig,
                                                               context: "stop-direttore-ricevuto")
             _startPhaseQ = nil
+            // A432 · PARTE 2b — lo Stop della band chiude il conto, anche se il motore dell'iPad in quel momento è fermo
+            // (e quindi non passa da `cleanupAfterStopQ`).
+            resetFollowerBandCountQ(reason: "stop-direttore")
             let transition = followerTransitionQ(.linkStop(falseStart: falseStart, engineRunning: running))
             followerPublishQ(heardAction, transition.action)
         }
@@ -2793,6 +2853,8 @@ class AudioEngine: ObservableObject {
         noteLateBeatCorrectionQ(metronome: h, before: currentBeat, after: ownBeat, bpm: timeline.bpm, point: "orologio-proprio")
         // A421 · SEGUITO 2 (F1) — la prima correzione dopo la finestra, anche sulla linea propria.
         noteCorrectionAfterWindowQ(before: currentBeat, after: ownBeat, bpm: timeline.bpm)
+        // A432 · PARTE 2b — DA-SOLO la correzione valutata è questa, sulla linea propria: il salto, per il punto R.
+        _correctionJumpThisCallQ = ownBeat - currentBeat
         _ownClockPinsQ += 1
         let lagMs = abs(OwnClockTimeline.lagMilliseconds(ownBeat: ownBeat, localBeat: currentBeat, bpm: timeline.bpm))
         if lagMs > _ownClockMaxLagMsQ {
@@ -2862,6 +2924,8 @@ class AudioEngine: ObservableObject {
     /// già FUORI non armato, e un Direttore non deve produrre righe di Follower.
     private func followerResetQ(reason: String) {
         _startPhaseQ = nil
+        // A432 · PARTE 2b — END SHOW, uscita dalla stanza, cambio di ruolo, levetta di Link spenta: il conto finisce.
+        resetFollowerBandCountQ(reason: reason)
         if _followerSyncQ == FollowerSyncDecision.initial && _followerOutReasonQ == nil { return }
         os_log("[Q-BEATS][2D][FOLLOWER] reset motivo:%{public}@", log: .default, type: .default, reason)
         followerApply(.reset)
@@ -2876,6 +2940,478 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    // MARK: A432 · il conto del Follower sulla band (pezzo 3c-1)
+    // Le decisioni: VERIFICA_REFEREE_A424 par. 3.1 (P26-P28, P33), VERIFICA_REFEREE_A431 par. 3.1 (P36-P42),
+    // VERIFICA_REFEREE_A432_PARTE2A_OPUS par. 3. Tutte le funzioni di questo blocco: SOLO su audioQueue.
+
+    /// Il conto finisce con la canzone: Stop (ogni `stopSync`, da `cleanupAfterStopQ`), Stop ricevuto dalla band, un Play
+    /// nuovo della band accettato (un avvio diverso: prima di `enter`, P39), show chiuso, cambio di ruolo o levetta di Link
+    /// spenta (`followerResetQ`). Con lui l'ora del Play, i numeri del fuoco tenuti e il riallineo dovuto. Una ripartenza
+    /// dell'iPad nella stessa canzone (configurazione, frequenza, la fine di un'interruzione) NON passa di qui: l'àncora
+    /// resta quella.
+    private func resetFollowerBandCountQ(reason: String) {
+        let had = _followerBandCountQ != nil
+        _followerBandCountQ = nil
+        _followerPlayCallbackTicksQ = nil
+        _followerEntryPendingQ = nil
+        _followerRealignDueQ = nil
+        _followerCountedAtDueQ = nil
+        if had {
+            os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:%{public}@",
+                   log: .default, type: .default, reason)
+        }
+    }
+
+    /// I motivi del conto chiuso, per le righe: uno per ogni esito che il tipo distingue.
+    private func describe(_ reason: FollowerBandCountClosed) -> String {
+        switch reason {
+        case .seedInvalidInput: return "seme-ingressi-non-validi"
+        case .seedCycle: return "seme-ciclo"
+        case .seedPastEnd: return "seme-oltre-la-fine"
+        case .seedOffBar: return "seme-fuori-battuta"
+        case .noPlace(let why): return "senza-posto(\(describe(why)))"
+        case .jumpOutsideRenumbering: return "salto-fuori-dallo-stato"
+        case .jumpWithoutCounterAgreement: return "salto-senza-accordo-del-contatore"
+        }
+    }
+
+    /// Lo stato «rinumerazione attesa», per le righe.
+    private func describe(_ state: FollowerBandRenumbering) -> String {
+        switch state {
+        case .closed: return "chiuso"
+        case .open(let boundary, let boundariesAfter): return "aperto(\(boundary),\(boundariesAfter))"
+        }
+    }
+
+    /// Al fuoco dell'ingresso del Follower (il lavoro di `armSharedJoin`), prima dei tre buffer: UNA lettura della
+    /// sessione senza commit all'ora d'uscita prevista dell'ingresso (`link_engine_read_session_at`: il battito nella
+    /// numerazione della sessione, la stessa delle letture al punto R). Col conto già vivo, o con la mappa di questo
+    /// avvio già arrivata, l'ingresso si fa subito; se no (la gara con l'attesa zero: il fuoco prima del blocco di
+    /// `setSongMap`) i numeri del fuoco si tengono e l'àncora si prende quando la mappa arriva
+    /// (`consumeSongMapForRunningStartQ`). Solo il Follower; gli altri ruoli escono alla guardia.
+    private func followerBandEntryAtFireQ(entryOutTicks: UInt64) {
+        _followerEntryPendingQ = nil
+        guard FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ),
+              let lh = linkEngineHandle else { return }
+        let read = link_engine_read_session_at(lh, entryOutTicks, DirectorRejoinDecision.sessionQuantum)
+        guard read.linkEnabled else {
+            os_log("[Q-BEATS][CONTO-BAND] ancora non presa contesto:ingresso motivo:ponte-di-link-spento",
+                   log: .default, type: .default)
+            return
+        }
+        if _followerBandCountQ != nil || _songMapForNextStartQ {
+            takeFollowerBandAnchorQ(entryTicks: entryOutTicks, entryLinkBeat: read.beatAtHostTimeQBig, atFire: true)
+        } else {
+            _followerEntryPendingQ = (ticks: entryOutTicks, linkBeat: read.beatAtHostTimeQBig)
+            os_log("[Q-BEATS][CONTO-BAND] ancora rinviata contesto:ingresso - la mappa di questo avvio non e' ancora arrivata oraIngresso:%llu battitoLink:%.4f",
+                   log: .default, type: .default, entryOutTicks, read.beatAtHostTimeQBig)
+        }
+    }
+
+    /// L'ingresso nel conto (`FollowerBandCount.enter`: nel motore il conto nasce solo da qui). Col conto vivo resta
+    /// quello e il riallineo è dovuto (il motore ha appena rimesso il seme locale); col conto chiuso resta chiuso; senza
+    /// conto, il seme dalla band: àncora presa, oppure nessun conto per tutta la canzone (P33). Senza l'ora del Play del
+    /// Direttore non c'è seme: nessun conto, l'iPad va come prima. `atFire`: i buffer dell'ingresso non sono ancora
+    /// partiti, e il seme nella sezione del motore si può scrivere nel contatore; altrimenti lo fa il riallineo.
+    private func takeFollowerBandAnchorQ(entryTicks: UInt64, entryLinkBeat: Double, atFire: Bool) {
+        let context = atFire ? "ingresso" : "mappa-dopo-il-fuoco"
+        let current = _followerBandCountQ
+        let map: SongMap
+        var playTicks: UInt64 = 0
+        if let alive = current {
+            map = alive.map
+        } else {
+            guard let songMap = _songMapQ else {
+                os_log("[Q-BEATS][CONTO-BAND] ancora non presa contesto:%{public}@ motivo:senza-mappa",
+                       log: .default, type: .default, context)
+                return
+            }
+            guard let play = _followerPlayCallbackTicksQ else {
+                os_log("[Q-BEATS][CONTO-BAND] ancora non presa contesto:%{public}@ motivo:senza-ora-del-play - nessun conto in questa canzone, l'iPad va come prima",
+                       log: .default, type: .default, context)
+                return
+            }
+            map = songMap
+            playTicks = play
+        }
+        let input = FollowerBandSeedInput(map: map, playCallbackTicks: playTicks, entryTicks: entryTicks,
+                                          entryLinkBeat: entryLinkBeat, ticksPerSecond: ticksPerSecond)
+        switch FollowerBandCount.enter(current: current, seed: input) {
+        case .anchored(let count, let seed):
+            _followerBandCountQ = count
+            var seedApplied = false
+            if atFire, seed.section == _songMapSectionQ, _sectionTotalBeats > 0, seed.beatInSection < _sectionTotalBeats {
+                // Il seme dalla band al posto del seme locale: stessa sezione del motore, un inizio di battuta (il DSP è
+                // appena ripartito dall'«uno»: `metronome_reset_for_start`).
+                startBeatOffset = seed.beatInSection
+                _sectionBeatCounter = seed.beatInSection
+                seedApplied = true
+            } else {
+                noteFollowerRealignDueQ(reason: "ingresso")
+            }
+            os_log("[Q-BEATS][CONTO-BAND] ancora presa contesto:%{public}@ seme:%d sezione:%d battito:%d battitiMisurati:%.4f ritardo_battiti:%.4f battitoLink:%.4f oraIngresso:%llu oraPlay:%llu stato:%{public}@ semeApplicato:%d",
+                   log: .default, type: .default,
+                   context, seed.songBeat, seed.section, seed.beatInSection, seed.measuredBeats, seed.callbackDelayBeats,
+                   entryLinkBeat, entryTicks, playTicks, describe(count.renumbering), seedApplied ? 1 : 0)
+        case .kept(let count):
+            _followerBandCountQ = count
+            noteFollowerRealignDueQ(reason: "ingresso")
+            os_log("[Q-BEATS][CONTO-BAND] ancora gia' viva contesto:%{public}@ - resta quella, riallineo dovuto stato:%{public}@",
+                   log: .default, type: .default, context, describe(count.renumbering))
+        case .noCount(let count):
+            _followerBandCountQ = count
+            let why: String = count.closed.map { describe($0) } ?? "-"
+            os_log("[Q-BEATS][CONTO-BAND] nessun conto contesto:%{public}@ motivo:%{public}@ - nessuna ancora in questa canzone, l'iPad va come prima",
+                   log: .default, type: .default, context, why)
+        }
+    }
+
+    /// «Riallineo dovuto»: lo alzano la chiamata del buco e il segno del guardiano («buco»), il battito a 1 s
+    /// («al-secondo», la rete) e un ingresso con l'àncora viva («ingresso»). Solo col motore in moto e il conto certo.
+    /// Il buco vince sugli altri motivi, e prende l'ultimo battito contato in questo momento (`_followerCountedAtDueQ`).
+    private func noteFollowerRealignDueQ(reason: String) {
+        guard isRunning, let count = _followerBandCountQ, count.closed == nil else { return }
+        if reason == "buco" {
+            if _followerCountedAtDueQ == nil {
+                _followerCountedAtDueQ = _lastCountedBeatQ
+            }
+            _followerRealignDueQ = reason
+        } else if _followerRealignDueQ == nil {
+            _followerRealignDueQ = reason
+        }
+    }
+
+    /// I battiti della canzone dall'inizio fino a `beat` della sezione `section` (per il salto del riallineo).
+    private func followerSongBeatQ(section: Int, beat: Int) -> Int {
+        guard let map = _songMapQ else { return beat }
+        var total = beat
+        var index = 0
+        while index < section && index < map.sections.count {
+            total += map.sections[index].totalBeats ?? 0
+            index += 1
+        }
+        return total
+    }
+
+    /// Una lettura del conto per l'ora `ticks`: IN SYNC una cattura della sessione senza commit
+    /// (`link_engine_read_session_at`, il battito nella numerazione della sessione); DA-SOLO Link non si chiama, e il
+    /// battito è quello che il righello dei secondi dà dall'àncora (un righello solo: lo scarto è zero per costruzione).
+    /// Rende `nil` se il ponte di Link è spento. `count` cambia come vuole `FollowerBandCount.read`.
+    private func readFollowerBandCountQ(_ count: inout FollowerBandCount, ticks: UInt64,
+                                        lastCounted: CountedBeat?) -> (reading: FollowerBandReading, linkBeat: Double)? {
+        let tps = ticksPerSecond
+        let linkBeat: Double
+        if followsLinkQ() {
+            guard let lh = linkEngineHandle else { return nil }
+            let read = link_engine_read_session_at(lh, ticks, DirectorRejoinDecision.sessionQuantum)
+            guard read.linkEnabled else { return nil }
+            linkBeat = read.beatAtHostTimeQBig
+        } else {
+            guard let anchor = count.anchor else { return nil }
+            let ruler = ShowClock(map: count.map, anchor: anchor).bySeconds(nowTicks: ticks, ticksPerSecond: tps)
+            linkBeat = anchor.linkBeat + ruler.beatsFromAnchor
+        }
+        let counted = lastCounted.map {
+            FollowerCountedBeat(section: $0.section, beatInSection: $0.beatInSection, ticks: $0.outTicks)
+        }
+        let reading = count.read(pendingLinkBeat: linkBeat, pendingTicks: ticks, ticksPerSecond: tps, lastCounted: counted)
+        return (reading, linkBeat)
+    }
+
+    /// IL PUNTO R (referto A424 par. 2.2; A431 par. 2.1 e 3.1 b): in `scheduleNextBuffer`, dopo il blocco della fase e
+    /// prima del MIDI di questo buffer e di `metronome_processBuffer`, solo in una chiamata in cui la correzione è stata
+    /// valutata (`correctionJump`: dopo meno prima). Si legge in quattro casi soltanto: il riallineo dovuto dopo un buco,
+    /// dopo un ingresso con l'àncora viva o al battito a 1 s, e una correzione di almeno mezzo battito in questa chiamata
+    /// (sul valore assoluto, non modulo il quanto). Nelle altre chiamate niente: il costo a regime è un confronto.
+    /// La lettura: il battito in attesa e i suoi campioni li dice il DSP (`metronome_pending_beat`, P26); la sua ora è
+    /// l'ora d'uscita di questo buffer più quei campioni (P37); una cattura sola della sessione, senza commit. Col conto
+    /// certo e il posto della band diverso da quello del motore: il riallineo. Col conto non certo: una riga, e basta.
+    /// `correctionJump`: `nil` se in questa chiamata la correzione non è stata valutata (la finestra «sync skip», la
+    /// scorta, la prima àncora della linea propria). Il riallineo dovuto dopo un BUCO aspetta la prima chiamata con la
+    /// correzione valutata: prima la posizione non è ancora quella di Link (referto A424 par. 2.2 c). Il battito a 1 s e
+    /// l'ingresso con l'àncora viva si leggono alla chiamata dopo, anche nella finestra (A424 par. 3.3 b, casi 3 e 4;
+    /// A431 par. 2.3, punto 4): l'ora del battito in attesa viene dal DSP, quindi il nome è quello dell'ora in cui il
+    /// click suona davvero.
+    private func followerBandCountPointRQ(metronome h: MetronomeHandle, midi mh: MIDIEngineHandle, correctionJump: Double?) {
+        guard var count = _followerBandCountQ, count.closed == nil,
+              FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) else { return }
+        let reason: String
+        if let due = _followerRealignDueQ {
+            if due == "buco" && correctionJump == nil { return }
+            reason = due
+        } else if let jump = correctionJump, abs(jump) >= 0.5 {
+            reason = "correzione"
+        } else {
+            return
+        }
+        let pending = metronome_pending_beat(h)
+        // Mai convertire i campioni in un intero senza segno prima del confronto (il getter non è mai negativo, ma lo si
+        // controlla qui lo stesso).
+        let aheadSamples: Int64 = pending.samplesAhead > 0 ? pending.samplesAhead : 0
+        guard sampleRate > 0 else { return }
+        let pendingTicks = _bufferOutTicksQ + secondsToMachTicks(Double(aheadSamples) / sampleRate)
+        let stateBefore = count.renumbering
+        let lastCounted = _followerCountedAtDueQ ?? _lastCountedBeatQ
+        // Il motivo si consuma qui, anche se la lettura non riesce: col ponte di Link spento non si ritenta a ogni buffer
+        // (la rete al secondo lo rialza).
+        _followerRealignDueQ = nil
+        _followerCountedAtDueQ = nil
+        guard let outcome = readFollowerBandCountQ(&count, ticks: pendingTicks, lastCounted: lastCounted) else {
+            return
+        }
+        _followerBandCountQ = count
+        let reading = outcome.reading
+        let gapText: String = reading.gapBeats.map { String(format: "%.4f", $0) } ?? "-"
+        os_log("[Q-BEATS][CONTO-BAND] lettura motivo:%{public}@ scarto:%{public}@ certo:%d stato:%{public}@ statoPrima:%{public}@ pendente:%.4f campioni:%lld battitoLink:%.4f orologio:%{public}@ correzione:%{public}@ buffer:%d",
+               log: .default, type: .default,
+               reason, gapText, reading.certain ? 1 : 0, describe(count.renumbering), describe(stateBefore),
+               pending.beat, pending.samplesAhead, outcome.linkBeat, followsLinkQ() ? "link" : "proprio",
+               correctionJump.map { String(format: "%.4f", $0) } ?? "non-valutata", bufferCount)
+        if let recognized = reading.recognized {
+            os_log("[Q-BEATS][CONTO-BAND] rinumerazione riconosciuta confine:%d salto:%.4f",
+                   log: .default, type: .default, recognized.boundary, recognized.jump)
+        }
+        guard reading.certain, let place = reading.place else {
+            let why: String = reading.reason.map { describe($0) } ?? "-"
+            os_log("[Q-BEATS][CONTO-BAND] conto non certo motivo:%{public}@ scarto:%{public}@ - niente riallineo e niente silenzio: l'iPad va come prima fino alla canzone dopo",
+                   log: .default, type: .default, why, gapText)
+            return
+        }
+        followerRealignQ(place: place, reason: reason, pending: pending, metronome: h, midi: mh)
+    }
+
+    /// La sezione `section` della canzone coi setter immediati, e la successiva precaricata (referto A424 par. 3.3 b,
+    /// passo 1, e par. 2.2 d; A431 par. 2.3): la strada del fuoco del rientro del Direttore (`fireDirectorRejoinQ`), senza
+    /// riavviare niente. I cambi armati nel DSP e in Swift si annullano; il tempo, il metro, gli accenti e la suddivisione
+    /// si scrivono subito, in quest'ordine (`metronome_setBeatsPerBar` rimette l'etichetta a 0: la rinomina viene dopo, per
+    /// ultima); il sequencer prende il tempo ri-ancorato alla posizione di prima; il quanto che l'app tiene per sé segue il
+    /// metro (`link_engine_set_quantum` non scrive verso la sessione). NIENTE W2 per i confini passati nel buco (li ha
+    /// già scritti il Direttore), NESSUNA finestra «sync skip» (non è uno scambio: la correzione deve continuare), nessuna
+    /// scrittura verso Link. Rende falso, senza toccare niente, se la sezione non esiste.
+    private func loadFollowerSectionForRealignQ(section: Int, metronome h: MetronomeHandle, midi mh: MIDIEngineHandle) -> Bool {
+        guard section >= 0, section < _songSectionsQ.count else { return false }
+        let arrival = _songSectionsQ[section]
+        let bpb = max(arrival.beatsPerBar, 1)
+        let closure = _songSectionEndClosureQ
+        metronome_cancel_pending_bpm(h)
+        metronome_cancel_pending_bpb(h)
+        metronome_cancel_pending_subdivision(h)
+        _pendingBPMValue = nil
+        _pendingBPMTargetTick = 0
+        _pendingNextBPM = nil
+        _pendingNextBPB = nil
+        _pendingNextAccentPattern = nil
+        _pendingNextSectionTotalBeats = nil
+        _pendingNextOnSectionEnd = nil
+        _pendingNextRepetitions = nil
+        _pendingNextSubdivisionMultiplier = nil
+        _pendingNextSwingRatio = nil
+        _sectionEndPending = false
+        _pendingEndClosure = nil
+        metronome_setBPM(h, arrival.bpm)
+        metronome_setBeatsPerBar(h, bpb)
+        let dspPattern: [UInt8] = arrival.accentPattern.map { $0 == 2 ? UInt8(1) : UInt8(0) }
+        dspPattern.withUnsafeBufferPointer { ptr in
+            metronome_setAccentPattern(h, ptr.baseAddress, UInt32(dspPattern.count))
+        }
+        metronome_setSubdivision(h, arrival.subdivisionMultiplier, arrival.swingRatio)
+        _audioBPM = arrival.bpm
+        _engineTempoQ = arrival.bpm
+        _linkTempoAdoptedQ = nil
+        _ownTimelineQ = nil
+        _beatsPerBarQ = bpb
+        if let lh = linkEngineHandle {
+            link_engine_set_quantum(lh, Double(bpb))
+        }
+        let preChangeBeatPos = midi_engine_get_beat_position(mh)
+        midi_engine_set_bpm(mh, arrival.bpm)
+        midi_engine_set_beat_position(mh, preChangeBeatPos)
+        let totalBeats = arrival.repetitions > 0 ? arrival.repetitions * Int(bpb) : 0
+        _sectionTotalBeats = totalBeats
+        _onSectionEnd = totalBeats > 0 ? closure : nil
+        _songMapSectionQ = section
+        if section + 1 < _songSectionsQ.count, let closure {
+            let following = _songSectionsQ[section + 1]
+            _pendingNextBPM = following.bpm
+            _pendingNextBPB = following.beatsPerBar
+            _pendingNextAccentPattern = following.accentPattern
+            _pendingNextSectionTotalBeats = following.repetitions * Int(following.beatsPerBar)
+            _pendingNextOnSectionEnd = closure
+            _pendingNextRepetitions = following.repetitions
+            _pendingNextSubdivisionMultiplier = following.subdivisionMultiplier
+            _pendingNextSwingRatio = following.swingRatio
+        }
+        // Gli specchi sul principale, come il passo (h) dello scambio SEAMLESS e il fuoco del rientro: il DSP ha già la
+        // misura, il `didSet` non la rimanda.
+        let pattern = arrival.accentPattern
+        let repetitions = arrival.repetitions
+        let bpm = arrival.bpm
+        DispatchQueue.main.async {
+            self._suppressBeatsPerBarDidSet = true
+            self.beatsPerBar = bpb
+            self.currentAccentPattern = pattern
+            self.currentSectionRepetitions = repetitions
+            self.currentBPM = bpm
+        }
+        return true
+    }
+
+    /// IL RIALLINEO (`followerRealignQ`: referto A424 par. 3.3 b, passi 1-7, con le differenze di A431 par. 3.1 c). Il
+    /// conto è certo e dice il posto della band per il battito in attesa. Se il posto è quello del motore, niente. Se
+    /// no, nell'ordine: (1) la sezione, se è un'altra, se un tempo è armato (uno scambio è avvenuto e
+    /// il suo primo battito non è uscito) o se il motore stava già drenando; (2) il contatore di sezione; (3) l'etichetta
+    /// del battito in attesa nel DSP, per ultima (`metronome_rename_pending_beat`: cambia il nome, non il campione);
+    /// (4) la grafica: il contatore dei battiti sale del salto, e la vista riceve `SectionRealign` dopo `.rejoin`;
+    /// (5) il runner, se la sezione è cambiata (`.rejoin` → `moveToSection`, senza avvio); (6) oltre la fine della
+    /// canzone la chiusura del drenaggio si consegna adesso: l'iPad finisce con la band; (7) la riga e il contatore.
+    /// Il riallineo non sposta mai un click nel tempo: un riallineo sbagliato può dare un accento o una sezione sbagliati,
+    /// mai un click fuori tempo, perso o doppio. Non scrive su Link, non manda Stop, non apre la finestra «sync skip».
+    private func followerRealignQ(place: FollowerBandPlace, reason: String, pending: MetronomePendingBeat,
+                                  metronome h: MetronomeHandle, midi mh: MIDIEngineHandle) {
+        let motorSection = _songMapSectionQ
+        let motorBeat = _sectionBeatCounter
+        let wasDraining = _sectionEndPending
+        let tempoArmed = _pendingBPMValue != nil
+        let lastSection = _songSectionsQ.count - 1
+        guard lastSection >= 0, motorSection >= 0 else { return }
+
+        let bandSection: Int
+        let bandBeat: Int
+        let bandBeatInBar: Int
+        var pastEndBeats: Int? = nil
+        switch place {
+        case .inSong(let section, let beatInSection, let beatInBar):
+            bandSection = section
+            bandBeat = beatInSection
+            bandBeatInBar = beatInBar
+        case .pastEnd(let beats):
+            // Oltre la fine: il posto è la fine dell'ultima sezione.
+            bandSection = lastSection
+            bandBeat = 0
+            bandBeatInBar = 0
+            pastEndBeats = beats
+        }
+
+        if let beyond = pastEndBeats {
+            // (6) La band ha finito la canzone. Se il motore drena già, niente da fare.
+            guard !wasDraining else { return }
+            // Senza la chiusura di fine sezione del runner non c'è niente da consegnare: non si apre un drenaggio vuoto.
+            guard _songSectionEndClosureQ != nil || _onSectionEnd != nil else { return }
+            var sectionChanged = false
+            if motorSection != lastSection || tempoArmed {
+                guard loadFollowerSectionForRealignQ(section: lastSection, metronome: h, midi: mh) else { return }
+                sectionChanged = motorSection != lastSection
+            }
+            _pendingEndClosure = _onSectionEnd ?? _songSectionEndClosureQ
+            _sectionEndPending = true
+            _sectionBeatCounter = 0
+            _followerRealignsQ += 1
+            if sectionChanged {
+                let songIdx = _songMapSongIdxQ
+                DispatchQueue.main.async {
+                    self.directorRunnerActionSubject.send(.rejoin(songIdx: songIdx, sectionIdx: lastSection))
+                }
+            }
+            os_log("[Q-BEATS][CONTO-BAND] riallineo motivo:%{public}@ motore:%d.%d banda:oltre-la-fine(%d) sezione:%d tempoArmato:%d pendente:%.4f campioni:%lld - la canzone e' finita per la band: la chiusura di fine canzone si consegna adesso",
+                   log: .default, type: .default,
+                   reason, motorSection, motorBeat, beyond, sectionChanged ? 1 : 0, tempoArmed ? 1 : 0,
+                   pending.beat, pending.samplesAhead)
+            return
+        }
+
+        let sectionDiffers = bandSection != motorSection
+        // Col posto della band uguale a quello del motore non si tocca niente, ANCHE con un tempo armato: lo scambio di
+        // sezione è appena avvenuto, il primo battito della sezione nuova non è ancora uscito, e la strada di sempre
+        // (il blocco del tempo armato nel giro dei battiti) porta il tempo e la W2 al confine giusto. Un riallineo lì
+        // toglierebbe la W2 a un confine che il Follower sta attraversando suonando. Il tempo armato conta solo quando il
+        // riallineo si fa davvero: allora è sempre un caricamento di sezione (referto A424 par. 2.2 d).
+        guard sectionDiffers || bandBeat != motorBeat || wasDraining else { return }
+
+        // Il salto in battiti della canzone fra il posto del motore e quello della band, col segno (lo calcola il motore:
+        // il tipo non conosce il posto del motore). Col motore già in drenaggio il suo posto è la fine dell'ultima sezione.
+        let motorSongBeat: Int
+        if wasDraining {
+            motorSongBeat = followerSongBeatQ(section: motorSection + 1, beat: 0)
+        } else {
+            motorSongBeat = followerSongBeatQ(section: motorSection, beat: motorBeat)
+        }
+        let bandSongBeat = followerSongBeatQ(section: bandSection, beat: bandBeat)
+        let jumpBeats = bandSongBeat - motorSongBeat
+
+        // (1) La sezione.
+        let loadsSection = sectionDiffers || tempoArmed || wasDraining
+        if loadsSection {
+            guard loadFollowerSectionForRealignQ(section: bandSection, metronome: h, midi: mh) else {
+                os_log("[Q-BEATS][CONTO-BAND] riallineo NON eseguito motivo:%{public}@ - la sezione %d della band non e' nella canzone del motore",
+                       log: .default, type: .error, reason, bandSection)
+                return
+            }
+        }
+        // (2) Il contatore.
+        if _sectionTotalBeats > 0 {
+            _sectionBeatCounter = min(max(bandBeat, 0), _sectionTotalBeats - 1)
+        } else {
+            _sectionBeatCounter = 0
+        }
+        // (3) Il DSP: la rinomina, per ultima. Dopo, il getter riletto per la riga: l'identità deve essere la stessa.
+        metronome_rename_pending_beat(h, UInt32(max(bandBeatInBar, 0)))
+        let pendingAfter = metronome_pending_beat(h)
+        // (4) La grafica: il contatore dei battiti sale (o scende) del salto, senza ripassare dal primo tick di un avvio;
+        // il riferimento della riga del tempo del click si riprende al prossimo battito. Se da questo avvio non è ancora
+        // uscito nessun battito (il riallineo dell'ingresso, alla prima chiamata) il contatore resta a zero: il primo
+        // tick è il primo di un avvio, e la vista lo àncora col seme d'ingresso, che qui diventa il battito della band.
+        if beatTickCounter == 0 {
+            startBeatOffset = _sectionBeatCounter
+        } else {
+            beatTickCounter = max(beatTickCounter + jumpBeats, 1)
+            _tempoLogRefRetakeQ = true
+        }
+        _followerRealignsQ += 1
+        // (4)-(5) Sul principale: prima il runner (solo se la sezione è cambiata), poi il messaggio alla vista.
+        let songIdx = _songMapSongIdxQ
+        let message = SectionRealign(sectionIdx: bandSection, nextTick: beatTickCounter + 1, sectionBeat: _sectionBeatCounter + 1)
+        DispatchQueue.main.async {
+            if sectionDiffers {
+                self.directorRunnerActionSubject.send(.rejoin(songIdx: songIdx, sectionIdx: bandSection))
+            }
+            self.sectionRealignSubject.send(message)
+        }
+        // (7) La riga.
+        os_log("[Q-BEATS][CONTO-BAND] riallineo motivo:%{public}@ motore:%d.%d banda:%d.%d salto_battiti:%d sezione:%d tempoArmato:%d drenaggio:%d pendente:%.4f campioni:%lld asap:%d pendenteDopo:%.4f campioniDopo:%lld etichetta:%d riallinei:%d",
+               log: .default, type: .default,
+               reason, motorSection, motorBeat, bandSection, bandBeat, jumpBeats, loadsSection ? 1 : 0,
+               tempoArmed ? 1 : 0, wasDraining ? 1 : 0, pending.beat, pending.samplesAhead,
+               pending.samplesAhead == 0 ? 1 : 0, pendingAfter.beat, pendingAfter.samplesAhead, bandBeatInBar,
+               _followerRealignsQ)
+    }
+
+    /// La riga di controllo a fine sezione (P27; referto A424 par. 2.2 b, strada (a)): il punto «fine sezione» del disegno
+    /// non si costruisce, resta questa riga, scritta solo con l'àncora viva e il conto certo. L'ultimo battito della
+    /// sezione è appena uscito dal conto del motore: per la sua ora d'uscita il conto della band, letto su una COPIA (la
+    /// riga non cambia lo stato del conto e non consuma niente), deve dire lo stesso posto. Al collaudo una `accordo:0`
+    /// è un difetto da aprire. Nessuna azione.
+    private func logFollowerSectionEndCheckQ(section: Int, beatInSection: Int, outTicks: UInt64) {
+        guard let count = _followerBandCountQ, count.closed == nil,
+              FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) else { return }
+        var probe = count
+        guard let outcome = readFollowerBandCountQ(&probe, ticks: outTicks, lastCounted: _lastCountedBeatQ) else { return }
+        let bandText: String
+        var agrees = false
+        if outcome.reading.certain, let place = outcome.reading.place {
+            switch place {
+            case .inSong(let bandSection, let bandBeat, _):
+                bandText = "\(bandSection).\(bandBeat)"
+                agrees = bandSection == section && bandBeat == beatInSection
+            case .pastEnd(let beats):
+                bandText = "oltre-la-fine(\(beats))"
+            }
+        } else {
+            bandText = "non-certo"
+        }
+        os_log("[Q-BEATS][CONTO-BAND] controllo fine sezione motore:%d.%d banda:%{public}@ accordo:%d",
+               log: .default, type: .default, section, beatInSection, bandText, agrees ? 1 : 0)
+    }
+
     /// A410 — la mappa della canzone che parte, per il conteggio in silenzio (`ShowClock`): la
     /// consegna il runner a ogni avvio di canzone, accanto alla misura qui sopra, con l'indice della
     /// canzone e la sezione da cui parte il click. Qui diventa una copia di coda. Una riga a ogni
@@ -2888,6 +3424,15 @@ class AudioEngine: ObservableObject {
         let map = SongMap(songSections: sections)
         audioQueue.async { [weak self] in
             guard let self else { return }
+            // A432 · PARTE 2b — un conto vivo su un'altra mappa non vale più: serve un conto nuovo (l'ora del Play resta:
+            // la mappa arriva dopo il Play della band e prima dell'ingresso).
+            if let count = self._followerBandCountQ, count.map != map {
+                self._followerBandCountQ = nil
+                self._followerEntryPendingQ = nil
+                self._followerRealignDueQ = nil
+                self._followerCountedAtDueQ = nil
+                os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:mappa-nuova", log: .default, type: .default)
+            }
             self._songMapQ = map
             self._songSectionsQ = sections
             self._songMapSongIdxQ = songIdx
@@ -2979,6 +3524,8 @@ class AudioEngine: ObservableObject {
             if !open {
                 self.closeSilenceAnchorQ(reason: "show-chiuso")
                 self._songInProgressQ = false
+                // A432 · PARTE 2b — a show chiuso il conto del Follower finisce.
+                self.resetFollowerBandCountQ(reason: "show-chiuso")
                 // A421 · SEGUITO 2 (par. 7) — il segno «mappa per il prossimo avvio» non sopravvive alla canzone a cui appartiene.
                 self.lowerSongMapForNextStartQ(reason: "show-chiuso")
                 self.leaveDirectorSilenceQ(reason: "show-chiuso", closeAnchor: false)
@@ -4329,6 +4876,13 @@ class AudioEngine: ObservableObject {
         _songInProgressQ = step.mark.songInProgress
         os_log("[Q-BEATS][CONTEGGIO] mappa consumata dall'avvio in corso contesto:%{public}@ songIdx:%d",
                log: .default, type: .default, context, _songMapSongIdxQ)
+        // A432 · PARTE 2b — la gara con l'attesa zero (referto A423 par. 3.3 a, punto 5): il fuoco dell'ingresso è passato
+        // prima che la mappa di questo avvio arrivasse e ha tenuto i suoi numeri; la mappa è arrivata adesso, e l'àncora
+        // del conto si prende qui. I buffer sono già partiti: il seme lo applica il riallineo.
+        if let pending = _followerEntryPendingQ {
+            _followerEntryPendingQ = nil
+            takeFollowerBandAnchorQ(entryTicks: pending.ticks, entryLinkBeat: pending.linkBeat, atFire: false)
+        }
     }
 
     /// Un avvio che non passa dal coordinatore (mandato §2.2, T4): torna l'assert del Direttore se dopo un rientro
@@ -4839,6 +5393,9 @@ class AudioEngine: ObservableObject {
         // A427 — ogni pulizia dello Stop abbassa il primo click del rientro in arrivo. I due chiamanti l'hanno già abbassato prima
         // (`stopSync`, col suo ordine della faccia; `handleRoleOrLinkChangeQ`, prima del suo `.stopped`): qui è già giù.
         lowerRejoinClickPendingQ(context: "pulizia-stop", publish: true)
+        // A432 · PARTE 2b — con lo Stop la canzone è finita anche per il conto del Follower (Stop della band, fine canzone
+        // propria, END SHOW, Stop del musicista): àncora, ora del Play e riallineo dovuto si azzerano.
+        resetFollowerBandCountQ(reason: "stop")
         // QA-1 drift analysis reset
         qa1BeatCounter  = 0
         qa1StartTime    = 0
@@ -8926,6 +9483,8 @@ class AudioEngine: ObservableObject {
         }
         // A421 — U9: il battito in ritardo si decide a ogni buffer, ai due punti della correzione qui sotto.
         self._muteLateBeatThisBufferQ = false
+        // A432 · PARTE 2b — la correzione valutata in questa chiamata (per il punto R del conto del Follower): ancora no.
+        self._correctionJumpThisCallQ = nil
 
         // === Task D refactor #18 — esponi bufferCount al render thread ===
         // Atomic snapshot del bufferCount audioQueue. Il sink block lo legge
@@ -9044,6 +9603,9 @@ class AudioEngine: ObservableObject {
         }
         if case .gap(let renderGap) = meterOutcome {
             self._lastMeterGapTicksQ = gapNowTicks
+            // A432 · PARTE 2b — dopo un buco il riallineo del conto del Follower è dovuto (il punto R, caso 1): si fa alla
+            // prima chiamata in cui la correzione è stata valutata, non qui (la posizione non è ancora quella di Link).
+            self.noteFollowerRealignDueQ(reason: "buco")
             let role = self.playerRoleQ
             let guards = RenderGapDecision.guardsAgainstHoles(playerRole: role)
             let guardianWroteBefore = self._guardianSilenceQ != nil
@@ -9103,6 +9665,10 @@ class AudioEngine: ObservableObject {
             // Par. 4.4 — la prima chiamata della stessa catena che arriva al misuratore dopo uno scatto del guardiano, anche se il
             // misuratore non dice buco: il silenzio del guardiano ha sempre il suo ritorno.
             self._guardianSilenceQ = nil
+            // A432 · PARTE 2b — anche il segno del guardiano alza il riallineo dovuto del conto del Follower.
+            if guardianSilence.chain == self._bufferChainGenerationQ {
+                self.noteFollowerRealignDueQ(reason: "buco")
+            }
             if guardianSilence.chain == self._bufferChainGenerationQ && RenderGapDecision.guardsAgainstHoles(playerRole: self.playerRoleQ) {
                 os_log("[Q-BEATS][USCITA] guardiano: la chiamata dopo lo scatto non e' un buco per il misuratore dalloScatto_ms:%.1f - il ritorno dopo il buco si arma lo stesso",
                        log: .default, type: .default, self.signedMilliseconds(from: guardianSilence.ticks, to: gapNowTicks))
@@ -9120,10 +9686,12 @@ class AudioEngine: ObservableObject {
         // riga 3). `hardwareSR` resta la frequenza della sessione, com'era. A421 — e `volume:0|1`, lo stato «uscita zittita»
         // (U3 b), e `battitiZittiti:` (U9: il conto dall'avvio del motore; in una canzone senza buchi, zero).
         if bufferCount == 0 || bufferCount % 100 == 0 {
-            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f dspSR:%.0f uscitaSR:%.0f volume:%d battitiZittiti:%d",
+            // A432 · PARTE 2b — in più `riallinei:`, i riallinei del conto del Follower dall'avvio del motore.
+            os_log("[Q-BEATS][SCHED] bufCount:%d hardwareSR:%.0f nodeSR:%.0f dspSR:%.0f uscitaSR:%.0f volume:%d battitiZittiti:%d riallinei:%d",
                    log: .default, type: .default,
                    bufferCount, AVAudioSession.sharedInstance().sampleRate, self.sampleRate,
-                   self._dspSampleRateQ, self.outputSampleRateQ(), self._outputSilenceQ.muted ? 0 : 1, self._lateBeatsMutedQ)
+                   self._dspSampleRateQ, self.outputSampleRateQ(), self._outputSilenceQ.muted ? 0 : 1, self._lateBeatsMutedQ,
+                   self._followerRealignsQ)
         }
         // A421 — l'ora d'uscita di questo buffer (la convenzione della correzione di fase, `_bufferOutTicksQ`) e il battito del
         // DSP al suo inizio: per il buffer dell'«uno» del ritorno del Follower (par. 2.2 c) e per l'«uno» uscito DA-SOLO.
@@ -9221,6 +9789,8 @@ class AudioEngine: ObservableObject {
                     self.noteLateBeatCorrectionQ(metronome: h, before: currentBeat, after: newBeat, bpm: self._engineTempoQ, point: "fase-link")
                     // A421 · SEGUITO 2 (F1) — la prima correzione dopo la finestra che sposta di almeno un buffer riarma i ritorni.
                     self.noteCorrectionAfterWindowQ(before: currentBeat, after: newBeat, bpm: self._engineTempoQ)
+                    // A432 · PARTE 2b — la correzione è stata valutata e ha spostato: il salto, per il punto R.
+                    self._correctionJumpThisCallQ = newBeat - currentBeat
                     os_log("[Q-BEATS][LINK] Phase sync: %.4f → %.4f beats",
                            log: .default, type: .default,
                            currentBeat, newBeat)
@@ -9241,6 +9811,8 @@ class AudioEngine: ObservableObject {
                 } else {
                     // A421 · SEGUITO 2 (F1) — la prima correzione dopo la finestra non ha spostato niente: il segno si consuma.
                     self.noteCorrectionAfterWindowQ(before: currentBeat, after: currentBeat, bpm: self._engineTempoQ)
+                    // A432 · PARTE 2b — la correzione è stata valutata senza spostare: salto zero, per il punto R.
+                    self._correctionJumpThisCallQ = 0
                     if bufferCount <= 2 {
                         os_log("[Q-BEATS][LINK][RESTART] buffer #%d: beat=%.4f — no correction",
                                log: .default, type: .default,
@@ -9255,6 +9827,19 @@ class AudioEngine: ObservableObject {
             // quella di sempre: il sequencer calcola ogni buffer dalla posizione (`MIDISequencer::processBuffer`).
             // A421 — il battito del DSP all'inizio di questo buffer, dopo le correzioni (per l'«uno» uscito, più sotto).
             bufferStartBeat = midi_engine_get_beat_position(mh)
+            // === A432 · PARTE 2b — IL PUNTO R DEL CONTO DEL FOLLOWER (referto A424 par. 2.2; A431 par. 2.1 e 3.1 b) ===
+            // Dopo il blocco della fase (la posizione del DSP è già quella che la correzione di questa chiamata gli ha
+            // dato) e prima del MIDI di questo buffer, del ritorno del volume e di `metronome_processBuffer`: il riallineo
+            // vale per i battiti che questo buffer calcola. Solo col conto vivo, e solo se c'è un motivo (un riallineo
+            // dovuto, o una correzione di almeno mezzo battito in questa chiamata): a regime sono pochi confronti. Dopo un
+            // buco aspetta la prima chiamata con la correzione valutata (mai nella finestra «sync skip»: è la stessa regola
+            // del ritorno del volume). Il resto sta in `followerBandCountPointRQ`.
+            if self._followerBandCountQ != nil,
+               self._followerRealignDueQ != nil || abs(self._correctionJumpThisCallQ ?? 0) >= 0.5 {
+                self.followerBandCountPointRQ(metronome: h, midi: mh, correctionJump: self._correctionJumpThisCallQ)
+                // Il riallineo può aver ri-ancorato il sequencer: il battito d'inizio del buffer si rilegge.
+                bufferStartBeat = midi_engine_get_beat_position(mh)
+            }
             var midiHeld = false
             if var lead = self._rejoinLeadInQ, lead.midiHeld {
                 if DirectorRejoinDecision.leadInHoldsMIDI(bufferStartBeat: midi_engine_get_beat_position(mh),
@@ -9390,7 +9975,14 @@ class AudioEngine: ObservableObject {
                         self._tempoLogRefTickQ = 1
                         self._tempoLogRefOutTicksQ = self._lastBeatOutTicksQ
                         self._tempoLogRefSampleQ = self._lastBeatSampleQ
+                    } else if self._tempoLogRefRetakeQ {
+                        // A432 · PARTE 2b — dopo un riallineo del conto del Follower il contatore dei battiti è saltato: il
+                        // riferimento della riga del tempo del click si riprende da questo battito.
+                        self._tempoLogRefTickQ = self.beatTickCounter
+                        self._tempoLogRefOutTicksQ = self._lastBeatOutTicksQ
+                        self._tempoLogRefSampleQ = self._lastBeatSampleQ
                     }
+                    self._tempoLogRefRetakeQ = false
                     // A410 — il battito appena contato, per l'àncora del conteggio in silenzio: la
                     // sezione della mappa e il battito nella sezione (da 0: il contatore di sezione
                     // PRIMA del suo incremento, più sotto; -1 in un ciclo, dove il contatore non
@@ -9545,6 +10137,11 @@ class AudioEngine: ObservableObject {
                     if self._sectionTotalBeats > 0 {
                         self._sectionBeatCounter += 1
                         if self._sectionBeatCounter >= self._sectionTotalBeats {
+                            // A432 · PARTE 2b (P27) — il punto «fine sezione» del disegno non si costruisce: resta una riga
+                            // di controllo, solo con l'àncora viva. L'ultimo battito della sezione è appena stato contato.
+                            self.logFollowerSectionEndCheckQ(section: self._songMapSectionQ,
+                                                             beatInSection: self._sectionTotalBeats - 1,
+                                                             outTicks: self._lastBeatOutTicksQ)
                             // Strada A — Distingue ramo SEAMLESS (transizione
                             // intra-canzone con preload) da ramo DRAIN
                             // (standby / fineSetlist).

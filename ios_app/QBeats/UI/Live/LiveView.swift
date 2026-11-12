@@ -1031,6 +1031,20 @@ struct LiveView: View {
             }
             lastSeenSectionIdx = idx
         }
+        // A432 · PARTE 2b (P10; referto A424 par. 3.3 b, passo 4) — IL RIALLINEO DEL FOLLOWER. Dopo un buco il motore
+        // può rinominare i suoi battiti sul conto della band, anche in un'altra sezione e senza un confine di sezione
+        // suo: manda qui la sezione, il prossimo tick e il battito della sezione che quel tick porta. L'ancora della
+        // battuta si rifà con l'identità di sempre (`sectionStartTick = tick − sectionBeat + 1`, come all'ancora del
+        // montaggio): il prossimo tick mostra la battuta e il battito della band. Senza questo passo il primo tick dopo
+        // il cambio di `currentSectionIdx` diventerebbe «battuta 1» (il marker qui sopra). L'ultima scrittura rende
+        // innocuo l'ordine con cui arriva il cambio dell'indice del runner: se arriva dopo, l'indice è già quello e il
+        // marker non si arma; se è arrivato prima, il marker si abbassa qui. Solo stato della vista: nessun disegno nuovo.
+        .onReceive(audioEngine.sectionRealignSubject) { realign in
+            sectionStartTick = realign.sectionStartTick
+            pendingSectionStart = false
+            barAnchorValid = true
+            lastSeenSectionIdx = realign.sectionIdx
+        }
         .onReceive(audioEngine.$audioMode) { mode in
             session.isProMode = mode == .pro
         }
