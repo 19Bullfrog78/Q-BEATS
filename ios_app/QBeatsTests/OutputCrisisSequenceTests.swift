@@ -456,6 +456,13 @@ private struct OutputRig {
         }
     }
 
+    /// A432 · parte 2b (P38) — il getter del DSP di questo rig (`metronome_pending_beat` subito dopo la correzione): il DSP qui è
+    /// la griglia «origine più interi», e il battito in attesa dopo una correzione è quello di prima più la parte intera
+    /// arrotondata della correzione (il re-map di `setBeatPositionTimeOnly`).
+    func rigPendingBeatAfterCorrection(before: Double, after: Double) -> Double {
+        LateBeatDecision.pendingBeatAfter(origin: dspOrigin, before: before, after: after)
+    }
+
     /// A432 · parte 2b (voce i) — `nextBandUnoQ`: l'«uno» dal conto certo, col posto alla scadenza da Link (IN SYNC) o dal
     /// righello dei secondi (DA-SOLO). `nil` senza conto, col conto chiuso, o se il conto non dà un «uno».
     func nextBandUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
@@ -1536,8 +1543,14 @@ private struct OutputRig {
             // A425 (par. 2.5): solo una correzione sopra la soglia di Link (`fabs(delta) > threshold`, LinkEngine.mm:647) arriva qui;
             // quelle di al più 0,01 battiti fanno il ramo «nessuna correzione» qui sotto, come il motore.
             corrections += 1
-            if LateBeatDecision.mutes(origin: dspOrigin, before: position, after: position + delta, bpm: bpm,
-                                      bufferFrames: 512, sampleRate: nodeRate) {
+            // A432 · parte 2b (P38) — come `noteLateBeatCorrectionQ` da A432: il battito in attesa lo dice il DSP dopo la correzione
+            // (`metronome_pending_beat`), poi `lateBeats(pendingBeat:after:)` e `mutesLateBeat`. In questo rig il DSP è la griglia
+            // «origine più interi» (`rigPendingBeatAfterCorrection`): nessun salto frazionario fa saltare un battito al DSP, e il
+            // getter coincide con la ricostruzione di prima (`LateBeatDecision.mutes(origin:…)`, che stava qui); il caso in cui
+            // non coincidono è nel rig del conto, col modello del DSP (`FollowerBandRigTests`).
+            let pendingAfter = rigPendingBeatAfterCorrection(before: position, after: position + delta)
+            if LateBeatDecision.mutesLateBeat(lateBeats: LateBeatDecision.lateBeats(pendingBeat: pendingAfter, after: position + delta),
+                                              bpm: bpm, bufferFrames: 512, sampleRate: nodeRate) {
                 lateBeatsMuted += 1
                 mutedThisBuffer = true
             }
