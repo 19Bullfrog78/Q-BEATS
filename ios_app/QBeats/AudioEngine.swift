@@ -600,10 +600,26 @@ class AudioEngine: ObservableObject {
     /// «Riallineo dovuto»: il motivo (buco | ingresso | al-secondo). Si consuma al punto R della prima chiamata in cui la
     /// correzione è stata valutata.
     private var _followerRealignDueQ: String? = nil
-    /// L'ultimo battito contato nel momento in cui il riallineo è diventato dovuto per un buco: è lui che va al «contatore
-    /// d'accordo coi secondi» (un controllo sul conto dell'iPad fatto PRIMA del buco). I battiti contati fra il buco e il
-    /// riallineo hanno il nome di prima, e si sa.
-    private var _followerCountedAtDueQ: CountedBeat? = nil
+    /// ⚠️ RISCRITTO A432 · PARTE 2c (13/11/2026; DECISIONI_REFEREE_A432_PARTE2C_ARRESTO, par. 1 e 3). Qui c'era
+    /// `_followerCountedAtDueQ`, «l'ultimo battito contato nel momento in cui il riallineo è diventato dovuto per un buco»
+    /// (la scelta A.1 della 2b): copriva la sola lettura del buco. Il «contatore d'accordo coi secondi» confronta il nome
+    /// del battito col righello dei secondi ALLA SUA ORA D'USCITA (`FollowerBandCount.counterAgrees`): vale solo un battito
+    /// uscito sulla griglia della band. Da qui una fonte sola, per ogni lettura:
+    /// IL BATTITO DI CONTROLLO «SULLA GRIGLIA» — l'ultimo battito contato col conto vivo che non sia (i) contato mentre un
+    /// riallineo dovuto «buco» aspetta ancora la sua lettura (è uscito in ritardo della durata del buco: la correzione non
+    /// è ancora stata valutata) né (ii) il battito messo a «subito» che U9 conta e non suona (`muteThisEvent`: uscito al
+    /// primo campione, in ritardo di almeno un buffer). Lo azzerano `resetFollowerBandCountQ`, una mappa diversa
+    /// (`setSongMap`) e ogni avvio del motore, SALVO quando un riallineo dovuto «buco» aspetta ancora la sua lettura (allora
+    /// sopravvive all'avvio: è il battito di prima del buco). `_lastCountedBeatQ` e `_prevCountedBeatQ` restano com'erano,
+    /// per l'àncora del silenzio del Direttore.
+    private var _followerGridBeatQ: CountedBeat? = nil
+    /// Gli avvii del motore dall'apertura dell'app (sale in `start()`, accanto all'azzeramento dei battiti contati), e
+    /// l'avvio in cui è nata l'àncora del conto. Senza nessun battito sulla griglia il contatore d'accordo prende l'àncora
+    /// stessa, per ogni motivo di lettura, SOLO SE è nata nell'avvio in cui si fa la lettura (`followerControlBeatQ`): con
+    /// l'àncora di un avvio prima l'accordo sarebbe vero per costruzione anche dopo una ripartenza in cui l'iPad può aver
+    /// perso battiti (VERIFICA_REFEREE_A432_PARTE2B par. 4.2; DECISIONI par. 3).
+    private var _engineStartSerialQ: Int = 0
+    private var _followerAnchorStartSerialQ: Int? = nil
     /// I riallinei fatti dall'ultimo avvio del motore (la riga `[SCHED]`); li azzera `start()`.
     private var _followerRealignsQ: Int = 0
     /// La correzione di fase valutata in QUESTA chiamata di `scheduleNextBuffer`: `nil` = non valutata (finestra «sync
@@ -2967,7 +2983,9 @@ class AudioEngine: ObservableObject {
         _followerPlayCallbackTicksQ = nil
         _followerEntryPendingQ = nil
         _followerRealignDueQ = nil
-        _followerCountedAtDueQ = nil
+        // A432 · PARTE 2c — col conto finiscono il battito di controllo e l'avvio dell'àncora.
+        _followerGridBeatQ = nil
+        _followerAnchorStartSerialQ = nil
         if had {
             os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:%{public}@",
                    log: .default, type: .default, reason)
@@ -3060,6 +3078,8 @@ class AudioEngine: ObservableObject {
         switch FollowerBandCount.enter(current: current, seed: input) {
         case .anchored(let count, let seed):
             _followerBandCountQ = count
+            // A432 · PARTE 2c — l'àncora nasce in questo avvio del motore (per il battito di controllo, `followerControlBeatQ`).
+            _followerAnchorStartSerialQ = _engineStartSerialQ
             var seedApplied = false
             if atFire, seed.section == _songMapSectionQ, _sectionTotalBeats > 0, seed.beatInSection < _sectionTotalBeats {
                 // Il seme dalla band al posto del seme locale: stessa sezione del motore, un inizio di battuta (il DSP è
@@ -3089,13 +3109,14 @@ class AudioEngine: ObservableObject {
 
     /// «Riallineo dovuto»: lo alzano la chiamata del buco e il segno del guardiano («buco»), il battito a 1 s
     /// («al-secondo», la rete) e un ingresso con l'àncora viva («ingresso»). Solo col motore in moto e il conto certo.
-    /// Il buco vince sugli altri motivi, e prende l'ultimo battito contato in questo momento (`_followerCountedAtDueQ`).
+    /// Il buco vince sugli altri motivi.
+    /// ⚠️ RISCRITTO A432 · PARTE 2c (13/11/2026). Qui si diceva «e prende l'ultimo battito contato in questo momento
+    /// (`_followerCountedAtDueQ`)»: quel valore non c'è più. Dal momento in cui il buco è dovuto fino alla sua lettura i
+    /// battiti contati non aggiornano il battito di controllo (`_followerGridBeatQ`), che resta quindi quello di prima del
+    /// buco: è la stessa regola, detta una volta sola.
     private func noteFollowerRealignDueQ(reason: String) {
         guard isRunning, let count = _followerBandCountQ, count.closed == nil else { return }
         if reason == "buco" {
-            if _followerCountedAtDueQ == nil {
-                _followerCountedAtDueQ = _lastCountedBeatQ
-            }
             _followerRealignDueQ = reason
         } else if _followerRealignDueQ == nil {
             _followerRealignDueQ = reason
@@ -3112,6 +3133,23 @@ class AudioEngine: ObservableObject {
             index += 1
         }
         return total
+    }
+
+    /// A432 · PARTE 2c — IL BATTITO CHE VA AL «CONTATORE D'ACCORDO COI SECONDI» (DECISIONI_REFEREE_A432_PARTE2C_ARRESTO,
+    /// par. 1 e 3), per ogni lettura e per ogni motivo: l'ultimo battito contato sulla griglia (`_followerGridBeatQ`); se
+    /// non ce n'è nessuno dalla nascita del conto, l'àncora stessa (sezione, battito nella sezione e ora dell'àncora: nessun
+    /// battito contato, niente perso), solo se è nata nell'avvio del motore in cui si fa la lettura; altrimenti nessun
+    /// battito (nessun accordo: un salto si tratta senza accordo, il conto si chiude). `counterAgrees` nel tipo non cambia:
+    /// l'àncora gliela passa il motore come un battito contato. `source` è per la riga della lettura.
+    private func followerControlBeatQ() -> (beat: CountedBeat?, source: String) {
+        if let grid = _followerGridBeatQ {
+            return (grid, "griglia")
+        }
+        guard let anchor = _followerBandCountQ?.anchor,
+              let born = _followerAnchorStartSerialQ, born == _engineStartSerialQ else {
+            return (nil, "nessuno")
+        }
+        return (CountedBeat(section: anchor.section, beatInSection: anchor.beatInSection, outTicks: anchor.ticks), "ancora")
     }
 
     /// Una lettura del conto per l'ora `ticks`: IN SYNC una cattura della sessione senza commit
@@ -3172,22 +3210,24 @@ class AudioEngine: ObservableObject {
         guard sampleRate > 0 else { return }
         let pendingTicks = _bufferOutTicksQ + secondsToMachTicks(Double(aheadSamples) / sampleRate)
         let stateBefore = count.renumbering
-        let lastCounted = _followerCountedAtDueQ ?? _lastCountedBeatQ
+        // A432 · PARTE 2c — al contatore d'accordo va il battito di controllo (`followerControlBeatQ`): l'ultimo battito
+        // contato sulla griglia, o l'àncora di questo avvio se non ce n'è nessuno. Mai `_lastCountedBeatQ` com'è.
+        let control = followerControlBeatQ()
         // Il motivo si consuma qui, anche se la lettura non riesce: col ponte di Link spento non si ritenta a ogni buffer
-        // (la rete al secondo lo rialza).
+        // (la rete al secondo lo rialza). Da qui i battiti contati tornano ad aggiornare il battito di controllo.
         _followerRealignDueQ = nil
-        _followerCountedAtDueQ = nil
-        guard let outcome = readFollowerBandCountQ(&count, ticks: pendingTicks, lastCounted: lastCounted) else {
+        guard let outcome = readFollowerBandCountQ(&count, ticks: pendingTicks, lastCounted: control.beat) else {
             return
         }
         _followerBandCountQ = count
         let reading = outcome.reading
         let gapText: String = reading.gapBeats.map { String(format: "%.4f", $0) } ?? "-"
-        os_log("[Q-BEATS][CONTO-BAND] lettura motivo:%{public}@ scarto:%{public}@ certo:%d stato:%{public}@ statoPrima:%{public}@ pendente:%.4f campioni:%lld battitoLink:%.4f orologio:%{public}@ correzione:%{public}@ buffer:%d",
+        // A432 · PARTE 2c — in più `controllo:` (griglia | ancora | nessuno): che cosa è andato al contatore d'accordo.
+        os_log("[Q-BEATS][CONTO-BAND] lettura motivo:%{public}@ scarto:%{public}@ certo:%d stato:%{public}@ statoPrima:%{public}@ pendente:%.4f campioni:%lld battitoLink:%.4f orologio:%{public}@ correzione:%{public}@ controllo:%{public}@ buffer:%d",
                log: .default, type: .default,
                reason, gapText, reading.certain ? 1 : 0, describe(count.renumbering), describe(stateBefore),
                pending.beat, pending.samplesAhead, outcome.linkBeat, followsLinkQ() ? "link" : "proprio",
-               correctionJump.map { String(format: "%.4f", $0) } ?? "non-valutata", bufferCount)
+               correctionJump.map { String(format: "%.4f", $0) } ?? "non-valutata", control.source, bufferCount)
         if let recognized = reading.recognized {
             os_log("[Q-BEATS][CONTO-BAND] rinumerazione riconosciuta confine:%d salto:%.4f",
                    log: .default, type: .default, recognized.boundary, recognized.jump)
@@ -3287,6 +3327,12 @@ class AudioEngine: ObservableObject {
     /// canzone la chiusura del drenaggio si consegna adesso: l'iPad finisce con la band; (7) la riga e il contatore.
     /// Il riallineo non sposta mai un click nel tempo: un riallineo sbagliato può dare un accento o una sezione sbagliati,
     /// mai un click fuori tempo, perso o doppio. Non scrive su Link, non manda Stop, non apre la finestra «sync skip».
+    /// ⚠️ A432 · PARTE 2c (13/11/2026; risposta del referee a D5-bis). La frase qui sopra vale «a meno dello scarto fra
+    /// sequencer e DSP dopo un cambio di tempo: lo stesso spostamento che fa ogni correzione di fase», e solo nel riallineo
+    /// che riapre la sezione col motore in drenaggio (il blocco «IL DRENAGGIO RIAPERTO» più sotto, con la formula e i
+    /// massimi). Altri due limiti scritti: il nome del battito in attesa si legge prima di quella scrittura, all'ora
+    /// spostata di al più tre buffer (giusto fino a circa 700 al minuto); un battito più corto di quattro buffer (sopra
+    /// circa 1400 al minuto) può essere già passato mentre il DSP era fermo, e allora esce «subito».
     private func followerRealignQ(place: FollowerBandPlace, reason: String, pending: MetronomePendingBeat,
                                   metronome h: MetronomeHandle, midi mh: MIDIEngineHandle) {
         let motorSection = _songMapSectionQ
@@ -3367,6 +3413,36 @@ class AudioEngine: ObservableObject {
                        log: .default, type: .error, reason, bandSection)
                 return
             }
+            if wasDraining {
+                // === A432 · PARTE 2c — IL DRENAGGIO RIAPERTO (DECISIONI_REFEREE_A432_PARTE2C_ARRESTO par. 5; risposta a
+                // D5-bis, par. 1: la strada (a)) ===
+                // Il riallineo ha riaperto la sezione col motore in drenaggio. Nel drenaggio `metronome_processBuffer` non
+                // gira: il DSP è rimasto fermo per le chiamate del drenaggio (al più tre buffer prima di questa: la coda
+                // del click dura 40 ms), mentre il sequencer avanza di un buffer a ogni chiamata (`midi_engine_sync_clock`
+                // con `bufferCount`, che sale sempre). Senza questa cura il click che segue uscirebbe in ritardo di un
+                // buffer per ogni chiamata ferma (fino a 32 ms). La posizione del DSP si porta dove sarebbe senza
+                // drenaggio, cioè alla posizione del sequencer, con le DUE chiamate della correzione di fase e solo
+                // quelle: il setter della posizione e U9 (che zittisce e segna «subito» un battito già passato da almeno
+                // un buffer). Nessun setter nuovo, niente nel DSP; vale in sync e DA-SOLO (dentro la finestra «sync skip»
+                // la linea propria non rimette la posizione). Se in questa chiamata la correzione di fase è già passata,
+                // la seconda scrittura con la stessa posizione non cambia niente. Prima del contatore e della rinomina,
+                // che resta l'ultima.
+                // IL LIMITE MISURATO: il click va sulle posizioni intere del sequencer, come dopo ogni correzione di fase.
+                // Dopo uno scambio di sezione con cambio di tempo il sequencer conta al tempo nuovo dall'inizio del
+                // buffer dello scambio, il DSP dal campione dell'«uno» (a scostamento o in quel buffer): finché una
+                // correzione di fase non viene applicata i battiti del DSP stanno a ε dalle posizioni intere del
+                // sequencer, ε = (o / frequenza) · (1 − tempo_vecchio / tempo_nuovo) secondi: a 48 kHz con o = 512 fino a
+                // 3,5 ms per 121 → 91, 5,3 ms per 60 → 120, 16,8 ms per 180 → 70. Qui il click si sposta di quell'ε.
+                let sequencerBeat = midi_engine_get_beat_position(mh)
+                metronome_set_beat_position_time_only(h, sequencerBeat)
+                noteLateBeatCorrectionQ(metronome: h, before: sequencerBeat, after: sequencerBeat, bpm: _engineTempoQ,
+                                        point: "drenaggio-riaperto")
+                let reopened = metronome_pending_beat(h)
+                os_log("[Q-BEATS][CONTO-BAND] drenaggio riaperto motivo:%{public}@ sequencer:%.4f pendentePrima:%.4f campioniPrima:%lld pendenteDopo:%.4f campioniDopo:%lld zittito:%d - il DSP, fermo nel drenaggio, portato alla posizione del sequencer",
+                       log: .default, type: .default,
+                       reason, sequencerBeat, pending.beat, pending.samplesAhead, reopened.beat, reopened.samplesAhead,
+                       _muteLateBeatThisBufferQ ? 1 : 0)
+            }
         }
         // (2) Il contatore.
         if _sectionTotalBeats > 0 {
@@ -3415,7 +3491,8 @@ class AudioEngine: ObservableObject {
         guard let count = _followerBandCountQ, count.closed == nil,
               FollowerDecision.isFollower(role: _linkMode, userLinkEnabled: _linkUserEnabledQ) else { return }
         var probe = count
-        guard let outcome = readFollowerBandCountQ(&probe, ticks: outTicks, lastCounted: _lastCountedBeatQ) else { return }
+        // A432 · PARTE 2c — lo stesso battito di controllo del punto R (una fonte sola per il contatore d'accordo).
+        guard let outcome = readFollowerBandCountQ(&probe, ticks: outTicks, lastCounted: followerControlBeatQ().beat) else { return }
         let bandText: String
         var agrees = false
         if outcome.reading.certain, let place = outcome.reading.place {
@@ -3451,7 +3528,9 @@ class AudioEngine: ObservableObject {
                 self._followerBandCountQ = nil
                 self._followerEntryPendingQ = nil
                 self._followerRealignDueQ = nil
-                self._followerCountedAtDueQ = nil
+                // A432 · PARTE 2c — con la mappa di prima se ne vanno il battito di controllo e l'avvio dell'àncora.
+                self._followerGridBeatQ = nil
+                self._followerAnchorStartSerialQ = nil
                 os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:mappa-nuova", log: .default, type: .default)
             }
             self._songMapQ = map
@@ -6937,6 +7016,15 @@ class AudioEngine: ObservableObject {
                 // A410 — i battiti contati per l'àncora ripartono da questo avvio.
                 self._lastCountedBeatQ = nil
                 self._prevCountedBeatQ = nil
+                // A432 · PARTE 2c — il numero dell'avvio sale (l'àncora del conto fa da controllo solo nell'avvio in cui è
+                // nata), e il battito di controllo del conto del Follower riparte da questo avvio, SALVO quando un riallineo
+                // dovuto «buco» aspetta ancora la sua lettura: allora resta (è il battito contato prima del buco; alla punta
+                // della 2b restava nello stesso modo il battito preso al buco). Senza un buco in attesa un battito di prima
+                // della ripartenza non fa da prova per una lettura dopo (DECISIONI_REFEREE_A432_PARTE2C_ARRESTO par. 1).
+                self._engineStartSerialQ &+= 1
+                if self._followerRealignDueQ != "buco" {
+                    self._followerGridBeatQ = nil
+                }
                 // A412 — il primo buffer ancorato e i suoi tre buffer appartengono a un rientro solo: li
                 // arma il fuoco del rientro, dopo questo avvio. A412 · SEGUITO 2 (2/2) — anche la scorta muta.
                 self._anchoredFirstBufferQ = nil
@@ -10082,6 +10170,15 @@ class AudioEngine: ObservableObject {
                     self._lastCountedBeatQ = CountedBeat(section: self._songMapSectionQ,
                                                          beatInSection: self._sectionTotalBeats > 0 ? self._sectionBeatCounter : -1,
                                                          outTicks: self._lastBeatOutTicksQ)
+                    // A432 · PARTE 2c — il battito di controllo «sulla griglia» del conto del Follower: lo stesso battito,
+                    // solo col conto vivo, e non se (i) un riallineo dovuto «buco» aspetta ancora la sua lettura (la
+                    // correzione non è stata valutata: il battito è uscito in ritardo della durata del buco) o se (ii) è il
+                    // battito messo a «subito» che U9 conta e non suona (`muteThisEvent`, più sopra: fuori griglia di almeno
+                    // un buffer). Un «subito» non zittito è fuori griglia di meno di un buffer, sotto la tolleranza di 1/8 di
+                    // battito del contatore d'accordo. Tre confronti e una copia di valore, su questa coda.
+                    if self._followerBandCountQ != nil, self._followerRealignDueQ != "buco", !muteThisEvent {
+                        self._followerGridBeatQ = self._lastCountedBeatQ
+                    }
                     let tickN = self.beatTickCounter
                     DispatchQueue.main.async { [weak self] in
                         self?.beatTickSubject.send(tickN)

@@ -6,16 +6,20 @@ import XCTest
 // giro dei battiti con lo scambio di sezione e il tempo armato, il runner, il passo della vista. Le regole pure
 // sono quelle vere del deposito: `FollowerBandCount`, `ShowClock`, `SectionPreloadDecision`, `SectionRealign`,
 // `LateBeatDecision`.
-// I 25 casi, con gli stessi nomi e gli stessi numeri, girano sul modello Python del motore (fuori dal deposito),
-// dove 26 rotture volute tolgono una regola alla volta e ogni test cade con almeno una. Qui le rotture non ci
-// sono: c'è solo il ramo sano. L'unica eccezione è `withoutPointR`, il «gemello» di due casi (l'iPad com'era prima
-// di questo lavoro).
+// A432, parte 2c (13/11/2026) — in più della 2b il rig rifà: il battito di controllo «sulla griglia» e l'àncora come
+// controllo (`followerControlBeatQ`, col numero d'avvio del motore), il drenaggio come lo scrive il motore (la coda
+// del click, il sequencer che avanza, il DSP fermo) e la cura del drenaggio riaperto, la rinumerazione vista solo
+// dalla cattura fatta dopo di lei (P6), il sequencer ri-ancorato all'inizio del buffer del cambio di tempo.
+// I 44 casi (i 25 della parte 2b e i 19 della parte 2c), con gli stessi nomi e gli stessi numeri, girano sul modello
+// Python del motore (fuori dal deposito), dove 40 rotture volute tolgono una regola alla volta e ogni test cade con
+// almeno una. Qui le rotture non ci sono: c'è solo il ramo sano. L'unica eccezione è `withoutPointR`, il «gemello»
+// di due casi (l'iPad com'era prima di questo lavoro).
 // Le condizioni del rig sono scritte come le scrive il motore (`AudioEngine`, blocco «A432 · il conto del Follower
 // sulla band»), e ogni funzione porta il nome di quella che rispecchia: `followerBandEntryAtFireQ`,
 // `takeFollowerBandAnchorQ`, `consumeSongMapForRunningStartQ`, `noteFollowerRealignDueQ`, `followerSecondQ`,
 // `resetFollowerBandCountQ`, il punto R di `scheduleNextBuffer` e `followerBandCountPointRQ`,
-// `readFollowerBandCountQ`, `loadFollowerSectionForRealignQ`, `followerRealignQ`, `logFollowerSectionEndCheckQ`,
-// `preloadNextSection`, `noteLateBeatCorrectionQ`, `ownClockPinQ`.
+// `followerControlBeatQ`, `readFollowerBandCountQ`, `loadFollowerSectionForRealignQ`, `followerRealignQ`,
+// `logFollowerSectionEndCheckQ`, `preloadNextSection`, `noteLateBeatCorrectionQ`, `ownClockPinQ`.
 // 24.000.000 tick al secondo, come `ShowClockTests` e `FollowerBandCountTests`; 48 kHz, buffer da 512 campioni.
 // Mai `!` sugli optional: i test lanciano (`XCTUnwrap`).
 
@@ -33,9 +37,16 @@ private enum RigNumbers {
     static let syncThreshold = 0.01
     /// La finestra «sync skip» dopo uno scambio di sezione, in chiamate.
     static let window = 100
+    /// I campioni del click (`generateClickSamples`: 40 ms): 1920 a 48 kHz. La coda del click: i playhead.
+    static let click = Int(rate * 0.040)
 
     static func ticks(_ seconds: Double) -> UInt64 {
         UInt64((seconds * tps).rounded())
+    }
+
+    /// Tre decimali, come i passi fra i battiti in un caso del modello.
+    static func round3(_ value: Double) -> Double {
+        (value * 1_000.0).rounded() / 1_000.0
     }
 
     /// Quattro decimali, come le ore delle chiamate nelle righe del modello.
@@ -247,10 +258,13 @@ private struct RigBand {
         return walked + rest * sections[sections.count - 1].bpm / 60.0
     }
 
-    /// Il battito della sessione di Link all'ora `t`.
-    func linkBeat(_ t: Double) -> Double {
+    /// Il battito della sessione di Link per l'ora `t`, come lo dice una cattura fatta all'ora `now` (P6): una
+    /// rinumerazione la vede solo una cattura fatta dopo di lei, anche se l'ora chiesta è nel futuro. Senza `now` la
+    /// cattura è fatta all'ora chiesta.
+    func linkBeat(_ t: Double, now: Double? = nil) -> Double {
+        let seen = now ?? t
         var jumps = 0.0
-        for renumber in renumbers where t >= renumber.at {
+        for renumber in renumbers where seen >= renumber.at {
             jumps += renumber.jump
         }
         return link0 + songBeats(t) + jumps
@@ -391,6 +405,21 @@ private struct RigDiscardedPreload: Equatable {
     let engineSection: Int
 }
 
+/// Un drenaggio riaperto da un riallineo: le chiamate del drenaggio in cui il DSP è rimasto fermo prima, e l'ora
+/// della chiamata (arrotondata a quattro decimali).
+private struct RigReopened: Equatable {
+    let drainSkipped: Int
+    let callTime: Double
+}
+
+/// Un cambio di tempo armato arrivato al suo battito: il tempo di prima, il tempo nuovo e lo scostamento dell'«uno»
+/// nel suo buffer, in campioni.
+private struct RigTempoChange: Equatable {
+    let was: Double
+    let now: Double
+    let offset: Int
+}
+
 /// Le righe di registro del rig, in breve.
 private enum RigRow {
     case anchorTaken(RigAnchorTaken)
@@ -430,7 +459,7 @@ private final class FollowerBandRig {
     /// La posizione del sequencer, in battiti (`midi_engine_get_beat_position`).
     private(set) var pos = 0.0
     /// `_ownTimelineQ`: `nil` = la linea propria è da ri-ancorare.
-    private var ownTimeline: RigOwnTimeline? = nil
+    private(set) var ownTimeline: RigOwnTimeline? = nil
     /// `_songMapSectionQ`
     private(set) var mapSection = 0
     /// `_sectionBeatCounter`
@@ -450,7 +479,7 @@ private final class FollowerBandRig {
     /// `linkSyncSkipBuffers`
     private var syncSkip = 0
     /// `_sectionEndPending`
-    private var sectionEndPending = false
+    private(set) var sectionEndPending = false
     /// La chiusura di fine canzone consegnata.
     private(set) var ended = false
     private(set) var engineTempo: Double
@@ -466,10 +495,30 @@ private final class FollowerBandRig {
     private var mapForNextStart = false
     /// `_followerRealignDueQ`
     private(set) var realignDue: String? = nil
-    /// `_followerCountedAtDueQ`
-    private var countedAtDue: FollowerCountedBeat? = nil
     /// `_lastCountedBeatQ`
     private var lastCounted: FollowerCountedBeat? = nil
+    /// `_followerGridBeatQ`: l'ultimo battito contato uscito sulla griglia (il battito di controllo).
+    private(set) var gridBeat: FollowerCountedBeat? = nil
+    /// `_engineStartSerialQ`: gli avvii del motore.
+    private var startSerial = 0
+    /// `_followerAnchorStartSerialQ`: l'avvio in cui è nata l'àncora.
+    private var anchorStart: Int? = nil
+    /// I campioni del click ancora da scrivere (la coda: `clickPlayhead`, `accentPlayhead`, `subdivPlayhead`).
+    private var clickLeft = 0
+    /// Le chiamate del drenaggio in cui il DSP non ha girato.
+    private(set) var drainSkipped = 0
+    /// Le stesse, contate dall'ultima scrittura della posizione del DSP fatta dalla correzione di fase.
+    private(set) var frozenCalls = 0
+    /// I drenaggi riaperti da un riallineo.
+    private(set) var reopened: [RigReopened] = []
+    /// I cambi di tempo armati arrivati al loro battito.
+    private(set) var tempoChangeOffsets: [RigTempoChange] = []
+    /// Per i casi, che cosa ha visto l'ultima lettura al punto R: l'ora del battito in attesa, le chiamate del
+    /// drenaggio col DSP fermo (0 fuori dal drenaggio), la finestra «sync skip» rimasta, il posto della band.
+    private(set) var pendingTimeAtRead: Double? = nil
+    private(set) var drainSkippedAtRead: Int? = nil
+    private(set) var syncSkipAtRead: Int? = nil
+    private(set) var placeAtRead: FollowerBandPlace? = nil
     /// `_followerRealignsQ`
     private(set) var realigns = 0
     /// `_lateBeatsMutedQ`
@@ -658,13 +707,14 @@ private final class FollowerBandRig {
 
     // MARK: Il Play del Direttore, lo Stop, l'ingresso
 
-    /// `resetFollowerBandCountQ`
+    /// `resetFollowerBandCountQ`: col conto finiscono il battito di controllo e l'avvio dell'àncora.
     private func resetCount() {
         count = nil
         playTicks = nil
         entryPending = nil
         realignDue = nil
-        countedAtDue = nil
+        gridBeat = nil
+        anchorStart = nil
     }
 
     /// Il richiamo del Play del Direttore accettato: il conto di prima finisce (`resetFollowerBandCountQ`,
@@ -683,6 +733,7 @@ private final class FollowerBandRig {
         pendingBpmValue = nil
         pendingNext = nil
         sectionEndPending = false
+        clickLeft = 0
     }
 
     /// Un'interruzione di sistema o una ripartenza dell'iPad: il motore si ferma senza la pulizia dello Stop.
@@ -697,6 +748,13 @@ private final class FollowerBandRig {
         running = true
         tick = 0
         lastCounted = nil
+        // Ogni avvio del motore (`start()`): il numero dell'avvio sale (`_engineStartSerialQ`), e il battito di
+        // controllo si azzera, salvo quando un riallineo dovuto «buco» aspetta ancora la sua lettura.
+        startSerial += 1
+        if realignDue != "buco" {
+            gridBeat = nil
+        }
+        clickLeft = 0
         dsp.resetForStart(0.0)
         pos = 0.0
         // `tFire` è l'istante della battuta di Link (l'ora in cui la band suona quell'«uno»); il primo buffer
@@ -753,6 +811,8 @@ private final class FollowerBandRig {
         switch FollowerBandCount.enter(current: current, seed: input) {
         case .anchored(let taken, let seed):
             count = taken
+            // L'àncora nasce in questo avvio del motore (`_followerAnchorStartSerialQ`).
+            anchorStart = startSerial
             var seedApplied = false
             if atFire, seed.section == mapSection, total > 0, seed.beatInSection < total {
                 startOffset = seed.beatInSection
@@ -773,13 +833,12 @@ private final class FollowerBandRig {
         }
     }
 
-    /// `noteFollowerRealignDueQ`: il buco vince sugli altri motivi, e prende l'ultimo battito contato adesso.
+    /// `noteFollowerRealignDueQ`: il buco vince sugli altri motivi. Dal momento in cui il buco è dovuto fino alla sua
+    /// lettura i battiti contati non aggiornano il battito di controllo (`gridBeat`), che resta quello di prima del
+    /// buco.
     private func noteRealignDue(reason: String) {
         guard running, let alive = count, alive.closed == nil else { return }
         if reason == "buco" {
-            if countedAtDue == nil {
-                countedAtDue = lastCounted
-            }
             realignDue = reason
         } else if realignDue == nil {
             realignDue = reason
@@ -794,10 +853,10 @@ private final class FollowerBandRig {
     // MARK: scheduleNextBuffer
 
     /// Dove la correzione porta la posizione per l'ora d'uscita `tOut`: IN SYNC la linea di Link
-    /// (`link_engine_sync_phase`), DA-SOLO la linea propria (`ownClockPinQ`).
+    /// (`link_engine_sync_phase`: una cattura fatta adesso, P6), DA-SOLO la linea propria (`ownClockPinQ`).
     private func positionTarget(_ tOut: Double) -> Double {
         guard !inSync, let own = ownTimeline else {
-            return band.linkBeat(tOut) - line0
+            return band.linkBeat(tOut, now: now) - line0
         }
         return own.position + (tOut - own.time) * own.bpm / 60.0
     }
@@ -815,8 +874,11 @@ private final class FollowerBandRig {
         now = t
         runMain(t)
         let out = t + outDelay
-        if sectionEndPending {
-            // Il drenaggio: la chiusura di fine canzone si consegna e questo richiamo non programma niente.
+        // «L1.a — Drain mode check» di `scheduleNextBuffer`: la chiusura si consegna quando la coda del click è
+        // esaurita (nel motore i tre playhead sotto zero). Fino ad allora le chiamate del drenaggio vanno avanti (il
+        // misuratore, la correzione, il punto R) senza far girare il DSP.
+        if sectionEndPending && clickLeft <= 0 {
+            // La chiusura di fine canzone si consegna e questo richiamo non programma niente.
             sectionEndPending = false
             ended = true
             rows.append(.songEndDelivered(callTime: t))
@@ -841,6 +903,7 @@ private final class FollowerBandRig {
                 let delta = target - before
                 if abs(delta) > RigNumbers.syncThreshold || !inSync {
                     dsp.setBeatPositionTimeOnly(target)
+                    frozenCalls = 0
                     pos = target
                     noteLateBeatCorrection(before: before, after: target)
                     jump = delta
@@ -853,12 +916,23 @@ private final class FollowerBandRig {
         if !withoutPointR, count != nil, realignDue != nil || abs(jump ?? 0.0) >= 0.5 {
             pointR(out: out, correctionJump: jump)
         }
-        if sectionEndPending {
-            return
-        }
         runMain(t)
-        let events = dsp.process(frames: RigNumbers.frames)
+        // «L1.a — Drain mode: skip metronome_processBuffer» di `scheduleNextBuffer`: nel drenaggio il DSP non gira
+        // (nessun evento), e il battito in attesa resta dov'è.
+        let events: [RigDSPEvent]
+        if sectionEndPending {
+            events = []
+            drainSkipped += 1
+            frozenCalls += 1
+        } else {
+            events = dsp.process(frames: RigNumbers.frames)
+        }
+        // Il sequencer avanza di un buffer a ogni chiamata, anche nel drenaggio (`bufferCount` sale sempre).
         pos += RigNumbers.buf * seqTempo / 60.0
+        // La coda del click scritta in questo buffer.
+        if clickLeft > 0 {
+            clickLeft = max(clickLeft - RigNumbers.frames, 0)
+        }
         let mutedFlag = muteLate
         muteLate = false
         for (n, event) in events.enumerated() {
@@ -870,11 +944,27 @@ private final class FollowerBandRig {
             tick += 1
             lastCounted = FollowerCountedBeat(section: mapSection, beatInSection: total > 0 ? counter : -1,
                                               ticks: RigNumbers.ticks(beatOut))
+            // Il battito di controllo «sulla griglia», come in `scheduleNextBuffer` sotto la scrittura di
+            // `_lastCountedBeatQ`: lo stesso battito, solo col conto vivo, e non se un riallineo dovuto «buco»
+            // aspetta ancora la sua lettura o se è il battito messo a «subito» che U9 conta e non suona
+            // (`muteThisEvent`).
+            if count != nil, realignDue != "buco", !muted {
+                gridBeat = lastCounted
+            }
+            // Un battito suonato arma la coda del click: i suoi campioni oltre la fine di questo buffer.
+            if !muted {
+                clickLeft = max(RigNumbers.click - (RigNumbers.frames - event.offset), 0)
+            }
             beats.append(RigBeat(outTime: RigNumbers.round6(beatOut), section: mapSection, beatInSection: counter,
                                  label: event.label, accent: event.accent, muted: muted))
             view.tick(tick, startOffset: startOffset, bpb: bpb)
             if let pending = pendingBpmValue, tick == pendingBpmTargetTick {
                 // Il tempo armato allo scambio: il primo battito della sezione nuova, e la W2 (solo IN SYNC).
+                // «Propagazione BPM al downbeat target»: il sequencer prende il tempo nuovo ri-ancorato alla
+                // posizione dell'inizio di QUESTO buffer (`midi_engine_set_bpm` e `midi_engine_set_beat_position`
+                // con la posizione di prima del cambio): il buffer intero conta al tempo nuovo.
+                tempoChangeOffsets.append(RigTempoChange(was: seqTempo, now: pending, offset: event.offset))
+                pos += RigNumbers.buf * (pending - seqTempo) / 60.0
                 engineTempo = pending
                 seqTempo = pending
                 ownTimeline = nil
@@ -909,6 +999,7 @@ private final class FollowerBandRig {
                     } else {
                         // Il ramo del drenaggio: fine canzone.
                         sectionEndPending = true
+                        drainSkipped = 0
                         counter = 0
                     }
                 }
@@ -929,14 +1020,15 @@ private final class FollowerBandRig {
         rows.append(.lateBeatCorrection(before: before, after: after, pendingBeat: pending))
     }
 
-    /// `readFollowerBandCountQ`: IN SYNC il battito della sessione all'ora `ticks`; DA-SOLO Link non si chiama, e il
-    /// battito è quello che il righello dei secondi dà dall'àncora. `nil` se il conto non ha l'àncora.
+    /// `readFollowerBandCountQ`: IN SYNC il battito della sessione all'ora `ticks`, da una cattura fatta adesso (P6);
+    /// DA-SOLO Link non si chiama, e il battito è quello che il righello dei secondi dà dall'àncora. `nil` se il conto
+    /// non ha l'àncora.
     private func readCount(_ count: inout FollowerBandCount, ticks: UInt64,
                            lastCounted: FollowerCountedBeat?) -> FollowerBandReading? {
         let tps = RigNumbers.tps
         let linkBeat: Double
         if inSync {
-            linkBeat = band.linkBeat(Double(ticks) / tps)
+            linkBeat = band.linkBeat(Double(ticks) / tps, now: now)
         } else {
             guard let anchor = count.anchor else { return nil }
             let ruler = ShowClock(map: count.map, anchor: anchor).bySeconds(nowTicks: ticks, ticksPerSecond: tps)
@@ -944,6 +1036,19 @@ private final class FollowerBandRig {
         }
         return count.read(pendingLinkBeat: linkBeat, pendingTicks: ticks, ticksPerSecond: tps,
                           lastCounted: lastCounted)
+    }
+
+    /// `followerControlBeatQ` — il battito che va al contatore d'accordo, per ogni lettura e per ogni motivo: l'ultimo
+    /// battito contato sulla griglia; se non ce n'è nessuno, l'àncora stessa (sezione, battito nella sezione e ora
+    /// dell'àncora), solo se è nata nell'avvio del motore in cui si fa la lettura; altrimenti nessun battito.
+    private func controlBeat() -> FollowerCountedBeat? {
+        if let grid = gridBeat {
+            return grid
+        }
+        guard let anchor = count?.anchor, let born = anchorStart, born == startSerial else {
+            return nil
+        }
+        return FollowerCountedBeat(section: anchor.section, beatInSection: anchor.beatInSection, ticks: anchor.ticks)
     }
 
     /// `followerBandCountPointRQ` — IL PUNTO R: dopo il blocco della fase e prima di `process`. Dopo un buco aspetta
@@ -961,15 +1066,21 @@ private final class FollowerBandRig {
             return
         }
         let aheadSamples = max(dsp.pendingSamplesAhead, 0)
-        let pendingTicks = RigNumbers.ticks(out + Double(aheadSamples) / RigNumbers.rate)
+        let pendingTime = out + Double(aheadSamples) / RigNumbers.rate
+        let pendingTicks = RigNumbers.ticks(pendingTime)
+        // Per i casi: che cosa ha visto questa lettura.
+        pendingTimeAtRead = pendingTime
+        drainSkippedAtRead = sectionEndPending ? drainSkipped : 0
+        syncSkipAtRead = syncSkip
         let stateBefore = alive.renumbering
-        let last = countedAtDue ?? lastCounted
-        // Il motivo si consuma qui.
+        // Al contatore d'accordo va il battito di controllo (`followerControlBeatQ`), mai `lastCounted` com'è.
+        let control = controlBeat()
+        // Il motivo si consuma qui: da qui i battiti contati tornano ad aggiornare il battito di controllo.
         realignDue = nil
-        countedAtDue = nil
-        guard let reading = readCount(&alive, ticks: pendingTicks, lastCounted: last) else { return }
+        guard let reading = readCount(&alive, ticks: pendingTicks, lastCounted: control) else { return }
         count = alive
         readings += 1
+        placeAtRead = reading.place
         rows.append(.reading(RigReadingRow(reason: reason, gapBeats: reading.gapBeats, certain: reading.certain,
                                            state: alive.renumbering, stateBefore: stateBefore,
                                            pendingBeat: dsp.pendingBeat, samplesAhead: aheadSamples)))
@@ -1021,7 +1132,9 @@ private final class FollowerBandRig {
 
     /// `followerRealignQ` — IL RIALLINEO: la sezione (se è un'altra, se un tempo è armato o se il motore drenava),
     /// il contatore, l'etichetta del battito in attesa nel DSP per ultima, la grafica, il runner e il messaggio alla
-    /// vista sul principale; oltre la fine della canzone la chiusura si consegna adesso. Mai un click spostato.
+    /// vista sul principale; oltre la fine della canzone la chiusura si consegna adesso. Mai un click spostato, a
+    /// meno del riallineo che riapre la sezione col motore in drenaggio (parte 2c): lì il DSP, rimasto fermo, si
+    /// porta alla posizione del sequencer, come fa ogni correzione di fase.
     private func realign(place: FollowerBandPlace, reason: String) {
         let motorSection = mapSection
         let motorBeat = counter
@@ -1042,6 +1155,7 @@ private final class FollowerBandRig {
                 sectionChanged = motorSection != lastSection
             }
             sectionEndPending = true
+            drainSkipped = 0
             counter = 0
             realigns += 1
             if sectionChanged {
@@ -1072,6 +1186,18 @@ private final class FollowerBandRig {
         let loadsSection = sectionDiffers || wasDraining || tempoArmed
         if loadsSection {
             guard loadSectionForRealign(bandSection) else { return }
+            if wasDraining {
+                // «IL DRENAGGIO RIAPERTO» di `followerRealignQ`: il riallineo ha riaperto la sezione col motore in
+                // drenaggio. Il DSP è rimasto fermo mentre il sequencer avanzava: la sua posizione si porta dove
+                // sarebbe senza drenaggio, cioè alla posizione del sequencer (`midi_engine_get_beat_position`), con
+                // le due chiamate della correzione di fase e solo quelle: il setter della posizione
+                // (`metronome_set_beat_position_time_only`) e U9 (`noteLateBeatCorrectionQ`, prima e dopo uguali).
+                // Prima del contatore e della rinomina, che resta l'ultima.
+                reopened.append(RigReopened(drainSkipped: drainSkipped, callTime: RigNumbers.round4(now)))
+                let sequencerBeat = pos
+                dsp.setBeatPositionTimeOnly(sequencerBeat)
+                noteLateBeatCorrection(before: sequencerBeat, after: sequencerBeat)
+            }
         }
         // (2) Il contatore.
         if total > 0 {
@@ -1115,11 +1241,12 @@ private final class FollowerBandRig {
         view.runnerSection(idx)
     }
 
-    /// `logFollowerSectionEndCheckQ`: la riga di controllo a fine sezione, letta su una COPIA del conto.
+    /// `logFollowerSectionEndCheckQ`: la riga di controllo a fine sezione, letta su una COPIA del conto, con lo stesso
+    /// battito di controllo del punto R (`followerControlBeatQ`).
     private func sectionEndCheck(section: Int, beatInSection: Int, outTicks: UInt64) {
         guard let alive = count, alive.closed == nil else { return }
         var probe = alive
-        guard let reading = readCount(&probe, ticks: outTicks, lastCounted: lastCounted) else { return }
+        guard let reading = readCount(&probe, ticks: outTicks, lastCounted: controlBeat()) else { return }
         var bandSpot: RigSpot? = nil
         var agrees = false
         if reading.certain, let place = reading.place {
@@ -2094,5 +2221,743 @@ final class FollowerBandRigTests: XCTestCase {
         // in ritardo di più di un buffer: contato e non suonato (U9)
         XCTAssertTrue(b.muted)
         XCTAssertEqual(f.lateMuted, 1)
+    }
+
+    // MARK: - A432 PARTE 2c — i casi nuovi
+    // DECISIONI_REFEREE_A432_PARTE2C_ARRESTO_2026-11-13 (par. 1, 3, 4, 5) e seguito 2c (punti 2, 3, 4).
+
+    /// La rinumerazione del 01/11 al 7 → 9.
+    private let jumpA = 4.0188
+    /// E al 9 → 4.
+    private let jumpB = 0.9352
+
+    /// Una sezione sola: nessun cambio di tempo prima del drenaggio.
+    private var songLast: SongMap { song([(4, 6, 121.0)]) }
+
+    /// I tempi e i conti della scena «buco e poi rinumerazione» (`runHoleThenRenumbering`).
+    private struct HoleScene {
+        /// I battiti contati fra la prima chiamata dopo il buco e la lettura del buco.
+        var countedBetween = 0
+        /// Nella chiamata della lettura un battito è stato zittito (U9).
+        var asapInReadCall = false
+        /// La lettura del buco è nella prima chiamata dopo il buco.
+        var readInHoleCall = false
+        /// I battiti usciti fra la lettura del buco e l'esito della rinumerazione.
+        var beatsBeforeRenumbering = 0
+        var swapAt: Double? = nil
+        var hole: (start: Double, end: Double)? = nil
+        var holeCall: Double? = nil
+        var readAt: Double? = nil
+        var doneAt: Double? = nil
+    }
+
+    /// Le rinumerazioni riconosciute. Il salto è quello della riga, non arrotondato: i casi lo confrontano a quattro
+    /// decimali (`assertRecognized`), come nel modello.
+    private func recognized(_ f: FollowerBandRig) -> [FollowerBandRenumberingRecognized] {
+        f.recognizedRows
+    }
+
+    /// Le letture dovute a un buco.
+    private func holeReadings(_ f: FollowerBandRig) -> [RigReadingRow] {
+        f.readingRows.filter { $0.reason == "buco" }
+    }
+
+    /// L'unico riallineo dovuto a un buco, coi suoi campi «dentro la canzone».
+    private func singleHoleRealign(_ f: FollowerBandRig, file: StaticString = #filePath,
+                                   line: UInt = #line) throws -> (row: RigRealignRow, detail: RigRealignDetail) {
+        let all = f.realignRows.filter { $0.reason == "buco" }
+        XCTAssertEqual(all.count, 1, "i riallinei dovuti a un buco", file: file, line: line)
+        let row = try XCTUnwrap(all.first, "nessun riallineo dovuto a un buco", file: file, line: line)
+        let detail = try XCTUnwrap(row.inSong, "il riallineo è «oltre la fine»", file: file, line: line)
+        return (row, detail)
+    }
+
+    /// La scena della sonda: lo scambio di sezione dell'iPad al confine `boundaryBeat` (un cambio di metro: lo stato
+    /// «rinumerazione attesa» si apre); un buco che comincia `holeStartCalls` chiamate dopo lo scambio e dura
+    /// `holeSeconds`; la rinumerazione del Direttore due buffer dopo la LETTURA dovuta al buco (ci sia o no un
+    /// riallineo), cioè dentro il battito che la segue. `prepare`: chiamata a ogni giro prima del buco, rende vero
+    /// quando il buco può cominciare (per scegliere la fase). Rende il rig, la band (con la rinumerazione aggiunta) e
+    /// i tempi.
+    private func runHoleThenRenumbering(_ map: SongMap, boundaryBeat: Int, sectionAfter: Int, holeStartCalls: Int,
+                                        holeSeconds: Double, jump: Double, entryBeat: Int,
+                                        earlier: [(Double, Double)] = [], limitAfter: Double = 8.0,
+                                        prepare: ((FollowerBandRig) -> Bool)? = nil)
+        -> (FollowerBandRig, RigBand, HoleScene) {
+        let (f, _, t) = started(map, entryBeat: entryBeat, renumbers: earlier)
+        var tt = t
+        var info = HoleScene()
+        let limit = play + beatTime(map, boundaryBeat) + limitAfter
+        while tt < limit && info.doneAt == nil {
+            let before = f.mapSection
+            var inHole = false
+            if let hole = info.hole {
+                inHole = hole.start <= tt && tt < hole.end
+            }
+            if !inHole {
+                var firstAfter = false
+                if let hole = info.hole, info.holeCall == nil, tt >= hole.end {
+                    firstAfter = true
+                    info.holeCall = tt
+                }
+                let beatsBefore = f.beats.count
+                let readingsBefore = holeReadings(f).count
+                let outcomesBefore = recognized(f).count + f.notCertainReasons.count
+                let mutedBefore = f.lateMuted
+                f.call(tt, hole: firstAfter)
+                if info.readAt == nil && holeReadings(f).count > readingsBefore {
+                    info.readAt = tt
+                    if let holeCall = info.holeCall {
+                        info.readInHoleCall = abs(tt - holeCall) < 1e-9
+                    }
+                    info.asapInReadCall = f.lateMuted > mutedBefore
+                    // La band del rig è la sua copia: la rinumerazione si aggiunge lì.
+                    f.band.renumbers.append((at: tt + 2.0 * buf - 1e-6, jump: jump))
+                } else if info.readAt == nil && info.holeCall != nil {
+                    info.countedBetween += f.beats.count - beatsBefore
+                } else if info.readAt != nil {
+                    if recognized(f).count + f.notCertainReasons.count > outcomesBefore {
+                        info.doneAt = tt
+                    } else {
+                        info.beatsBeforeRenumbering += f.beats.count - beatsBefore
+                    }
+                }
+            }
+            if info.swapAt == nil && f.mapSection != before && f.mapSection == sectionAfter {
+                info.swapAt = tt
+            }
+            if let swapAt = info.swapAt, info.hole == nil {
+                var ready = (tt - swapAt) >= Double(holeStartCalls) * buf - 1e-9
+                if ready, let prepare = prepare {
+                    ready = prepare(f)
+                }
+                if ready {
+                    info.hole = (start: tt + buf, end: tt + buf + holeSeconds)
+                }
+            }
+            tt += buf
+        }
+        return (f, f.band, info)
+    }
+
+    /// Una corsa della sonda larga del referto d'arresto: la canzone del 01/11, il confine 7 → 9, un buco di
+    /// `dBeats` battiti a 180,5 che comincia `h0` chiamate dopo lo scambio dell'iPad. Rende (riconosciuta, dentro la
+    /// finestra, riallinei, i tempi).
+    private func sweepRun(_ h0: Int, _ dBeats: Double) -> (Bool, Bool, Int, HoleScene) {
+        let (f, _, info) = runHoleThenRenumbering(songA, boundaryBeat: 28, sectionAfter: 1, holeStartCalls: h0,
+                                                  holeSeconds: dBeats * 60.0 / 180.5, jump: jumpA, entryBeat: 7)
+        let seen = recognized(f)
+        // una sola, al confine 1, col salto a quattro decimali, e nessun «conto non certo»
+        let onlyThatOne = seen.count == 1 && seen.allSatisfy { $0.boundary == 1 && abs($0.jump - jumpA) <= 0.00005 }
+        let ok = onlyThatOne && f.notCertainReasons.isEmpty
+        let inside = info.readAt != nil && !info.readInHoleCall
+        return (ok, inside, f.realignRows.count, info)
+    }
+
+    // MARK: - D4: il battito di controllo «sulla griglia»
+
+    /// D4 (a): il Chorus del 01/11 (9 a 180,5 → 4 a 121). Un buco di 1,61 battiti a 121 (0,798 s, il buco del 29/10)
+    /// dentro la finestra «sync skip» dello scambio; il riallineo alla prima chiamata dopo la finestra (+2); la
+    /// rinumerazione del Direttore due buffer dopo, cioè meno di un battito dopo il riallineo. I battiti contati fra
+    /// il buco e il riallineo sono usciti 1,61 battiti in ritardo: non sono sulla griglia e non fanno da controllo.
+    /// Il controllo è l'ultimo battito contato prima del buco: la rinumerazione si riconosce, il conto resta certo.
+    func testAFractionalHoleInsideTheWindowThenTheRenumberingWithinABeatIsRecognized() throws {
+        let b1 = beatTime(songA, 28)
+        let hole = 1.61 * 60.0 / 121.0
+        let (f, band, info) = runHoleThenRenumbering(songA, boundaryBeat: 64, sectionAfter: 2, holeStartCalls: 10,
+                                                     holeSeconds: hole, jump: jumpB, entryBeat: 7,
+                                                     earlier: [(b1 + 1.08, jumpA)])
+        // la lettura dopo la finestra, non nella chiamata del buco
+        let readAt = try XCTUnwrap(info.readAt)
+        XCTAssertFalse(info.readInHoleCall)
+        // battiti contati col buco in attesa
+        XCTAssertGreaterThanOrEqual(info.countedBetween, 1)
+        let r = try singleHoleRealign(f)
+        XCTAssertEqual(r.detail.jumpBeats, 2)
+        // il riallineo nella chiamata della lettura
+        XCTAssertEqual(r.row.callTime, readAt, accuracy: 1e-4)
+        // nessun battito nuovo fra il riallineo e la rinumerazione
+        XCTAssertEqual(info.beatsBeforeRenumbering, 0)
+        // meno di un battito dopo
+        let doneAt = try XCTUnwrap(info.doneAt)
+        XCTAssertLessThan(doneAt - readAt, 60.0 / 121.0)
+        assertRecognized(f, [(1, jumpA), (2, jumpB)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+    }
+
+    /// D4 (b), il gemello: lo stesso buco FUORI dalla finestra (comincia 115 chiamate dopo lo scambio). La correzione
+    /// è valutata nella chiamata del buco, il riallineo è lì, prima che esca qualunque battito: l'ultimo battito
+    /// contato è quello di prima del buco, sulla griglia col suo nome. Deve restare lui il controllo (rinominarlo del
+    /// salto lo sbaglia di due battiti): la rinumerazione si riconosce, come alla punta.
+    func testAFractionalHoleOutsideTheWindowThenTheRenumberingWithinABeatIsRecognized() throws {
+        let b1 = beatTime(songA, 28)
+        let hole = 1.61 * 60.0 / 121.0
+        let (f, _, info) = runHoleThenRenumbering(songA, boundaryBeat: 64, sectionAfter: 2, holeStartCalls: 115,
+                                                  holeSeconds: hole, jump: jumpB, entryBeat: 7,
+                                                  earlier: [(b1 + 1.08, jumpA)])
+        XCTAssertTrue(info.readInHoleCall)
+        XCTAssertEqual(info.countedBetween, 0)
+        let r = try singleHoleRealign(f)
+        XCTAssertEqual(r.detail.jumpBeats, 2)
+        assertRecognized(f, [(1, jumpA), (2, jumpB)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+    }
+
+    /// D4 (c): un buco sotto il mezzo battito (0,3 battiti a 121: 149 ms) non fa perdere battiti: la lettura c'è, il
+    /// riallineo no. Dentro la finestra i battiti contati dopo il buco sono usciti 0,3 battiti in ritardo (oltre
+    /// 1/8): non fanno da controllo. Fuori dalla finestra il controllo è il battito di prima del buco. Riconosciuta
+    /// in tutti e due.
+    func testAHoleUnderHalfABeatInsideAndOutsideTheWindowKeepsTheCount() throws {
+        let b1 = beatTime(songA, 28)
+        let hole = 0.3 * 60.0 / 121.0
+        let cases: [(Int, Bool)] = [(10, true), (115, false)]
+        for (startCalls, inside) in cases {
+            let (f, _, info) = runHoleThenRenumbering(songA, boundaryBeat: 64, sectionAfter: 2,
+                                                      holeStartCalls: startCalls, holeSeconds: hole, jump: jumpB,
+                                                      entryBeat: 7, earlier: [(b1 + 1.08, jumpA)])
+            XCTAssertEqual(info.readInHoleCall, !inside, "\(startCalls)")
+            XCTAssertEqual(holeReadings(f).count, 1, "\(startCalls)")
+            XCTAssertEqual(f.realignRows.filter { $0.reason == "buco" }.count, 0, "\(startCalls)")
+            assertRecognized(f, [(1, jumpA), (2, jumpB)])
+            XCTAssertEqual(f.notCertainReasons.count, 0, "\(startCalls)")
+            if inside {
+                XCTAssertGreaterThanOrEqual(info.countedBetween, 1)
+            }
+        }
+    }
+
+    /// D4 (d): fuori dalla finestra, un buco di 1,25 battiti che comincia quando al battito in attesa mancano meno di
+    /// 0,05 battiti. Al ritorno la correzione lo scavalca: il DSP lo fa uscire «subito», al primo campione, un quinto
+    /// di battito in ritardo (U9: contato e non suonato), nella stessa chiamata della lettura e DOPO il punto R. Non
+    /// è sulla griglia: il controllo resta il battito di prima del buco, e la rinumerazione due buffer dopo si
+    /// riconosce.
+    func testTheBeatSetAtOnceInTheReadingCallIsNotTheControl() throws {
+        let b1 = beatTime(songA, 28)
+        let hole = 1.25 * 60.0 / 121.0
+        let (f, band, info) = runHoleThenRenumbering(
+            songA, boundaryBeat: 64, sectionAfter: 2, holeStartCalls: 115, holeSeconds: hole, jump: jumpB,
+            entryBeat: 7, earlier: [(b1 + 1.08, jumpA)],
+            prepare: { rig in
+                let ahead = rig.dsp.pendingBeat - rig.pos
+                return 0.0 < ahead && ahead < 0.05
+            })
+        XCTAssertTrue(info.readInHoleCall)
+        XCTAssertTrue(info.asapInReadCall)
+        XCTAssertEqual(f.lateMuted, 1)
+        let muted = f.beats.filter { $0.muted }
+        XCTAssertEqual(muted.count, 1)
+        let only = try XCTUnwrap(muted.first)
+        // fuori griglia di più di 1/8
+        let bandBeats = band.songBeats(only.outTime)
+        XCTAssertGreaterThan(abs(bandBeats - bandBeats.rounded()), 0.125)
+        assertRecognized(f, [(1, jumpA), (2, jumpB)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+    }
+
+    /// Il confine 7 → 9 della canzone del 01/11; l'iPad si ferma (una ripartenza nella stessa canzone) e rientra dopo
+    /// la rinumerazione del Direttore (+4,0188, 1,08 s dopo il confine), su una battuta di Link. `withHole`: prima di
+    /// fermarsi un buco dentro la finestra dello scambio ha alzato il riallineo dovuto, che aspetta ancora la sua
+    /// lettura. Rende il rig e la band.
+    private func restartScene(withHole: Bool, file: StaticString = #filePath,
+                              line: UInt = #line) throws -> (FollowerBandRig, RigBand) {
+        let b1 = beatTime(songA, 28)
+        let (f, band, t) = started(songA, entryBeat: 7, renumbers: [(b1 + 1.08, jumpA)])
+        var tt = try runUntil(f, from: t, file: file, line: line) { $0.mapSection == 1 }
+        for _ in 0..<10 {
+            f.call(tt)
+            tt += buf
+        }
+        if withHole {
+            tt += 0.25
+            f.call(tt, hole: true)
+            tt += buf
+            XCTAssertEqual(f.realignDue, "buco", file: file, line: line)
+            f.call(tt)
+        }
+        // prima di fermarsi c'è un battito di controllo
+        XCTAssertNotNil(f.gridBeat, file: file, line: line)
+        f.interruption()
+        // il primo battito della terza battuta del 9, 6 s dopo il confine
+        let t2 = play + beatTime(songA, 28 + 9 * 2)
+        XCTAssertGreaterThan(t2, play + b1 + 1.08, file: file, line: line)
+        f.enter(t2, localSeed: 0)
+        XCTAssertEqual(f.anchorsAlreadyAlive, 1, file: file, line: line)
+        f.run(from: t2, to: t2 + 3.0, pulses: false)
+        return (f, band)
+    }
+
+    /// D4 (e): buco nella finestra, ripartenza dell'iPad nella stessa canzone, lettura col salto. Il battito di
+    /// controllo (quello di prima del buco) sopravvive all'avvio perché il riallineo dovuto «buco» aspetta ancora la
+    /// sua lettura: la rinumerazione si riconosce e il riallineo rimette i nomi, come alla punta.
+    func testAHoleWaitingForItsReadingSurvivesARestartOfTheIPad() throws {
+        let (f, band) = try restartScene(withHole: true)
+        let first = try XCTUnwrap(f.readingRows.first)
+        XCTAssertEqual(first.reason, "buco")
+        assertRecognized(f, [(1, jumpA)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+        XCTAssertGreaterThanOrEqual(f.realignRows.count, 1)
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+    }
+
+    /// D4 (f), il gemello: la stessa ripartenza senza nessun buco in attesa. All'avvio il battito di controllo si
+    /// azzera, e l'àncora è nata nell'avvio di prima: alla lettura «ingresso» (prima del primo battito contato del
+    /// nuovo avvio) il contatore d'accordo non ha nessun battito. Lo scarto oltre 1/8 con lo stato aperto non ha
+    /// accordo: il conto si chiude, come alla punta. Un battito di prima di una ripartenza non fa da prova per una
+    /// lettura dopo.
+    func testARestartWithoutAHoleWaitingHasNoControlBeatAndAJumpClosesTheCount() throws {
+        let (f, _) = try restartScene(withHole: false)
+        let first = try XCTUnwrap(f.readingRows.first)
+        XCTAssertEqual(first.reason, "ingresso")
+        assertRecognized(f, [])
+        let expected: [FollowerBandCountClosed?] = [FollowerBandCountClosed.jumpWithoutCounterAgreement]
+        XCTAssertEqual(f.notCertainReasons, expected)
+        XCTAssertEqual(f.realignRows.count, 0)
+        // l'iPad va come prima
+        XCTAssertTrue(f.running)
+    }
+
+    /// Le corse della sonda larga del referto d'arresto, un campione dentro il banco (le 507 intere girano sul
+    /// modello): buchi di 0,45 · 1,25 · 1,5 · 1,61 battiti, dentro la finestra (25 e 85 chiamate dopo lo scambio) e
+    /// fuori (110, 126, 159: le ultime due sono posizioni in cui un battito esce «subito»). La rinumerazione due
+    /// buffer dopo la lettura del buco si riconosce sempre.
+    func testTheSweepOfTheStopReportIsRecognizedEverywhere() throws {
+        for h0 in [25, 85, 110, 126, 159] {
+            for d in [0.45, 1.25, 1.5, 1.61] {
+                let (ok, inside, realigns, _) = sweepRun(h0, d)
+                let place = inside ? "dentro" : "fuori"
+                XCTAssertTrue(ok, "h0=\(h0) D=\(d) \(place) riallinei=\(realigns)")
+            }
+        }
+    }
+
+    // MARK: - Il punto 2: l'àncora come controllo
+
+    /// Seguito 2c punto 2, DECISIONI par. 3: l'iPad entra sul primo «uno» del 9 (A.11: lo stato nasce aperto); il
+    /// primo buffer arriva dopo un buco di mezzo secondo, prima di qualunque battito contato; il Direttore rinumera
+    /// nel frattempo. Alla lettura del buco non c'è nessun battito sulla griglia (quelli contati dopo il buco non lo
+    /// sono): il contatore d'accordo prende l'àncora stessa, nata in questo avvio. La rinumerazione si riconosce.
+    func testAHoleBeforeTheFirstCountedBeatUsesTheAnchorOfThisStart() throws {
+        let (f, _, t) = started(songA, entryBeat: 28)
+        let taken = try XCTUnwrap(f.anchorsTaken.first)
+        XCTAssertEqual(taken.section, 1)
+        XCTAssertEqual(taken.beat, 0)
+        f.band.renumbers = [(at: t + 0.2, jump: jumpA)]
+        var tt = t + 0.5
+        f.call(tt, hole: true)
+        tt += buf
+        XCTAssertEqual(f.realignDue, "buco")
+        f.run(from: tt, to: tt + 3.0, pulses: false)
+        let first = try XCTUnwrap(f.readingRows.first)
+        XCTAssertEqual(first.reason, "buco")
+        assertRecognized(f, [(1, jumpA)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, f.band, realignOut), [])
+    }
+
+    /// DECISIONI par. 3 («per ogni motivo di lettura»): la stessa entrata sul primo «uno» del 9 senza nessun buco (il
+    /// seme cade nella sezione dopo quella del motore: il riallineo dovuto è «ingresso»); la rinumerazione arriva
+    /// prima del primo battito contato. Senza battiti sulla griglia il controllo è l'àncora di questo avvio:
+    /// riconosciuta (cade il costo di A.11 scritto nel referto della 2b, C26).
+    func testARenumberingBeforeTheFirstCountedBeatIsRecognizedForEveryReason() throws {
+        let (f, _, t) = started(songA, entryBeat: 28)
+        // dopo l'àncora (presa all'istante della battuta), prima del primo buffer
+        f.band.renumbers = [(at: t - 0.004, jump: jumpA)]
+        // la linea dell'iPad è già quella rinumerata: nessun salto di posizione
+        f.line0 += jumpA
+        XCTAssertEqual(f.realignDue, "ingresso")
+        f.call(t)
+        let reading = try singleReading(f)
+        XCTAssertEqual(reading.reason, "ingresso")
+        assertRecognized(f, [(1, jumpA)])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+    }
+
+    /// Seguito 2c punto 2: la ripartenza nella stessa canzone, il buco prima del primo battito contato del nuovo
+    /// avvio e un salto. L'àncora è viva ma è nata nell'avvio di prima: il contatore d'accordo non ha nessun battito,
+    /// e uno scarto oltre 1/8 non ha accordo: il conto si chiude, l'iPad va come prima.
+    func testAfterARestartAHoleBeforeTheFirstCountedBeatHasNoAnchorAndAJumpClosesTheCount() throws {
+        let b1 = beatTime(songA, 28)
+        let (f, _, t) = started(songA, entryBeat: 7, renumbers: [(b1 + 1.08, jumpA)])
+        var tt = try runUntil(f, from: t) { $0.mapSection == 1 }
+        for _ in 0..<10 {
+            f.call(tt)
+            tt += buf
+        }
+        f.interruption()
+        let t2 = play + beatTime(songA, 28 + 9 * 2)
+        f.enter(t2, localSeed: 0)
+        // il primo buffer del nuovo avvio arriva dopo un buco
+        f.call(t2 + 0.4, hole: true)
+        XCTAssertEqual(f.realignDue, "buco")
+        f.run(from: t2 + 0.4 + buf, to: t2 + 3.0, pulses: false)
+        let first = try XCTUnwrap(f.readingRows.first)
+        XCTAssertEqual(first.reason, "buco")
+        assertRecognized(f, [])
+        let expected: [FollowerBandCountClosed?] = [FollowerBandCountClosed.jumpWithoutCounterAgreement]
+        XCTAssertEqual(f.notCertainReasons, expected)
+        XCTAssertEqual(f.realignRows.count, 0)
+        XCTAssertTrue(f.running)
+    }
+
+    // MARK: - Il punto 3: il riallineo a motore in drenaggio
+
+    /// L'iPad passa avanti (o indietro) di `ahead` battiti a mano, senza battiti al secondo; quando il drenaggio
+    /// comincia la rete al secondo cade alla `k`-esima chiamata del drenaggio. Rende il rig, la band, e se la rete
+    /// al secondo è caduta.
+    private func drainRun(_ map: SongMap, ahead: Int, k: Int, alone: Bool = false, shiftAt: Double? = nil,
+                          pulse: Bool = true) -> (FollowerBandRig, RigBand, Bool) {
+        let (f, band, t) = started(map, entryBeat: 4)
+        var total = 0
+        for s in map.sections {
+            total += s.rigTotal
+        }
+        let lastTotal = map.sections[map.sections.count - 1].rigTotal
+        let when = shiftAt ?? (play + beatTime(map, total - lastTotal / 2) + 0.1)
+        var tt = f.run(from: t, to: when, pulses: false)
+        if alone {
+            f.goAlone(tt)
+        }
+        f.counter += ahead
+        var pulsed = false
+        var n = 0
+        while f.running && n < 6000 {
+            let was = f.sectionEndPending
+            f.call(tt)
+            tt += buf
+            n += 1
+            if pulse && !pulsed && !was && f.sectionEndPending {
+                for _ in 0..<(k - 1) {
+                    f.call(tt)
+                    tt += buf
+                }
+                f.secondPulse()
+                pulsed = true
+            }
+        }
+        return (f, band, pulsed)
+    }
+
+    /// Il drenaggio come lo scrive il motore: dopo l'ultimo battito la chiusura si consegna quando la coda del click
+    /// (40 ms: 1920 campioni) è esaurita, cioè alla quarta o alla quinta chiamata dopo; nelle 3 o 4 chiamate in mezzo
+    /// il punto R può girare. Il DSP è fermo: l'ora del battito in attesa letta al punto R si sposta di un buffer a
+    /// chiamata (qui la rete al secondo cade alla terza chiamata del drenaggio: due buffer oltre l'ora vera).
+    func testTheDrainLastsAsLongAsTheClickAndThePendingBeatTimeMoves() throws {
+        let (f, _, _) = drainRun(songLast, ahead: 0, k: 3)
+        let end = play + beatTime(songLast, 24)
+        let lastBeat = try XCTUnwrap(f.beats.last)
+        let done = f.songEndsDelivered
+        XCTAssertEqual(done.count, 1)
+        let doneAt = try XCTUnwrap(done.first)
+        let callsAfter = Int(((doneAt - (lastBeat.outTime - f.outDelay)) / buf).rounded())
+        XCTAssertTrue(callsAfter == 4 || callsAfter == 5, "\(callsAfter)")
+        XCTAssertEqual(f.readingRows.filter { $0.reason == "al-secondo" }.count, 1)
+        XCTAssertEqual(f.drainSkippedAtRead, 2)
+        // l'ora letta: quella vera più due buffer
+        let pendingTime = try XCTUnwrap(f.pendingTimeAtRead)
+        XCTAssertEqual(pendingTime - end, 2.0 * buf, accuracy: 2e-5)
+    }
+
+    /// Punto 3 (a) e D5: l'iPad è un battito AVANTI all'ultima battuta: conta il suo ultimo battito quando la band
+    /// suona il penultimo, e drena. La rete al secondo cade nel drenaggio (alla prima, seconda, terza chiamata): per
+    /// la band il battito in attesa è l'ultimo della canzone. Il riallineo riapre la sezione (salto −1: il posto del
+    /// motore in drenaggio è la fine), il DSP, rimasto fermo, si porta dove sarebbe senza drenaggio, e l'ultimo
+    /// battito della band esce ALLA STESSA ORA di una corsa in cui l'iPad non era avanti. Poi la canzone finisce con
+    /// la band.
+    func testARealignInTheDrainReopensTheLastBarAndTheClickIsOnTime() throws {
+        let (twin, _, _) = drainRun(songLast, ahead: 0, k: 1, pulse: false)
+        let twinLast = try XCTUnwrap(twin.beats.last)
+        let twinShown = try XCTUnwrap(twin.view.shown.last)
+        for alone in [false, true] {
+            for k in [1, 2, 3] {
+                let (f, _, _) = drainRun(songLast, ahead: 1, k: k, alone: alone)
+                let r = try singleRealign(f)
+                XCTAssertEqual(r.row.reason, "al-secondo", "\(alone) \(k)")
+                XCTAssertEqual(r.detail.jumpBeats, -1, "\(alone) \(k)")
+                XCTAssertTrue(r.detail.loadsSection, "\(alone) \(k)")
+                XCTAssertEqual(r.row.motor, RigSpot(section: 0, beat: 0), "\(alone) \(k)")
+                XCTAssertEqual(r.detail.band, RigSpot(section: 0, beat: 23), "\(alone) \(k)")
+                // le chiamate in cui il DSP è rimasto fermo
+                let reopened = try XCTUnwrap(f.reopened.first)
+                XCTAssertEqual(reopened.drainSkipped, k - 1, "\(alone) \(k)")
+                XCTAssertEqual(f.beats.count, twin.beats.count, "\(alone) \(k)")
+                let lastBeat = try XCTUnwrap(f.beats.last)
+                XCTAssertEqual(lastBeat.outTime, twinLast.outTime, accuracy: 2e-6,
+                               "\(alone) \(k): il click alla stessa ora del gemello")
+                // col nome e l'etichetta della band
+                XCTAssertEqual(lastBeat.section, 0, "\(alone) \(k)")
+                XCTAssertEqual(lastBeat.beatInSection, 23, "\(alone) \(k)")
+                XCTAssertEqual(lastBeat.label, 3, "\(alone) \(k)")
+                XCTAssertEqual(f.lateMuted, 0, "\(alone) \(k)")
+                XCTAssertEqual(f.songEndsDelivered.count, 1, "\(alone) \(k)")
+                XCTAssertTrue(f.ended, "\(alone) \(k)")
+                // la grafica: battuta e battito dell'ultimo tick sono quelli del gemello
+                let shown = try XCTUnwrap(f.view.shown.last)
+                XCTAssertEqual(shown.bar, twinShown.bar, "\(alone) \(k)")
+                XCTAssertEqual(shown.beat, twinShown.beat, "\(alone) \(k)")
+            }
+        }
+    }
+
+    /// D5, DA-SOLO dentro la finestra «sync skip»: lì la linea propria non rimette la posizione (non gira), e il DSP
+    /// nel drenaggio resta fermo come in sync. Un'ultima sezione di una battuta a 240 (un secondo: tutta dentro la
+    /// finestra dello scambio), stesso tempo della sezione prima: l'iPad un battito avanti, la lettura alla terza
+    /// chiamata del drenaggio. Il click dell'ultimo battito esce alla stessa ora del gemello.
+    func testARealignInTheDrainInsideTheWindowOnItsOwnIsOnTime() throws {
+        let map = song([(4, 4, 240.0), (4, 1, 240.0)])
+        let shift = play + beatTime(map, 17) + 0.05
+        let (twin, _, _) = drainRun(map, ahead: 0, k: 1, alone: true, shiftAt: shift, pulse: false)
+        let (f, _, _) = drainRun(map, ahead: 1, k: 3, alone: true, shiftAt: shift)
+        // la lettura dentro la finestra
+        let syncSkip = try XCTUnwrap(f.syncSkipAtRead)
+        XCTAssertGreaterThan(syncSkip, 0)
+        let r = try singleRealign(f)
+        XCTAssertEqual(r.detail.jumpBeats, -1)
+        let reopened = try XCTUnwrap(f.reopened.first)
+        XCTAssertEqual(reopened.drainSkipped, 2)
+        XCTAssertEqual(f.beats.count, twin.beats.count)
+        let lastBeat = try XCTUnwrap(f.beats.last)
+        let twinLast = try XCTUnwrap(twin.beats.last)
+        XCTAssertEqual(lastBeat.outTime, twinLast.outTime, accuracy: 2e-6, "il click alla stessa ora del gemello")
+    }
+
+    /// Punto 3, il ramo «posto uguale ma in drenaggio»: l'ultima sezione è una battuta sola e l'iPad è avanti di una
+    /// battuta intera: ha finito la canzone quando la band comincia l'ultima battuta. Alla lettura nel drenaggio il
+    /// posto della band (sezione 1, battito 0) è uguale al contatore del motore (azzerato dal drenaggio): senza la
+    /// condizione sul drenaggio il riallineo non farebbe niente e l'iPad finirebbe una battuta prima. Il riallineo
+    /// riapre la sezione (salto −4) e l'iPad risuona l'ultima battuta con la band.
+    func testTheIPadAWholeLastSectionAheadIsBroughtBackFromTheDrain() throws {
+        let map = song([(4, 5, 121.0), (4, 1, 121.0)])
+        let shift = play + beatTime(map, 9) + 0.1
+        let (twin, _, _) = drainRun(map, ahead: 0, k: 1, shiftAt: shift, pulse: false)
+        let (f, band, _) = drainRun(map, ahead: 4, k: 2, shiftAt: shift)
+        let r = try singleRealign(f)
+        XCTAssertEqual(r.row.reason, "al-secondo")
+        XCTAssertEqual(r.row.motor, RigSpot(section: 1, beat: 0))
+        XCTAssertEqual(r.detail.band, RigSpot(section: 1, beat: 0))
+        XCTAssertEqual(r.detail.jumpBeats, -4)
+        XCTAssertTrue(r.detail.loadsSection)
+        XCTAssertEqual(f.beats.count, twin.beats.count)
+        let lastBeat = try XCTUnwrap(f.beats.last)
+        let twinLast = try XCTUnwrap(twin.beats.last)
+        XCTAssertEqual(lastBeat.outTime, twinLast.outTime, accuracy: 2e-6)
+        XCTAssertEqual(f.beats.suffix(4).map { RigSpot(section: $0.section, beat: $0.beatInSection) },
+                       [RigSpot(section: 1, beat: 0), RigSpot(section: 1, beat: 1), RigSpot(section: 1, beat: 2),
+                        RigSpot(section: 1, beat: 3)])
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+        XCTAssertEqual(f.songEndsDelivered.count, 1)
+    }
+
+    /// Punto 3 (b): l'iPad allineato (e poi un battito INDIETRO): la lettura al secondo cade nel drenaggio e trova la
+    /// band oltre la fine. Il motore drena già: niente da fare. Nessun riallineo, nessuna riga, la chiusura si
+    /// consegna una volta sola, quando la coda del click è finita.
+    func testAReadingInTheDrainWithTheBandPastTheEndDoesNothing() throws {
+        let cases: [(Int, Int)] = [(0, 0), (-1, 1)]
+        for (behind, beyond) in cases {
+            let (f, _, pulsed) = drainRun(songLast, ahead: behind, k: 2)
+            XCTAssertTrue(pulsed, "\(behind)")
+            let readings = f.readingRows.filter { $0.reason == "al-secondo" }
+            XCTAssertEqual(readings.count, 1, "\(behind)")
+            let reading = try XCTUnwrap(readings.first)
+            XCTAssertTrue(reading.certain, "\(behind)")
+            XCTAssertEqual(f.placeAtRead, FollowerBandPlace.pastEnd(beats: beyond), "\(behind)")
+            XCTAssertEqual(f.realignRows.count, 0, "\(behind)")
+            XCTAssertEqual(f.realigns, 0, "\(behind)")
+            XCTAssertEqual(f.reopened, [], "\(behind)")
+            XCTAssertEqual(f.songEndsDelivered.count, 1, "\(behind)")
+            XCTAssertEqual(f.beats.count, 20 - behind, "\(behind)")
+        }
+    }
+
+    /// Punto 3 (c): un buco di 1,61 battiti nell'ultima battuta (non passa la fine): il riallineo rimette il
+    /// contatore (+2), l'iPad suona l'ultimo battito con la band e drena con lei; la rete al secondo cade nei buffer
+    /// del drenaggio: la band è oltre la fine, niente da fare. Una sola chiusura di fine canzone, entro 60 ms dalla
+    /// fine dell'ultimo battito.
+    func testAHoleInTheLastBarIsRealignedAndTheNetInTheDrainDoesNothing() throws {
+        let map = songLast
+        let end = play + beatTime(map, 24)
+        let (f, _, t) = started(map, entryBeat: 4)
+        let start = play + beatTime(map, 20) + 0.1
+        f.run(from: t, to: start, pulses: false)
+        var tt = start + 1.61 * 60.0 / 121.0
+        f.call(tt, hole: true)
+        tt += buf
+        let first = try singleRealign(f)
+        XCTAssertEqual(first.row.reason, "buco")
+        XCTAssertEqual(first.detail.jumpBeats, 2)
+        var pulsed = false
+        var n = 0
+        while f.running {
+            let was = f.sectionEndPending
+            f.call(tt)
+            tt += buf
+            if !pulsed && !was && f.sectionEndPending {
+                f.call(tt)
+                tt += buf
+                f.secondPulse()
+                pulsed = true
+            }
+            // il tetto ferma un giro che non finisce
+            n += 1
+            if n >= 6000 {
+                XCTFail("la canzone non finisce")
+                throw NotTheExpectedCase()
+            }
+        }
+        XCTAssertTrue(pulsed)
+        XCTAssertEqual(f.realignRows.count, 1)
+        XCTAssertEqual(f.realigns, 1)
+        XCTAssertEqual(f.readingRows.map { $0.reason }, ["buco", "al-secondo"])
+        let lastBeat = try XCTUnwrap(f.beats.last)
+        XCTAssertEqual(lastBeat.section, 0)
+        XCTAssertEqual(lastBeat.beatInSection, 23)
+        // l'ultimo battito all'ora della band
+        XCTAssertEqual(lastBeat.outTime, end - 60.0 / 121.0, accuracy: 0.001)
+        // nessun battito dopo l'ultimo della band
+        XCTAssertEqual(f.beats.filter { $0.outTime > end - 0.4 }, [])
+        let done = f.songEndsDelivered
+        XCTAssertEqual(done.count, 1)
+        let doneAt = try XCTUnwrap(done.first)
+        let tail = doneAt + f.outDelay - lastBeat.outTime
+        XCTAssertGreaterThan(tail, 0.0)
+        XCTAssertLessThan(tail, 0.060)
+    }
+
+    // MARK: - Il punto 4: A424 par. 2.2 d anche DA-SOLO
+
+    /// A424 par. 2.2 d, DA-SOLO: lo scambio è fatto, il tempo della sezione nuova è armato per il battito dopo,
+    /// l'iPad (sulla linea propria) è un battito indietro. Il riallineo carica la sezione coi setter immediati: il
+    /// tempo del sequencer, il tempo del motore e il BPM a schermo sono subito quelli della sezione nuova, la linea
+    /// propria si butta e si ri-àncora col tempo nuovo; nessuna W2 (DA-SOLO non scrive mai su Link).
+    func testOnItsOwnARealignWithTheTempoArmedLoadsTheSectionAtOnce() throws {
+        let map = song([(4, 4, 50.0), (4, 8, 60.0)])
+        let (f, band, t) = started(map, entryBeat: 4)
+        var tt = f.run(from: t, to: t + 2.0, pulses: false)
+        f.goAlone(tt)
+        tt = f.run(from: tt, to: play + beatTime(map, 13) + 0.3, pulses: false)
+        f.counter -= 1
+        tt = try runUntil(f, from: tt) { $0.mapSection == 1 }
+        XCTAssertEqual(f.counter, 0)
+        XCTAssertEqual(f.pendingBpmValue, 60.0)
+        XCTAssertEqual(f.engineTempo, 50.0)
+        XCTAssertEqual(f.seqTempo, 50.0)
+        XCTAssertEqual(f.dsp.bpm, 50.0)
+        f.secondPulse()
+        f.call(tt)
+        tt += buf
+        let r = try singleRealign(f)
+        XCTAssertEqual(r.row.reason, "al-secondo")
+        XCTAssertEqual(r.row.motor, RigSpot(section: 1, beat: 0))
+        XCTAssertEqual(r.detail.band, RigSpot(section: 1, beat: 1))
+        XCTAssertEqual(r.detail.jumpBeats, 1)
+        XCTAssertTrue(r.detail.loadsSection)
+        XCTAssertTrue(r.detail.tempoArmed)
+        XCTAssertEqual(f.engineTempo, 60.0)
+        XCTAssertEqual(f.seqTempo, 60.0)
+        XCTAssertEqual(f.screenBpm, 60.0)
+        XCTAssertEqual(f.dsp.bpm, 60.0)
+        XCTAssertNil(f.pendingBpmValue)
+        XCTAssertNil(f.dsp.armedBpm)
+        // la linea propria col tempo di prima è buttata
+        XCTAssertNil(f.ownTimeline)
+        f.run(from: tt, to: tt + 6.0, pulses: false)
+        // e ri-ancorata col tempo della sezione nuova (dopo la finestra)
+        let own = try XCTUnwrap(f.ownTimeline)
+        XCTAssertEqual(own.bpm, 60.0)
+        XCTAssertEqual(f.w2, [])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+        // il click va a 60: i passi fra gli ultimi cinque battiti, a tre decimali
+        let lastFive = f.beats.suffix(5).map { $0.outTime }
+        var gaps: [Double] = []
+        for (earlier, later) in zip(lastFive, lastFive.dropFirst()) {
+            gaps.append(RigNumbers.round3(later - earlier))
+        }
+        XCTAssertEqual(gaps, [1.0, 1.0, 1.0, 1.0])
+    }
+
+    /// A424 par. 2.2 d, DA-SOLO, il buco: il buco cade fra lo scambio e il primo battito della sezione nuova. Dentro
+    /// la finestra la lettura aspetta; il primo battito esce in ritardo e porta il tempo nuovo per la strada di
+    /// sempre. Dopo la finestra il riallineo rimette i nomi: tempo del sequencer, tempo del motore, linea propria e
+    /// BPM a schermo sono quelli della sezione nuova; nessuna W2.
+    func testOnItsOwnAHoleOnTheFirstBeatAfterASwapEndsInTheNewSectionWithoutW2() throws {
+        let map = two
+        let (f, band, t) = started(map, entryBeat: 4)
+        var tt = f.run(from: t, to: t + 2.0, pulses: false)
+        f.goAlone(tt)
+        tt = try runUntil(f, from: tt) { $0.mapSection == 1 }
+        XCTAssertEqual(f.pendingBpmValue, 91.0)
+        tt += 1.61 * 60.0 / 121.0
+        f.call(tt, hole: true)
+        tt += buf
+        XCTAssertEqual(f.realignDue, "buco")
+        f.run(from: tt, to: tt + 5.0, pulses: false)
+        let r = try singleRealign(f)
+        XCTAssertEqual(r.row.reason, "buco")
+        XCTAssertEqual(f.mapSection, 1)
+        XCTAssertEqual(f.engineTempo, 91.0)
+        XCTAssertEqual(f.seqTempo, 91.0)
+        XCTAssertEqual(f.screenBpm, 91.0)
+        XCTAssertEqual(f.dsp.bpm, 91.0)
+        let own = try XCTUnwrap(f.ownTimeline)
+        XCTAssertEqual(own.bpm, 91.0)
+        XCTAssertEqual(f.w2, [])
+        XCTAssertEqual(f.notCertainReasons.count, 0)
+        let realignOut = try lastRealignOut(f)
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+    }
+
+    // MARK: - La risposta a D5-bis: lo scarto dopo un cambio di tempo
+
+    /// Risposta del referee a D5-bis (par. 1): «il riallineo non sposta mai un click nel tempo, a meno dello scarto
+    /// fra sequencer e DSP dopo un cambio di tempo: lo stesso spostamento che fa ogni correzione di fase». Allo
+    /// scambio il sequencer conta al tempo nuovo dall'inizio del buffer, il DSP dal campione dell'«uno» (a
+    /// scostamento o nel buffer): dopo, i battiti del DSP stanno a (o / frequenza) × (1 − tempo di prima / tempo
+    /// nuovo) secondi dalle posizioni intere del sequencer. Il drenaggio riaperto porta il click su quelle
+    /// posizioni: lo spostamento rispetto al gemello è quello della formula, a meno di due campioni, e mai i buffer
+    /// interi che uscirebbero senza la cura.
+    func testAfterATempoChangeTheReopenedDrainMovesTheClickByTheSequencerOffset() throws {
+        let cases: [(Double, Double)] = [(121.0, 91.0), (60.0, 120.0), (180.0, 70.0)]
+        for (oldBpm, newBpm) in cases {
+            let map = song([(4, 4, oldBpm), (4, 2, newBpm)])
+            let (twin, _, _) = drainRun(map, ahead: 0, k: 1, pulse: false)
+            let twinLast = try XCTUnwrap(twin.beats.last)
+            for k in [1, 2, 3] {
+                let (f, _, _) = drainRun(map, ahead: 1, k: k)
+                XCTAssertEqual(f.reopened.count, 1, "\(oldBpm)->\(newBpm) k=\(k)")
+                let reopened = try XCTUnwrap(f.reopened.first)
+                XCTAssertEqual(reopened.drainSkipped, k - 1, "\(oldBpm)->\(newBpm) k=\(k)")
+                XCTAssertEqual(f.tempoChangeOffsets.count, 1, "\(oldBpm)->\(newBpm) k=\(k)")
+                let change = try XCTUnwrap(f.tempoChangeOffsets.first)
+                XCTAssertEqual(change.was, oldBpm)
+                XCTAssertEqual(change.now, newBpm)
+                let formula = -(Double(change.offset) / RigNumbers.rate) * (1.0 - oldBpm / newBpm)
+                // il massimo: lo scostamento è sotto un buffer
+                XCTAssertLessThanOrEqual(abs(formula),
+                                         (Double(RigNumbers.frames) / RigNumbers.rate) * abs(1.0 - oldBpm / newBpm))
+                XCTAssertEqual(f.beats.count, twin.beats.count, "\(oldBpm)->\(newBpm) k=\(k)")
+                let lastBeat = try XCTUnwrap(f.beats.last)
+                let moved = lastBeat.outTime - twinLast.outTime
+                XCTAssertEqual(moved, formula, accuracy: 2.0 / RigNumbers.rate + 1e-6,
+                               "\(oldBpm)->\(newBpm) k=\(k): lo spostamento del click")
+                XCTAssertEqual(f.lateMuted, 0, "\(oldBpm)->\(newBpm) k=\(k)")
+            }
+        }
     }
 }
