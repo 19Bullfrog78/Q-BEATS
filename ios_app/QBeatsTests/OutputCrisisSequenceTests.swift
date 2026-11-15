@@ -177,6 +177,9 @@ private struct OutputRig {
     var linkAnchorTime = 0.0
     var linkAnchorBeat = 0.0
     var followerClock: FollowerReturnClock = .link
+    /// A432 · parte 2b (voce i) — il conto del Follower sulla band (`_followerBandCountQ`): `nil` = nessun conto, e l'«uno»
+    /// del ritorno è quello di sempre. La numerazione della sessione è la linea di Link del rig (`linkBeat(at:)`).
+    var bandCount: FollowerBandCount? = nil
     var ownTimeline: OwnClockTimeline? = nil
     var ownTimelineBPM = 0.0
     var ownBeatAtChange = 0.0
@@ -252,6 +255,8 @@ private struct OutputRig {
     /// A421 · SEGUITO 4 (par. 3.1, dopo il verificatore): l'ora d'uscita dell'«uno» del rientro quando la scorta lo ha contato (il
     /// bersaglio). Resta dopo la chiusura dell'àncora tenuta, come `_lastCountedBeatQ` nel motore (`closeSilenceAnchorQ` toglie
     /// solo l'àncora): una crisi dopo la sua uscita prende l'àncora da lui.
+    /// ⚠️ A432 · parte 2c: «(il bersaglio)» qui sopra vale solo senza correzioni nella scorta. L'ora è quella del buffer della catena
+    /// che porta l'«uno» più lo scostamento dell'«uno» nel buffer (`useEngineRejoinUnoOutTime`; spento: il bersaglio, com'era).
     var rejoinUnoOutAt: Double? = nil
     var songMapPending = false
     var followerSessionPlaying = true
@@ -377,6 +382,23 @@ private struct OutputRig {
     var correctionsUnderThreshold = 0
     var mapsConsumedByRunningStart = 0
     var memoryClearedAtRejoinFire = 0
+    /// A432 · parte 2c: il rig come il motore, spegnibile per il banco (spenti = la rottura voluta).
+    ///  · `useOwnClockForTheBandUno` — DA-SOLO l'«uno» del conto sulla band prende il posto dal righello dei secondi e l'ora dalla
+    ///    mappa portata sulla linea propria (i rami DA-SOLO di `nextBandUnoQ` e di `unoTicksQ(for:)`); spento, anche DA-SOLO fa come
+    ///    IN SYNC: il posto e l'ora da Link, che DA-SOLO non è la sessione della band;
+    ///  · `useEngineRejoinUnoOutTime` — l'ora d'uscita dell'«uno» contato nella scorta del rientro è quella del buffer che lo porta
+    ///    più il suo scostamento nel buffer, come per ogni battito nel motore (`_lastBeatOutTicksQ`); spento, è sempre il bersaglio
+    ///    (`firstClickAt`), com'era.
+    var useOwnClockForTheBandUno = true
+    var useEngineRejoinUnoOutTime = true
+    /// A432 · parte 2d (K2): il rig come il motore, spegnibile per il banco (spento = la rottura voluta).
+    ///  · `useEngineHeldAnchorClose` — l'àncora tenuta dal rientro si chiude come nel motore (`checkAnchorHeldByRejoinQ`, a ogni
+    ///    chiamata di `scheduleNextBuffer`: l'ultimo battito contato di questo avvio c'è e la sua ora d'uscita è passata): alla
+    ///    prima chiamata dopo che l'«uno» del rientro è stato contato, con la sua ora d'uscita vera passata (`rejoinUnoOutAt`, che
+    ///    con una correzione nella scorta non è il bersaglio; finché la scorta è viva l'«uno» non è contato e l'àncora resta
+    ///    tenuta, anche oltre il bersaglio); spento, si chiude alla prima chiamata dal bersaglio in poi (`firstBeatOutAt`), che
+    ///    l'«uno» sia contato o no, com'era.
+    var useEngineHeldAnchorClose = true
 
     init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
          cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
@@ -409,8 +431,13 @@ private struct OutputRig {
 
     /// A421 · SEGUITO 1 — il primo «uno» non prima di `t`, come battito col suo orologio e la sua ora (`nextUnoQ`): Link, o la
     /// linea propria DA-SOLO (dall'ultimo «uno» uscito); `nil` = «uno non calcolabile».
+    /// A432 · parte 2b (voce i): prima il conto sulla band, se è certo (`nextBandUnoQ`); se non dà un «uno», la regola di sempre.
     func nextUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
+        if let fromCount = nextBandUno(atOrAfter: t) { return fromCount }
         switch followerClock {
+        case .band:
+            // Non è un valore di `followsLinkQ`: l'orologio di sempre è Link o la linea propria.
+            return nil
         case .link:
             guard let bar = OutputReturnDecision.nextBarBeat(atOrAfter: linkBeat(at: t), quantum: Double(beatsPerBar)) else { return nil }
             return (FollowerReturnUno(beat: bar, clock: .link, beatsPerBar: beatsPerBar), time(ofBeat: bar))
@@ -432,7 +459,52 @@ private struct OutputRig {
             guard let timeline = ownTimeline,
                   let at = OutputReturnDecision.ownTicks(atBeat: uno.beat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
             return seconds(at)
+        case .band:
+            // A432 · parte 2b (voce i), come `unoTicksQ(for:)`: prima la conferma del conto; IN SYNC l'ora di Link nella
+            // numerazione della sessione; DA-SOLO l'ora della mappa portata sulla linea propria.
+            guard let count = bandCount, FollowerBandUno.confirms(count: count, uno: uno) else { return nil }
+            // A432 · parte 2c: spento `useOwnClockForTheBandUno`, anche DA-SOLO l'ora di Link (la rottura voluta).
+            if followerClock == .link || !useOwnClockForTheBandUno {
+                return time(ofBeat: uno.beat)
+            }
+            guard let timeline = ownTimeline, let lastUno = lastUnoBeat,
+                  let mapTicks = FollowerBandUno.mapTicks(count: count, uno: uno, ticksPerSecond: OutputRig.tps),
+                  let ownBeat = FollowerBandUno.ownBeat(mapTicks: mapTicks, timeline: timeline, lastUnoBeat: lastUno,
+                                                        ticksPerSecond: OutputRig.tps),
+                  let at = OutputReturnDecision.ownTicks(atBeat: ownBeat, timeline: timeline, ticksPerSecond: OutputRig.tps) else { return nil }
+            return seconds(at)
         }
+    }
+
+    /// A432 · parte 2b (P38) — il getter del DSP di questo rig (`metronome_pending_beat` subito dopo la correzione): il DSP qui è
+    /// la griglia «origine più interi», e il battito in attesa dopo una correzione è quello di prima più la parte intera
+    /// arrotondata della correzione (il re-map di `setBeatPositionTimeOnly`).
+    func rigPendingBeatAfterCorrection(before: Double, after: Double) -> Double {
+        LateBeatDecision.pendingBeatAfter(origin: dspOrigin, before: before, after: after)
+    }
+
+    /// A432 · parte 2b (voce i) — `nextBandUnoQ`: l'«uno» dal conto certo, col posto alla scadenza da Link (IN SYNC) o dal
+    /// righello dei secondi (DA-SOLO). `nil` senza conto, col conto chiuso, o se il conto non dà un «uno».
+    func nextBandUno(atOrAfter t: Double) -> (uno: FollowerReturnUno, at: Double)? {
+        guard let count = bandCount, FollowerBandUno.isCertain(count) else { return nil }
+        let chosen: FollowerReturnUno?
+        // A432 · parte 2c: spento `useOwnClockForTheBandUno`, anche DA-SOLO il posto da Link (la rottura voluta).
+        if followerClock == .link || !useOwnClockForTheBandUno {
+            chosen = FollowerBandUno.next(count: count, atOrAfterLinkBeat: linkBeat(at: t))
+        } else {
+            chosen = FollowerBandUno.next(count: count, atOrAfterTicks: ticks(t), ticksPerSecond: OutputRig.tps)
+        }
+        guard let uno = chosen, let at = unoTime(for: uno) else { return nil }
+        return (uno, at)
+    }
+
+    /// A432 · parte 2b (voce i) — `nextBarUnoQ(after:)`: per un «uno» del conto la prossima battuta della canzone.
+    func nextBarUno(after uno: FollowerReturnUno) -> FollowerReturnUno? {
+        if uno.clock == .band {
+            guard let count = bandCount else { return nil }
+            return FollowerBandUno.nextBar(count: count, after: uno)
+        }
+        return OutputReturnDecision.nextBarUno(uno)
     }
 
     var externalPresent: Bool { OutputRouteDecision.hasExternal(physicalRoute ?? route) }
@@ -1208,6 +1280,28 @@ private struct OutputRig {
     var inLeadIn: Bool { useEngineLeadIn ? rejoinLeadIn != nil : leadInBuffersLeft > 0 }
     var skipsCorrectionNow: Bool { syncSkip > 0 }
 
+    /// A432 · parte 2d (K2) — l'ora dopo la quale l'àncora tenuta dal rientro si chiude, come `checkAnchorHeldByRejoinQ` nel motore:
+    /// l'ora d'uscita del primo battito contato del rientro, l'«uno»; `nil` finché l'«uno» non è contato (nel motore
+    /// `_lastCountedBeatQ` è `nil` dall'avvio del rientro fino al buffer che porta l'«uno»: la scorta è muta e più corta di mezzo
+    /// battito). Con la scorta del motore: `nil` finché la scorta è viva, poi `rejoinUnoOutAt`, l'ora vera (col bersaglio solo
+    /// senza correzioni nella scorta). Senza il piano della scorta, o col rig di prima (`useEngineLeadIn` spento), l'«uno» sta nel
+    /// primo buffer della catena, contato al fuoco, ed esce al bersaglio (`firstBeatOutAt`). Spento `useEngineHeldAnchorClose`:
+    /// sempre il bersaglio, com'era.
+    /// La differenza che resta col motore: il motore guarda l'ULTIMO battito contato, il rig l'«uno». Sono lo stesso battito
+    /// finché il battito dopo l'«uno» non si programma, e di regola si programma quando l'«uno» è uscito da un pezzo (un battito
+    /// meno la coda dei buffer) e l'àncora tenuta è già chiusa. Solo se si programmasse PRIMA che l'ora dell'«uno» sia passata
+    /// (una correzione in avanti di quasi un battito fra il buffer dell'«uno» e la sua uscita) nel motore l'àncora tenuta
+    /// aspetterebbe l'uscita di quel battito; il rig non tiene l'ora d'uscita dei battiti dopo l'«uno» (`countedBeatOut` dice
+    /// solo che uno si è programmato) e chiude all'uscita dell'«uno».
+    var heldAnchorCloseAt: Double? {
+        guard useEngineHeldAnchorClose else { return firstBeatOutAt }
+        if useEngineLeadIn {
+            if rejoinLeadIn != nil { return nil }
+            if let unoOut = rejoinUnoOutAt { return unoOut }
+        }
+        return firstBeatOutAt
+    }
+
     /// A421 · SEGUITO 2 (par. 4.2): il guardiano scatta: le condizioni dell'armo, poi il silenzio se il volume è a 1.
     mutating func fireGuardian(at t: Double) {
         guard let armed = guardian else { return }
@@ -1317,7 +1411,9 @@ private struct OutputRig {
     mutating func scheduleNextBuffer(at t: Double, idealAt: Double? = nil, gapSeconds: Double? = nil, correction: Double? = nil) {
         guard isRunning else { return }
         // A421 · SEGUITO 2 (par. 3.3): l'àncora tenuta dal rientro si chiude quando il primo battito contato del rientro è uscito.
-        if anchorHeld, let out = firstBeatOutAt, t >= out {
+        // ⚠️ A432 · parte 2d (K2): l'ora non è più sempre il bersaglio (`firstBeatOutAt`, com'era e come resta con
+        // `useEngineHeldAnchorClose` spento): è l'ora d'uscita vera dell'«uno» contato (`heldAnchorCloseAt`).
+        if anchorHeld, let out = heldAnchorCloseAt, t >= out {
             closeAnchor(at: t)
         }
         let skipAtCallStart = syncSkip
@@ -1390,7 +1486,10 @@ private struct OutputRig {
         }
         // Seguito 1, par. 2.2: la rilettura dell'«uno», a ogni chiamata col ritorno armato e un «uno» scelto; seguito 2 (E.9): e il metro.
         if var armed = followerReturn, !armed.armPending, let uno = armed.uno {
-            switch OutputReturnDecision.refreshUno(saved: uno, clockNow: followerClock, beatsPerBarNow: beatsPerBar,
+            // A432 · parte 2b (voce i): un «uno» del conto resta del conto finché il conto è certo (`unoClockNow`).
+            let clockNow = OutputReturnDecision.unoClockNow(saved: uno.clock, followsLink: followerClock == .link,
+                                                            bandCountCertain: FollowerBandUno.isCertain(bandCount))
+            switch OutputReturnDecision.refreshUno(saved: uno, clockNow: clockNow, beatsPerBarNow: beatsPerBar,
                                                    rereadTicks: unoTime(for: uno).map(ticks)) {
             case .rearm:
                 rearmFollowerReturn()
@@ -1489,8 +1588,14 @@ private struct OutputRig {
             // A425 (par. 2.5): solo una correzione sopra la soglia di Link (`fabs(delta) > threshold`, LinkEngine.mm:647) arriva qui;
             // quelle di al più 0,01 battiti fanno il ramo «nessuna correzione» qui sotto, come il motore.
             corrections += 1
-            if LateBeatDecision.mutes(origin: dspOrigin, before: position, after: position + delta, bpm: bpm,
-                                      bufferFrames: 512, sampleRate: nodeRate) {
+            // A432 · parte 2b (P38) — come `noteLateBeatCorrectionQ` da A432: il battito in attesa lo dice il DSP dopo la correzione
+            // (`metronome_pending_beat`), poi `lateBeats(pendingBeat:after:)` e `mutesLateBeat`. In questo rig il DSP è la griglia
+            // «origine più interi» (`rigPendingBeatAfterCorrection`): nessun salto frazionario fa saltare un battito al DSP, e il
+            // getter coincide con la ricostruzione di prima (`LateBeatDecision.mutes(origin:…)`, che stava qui); il caso in cui
+            // non coincidono è nel rig del conto, col modello del DSP (`FollowerBandRigTests`).
+            let pendingAfter = rigPendingBeatAfterCorrection(before: position, after: position + delta)
+            if LateBeatDecision.mutesLateBeat(lateBeats: LateBeatDecision.lateBeats(pendingBeat: pendingAfter, after: position + delta),
+                                              bpm: bpm, bufferFrames: 512, sampleRate: nodeRate) {
                 lateBeatsMuted += 1
                 mutedThisBuffer = true
             }
@@ -1537,12 +1642,15 @@ private struct OutputRig {
             case .nextBar, .nextBarInWindow:
                 if !conditions {
                     followerReturn = nil
-                } else if let uno = pending.uno, let next = OutputReturnDecision.nextBarUno(uno) {
+                } else if let uno = pending.uno, let next = nextBarUno(after: uno) {
                     pending.uno = next
                     pending.unoAt = unoTime(for: next)
                     if pending.unoAt == nil { pending.armPending = true }
                     followerReturn = pending
                     nextBarMoves += 1
+                } else if let uno = pending.uno, uno.clock == .band {
+                    // A432 · parte 2b (voce i): la battuta dopo non data dal conto riarma con la stessa regola.
+                    rearmFollowerReturn()
                 }
             case .restore:
                 followerReturn = nil
@@ -1613,12 +1721,30 @@ private struct OutputRig {
             // che e' uscito (`takeSilenceAnchorQ` vuole un battito contato gia' uscito), anche dopo la chiusura dell'àncora tenuta
             // (`rejoinUnoOutAt`). `countedBeatOut`, che il rig alza quando un battito si programma, nella scorta non si alza:
             // l'«uno» si programma prima di uscire.
+            // ⚠️ A432 · parte 2c: «(il bersaglio, `firstClickAt`)» qui sopra vale solo senza correzioni nella scorta. L'ora d'uscita
+            // dell'«uno» si conta come quella di ogni battito nel motore (`scheduleNextBuffer`: `_lastBeatOutTicksQ`, l'ora d'uscita
+            // del buffer in cui cade più il suo scostamento nel buffer). I buffer della catena escono uno dietro l'altro e quello
+            // d'indice `leadInBuffers` esce al bersaglio (il primo, ancorato, esce al bersaglio meno la scorta:
+            // `DirectorRejoinDecision.leadIn`); questo, d'indice `bufferCount`, esce `bufferCount - leadInBuffers` buffer dopo il
+            // bersaglio (prima, se il numero è negativo). Un «uno» scavalcato da una correzione esce al primo campione del buffer di
+            // questa chiamata (scostamento 0), prima del bersaglio; uno portato avanti, nel buffer prima col suo scostamento. Senza
+            // correzioni: indice `leadInBuffers`, scostamento 0, cioè il bersaglio alla lettera. L'ora del buffer qui è quella della
+            // catena (la `oraCatena` della riga «primo click» del motore), non la convenzione «adesso + latenza + ciclo» di
+            // `_bufferOutTicksQ`: i richiami del banco nella scorta non seguono il passo del lettore. Spento l'interruttore
+            // (`useEngineRejoinUnoOutTime`): il bersaglio, com'era.
             let unoHere = lead.carriesPendingBeat(frames: 512)
+            // Lo scostamento dell'«uno» nel buffer di questa chiamata, in campioni: il suo campione arrotondato meno il cursore,
+            // prima che il cursore avanzi.
+            let unoOffsetSamples = lead.pendingBeatSample.rounded() - lead.cursor
             lead.cursor += 512
             rejoinLeadIn = unoHere ? nil : lead
             if unoHere {
                 leadInUnoBuffer = bufferCount
-                rejoinUnoOutAt = firstClickAt
+                if useEngineRejoinUnoOutTime, let targetOut = firstClickAt {
+                    rejoinUnoOutAt = targetOut + Double(bufferCount - leadInBuffers) * bufferSeconds + unoOffsetSamples / nodeRate
+                } else {
+                    rejoinUnoOutAt = firstClickAt
+                }
             }
             beatInBuffer = unoHere
         } else {
@@ -5150,6 +5276,136 @@ func testF1TheUnoOnTheCallThatConsumesTheLastSkipMovesToTheNextBar() throws {
     checkReturnInvariants(rig, "F1 uno sull'ultimo salto", oneBarAtMost: true)
 }
 
+// MARK: - A432 · parte 2b (voce i): l'«uno» del ritorno del Follower dal conto sulla band
+
+/// A424, Aperto A.14, in sequenza: la canzone è 4/4 per due battute e poi 3/4 (a 120), l'àncora del conto al battito 96 della
+/// sessione (un multiplo di 12): gli «uno» del 3/4 sono 104, 107, 110… (resto 2 a dividere per 3), le battute di Link col quanto 3
+/// sono i multipli di 3. La cuffia tolta e rimessa nel 3/4: col conto certo il ritorno sceglie un «uno» della canzone, con
+/// l'orologio del conto, e il volume torna su un «uno» della canzone; la regola di prima avrebbe scelto la battuta di Link, che è
+/// il secondo battito di una battuta della canzone.
+func testTheFollowerReturnAfterAMeterChangeIsOnADownbeatOfTheSong() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    XCTAssertTrue(try XCTUnwrap(rig.followerReturn, "il ritorno del Follower prenotato").armPending)
+    let firstCall = 58.806 + 0.684
+    rig.callbacks(from: firstCall, count: 1)
+    let armed = try XCTUnwrap(rig.followerReturn)
+    let uno = try XCTUnwrap(armed.uno)
+    let unoAt = try XCTUnwrap(armed.unoAt)
+    let deadline = try XCTUnwrap(rig.deadlineAt)
+    XCTAssertEqual(uno.clock, .band, "l'«uno» viene dal conto")
+    XCTAssertEqual(uno.beatsPerBar, 3)
+    XCTAssertEqual((uno.beat - 104).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9, "un «uno» della canzone")
+    XCTAssertEqual(uno.beat.truncatingRemainder(dividingBy: 3), 2, accuracy: 1e-9, "che non è una battuta di Link col quanto 3")
+    XCTAssertEqual(unoAt, rig.time(ofBeat: uno.beat), accuracy: 1e-9, "la sua ora è quella di Link per quel battito")
+    XCTAssertGreaterThanOrEqual(unoAt, deadline - 1e-9)
+    XCTAssertLessThan(unoAt, deadline + rig.barSeconds, "il primo «uno» della canzone dopo la scadenza")
+    let old = try XCTUnwrap(OutputReturnDecision.nextBarBeat(atOrAfter: rig.linkBeat(at: deadline), quantum: 3))
+    XCTAssertEqual((old - 104).truncatingRemainder(dividingBy: 3), 1, accuracy: 1e-9,
+                   "la regola di prima: il secondo battito di una battuta della canzone")
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    let restored = try XCTUnwrap(rig.restoredUnoAt)
+    XCTAssertEqual((rig.linkBeat(at: restored) - 104).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-6,
+                   "il volume è tornato su un «uno» della canzone")
+    // Il gemello senza conto, stessa sequenza: gli stessi riarmi (il metro del motore e l'orologio non riarmano un «uno» del conto).
+    var twin = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    twin.routeChange(at: 55.0, to: [speaker])
+    twin.callbacks(from: 55.681, count: 30)
+    twin.routeChange(at: 58.806, to: [headphones])
+    twin.callbacks(from: firstCall, count: 1)
+    twin.callbacks(from: firstCall + twin.bufferSeconds, count: 400)
+    XCTAssertEqual(twin.volume, 1.0)
+    XCTAssertEqual(rig.rearms, twin.rearms, "il metro del motore e l'orologio non riarmano un «uno» del conto")
+    checkReturnInvariants(rig, "A.14")
+}
+
+/// Lo stesso buco: il conto si chiude (o si azzera) fra l'armo e l'«uno». L'orologio di adesso non è più quello salvato: il ritorno
+/// si riarma con la stessa regola, che senza il conto è quella di sempre (la battuta di Link), e il volume torna.
+func testTheFollowerReturnFromTheCountRearmsOnTheLinkBarWhenTheCountGoesAway() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    let firstCall = 58.806 + 0.684
+    rig.callbacks(from: firstCall, count: 1)
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno).clock, .band)
+    let rearmsBefore = rig.rearms
+    rig.bandCount = nil
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 1)
+    XCTAssertEqual(rig.rearms, rearmsBefore + 1, "l'orologio non è più quello salvato: si riarma")
+    let again = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(again.clock, .link, "senza il conto: l'«uno» di Link, come prima")
+    XCTAssertEqual(again.beat.truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9)
+    rig.callbacks(from: firstCall + 2 * rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    checkReturnInvariants(rig, "A.14 senza conto", oneBarAtMost: false)
+}
+
+/// Senza conto (com'era fino a qui) lo stesso buco sceglie la battuta di Link: il rig di prima non cambia.
+func testWithoutACountTheFollowerReturnIsOnTheLinkBarAsBefore() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 3, at: 50.0)
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    rig.callbacks(from: 58.806 + 0.684, count: 1)
+    let uno = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(uno.clock, .link)
+    XCTAssertEqual(uno.beat.truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9)
+}
+
+/// Dopo la nota N1 del verificatore V3 (referto della 2b, §8): lo stesso buco PRIMA del confine. La canzone è 4/4 per sei battute
+/// (24 battiti) e poi 3/4; l'àncora al battito 96 della sessione, il confine a 120 (60 s). Il motore è ancora nel 4/4 (il suo metro
+/// è 4); la scadenza cade nell'ultima battuta del 4/4 e l'«uno» del conto è il primo del 3/4: porta i 3 battiti per battuta della
+/// SUA sezione, non i 4 del motore. Il metro del motore non riarma un «uno» del conto (`refreshUno`): gli stessi riarmi del gemello
+/// senza conto, e l'«uno» resta quello. Senza quella regola il ritorno si riarmerebbe a ogni chiamata («metro-cambiato»).
+func testTheMeterOfTheEngineDoesNotRearmAnUnoOfTheCount() throws {
+    var rig = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 4, at: 50.0)
+    let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 6, bpm: 120),
+                                 SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 120)])
+    rig.bandCount = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(48.0)))
+    var twin = playing(.follower, route: [headphones], bpm: 120, beatsPerBar: 4, at: 50.0)
+    let firstCall = 58.806 + 0.684
+    rig.routeChange(at: 55.0, to: [speaker])
+    rig.callbacks(from: 55.681, count: 30)
+    rig.routeChange(at: 58.806, to: [headphones])
+    rig.callbacks(from: firstCall, count: 1)
+    twin.routeChange(at: 55.0, to: [speaker])
+    twin.callbacks(from: 55.681, count: 30)
+    twin.routeChange(at: 58.806, to: [headphones])
+    twin.callbacks(from: firstCall, count: 1)
+    let uno = try XCTUnwrap(try XCTUnwrap(rig.followerReturn).uno)
+    XCTAssertEqual(uno.clock, .band)
+    XCTAssertEqual(uno.beat, 120, accuracy: 1e-9, "il primo «uno» del 3/4")
+    XCTAssertEqual(uno.beatsPerBar, 3, "i battiti per battuta della sua sezione")
+    XCTAssertEqual(rig.beatsPerBar, 4, "il metro del motore è ancora quello di prima del confine")
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(twin.followerReturn).uno).clock, .link)
+    rig.callbacks(from: firstCall + rig.bufferSeconds, count: 5)
+    twin.callbacks(from: firstCall + twin.bufferSeconds, count: 5)
+    XCTAssertEqual(rig.rearms, twin.rearms, "il metro del motore non riarma un «uno» del conto")
+    XCTAssertEqual(try XCTUnwrap(try XCTUnwrap(rig.followerReturn, "il ritorno è ancora armato").uno), uno, "l'«uno» resta quello")
+    rig.callbacks(from: firstCall + 6 * rig.bufferSeconds, count: 400)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertNil(rig.followerReturn)
+    let restored = try XCTUnwrap(rig.restoredUnoAt)
+    XCTAssertEqual((rig.linkBeat(at: restored) - 120).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-6,
+                   "il volume è tornato su un «uno» della canzone")
+    checkReturnInvariants(rig, "A.14 prima del confine")
+}
+
 // MARK: - A421 · SEGUITO 4, par. 3.1: la scorta del rientro come il motore
 
 /// Il fuoco del rientro come il motore: l'origine del DSP sull'«uno» e la posizione sul seme, l'«uno» meno la scorta
@@ -5628,6 +5884,241 @@ func testTheRejoinFireClearsTheMemoryAndU16DecidesOnTheNewCause() throws {
         rig.routeChange(at: rig.now + 0.5, to: [headphones])
         XCTAssertFalse(rig.isRunning, "\(tag): U16 decide sulla causa nuova: niente")
         XCTAssertEqual(rig.starts, starts, tag)
+    }
+}
+
+// MARK: - A432 · parte 2c: il conto sulla band DA-SOLO in sequenza, e l'ora d'uscita dell'«uno» del rientro
+
+/// Il ritorno del Follower col conto sulla band E l'orologio proprio (DA-SOLO) nella stessa sequenza: i rami DA-SOLO di
+/// `nextBandUno(atOrAfter:)` e di `unoTime(for:)` (nel motore `nextBandUnoQ` e `unoTicksQ(for:)`), che i quattro test della parte 2b
+/// percorrono solo IN SYNC. La canzone ha la forma di quella della 2b (4/4 per due battute, poi 3/4), a 121: un tempo non tondo
+/// (A432 · parte 2d, K8: era a 120, e ogni numero qui sotto è rifatto a 121; le ore degli eventi sono le stesse). L'àncora del
+/// conto è il battito 96 della sessione, uscito a 47,633306 s: 30 ms dopo la griglia di Link del rig (96 × 60 ÷ 121 = 47,603306 s),
+/// dentro l'ottavo di battito del conto. Gli «uno» del 3/4 sono 104, 107, 110… e sulla mappa cadono a 51,600248 s più 1,487603 s
+/// per battuta. La cuffia tolta a 55 s. A 56,9 s il Follower va DA-SOLO: la linea propria nasce sulla griglia di Link di quel
+/// momento (battito 114,748333: i suoi click interi cadono 30 ms prima delle ore della mappa) e l'ultimo «uno» della canzone
+/// uscito è il 113 (a 56,033058 s); da lì la sessione di Link non è più quella della band: 3,5 battiti avanti. La cuffia rimessa a
+/// 58,806 s, la prima chiamata a 59,490 s: la scadenza è 59,595967 s (la fine dei buffer programmati, 59,490 + 0,0233 di latenza +
+/// un ciclo e tre buffer da 10,667 ms = 59,555967 s, più la coda di 40 ms).
+///  · Col rig come il motore: il posto alla scadenza dal righello dei secondi, (59,595967 − 47,633306) × 121 ÷ 60 = 24,124699
+///    battiti dall'àncora, cioè 120,124699 nella numerazione del conto: il primo «uno» della canzone dopo è il 122, con l'orologio
+///    del conto. La sua ora sulla mappa è 47,633306 + (122 − 96) × 60 ÷ 121 = 60,525868 s; a quell'ora la linea propria è al battito
+///    114,748333 + (60,525868 − 56,9) × 121 ÷ 60 = 122,0605: il click intero più vicino è il 122, che esce a
+///    56,9 + (122 − 114,748333) × 60 ÷ 121 = 60,495868 s. Il volume torna lì: tre battute dopo il 113.
+///  · Con l'interruttore girato (`useOwnClockForTheBandUno` spento: anche DA-SOLO come IN SYNC): il posto da Link,
+///    59,595967 × 121 ÷ 60 + 3,5 = 123,685199: l'«uno» scelto è il 125, e la sua ora è quella di Link,
+///    (125 − 3,5) × 60 ÷ 121 = 60,247934 s: sulla linea propria è il battito 121,5, a metà fra due click, e 1,765537 s prima
+///    dell'ora della mappa di quell'«uno» (47,633306 + 29 × 60 ÷ 121 = 62,013471 s).
+/// I conti sono rifatti a macchina in doppia precisione, con un modello in Python del rig (fuori dal deposito), convalidato prima
+/// sui numeri che questo test asseriva a 120.
+func testOnItsOwnTheFollowerReturnFromTheCountIsOnADownbeatOfTheSongOnTheOwnLine() throws {
+    for ownRuler in [true, false] {
+        let tag = "righelloProprio:\(ownRuler)"
+        var rig = playing(.follower, route: [headphones], bpm: 121, beatsPerBar: 3, at: 50.0)
+        rig.useOwnClockForTheBandUno = ownRuler
+        let map = SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 2, bpm: 121),
+                                     SongMapSection(beatsPerBar: 3, repetitions: 100, bpm: 121)])
+        // Il battito 96 sulla griglia di Link del rig (96 × 60 ÷ 121 s) più 30 ms: 47,633306 s.
+        let count = FollowerBandCount(map: map, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 96,
+                                                                        ticks: rig.ticks(96 * 60.0 / 121.0 + 0.030)))
+        rig.bandCount = count
+        rig.routeChange(at: 55.0, to: [speaker])
+        rig.callbacks(from: 55.681, count: 30)
+        // DA-SOLO. La soglia del rig mette come ultimo «uno» la battuta di Link (114), che dopo il cambio di metro non è un «uno»
+        // della canzone: qui si mette quello uscito davvero, il 113. Poi Link passa a un'altra sessione, 3,5 battiti avanti.
+        rig.goOwnClock(at: 56.9)
+        rig.lastUnoBeat = 113
+        rig.linkAnchorBeat = 3.5
+        let timeline = try XCTUnwrap(rig.ownTimeline, "\(tag): la linea propria")
+        XCTAssertEqual(timeline.anchorBeat, 114.748333333, accuracy: 1e-9, tag)
+        rig.routeChange(at: 58.806, to: [headphones])
+        XCTAssertTrue(try XCTUnwrap(rig.followerReturn, "\(tag): il ritorno del Follower prenotato").armPending, tag)
+        let firstCall = 58.806 + 0.684
+        rig.callbacks(from: firstCall, count: 1)
+        let armed = try XCTUnwrap(rig.followerReturn, "\(tag): il ritorno armato")
+        let uno = try XCTUnwrap(armed.uno, "\(tag): l'«uno» scelto")
+        let unoAt = try XCTUnwrap(armed.unoAt, "\(tag): l'ora dell'«uno»")
+        let deadline = try XCTUnwrap(rig.deadlineAt, "\(tag): la scadenza")
+        XCTAssertEqual(deadline, 59.595967, accuracy: 1e-5, tag)
+        XCTAssertEqual(uno.clock, .band, "\(tag): l'«uno» viene dal conto")
+        XCTAssertEqual(uno.beatsPerBar, 3, tag)
+        XCTAssertEqual((uno.beat - 104).truncatingRemainder(dividingBy: 3), 0, accuracy: 1e-9,
+                       "\(tag): un inizio di battuta della canzone, nella numerazione del conto")
+        XCTAssertGreaterThanOrEqual(unoAt, deadline - 1e-9, tag)
+        XCTAssertLessThan(unoAt, deadline + rig.barSeconds, tag)
+        let mapTicks = try XCTUnwrap(FollowerBandUno.mapTicks(count: count, uno: uno, ticksPerSecond: OutputRig.tps),
+                                     "\(tag): l'ora dell'«uno» sulla mappa")
+        let mapAt = rig.seconds(mapTicks)
+        let ownBeatAtUno = timeline.beat(atTicks: rig.ticks(unoAt), ticksPerSecond: OutputRig.tps)
+        if ownRuler {
+            XCTAssertEqual(uno.beat, 122, accuracy: 1e-9, "il primo «uno» della canzone dopo la scadenza, dal righello dei secondi")
+            XCTAssertEqual(mapAt, 60.5258678, accuracy: 1e-6, "la sua ora sulla mappa")
+            XCTAssertEqual(ownBeatAtUno, 122, accuracy: 1e-6, "sulla linea propria: un click intero")
+            XCTAssertEqual(unoAt, 60.4958678, accuracy: 1e-6, "l'ora della mappa portata sul click più vicino della linea propria")
+            XCTAssertEqual(mapAt - unoAt, 0.030, accuracy: 1e-6, "30 ms prima dell'ora della mappa: meno di mezzo battito")
+        } else {
+            XCTAssertEqual(uno.beat, 125, accuracy: 1e-9, "la rottura: il posto letto da Link, che non è più la sessione della band")
+            XCTAssertEqual(unoAt, rig.time(ofBeat: 125), accuracy: 1e-9, "la rottura: l'ora di Link per quel battito")
+            XCTAssertEqual(unoAt, 60.2479339, accuracy: 1e-6, "la rottura: (125 − 3,5) × 60 ÷ 121")
+            XCTAssertEqual(ownBeatAtUno, 121.5, accuracy: 1e-6, "la rottura: a metà fra due click della linea propria")
+            XCTAssertEqual(mapAt - unoAt, 1.7655372, accuracy: 1e-6, "la rottura: 1,765537 s prima dell'ora della mappa di quell'«uno»")
+        }
+        rig.callbacks(from: firstCall + rig.bufferSeconds, count: 400)
+        XCTAssertEqual(rig.volume, 1.0, tag)
+        XCTAssertNil(rig.followerReturn, tag)
+        XCTAssertEqual(rig.rearms, 0, "\(tag): nessun riarmo: l'«uno» del conto resta del conto anche DA-SOLO")
+        XCTAssertEqual(rig.nextBarMoves, 0, tag)
+        let restored = try XCTUnwrap(rig.restoredUnoAt, "\(tag): l'«uno» del ritorno")
+        XCTAssertEqual(restored, unoAt, accuracy: 1e-6, "\(tag): il volume è tornato sull'«uno» dell'armo")
+        // Sulla linea propria: le battute da 3 dall'ultimo «uno» uscito (il 113) al click del ritorno.
+        let barsFromLastUno = (timeline.beat(atTicks: rig.ticks(restored), ticksPerSecond: OutputRig.tps) - 113) / 3
+        if ownRuler {
+            XCTAssertEqual(barsFromLastUno, 3, accuracy: 1e-6, "il volume è tornato su un «uno» della canzone, sulla linea propria")
+        } else {
+            XCTAssertEqual(abs(barsFromLastUno - barsFromLastUno.rounded()), 1.0 / 6.0, accuracy: 1e-6,
+                           "la rottura: il volume torna a mezzo battito da un «uno» della linea propria, fra due click")
+        }
+        checkReturnInvariants(rig, "il conto DA-SOLO \(tag)")
+    }
+}
+
+/// L'ora d'uscita dell'«uno» del rientro contato nella scorta (`rejoinUnoOutAt`), come il motore conta l'ora d'uscita di ogni
+/// battito: l'ora d'uscita del buffer in cui cade più il suo scostamento nel buffer. Il rientro è quello di `rejoined()`: a 121 BPM
+/// il bersaglio è il battito 44, a 44 × 60 ÷ 121 = 21,818182 s; la scorta è di cinque buffer da 10,667 ms, e i buffer della catena
+/// escono uno dietro l'altro: quello d'indice 5 esce al bersaglio, quello d'indice b esce (b − 5) buffer dopo.
+///  · Senza correzione: l'«uno» al primo campione del buffer d'indice 5: il bersaglio, alla lettera (com'era).
+///  · Una prima correzione in avanti di mezzo buffer: l'«uno» al campione 256 del buffer d'indice 4: 21,818182 − 0,010667 +
+///    256 ÷ 48000 = 21,812848 s, mezzo buffer prima del bersaglio.
+///  · Una prima correzione che scavalca l'«uno» (due buffer e mezzo in avanti): il DSP lo fa uscire al primo campione del buffer
+///    di quella chiamata, d'indice 3: 21,818182 − 2 × 0,010667 = 21,796848 s, due buffer prima del bersaglio.
+/// Con l'interruttore girato (`useEngineRejoinUnoOutTime` spento) l'ora è sempre il bersaglio, com'era.
+/// I conti sono rifatti a macchina in doppia precisione, con un modello in Python del rig (fuori dal deposito).
+func testTheRejoinUnoSetAtOnceIsOutAtTheFirstSampleOfItsBuffer() throws {
+    for engineOut in [true, false] {
+        let tag = "oraDelMotore:\(engineOut)"
+        // Senza correzione.
+        var plain = try rejoined()
+        plain.useEngineRejoinUnoOutTime = engineOut
+        let target = try XCTUnwrap(plain.firstClickAt, "\(tag): il bersaglio del rientro")
+        let buffers = plain.leadInBuffers
+        XCTAssertEqual(target, 44 * 60.0 / 121.0, accuracy: 1e-9, "\(tag): il battito 44")
+        XCTAssertEqual(buffers, 5, tag)
+        XCTAssertNil(plain.rejoinUnoOutAt, "\(tag): dopo i tre buffer del fuoco l'«uno» non è ancora contato")
+        plain.callbacks(from: plain.now + plain.bufferSeconds, count: buffers - 2)
+        XCTAssertEqual(plain.leadInUnoBuffer, buffers, tag)
+        XCTAssertEqual(try XCTUnwrap(plain.rejoinUnoOutAt, "\(tag): l'«uno» contato"), target,
+                       "\(tag): senza correzione l'ora resta il bersaglio, alla lettera")
+        // Una prima correzione in avanti di mezzo buffer: l'«uno» a metà del buffer prima.
+        var forward = try rejoined()
+        forward.useEngineRejoinUnoOutTime = engineOut
+        forward.callbacks(from: forward.now + forward.bufferSeconds, count: 1, correction: 0.5 * forward.bufferBeats)
+        XCTAssertNil(forward.rejoinUnoOutAt, "\(tag): il buffer d'indice 3 non porta l'«uno»")
+        forward.callbacks(from: forward.now + forward.bufferSeconds, count: 1)
+        XCTAssertEqual(forward.leadInUnoBuffer, buffers - 1, tag)
+        XCTAssertEqual(try XCTUnwrap(forward.rejoinUnoOutAt, "\(tag): l'«uno» contato"),
+                       engineOut ? target - 0.5 * forward.bufferSeconds : target, accuracy: 1e-9,
+                       engineOut ? "il buffer d'indice 4 più 256 campioni: mezzo buffer prima del bersaglio" : "la rottura: il bersaglio")
+        // Una prima correzione che scavalca l'«uno»: esce al primo campione del buffer di quella chiamata, prima del bersaglio.
+        var over = try rejoined()
+        over.useEngineRejoinUnoOutTime = engineOut
+        over.callbacks(from: over.now + over.bufferSeconds, count: 1, correction: 2.5 * over.bufferBeats)
+        XCTAssertEqual(over.leadInUnoBuffer, 3, tag)
+        let overOut = try XCTUnwrap(over.rejoinUnoOutAt, "\(tag): l'«uno» contato")
+        XCTAssertEqual(overOut, engineOut ? target - 2 * over.bufferSeconds : target, accuracy: 1e-9,
+                       engineOut ? "il primo campione del buffer d'indice 3: due buffer prima del bersaglio" : "la rottura: il bersaglio")
+        XCTAssertEqual(overOut, engineOut ? 21.796848 : 21.818182, accuracy: 1e-5, tag)
+        XCTAssertEqual((overOut < target), engineOut, "\(tag): prima del bersaglio solo con l'ora del motore")
+    }
+}
+
+/// La crisi «muto in canzone» fra l'uscita dell'«uno» scavalcato (21,796848 s) e il bersaglio (21,818182 s): chi legge
+/// `rejoinUnoOutAt` è la regola dell'àncora (`crisis`, come `takeSilenceAnchorQ`: un battito contato già uscito).
+///  · Senza l'àncora tenuta dal rientro (`useHeldAnchor` spento: il fuoco la chiude) `rejoinUnoOutAt` decide da solo: con l'ora
+///    del motore l'«uno» è già uscito e l'àncora si prende da lui (il Play dopo rientra); con l'interruttore girato l'ora è il
+///    bersaglio, non ancora passato: nessuna àncora, e il Play dopo finisce «non certo».
+///  · Con l'àncora tenuta dal rientro (il rig di base, come il motore) in quell'istante l'àncora c'è comunque, con tutte e due le
+///    ore: il rig la chiude alla prima chiamata dopo il bersaglio, e la crisi la trova ancora tenuta. Lì l'interruttore non si
+///    vede: il test lo dice, perché non si legga questa prova come una prova del rig di base.
+///    ⚠️ CORRETTO A432 · parte 2d (K2). «Il rig la chiude alla prima chiamata dopo il bersaglio, e la crisi la trova ancora
+///    tenuta» era il rig di prima, e nel motore è falso: `checkAnchorHeldByRejoinQ` chiude l'àncora tenuta alla prima chiamata
+///    di `scheduleNextBuffer` con l'ora d'uscita dell'«uno» contato passata, e l'«uno» scavalcato esce due buffer prima del
+///    bersaglio. Col rig di base (`useEngineHeldAnchorClose` acceso, l'ora del motore) l'àncora tenuta si chiude al dodicesimo
+///    richiamo (21,800215 s, il primo dopo l'uscita dell'«uno»; l'undicesimo, a 21,789548 s, è prima), e la crisi dopo prende
+///    l'àncora dall'«uno» già uscito, come senza l'àncora tenuta. L'àncora resta tenuta fino alla crisi, com'era, in due giri:
+///    con `useEngineHeldAnchorClose` spento (la chiusura al bersaglio), e con l'ora dell'«uno» girata (`useEngineRejoinUnoOutTime`
+///    spento: per il rig l'«uno» esce al bersaglio, che nessuna chiamata ha passato). In tutti i giri con l'àncora tenuta la crisi
+///    ha l'àncora e il Play dopo rientra: cambia da dove viene.
+/// Il Direttore è in cuffia; il rientro è quello di `rejoined()` (il bersaglio a 21,818182 s, il fuoco a 21,661548 s). La chiamata
+/// dello scavalco a 21,672215 s, poi dodici richiami, l'ultimo a 21,800215 s (dopo l'uscita dell'«uno», prima del bersaglio); la
+/// cuffia tolta a 21,807515 s, a metà fra le due ore. Il battito dopo l'«uno» viene 0,496 s dopo: non è ancora programmato.
+func testACrisisBetweenTheUnoSetAtOnceAndTheTargetTakesTheAnchorFromTheUnoWhenTheRejoinDoesNotHoldIt() throws {
+    for held in [true, false] {
+        for engineOut in [true, false] {
+            for engineClose in [true, false] {
+                let tag = "tenuta:\(held) oraDelMotore:\(engineOut) chiusuraDelMotore:\(engineClose)"
+                var rig = playing(.direttore, route: [headphones], at: 10.0)
+                rig.useHeldAnchor = held
+                rig.useEngineRejoinUnoOutTime = engineOut
+                rig.useEngineHeldAnchorClose = engineClose
+                rig.scheduleNextBuffer(at: 20.0, gapSeconds: 0.300)
+                XCTAssertTrue(rig.silentInSong, tag)
+                rig.advance(to: 20.1)
+                let fireAt = try XCTUnwrap(rig.rejoin, "\(tag): il rientro armato").fireAt
+                rig.advance(to: fireAt)
+                XCTAssertEqual(rig.rejoins, 1, tag)
+                XCTAssertEqual(rig.anchor, held, "\(tag): dopo il fuoco l'àncora resta viva solo tenuta dal rientro")
+                let target = try XCTUnwrap(rig.firstClickAt, "\(tag): il bersaglio del rientro")
+                XCTAssertEqual(target, 44 * 60.0 / 121.0, accuracy: 1e-9, tag)
+                rig.callbacks(from: fireAt + rig.bufferSeconds, count: 1, correction: 2.5 * rig.bufferBeats)
+                XCTAssertEqual(rig.leadInUnoBuffer, 3, tag)
+                let unoOut = target - 2 * rig.bufferSeconds
+                XCTAssertEqual(try XCTUnwrap(rig.rejoinUnoOutAt, "\(tag): l'«uno» contato"), engineOut ? unoOut : target,
+                               accuracy: 1e-9, tag)
+                XCTAssertEqual(rig.anchorHeld, held, "\(tag): la chiamata dello scavalco è prima dell'uscita dell'«uno»: ancora tenuta")
+                rig.callbacks(from: rig.now + rig.bufferSeconds, count: 12)
+                XCTAssertGreaterThanOrEqual(rig.now, unoOut, "\(tag): l'ultimo richiamo dopo l'uscita dell'«uno»")
+                XCTAssertLessThan(rig.now, target, "\(tag): l'ultimo richiamo prima del bersaglio")
+                XCTAssertFalse(rig.countedBeatOut, "\(tag): il battito dopo l'«uno» non è ancora programmato")
+                // K2: come il motore, l'àncora tenuta si chiude alla prima chiamata dopo l'uscita vera dell'«uno» contato. Qui solo
+                // con l'àncora tenuta, l'ora del motore e la chiusura del motore; negli altri giri con l'àncora tenuta nessuna
+                // chiamata ha passato l'ora a cui il rig la chiude (il bersaglio), e resta tenuta.
+                let closedAtTheUno = held && engineOut && engineClose
+                XCTAssertEqual(rig.anchor, held && !closedAtTheUno,
+                               closedAtTheUno ? "\(tag): l'«uno» scavalcato è uscito: la chiamata dopo ha chiuso l'àncora tenuta, prima del bersaglio"
+                                              : "\(tag): nessuna chiamata dopo l'ora di chiusura: l'àncora tenuta non si è chiusa")
+                XCTAssertEqual(rig.anchorHeld, held && !closedAtTheUno, "\(tag): il segno «tenuta» va con l'àncora")
+                if closedAtTheUno {
+                    let closedAt = try XCTUnwrap(rig.anchorClosedAt, "\(tag): l'ora della chiusura dell'àncora tenuta")
+                    XCTAssertEqual(closedAt, rig.now, accuracy: 1e-9, "\(tag): chiusa dal dodicesimo richiamo, il primo dopo l'uscita dell'«uno»")
+                    XCTAssertGreaterThanOrEqual(closedAt, unoOut, "\(tag): non prima dell'uscita dell'«uno»")
+                    XCTAssertLessThan(closedAt, unoOut + rig.bufferSeconds, "\(tag): alla prima chiamata dopo: entro un buffer")
+                    XCTAssertLessThan(closedAt, target, "\(tag): prima del bersaglio")
+                } else if held {
+                    XCTAssertNil(rig.anchorClosedAt, "\(tag): l'àncora tenuta non si è mai chiusa")
+                }
+                let crisisAt = (unoOut + target) / 2
+                XCTAssertGreaterThan(crisisAt, rig.now, tag)
+                rig.routeChange(at: crisisAt, to: [speaker])
+                XCTAssertTrue(rig.silentInSong, tag)
+                XCTAssertFalse(rig.isRunning, tag)
+                XCTAssertFalse(rig.anchorHeld, "\(tag): dopo la crisi l'àncora è del silenzio")
+                let anchorMessage: String
+                if held {
+                    anchorMessage = closedAtTheUno
+                        ? "\(tag): l'àncora tenuta è già chiusa: la crisi la prende dall'«uno» già uscito, come il motore"
+                        : "\(tag): la crisi trova l'àncora ancora tenuta dal rientro"
+                } else {
+                    anchorMessage = engineOut
+                        ? "l'«uno» è già uscito: l'àncora si prende da lui"
+                        : "la rottura: per il rig l'«uno» esce al bersaglio, nessuna àncora"
+                }
+                XCTAssertEqual(rig.anchor, held || engineOut, anchorMessage)
+                rig.start(at: crisisAt + 1.0, recovery: nil)
+                rig.advance(to: crisisAt + 5.0)
+                XCTAssertEqual(rig.uncertainRejoins, (held || engineOut) ? 0 : 1, tag)
+                XCTAssertEqual(rig.rejoins, (held || engineOut) ? 2 : 1, tag)
+            }
+        }
     }
 }
 }

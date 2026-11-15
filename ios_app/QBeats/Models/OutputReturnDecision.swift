@@ -45,9 +45,12 @@ enum DirectorReturnWait: String, Equatable {
 }
 
 /// A421 · SEGUITO 1 — l'orologio da cui viene l'«uno» del ritorno del Follower (par. 2.2): Link, o la linea propria DA-SOLO.
+/// A432 · PARTE 2b (pezzo 3c-1, voce i) — e il conto sulla band (`.band`): l'«uno» è un inizio di battuta della canzone, col
+/// battito nella numerazione della sessione che il conto usa (`FollowerBandUno`).
 enum FollowerReturnClock: String, Equatable {
     case link = "link"
     case own = "proprio"
+    case band = "band"
 }
 
 /// A421 · SEGUITO 1 — l'«uno» scelto all'armo: il battito e il suo orologio. Nel motore `nil` è il segno «uno non calcolabile».
@@ -176,15 +179,28 @@ enum OutputReturnDecision {
         followsLink ? .link : .own
     }
 
+    /// A432 · PARTE 2b (voce i) — l'orologio di adesso per un «uno» già scelto. Un «uno» scelto dal conto (`.band`) resta del
+    /// conto finché il conto è certo, che l'iPad segua Link o vada DA-SOLO (l'ora si rilegge col righello che c'è); col conto
+    /// chiuso o tolto torna l'orologio di sempre, che è diverso da quello salvato: `refreshUno` riarma. Un «uno» di Link o
+    /// della linea propria non cambia orologio perché nel frattempo è nato un conto.
+    static func unoClockNow(saved: FollowerReturnClock, followsLink: Bool, bandCountCertain: Bool) -> FollowerReturnClock {
+        if saved == .band && bandCountCertain { return .band }
+        return unoClock(followsLink: followsLink)
+    }
+
     /// A ogni chiamata, prima della guardia: se l'orologio non è più quello salvato il ritorno si riarma con la stessa regola;
     /// A421 · SEGUITO 2 (par. 5.4, E.9): lo stesso se il metro (`_beatsPerBarQ`) non è più quello con cui l'«uno» è stato scelto,
     /// motivo «metro-cambiato»; se è lo stesso, l'ora dell'«uno» riletta dal battito salvato (Link: `link_engine_time_at_beat`;
     /// DA-SOLO: `ownTicks` sulla linea propria), così regge un cambio di tempo fra l'armo e l'«uno»; se non si può rileggere
     /// (`nil`), si riarma.
+    /// A432 · PARTE 2b (voce i) — un «uno» del conto (`.band`) porta i battiti per battuta della sezione DELLA CANZONE in cui
+    /// cade, che prima del confine non sono quelli della sezione del motore: per lui il confronto col metro del motore non
+    /// vale (il metro lo dice la mappa, e che l'«uno» sia ancora un inizio di battuta lo dice `FollowerBandUno.confirms`,
+    /// dentro l'ora riletta).
     static func refreshUno(saved: FollowerReturnUno, clockNow: FollowerReturnClock, beatsPerBarNow: Int,
                            rereadTicks: UInt64?) -> FollowerUnoRefresh {
         if saved.clock != clockNow { return .rearm(reason: "orologio-cambiato") }
-        if saved.beatsPerBar != beatsPerBarNow { return .rearm(reason: "metro-cambiato") }
+        if saved.clock != .band && saved.beatsPerBar != beatsPerBarNow { return .rearm(reason: "metro-cambiato") }
         guard let ticks = rereadTicks else { return .rearm(reason: "uno-non-rileggibile") }
         return .ticks(ticks)
     }
@@ -192,8 +208,10 @@ enum OutputReturnDecision {
     /// L'«uno» della battuta dopo: il battito scelto più una battuta (Link: il quantum; DA-SOLO: i battiti della battuta),
     /// sullo stesso orologio e col quantum dell'«uno» (A421 · SEGUITO 2, E.9). Non si ricalcola con
     /// `nextBarBeat(atOrAfter: scadenza)`, che darebbe lo stesso «uno».
+    /// A432 · PARTE 2b (voce i) — per un «uno» del conto (`.band`) rende `nil`: la battuta dopo si cerca sulla mappa
+    /// (`FollowerBandUno.nextBar`), perché al confine di sezione può avere un altro metro.
     static func nextBarUno(_ uno: FollowerReturnUno) -> FollowerReturnUno? {
-        guard uno.beat.isFinite, uno.beatsPerBar > 0 else { return nil }
+        guard uno.clock != .band, uno.beat.isFinite, uno.beatsPerBar > 0 else { return nil }
         return FollowerReturnUno(beat: uno.beat + Double(uno.beatsPerBar), clock: uno.clock, beatsPerBar: uno.beatsPerBar)
     }
 

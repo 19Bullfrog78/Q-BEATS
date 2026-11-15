@@ -55,6 +55,26 @@ void metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPo
            _dsp->getCurrentBeatInBar());
 }
 
+// A424/A432 — rinomina il battito in attesa. La riga [METRO] gira su audioQueue come le due qui sopra.
+void metronome_rename_pending_beat(MetronomeHandle handle, uint32_t beatInBar) {
+    if (!handle) return;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    const uint32_t before = _dsp->getCurrentBeatInBar();
+    _dsp->renamePendingBeat(beatInBar);
+    os_log(OS_LOG_DEFAULT, "[METRO] renamePendingBeat: beatInBar=%u->%u startAbs=%.6f",
+           before, _dsp->getCurrentBeatInBar(), _dsp->getStartAbsoluteBeat());
+}
+
+// A431/A432 — il battito in attesa detto dal DSP: una struttura restituita per valore, nessuna riga.
+MetronomePendingBeat metronome_pending_beat(MetronomeHandle handle) {
+    MetronomePendingBeat out = { 0.0, 0 };
+    if (!handle) return out;
+    auto _dsp = static_cast<MetronomeDSP*>(handle);
+    out.beat         = _dsp->getPendingBeat();
+    out.samplesAhead = _dsp->getPendingSamplesAhead();
+    return out;
+}
+
 // === Bug 2.b — SPIA passiva L1: enable + flush (os_log, thread NON-RT) ===
 void metronome_set_diag_enabled(MetronomeHandle handle, bool enabled) {
     if (!handle) return;

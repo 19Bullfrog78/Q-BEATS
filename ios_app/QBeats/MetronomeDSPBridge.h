@@ -48,6 +48,39 @@ void            metronome_set_beat_position(MetronomeHandle handle, double beatP
 // la fase di battuta (_currentBeatInBar). Usata da Link sync_phase.
 void            metronome_set_beat_position_time_only(MetronomeHandle handle, double beatPosition);
 
+// A424/A432 — rinomina il battito in attesa (MetronomeDSP::renamePendingBeat): cambia solo
+// l'etichetta nella battuta; il battito in attesa esce allo stesso campione. Con un cambio armato
+// (metro, tempo, suddivisione) lo scambio scatta sul nuovo «uno», quindi i click DOPO cambiano
+// campione; col SOLO metro armato non cambiano campione, cambiano gli accenti (A432 parte 2b).
+// Chi non lo vuole annulla i cambi armati e usa i setter immediati prima della rinomina
+// (A424 par. 2.2 a). Chiamare SOLO su audioQueue, prima di metronome_processBuffer. Scrive la riga
+// [METRO] renamePendingBeat (os_log su audioQueue, come le righe [METRO] delle due funzioni qui sopra).
+void            metronome_rename_pending_beat(MetronomeHandle handle, uint32_t beatInBar);
+
+// A431/A432 — il battito che il DSP suonera' per primo al prossimo metronome_processBuffer (P26, R1):
+// beat = l'identita' sulla linea dei battiti del DSP (origine + indice); samplesAhead = campioni
+// dall'inizio del prossimo buffer (0 = al primo campione, il battito messo a 'subito'). samplesAhead
+// non e' mai negativo (A432 parti 2a e 2b: il DSP non lascia il battito in attesa nel passato), dentro
+// il dominio del DSP: un tempo finito maggiore di zero e un battito finito maggiore o uguale a zero.
+// Il dominio lo tengono le guardie del DSP: metronome_setBPM e metronome_schedule_bpm_change ignorano
+// un tempo fuori dominio; metronome_reset_for_start, metronome_set_beat_position e
+// metronome_set_beat_position_time_only ignorano un battito fuori dominio (la chiamata rifiutata non
+// scrive niente, e non lo dice: queste funzioni non rendono un esito). metronome_create e
+// metronome_set_sample_rate NON hanno guardia: vogliono un tempo e una frequenza finiti maggiori di
+// zero. L'elenco delle scritture che tengono l'invariante sta in core_engine/MetronomeDSP.h, accanto a
+// getPendingSamplesAhead: il 'subito' di metronome_set_beat_position_time_only confronta il campione
+// esatto, metronome_setBPM e metronome_set_beat_position confrontano l'arrotondato. Un valore
+// sotto la lunghezza del buffer vuol dire che il battito esce nel prossimo metronome_processBuffer, a
+// quell'offset; ma non che un click suona in quella chiamata: nel drenaggio di fine sezione
+// metronome_processBuffer non si chiama (AudioEngine.swift, `_sectionEndPending`), e col click muto
+// il battito avanza senza evento. Sola lettura, nessuna riga di registro. Chiamare SOLO su
+// audioQueue, dopo l'ultima scrittura del DSP della chiamata e prima di metronome_processBuffer.
+typedef struct {
+    double  beat;
+    int64_t samplesAhead;
+} MetronomePendingBeat;
+MetronomePendingBeat metronome_pending_beat(MetronomeHandle handle);
+
 // === Bug 2.b — SPIA passiva L1 (diagnostica, OFF di default) ===
 // Abilita/disabilita la cattura per-beat nel path audio (thread-safe, non-RT).
 void            metronome_set_diag_enabled(MetronomeHandle handle, bool enabled);
