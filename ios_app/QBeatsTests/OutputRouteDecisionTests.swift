@@ -511,4 +511,102 @@ final class OutputRouteDecisionTests: XCTestCase {
         XCTAssertTrue(inside.missing, "la memoria esterna dello show alza «uscita mancante» all'avvio del Follower")
         XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: inside), 0.0)
     }
+
+    // MARK: - A435 · la (b): il segno del silenzio del conto (mandato A435, par. 4 a-b; seguito 2, par. 3)
+
+    /// Il Follower zittito dal conto non certo: il segno alto, il volume a 0.
+    private let uncertain = OutputSilenceState(muted: true, missing: false, lastOutputExternal: true,
+                                               uncertainSilence: true)
+
+    func testTheSignIsLowAtTheStart() {
+        XCTAssertFalse(OutputSilenceState.initial.uncertainSilence)
+    }
+
+    /// Il conto non certo alza il segno solo sul Follower; il volume lo scrive il silenzio (`.silenced`), non il segno.
+    func testTheCountUncertainRaisesTheSignOnlyOnTheFollower() {
+        for role in roles {
+            let after = OutputRouteDecision.state(after: .countUncertain, from: .initial, playerRole: role)
+            XCTAssertEqual(after.uncertainSilence, role == .follower, "\(role)")
+            XCTAssertFalse(after.muted, "\(role)")
+            XCTAssertFalse(after.missing, "\(role)")
+        }
+    }
+
+    /// Nessun evento del volume abbassa il segno, tranne i tre detti: la fine del silenzio del conto, lo show chiuso,
+    /// il cambio di ruolo.
+    func testOnlyTheNamedEventsLowerTheSign() {
+        let keep: [OutputSilenceEvent] = [
+            .silenced, .volumeRestored(externalPresent: true), .volumeRestored(externalPresent: false), .removed,
+            .externalPresent(playingAtVolumeOne: true), .externalPresent(playingAtVolumeOne: false),
+            .recoveryRead(externalPresent: true), .recoveryRead(externalPresent: false),
+            .directorPlay(externalPresent: true), .directorStop, .followerSongEnd, .speakerTap,
+            .showOpened(playingOutputExternal: nil), .showOpened(playingOutputExternal: true), .countUncertain,
+        ]
+        for event in keep {
+            let after = OutputRouteDecision.state(after: event, from: uncertain, playerRole: .follower)
+            XCTAssertTrue(after.uncertainSilence, "\(event)")
+        }
+        let lower: [OutputSilenceEvent] = [.countSilenceEnded, .showClosed, .roleChange]
+        for event in lower {
+            for role in roles {
+                let after = OutputRouteDecision.state(after: event, from: uncertain, playerRole: role)
+                XCTAssertFalse(after.uncertainSilence, "\(event) \(role)")
+            }
+        }
+    }
+
+    /// La fine del silenzio del conto abbassa solo il segno: il volume torna con l'avvio.
+    func testTheEndOfTheCountSilenceLowersOnlyTheSign() {
+        let after = OutputRouteDecision.state(after: .countSilenceEnded, from: uncertain, playerRole: .follower)
+        XCTAssertEqual(after, OutputSilenceState(muted: true, missing: false, lastOutputExternal: true))
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: after), 1.0)
+    }
+
+    /// Col segno alto l'avvio del Follower scrive 0 (una ripartenza nella stessa canzone resta muta); Direttore e Solo
+    /// come oggi.
+    func testWithTheSignTheFollowerStartsMuteAndTheOthersAsToday() {
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: uncertain), 0.0)
+        var signOnly = OutputSilenceState.initial
+        signOnly.uncertainSilence = true
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: signOnly), 0.0)
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .direttore, state: uncertain), 1.0)
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .solo, state: uncertain), 1.0)
+    }
+
+    /// Un solo padrone del volume: col segno alto, sul Follower, nessun volume sopra 0 si scrive; lo 0 passa sempre;
+    /// Direttore e Solo come oggi; senza il segno passa tutto, anche con l'uscita mancante (come oggi).
+    func testWithTheSignNoVolumeAboveZeroIsWrittenOnTheFollower() {
+        XCTAssertFalse(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .follower, state: uncertain))
+        XCTAssertFalse(OutputRouteDecision.allowsVolumeWrite(volume: 0.5, playerRole: .follower, state: uncertain))
+        XCTAssertTrue(OutputRouteDecision.allowsVolumeWrite(volume: 0.0, playerRole: .follower, state: uncertain))
+        XCTAssertTrue(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .direttore, state: uncertain))
+        XCTAssertTrue(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .solo, state: uncertain))
+        XCTAssertTrue(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .follower, state: .initial))
+        let missing = OutputSilenceState(muted: true, missing: true, lastOutputExternal: true)
+        XCTAssertTrue(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .follower, state: missing))
+    }
+
+    /// Le due strade del referto A435 par. 3.2. (1) Lo stato che abbassa «muted» senza scrivere il mixer: finché il
+    /// segno è alto un «muted» basso non dà voce (l'avvio scrive 0, nessuna scrittura sopra 0 passa); lo show chiuso e
+    /// il cambio di ruolo abbassano il segno insieme a «muted» (mandato, par. 4 e). (2) Il motore nuovo dopo il reset
+    /// dei servizi audio non ha un volume scritto finché non passa l'avvio: la rilettura del percorso non tocca il
+    /// segno, e l'avvio scrive 0.
+    func testTheTwoRoadsThatCouldGiveTheVoiceBack() {
+        var loose = uncertain
+        loose.muted = false
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: loose), 0.0)
+        XCTAssertFalse(OutputRouteDecision.allowsVolumeWrite(volume: 1.0, playerRole: .follower, state: loose))
+        for event in [OutputSilenceEvent.showClosed, .roleChange] {
+            let after = OutputRouteDecision.state(after: event, from: uncertain, playerRole: .follower)
+            XCTAssertFalse(after.muted, "\(event)")
+            XCTAssertFalse(after.uncertainSilence, "\(event)")
+        }
+        for external in [false, true] {
+            let afterReset = OutputRouteDecision.state(after: .recoveryRead(externalPresent: external), from: uncertain,
+                                                       playerRole: .follower)
+            XCTAssertTrue(afterReset.uncertainSilence, "\(external)")
+            XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: afterReset), 0.0,
+                           "\(external)")
+        }
+    }
 }

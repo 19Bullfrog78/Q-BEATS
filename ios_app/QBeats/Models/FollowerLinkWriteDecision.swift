@@ -53,6 +53,9 @@ enum FollowerLinkWriteDecision {
         case skippedOwnClock
         /// A366: interruttore solo DEBUG spento, su un Follower che altrimenti scriverebbe.
         case skippedDebugSwitch
+        /// A435 (la (b), mandato A435 par. 4 c): il click del Follower tace perché il conto non è certo (il segno del
+        /// silenzio): fino alla canzone dopo l'iPad non scrive il suo tempo nella sessione della band.
+        case skippedUncertainSilence
     }
 
     /// W2 — al proprio confine di sezione il tempo della sezione nuova si scrive su Link?
@@ -61,10 +64,13 @@ enum FollowerLinkWriteDecision {
     /// (`true` dove non esiste). Chi non è Follower scrive sempre, qualunque cosa dicano gli
     /// altri ingressi. Sul Follower l'orologio proprio viene prima dell'interruttore: se W2 si
     /// salta per tutti e due i motivi, la ragione è `skippedOwnClock`.
+    /// A435 — `uncertainSilence`: il segno del silenzio del conto (`OutputSilenceState.uncertainSilence`). L'ordine dei
+    /// motivi sul Follower: l'orologio proprio, poi il silenzio del conto, poi l'interruttore di debug.
     static func boundaryTempoWrite(role: LinkMode,
                                    userLinkEnabled: Bool,
                                    state: FollowerSyncState,
                                    ownClockUntilStop: Bool,
+                                   uncertainSilence: Bool,
                                    debugSwitchOn: Bool) -> BoundaryTempoWrite {
         guard FollowerDecision.isFollower(role: role, userLinkEnabled: userLinkEnabled) else {
             return .writes
@@ -74,6 +80,9 @@ enum FollowerLinkWriteDecision {
                                                      state: state,
                                                      ownClockUntilStop: ownClockUntilStop) else {
             return .skippedOwnClock
+        }
+        if uncertainSilence {
+            return .skippedUncertainSilence
         }
         return debugSwitchOn ? .writes : .skippedDebugSwitch
     }

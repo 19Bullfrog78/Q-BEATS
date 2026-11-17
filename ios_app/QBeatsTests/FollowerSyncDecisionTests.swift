@@ -357,4 +357,148 @@ final class FollowerSyncDecisionTests: XCTestCase {
         }
         XCTAssertEqual(chosen, 5)
     }
+
+    // MARK: - A435 · la (b): il Play dopo un conto non certo (mandato A435, par. 4 e)
+
+    private let everyState: [S] = [.inSync(songClosed: false), .inSync(songClosed: true), .alone,
+                                   .out(armed: nil), .out(armed: 3)]
+
+    /// Col segno basso (`.notAsked`) e col tempo che combacia il Play vale come sempre, da ogni stato.
+    func testAPlayWithTheTempoMatchingOrNotAskedIsThePlayOfToday() {
+        for state in everyState {
+            for within in [false, true] {
+                let today = t(state, .linkPlay(withinHalfBar: within))
+                XCTAssertEqual(t(state, .linkPlay(withinHalfBar: within, tempo: .notAsked)), today,
+                               "\(state) \(within)")
+                XCTAssertEqual(t(state, .linkPlay(withinHalfBar: within, tempo: .matches)), today,
+                               "\(state) \(within)")
+            }
+        }
+    }
+
+    /// IN SYNC, entro mezza battuta, il tempo non combacia: nessun avvio, si resta IN SYNC con la canzone aperta.
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2): l'azione attesa era `.none`; da qui è
+    /// `.openSong`, perché la canzone si apra anche sul runner (se no lo Stop dopo non lo fa avanzare).
+    func testInSyncAPlayWithTheTempoDifferingDoesNotStartAndKeepsTheSongOpen() {
+        for closed in [false, true] {
+            XCTAssertEqual(t(.inSync(songClosed: closed), .linkPlay(withinHalfBar: true, tempo: .differs)),
+                           T(.inSync(songClosed: false), .openSong), "\(closed)")
+        }
+    }
+
+    /// Poi lo Stop del Direttore (motore fermo, nessuna falsa partenza) arma la successiva; al Play dopo col tempo che
+    /// combacia si parte; con un altro Play che non combacia di nuovo niente, e lo Stop arma di nuovo la successiva.
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (seguito 3 di A435, par. 2): le due azioni attese del Play che non combacia erano
+    /// `.none`; da qui sono `.openSong`. Il resto del caso com'era.
+    func testAfterAPlayThatDidNotMatchTheStopArmsTheNextSongAndTheNextMatchingPlayStarts() {
+        let refused = t(.inSync(songClosed: true), .linkPlay(withinHalfBar: true, tempo: .differs))
+        XCTAssertEqual(refused.action, .openSong)
+        let stopped = t(refused.state, .linkStop(falseStart: false, engineRunning: false))
+        XCTAssertEqual(stopped, T(.inSync(songClosed: true), .armNext))
+        XCTAssertEqual(t(stopped.state, .linkPlay(withinHalfBar: true, tempo: .matches)),
+                       T(.inSync(songClosed: false), .start))
+        let again = t(stopped.state, .linkPlay(withinHalfBar: true, tempo: .differs))
+        XCTAssertEqual(again, T(.inSync(songClosed: false), .openSong))
+        XCTAssertEqual(t(again.state, .linkStop(falseStart: false, engineRunning: false)),
+                       T(.inSync(songClosed: true), .armNext))
+    }
+
+    // MARK: - A435 · SEGUITO 3: l'apertura della canzone senza avvio (seguito 3 di A435, par. 2 e 3)
+
+    /// L'azione `.openSong` esce SOLO dal Play IN SYNC, entro mezza battuta, col tempo che non combacia: da nessun
+    /// altro stato, per nessun altro confronto, e mai da un Play oltre mezza battuta. Da FUORI armato il Play che non
+    /// combacia resta senza azione (lo Stop lì non tocca niente).
+    func testOnlyTheInSyncPlayWithinHalfABarThatDoesNotMatchOpensTheSong() {
+        for state in everyState {
+            for within in [false, true] {
+                for tempo in [FollowerPlayTempo.notAsked, .matches, .differs] {
+                    var inSync = false
+                    if case .inSync = state { inSync = true }
+                    let opens = inSync && within && tempo == .differs
+                    let action = t(state, .linkPlay(withinHalfBar: within, tempo: tempo)).action
+                    XCTAssertEqual(action == .openSong, opens, "\(state) \(within) \(tempo)")
+                }
+            }
+        }
+        // nessun altro evento apre la canzone
+        let others: [E] = [.linkStop(falseStart: false, engineRunning: false),
+                           .linkStop(falseStart: true, engineRunning: false),
+                           .linkStop(falseStart: false, engineRunning: true),
+                           .directorHeard(false, engineRunning: false), .directorHeard(true, engineRunning: false),
+                           .ownSongEnded, .musicianStop, arming(2, heard: true, playing: false), .reset]
+        for state in everyState {
+            for event in others {
+                XCTAssertNotEqual(t(state, event).action, .openSong, "\(state) \(event)")
+            }
+        }
+    }
+
+    /// La falsa partenza del Direttore dopo un Play che non combacia (D7-bis: «in tutte le canzoni»): lo Stop entro
+    /// la prima battuta riarma la STESSA canzone; poi di nuovo il Play che non combacia, e lo Stop dopo la prima
+    /// battuta arma la successiva. Un secondo Stop non avanza un'altra volta.
+    func testAfterAPlayThatDidNotMatchAFalseStartRearmsTheSameSongAndTheLaterStopArmsTheNext() {
+        let refused = t(.inSync(songClosed: true), .linkPlay(withinHalfBar: true, tempo: .differs))
+        let falseStart = t(refused.state, .linkStop(falseStart: true, engineRunning: false))
+        XCTAssertEqual(falseStart, T(.inSync(songClosed: true), .rearmSame))
+        let again = t(falseStart.state, .linkPlay(withinHalfBar: true, tempo: .differs))
+        XCTAssertEqual(again, T(.inSync(songClosed: false), .openSong))
+        let stopped = t(again.state, .linkStop(falseStart: false, engineRunning: false))
+        XCTAssertEqual(stopped, T(.inSync(songClosed: true), .armNext))
+        XCTAssertEqual(t(stopped.state, .linkStop(falseStart: false, engineRunning: false)),
+                       T(.inSync(songClosed: true), .none))
+    }
+
+    /// Dopo una canzone aperta senza avvio le uscite sono quelle di sempre: il Direttore perso a motore fermo porta
+    /// FUORI senza azioni sul runner (D1); il reset porta FUORI senza azioni; un armamento in IN SYNC non cambia
+    /// niente; lo Stop del musicista (nessuna porta lo manda in IN SYNC) chiude la canzone come sempre.
+    func testAfterTheSongIsOpenedWithoutAStartTheExitsAreTheOnesOfToday() {
+        let opened = t(.inSync(songClosed: true), .linkPlay(withinHalfBar: true, tempo: .differs)).state
+        XCTAssertEqual(opened, .inSync(songClosed: false))
+        XCTAssertEqual(t(opened, .directorHeard(false, engineRunning: false)),
+                       T(.out(armed: nil), .none, .lostWhileStopped))
+        XCTAssertEqual(t(opened, .directorHeard(true, engineRunning: false)), T(opened, .none))
+        XCTAssertEqual(t(opened, .reset), T(.out(armed: nil), .none, .reset))
+        XCTAssertEqual(t(opened, arming(2, heard: true, playing: false)), T(opened, .none))
+        XCTAssertEqual(t(opened, .musicianStop), T(.out(armed: nil), .stopAndArmNext, .musicianStop))
+        // da FUORI, dopo il Direttore perso: lo Stop non tocca niente, e si rientra solo armandosi
+        let out = t(opened, .directorHeard(false, engineRunning: false)).state
+        XCTAssertEqual(t(out, .linkStop(falseStart: false, engineRunning: false)), T(.out(armed: nil), .none))
+        XCTAssertEqual(t(out, arming(2, heard: true, playing: false)), T(.out(armed: 2), .armSong(songIdx: 2)))
+        for falseStart in [false, true] {
+            XCTAssertEqual(t(.out(armed: 2), .linkStop(falseStart: falseStart, engineRunning: false)),
+                           T(.out(armed: 2), .none), "\(falseStart)")
+        }
+    }
+
+    /// Da FUORI armato col tempo che non combacia resta armato, senza avvio; non armato resta com'è.
+    func testOutArmedAPlayWithTheTempoDifferingStaysArmed() {
+        XCTAssertEqual(t(.out(armed: 4), .linkPlay(withinHalfBar: true, tempo: .differs)), T(.out(armed: 4), .none))
+        XCTAssertEqual(t(.out(armed: nil), .linkPlay(withinHalfBar: true, tempo: .differs)),
+                       T(.out(armed: nil), .none))
+        XCTAssertEqual(t(.out(armed: 4), .linkPlay(withinHalfBar: true, tempo: .matches)),
+                       T(.inSync(songClosed: false), .start))
+    }
+
+    /// Il Play oltre mezza battuta va dove va oggi, qualunque sia il confronto; in DA SOLO un Play non cambia niente.
+    func testALatePlayGoesWhereItGoesTodayWhateverTheTempo() {
+        for tempo in [FollowerPlayTempo.notAsked, .matches, .differs] {
+            XCTAssertEqual(t(.inSync(songClosed: false), .linkPlay(withinHalfBar: false, tempo: tempo)),
+                           T(.out(armed: nil), .none, .playLate), "\(tempo)")
+            XCTAssertEqual(t(.out(armed: 4), .linkPlay(withinHalfBar: false, tempo: tempo)),
+                           T(.out(armed: nil), .none, .playLate), "\(tempo)")
+            XCTAssertEqual(t(.alone, .linkPlay(withinHalfBar: true, tempo: tempo)), T(.alone, .none), "\(tempo)")
+        }
+    }
+
+    /// Il motore scrive la riga «play dopo un non certo» solo quando il Play farebbe partire l'iPad.
+    func testAPlayWouldStartOnlyInSyncOrArmedWithinHalfABar() {
+        XCTAssertTrue(FollowerSyncDecision.playWouldStart(state: .inSync(songClosed: false), withinHalfBar: true))
+        XCTAssertTrue(FollowerSyncDecision.playWouldStart(state: .inSync(songClosed: true), withinHalfBar: true))
+        XCTAssertTrue(FollowerSyncDecision.playWouldStart(state: .out(armed: 2), withinHalfBar: true))
+        XCTAssertFalse(FollowerSyncDecision.playWouldStart(state: .out(armed: nil), withinHalfBar: true))
+        XCTAssertFalse(FollowerSyncDecision.playWouldStart(state: .alone, withinHalfBar: true))
+        for state in everyState {
+            XCTAssertFalse(FollowerSyncDecision.playWouldStart(state: state, withinHalfBar: false), "\(state)")
+        }
+    }
 }

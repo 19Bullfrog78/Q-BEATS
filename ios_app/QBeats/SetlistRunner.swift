@@ -36,6 +36,9 @@ final class SetlistRunner: ObservableObject {
     /// `armNextSong` idempotente nella corsa di fine canzone: il drain proprio e lo Stop del
     /// Direttore arrivano in un ordine qualsiasi, e il secondo trova la canzone già chiusa
     /// (Q21: cartello nel runner E `songClosed` nel tipo `FollowerSyncState`). Solo main.
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2). «fino al prossimo avvio» non è più tutto: sul
+    /// Follower il cartello si abbassa anche senza avvio, quando la band dà un Play che qui non parte perché il tempo
+    /// non combacia (`openArmedSongWithoutStart`, più sotto).
     private(set) var songClosed: Bool = false
     /// Quante canzoni ha la scaletta (`DirectorSongCloseDecision`, `RientraProposal`).
     var songCount: Int { catalog.count }
@@ -48,6 +51,14 @@ final class SetlistRunner: ObservableObject {
     func firstBeatsPerBar(ofSongAt index: Int) -> UInt32? {
         guard index >= 0, index < catalog.count else { return nil }
         return catalog[index].sections.first?.beatsPerBar
+    }
+
+    /// A435 (la (b); seguito 1 di A435, par. 3: P2-1) — il tempo della PRIMA sezione di una canzone della scaletta,
+    /// accanto alla misura qui sopra: la stanza lo porta al motore con l'armamento del RIENTRA (`followerArm`), per il
+    /// confronto del Play dopo un conto non certo. `nil` fuori catalogo o senza sezioni.
+    func firstBpm(ofSongAt index: Int) -> Double? {
+        guard index >= 0, index < catalog.count else { return nil }
+        return catalog[index].sections.first?.bpm
     }
 
     // Costruita lazy al primo `prepareAndStartCurrentSection`. Riusata
@@ -287,7 +298,10 @@ final class SetlistRunner: ObservableObject {
         // A386 · FASE B2A (2D) — la misura della PRIMA sezione della canzone che parte: il
         // motore la usa per la mezza battuta (Q10) e per il margine della falsa partenza
         // (D7-bis), sui due ruoli. Prima del setup, così è già lì quando parte il click.
-        audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? section.beatsPerBar)
+        // A435 (la (b), mandato A435 par. 4 e) — e il tempo della stessa prima sezione, per il Play dopo un conto non
+        // certo sul Follower.
+        audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? section.beatsPerBar,
+                                            firstBpm: currentSong?.sections.first?.bpm ?? section.bpm)
         // A410 — e la mappa della canzone, per il conteggio in silenzio (`ShowClock`): le sezioni,
         // l'indice della canzone e la sezione da cui parte il click. Nel motore diventa una copia di
         // coda. ⚠️ RISCRITTO A412: qui si diceva «nel passo 1 la leggono solo le righe di registro del
@@ -565,13 +579,39 @@ final class SetlistRunner: ObservableObject {
             session.nextSongName = nil
             session.macroBarCurrent = 0
             session.macroBarTotal = 1
-            audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? 4)
+            audioEngine.setSongFirstBeatsPerBar(currentSong?.sections.first?.beatsPerBar ?? 4,
+                                                firstBpm: currentSong?.sections.first?.bpm)
         } else {
             os_log("[Q-BEATS][L1.b] fineSetlist — performance terminata",
                    log: .default, type: .default)
             audioEngine.sectionEndedSubject.send()   // PRIMA del cambio stato
             session.playbackState = .fineSetlist
         }
+    }
+
+    /// === A435 · SEGUITO 3 (16/11/2026) — LA CANZONE ARMATA SI APRE SENZA AVVIO (seguito 3 di A435, par. 2;
+    /// VERIFICA_REFEREE_A435_PEZZO-INTERO par. 3.1) ===
+    /// Sul Follower zittito dal conto non certo, il Play della band col tempo che non combacia non fa partire niente
+    /// (la (b), decisione 9.5): la band suona una canzone che qui non parte. Perché allo Stop del Direttore il runner
+    /// passi alla canzone dopo (`armNextSong`, dalla macchina: `.armNext`), la canzone armata deve risultare APERTA:
+    /// prima di questo seguito il cartello restava alto dalla fine della canzone di prima (lo abbassavano solo gli avvii
+    /// e `moveToSection`), `armNextSong` usciva alla sua guardia e l'iPad restava indietro di una canzone per tutto lo
+    /// show. Qui si abbassa il cartello, e NIENT'ALTRO: nessun avvio, nessuna scrittura della misura o del tempo,
+    /// nessun indice, sessione e schermo come sono (il velo armato resta).
+    /// L'idempotenza di `armNextSong` per la corsa di fine canzone non cambia: quella corsa nasce da una canzone
+    /// PARTITA (il cartello l'aveva già abbassato l'avvio), e fra la fine propria e lo Stop del Direttore non può
+    /// arrivare un'apertura: a motore in moto il Play della band è ignorato, e a motore fermo l'apertura arriva con un
+    /// passo su main accodato dopo ogni chiusura già consegnata. Dopo l'apertura: lo Stop del Direttore oltre la prima
+    /// battuta arma la successiva, una volta sola (il secondo trova di nuovo il cartello alto); la falsa partenza riarma
+    /// la stessa (`armSong`, che rialza il cartello); se il Follower va FUORI il cartello resta basso fino al RIENTRA
+    /// (`armSong`) o al prossimo avvio, e da FUORI nessuno chiede `armNextSong`.
+    /// Chiamante unico: la stanza (`QLiveSession.handleFollowerRunnerAction`, azione `.openSong` della macchina del
+    /// Follower), sul principale, nello stesso passo delle altre azioni della macchina.
+    func openArmedSongWithoutStart() {
+        let wasClosed = songClosed
+        songClosed = false
+        os_log("[Q-BEATS][2D][RUNNER] canzone aperta senza avvio songIdx:%d eraChiusa:%d - il Play della band non combacia, nessun avvio: lo Stop del Direttore arma la successiva",
+               log: .default, type: .default, currentSongIdx, wasClosed ? 1 : 0)
     }
 
     /// RIENTRA / lista d'ingresso (D4, A1) e falsa partenza (D7-bis): arma l'INIZIO di una canzone

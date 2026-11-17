@@ -612,6 +612,18 @@ struct DebugView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.purple)
+                        // A435 — le due scalette del collaudo di 3c-2 (mandato A435, par. 4 h): «D» sull'iPhone del
+                        // Direttore, «F» sull'iPad del Follower. Stesse canzoni, diverse solo dove serve alla prova.
+                        Button("Carica dati test COLLAUDO 3C-2 D (Direttore)") {
+                            loadTestDataCollaudo3C2(follower: false)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                        Button("Carica dati test COLLAUDO 3C-2 F (Follower)") {
+                            loadTestDataCollaudo3C2(follower: true)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
                     }
                 }
                 #endif
@@ -1030,6 +1042,73 @@ struct DebugView: View {
                               date: Date(), songIDs: [song1.id, song2.id, song3.id, song4.id, song5.id])
 
         QBeatsStore.shared.injectTestData(songs: [song1, song2, song3, song4, song5], setlists: [setlist])
+    }
+
+    /// === A435 (16/11/2026) — LA SCALETTA DI PROVA DEL COLLAUDO DI 3C-2 (mandato A435, par. 4 h) ===
+    /// Due caricamenti: «COLLAUDO 3C-2 D» per l'iPhone del Direttore (`follower` falso) e «COLLAUDO 3C-2 F» per l'iPad
+    /// del Follower. Le stesse sette canzoni, con gli stessi nomi, nello stesso ordine; diverse solo nel tempo di due
+    /// sezioni (la 1 e la 2). countIn 0, nessuna base, accenti col 2 sul battito 1 (il 7/8 come [2,1,2,1,2,1,1]),
+    /// suddivisione 1. Le durate: battute × battiti per battuta × 60 / tempo.
+    /// ⚠️ RISCRITTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 4; VERIFICA_REFEREE_A435_PEZZO-INTERO par. 3.3):
+    /// la 2 e la 3 si sono scambiate. Prima l'ordine era «2 Same» (la «Verse» a 101,5) e poi «3 Other tempo» (la «Verse»
+    /// a 141,5 sul Direttore e 131,5 sul Follower): il Play della 2 combaciava e abbassava il segno del silenzio, e al
+    /// Play della 3 il confronto non si faceva, così il Play che non combacia non si vedeva. Stesse sezioni e stessi
+    /// tempi, solo l'ordine e i nomi delle due canzoni; i numeri qui sotto sono ricalcolati per il nuovo ordine.
+    ///   1 «1 Different»: «Verse» 4/4 a 121,5, 8 battute = 32 battiti (15,8 s); «Chorus» 4/4, 32 battute = 128
+    ///     battiti: D a 124,5 (61,7 s), F a 120,5 (63,7 s). In tutto D 77,5 s, F 79,5 s. Il Play combacia (la prima
+    ///     sezione è uguale); al «Chorus» il tempo della band non è quello dell'iPad: il conto non certo e il silenzio
+    ///     (C15), e una ripartenza dell'iPad nel silenzio (C17).
+    ///   2 «2 Other tempo»: «Verse» 4/4, 16 battute = 64 battiti: D a 141,5 (27,1 s), F a 131,5 (29,2 s). Il Play che
+    ///     NON combacia, col segno ancora alto dalla 1: l'iPad resta zitto e sul velo della 2; allo Stop del Direttore
+    ///     dopo la prima battuta arma la 3. Una falsa partenza del Direttore qui (Play e Stop entro la prima battuta,
+    ///     4 battiti: 1,7 s a 141,5) lascia l'iPad sulla 2 (seguito 3 di A435, par. 3).
+    ///   3 «3 Same»: «Verse» 4/4 a 101,5, 16 battute = 64 battiti (37,8 s). Il Play che combacia dopo una che non
+    ///     combaciava: l'iPad riparte e il volume torna con l'avvio.
+    ///   4 «4 Four changes»: «A» a 121,5, «B» a 91,5, «C» a 121,5, «D» a 91,5, «E» a 121,5, tutte 4/4 da 8 battute = 32
+    ///     battiti (15,8 + 21,0 + 15,8 + 21,0 + 15,8 = 89,4 s). La prova dello scarto che si somma (B10, la riga
+    ///     «scarto:»).
+    ///   5 «5 Short meter»: «Intro 7/8» 7/8 a 161,5, 8 battute = 56 battiti (20,8 s); «Turn» 2/4 a 120,5, 1 battuta =
+    ///     2 battiti (1,0 s); «Chorus» 4/4 a 121,5, 8 battute = 32 battiti (15,8 s). In tutto 37,6 s (C26).
+    ///   6 «6 Limit A.2»: «Intro 7/8» 7/8 a 161,5, 8 battute (20,8 s); «Turn 1» e «Turn 2» 2/4 a 120,5, 1 battuta
+    ///     l'una (1,0 s + 1,0 s); «Run» 2/4 a 120,5, 8 battute = 16 battiti (8,0 s). In tutto 30,8 s. Il limite scritto
+    ///     di A.2 (due sezioni corte di seguito e poi lo stesso metro): atteso un «non certo» falso, e il silenzio.
+    ///   7 «7 Long run»: «Run» 4/4 a 180,5, 400 battute = 1600 battiti (531,9 s, 8 min 52 s) (C24, C23).
+    private func loadTestDataCollaudo3C2(follower: Bool) {
+        let setlistName = follower ? "COLLAUDO 3C-2 F" : "COLLAUDO 3C-2 D"
+        os_log("[DebugView] Carica dati test %{public}@", log: .default, type: .default, setlistName)
+        func section(_ name: String, _ bpm: Double, _ beats: UInt32, _ unit: UInt32, _ bars: Int,
+                     _ pattern: [UInt8]) -> SongSection {
+            SongSection(name: name, bpm: bpm, beatsPerBar: beats, beatUnit: unit,
+                        repetitions: bars, notes: "", accentPattern: pattern,
+                        subdivisionMultiplier: 1, swingRatio: 0.5)
+        }
+        func song(_ name: String, _ sections: [SongSection]) -> Song {
+            Song(id: UUID(), name: name, sections: sections, countIn: 0, backtrackFilename: nil)
+        }
+        let four: [UInt8] = [2, 1, 1, 1]
+        let two: [UInt8] = [2, 1]
+        let seven: [UInt8] = [2, 1, 2, 1, 2, 1, 1]
+        let songs = [
+            song("1 Different", [section("Verse", 121.5, 4, 4, 8, four),
+                                 section("Chorus", follower ? 120.5 : 124.5, 4, 4, 32, four)]),
+            song("2 Other tempo", [section("Verse", follower ? 131.5 : 141.5, 4, 4, 16, four)]),
+            song("3 Same", [section("Verse", 101.5, 4, 4, 16, four)]),
+            song("4 Four changes", [section("A", 121.5, 4, 4, 8, four),
+                                    section("B", 91.5, 4, 4, 8, four),
+                                    section("C", 121.5, 4, 4, 8, four),
+                                    section("D", 91.5, 4, 4, 8, four),
+                                    section("E", 121.5, 4, 4, 8, four)]),
+            song("5 Short meter", [section("Intro 7/8", 161.5, 7, 8, 8, seven),
+                                   section("Turn", 120.5, 2, 4, 1, two),
+                                   section("Chorus", 121.5, 4, 4, 8, four)]),
+            song("6 Limit A.2", [section("Intro 7/8", 161.5, 7, 8, 8, seven),
+                                 section("Turn 1", 120.5, 2, 4, 1, two),
+                                 section("Turn 2", 120.5, 2, 4, 1, two),
+                                 section("Run", 120.5, 2, 4, 8, two)]),
+            song("7 Long run", [section("Run", 180.5, 4, 4, 400, four)]),
+        ]
+        let setlist = Setlist(id: UUID(), name: setlistName, date: Date(), songIDs: songs.map { $0.id })
+        QBeatsStore.shared.injectTestData(songs: songs, setlists: [setlist])
     }
 
     /// A398 · SOLO-G1-PEZZO-1-M3 (07/10/2026) — «COLLAUDO SOLO G1 VELI» (decisione del referee, mandato M3 §3.11):

@@ -73,10 +73,12 @@ final class FollowerLinkWriteDecisionTests: XCTestCase {
         .out(armed: 3),
     ]
 
+    /// A435 — `silence`: il segno del silenzio del conto. Di base basso: i casi di prima restano com'erano.
     private func w2(_ role: LinkMode, _ user: Bool, _ state: FollowerSyncState,
-                    ownClock: Bool = false, debugSwitch: Bool = true) -> W2 {
+                    ownClock: Bool = false, silence: Bool = false, debugSwitch: Bool = true) -> W2 {
         FollowerLinkWriteDecision.boundaryTempoWrite(role: role, userLinkEnabled: user, state: state,
-                                                     ownClockUntilStop: ownClock, debugSwitchOn: debugSwitch)
+                                                     ownClockUntilStop: ownClock, uncertainSilence: silence,
+                                                     debugSwitchOn: debugSwitch)
     }
 
     func testW2FollowerInSyncWritesAsToday() {
@@ -180,5 +182,40 @@ final class FollowerLinkWriteDecisionTests: XCTestCase {
         XCTAssertEqual(w2(.collaborativa, true, state, ownClock: ownClock), .skippedOwnClock)
         ownClock = false    // il motore si e' fermato
         XCTAssertEqual(w2(.collaborativa, true, state, ownClock: ownClock), .writes)
+    }
+
+    // MARK: - A435 · la (b): W2 col silenzio del conto (mandato A435, par. 4 c)
+
+    /// Col segno del silenzio alto il Follower che segue Link non scrive il suo tempo al confine.
+    func testW2FollowerWithTheUncertainSilenceDoesNotWrite() {
+        XCTAssertEqual(w2(.collaborativa, true, .inSync(songClosed: false), silence: true), .skippedUncertainSilence)
+        XCTAssertEqual(w2(.collaborativa, true, .inSync(songClosed: true), silence: true), .skippedUncertainSilence)
+        XCTAssertEqual(w2(.collaborativa, true, .out(armed: nil), silence: true), .skippedUncertainSilence)
+        XCTAssertEqual(w2(.collaborativa, true, .out(armed: 3), silence: true), .skippedUncertainSilence)
+    }
+
+    /// L'ordine dei motivi sul Follower: l'orologio proprio, poi il silenzio del conto, poi l'interruttore di debug.
+    func testW2TheOrderOfTheReasonsOnTheFollower() {
+        XCTAssertEqual(w2(.collaborativa, true, .alone, silence: true, debugSwitch: false), .skippedOwnClock)
+        XCTAssertEqual(w2(.collaborativa, true, .out(armed: nil), ownClock: true, silence: true, debugSwitch: false),
+                       .skippedOwnClock)
+        XCTAssertEqual(w2(.collaborativa, true, .inSync(songClosed: false), silence: true, debugSwitch: false),
+                       .skippedUncertainSilence)
+        XCTAssertEqual(w2(.collaborativa, true, .inSync(songClosed: false), silence: false, debugSwitch: false),
+                       .skippedDebugSwitch)
+        XCTAssertEqual(w2(.collaborativa, true, .inSync(songClosed: false), silence: false, debugSwitch: true), .writes)
+    }
+
+    /// Chi non è Follower scrive sempre, qualunque cosa dica il segno.
+    func testW2WhoIsNotAFollowerWritesWhateverTheSilence() {
+        for state in states {
+            for silence in [false, true] {
+                XCTAssertEqual(w2(.direttore, true, state, silence: silence), .writes, "\(state) \(silence)")
+                XCTAssertEqual(w2(.standalone, true, state, silence: silence, debugSwitch: false), .writes,
+                               "\(state) \(silence)")
+                XCTAssertEqual(w2(.collaborativa, false, state, ownClock: true, silence: silence), .writes,
+                               "\(state) \(silence)")
+            }
+        }
     }
 }

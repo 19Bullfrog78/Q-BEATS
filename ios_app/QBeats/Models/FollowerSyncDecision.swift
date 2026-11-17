@@ -79,7 +79,10 @@ struct FollowerArming: Equatable {
 
 enum FollowerSyncEvent: Equatable {
     /// Richiamo avvio di Link, a motore fermo. `withinHalfBar`: `HalfBarWindow`.
-    case linkPlay(withinHalfBar: Bool)
+    /// A435 (la (b), mandato A435 par. 4 e) — `tempo`: col segno del silenzio del conto alto, il confronto fra il tempo
+    /// della sessione e quello della prima sezione della canzone che l'iPad ha davanti (`BandTempoMatchDecision`); col
+    /// segno basso `.notAsked`, e il Play vale come sempre. Entra nell'evento: nessuna lettura nascosta nella regola.
+    case linkPlay(withinHalfBar: Bool, tempo: FollowerPlayTempo = .notAsked)
     /// Richiamo stop di Link. `falseStart`: `FalseStartDecision` sui battiti di sessione (D7-bis).
     case linkStop(falseStart: Bool, engineRunning: Bool)
     /// Il fronte del segnale «sento il Direttore» (`DirectorHeardTracker`), col motore.
@@ -113,6 +116,13 @@ enum FollowerSyncAction: Equatable {
     /// DOPO che il motore ha scritto la misura della canzone scelta nello stesso passo su
     /// audioQueue. Rifiutato o ignorato: nessuna azione, runner e misura non si toccano.
     case armSong(songIdx: Int)
+    /// A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2) — il Play della band entro mezza battuta che in IN SYNC
+    /// non fa partire l'iPad perché il tempo non combacia: `runner.openArmedSongWithoutStart()`, a motore fermo, su
+    /// main. La canzone armata si APRE sul runner senza avvio: si abbassa il suo cartello «canzone chiusa», e
+    /// nient'altro (nessun avvio, nessuna scrittura della misura o del tempo). Senza, lo Stop del Direttore che segue
+    /// chiederebbe `armNext` a un runner con la canzone ancora chiusa dalla fine di quella di prima, e l'iPad
+    /// resterebbe indietro di una canzone sulla band.
+    case openSong
 }
 
 /// Perche' si e' andati FUORI (o perche' un armamento e' stato rifiutato): il velo lo legge,
@@ -172,16 +182,40 @@ enum FollowerSyncDecision {
         }
     }
 
+    /// A435 — un Play farebbe partire l'iPad da questo stato, a parte il confronto del tempo? (IN SYNC e FUORI armato,
+    /// entro mezza battuta.) Il motore lo chiede per scrivere la riga «play dopo un non certo» solo quando conta.
+    static func playWouldStart(state: FollowerSyncState, withinHalfBar: Bool) -> Bool {
+        transition(state: state, event: .linkPlay(withinHalfBar: withinHalfBar, tempo: .notAsked)).action == .start
+    }
+
     // MARK: - IN SYNC
 
     private static func inSync(songClosed: Bool, event: FollowerSyncEvent) -> FollowerSyncTransition {
         let unchanged = FollowerSyncTransition(.inSync(songClosed: songClosed), .none)
         switch event {
-        case .linkPlay(let withinHalfBar):
+        case .linkPlay(let withinHalfBar, let tempo):
             // D6: si parte solo entro mezza battuta; oltre, la band sta gia' suonando.
             if withinHalfBar {
+                // A435 (la (b)): dopo un conto non certo, col tempo che non combacia, la band suona una canzone che
+                // qui non parte. Si resta IN SYNC con la canzone APERTA e senza avvio: allo Stop del Direttore la
+                // regola qui sotto (motore fermo, canzone non chiusa) arma la successiva, e l'iPad resta al passo
+                // con la scaletta della band. Al Play dopo, di nuovo il confronto.
+                // ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2; VERIFICA_REFEREE_A435_PEZZO-INTERO
+                // par. 3.1). Le righe qui sopra dicevano il disegno, ma la transizione rendeva l'azione `.none`: la
+                // canzone si apriva solo QUI, nella macchina, e sul runner restava chiusa dalla fine della canzone di
+                // prima (`SetlistRunner.songClosed`, che abbassavano solo gli avvii); allo Stop `armNextSong` usciva
+                // alla sua guardia «canzone gia' chiusa» e l'iPad restava indietro di una canzone. Da qui la
+                // transizione porta l'azione `.openSong`: nello stesso passo su main delle azioni della macchina il
+                // runner apre la canzone armata, senza avvio; lo Stop che segue (un passo su main dopo) la trova
+                // aperta e avanza di una, una volta sola. Sullo stesso Play il motore registra la fase d'avvio
+                // (seguito 3, par. 3): uno Stop entro la prima battuta è una falsa partenza (D7-bis) e riarma la
+                // STESSA canzone, qui sotto. Da FUORI armato il Play che non combacia resta com'era: nessuna azione.
+                if tempo == .differs {
+                    return FollowerSyncTransition(.inSync(songClosed: false), .openSong)
+                }
                 return FollowerSyncTransition(.inSync(songClosed: false), .start)
             }
+            // Oltre mezza battuta va dove va oggi, anche col segno alto (il segno resta).
             return FollowerSyncTransition(.out(armed: nil), .none, .playLate)
 
         case .linkStop(let falseStart, let engineRunning):
@@ -264,9 +298,15 @@ enum FollowerSyncDecision {
         case .armed(let arming):
             return arm(arming)
 
-        case .linkPlay(let withinHalfBar):
+        case .linkPlay(let withinHalfBar, let tempo):
             guard let chosen = armed else { return unchanged }
             if withinHalfBar {
+                // A435 (la (b)): la stessa regola da FUORI armato: col tempo che non combacia resta armato, senza
+                // avvio. A435 · SEGUITO 3 (par. 2, vincolo d): qui nessuna apertura sul runner; lo Stop da FUORI armato
+                // non tocca niente (R2, più sotto), e la canzone armata resta quella.
+                if tempo == .differs {
+                    return unchanged
+                }
                 return FollowerSyncTransition(.inSync(songClosed: false), .start)
             }
             _ = chosen

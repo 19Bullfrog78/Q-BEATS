@@ -141,22 +141,32 @@ struct SectionEditorView: View {
 
     private func repeatFeel(_ sf: CGFloat) -> some View {
         Section {
-            Toggle(isOn: loopBinding) {
-                Text("Loop ∞").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
-            }
-            .tint(QStageTheme.accent)
-
-            if section.repetitions >= 0 {
-                Stepper(value: $section.repetitions, in: 1...64) {
-                    HStack {
-                        Text("Repeat").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
-                        Spacer()
-                        Text("×\(section.repetitions)")
-                            .font(.custom("JetBrainsMono-Bold", size: 16 * sf))
-                            .foregroundColor(QStageTheme.text)
-                    }
+            // === A435 (16/11/2026) — D15: VIA L'INTERRUTTORE «Loop ∞» (mandato A435, par. 2.3; seguito 1 di A435, par. 3: la
+            // strada (a); BUGS, `TD-loop-infinito-da-rimuovere`) ===
+            // Qui c'erano il `Toggle` «Loop ∞» (col suo legame `loopBinding`: «repetitions = -1 (sentinel loop) ⇄ toggle»)
+            // e, sotto, lo `Stepper(value: $section.repetitions, in: 1...64)` mostrato solo con `section.repetitions >= 0`.
+            // Da A435 la riga «Repeat» si vede SEMPRE. Una sezione che arriva con un valore sotto zero (dati vecchi, un
+            // file importato: il valore -1 resta nel modello, nel motore e nei test) mostra accanto a «Repeat» il segno
+            // «∞», lo stesso della lista delle sezioni (`SongEditorView`); il primo tocco su + o su − scrive 1; da 1 a 64
+            // come prima. Nessuna parola nuova a schermo, e nessun dato cambia senza un gesto.
+            // Il comando: lo `Stepper` a chiusure, `init(label:onIncrement:onDecrement:onEditingChanged:)` (Apple,
+            // SwiftUI, https://developer.apple.com/documentation/swiftui/stepper/init(label:onincrement:ondecrement:oneditingchanged:):
+            // esegue la chiusura data al tocco del più e quella data al tocco del meno; iOS 13.0+). Non lo `Stepper` col
+            // valore legato: Apple non dice che cosa fa con un valore fuori dal suo intervallo (Costituzione V6, par. 7).
+            // Le due chiusure tengono il valore fra 1 e 64 da sé (`steppedRepetitions`).
+            Stepper(label: {
+                HStack {
+                    Text("Repeat").font(.jbMono(.medium, size: 15 * sf)).foregroundColor(QStageTheme.text2)
+                    Spacer()
+                    Text(section.repetitions < 0 ? "∞" : "×\(section.repetitions)")
+                        .font(.custom("JetBrainsMono-Bold", size: 16 * sf))
+                        .foregroundColor(QStageTheme.text)
                 }
-            }
+            }, onIncrement: {
+                section.repetitions = SectionEditorView.steppedRepetitions(section.repetitions, by: 1)
+            }, onDecrement: {
+                section.repetitions = SectionEditorView.steppedRepetitions(section.repetitions, by: -1)
+            })
 
             Stepper(value: subdivBinding, in: 1...4) {
                 HStack {
@@ -233,12 +243,13 @@ struct SectionEditorView: View {
         )
     }
 
-    /// repetitions = -1 (sentinel loop) ⇄ toggle.
-    private var loopBinding: Binding<Bool> {
-        Binding(
-            get: { section.repetitions < 0 },
-            set: { section.repetitions = $0 ? -1 : 1 }
-        )
+    /// A435 · D15 — il passo di «Repeat»: da un valore sotto 1 (il vecchio «Loop ∞», -1) il primo tocco su + o su −
+    /// scrive 1; poi un passo alla volta, fra 1 e 64 come prima. Un valore sopra 64 (un file importato, una scaletta
+    /// di prova) non si abbassa col +: resta com'è; il − lo fa scendere di uno.
+    static func steppedRepetitions(_ current: Int, by step: Int) -> Int {
+        if current < 1 { return 1 }
+        if current > 64 { return step < 0 ? current - 1 : current }
+        return min(max(current + step, 1), 64)
     }
 
     /// subdivisionMultiplier (UInt8) come Int per lo Stepper.

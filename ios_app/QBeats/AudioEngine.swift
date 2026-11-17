@@ -39,6 +39,10 @@ enum FollowerRunnerAction: Equatable {
     /// B2b: armamento accettato dalla lista d'ingresso o da RIENTRA — arma l'inizio della canzone
     /// scelta (`armSong(index:)`); la misura l'ha già scritta il motore, nello stesso passo.
     case armSong(songIdx: Int)
+    /// A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2) — il Play della band che non combacia, in IN SYNC: apri
+    /// la canzone armata SENZA avvio (`openArmedSongWithoutStart`): si abbassa il cartello «canzone chiusa» del runner,
+    /// e basta. Lo Stop del Direttore che segue la trova aperta e arma la successiva.
+    case openSong
 }
 
 // A412 · DIRETTORE IN CRISI, PASSO 2 (18/10/2026) — cosa il Direttore muto in canzone chiede al runner, via la
@@ -132,6 +136,11 @@ class AudioEngine: ObservableObject {
     /// B2c (§3.f): nello stesso valore anche «sento il Direttore», «Searching…» e «band playing»,
     /// che prima erano tre `@Published` a parte (`directorHeard`, `directorSearching`,
     /// `linkSessionPlaying`: usciti). Lo scrive solo `followerPublishQ`, una volta per passo.
+    /// A435 (la (b), mandato A435 par. 4 f; A424, A.13) — il segno del silenzio del conto, per la vista: il click del
+    /// Follower tace fino alla canzone dopo perché il conto sulla band non è più certo. Specchio sul principale della
+    /// copia di coda (`_outputSilenceQ.uncertainSilence`), pubblicato da una mano sola (`noteOutputStateQ`) a ogni
+    /// cambio, come `isPlaying`. NESSUNA VISTA LO LEGGE in questo pezzo: lo schermo lo disegna CD.
+    @Published private(set) var followerUncertainSilence: Bool = false
     @Published private(set) var followerSync = FollowerSyncSnapshot(state: FollowerSyncDecision.initial,
                                                                     outReason: nil,
                                                                     directorHeard: false,
@@ -768,6 +777,10 @@ class AudioEngine: ObservableObject {
     /// Battiti per battuta della PRIMA sezione della canzone armata/in corso (Q10, D7-bis):
     /// lo scrive il runner, non il motore (che al richiamo porta ancora la sezione precedente).
     private var _songFirstBeatsPerBarQ: UInt32 = 4
+    /// A435 (la (b), mandato A435 par. 4 e) — il tempo della PRIMA sezione della canzone armata/in corso: lo consegna
+    /// il runner insieme alla misura (`setSongFirstBeatsPerBar`) e, per la canzone scelta col RIENTRA, la stanza
+    /// (`followerArm`). `nil` = mai consegnato. Lo legge solo il confronto del Play dopo un conto non certo.
+    private var _songFirstBpmQ: Double? = nil
     /// B2b (A2): «show aperto» = il runner nello slot della stanza. Lo alza `QLiveSession.install`,
     /// lo abbassano END SHOW e l'uscita dalla stanza (`setShowOpen`). Il Direttore ripete solo a
     /// show aperto. Copia di coda; nessuno specchio: lo legge solo `directorPulse`.
@@ -2557,6 +2570,9 @@ class AudioEngine: ObservableObject {
     /// avvio. Stop: falsa partenza sui battiti di sessione (D7-bis), motore in moto =
     /// `isRunning || isAudioInterrupted` (Q11). `linkPlay` arriva alla macchina SOLO a motore
     /// fermo (a motore in moto un Play non fa niente, come la guardia `!engine.isPlaying`).
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 3). «accettato ⇒ si registra la fase di avvio»
+    /// non è più tutto: la fase d'avvio si registra anche al Play IN SYNC entro mezza battuta rifiutato perché il tempo
+    /// non combacia (l'azione `.openSong`), con la sua riga «contesto:play-rifiutato-tempo».
     private func followerHandleLinkTransport(isPlaying: Bool) {
         guard let lh = linkEngineHandle else { return }
         let snap = link_engine_read_transport_snapshot(lh)
@@ -2635,8 +2651,35 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default,
                    snap.timeForIsPlaying, snap.captureHostTime, gapMs,
                    machTicksToSeconds(halfBar) * 1000.0, snap.tempo, _songFirstBeatsPerBarQ, within ? 1 : 0)
-            let transition = followerTransitionQ(.linkPlay(withinHalfBar: within))
+            // === A435 (16/11/2026) — LA (b): LA RIPARTENZA, COME LA 9.5 (mandato A435, par. 4 e; seguito 2, par. 3) ===
+            // Col segno del silenzio del conto alto il Play del Direttore fa ripartire l'iPad solo se il tempo della
+            // sessione combacia col tempo della prima sezione della canzone che l'iPad ha davanti, entro un decimo di
+            // BPM (`BandTempoMatchDecision`, Models/, col suo banco). Il confronto entra nella macchina come ingresso
+            // dell'evento del Play. Combacia: il segno si toglie qui sotto, PRIMA dell'avvio, e l'ingresso è quello di
+            // sempre (il volume torna con l'avvio). Non combacia: nessun avvio, l'iPad resta sul velo armato; allo Stop
+            // del Direttore arma la successiva con la regola di sempre. Il Play oltre mezza battuta va dove va oggi, e
+            // il segno resta. Nessuna scrittura verso Link, nessuno Stop a Link. Costituzione V6, par. 4: su questa
+            // coda, al richiamo del Play, mai nel callback di render; una riga solo quando il Play farebbe partire.
+            // ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2 e 3). «allo Stop del Direttore arma la
+            // successiva con la regola di sempre» non bastava: la regola di sempre chiedeva `armNext` a un runner con la
+            // canzone ancora chiusa, che non avanzava. Dal seguito 3 il Play IN SYNC che non combacia porta l'azione
+            // `.openSong` (il runner apre la canzone armata senza avvio) e registra la fase d'avvio (più sotto): lo
+            // Stop dopo la prima battuta arma la successiva, lo Stop entro la prima battuta riarma la stessa.
+            let silenceSign = _outputSilenceQ.uncertainSilence
+            let tempoCheck = BandTempoMatchDecision.check(uncertainSilence: silenceSign,
+                                                          sessionBpm: snap.tempo,
+                                                          songFirstBpm: _songFirstBpmQ)
+            if silenceSign && FollowerSyncDecision.playWouldStart(state: _followerSyncQ, withinHalfBar: within) {
+                let songTempoText: String = _songFirstBpmQ.map { String(format: "%.4f", $0) } ?? "-"
+                os_log("[Q-BEATS][2D][FOLLOWER] play dopo un non certo tempoSessione:%.4f tempoCanzone:%{public}@ combacia:%d",
+                       log: .default, type: .default, snap.tempo, songTempoText, tempoCheck == .matches ? 1 : 0)
+            }
+            let transition = followerTransitionQ(.linkPlay(withinHalfBar: within, tempo: tempoCheck))
             if transition.action == .start {
+                // A435 — il tempo combacia (o il segno era basso): il silenzio del conto finisce qui, prima dell'avvio.
+                if silenceSign {
+                    noteOutputStateQ(.countSilenceEnded, from: "play-direttore")
+                }
                 _startPhaseQ = snap.phaseAtStampQBig
                 os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:play-direttore fase:%.6f oraAvvio:%llu",
                        log: .default, type: .default, snap.phaseAtStampQBig, snap.timeForIsPlaying)
@@ -2658,9 +2701,38 @@ class AudioEngine: ObservableObject {
                 // `start()` che non avviano e lasciano il segno alto sono QUATTRO, non le tre contate qui sopra: manca
                 // quella col metronomo assente (la guardia in testa al blocco di `start()` consuma il segno solo se il
                 // motore è in moto).
+                // ⚠️ CORRETTO A435 (16/11/2026; VERIFICA_REFEREE_A432_PARTE2D-BIS par. 2, la nota 1 di V18). La frase qui
+                // sopra, «Le uscite di `start()` che non avviano e lasciano il segno alto sono QUATTRO», va letta così: sono
+                // QUATTRO fra quelle che può prendere lo `start()` del Play del Follower (che non porta `recovery`); in
+                // tutto `start()` ne ha sette. Le righe dei `return`, alla punta della parte 1 di A435. Le quattro del
+                // Play del Follower: :6916 (il motore già in moto o il metronomo assente), :7007 (`.stayStopped`: il
+                // Follower trova la sessione ferma), :7048 (`.refuseStart`: i servizi audio persi), :7067
+                // (`rebuildAfterMediaResetQ` falso: la ricostruzione fallita). Le altre tre: :6934 (`recoveryRouteQ` rende
+                // `.noRestart`) e :6949 (`interruptionActivationAllowedQ` falso), solo con `recovery`; :7152 (`.stayMuted`:
+                // il Direttore muto che resta muto).
                 resetFollowerBandCountQ(reason: "play-direttore")
                 _followerPlayCallbackTicksQ = snap.captureHostTime
                 lowerSongMapForNextStartQ(reason: "play-direttore")
+            } else if transition.action == .openSong {
+                // === A435 · SEGUITO 3 (16/11/2026) — LA FALSA PARTENZA DEL DIRETTORE DOPO UN PLAY CHE NON COMBACIA (seguito
+                // 3 di A435, par. 3; VERIFICA_REFEREE_A435_PEZZO-INTERO par. 3.2; LIBRO_MASTRO, 2D-D7-bis) ===
+                // La macchina è IN SYNC, il Play è entro mezza battuta e il tempo non combacia (`.openSong` esce solo da
+                // lì): è il Play che farebbe partire l'iPad ed è rifiutato per il tempo. Si registra la fase d'avvio, come
+                // al Play accettato qui sopra, e NIENT'ALTRO: il segno del silenzio, il conto, la mappa e l'ora del Play
+                // restano come sono. Così la regola della falsa partenza che c'è già vale anche per l'iPad zittito: uno
+                // Stop del Direttore entro la prima battuta riarma la STESSA canzone (`.rearmSame`), uno Stop dopo arma la
+                // successiva (il runner l'ha aperta in questo stesso passo: `followerRun`, `.openSong`). Prima di questa
+                // riga lo Stop trovava «nessun avvio registrato» e la falsa partenza valeva sempre 0.
+                // Sul Follower la fase d'avvio la legge solo lo Stop ricevuto (`falseStartAgainstRegisteredStart`, più
+                // sotto), che subito dopo la azzera; la azzera anche ogni reset della macchina (`followerResetQ`). Fra un
+                // Play rifiutato e un Play buono c'è sempre uno Stop. IL LIMITE: il margine della falsa partenza è una
+                // battuta della prima sezione della canzone che l'iPad ha davanti (`_songFirstBeatsPerBarQ`), che dopo un
+                // Play rifiutato può non essere la misura della canzone della band. Da FUORI armato il Play che non
+                // combacia non passa di qui: lì lo Stop non tocca niente. Costituzione V6, par. 4: su questa coda, al
+                // richiamo del Play, mai nel callback di render; una riga sull'evento.
+                _startPhaseQ = snap.phaseAtStampQBig
+                os_log("[Q-BEATS][2D][AVVIO] fase di avvio registrata contesto:play-rifiutato-tempo fase:%.6f oraAvvio:%llu",
+                       log: .default, type: .default, snap.phaseAtStampQBig, snap.timeForIsPlaying)
             }
             followerPublishQ(heardAction, transition.action)
         } else {
@@ -2811,6 +2883,11 @@ class AudioEngine: ObservableObject {
             // B2b: arriva su main PRIMA di ogni azione decisa dopo su audioQueue (per esempio
             // l'avvio al Play): stessa coda, FIFO.
             self.followerRunnerActionSubject.send(.armSong(songIdx: songIdx))
+        case .openSong:
+            // A435 · SEGUITO 3 (par. 2) — l'apertura della canzone armata senza avvio. Nessuna chiamata al motore: solo
+            // la richiesta al runner, in questo passo su main. Arriva PRIMA dell'avanzamento dello Stop che segue, che
+            // la macchina decide dopo su audioQueue e manda con un altro passo su main: stessa coda, FIFO (come qui sopra).
+            self.followerRunnerActionSubject.send(.openSong)
         }
     }
 
@@ -2980,6 +3057,9 @@ class AudioEngine: ObservableObject {
         _startPhaseQ = nil
         // A432 · PARTE 2b — END SHOW, uscita dalla stanza, cambio di ruolo, levetta di Link spenta: il conto finisce.
         resetFollowerBandCountQ(reason: reason)
+        // A435 (la (b), mandato A435 par. 4 e) — e il segno del silenzio del conto: END SHOW, uscita dalla stanza,
+        // cambio di ruolo, levetta di Link spenta. Solo il segno: il volume torna con l'avvio. Una riga solo se era alto.
+        noteOutputStateQ(.countSilenceEnded, from: reason)
         if _followerSyncQ == FollowerSyncDecision.initial && _followerOutReasonQ == nil { return }
         os_log("[Q-BEATS][2D][FOLLOWER] reset motivo:%{public}@", log: .default, type: .default, reason)
         followerApply(.reset)
@@ -2988,9 +3068,12 @@ class AudioEngine: ObservableObject {
     // MARK: Le porte (chiamabili da main): armare, fine canzone propria, Stop del musicista, reset
 
     /// La misura della PRIMA sezione della canzone armata/in corso (la scrive il runner).
-    func setSongFirstBeatsPerBar(_ beatsPerBar: UInt32) {
+    /// A435 (la (b), mandato A435 par. 4 e) — la consegna diventa misura e tempo: `firstBpm` è il tempo della stessa
+    /// prima sezione (`nil` se la canzone non ha sezioni), per il confronto del Play dopo un conto non certo.
+    func setSongFirstBeatsPerBar(_ beatsPerBar: UInt32, firstBpm: Double?) {
         audioQueue.async { [weak self] in
             self?._songFirstBeatsPerBarQ = max(beatsPerBar, 1)
+            self?._songFirstBpmQ = firstBpm
         }
     }
 
@@ -3004,6 +3087,12 @@ class AudioEngine: ObservableObject {
     /// dell'iPad nella stessa canzone per un cambio di configurazione o di frequenza o per la fine di un'interruzione NON
     /// passa di qui: l'àncora resta quella. Il reset dei servizi audio sul Follower sì (`stopSync(origin: .followerReset)`
     /// passa dalla pulizia dello Stop): da lì fino al prossimo Play della band nessun conto, e l'iPad va come prima.
+    /// ⚠️ CORRETTO A435 (16/11/2026; VERIFICA_REFEREE_A432_SCHEDA-C par. 3, C2 N1). La frase qui sopra, «Il reset dei
+    /// servizi audio sul Follower sì (`stopSync(origin: .followerReset)` passa dalla pulizia dello Stop)», vale solo col
+    /// motore in moto: `stopSync` chiama `cleanupAfterStopQ` con `origin != .followerReset || wasRunning`, quindi il
+    /// reset dei servizi audio che trova il motore GIÀ FERMO non passa dalla pulizia dello Stop e NON azzera il conto.
+    /// ⚠️ A435 (16/11/2026) — in più: il conto si chiude anche alla consegna della chiusura di fine canzone, dal drenaggio
+    /// o da un arresto di crisi che lo trova aperto, sull'ultima sezione (`closeFollowerCountAtDeliveredSongEndQ`, sotto).
     private func resetFollowerBandCountQ(reason: String) {
         let had = _followerBandCountQ != nil
         _followerBandCountQ = nil
@@ -3016,6 +3105,39 @@ class AudioEngine: ObservableObject {
         if had {
             os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:%{public}@",
                    log: .default, type: .default, reason)
+        }
+    }
+
+    /// === A435 (16/11/2026) — LA CURA DI B9, `TD-chiusura-del-runner-due-volte-dopo-il-drenaggio` (mandato A435 par. 2.1;
+    /// seguito 1 di A435 par. 1, la strada (L); VERIFICA_REFEREE_A432_SCHEDA-C par. 2, R1) ===
+    /// Dopo la consegna della chiusura di fine sezione al principale il motore va avanti fino allo Stop. Col conto vivo,
+    /// in quelle chiamate un riallineo «oltre la fine» riapriva il drenaggio (`followerRealignQ`) e la chiusura del runner
+    /// girava due volte; con la band un battito indietro lo faceva il riallineo dentro la canzone. LA CURA: nei due punti
+    /// che consegnano la chiusura (il controllo del drenaggio in `scheduleNextBuffer` e `closeDrainOnCrisisStopQ`), subito
+    /// dopo la consegna, il conto si chiude, SOLO se il motore conta l'ultima sezione della mappa
+    /// (`_songMapSectionQ >= 0 && _songMapSectionQ == _songSectionsQ.count - 1`): lì la consegna è la fine della canzone
+    /// per questo apparecchio («Il conto finisce con la canzone», qui sopra). Col conto nullo il punto R non legge e il
+    /// riallineo dovuto non si alza (`noteFollowerRealignDueQ`), fino al conto della canzone dopo. Nessuno stato nuovo.
+    /// FUORI DALL'ULTIMA SEZIONE il conto resta com'è: il ramo del drenaggio si prende a ogni fine sezione senza
+    /// precarico, anche a metà canzone se il principale è rimasto fermo più della sezione in corso, e lì il conto vivo è
+    /// l'unica cosa che rimette a posto l'iPad (il riallineo dentro la canzone). Con una mappa e la consegna fuori
+    /// dall'ultima sezione esce una riga sola, per ogni ruolo. Negli arresti di crisi la stessa condizione: comprendono
+    /// le ripartenze nella stessa canzone (interruzione, modo, frequenza), dove l'àncora del conto resta.
+    /// IL LIMITE: motore e runner possono non essere d'accordo sull'ultima sezione solo dopo un drenaggio a metà canzone
+    /// (il runner un passo avanti); in quel caso il conto resta vivo e la finestra della doppia chiusura resta aperta. La
+    /// causa, il precarico che dipende dal principale, non si cura qui: ticket proposto dal referee,
+    /// `TD-precarico-in-ritardo-drena-a-meta-canzone`.
+    /// Tempo reale (Costituzione V6, par. 4): SOLO su audioQueue, nello stesso blocco della consegna; una volta per
+    /// consegna e mai per buffer; nessuna allocazione; niente nel callback di render.
+    private func closeFollowerCountAtDeliveredSongEndQ(context: String) {
+        let section = _songMapSectionQ
+        let sections = _songSectionsQ.count
+        guard section >= 0 else { return }
+        if section == sections - 1 {
+            resetFollowerBandCountQ(reason: "fine-canzone-consegnata")
+        } else {
+            os_log("[Q-BEATS][DRAIN] chiusura consegnata a meta' canzone sezione:%d sezioni:%d contesto:%{public}@ - il conto resta",
+                   log: .default, type: .default, section, sections, context)
         }
     }
 
@@ -3286,11 +3408,38 @@ class AudioEngine: ObservableObject {
         }
         guard reading.certain, let place = reading.place else {
             let why: String = reading.reason.map { describe($0) } ?? "-"
-            os_log("[Q-BEATS][CONTO-BAND] conto non certo motivo:%{public}@ scarto:%{public}@ - niente riallineo e niente silenzio: l'iPad va come prima fino alla canzone dopo",
-                   log: .default, type: .default, why, gapText)
+            // === A435 (16/11/2026) — LA (b): IL CONTO NON CERTO MENTRE L'IPAD SUONA (mandato A435, par. 4 a e 2.6) ===
+            // ⚠️ RISCRITTO A435, c'era la riga «conto non certo motivo:… scarto:… - niente riallineo e niente silenzio:
+            // l'iPad va come prima fino alla canzone dopo». Da A435 una lettura di un conto vivo e aperto (la guardia in
+            // testa: un conto nato certo, P33) che dà «non certo» mentre l'iPad suona alza il segno del silenzio: il
+            // click tace fino alla canzone dopo, senza toccare la band. Col motivo del salto fuori dallo stato la riga
+            // porta la grandezza del salto in battiti e il quanto della sessione (P40 (i)). Costituzione V6, par. 4: su
+            // audioQueue, sull'evento (il conto resta chiuso per la canzone: una volta per canzone), mai nel render.
+            var jumpText = ""
+            if reading.reason == .jumpOutsideRenumbering, let jump = reading.gapBeats {
+                jumpText = String(format: " salto:%.4f quanto:%.0f", jump, DirectorRejoinDecision.sessionQuantum)
+            }
+            os_log("[Q-BEATS][CONTO-BAND] non certo motivo:%{public}@ scarto:%{public}@%{public}@ canzone:%d - il click tace fino alla canzone dopo, nessuna scrittura verso Link",
+                   log: .default, type: .default, why, gapText, jumpText, _songMapSongIdxQ)
+            raiseFollowerUncertainSilenceQ()
             return
         }
         followerRealignQ(place: place, reason: reason, pending: pending, metronome: h, midi: mh)
+    }
+
+    /// === A435 (16/11/2026) — LA (b): IL SEGNO DEL SILENZIO DEL CONTO SI ALZA (mandato A435, par. 4 a, b, d) ===
+    /// Il segno sta nello stato puro del volume (`OutputSilenceState.uncertainSilence`): un solo padrone. Quando si alza:
+    /// il volume a 0 adesso (`silenceOutputNowQ`), ogni ritorno in attesa annullato (`cancelOutputReturnsQ`). Da qui e
+    /// fino alla canzone dopo: nessuna scrittura ridà voce al Follower (`writeOutputVolumeQ` la rifiuta, l'avvio di una
+    /// ripartenza nella stessa canzone scrive 0), la W2 non esce (`followerBoundaryTempoWriteSkipped`), niente Stop a
+    /// Link e nessuna scrittura nuova; la macchina del Follower e il runner come oggi, il DSP conta in silenzio, lo
+    /// schermo segue il conto proprio. È un volume, non un arresto: il motore resta in moto (i due invarianti di A427).
+    /// Il segno sopravvive alla fine della canzone e allo Stop: serve al Play dopo (`followerHandleLinkTransport`).
+    /// Chiamare SOLO su audioQueue, dal punto R.
+    private func raiseFollowerUncertainSilenceQ() {
+        noteOutputStateQ(.countUncertain, from: "conto-non-certo")
+        silenceOutputNowQ(reason: "conto-non-certo")
+        cancelOutputReturnsQ(reason: "conto-non-certo")
     }
 
     /// La sezione `section` della canzone coi setter immediati, e la successiva precaricata (referto A424 par. 3.3 b,
@@ -3489,6 +3638,9 @@ class AudioEngine: ObservableObject {
                 // correzione di fase non viene applicata i battiti del DSP stanno a ε dalle posizioni intere del
                 // sequencer, ε = (o / frequenza) · (1 − tempo_vecchio / tempo_nuovo) secondi: a 48 kHz con o = 512 fino a
                 // 3,5 ms per 121 → 91, 5,3 ms per 60 → 120, 16,8 ms per 180 → 70. Qui il click si sposta di quell'ε.
+                // ⚠️ CORRETTO A435 (16/11/2026; NOTE_VERIFICATORI_A434_B2, V3 N4). La frase qui sopra, «Qui il click si
+                // sposta di quell'ε.», non porta il segno: il click si sposta di −ε, come scrive BOX5 nel capitolo «IL
+                // CONTO DEL FOLLOWER DALLA BAND» (la frase del riallineo) e il referto della parte 2c.
                 let sequencerBeat = midi_engine_get_beat_position(mh)
                 // === A432 · PARTE 2d (K7, D5) — IL LIMITE DI SICUREZZA (VERIFICA_REFEREE_A432_PARTE2C par. 3.1 voce 2;
                 // DECISIONI_REFEREE_A432_PARTE2D_ARRESTO par. 5) ===
@@ -3677,7 +3829,9 @@ class AudioEngine: ObservableObject {
     /// QUESTA coda, dopo questo passo: è sempre quella della canzone armata nella macchina, anche
     /// dopo due tocchi ravvicinati, che qui si serializzano. `entry` («join» / «rejoin») serve
     /// solo alla riga di log del tocco.
-    func followerArm(songIdx: Int, songFirstBeatsPerBar: UInt32, entry: String) {
+    /// A435 (la (b); seguito 1 di A435, par. 3: P2-1) — `songFirstBpm`: il tempo della prima sezione della canzone
+    /// scelta, accanto alla misura e scritto nello stesso passo, per il confronto del Play dopo un conto non certo.
+    func followerArm(songIdx: Int, songFirstBeatsPerBar: UInt32, songFirstBpm: Double?, entry: String) {
         audioQueue.async { [weak self] in
             guard let self else { return }
             guard FollowerDecision.isFollower(role: self._linkMode, userLinkEnabled: self._linkUserEnabledQ) else {
@@ -3702,6 +3856,7 @@ class AudioEngine: ObservableObject {
                 // Accettato: la misura della canzone scelta, nello stesso passo, prima di ogni
                 // Play o Stop che la leggerà su questa coda.
                 self._songFirstBeatsPerBarQ = max(songFirstBeatsPerBar, 1)
+                self._songFirstBpmQ = songFirstBpm
                 outcome = "accettato(armato:\(armed) bpb:\(self._songFirstBeatsPerBarQ))"
             } else if let reason = transition.outReason {
                 outcome = "rifiutato(\(self.describe(reason)))"
@@ -3755,6 +3910,9 @@ class AudioEngine: ObservableObject {
                 // (par. 2.3 b). Col motore in moto a volume 0 (il Follower muto) il volume torna qui, coi servizi audio
                 // normali (A408: sul motore morto non si scrive niente): stato «uscita zittita» e mixer restano una cosa sola.
                 self.cancelOutputReturnsQ(reason: "show-chiuso")
+                // A435 (la (b), mandato A435 par. 4 e) — a show chiuso il segno del silenzio del conto si toglie, PRIMA
+                // del volume a 1 qui sotto (che col segno alto non si scriverebbe).
+                self.noteOutputStateQ(.countSilenceEnded, from: "show-chiuso")
                 if self.isRunning && self._outputSilenceQ.muted && MediaServicesResetDecision.allowsAudioWork(self._mediaServicesQ) {
                     self.writeOutputVolumeQ(1, reason: "show-chiuso")
                 }
@@ -3821,7 +3979,14 @@ class AudioEngine: ObservableObject {
 
     private func describe(_ event: FollowerSyncEvent) -> String {
         switch event {
-        case .linkPlay(let within): return within ? "play-entro-mezza-battuta" : "play-oltre-mezza-battuta"
+        case .linkPlay(let within, let tempo):
+            // A435 — col segno del silenzio alto la riga porta anche il confronto del tempo.
+            let base = within ? "play-entro-mezza-battuta" : "play-oltre-mezza-battuta"
+            switch tempo {
+            case .notAsked: return base
+            case .matches: return base + "(tempo:combacia)"
+            case .differs: return base + "(tempo:non-combacia)"
+            }
         case .linkStop(let falseStart, let running): return "stop(falsaPartenza:\(falseStart ? 1 : 0) motore:\(running ? "in-moto" : "fermo"))"
         case .directorHeard(let heard, let running): return "direttore-sentito:\(heard ? 1 : 0)(motore:\(running ? "in-moto" : "fermo"))"
         case .ownSongEnded: return "fine-canzone-propria"
@@ -3847,6 +4012,7 @@ class AudioEngine: ObservableObject {
         case .stopAndRearmSame: return "fermati+riarma-stessa"
         case .rearmSame: return "riarma-stessa"
         case .armSong(let songIdx): return "arma-scelta:\(songIdx)"
+        case .openSong: return "apri-canzone-senza-avvio"
         }
     }
 
@@ -5477,6 +5643,17 @@ class AudioEngine: ObservableObject {
         // A421 · SEGUITO 3 (par. 5) — la chiusura dello show e il cambio di ruolo abbassano `muted`: il ricordo del silenzio in
         // vigore se ne va, prima della guardia qui sotto (che esce quando «mancante» non cambia).
         noteSilenceLiftedQ(before: before)
+        // A435 (la (b), mandato A435 par. 4 f) — il segno del silenzio del conto passa solo di qui: a ogni cambio una
+        // riga e lo specchio per la vista (`followerUncertainSilence`), dalla coda al principale come `isPlaying`.
+        if before.uncertainSilence != _outputSilenceQ.uncertainSilence {
+            let high = _outputSilenceQ.uncertainSilence
+            os_log("[Q-BEATS][USCITA] silenzio del conto:%d da:%{public}@ ruolo:%{public}@ canzone:%d motore:%{public}@",
+                   log: .default, type: .default,
+                   high ? 1 : 0, from, playerRoleQ.rawValue, _songMapSongIdxQ, isRunning ? "in-moto" : "fermo")
+            DispatchQueue.main.async { [weak self] in
+                self?.followerUncertainSilence = high
+            }
+        }
         guard before.missing != _outputSilenceQ.missing else { return }
         let memoryText: String = _outputSilenceQ.lastOutputExternal.map { $0 ? "esterna" : "interna" } ?? "-"
         let external = externalPresent ?? hasExternalOutputNowQ()
@@ -5498,7 +5675,15 @@ class AudioEngine: ObservableObject {
     /// da 0 a 1). Lo scrivono solo questa funzione e, per lei, `silenceOutputNowQ` (la notizia, le crisi, il guardiano
     /// «buco-in-corso», la chiamata del buco), `applyStartVolumeQ`, il ritorno del Follower, il ritorno dopo il buco
     /// («ritorno-dopo-buco», A421 · SEGUITO 2) e la chiusura dello show: `muted` ha un solo padrone. Chiamare SOLO su audioQueue.
+    /// A435 (la (b), mandato A435 par. 4 b) — col segno del silenzio del conto alto, sul Follower, un volume sopra 0
+    /// NON si scrive (`OutputRouteDecision.allowsVolumeWrite`): né il mixer né lo stato cambiano, e una riga dice quale
+    /// strada l'ha chiesto (lo show chiuso, l'avvio, il ritorno del Follower, il ritorno dopo il buco). Lo 0 passa.
     private func writeOutputVolumeQ(_ volume: Float, reason: String) {
+        guard OutputRouteDecision.allowsVolumeWrite(volume: volume, playerRole: playerRoleQ, state: _outputSilenceQ) else {
+            os_log("[Q-BEATS][USCITA] volume non rimesso motivo:silenzio-del-conto strada:%{public}@",
+                   log: .default, type: .default, reason)
+            return
+        }
         engine.mainMixerNode.outputVolume = volume
         let before = _outputSilenceQ
         if volume == 0 {
@@ -5600,6 +5785,11 @@ class AudioEngine: ObservableObject {
         DispatchQueue.main.async {
             endClosure?()
         }
+        // A435 (16/11/2026) — la cura di B9 (seguito 1 di A435, par. 1): subito dopo la consegna il conto del Follower si
+        // chiude, solo se il motore conta l'ultima sezione della mappa; a metà canzone resta, e una riga lo dice col
+        // contesto dell'arresto (`closeFollowerCountAtDeliveredSongEndQ`). Costituzione V6, par. 4: su questa coda,
+        // sull'evento.
+        closeFollowerCountAtDeliveredSongEndQ(context: context)
     }
 
     /// Par. 2.2 e: `isPlaying` è lo specchio di `isRunning` (`TransportStateDecision`), pubblicato da una mano sola, dalla
@@ -7720,6 +7910,7 @@ class AudioEngine: ObservableObject {
                                                                    userLinkEnabled: self._linkUserEnabledQ,
                                                                    state: self._followerSyncQ,
                                                                    ownClockUntilStop: self._ownClockUntilStopQ,
+                                                                   uncertainSilence: self._outputSilenceQ.uncertainSilence,
                                                                    debugSwitchOn: switchOn)
         let skipped = outcome != .writes
 #if DEBUG
@@ -7733,6 +7924,12 @@ class AudioEngine: ObservableObject {
                bpm,
                switchOn ? "acceso" : "spento")
 #endif
+        // A435 (la (b), mandato A435 par. 4 c) — col silenzio del conto la W2 del Follower non esce: una scrittura
+        // verso Link in meno. Una riga, sull'evento del confine di sezione.
+        if outcome == .skippedUncertainSilence {
+            os_log("[Q-BEATS][CONTO-BAND] tempo di sezione NON scritto su Link (W2) - silenzio del conto sezione:%.2f sessione:%.2f battito:%d",
+                   log: .default, type: .default, bpm, self._sessionTempoSeenQ, self.beatTickCounter)
+        }
         if outcome == .skippedOwnClock {
             os_log("[Q-BEATS][2D][DA-SOLO] tempo di sezione NON scritto su Link (W2) - sezione:%.2f sessione:%.2f stato:%{public}@ battito:%d - da solo il Follower non scrive in Link",
                    log: .default, type: .default,
@@ -8501,10 +8698,30 @@ class AudioEngine: ObservableObject {
                                       engineMoving: lampMoving,
                                       screen: pedalScreen)
         }
+        // === A435 (16/11/2026) — IL TAP TEMPO DEL DIRETTORE A CANZONE IN CORSO NON FA NIENTE (mandato A435, par. 2.2;
+        // seguito 1, par. 2; LIBRO_MASTRO, «a canzone in corso il Direttore solo Stop», la marcatura dell'08/11/2026) ===
+        // Decide `TapTempoPedalDecision` (Models/, col suo banco), PRIMA del lampo: col tap ignorato la spia non si
+        // accende. «Canzone in corso» è quella del motore (`_songInProgressQ`), che vive sulla coda: si legge con una
+        // lettura sincrona sulla coda (`audioQueue.sync`), solo per `.tapTempo` e solo col Direttore; mai la copia di
+        // coda letta dal principale, e nessuno specchio nuovo che arriverebbe un giro del principale dopo. Costituzione
+        // V6, par. 4: la lettura sta sul principale (questa funzione si chiama SOLO dal principale, dal blocco
+        // `DispatchQueue.main.async` di `handleMIDIInput`), mai nel callback di render né nel blocco del tap; aspetta i
+        // blocchi già in coda (la coda è seriale: anche un avvio o un'attivazione della sessione in corso), come lo Stop
+        // voluto (`stopSync`). Nessuno stallo: sulla coda nessuna chiamata sincrona verso il principale (solo `main.async`).
+        let tapSongInProgress: Bool
+        if action == .tapTempo && TapTempoPedalDecision.readsSongInProgress(role: lampRole) {
+            tapSongInProgress = audioQueue.sync { _songInProgressQ }
+        } else {
+            tapSongInProgress = false
+        }
+        let tapOutcome = TapTempoPedalDecision.decide(role: lampRole,
+                                                      songInProgress: tapSongInProgress,
+                                                      directorSilent: pedalSilent)
         let lampFires = MIDILampDecision.fires(action: action,
                                                role: lampRole,
                                                transportPressed: pedalPress?.lamp ?? false,
-                                               backtrackPlaying: false)
+                                               backtrackPlaying: false,
+                                               tapTempoActs: TapTempoPedalDecision.acts(tapOutcome))
         os_log("[Q-BEATS][SOLO-M1][LAMPO] azione:%{public}@ ruolo:%{public}@ in-moto:%d lampo:%d",
                log: .default, type: .default,
                action.rawValue, lampRole.rawValue, lampMoving ? 1 : 0, lampFires ? 1 : 0)
@@ -8549,7 +8766,14 @@ class AudioEngine: ObservableObject {
         case .stopBacktrack:
             stopBacktrack()
         case .tapTempo:
-            tapTempo()
+            // A435 — qui arrivano solo Direttore e Solo (il Follower esce alla guardia A360 qui sopra). Col Direttore e
+            // la canzone in corso il tap non fa niente: una riga, sull'evento. A click fermo e col Solo come prima.
+            if tapOutcome == .ignoredSongInProgress {
+                os_log("[Q-BEATS][MIDI ACTION] tap tempo ignorato - canzone in corso ruolo:%{public}@",
+                       log: .default, type: .default, lampRole.rawValue)
+            } else {
+                tapTempo()
+            }
         case .nextSection, .prevSection, .nextSong, .startSong, .loopToggle:
             os_log("[Q-BEATS][MIDI ACTION] %{public}@ — richiede Layer 3",
                    log: .default, type: .default, action.rawValue)
@@ -9831,6 +10055,11 @@ class AudioEngine: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 endClosure?()
             }
+            // A435 (16/11/2026) — la cura di B9 (mandato A435 par. 2.1; seguito 1, par. 1): subito dopo la consegna il
+            // conto del Follower si chiude, solo se il motore conta l'ultima sezione della mappa; a metà canzone resta, e
+            // una riga lo dice (`closeFollowerCountAtDeliveredSongEndQ`). Costituzione V6, par. 4: su audioQueue, una
+            // volta per consegna (questo ramo si prende solo alla fine di un drenaggio), nessuna riga per buffer.
+            self.closeFollowerCountAtDeliveredSongEndQ(context: "drenaggio")
             os_log("[Q-BEATS][DRAIN] return — no buffer scheduled to playerNode",
                    log: .default, type: .default)
             // ⚠️ RISCRITTO A420 (23/10/2026) (risposta del referee al mandato A420, par. 4). Il testo di prima diceva «A416

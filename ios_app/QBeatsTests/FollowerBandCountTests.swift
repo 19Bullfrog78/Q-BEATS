@@ -595,6 +595,55 @@ final class FollowerBandCountTests: XCTestCase {
         XCTAssertEqual(again.closed, FollowerBandCountClosed.jumpOutsideRenumbering)
     }
 
+    /// A435, P40 (i) (mandato A435, par. 2.6; A431 par. 2.4 a, «Il caso al banco»): il gradino di 37,3 battiti sulla
+    /// numerazione grande della sessione a metà sezione, senza Stop (un altro apparecchio entrato con Link acceso da
+    /// prima porta la sua numerazione). Non certo, col motivo del salto fuori dallo stato; lo scarto è il gradino, ed
+    /// è il numero che il motore scrive nella riga («salto:»), accanto al quanto della sessione.
+    func testAStepOfThirtySevenPointThreeBeatsInTheMiddleOfASectionIsNotCertain() throws {
+        let map = song([(4, 32, 120.0)])
+        let big = 3.0 * DirectorRejoinDecision.sessionQuantum
+        var c = count(map, link: big)
+        assertCertain(read(&c, big + 10.0, 5.0))
+        XCTAssertEqual(c.renumbering, .closed)
+        let r = read(&c, big + 12.0 + 37.3, 6.0, last: (0, 11, 5.5))
+        assertUncertain(r, .jumpOutsideRenumbering)
+        XCTAssertEqual(try gap(r), 37.3, accuracy: 1e-6)
+        XCTAssertFalse(r.closedBefore)
+        XCTAssertEqual(c.closed, FollowerBandCountClosed.jumpOutsideRenumbering)
+    }
+
+    /// A435, A.1 (mandato A435, par. 2.5): il seme fuori battuta con la scaletta a un altro tempo, come LIMITE. Il
+    /// seme cammina sulla mappa dell'iPad i secondi fra il richiamo del Play e l'ingresso, che cade su una battuta
+    /// della SESSIONE (al tempo della band): dopo `bars` battute della band lo scarto è
+    /// `bars` × misura × (1 − tempo della mappa / tempo della band) battiti, e oltre un quarto di battuta non nasce
+    /// nessun conto (e nessun silenzio: P33). Più avanti lo scarto rientra nel quarto della battuta dopo.
+    func testTheSeedOffBarWithTheSetlistAtAnotherTempo() throws {
+        // (misura, tempo della mappa, tempo della band, battute della band, il conto nasce)
+        let rows: [(Int, Double, Double, Int, Bool)] = [
+            (4, 121.5, 124.5, 10, true),    // 3 BPM, 19,3 s: scarto 0,96 battiti
+            (4, 121.5, 124.5, 11, false),   // 3 BPM, 21,2 s: scarto 1,06
+            (4, 120.5, 124.5, 7, true),     // 4 BPM, 13,5 s: scarto 0,90
+            (4, 120.5, 124.5, 8, false),    // 4 BPM, 15,4 s: scarto 1,03
+            (4, 131.5, 141.5, 3, true),     // 10 BPM, 5,1 s: scarto 0,85
+            (4, 131.5, 141.5, 4, false),    // 10 BPM, 6,8 s: scarto 1,13
+            (2, 120.5, 124.5, 7, true),     // 2/4, 4 BPM, 6,7 s: scarto 0,45 (il quarto di battuta è mezzo battito)
+            (2, 120.5, 124.5, 8, false),    // 2/4, 4 BPM, 7,7 s: scarto 0,51
+            (4, 121.5, 124.5, 32, true),    // 3 BPM, 61,7 s: scarto 3,08, a 0,92 dalla battuta dopo: rientra
+            (4, 121.5, 121.5, 40, true),    // lo stesso tempo: sempre in battuta
+        ]
+        for (bpb, mapBpm, bandBpm, bars, born) in rows {
+            let map = song([(bpb, 400, mapBpm)])
+            let seconds = Double(bars * bpb) * 60.0 / bandBpm
+            let entry = enter(nil, map, entry: ticks(play, seconds), link: 700.0)
+            if born {
+                _ = try anchored(entry)
+            } else {
+                let c = try noCount(entry)
+                XCTAssertEqual(c.closed, FollowerBandCountClosed.seedOffBar, "\(bpb) \(mapBpm) \(bandBpm) \(bars)")
+            }
+        }
+    }
+
     /// A.2, caso 1: 4/4 → una battuta di 2/4 a 120 (1 s, meno dell'attesa dell'assert) → 2/4. La rinumerazione
     /// (+2,0188, scelta qui) cade nella sezione dopo la battuta corta: lo stato è ancora aperto (un confine dopo).
     func testOneBarOfTwoFourAfterTheMeterChange() throws {

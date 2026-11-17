@@ -11,8 +11,12 @@ final class MIDILampDecisionTests: XCTestCase {
 
     private let commanders: [PlayerRole] = [.solo, .direttore]
 
-    private func fires(_ action: MIDIAction, _ role: PlayerRole, pressed: Bool, backtrack: Bool = false) -> Bool {
-        MIDILampDecision.fires(action: action, role: role, transportPressed: pressed, backtrackPlaying: backtrack)
+    /// A435 — `tap`: l'esito della regola del tap tempo (`TapTempoPedalDecision.acts`). Di base vero, il tap che agisce:
+    /// i casi di prima restano com'erano.
+    private func fires(_ action: MIDIAction, _ role: PlayerRole, pressed: Bool, backtrack: Bool = false,
+                       tap: Bool = true) -> Bool {
+        MIDILampDecision.fires(action: action, role: role, transportPressed: pressed, backtrackPlaying: backtrack,
+                               tapTempoActs: tap)
     }
 
     func testEveryActionForSoloAndDirectorLiterally() {
@@ -81,6 +85,34 @@ final class MIDILampDecisionTests: XCTestCase {
                 XCTAssertTrue(fires(action, role, pressed: true), "\(action.rawValue) \(role)")
             }
         }
+    }
+
+    /// A435 (mandato A435, par. 2.2): col tap ignorato (il Direttore a canzone in corso) la spia non si accende; col
+    /// tap che agisce sì. Sul Follower mai. Per le altre azioni l'ingresso non conta.
+    func testTapTempoFiresOnlyWhenTheTapActs() {
+        for role in commanders {
+            for pressed in [false, true] {
+                XCTAssertTrue(fires(.tapTempo, role, pressed: pressed, tap: true), "\(role) premuto:\(pressed)")
+                XCTAssertFalse(fires(.tapTempo, role, pressed: pressed, tap: false), "\(role) premuto:\(pressed)")
+            }
+        }
+        for tap in [false, true] {
+            XCTAssertFalse(fires(.tapTempo, .follower, pressed: true, tap: tap), "follower tap:\(tap)")
+        }
+        for role in [PlayerRole.solo, .direttore, .follower] {
+            for action in MIDIAction.allCases where action != .tapTempo {
+                for pressed in [false, true] {
+                    XCTAssertEqual(fires(action, role, pressed: pressed, backtrack: true, tap: false),
+                                   fires(action, role, pressed: pressed, backtrack: true, tap: true),
+                                   "\(action.rawValue) \(role) premuto:\(pressed)")
+                }
+            }
+        }
+        // la regola del pedale dentro la spia: il Direttore in canzone non l'accende, il Direttore fermo sì
+        let inSong = TapTempoPedalDecision.decide(role: .direttore, songInProgress: true, directorSilent: false)
+        let stopped = TapTempoPedalDecision.decide(role: .direttore, songInProgress: false, directorSilent: false)
+        XCTAssertFalse(fires(.tapTempo, .direttore, pressed: false, tap: TapTempoPedalDecision.acts(inSong)))
+        XCTAssertTrue(fires(.tapTempo, .direttore, pressed: false, tap: TapTempoPedalDecision.acts(stopped)))
     }
 
     func testMuteFiresForEveryRoleInEveryState() {

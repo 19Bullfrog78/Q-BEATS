@@ -349,7 +349,10 @@ final class QLiveSession: ObservableObject {
         // «join» dalla lista d'ingresso (ragione nulla o `reset`), «rejoin» da RIENTRA: la stessa
         // regola del velo (`FollowerVeilDecision.isEntry`), solo per la riga di log del tocco.
         let entry = FollowerVeilDecision.isEntry(reason: audioEngine.followerSync.outReason) ? "join" : "rejoin"
-        audioEngine.followerArm(songIdx: songIdx, songFirstBeatsPerBar: bpb, entry: entry)
+        // A435 (seguito 1 di A435, par. 3: P2-1) — col tempo della prima sezione della canzone scelta, accanto alla
+        // misura: senza, dopo un RIENTRA il confronto del Play si farebbe col tempo di un'altra canzone.
+        audioEngine.followerArm(songIdx: songIdx, songFirstBeatsPerBar: bpb,
+                                songFirstBpm: runner.firstBpm(ofSongAt: songIdx), entry: entry)
     }
 
     /// Lo Stop del musicista sulla fascia DA SOLO (B2b: lo Stop a pressione, `HoldToStopButton`):
@@ -372,6 +375,10 @@ final class QLiveSession: ObservableObject {
         case .armSong(let songIdx):
             // B2b: l'armamento accettato dalla macchina; la misura l'ha già scritta il motore.
             runner.armSong(index: songIdx, session: liveSession)
+        case .openSong:
+            // A435 · SEGUITO 3 (seguito 3 di A435, par. 2) — il Play della band che non combacia, in IN SYNC: la canzone
+            // armata si apre sul runner senza avvio. Sessione, schermo e motore non si toccano: resta il velo armato.
+            runner.openArmedSongWithoutStart()
         }
         // B2b-BIS: qui la proposta NON si ricalcola più. Ogni azione arriva dal passo su main di
         // `AudioEngine.followerApply`, che subito dopo pubblica stato e ragione insieme

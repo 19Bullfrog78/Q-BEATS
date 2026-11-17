@@ -11,6 +11,9 @@ import Foundation
 //  · `.muteClickToggle`: agisce sempre, su tutti e tre i ruoli;
 //  · `.stopBacktrack`: ferma la base solo se la base suona;
 //  · `.tapTempo`: agisce sempre (ogni tocco entra nella misura del tempo);
+//    ⚠️ CORRETTO A435 (16/11/2026; mandato A435, par. 2.2), c'era «agisce sempre (ogni tocco entra nella misura del
+//    tempo)»: col Direttore e la canzone in corso il tap tempo del pedale non fa niente, e la spia non si accende. Lo
+//    decide `TapTempoPedalDecision` (Models/, col suo banco); qui entra il suo esito (`tapTempoActs`).
 //  · i cinque comandi muti (`.nextSection`, `.prevSection`, `.nextSong`, `.startSong`,
 //    `.loopToggle`): scrivono solo una riga di log, «richiede Layer 3» — mai.
 // Sul Follower passa solo il muto (A360/A361): per tutto il resto il pedale è ignorato, e il lampo
@@ -32,10 +35,13 @@ enum MIDILampDecision {
     /// se il pedale ha premuto un comando; nel silenzio com'era (Play/Pause sempre, Stop col motore in moto).
     /// `backtrackPlaying`: la base sta suonando. Nel player la base non parte (A387 §2.2); decisione
     /// di Mauro del 05/10/2026: finché la base non arriva nel player, Stop Backtrack non lampeggia.
+    /// A435 — `tapTempoActs`: per il tap tempo, l'esito della regola del pedale (`TapTempoPedalDecision.acts`): falso
+    /// col Direttore a canzone in corso. Senza valore di base: chi chiama lo deve dire.
     static func fires(action: MIDIAction,
                       role: PlayerRole,
                       transportPressed: Bool,
-                      backtrackPlaying: Bool) -> Bool {
+                      backtrackPlaying: Bool,
+                      tapTempoActs: Bool) -> Bool {
         if role == .follower {
             return action == .muteClickToggle
         }
@@ -49,7 +55,7 @@ enum MIDILampDecision {
         case .stopBacktrack:
             return backtrackPlaying
         case .tapTempo:
-            return true
+            return tapTempoActs
         case .nextSection, .prevSection, .nextSong, .startSong, .loopToggle:
             return false
         }

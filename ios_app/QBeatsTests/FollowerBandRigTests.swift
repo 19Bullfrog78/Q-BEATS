@@ -466,11 +466,85 @@ private enum RigRow {
     case sectionEndCheck(motor: RigSpot, band: RigSpot?, agrees: Bool)
     case preloadDiscarded(RigDiscardedPreload)
     case lateBeatCorrection(before: Double, after: Double, pendingBeat: Double)
+    /// La chiusura di fine sezione consegnata dal drenaggio o da un arresto di crisi (a fine canzone; da A435 anche a
+    /// metà canzone, se il precarico è in ritardo).
     case songEndDelivered(callTime: Double)
     case countReset(reason: String)
     case tempoCallback(RigTempoCallback)
     case sessionTempoIgnored(bpm: Double)
     case reopenedDrainSkipped(RigReopenSkipped)
+    case closureDeliveredMidSong(RigMidSongClosure)
+    /// A435 · PARTE 2 — una scrittura del volume del mixer principale (`[USCITA] volume:`).
+    case volume(RigVolumeWrite)
+    /// A435 · PARTE 2 — «volume non rimesso motivo:silenzio-del-conto strada:».
+    case volumeNotRestored(road: String)
+    /// A435 · PARTE 2 — «silenzio del conto:» a ogni cambio del segno.
+    case uncertainSilence(RigSilenceSign)
+    /// A435 · PARTE 2 — «play dopo un non certo».
+    case playAfterUncertain(RigPlayAfterUncertain)
+    /// A435 · SEGUITO 3 — il runner: «armNextSong - canzone gia' chiusa ... nessun avanzamento».
+    case runnerAlreadyClosed(song: Int)
+    /// A435 · SEGUITO 3 — il runner: «arma la successiva songIdx:».
+    case runnerArmedNext(song: Int)
+    /// A435 · SEGUITO 3 — il runner: la scaletta è finita (`.fineSetlist`).
+    case runnerSetlistEnded
+    /// A435 · SEGUITO 3 — il runner: «armSong songIdx:» (RIENTRA, falsa partenza).
+    case runnerArmed(song: Int)
+    /// A435 · SEGUITO 3 — il runner: «armSong RIFIUTATO».
+    case runnerArmRefused(index: Int)
+    /// A435 · SEGUITO 3 — il runner: «canzone aperta senza avvio».
+    case runnerOpened(RigRunnerOpened)
+    /// A435 · SEGUITO 3 — «fase di avvio registrata contesto:».
+    case startPhase(RigStartPhase)
+    /// A435 · SEGUITO 3 — la riga dello Stop ricevuto («falsaPartenza:»).
+    case stopRead(RigStopRead)
+}
+
+/// A435 · SEGUITO 3 — la canzone aperta senza avvio sul runner, e se il cartello «canzone chiusa» era alto.
+private struct RigRunnerOpened: Equatable {
+    let song: Int
+    let wasClosed: Bool
+}
+
+/// A435 · SEGUITO 3 — la fase d'avvio registrata: il contesto («play-direttore», «play-rifiutato-tempo») e la fase.
+private struct RigStartPhase: Equatable {
+    let context: String
+    let phase: Double
+}
+
+/// A435 · SEGUITO 3 — la riga dello Stop ricevuto: i battiti dal Play registrato e il margine (`nil`: «nessun avvio
+/// registrato»), e l'esito.
+private struct RigStopRead: Equatable {
+    let delta: Double?
+    let margin: Double?
+    let falseStart: Bool
+}
+
+/// A435 · PARTE 2 — una scrittura del volume: acceso (sopra 0) o spento, e la strada che l'ha chiesta.
+private struct RigVolumeWrite: Equatable {
+    let on: Bool
+    let reason: String
+}
+
+/// A435 · PARTE 2 — il segno del silenzio del conto dopo un cambio, e da dove.
+private struct RigSilenceSign: Equatable {
+    let high: Bool
+    let source: String
+}
+
+/// A435 · PARTE 2 — la riga del Play dopo un conto non certo.
+private struct RigPlayAfterUncertain: Equatable {
+    let sessionBpm: Double
+    let songBpm: Double?
+    let matches: Bool
+}
+
+/// A435 — la riga «chiusura consegnata a meta' canzone»: la sezione che il motore conta, le sezioni della mappa e il
+/// contesto («drenaggio», o il contesto dell'arresto di crisi).
+private struct RigMidSongClosure: Equatable {
+    let section: Int
+    let sections: Int
+    let context: String
 }
 
 /// La linea propria del Follower DA-SOLO (`OwnClockTimeline`): l'ora, la posizione e il tempo dell'àncora.
@@ -519,7 +593,7 @@ private final class FollowerBandRig {
     private var syncSkip = 0
     /// `_sectionEndPending`
     private(set) var sectionEndPending = false
-    /// La chiusura di fine canzone consegnata.
+    /// La canzone chiusa dal runner: la chiusura consegnata l'ha presa sull'ultima sezione (`runnerSectionEnded`).
     private(set) var ended = false
     private(set) var engineTempo: Double
     private(set) var seqTempo: Double
@@ -612,6 +686,49 @@ private final class FollowerBandRig {
     var reopenedDrainWithoutLimit = false
     /// D5 tolta: la soglia della cura in valore assoluto, non a un lato.
     var reopenedDrainAbsoluteThreshold = false
+    /// A435, la cura di B9 tolta: alla consegna della chiusura il conto resta sempre com'è.
+    var withoutTheSongEndCure = false
+    /// A435, la cura senza la sua condizione (la strada (U), scartata dal referee): il conto si chiude a ogni consegna,
+    /// anche a metà canzone.
+    var songEndCureWithoutTheCondition = false
+    /// A435 (seguito 2), tolta la scrittura della sezione della mappa nel caricamento per il riallineo
+    /// (`loadFollowerSectionForRealignQ`): la cura della fine canzone leggerebbe la sezione di PRIMA del caricamento.
+    var realignLoadKeepsTheMapSection = false
+    /// A435 — lo Stop del runner arriva sulla coda tante chiamate dopo la consegna della chiusura di fine canzone. Di
+    /// base zero: nella stessa chiamata della consegna, come prima di A435.
+    var stopDelayCalls = 0
+    /// Le chiamate che mancano allo Stop chiesto dal runner (`nil`: nessuno Stop chiesto).
+    private var stopAfterCalls: Int? = nil
+    /// Le chiamate girate fra la consegna della chiusura di fine canzone e lo Stop.
+    private(set) var callsAfterDelivery = 0
+    // A435 · PARTE 2 — la (b). Il rig è l'iPad del Follower: il ruolo delle regole del volume è sempre `.follower`.
+    /// `_outputSilenceQ`: lo stato puro del volume, col segno del silenzio del conto.
+    private(set) var silence = OutputSilenceState.initial
+    /// Il volume del mixer principale del motore corrente.
+    private(set) var volume: Float = 1.0
+    /// Le chiamate che mancano al ritorno del Follower e al ritorno dopo il buco (0 = nessuno in attesa).
+    private(set) var followerReturn = 0
+    private(set) var gapReturn = 0
+    /// `_followerSyncQ`: la macchina del Follower. I casi di prima non la toccano.
+    var syncState: FollowerSyncState = .inSync(songClosed: false)
+    /// `_songFirstBpmQ`: il tempo della prima sezione consegnato dal runner insieme alla misura.
+    private(set) var songFirstBpm: Double? = nil
+    /// Le richieste della macchina al runner («armNext»; dal seguito 3 anche «openSong», «rearmSame», «armSong»).
+    private(set) var runnerActions: [String] = []
+    // A435 · SEGUITO 3 (seguito 3 di A435, par. 5 a) — la copia del runner a più canzoni, scritta come il codice vero
+    // (`SetlistRunner`: il banco compila solo Models/), e i due campi del motore che servono allo Stop.
+    /// Le canzoni della scaletta del runner (`catalog`). Vuota = una canzone sola: la mappa di adesso.
+    var setlist: [SongMap] = []
+    /// `SetlistRunner.currentSongIdx`
+    private(set) var runnerSong = 0
+    /// `SetlistRunner.songClosed`: il cartello «canzone chiusa».
+    private(set) var runnerSongClosed = false
+    /// `_songFirstBeatsPerBarQ`: la misura della prima sezione consegnata dal runner insieme al tempo.
+    private(set) var songFirstBpb: Int
+    /// `_startPhaseQ`: la fase d'avvio registrata.
+    private(set) var startPhase: Double? = nil
+    /// La fase della sessione all'ultimo Play della band (per la fase dello Stop).
+    private var playPhase = 0.0
 
     /// La mappa dei casi ha sempre almeno una sezione.
     init(map: SongMap, band: RigBand) {
@@ -623,6 +740,8 @@ private final class FollowerBandRig {
         self.engineTempo = first.bpm
         self.seqTempo = first.bpm
         self.screenBpm = first.bpm
+        self.songFirstBpm = first.bpm
+        self.songFirstBpb = first.beatsPerBar
     }
 
     private var sections: [SongMapSection] { map.sections }
@@ -730,11 +849,55 @@ private final class FollowerBandRig {
         return out
     }
 
-    /// Le righe «conto azzerato», coi loro motivi (solo la consegna di una mappa diversa ne scrive una).
+    /// Le righe «conto azzerato», coi loro motivi (ne scrivono una la consegna di una mappa diversa e, da A435, la
+    /// cura della fine canzone, se il conto c'era).
     var countResets: [String] {
         var out: [String] = []
         for row in rows {
             if case .countReset(let reason) = row { out.append(reason) }
+        }
+        return out
+    }
+
+    /// A435 — le righe «chiusura consegnata a meta' canzone».
+    var midSongClosures: [RigMidSongClosure] {
+        var out: [RigMidSongClosure] = []
+        for row in rows {
+            if case .closureDeliveredMidSong(let closure) = row { out.append(closure) }
+        }
+        return out
+    }
+
+    /// A435 · PARTE 2 — le scritture del volume, le scritture rifiutate (per strada), i cambi del segno, le righe del
+    /// Play dopo un conto non certo.
+    var volumeWrites: [RigVolumeWrite] {
+        var out: [RigVolumeWrite] = []
+        for row in rows {
+            if case .volume(let write) = row { out.append(write) }
+        }
+        return out
+    }
+
+    var volumeNotRestored: [String] {
+        var out: [String] = []
+        for row in rows {
+            if case .volumeNotRestored(let road) = row { out.append(road) }
+        }
+        return out
+    }
+
+    var silenceSigns: [RigSilenceSign] {
+        var out: [RigSilenceSign] = []
+        for row in rows {
+            if case .uncertainSilence(let sign) = row { out.append(sign) }
+        }
+        return out
+    }
+
+    var playsAfterUncertain: [RigPlayAfterUncertain] {
+        var out: [RigPlayAfterUncertain] = []
+        for row in rows {
+            if case .playAfterUncertain(let play) = row { out.append(play) }
         }
         return out
     }
@@ -755,13 +918,82 @@ private final class FollowerBandRig {
         return out
     }
 
+    /// A435 · SEGUITO 3 — le canzoni su cui `armNextSong` ha trovato la canzone già chiusa.
+    var runnerAlreadyClosed: [Int] {
+        var out: [Int] = []
+        for row in rows {
+            if case .runnerAlreadyClosed(let song) = row { out.append(song) }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — le canzoni armate da `armNextSong`, in ordine.
+    var runnerArmedNext: [Int] {
+        var out: [Int] = []
+        for row in rows {
+            if case .runnerArmedNext(let song) = row { out.append(song) }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — quante volte il runner ha chiuso la scaletta.
+    var runnerSetlistEnds: Int {
+        var out = 0
+        for row in rows {
+            if case .runnerSetlistEnded = row { out += 1 }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — le canzoni armate da `armSong`, in ordine.
+    var runnerArmed: [Int] {
+        var out: [Int] = []
+        for row in rows {
+            if case .runnerArmed(let song) = row { out.append(song) }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — le aperture senza avvio.
+    var runnerOpened: [RigRunnerOpened] {
+        var out: [RigRunnerOpened] = []
+        for row in rows {
+            if case .runnerOpened(let opened) = row { out.append(opened) }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — le fasi d'avvio registrate.
+    var startPhases: [RigStartPhase] {
+        var out: [RigStartPhase] = []
+        for row in rows {
+            if case .startPhase(let phase) = row { out.append(phase) }
+        }
+        return out
+    }
+
+    /// A435 · SEGUITO 3 — le righe degli Stop ricevuti.
+    var stopReads: [RigStopRead] {
+        var out: [RigStopRead] = []
+        for row in rows {
+            if case .stopRead(let read) = row { out.append(read) }
+        }
+        return out
+    }
+
     // MARK: Il runner (sul principale)
 
     /// L'avvio di una sezione dal runner (`SetlistRunner.prepareAndStartCurrentSection`): la consegna della mappa
     /// (`setSongMap`: il segno si alza; `map` = una canzone diversa), i setter della sezione (`loadSection`) e il
     /// precarico della sezione dopo.
     func loadSectionFromRunner(_ idx: Int, map delivered: SongMap? = nil) {
+        // A435 · SEGUITO 3 — gli avvii del runner abbassano il cartello «canzone chiusa» (`startSetlist`,
+        // `startCurrentSong`, `startCurrentSection`).
+        runnerSongClosed = false
         setSongMap(delivered ?? map, startSection: idx)
+        // A435 · PARTE 2 — la consegna è misura e tempo della prima sezione (`setSongFirstBeatsPerBar`).
+        songFirstBpm = sections[0].bpm
+        songFirstBpb = sections[0].beatsPerBar
         let s = sections[idx]
         bpb = s.beatsPerBar
         dsp.setBeatsPerBar(s.beatsPerBar)
@@ -814,6 +1046,341 @@ private final class FollowerBandRig {
         runnerSection += 1
         view.runnerSection(runnerSection)
         preload(forSection: runnerSection + 1)
+    }
+
+    /// A435 — la chiusura di fine sezione del runner (`SetlistRunner.makeSectionEndedClosure`), sul principale: sceglie
+    /// col PROPRIO indice (`isLastSectionInSong`). Fuori dall'ultima sezione «avanza»; sull'ultima chiude la canzone e
+    /// ferma il motore (`armNextSong`, `audioEngine.stop()`): lo Stop arriva sulla coda `stopDelayCalls` chiamate dopo
+    /// (subito, se il motore è già fermo).
+    private func runnerSectionEnded() {
+        // A435 · SEGUITO 3 — «ultima sezione» è della canzone del RUNNER (`isLastSectionInSong`), che dopo
+        // un'avanzata è la canzone dopo.
+        if runnerSection < runnerSongs[runnerSong].sections.count - 1 {
+            runnerClosure()
+            return
+        }
+        // A435 · SEGUITO 3 — la chiusura della canzone è `armNextSong` (idempotente), poi lo Stop e l'avviso alla
+        // macchina, nell'ordine del codice vero.
+        runnerArmNextSong()
+        ended = true
+        // A435 · PARTE 2 — il runner avvisa la macchina del Follower (`followerOwnSongEnded`).
+        syncState = FollowerSyncDecision.transition(state: syncState, event: .ownSongEnded).state
+        if stopDelayCalls <= 0 || !running {
+            stop()
+        } else if stopAfterCalls == nil {
+            stopAfterCalls = stopDelayCalls
+        }
+    }
+
+    /// A435 · SEGUITO 3 — la chiusura di fine canzone del runner che arriva sul principale (per la corsa di fine canzone
+    /// nell'ordine «prima lo Stop del Direttore, poi la chiusura già accodata»).
+    func ownSongEndClosure() {
+        runnerSectionEnded()
+    }
+
+    // MARK: A435 · SEGUITO 3 — la copia del runner (`SetlistRunner`), sul principale
+
+    /// Il catalogo del runner: la scaletta, o la sola canzone della mappa.
+    private var runnerSongs: [SongMap] { setlist.isEmpty ? [map] : setlist }
+
+    /// `SetlistRunner.armNextSong`: a canzone già chiusa non avanza, con la riga «canzone gia' chiusa»; se no chiude,
+    /// passa alla canzone dopo dalla sezione 0 e consegna al motore misura e tempo della sua prima sezione
+    /// (`setSongFirstBeatsPerBar(_:firstBpm:)`); sull'ultima chiude la scaletta.
+    private func runnerArmNextSong() {
+        guard !runnerSongClosed else {
+            rows.append(.runnerAlreadyClosed(song: runnerSong))
+            return
+        }
+        runnerSongClosed = true
+        let songs = runnerSongs
+        if runnerSong + 1 < songs.count {
+            runnerSong += 1
+            runnerSection = 0
+            rows.append(.runnerArmedNext(song: runnerSong))
+            let first = songs[runnerSong].sections[0]
+            songFirstBpb = max(first.beatsPerBar, 1)
+            songFirstBpm = first.bpm
+        } else {
+            rows.append(.runnerSetlistEnded)
+        }
+    }
+
+    /// `SetlistRunner.armSong`: arma l'inizio di una canzone scelta (RIENTRA, falsa partenza): canzone chiusa, sezione
+    /// 0. Non scrive la misura sul motore.
+    @discardableResult
+    private func runnerArmSong(_ index: Int) -> Bool {
+        guard index >= 0, index < runnerSongs.count else {
+            rows.append(.runnerArmRefused(index: index))
+            return false
+        }
+        runnerSongClosed = true
+        runnerSong = index
+        runnerSection = 0
+        rows.append(.runnerArmed(song: index))
+        return true
+    }
+
+    /// `SetlistRunner.openArmedSongWithoutStart` (seguito 3 di A435, par. 2): il cartello si abbassa, e nient'altro.
+    private func runnerOpenSong() {
+        rows.append(.runnerOpened(RigRunnerOpened(song: runnerSong, wasClosed: runnerSongClosed)))
+        runnerSongClosed = false
+    }
+
+    /// `followerRun` (su main) e la stanza (`handleFollowerRunnerAction`): l'azione della macchina sul motore e sul
+    /// runner.
+    private func runFollowerAction(_ action: FollowerSyncAction) {
+        switch action {
+        case .none, .start:
+            break
+        case .stop:
+            stop()
+        case .stopAndArmNext:
+            stop()
+            runnerActions.append("armNext")
+            runnerArmNextSong()
+        case .armNext:
+            runnerActions.append("armNext")
+            runnerArmNextSong()
+        case .stopAndRearmSame:
+            stop()
+            runnerActions.append("rearmSame")
+            runnerArmSong(runnerSong)
+        case .rearmSame:
+            runnerActions.append("rearmSame")
+            runnerArmSong(runnerSong)
+        case .armSong(let songIdx):
+            runnerActions.append("armSong")
+            runnerArmSong(songIdx)
+        case .openSong:
+            runnerActions.append("openSong")
+            runnerOpenSong()
+        }
+    }
+
+    /// `falseStartAgainstRegisteredStart`: senza un avvio registrato non è una falsa partenza; se no la differenza dei
+    /// battiti a giro simmetrico contro una battuta della prima sezione della canzone che l'iPad ha davanti.
+    private func falseStartAgainstRegisteredStart(stopPhase: Double) -> Bool {
+        guard let start = startPhase else {
+            rows.append(.stopRead(RigStopRead(delta: nil, margin: nil, falseStart: false)))
+            return false
+        }
+        let delta = FalseStartDecision.beatDelta(startPhase: start, stopPhase: stopPhase, modulus: 1_000_000.0)
+        let margin = FalseStartDecision.marginBeats(beatsPerBar: UInt32(max(songFirstBpb, 1)))
+        let falseStart = FalseStartDecision.isFalseStart(stopBeat: delta, startBeat: 0.0, marginBeats: margin)
+        rows.append(.stopRead(RigStopRead(delta: delta, margin: margin, falseStart: falseStart)))
+        return falseStart
+    }
+
+    /// Il fronte «non sento più il Direttore»: la transizione e la sua azione.
+    @discardableResult
+    func directorLost() -> FollowerSyncAction {
+        let transition = FollowerSyncDecision.transition(state: syncState,
+                                                         event: .directorHeard(false, engineRunning: running))
+        syncState = transition.state
+        runFollowerAction(transition.action)
+        return transition.action
+    }
+
+    /// `followerArm`: il tocco sulla lista (RIENTRA). Accettato: il motore scrive misura e tempo della canzone scelta
+    /// nello stesso passo, poi il runner la arma (`armSong`).
+    @discardableResult
+    func armRientra(_ index: Int, heard: Bool = true, sessionPlaying: Bool = false) -> FollowerSyncAction {
+        let arming = FollowerArming(source: .rientra(songIdx: index), directorHeard: heard,
+                                    sessionPlaying: sessionPlaying)
+        let transition = FollowerSyncDecision.transition(state: syncState, event: .armed(arming))
+        syncState = transition.state
+        if case .armSong(let armed) = transition.action, armed >= 0, armed < runnerSongs.count {
+            let first = runnerSongs[armed].sections[0]
+            songFirstBpb = max(first.beatsPerBar, 1)
+            songFirstBpm = first.bpm
+        }
+        runFollowerAction(transition.action)
+        return transition.action
+    }
+
+    /// `followerMusicianStop`: lo Stop del musicista.
+    @discardableResult
+    func musicianStop() -> FollowerSyncAction {
+        let transition = FollowerSyncDecision.transition(state: syncState, event: .musicianStop)
+        syncState = transition.state
+        runFollowerAction(transition.action)
+        return transition.action
+    }
+
+    /// A435 — `closeFollowerCountAtDeliveredSongEndQ`, la cura di B9 (la strada (L) del seguito 1): nei due punti che
+    /// consegnano la chiusura (il controllo del drenaggio e l'arresto di crisi), subito dopo la consegna, il conto si
+    /// chiude (`resetFollowerBandCountQ`, «fine-canzone-consegnata»: una riga se il conto c'era) SOLO se il motore conta
+    /// l'ultima sezione della mappa; con una mappa e fuori dall'ultima sezione una riga, e il conto resta.
+    private func deliveredSongEndCure(context: String) {
+        if withoutTheSongEndCure { return }
+        let section = mapSection
+        let mapSections = sections.count
+        guard section >= 0 else { return }
+        if section == mapSections - 1 || songEndCureWithoutTheCondition {
+            if count != nil {
+                rows.append(.countReset(reason: "fine-canzone-consegnata"))
+            }
+            resetCount()
+        } else {
+            rows.append(.closureDeliveredMidSong(RigMidSongClosure(section: section, sections: mapSections,
+                                                                   context: context)))
+        }
+    }
+
+    // MARK: A435 · PARTE 2 — il volume e il segno del silenzio del conto
+
+    /// `noteOutputStateQ`: lo stato puro dopo un evento; a ogni cambio del segno una riga (e, nel motore, lo specchio
+    /// per la vista).
+    private func noteOutputState(_ event: OutputSilenceEvent, from source: String) {
+        let before = silence
+        silence = OutputRouteDecision.state(after: event, from: before, playerRole: .follower)
+        if before.uncertainSilence != silence.uncertainSilence {
+            rows.append(.uncertainSilence(RigSilenceSign(high: silence.uncertainSilence, source: source)))
+        }
+    }
+
+    /// `writeOutputVolumeQ`, lo scrittore unico del volume: col segno alto, sul Follower, un volume sopra 0 non si
+    /// scrive (`OutputRouteDecision.allowsVolumeWrite`), e una riga dice quale strada l'ha chiesto.
+    private func writeVolume(_ value: Float, reason: String) {
+        guard OutputRouteDecision.allowsVolumeWrite(volume: value, playerRole: .follower, state: silence) else {
+            rows.append(.volumeNotRestored(road: reason))
+            return
+        }
+        volume = value
+        if value == 0 {
+            silence = OutputRouteDecision.state(after: .silenced, from: silence, playerRole: .follower)
+        } else {
+            silence = OutputRouteDecision.state(after: .volumeRestored(externalPresent: false), from: silence,
+                                                playerRole: .follower)
+        }
+        rows.append(.volume(RigVolumeWrite(on: value != 0, reason: reason)))
+    }
+
+    /// `cancelOutputReturnsQ`.
+    private func cancelReturns() {
+        followerReturn = 0
+        gapReturn = 0
+    }
+
+    /// `raiseFollowerUncertainSilenceQ`: il segno, il volume a 0 adesso, i ritorni in attesa annullati.
+    private func raiseUncertainSilence() {
+        noteOutputState(.countUncertain, from: "conto-non-certo")
+        writeVolume(0.0, reason: "conto-non-certo")
+        cancelReturns()
+    }
+
+    /// `applyStartVolumeQ`: il volume che l'avvio scrive sul motore corrente (`OutputRouteDecision.volumeForStart`).
+    private func applyStartVolume() {
+        writeVolume(OutputRouteDecision.volumeForStart(playerRole: .follower, state: silence), reason: "avvio")
+    }
+
+    /// Il motore nuovo dopo il reset dei servizi audio: il suo mixer non ha un volume scritto (qui 1) finché non
+    /// passa l'avvio; lo stato puro non cambia.
+    func newEngineAfterMediaReset() {
+        running = false
+        volume = 1.0
+    }
+
+    /// Un ritorno del Follower armato (le cuffie rimesse, il tocco sull'altoparlante): dopo `calls` chiamate (il suo
+    /// «uno») chiede il volume a 1.
+    func armFollowerReturn(calls: Int = 1) {
+        followerReturn = calls
+    }
+
+    /// Un ritorno dopo il buco armato: dopo `calls` chiamate chiede il volume a 1.
+    func armGapReturn(calls: Int = 1) {
+        gapReturn = calls
+    }
+
+    /// `followerHandleLinkTransport`, il ramo del Play: a motore in moto è ignorato; se no il confronto del tempo
+    /// (col segno alto), la riga, la transizione; con l'avvio il segno si toglie PRIMA dell'avvio e il Play è
+    /// accettato (`playCallback`). Rende l'azione della macchina.
+    /// A435 · SEGUITO 3 — `phase`: la fase della sessione al Play (`phaseAtStampQBig`). Con l'avvio e col Play IN SYNC
+    /// rifiutato per il tempo (`.openSong`) si registra la fase d'avvio; poi l'azione gira sul principale (l'apertura
+    /// della canzone sul runner).
+    func directorPlay(_ t: Double, sessionBpm: Double, within: Bool = true, phase: Double = 0.0) -> FollowerSyncAction {
+        playPhase = phase
+        if running {
+            return FollowerSyncAction.none
+        }
+        let sign = silence.uncertainSilence
+        let check = BandTempoMatchDecision.check(uncertainSilence: sign, sessionBpm: sessionBpm,
+                                                 songFirstBpm: songFirstBpm)
+        if sign && FollowerSyncDecision.playWouldStart(state: syncState, withinHalfBar: within) {
+            rows.append(.playAfterUncertain(RigPlayAfterUncertain(sessionBpm: sessionBpm, songBpm: songFirstBpm,
+                                                                  matches: check == .matches)))
+        }
+        let transition = FollowerSyncDecision.transition(state: syncState,
+                                                         event: .linkPlay(withinHalfBar: within, tempo: check))
+        syncState = transition.state
+        if transition.action == .start {
+            if sign {
+                noteOutputState(.countSilenceEnded, from: "play-direttore")
+            }
+            startPhase = phase
+            rows.append(.startPhase(RigStartPhase(context: "play-direttore", phase: phase)))
+            playCallback(t)
+        } else if transition.action == .openSong {
+            // A435 · SEGUITO 3 (par. 3) — la fase d'avvio anche al Play rifiutato per il tempo, e nient'altro; poi
+            // l'apertura della canzone sul runner (par. 2).
+            startPhase = phase
+            rows.append(.startPhase(RigStartPhase(context: "play-rifiutato-tempo", phase: phase)))
+            runFollowerAction(transition.action)
+        }
+        return transition.action
+    }
+
+    /// `followerHandleLinkTransport`, il ramo dello Stop.
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 5 a; nota S1 del verificatore B2-R del
+    /// referee). Qui c'era «(nessuna falsa partenza): la transizione e le sue azioni», con `falseStart: false` fisso,
+    /// il conto lasciato com'era e la sola scritta «armNext» al posto del runner. Ora, come il motore: la falsa
+    /// partenza si calcola sulla fase d'avvio registrata (che poi si azzera), il conto si chiude anche a motore fermo
+    /// («stop-direttore»), poi la transizione e le sue azioni sul motore e sulla copia del runner.
+    /// `beatsAfterPlay`: i battiti di sessione dal Play della band allo Stop (di base lontano: dopo la canzone).
+    func directorStop(beatsAfterPlay: Double = 1000.0) -> FollowerSyncAction {
+        let stopPhase = (playPhase + beatsAfterPlay).truncatingRemainder(dividingBy: 1_000_000.0)
+        let falseStart = falseStartAgainstRegisteredStart(stopPhase: stopPhase)
+        startPhase = nil
+        if count != nil {
+            rows.append(.countReset(reason: "stop-direttore"))
+        }
+        resetCount()
+        let transition = FollowerSyncDecision.transition(state: syncState,
+                                                         event: .linkStop(falseStart: falseStart,
+                                                                          engineRunning: running))
+        syncState = transition.state
+        runFollowerAction(transition.action)
+        return transition.action
+    }
+
+    /// `followerResetQ`: END SHOW, uscita dalla stanza, cambio di ruolo, levetta di Link spenta.
+    func followerReset(reason: String) {
+        // A435 · SEGUITO 3 — `followerResetQ` azzera per prima la fase d'avvio.
+        startPhase = nil
+        resetCount()
+        noteOutputState(.countSilenceEnded, from: reason)
+        syncState = FollowerSyncDecision.transition(state: syncState, event: .reset).state
+    }
+
+    /// `setShowOpen(false)`: il conto finisce, i ritorni si annullano, il segno si toglie PRIMA del volume a 1 (col
+    /// motore in moto a volume 0), poi lo stato «show chiuso».
+    func showClosed() {
+        resetCount()
+        cancelReturns()
+        noteOutputState(.countSilenceEnded, from: "show-chiuso")
+        if running && silence.muted {
+            writeVolume(1.0, reason: "show-chiuso")
+        }
+        noteOutputState(.showClosed, from: "show-chiuso")
+    }
+
+    /// Il cambio di ruolo (o Link spento dall'utente): il reset della macchina, e lo stato «cambio di ruolo» se
+    /// l'uscita era zittita o mancante.
+    func roleChange(reason: String = "cambio-di-ruolo") {
+        followerReset(reason: reason)
+        if silence.muted || silence.missing {
+            noteOutputState(.roleChange, from: reason)
+        }
     }
 
     /// `DispatchQueue.main.async`: il blocco gira `mainDelay` secondi dopo.
@@ -880,11 +1447,27 @@ private final class FollowerBandRig {
         pendingNext = nil
         sectionEndPending = false
         clickLeft = 0
+        stopAfterCalls = nil
+        // A435 · PARTE 2 — lo Stop annulla i ritorni in attesa; il segno del silenzio del conto sopravvive.
+        cancelReturns()
     }
 
     /// Un'interruzione di sistema o una ripartenza dell'iPad: il motore si ferma senza la pulizia dello Stop.
+    /// A435 — un arresto di crisi che trova il drenaggio aperto consegna la chiusura una volta e lo chiude
+    /// (`closeDrainOnCrisisStopQ`), con la stessa cura del controllo del drenaggio (`deliveredSongEndCure`).
     func interruption() {
         running = false
+        // A435 · PARTE 2 — l'inizio di un'interruzione annulla i ritorni; il segno del silenzio del conto resta.
+        cancelReturns()
+        if sectionEndPending {
+            sectionEndPending = false
+            rows.append(.songEndDelivered(callTime: now))
+            postMain { [weak self] in
+                self?.runnerSectionEnded()
+            }
+            deliveredSongEndCure(context: "interruzione")
+            runMain(now)
+        }
     }
 
     /// Il blocco di un `start()` che prosegue (su audioQueue): `prepareNormalStartQ` fa di «canzone in corso» il segno
@@ -898,6 +1481,8 @@ private final class FollowerBandRig {
             songInProgress = start.songInProgress
         }
         mapForNextStart = start.mapForNextStart
+        // A435 · PARTE 2 — ogni avvio scrive il volume sul motore corrente (`applyStartVolumeQ`).
+        applyStartVolume()
         running = true
         tick = 0
         lastCounted = nil
@@ -1078,19 +1663,50 @@ private final class FollowerBandRig {
     /// Una chiamata di `scheduleNextBuffer` all'ora `t`. `hole`: è la prima chiamata dopo un buco del render.
     func call(_ t: Double, hole: Bool = false) {
         guard running else { return }
+        // A435 — lo Stop che il runner ha chiesto dopo la fine canzone arriva sulla coda dopo `stopDelayCalls` chiamate.
+        if let left = stopAfterCalls {
+            if left <= 0 {
+                stopAfterCalls = nil
+                stop()
+                return
+            }
+            stopAfterCalls = left - 1
+            callsAfterDelivery += 1
+        }
         calls += 1
         now = t
+        // A435 · PARTE 2 — un ritorno armato chiede il volume a 1 quando scade (lo scrittore unico decide).
+        if followerReturn > 0 {
+            followerReturn -= 1
+            if followerReturn == 0 {
+                writeVolume(1.0, reason: "ritorno-follower")
+            }
+        }
+        if gapReturn > 0 {
+            gapReturn -= 1
+            if gapReturn == 0 {
+                writeVolume(1.0, reason: "ritorno-dopo-buco")
+            }
+        }
         runMain(t)
         let out = t + outDelay
         // «L1.a — Drain mode check» di `scheduleNextBuffer`: la chiusura si consegna quando la coda del click è
         // esaurita (nel motore i tre playhead sotto zero). Fino ad allora le chiamate del drenaggio vanno avanti (il
         // misuratore, la correzione, il punto R) senza far girare il DSP.
         if sectionEndPending && clickLeft <= 0 {
-            // La chiusura di fine canzone si consegna e questo richiamo non programma niente.
+            // La chiusura si consegna e questo richiamo non programma niente. ⚠️ RISCRITTO A435 (16/11/2026), c'era
+            // «La chiusura di fine canzone si consegna» con `ended = true` e `stop()` qui: il motore NON si ferma alla
+            // consegna. La chiusura va al principale (`DispatchQueue.main.async`), dove il runner sceglie col proprio
+            // indice fra «avanza» e fine canzone (`runnerSectionEnded`); subito dopo la consegna, la cura di B9
+            // (`deliveredSongEndCure`). Col principale libero (`mainDelay` zero) e `stopDelayCalls` zero la fine canzone
+            // ferma il motore in questa stessa chiamata, come prima.
             sectionEndPending = false
-            ended = true
             rows.append(.songEndDelivered(callTime: t))
-            stop()
+            postMain { [weak self] in
+                self?.runnerSectionEnded()
+            }
+            deliveredSongEndCure(context: "drenaggio")
+            runMain(t)
             return
         }
         if hole {
@@ -1176,7 +1792,13 @@ private final class FollowerBandRig {
                 engineTempo = pending
                 seqTempo = pending
                 ownTimeline = nil
-                if inSync {
+                // A435 · PARTE 2 — la W2 esce se lo dice la regola vera (`FollowerLinkWriteDecision`): IN SYNC sì, DA
+                // SOLO no (com'era), e col segno del silenzio del conto alto no.
+                let w2Outcome = FollowerLinkWriteDecision.boundaryTempoWrite(
+                    role: .collaborativa, userLinkEnabled: true,
+                    state: inSync ? FollowerSyncState.inSync(songClosed: false) : FollowerSyncState.alone,
+                    ownClockUntilStop: !inSync, uncertainSilence: silence.uncertainSilence, debugSwitchOn: true)
+                if w2Outcome == .writes {
                     w2.append(RigW2(section: mapSection, outTime: beatOut))
                 }
                 screenBpm = pending
@@ -1205,7 +1827,9 @@ private final class FollowerBandRig {
                             self?.runnerClosure()
                         }
                     } else {
-                        // Il ramo del drenaggio: fine canzone.
+                        // Il ramo del drenaggio. ⚠️ CORRETTO A435 (16/11/2026), c'era «Il ramo del drenaggio: fine
+                        // canzone.»: il motore lo prende a ogni fine sezione senza precarico, anche a metà canzone se
+                        // la chiusura del runner è in ritardo; la stessa sezione si riconta da capo.
                         sectionEndPending = true
                         drainSkipped = 0
                         counter = 0
@@ -1305,6 +1929,9 @@ private final class FollowerBandRig {
         }
         guard reading.certain, let place = reading.place else {
             rows.append(.countNotCertain(reason: reading.reason))
+            // A435 · PARTE 2 — la (b): una lettura non certa di un conto vivo e aperto, mentre l'iPad suona, alza il
+            // segno del silenzio (`raiseFollowerUncertainSilenceQ`).
+            raiseUncertainSilence()
             return
         }
         realign(place: place, reason: reason)
@@ -1328,7 +1955,9 @@ private final class FollowerBandRig {
         ownTimeline = nil
         bpb = arrival.beatsPerBar
         total = arrival.rigTotal
-        mapSection = idx
+        if !realignLoadKeepsTheMapSection {
+            mapSection = idx
+        }
         if idx + 1 < sections.count {
             pendingNext = idx + 1
         }
@@ -1605,15 +2234,16 @@ final class FollowerBandRigTests: XCTestCase {
     }
 
     /// I blocchi di un ingresso su audioQueue, dopo il Play, nell'ordine `order`.
+    /// A435 · SEGUITO 3 — `map`: la mappa di un'altra canzone (la canzone dopo della scaletta); `nil` = quella di adesso.
     private func entryBlocks(_ f: FollowerBandRig, _ tFire: Double, localSeed: Int = 0,
-                             order: EntryOrder = .real) {
+                             order: EntryOrder = .real, map: SongMap? = nil) {
         f.engineStart()
         switch order {
         case .real:
-            f.loadSectionFromRunner(0)
+            f.loadSectionFromRunner(0, map: map)
             f.secondStartGuard()
         case .mapThenFire:
-            f.loadSectionFromRunner(0)
+            f.loadSectionFromRunner(0, map: map)
         case .race:
             break
         }
@@ -2327,12 +2957,17 @@ final class FollowerBandRigTests: XCTestCase {
 
     /// Un salto della sessione a metà sezione (qui +1,0): il conto non è certo, una riga col motivo, niente
     /// riallineo e niente silenzio; il conto resta chiuso e non si legge più.
+    /// ⚠️ CORRETTO A435 · PARTE 2 (16/11/2026; mandato A435, par. 4 a), c'era «niente riallineo e niente silenzio»: da
+    /// A435 il conto non certo fa tacere il click fino alla canzone dopo (il segno del silenzio, il volume a 0). Il
+    /// resto del caso è com'era: nessun riallineo, il conto chiuso che non si legge più, il motore in moto.
     func testAJumpOutsideTheStateClosesTheCountAndTheIPadGoesAsToday() throws {
         let map = song([(4, 24, 121.0)])
         let (f, _, t) = started(map, entryBeat: 4, renumbers: [(6.0, 1.0)])
         f.run(from: t, to: t + 9.0)
         let expected: [FollowerBandCountClosed?] = [FollowerBandCountClosed.jumpOutsideRenumbering]
         XCTAssertEqual(f.notCertainReasons, expected)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.volume, 0.0)
         XCTAssertEqual(f.realignRows.count, 0)
         let readingsThen = f.readings
         f.run(from: t + 9.0 + buf, to: t + 12.0)
@@ -3900,5 +4535,895 @@ final class FollowerBandRigTests: XCTestCase {
     /// Il bordo «avanti», fuori: +60,0 ms: la cura si salta.
     func testTheEdgeSixtyMillisecondsAheadSkipsTheCure() throws {
         try assertEdgeIsSkipped(netSeconds: 0.0600)
+    }
+
+    // MARK: - A435 · la cura della fine canzone (B9), la strada (L) del seguito 1
+
+    /// Due sezioni di una battuta in mezzo: 8 + 4 + 4 + 16 battiti a 121.
+    private var songMid: SongMap { song([(4, 2, 121.0), (4, 1, 121.0), (4, 1, 121.0), (4, 4, 121.0)]) }
+
+    /// La foto del rig presa subito dopo la consegna della chiusura, e il riallineo dovuto dopo il battito a 1 s.
+    private struct SongEndPhoto: Equatable {
+        let countAlive: Bool
+        let running: Bool
+        let ended: Bool
+        let readings: Int
+        let realigns: Int
+        let beats: Int
+        var due: String?
+    }
+
+    /// Fino alla consegna della chiusura di fine canzone, con lo Stop del runner `stopAfter` chiamate dopo; nella prima
+    /// di quelle chiamate un riallineo dovuto «al-secondo». `ahead`: l'iPad passa avanti di tanti battiti a mano
+    /// nell'ultima sezione (1 = la band un battito indietro). `follower` falso: nessun Play della band, nessun conto
+    /// (il Direttore). Rende il rig, la band e la foto presa subito dopo la consegna.
+    private func songEndRun(_ map: SongMap, ahead: Int, stopAfter: Int, follower: Bool = true,
+                            broken: (FollowerBandRig) -> Void = { _ in }, file: StaticString = #filePath,
+                            line: UInt = #line) throws -> (FollowerBandRig, RigBand, SongEndPhoto) {
+        let made: (FollowerBandRig, RigBand, Double)
+        if follower {
+            made = started(map, entryBeat: 4, broken: broken)
+        } else {
+            let directorBand = RigBand(map: map, tPlay: play)
+            let director = FollowerBandRig(map: map, band: directorBand)
+            broken(director)
+            let fire = play + beatTime(map, 4)
+            entryBlocks(director, fire)
+            made = (director, directorBand, fire)
+        }
+        let (f, band, t) = made
+        f.stopDelayCalls = stopAfter
+        var total = 0
+        for s in map.sections {
+            total += s.rigTotal
+        }
+        let lastTotal = map.sections[map.sections.count - 1].rigTotal
+        let reached = f.run(from: t, to: play + beatTime(map, total - lastTotal / 2) + 0.1, pulses: false)
+        f.counter += ahead
+        var tt = try runUntil(f, from: reached, file: file, line: line) { !$0.songEndsDelivered.isEmpty }
+        var photo = SongEndPhoto(countAlive: f.count != nil, running: f.running, ended: f.ended,
+                                 readings: f.readingRows.count, realigns: f.realignRows.count,
+                                 beats: f.beats.count, due: nil)
+        f.secondPulse()
+        photo.due = f.realignDue
+        for _ in 0..<(stopAfter + 1) {
+            f.call(tt)
+            tt += buf
+        }
+        return (f, band, photo)
+    }
+
+    /// Una sola chiusura, il conto chiuso alla consegna, niente dopo.
+    private func assertSongEndClosedOnce(_ f: FollowerBandRig, _ photo: SongEndPhoto, _ message: String,
+                                         file: StaticString = #filePath, line: UInt = #line) {
+        // alla consegna il motore è ancora in moto (lo Stop arriva dopo) e il conto è già chiuso
+        XCTAssertTrue(photo.running, message, file: file, line: line)
+        XCTAssertFalse(photo.countAlive, message, file: file, line: line)
+        XCTAssertTrue(photo.ended, message, file: file, line: line)
+        XCTAssertEqual(f.countResets, ["fine-canzone-consegnata"], message, file: file, line: line)
+        // il riallineo dovuto «al-secondo» non si alza: nessuna lettura e nessun riallineo dopo la consegna
+        XCTAssertNil(photo.due, message, file: file, line: line)
+        XCTAssertEqual(f.readingRows.count, photo.readings, message, file: file, line: line)
+        XCTAssertEqual(f.realignRows.count, photo.realigns, message, file: file, line: line)
+        XCTAssertEqual(f.reopened, [], message, file: file, line: line)
+        // una sola chiusura, e nessun click dopo la consegna
+        XCTAssertEqual(f.songEndsDelivered.count, 1, message, file: file, line: line)
+        XCTAssertEqual(f.beats.count, photo.beats, message, file: file, line: line)
+        XCTAssertFalse(f.running, message, file: file, line: line)
+        XCTAssertNil(f.count, message, file: file, line: line)
+    }
+
+    /// R1 (VERIFICA_REFEREE_A432_SCHEDA-C par. 2): fra la consegna della chiusura e lo Stop passano una o due chiamate;
+    /// nella prima un riallineo dovuto «al-secondo» con la band oltre la fine. Con la cura il conto è chiuso alla
+    /// consegna: una sola chiusura. Il gemello senza la cura dice che la scena è quella: il conto vivo, il riallineo
+    /// «oltre la fine» che riapre il drenaggio e, con due chiamate, due chiusure.
+    func testAfterTheDeliveredSongEndTheBandPastTheEndDoesNotReopenTheDrain() throws {
+        for stopAfter in [1, 2] {
+            let (f, _, photo) = try songEndRun(songLast, ahead: 0, stopAfter: stopAfter)
+            assertSongEndClosedOnce(f, photo, "\(stopAfter)")
+            XCTAssertEqual(f.callsAfterDelivery, stopAfter, "\(stopAfter)")
+            let (twin, _, twinPhoto) = try songEndRun(songLast, ahead: 0, stopAfter: stopAfter,
+                                                      broken: { $0.withoutTheSongEndCure = true })
+            XCTAssertTrue(twinPhoto.countAlive, "\(stopAfter)")
+            XCTAssertEqual(twinPhoto.due, "al-secondo", "\(stopAfter)")
+            let after = Array(twin.realignRows.dropFirst(twinPhoto.realigns))
+            XCTAssertEqual(after.count, 1, "\(stopAfter)")
+            let reopening = try XCTUnwrap(after.first)
+            XCTAssertEqual(reopening.reason, "al-secondo", "\(stopAfter)")
+            XCTAssertNil(reopening.inSong, "\(stopAfter): il riallineo è «oltre la fine»")
+            XCTAssertEqual(twin.songEndsDelivered.count, stopAfter, "\(stopAfter)")
+        }
+    }
+
+    /// R1, la variante: l'iPad un battito avanti, la band all'ultimo battito dell'ultima sezione quando l'iPad
+    /// consegna. Con la cura niente dopo la consegna. Il gemello senza la cura: il riallineo dentro la canzone rimette
+    /// il contatore all'ultimo battito, col motore che aveva già consegnato la fine.
+    func testAfterTheDeliveredSongEndTheBandOneBeatBehindDoesNotRealign() throws {
+        for stopAfter in [1, 2] {
+            let (f, _, photo) = try songEndRun(songLast, ahead: 1, stopAfter: stopAfter)
+            assertSongEndClosedOnce(f, photo, "\(stopAfter)")
+            XCTAssertEqual(f.beats.count, 20 - 1, "\(stopAfter)")
+            let (twin, _, twinPhoto) = try songEndRun(songLast, ahead: 1, stopAfter: stopAfter,
+                                                      broken: { $0.withoutTheSongEndCure = true })
+            XCTAssertTrue(twinPhoto.countAlive, "\(stopAfter)")
+            let after = Array(twin.realignRows.dropFirst(twinPhoto.realigns))
+            XCTAssertEqual(after.count, 1, "\(stopAfter)")
+            let back = try XCTUnwrap(after.first)
+            let detail = try XCTUnwrap(back.inSong, "\(stopAfter): il riallineo è «oltre la fine»")
+            XCTAssertEqual(back.reason, "al-secondo", "\(stopAfter)")
+            XCTAssertEqual(back.motor, RigSpot(section: 0, beat: 0), "\(stopAfter)")
+            XCTAssertEqual(detail.band, RigSpot(section: 0, beat: 23), "\(stopAfter)")
+        }
+    }
+
+    /// Il Direttore non ha il conto: con la cura e senza, gli stessi battiti, una chiusura, nessuna riga del conto.
+    func testOnTheDirectorTheDeliveredSongEndChangesNothing() throws {
+        for stopAfter in [1, 2] {
+            let (f, _, photo) = try songEndRun(songLast, ahead: 0, stopAfter: stopAfter, follower: false)
+            let (twin, _, twinPhoto) = try songEndRun(songLast, ahead: 0, stopAfter: stopAfter, follower: false,
+                                                      broken: { $0.withoutTheSongEndCure = true })
+            XCTAssertFalse(photo.countAlive, "\(stopAfter)")
+            XCTAssertEqual(f.countResets, [], "\(stopAfter)")
+            XCTAssertEqual(f.midSongClosures, [], "\(stopAfter)")
+            XCTAssertEqual(f.songEndsDelivered.count, 1, "\(stopAfter)")
+            XCTAssertEqual(f.readings, 0, "\(stopAfter)")
+            XCTAssertEqual(f.realigns, 0, "\(stopAfter)")
+            XCTAssertEqual(f.rows.count, twin.rows.count, "\(stopAfter)")
+            XCTAssertEqual(f.beats, twin.beats, "\(stopAfter)")
+            XCTAssertEqual(f.songEndsDelivered, twin.songEndsDelivered, "\(stopAfter)")
+            XCTAssertEqual(photo, twinPhoto, "\(stopAfter)")
+            XCTAssertFalse(f.running, "\(stopAfter)")
+            XCTAssertTrue(f.ended, "\(stopAfter)")
+        }
+    }
+
+    /// Il precarico in ritardo: il principale resta fermo 3 s (più della sezione 1, una battuta: 1,98 s) da prima dello
+    /// scambio 0 → 1, che si fa all'ultimo battito della sezione 0 (il battito 7). La chiusura del runner dello scambio
+    /// non arriva in tempo, la sezione 1 finisce senza precarico e il motore prende il drenaggio A METÀ CANZONE.
+    /// `untilDrainOnly`: si ferma alla prima chiamata col drenaggio aperto; altrimenti alla consegna. Rende il rig, la
+    /// band e l'ora della chiamata dopo.
+    private func midSongRun(untilDrainOnly: Bool = false, broken: (FollowerBandRig) -> Void = { _ in },
+                            file: StaticString = #filePath,
+                            line: UInt = #line) throws -> (FollowerBandRig, RigBand, Double) {
+        let (f, band, t) = started(songMid, entryBeat: 4, broken: broken)
+        let reached = f.run(from: t, to: play + beatTime(songMid, 6) + 0.1, pulses: false)
+        f.mainDelay = 3.0
+        let draining = try runUntil(f, from: reached, file: file, line: line) {
+            $0.sectionEndPending && $0.mapSection == 1
+        }
+        if untilDrainOnly {
+            return (f, band, draining)
+        }
+        let delivered = try runUntil(f, from: draining, file: file, line: line) { !$0.songEndsDelivered.isEmpty }
+        return (f, band, delivered)
+    }
+
+    /// Seguito 1 di A435, par. 1: la consegna fuori dall'ultima sezione NON azzera il conto e la riga «a meta' canzone»
+    /// c'è; il riallineo rimette sezione e contatore come oggi; alla fine vera, sull'ultima sezione, il conto si chiude.
+    /// In coda la strada (U), scartata: con la cura senza la condizione il conto si chiude a metà canzone, la rete al
+    /// secondo non riallinea e l'iPad resta sulla sezione sbagliata.
+    func testADrainInTheMiddleOfTheSongKeepsTheCountAndTheRealignPutsTheIPadBack() throws {
+        let (f, band, delivered) = try midSongRun()
+        let midSong = [RigMidSongClosure(section: 1, sections: 4, context: "drenaggio")]
+        XCTAssertEqual(f.midSongClosures, midSong)
+        XCTAssertEqual(f.countResets, [])
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+        XCTAssertTrue(f.running)
+        XCTAssertFalse(f.ended)
+        // il motore riconta la stessa sezione da capo, la band è nella sezione dopo
+        XCTAssertEqual(f.mapSection, 1)
+        XCTAssertEqual(f.counter, 0)
+        let realignsBefore = f.realignRows.count
+        // il principale torna libero; la rete al secondo
+        f.mainDelay = 0.0
+        f.secondPulse()
+        f.call(delivered)
+        XCTAssertEqual(f.realignRows.count, realignsBefore + 1)
+        let row = try XCTUnwrap(f.realignRows.last)
+        let detail = try XCTUnwrap(row.inSong, "il riallineo è «oltre la fine»")
+        XCTAssertEqual(row.reason, "al-secondo")
+        XCTAssertEqual(row.motor.section, 1)
+        XCTAssertEqual(detail.band.section, 2)
+        XCTAssertEqual(f.mapSection, 2)
+        let realignOut = try lastRealignOut(f)
+        _ = try callWhile(f, from: delivered + buf, limit: 6000) { $0.running }
+        XCTAssertEqual(wrongNamesAfter(f, band, realignOut), [])
+        // la fine vera: la seconda consegna, sull'ultima sezione, e lì il conto si chiude
+        XCTAssertEqual(f.songEndsDelivered.count, 2)
+        XCTAssertEqual(f.midSongClosures, midSong)
+        XCTAssertEqual(f.countResets, ["fine-canzone-consegnata"])
+        XCTAssertTrue(f.ended)
+        XCTAssertEqual(f.runnerSection, 3)
+        // i due precarichi che il runner manda in ritardo (sezione 2 e sezione 3) sono scartati: il motore è già lì
+        XCTAssertEqual(f.discardedPreloads, [RigDiscardedPreload(section: 2, engineSection: 2),
+                                             RigDiscardedPreload(section: 3, engineSection: 3)])
+        let end = play + beatTime(songMid, 32)
+        XCTAssertEqual(f.beats.filter { $0.outTime > end - 0.01 }, [])
+        // la strada (U)
+        let (u, uBand, uDelivered) = try midSongRun(broken: { $0.songEndCureWithoutTheCondition = true })
+        XCTAssertNil(u.count)
+        XCTAssertEqual(u.midSongClosures, [])
+        XCTAssertEqual(u.countResets, ["fine-canzone-consegnata"])
+        u.mainDelay = 0.0
+        u.secondPulse()
+        XCTAssertNil(u.realignDue)
+        u.run(from: uDelivered, to: uDelivered + 3.0)
+        XCTAssertEqual(u.realignRows.count, realignsBefore)
+        XCTAssertGreaterThan(wrongNamesAfter(u, uBand, uDelivered + u.outDelay).count, 0)
+    }
+
+    /// Tre sezioni: 16 + 8 + 8 battiti a 121.
+    private var songThree: SongMap { song([(4, 4, 121.0), (4, 2, 121.0), (4, 2, 121.0)]) }
+
+    /// La band oltre la fine col motore su una sezione PRIMA dell'ultima: un buco comincia nella sezione 1 (di 0-2) e
+    /// finisce 0,3 s dopo la fine della canzone della band. Il riallineo «oltre la fine» carica l'ultima sezione e apre
+    /// il drenaggio; alla consegna lo Stop del runner arriva `stopAfter` chiamate dopo, con un «al-secondo» nella
+    /// prima. Rende il rig, la foto presa subito dopo la consegna, e la sezione del motore prima del buco e alla
+    /// consegna.
+    private func pastEndFromAnEarlierSectionRun(stopAfter: Int, broken: (FollowerBandRig) -> Void = { _ in },
+                                                file: StaticString = #filePath, line: UInt = #line) throws
+        -> (rig: FollowerBandRig, photo: SongEndPhoto, sectionBefore: Int, sectionAtDelivery: Int) {
+        let (f, _, t) = started(songThree, entryBeat: 4, broken: broken)
+        f.stopDelayCalls = stopAfter
+        let end = play + beatTime(songThree, 32)
+        f.run(from: t, to: play + beatTime(songThree, 18) + 0.1, pulses: false)
+        let sectionBefore = f.mapSection
+        f.call(end + 0.3, hole: true)
+        var tt = try runUntil(f, from: end + 0.3 + buf, file: file, line: line) { !$0.songEndsDelivered.isEmpty }
+        var photo = SongEndPhoto(countAlive: f.count != nil, running: f.running, ended: f.ended,
+                                 readings: f.readingRows.count, realigns: f.realignRows.count,
+                                 beats: f.beats.count, due: nil)
+        let sectionAtDelivery = f.mapSection
+        f.secondPulse()
+        photo.due = f.realignDue
+        for _ in 0..<(stopAfter + 1) {
+            f.call(tt)
+            tt += buf
+        }
+        return (f, photo, sectionBefore, sectionAtDelivery)
+    }
+
+    /// Seguito 2 di A435, par. 2 b: tre sezioni, il motore sulla sezione 1 quando la band ha finito. Il riallineo
+    /// «oltre la fine» carica l'ultima sezione e apre il drenaggio; alla consegna la cura legge la sezione DOPO il
+    /// caricamento: una sola chiusura, il conto chiuso, nessuna riga «a meta' canzone». I due gemelli: senza la cura
+    /// (la scena è quella di R1 anche da una sezione prima), e con la sezione della mappa lasciata com'era prima del
+    /// caricamento (la cura la crede a metà canzone e il conto resta).
+    func testThePastEndRealignFromAnEarlierSectionLoadsTheLastOneAndTheCureSeesIt() throws {
+        for stopAfter in [1, 2] {
+            let run = try pastEndFromAnEarlierSectionRun(stopAfter: stopAfter)
+            let f = run.rig
+            XCTAssertEqual(run.sectionBefore, 1, "\(stopAfter)")
+            XCTAssertEqual(run.sectionAtDelivery, 2, "\(stopAfter)")
+            XCTAssertEqual(f.realignRows.count, 1, "\(stopAfter)")
+            let row = try XCTUnwrap(f.realignRows.first)
+            XCTAssertEqual(row.reason, "buco", "\(stopAfter)")
+            XCTAssertEqual(row.motor.section, 1, "\(stopAfter)")
+            XCTAssertNil(row.inSong, "\(stopAfter): il riallineo è «oltre la fine»")
+            XCTAssertEqual(f.runnerRejoins, [2], "\(stopAfter)")
+            assertSongEndClosedOnce(f, run.photo, "\(stopAfter)")
+            XCTAssertEqual(f.midSongClosures, [], "\(stopAfter)")
+            let twin = try pastEndFromAnEarlierSectionRun(stopAfter: stopAfter,
+                                                          broken: { $0.withoutTheSongEndCure = true })
+            XCTAssertTrue(twin.photo.countAlive, "\(stopAfter)")
+            XCTAssertEqual(twin.rig.realignRows.count - twin.photo.realigns, 1, "\(stopAfter)")
+            XCTAssertEqual(twin.rig.songEndsDelivered.count, stopAfter, "\(stopAfter)")
+            let old = try pastEndFromAnEarlierSectionRun(stopAfter: stopAfter,
+                                                         broken: { $0.realignLoadKeepsTheMapSection = true })
+            XCTAssertTrue(old.photo.countAlive, "\(stopAfter)")
+            // col conto rimasto vivo il drenaggio si riapre: con due chiamate le chiusure, e le righe, sono due
+            XCTAssertEqual(old.rig.midSongClosures,
+                           Array(repeating: RigMidSongClosure(section: 1, sections: 3, context: "drenaggio"),
+                                 count: stopAfter), "\(stopAfter)")
+            XCTAssertEqual(old.rig.countResets, [], "\(stopAfter)")
+        }
+    }
+
+    /// `closeDrainOnCrisisStopQ`, l'altro punto che consegna la chiusura: sull'ultima sezione il conto si chiude; a
+    /// metà canzone resta (una ripartenza nella stessa canzone tiene l'àncora) e la riga porta il contesto
+    /// dell'arresto.
+    func testACrisisStopInTheDrainClosesTheCountOnlyOnTheLastSection() throws {
+        let (f, _, t) = started(songLast, entryBeat: 4)
+        let reached = f.run(from: t, to: play + beatTime(songLast, 21) + 0.1, pulses: false)
+        _ = try runUntil(f, from: reached) { $0.sectionEndPending }
+        XCTAssertNotNil(f.count)
+        f.interruption()
+        XCTAssertEqual(f.songEndsDelivered.count, 1)
+        XCTAssertEqual(f.countResets, ["fine-canzone-consegnata"])
+        XCTAssertNil(f.count)
+        XCTAssertTrue(f.ended)
+        XCTAssertFalse(f.sectionEndPending)
+        let (g, _, _) = try midSongRun(untilDrainOnly: true)
+        let anchorBefore = try anchor(g)
+        g.interruption()
+        XCTAssertEqual(g.songEndsDelivered.count, 1)
+        XCTAssertEqual(g.midSongClosures, [RigMidSongClosure(section: 1, sections: 4, context: "interruzione")])
+        XCTAssertEqual(g.countResets, [])
+        let alive = try XCTUnwrap(g.count)
+        XCTAssertNil(alive.closed)
+        XCTAssertEqual(try anchor(g), anchorBefore)
+        XCTAssertFalse(g.ended)
+        XCTAssertFalse(g.sectionEndPending)
+    }
+
+    // MARK: - A435 · PARTE 2 — la (b): il silenzio del conto non certo e la ripartenza (mandato A435, par. 4)
+
+    /// L'iPad in canzone, la sessione salta di +1,0 a metà sezione (6 s dal Play: un salto fuori dallo stato): alla
+    /// prima lettura il conto non è certo e il click tace. Rende il rig, la band, l'ora dell'ingresso e l'ora della
+    /// chiamata dopo.
+    private func silenced(_ map: SongMap? = nil, until: Double = 9.0) -> (FollowerBandRig, RigBand, Double, Double) {
+        let (f, band, t) = started(map ?? two, entryBeat: 4, renumbers: [(6.0, 1.0)])
+        let next = f.run(from: t, to: t + until)
+        return (f, band, t, next)
+    }
+
+    /// A435 · SEGUITO 3 — cinque canzoni di una sezione: la prima è quella del silenzio (121); poi 131,5 · 101,5 ·
+    /// 141,5 in 3/4 · 91,5.
+    private var setlist5: [SongMap] {
+        [songLast, song([(4, 16, 131.5)]), song([(4, 16, 101.5)]), song([(3, 16, 141.5)]), song([(4, 16, 91.5)])]
+    }
+
+    /// Il silenzio, poi la fine della canzone dell'iPad e lo Stop del Direttore; il runner ha armato la canzone dopo
+    /// (la consegna porta misura e tempo). Rende il rig e un'ora per il Play dopo.
+    /// ⚠️ CORRETTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 5 a; nota C1 del secondo verificatore del
+    /// referee). La canzone dopo la arma il runner da sé, alla fine propria (`armNextSong`, con la consegna di misura
+    /// e tempo), su una scaletta: di base quattro volte la stessa canzone a 121. Prima qui, in fondo, c'era
+    /// `f.loadSectionFromRunner(0)`, che è un AVVIO: consegnava il tempo una volta sola e, nella copia del runner,
+    /// avrebbe abbassato il cartello «canzone chiusa», nascondendo il difetto del par. 2 del seguito 3.
+    private func afterTheSilencedSong(_ setlist: [SongMap]? = nil, file: StaticString = #filePath,
+                                      line: UInt = #line) throws -> (FollowerBandRig, Double) {
+        let songs = setlist ?? [songLast, songLast, songLast, songLast]
+        let (f, _, _, next) = silenced(songs[0], until: 9.0)
+        f.setlist = songs
+        let ended = try callWhile(f, from: next, limit: 20000, file: file, line: line) { $0.running }
+        XCTAssertTrue(f.ended, file: file, line: line)
+        XCTAssertFalse(f.running, file: file, line: line)
+        // il segno sopravvive alla fine della canzone e allo Stop: serve al Play dopo
+        XCTAssertTrue(f.silence.uncertainSilence, file: file, line: line)
+        XCTAssertEqual(f.volume, 0.0, file: file, line: line)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: true), file: file, line: line)
+        XCTAssertEqual(f.directorStop(), FollowerSyncAction.none, file: file, line: line)
+        XCTAssertTrue(f.silence.uncertainSilence, file: file, line: line)
+        // il runner ha chiuso la canzone e armato la successiva, una volta
+        XCTAssertEqual(f.runnerSong, 1, file: file, line: line)
+        XCTAssertTrue(f.runnerSongClosed, file: file, line: line)
+        XCTAssertEqual(f.runnerArmedNext, [1], file: file, line: line)
+        XCTAssertEqual(f.runnerAlreadyClosed, [], file: file, line: line)
+        return (f, ended + 5.0)
+    }
+
+    /// Par. 4 a, c, d: il segno si alza, il volume va a 0 subito, il motore resta in moto e conta in silenzio; la
+    /// macchina del Follower e il runner come oggi; al confine di sezione la W2 non esce. Il gemello senza il salto:
+    /// stessa canzone, la W2 esce e il volume resta a 1.
+    func testANotCertainCountWhileTheIPadPlaysSilencesTheClickUntilTheNextSong() throws {
+        let (f, _, _, next) = silenced()
+        let expected: [FollowerBandCountClosed?] = [FollowerBandCountClosed.jumpOutsideRenumbering]
+        XCTAssertEqual(f.notCertainReasons, expected)
+        XCTAssertEqual(f.silenceSigns, [RigSilenceSign(high: true, source: "conto-non-certo")])
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertTrue(f.silence.muted)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertEqual(f.volumeWrites.last, RigVolumeWrite(on: false, reason: "conto-non-certo"))
+        XCTAssertTrue(f.running)
+        XCTAssertFalse(f.ended)
+        XCTAssertEqual(f.realignRows.count, 0)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: false))
+        XCTAssertEqual(f.runnerActions, [])
+        let beatsThen = f.beats.count
+        // oltre il confine (32 battiti, 15,87 s dal Play): il DSP ha contato, il tempo è cambiato, nessuna W2
+        f.run(from: next, to: play + beatTime(two, 32) + 2.0)
+        XCTAssertGreaterThan(f.beats.count, beatsThen)
+        XCTAssertEqual(f.tempoChangeOffsets.count, 1)
+        XCTAssertEqual(f.mapSection, 1)
+        XCTAssertEqual(f.w2.count, 0)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        let (twin, _, twinStart) = started(two, entryBeat: 4)
+        twin.run(from: twinStart, to: play + beatTime(two, 32) + 2.0)
+        XCTAssertEqual(twin.w2.count, 1)
+        XCTAssertEqual(twin.volume, 1.0)
+        XCTAssertFalse(twin.silence.uncertainSilence)
+        XCTAssertEqual(twin.silenceSigns, [])
+    }
+
+    /// Par. 4 b: il ritorno del Follower, il ritorno dopo il buco, l'avvio di una ripartenza nella stessa canzone
+    /// (anche sul motore nuovo dopo il reset dei servizi audio): nessuna ridà voce; lo scrittore unico lo dice.
+    func testNoRoadGivesTheVoiceBackBeforeTheNextSong() throws {
+        let (f, _, _, next) = silenced()
+        f.armFollowerReturn()
+        f.call(next)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertEqual(f.volumeNotRestored, ["ritorno-follower"])
+        f.armGapReturn()
+        f.call(next + buf)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertEqual(f.volumeNotRestored, ["ritorno-follower", "ritorno-dopo-buco"])
+        // una ripartenza dell'iPad nella stessa canzone: l'avvio scrive 0
+        f.interruption()
+        f.enter(play + beatTime(two, 20))
+        XCTAssertEqual(f.volumeWrites.last, RigVolumeWrite(on: false, reason: "avvio"))
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        // il motore nuovo dopo il reset dei servizi audio: il mixer nuovo non ha un volume scritto, l'avvio scrive 0
+        f.newEngineAfterMediaReset()
+        XCTAssertEqual(f.volume, 1.0)
+        f.enter(play + beatTime(two, 24))
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        f.run(from: play + beatTime(two, 24), to: play + beatTime(two, 28))
+        XCTAssertEqual(f.volume, 0.0)
+        // l'unico volume a 1 è quello del primo avvio, prima del silenzio
+        XCTAssertEqual(f.volumeWrites.filter { $0.on }, [RigVolumeWrite(on: true, reason: "avvio")])
+    }
+
+    /// Par. 4 a: quando il segno si alza ogni ritorno in attesa si annulla.
+    func testTheReturnsWaitingAreCancelledWhenTheSilenceRises() throws {
+        let (f, _, t) = started(two, entryBeat: 4, renumbers: [(6.0, 1.0)])
+        let before = f.run(from: t, to: play + 6.0 - 0.5)
+        f.armFollowerReturn(calls: 400)
+        f.armGapReturn(calls: 400)
+        let after = f.run(from: before, to: t + 9.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.followerReturn, 0)
+        XCTAssertEqual(f.gapReturn, 0)
+        f.run(from: after, to: after + 6.0)
+        XCTAssertEqual(f.volumeNotRestored, [])
+        XCTAssertEqual(f.volume, 0.0)
+    }
+
+    /// Par. 4 e, «combacia»: il segno si toglie prima dell'avvio, l'ingresso è quello di sempre e il volume torna con
+    /// l'avvio (non col Play). Anche con 120,9999 per 121.
+    func testThePlayThatMatchesAfterTheSilenceEntersAndTheVolumeComesBackWithTheStart() throws {
+        for session in [121.0, 120.9999] {
+            let (f, tPlay) = try afterTheSilencedSong()
+            XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: session), .start, "\(session)")
+            XCTAssertEqual(f.playsAfterUncertain,
+                           [RigPlayAfterUncertain(sessionBpm: session, songBpm: 121.0, matches: true)], "\(session)")
+            XCTAssertFalse(f.silence.uncertainSilence, "\(session)")
+            XCTAssertEqual(f.silenceSigns.last, RigSilenceSign(high: false, source: "play-direttore"), "\(session)")
+            XCTAssertEqual(f.volume, 0.0, "\(session)")
+            f.band = RigBand(map: f.map, tPlay: tPlay)
+            entryBlocks(f, tPlay + beatTime(f.map, 4))
+            XCTAssertEqual(f.volume, 1.0, "\(session)")
+            XCTAssertEqual(f.volumeWrites.last, RigVolumeWrite(on: true, reason: "avvio"), "\(session)")
+            let alive = try XCTUnwrap(f.count)
+            XCTAssertNil(alive.closed, "\(session)")
+            XCTAssertEqual(f.syncState, .inSync(songClosed: false), "\(session)")
+        }
+    }
+
+    /// Par. 4 e, «non combacia»: nessun avvio, resta sul velo armato; allo Stop del Direttore arma la successiva; al
+    /// Play dopo, di nuovo il confronto; quando combacia, entra.
+    /// ⚠️ RISCRITTO A435 · SEGUITO 3 (16/11/2026; seguito 3 di A435, par. 2 e 5 a). Prima il caso guardava solo l'azione
+    /// chiesta al runner (`.armNext`, e la scritta «armNext») e confrontava sempre con 121, anche dopo due «armNext»:
+    /// non vedeva che il runner, con la canzone ancora chiusa, non avanzava. Ora la scaletta ha cinque canzoni e il
+    /// caso guarda il RUNNER: il silenzio nella 0, il Play della 1 che non combacia, lo Stop dopo la canzone: il
+    /// runner sulla 2, e al Play della 2 il confronto è col tempo della 2 (combacia ed entra). L'azione del Play che
+    /// non combacia è `.openSong` (era `.none`).
+    func testThePlayThatDoesNotMatchStaysSilentAndTheStopArmsTheNextSong() throws {
+        let songs = setlist5
+        let (f, tPlay) = try afterTheSilencedSong(songs)
+        XCTAssertEqual(f.songFirstBpm, 131.5)
+        XCTAssertEqual(f.songFirstBpb, 4)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 141.5), .openSong)
+        XCTAssertEqual(f.playsAfterUncertain, [RigPlayAfterUncertain(sessionBpm: 141.5, songBpm: 131.5, matches: false)])
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertFalse(f.running)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: false))
+        XCTAssertNil(f.playTicks)
+        // il runner: la canzone armata si apre senza avvio, la canzone è la stessa
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertFalse(f.runnerSongClosed)
+        XCTAssertEqual(f.runnerOpened, [RigRunnerOpened(song: 1, wasClosed: true)])
+        XCTAssertEqual(f.songFirstBpm, 131.5)
+        // lo Stop dopo la canzone: il runner passa alla 2, una volta sola, e consegna misura e tempo della 2
+        XCTAssertEqual(f.directorStop(), .armNext)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: true))
+        XCTAssertEqual(f.runnerSong, 2)
+        XCTAssertTrue(f.runnerSongClosed)
+        XCTAssertEqual(f.runnerAlreadyClosed, [])
+        XCTAssertEqual(f.songFirstBpm, 101.5)
+        XCTAssertEqual(f.songFirstBpb, 4)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.runnerActions, ["openSong", "armNext"])
+        // al Play della 2 il confronto è col tempo della 2: combacia ed entra
+        let second = tPlay + 40.0
+        XCTAssertEqual(f.directorPlay(second, sessionBpm: 101.5), .start)
+        XCTAssertEqual(f.playsAfterUncertain.last,
+                       RigPlayAfterUncertain(sessionBpm: 101.5, songBpm: 101.5, matches: true))
+        XCTAssertEqual(f.playsAfterUncertain.map { $0.matches }, [false, true])
+        XCTAssertFalse(f.silence.uncertainSilence)
+        f.band = RigBand(map: songs[2], tPlay: second)
+        entryBlocks(f, second + beatTime(songs[2], 4), map: songs[2])
+        XCTAssertEqual(f.volume, 1.0)
+        XCTAssertEqual(f.volumeWrites.last, RigVolumeWrite(on: true, reason: "avvio"))
+        let alive = try XCTUnwrap(f.count)
+        XCTAssertNil(alive.closed)
+        XCTAssertEqual(f.runnerSong, 2)
+        XCTAssertFalse(f.runnerSongClosed)
+    }
+
+    // MARK: - A435 · SEGUITO 3 — il runner, l'apertura senza avvio, la falsa partenza (seguito 3 di A435, par. 5 a)
+
+    /// Seguito 3, par. 3: il silenzio nella 0; il Play della 1 rifiutato per il tempo e lo Stop entro la prima battuta
+    /// (la falsa partenza del Direttore): il runner resta sulla 1; poi il Play della 1 di nuovo rifiutato e lo Stop
+    /// dopo la canzone: il runner sulla 2. Il bordo (una battuta esatta non è una falsa partenza) e il limite scritto
+    /// (il margine è la misura della canzone che l'iPad ha davanti).
+    func testAFalseStartOfTheDirectorAfterAPlayThatDoesNotMatchKeepsTheSameSong() throws {
+        let songs = setlist5
+        let (f, tPlay) = try afterTheSilencedSong(songs)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 141.5, phase: 0.25), .openSong)
+        XCTAssertEqual(f.startPhase, 0.25)
+        XCTAssertEqual(f.startPhases, [RigStartPhase(context: "play-rifiutato-tempo", phase: 0.25)])
+        // il Play rifiutato registra SOLO la fase: il segno, il conto, la mappa e l'ora del Play come sono
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertNil(f.count)
+        XCTAssertNil(f.playTicks)
+        XCTAssertFalse(f.mapForNextStart)
+        XCTAssertEqual(f.directorStop(beatsAfterPlay: 2.0), .rearmSame)
+        XCTAssertEqual(f.stopReads.last, RigStopRead(delta: 2.0, margin: 4.0, falseStart: true))
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertTrue(f.runnerSongClosed)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: true))
+        XCTAssertNil(f.startPhase)
+        XCTAssertEqual(f.songFirstBpm, 131.5)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertFalse(f.running)
+        XCTAssertEqual(f.runnerArmed, [1])
+        XCTAssertEqual(f.directorPlay(tPlay + 10.0, sessionBpm: 141.5), .openSong)
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertFalse(f.runnerSongClosed)
+        XCTAssertEqual(f.directorStop(beatsAfterPlay: 64.0), .armNext)
+        XCTAssertEqual(f.stopReads.last, RigStopRead(delta: 64.0, margin: 4.0, falseStart: false))
+        XCTAssertEqual(f.runnerSong, 2)
+        XCTAssertEqual(f.songFirstBpm, 101.5)
+        XCTAssertEqual(f.runnerActions, ["openSong", "rearmSame", "openSong", "armNext"])
+        XCTAssertEqual(f.runnerArmedNext, [1, 2])
+        // il bordo: lo Stop a una battuta esatta dal Play non è una falsa partenza
+        let (g, gPlay) = try afterTheSilencedSong(songs)
+        XCTAssertEqual(g.directorPlay(gPlay, sessionBpm: 141.5), .openSong)
+        XCTAssertEqual(g.directorStop(beatsAfterPlay: 4.0), .armNext)
+        XCTAssertEqual(g.runnerSong, 2)
+        // il limite scritto: il margine è la misura della canzone che l'iPad ha davanti. Sulla 3 (3/4) uno Stop a 3,5
+        // battiti dal Play non è una falsa partenza per l'iPad, anche se la band suona una canzone in 4/4
+        let (h, hPlay) = try afterTheSilencedSong(songs)
+        for k in [1, 2] {
+            XCTAssertEqual(h.directorPlay(hPlay + 50.0 * Double(k), sessionBpm: 60.0), .openSong, "\(k)")
+            XCTAssertEqual(h.directorStop(), .armNext, "\(k)")
+        }
+        XCTAssertEqual(h.runnerSong, 3)
+        XCTAssertEqual(h.songFirstBpb, 3)
+        XCTAssertEqual(h.directorPlay(hPlay + 200.0, sessionBpm: 60.0), .openSong)
+        XCTAssertEqual(h.directorStop(beatsAfterPlay: 3.5), .armNext)
+        XCTAssertEqual(h.stopReads.last, RigStopRead(delta: 3.5, margin: 3.0, falseStart: false))
+        XCTAssertEqual(h.runnerSong, 4)
+    }
+
+    /// Tre canzoni di fila che non combaciano, con lo Stop dopo ognuna: il runner avanza di una a ogni Stop, mai due;
+    /// a ogni Play il confronto è col tempo della canzone che l'iPad ha davanti. I tempi della band a 3 BPM da quelli
+    /// dell'iPad (131,5 · 101,5 · 141,5): fuori dal decimo.
+    func testThreeSongsInARowThatDoNotMatchAdvanceTheRunnerOneSongAtEachStop() throws {
+        let songs = setlist5
+        let (f, tPlay) = try afterTheSilencedSong(songs)
+        let band: [(Int, Double)] = [(1, 134.5), (2, 104.5), (3, 144.5)]
+        for (k, session) in band {
+            XCTAssertEqual(f.runnerSong, k)
+            XCTAssertEqual(f.directorPlay(tPlay + 50.0 * Double(k), sessionBpm: session), .openSong, "\(k)")
+            XCTAssertEqual(f.playsAfterUncertain.last,
+                           RigPlayAfterUncertain(sessionBpm: session, songBpm: songs[k].sections[0].bpm,
+                                                 matches: false), "\(k)")
+            XCTAssertEqual(f.directorStop(), .armNext, "\(k)")
+            XCTAssertEqual(f.runnerSong, k + 1, "\(k)")
+            XCTAssertEqual(f.songFirstBpm, songs[k + 1].sections[0].bpm, "\(k)")
+            XCTAssertEqual(f.songFirstBpb, songs[k + 1].sections[0].beatsPerBar, "\(k)")
+            // un secondo Stop (un richiamo doppio) non avanza un'altra volta
+            XCTAssertEqual(f.directorStop(), FollowerSyncAction.none, "\(k)")
+            XCTAssertEqual(f.runnerSong, k + 1, "\(k)")
+        }
+        XCTAssertEqual(f.runnerSong, 4)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertFalse(f.running)
+        // la fine propria della 0, poi tre Stop
+        XCTAssertEqual(f.runnerArmedNext, [1, 2, 3, 4])
+        XCTAssertEqual(f.runnerAlreadyClosed, [])
+        // l'ultima canzone: il Play che non combacia e lo Stop chiudono la scaletta, senza andare oltre
+        XCTAssertEqual(f.directorPlay(tPlay + 400.0, sessionBpm: 60.0), .openSong)
+        XCTAssertEqual(f.directorStop(), .armNext)
+        XCTAssertEqual(f.runnerSong, 4)
+        XCTAssertEqual(f.runnerSetlistEnds, 1)
+    }
+
+    /// Seguito 3, par. 2, vincolo d: da FUORI armato il Play che non combacia resta com'è, e lo Stop non tocca niente:
+    /// la canzone armata resta quella, il cartello resta alto, nessuna fase d'avvio registrata.
+    func testFromOutArmedThePlayThatDoesNotMatchAndTheStopLeaveTheArmedSong() throws {
+        let songs = setlist5
+        let (f, tPlay) = try afterTheSilencedSong(songs)
+        XCTAssertEqual(f.directorLost(), FollowerSyncAction.none)
+        XCTAssertEqual(f.syncState, .out(armed: nil))
+        XCTAssertEqual(f.armRientra(3), .armSong(songIdx: 3))
+        XCTAssertEqual(f.syncState, .out(armed: 3))
+        XCTAssertEqual(f.runnerSong, 3)
+        XCTAssertTrue(f.runnerSongClosed)
+        XCTAssertEqual(f.songFirstBpm, 141.5)
+        XCTAssertEqual(f.songFirstBpb, 3)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 100.0, phase: 5.0), FollowerSyncAction.none)
+        XCTAssertEqual(f.playsAfterUncertain.last,
+                       RigPlayAfterUncertain(sessionBpm: 100.0, songBpm: 141.5, matches: false))
+        XCTAssertEqual(f.syncState, .out(armed: 3))
+        XCTAssertNil(f.startPhase)
+        XCTAssertEqual(f.startPhases, [])
+        for after in [1.0, 64.0] {
+            XCTAssertEqual(f.directorStop(beatsAfterPlay: after), FollowerSyncAction.none, "\(after)")
+            XCTAssertEqual(f.syncState, .out(armed: 3), "\(after)")
+            XCTAssertEqual(f.runnerSong, 3, "\(after)")
+            XCTAssertTrue(f.runnerSongClosed, "\(after)")
+        }
+        XCTAssertEqual(f.runnerOpened, [])
+        XCTAssertEqual(f.runnerActions, ["armSong"])
+        XCTAssertEqual(f.runnerArmedNext, [1])
+        // poi il Play che combacia: entra sulla 3
+        XCTAssertEqual(f.directorPlay(tPlay + 60.0, sessionBpm: 141.5), .start)
+        XCTAssertFalse(f.silence.uncertainSilence)
+    }
+
+    /// La corsa di fine canzone nei due ordini (lo Stop del Direttore e la fine propria) resta idempotente: una sola
+    /// avanzata. La guardia è quella del runner («canzone gia' chiusa»), e l'apertura senza avvio non la tocca.
+    func testTheEndOfSongRaceInBothOrdersAdvancesTheRunnerOnce() throws {
+        let songs = setlist5
+        // ordine A: la fine propria (il runner chiude e arma la 1), poi lo Stop del Direttore che la macchina ha
+        // deciso sulla coda PRIMA di sapere della fine (`ownSongEnded` non ancora arrivato): chiede di avanzare, il
+        // runner no
+        let (f, _, t) = started(songs[0])
+        f.setlist = songs
+        _ = try callWhile(f, from: t, limit: 20000) { $0.running }
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertTrue(f.runnerSongClosed)
+        f.syncState = .inSync(songClosed: false)
+        XCTAssertEqual(f.directorStop(), .armNext)
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertEqual(f.runnerAlreadyClosed, [1])
+        XCTAssertEqual(f.runnerArmedNext, [1])
+        // ordine B: lo Stop del Direttore a canzone in corso (ferma e arma la 1), poi la chiusura di fine canzone che
+        // era già sul principale arriva adesso: non avanza un'altra volta
+        let (g, _, gStart) = started(songs[0])
+        g.setlist = songs
+        let reached = g.run(from: gStart, to: play + beatTime(songs[0], 12))
+        XCTAssertEqual(g.directorStop(), .stopAndArmNext)
+        XCTAssertFalse(g.running)
+        XCTAssertEqual(g.runnerSong, 1)
+        g.ownSongEndClosure()
+        XCTAssertEqual(g.runnerSong, 1)
+        XCTAssertEqual(g.runnerAlreadyClosed, [1])
+        XCTAssertEqual(g.runnerArmedNext, [1])
+        XCTAssertEqual(g.runnerOpened, [])
+        // e la canzone dopo, partita (l'avvio abbassa il cartello), allo Stop del Direttore a canzone in corso avanza
+        // di una
+        let second = reached + 5.0
+        XCTAssertEqual(g.directorPlay(second, sessionBpm: 131.5), .start)
+        g.band = RigBand(map: songs[1], tPlay: second)
+        let fire = second + beatTime(songs[1], 4)
+        entryBlocks(g, fire, map: songs[1])
+        XCTAssertFalse(g.runnerSongClosed)
+        g.run(from: fire, to: second + beatTime(songs[1], 12))
+        XCTAssertEqual(g.directorStop(), .stopAndArmNext)
+        XCTAssertEqual(g.runnerSong, 2)
+        XCTAssertEqual(g.runnerAlreadyClosed, [1])
+    }
+
+    /// Il Play rifiutato per il tempo seguito da un Play buono (dopo lo Stop): la fase d'avvio è quella del Play
+    /// buono.
+    func testAfterAPlayRefusedForTheTempoTheStartPhaseIsTheOneOfTheGoodPlay() throws {
+        let songs = setlist5
+        let (f, tPlay) = try afterTheSilencedSong(songs)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 141.5, phase: 7.5), .openSong)
+        XCTAssertEqual(f.startPhase, 7.5)
+        XCTAssertEqual(f.directorStop(beatsAfterPlay: 64.0), .armNext)
+        XCTAssertNil(f.startPhase)
+        XCTAssertEqual(f.directorPlay(tPlay + 40.0, sessionBpm: 101.5, phase: 300.0), .start)
+        XCTAssertEqual(f.startPhase, 300.0)
+        XCTAssertEqual(f.startPhases, [RigStartPhase(context: "play-rifiutato-tempo", phase: 7.5),
+                                       RigStartPhase(context: "play-direttore", phase: 300.0)])
+        // lo Stop a due battiti dal Play buono (l'iPad non è ancora entrato): falsa partenza, la stessa canzone.
+        // Misurato dalla fase del Play rifiutato (7,5) sarebbe a 294,5 battiti: nessuna falsa partenza
+        XCTAssertEqual(f.directorStop(beatsAfterPlay: 2.0), .rearmSame)
+        XCTAssertEqual(f.stopReads.last, RigStopRead(delta: 2.0, margin: 4.0, falseStart: true))
+        XCTAssertEqual(f.runnerSong, 2)
+        XCTAssertTrue(f.runnerSongClosed)
+        XCTAssertNil(f.startPhase)
+        // uno Stop senza un Play registrato non è mai una falsa partenza
+        XCTAssertEqual(f.directorStop(beatsAfterPlay: 1.0), FollowerSyncAction.none)
+        XCTAssertEqual(f.stopReads.last, RigStopRead(delta: nil, margin: nil, falseStart: false))
+    }
+
+    /// Il silenzio nella 0 e il Play della 1 che non combacia: la canzone armata aperta senza avvio. Rende il rig e
+    /// l'ora di quel Play.
+    private func openedWithoutAStart(file: StaticString = #filePath,
+                                     line: UInt = #line) throws -> (FollowerBandRig, Double) {
+        let (f, tPlay) = try afterTheSilencedSong(setlist5, file: file, line: line)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 141.5, phase: 1.0), .openSong, file: file, line: line)
+        XCTAssertEqual(f.runnerSong, 1, file: file, line: line)
+        XCTAssertFalse(f.runnerSongClosed, file: file, line: line)
+        XCTAssertEqual(f.startPhase, 1.0, file: file, line: line)
+        return (f, tPlay)
+    }
+
+    /// Dopo una canzone aperta senza avvio, le uscite: il Direttore perso a motore fermo (FUORI), END SHOW, il
+    /// cambio di ruolo, un RIENTRA: il runner e la macchina come oggi, nessuna avanzata in più.
+    func testAfterASongOpenedWithoutAStartTheExitsLeaveTheRunnerWhereItIs() throws {
+        // il Direttore perso a motore fermo: FUORI, il runner dov'era; lo Stop da FUORI non tocca niente
+        let (f, tPlay) = try openedWithoutAStart()
+        XCTAssertEqual(f.directorLost(), FollowerSyncAction.none)
+        XCTAssertEqual(f.syncState, .out(armed: nil))
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertFalse(f.runnerSongClosed)
+        XCTAssertEqual(f.directorStop(), FollowerSyncAction.none)
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertEqual(f.runnerActions, ["openSong"])
+        // un RIENTRA (sulla stessa canzone): il runner si riarma, canzone chiusa, misura e tempo della canzone scelta
+        XCTAssertEqual(f.armRientra(1), .armSong(songIdx: 1))
+        XCTAssertEqual(f.syncState, .out(armed: 1))
+        XCTAssertEqual(f.runnerSong, 1)
+        XCTAssertTrue(f.runnerSongClosed)
+        XCTAssertEqual(f.songFirstBpm, 131.5)
+        XCTAssertEqual(f.runnerArmedNext, [1])
+        XCTAssertEqual(f.directorPlay(tPlay + 60.0, sessionBpm: 131.5), .start)
+        XCTAssertFalse(f.silence.uncertainSilence)
+        // END SHOW e l'uscita dalla stanza: la macchina FUORI, la fase d'avvio azzerata, il segno giù, nessuna avanzata
+        for reason in ["end-show", "uscita-dalla-stanza"] {
+            let (g, _) = try openedWithoutAStart()
+            g.followerReset(reason: reason)
+            XCTAssertEqual(g.syncState, .out(armed: nil), reason)
+            XCTAssertNil(g.startPhase, reason)
+            XCTAssertFalse(g.silence.uncertainSilence, reason)
+            XCTAssertEqual(g.runnerSong, 1, reason)
+            XCTAssertEqual(g.directorStop(), FollowerSyncAction.none, reason)
+            XCTAssertEqual(g.runnerSong, 1, reason)
+            XCTAssertEqual(g.runnerArmedNext, [1], reason)
+        }
+        // il cambio di ruolo (o la levetta di Link spenta)
+        for reason in ["cambio-di-ruolo", "link-utente-spento"] {
+            let (g, _) = try openedWithoutAStart()
+            g.roleChange(reason: reason)
+            XCTAssertEqual(g.syncState, .out(armed: nil), reason)
+            XCTAssertNil(g.startPhase, reason)
+            XCTAssertEqual(g.runnerSong, 1, reason)
+            XCTAssertEqual(g.directorStop(), FollowerSyncAction.none, reason)
+            XCTAssertEqual(g.runnerSong, 1, reason)
+            XCTAssertEqual(g.runnerArmedNext, [1], reason)
+        }
+        // lo Stop del musicista in IN SYNC (nessuna porta lo manda oggi): chiude la canzone come sempre, una avanzata
+        let (m, _) = try openedWithoutAStart()
+        XCTAssertEqual(m.musicianStop(), .stopAndArmNext)
+        XCTAssertEqual(m.syncState, .out(armed: nil))
+        XCTAssertEqual(m.runnerSong, 2)
+    }
+
+    /// Lo Stop del Direttore chiude il conto come il motore (`resetFollowerBandCountQ`, «stop-direttore»), anche a
+    /// motore fermo. Un conto vivo a motore fermo: il motore morto senza la pulizia dello Stop (il reset dei servizi
+    /// audio). Dopo un Play rifiutato per il tempo lo Stop passa dalla stessa chiusura: lì non c'è nessun conto (lo ha
+    /// chiuso la fine della canzone di prima), quindi nessuna riga, e resta chiuso.
+    func testTheStopOfTheDirectorClosesTheCountAlsoWithTheEngineStopped() throws {
+        let (f, _, _, _) = silenced()
+        XCTAssertNotNil(f.count)
+        XCTAssertNotNil(f.playTicks)
+        f.newEngineAfterMediaReset()
+        XCTAssertFalse(f.running)
+        XCTAssertNotNil(f.count)
+        XCTAssertEqual(f.directorStop(), .armNext)
+        XCTAssertNil(f.count)
+        XCTAssertNil(f.playTicks)
+        XCTAssertNil(f.entryPending)
+        XCTAssertNil(f.realignDue)
+        XCTAssertEqual(f.countResets.last, "stop-direttore")
+        let (g, gPlay) = try afterTheSilencedSong(setlist5)
+        XCTAssertEqual(g.directorPlay(gPlay, sessionBpm: 141.5), .openSong)
+        XCTAssertNil(g.count)
+        XCTAssertNil(g.playTicks)
+        let before = g.countResets.count
+        XCTAssertEqual(g.directorStop(), .armNext)
+        XCTAssertNil(g.count)
+        XCTAssertNil(g.playTicks)
+        XCTAssertNil(g.entryPending)
+        XCTAssertNil(g.realignDue)
+        XCTAssertEqual(g.countResets.count, before)
+    }
+
+    /// Par. 4 e: la stessa regola da FUORI armato; non armato, nessun Play lo fa partire e nessuna riga.
+    func testFromOutArmedThePlayThatDoesNotMatchStaysArmed() throws {
+        let (f, tPlay) = try afterTheSilencedSong()
+        f.syncState = .out(armed: 3)
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 141.5), FollowerSyncAction.none)
+        XCTAssertEqual(f.syncState, .out(armed: 3))
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.directorPlay(tPlay + 30.0, sessionBpm: 121.05), .start)
+        XCTAssertEqual(f.syncState, .inSync(songClosed: false))
+        XCTAssertFalse(f.silence.uncertainSilence)
+        let (g, gPlay) = try afterTheSilencedSong()
+        g.syncState = .out(armed: nil)
+        XCTAssertEqual(g.directorPlay(gPlay, sessionBpm: 121.0), FollowerSyncAction.none)
+        XCTAssertEqual(g.playsAfterUncertain, [])
+        XCTAssertTrue(g.silence.uncertainSilence)
+    }
+
+    /// Par. 4 e: il Play oltre mezza battuta col segno alto va dove va oggi (FUORI); il segno resta.
+    func testALatePlayWithTheSignGoesWhereItGoesTodayAndTheSignStays() throws {
+        let (f, tPlay) = try afterTheSilencedSong()
+        XCTAssertEqual(f.directorPlay(tPlay, sessionBpm: 121.0, within: false), FollowerSyncAction.none)
+        XCTAssertEqual(f.syncState, .out(armed: nil))
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.playsAfterUncertain, [])
+    }
+
+    /// Par. 4 e: il segno giù con END SHOW, l'uscita dalla stanza, il cambio di ruolo, la levetta di Link spenta, lo
+    /// show chiuso. A show chiuso col motore ancora in moto a volume 0 il segno va giù PRIMA e il volume torna
+    /// (com'era per ogni Follower muto a show chiuso); a motore fermo il mixer non si scrive e il prossimo avvio scrive
+    /// 1.
+    func testTheSignGoesDownWithEndShowLeavingTheRoomRoleChangeAndLinkOff() throws {
+        for reason in ["end-show", "uscita-dalla-stanza"] {
+            let (f, _, _, _) = silenced()
+            f.followerReset(reason: reason)
+            XCTAssertFalse(f.silence.uncertainSilence, reason)
+            XCTAssertEqual(f.silenceSigns.last, RigSilenceSign(high: false, source: reason), reason)
+            XCTAssertEqual(f.syncState, .out(armed: nil), reason)
+        }
+        for reason in ["cambio-di-ruolo", "link-utente-spento"] {
+            let (f, _, _, _) = silenced()
+            f.roleChange(reason: reason)
+            XCTAssertFalse(f.silence.uncertainSilence, reason)
+            XCTAssertFalse(f.silence.muted, reason)
+        }
+        let (f, _, _, _) = silenced()
+        f.showClosed()
+        XCTAssertFalse(f.silence.uncertainSilence)
+        XCTAssertEqual(f.volume, 1.0)
+        XCTAssertEqual(f.volumeWrites.last, RigVolumeWrite(on: true, reason: "show-chiuso"))
+        XCTAssertEqual(f.volumeNotRestored, [])
+        XCTAssertNil(f.count)
+        let (g, _) = try afterTheSilencedSong()
+        g.showClosed()
+        XCTAssertFalse(g.silence.uncertainSilence)
+        XCTAssertFalse(g.silence.muted)
+        XCTAssertEqual(g.volume, 0.0)
+        XCTAssertEqual(OutputRouteDecision.volumeForStart(playerRole: .follower, state: g.silence), 1.0)
+    }
+
+    /// BOX5, la regola dell'interruzione: il silenzio nato prima di un'interruzione resta dopo la ripresa.
+    func testTheSilenceBornBeforeAnInterruptionStaysAfterTheResume() throws {
+        let (f, _, _, _) = silenced()
+        f.interruption()
+        XCTAssertTrue(f.silence.uncertainSilence)
+        let resume = play + beatTime(two, 24)
+        f.enter(resume)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        f.run(from: resume, to: resume + 3.0)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.silenceSigns, [RigSilenceSign(high: true, source: "conto-non-certo")])
+    }
+
+    /// Il segno sopravvive allo Stop: serve al Play dopo.
+    func testTheSignSurvivesTheStop() throws {
+        let (f, _, _, _) = silenced()
+        f.stop()
+        XCTAssertTrue(f.silence.uncertainSilence)
+        XCTAssertEqual(f.volume, 0.0)
+        XCTAssertNil(f.count)
+    }
+
+    /// P33: col seme non certo (mezza battuta in 2/4) nessun conto e nessun silenzio, nemmeno dopo un buco o al
+    /// battito a 1 s; l'iPad va come prima.
+    func testASeedThatIsNotCertainRaisesNoSilence() throws {
+        let map = song([(2, 32, 121.0)])
+        let (f, _, t) = started(map, entryBeat: 3)
+        let expected: [FollowerBandCountClosed?] = [FollowerBandCountClosed.seedOffBar]
+        XCTAssertEqual(f.noCounts, expected)
+        f.run(from: t, to: t + 6.0, holes: [(t + 2.0, t + 2.8)])
+        XCTAssertFalse(f.silence.uncertainSilence)
+        XCTAssertEqual(f.volume, 1.0)
+        XCTAssertEqual(f.silenceSigns, [])
+        XCTAssertEqual(f.volumeWrites.filter { !$0.on }, [])
+        XCTAssertEqual(f.volumeNotRestored, [])
     }
 }

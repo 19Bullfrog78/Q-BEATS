@@ -92,6 +92,13 @@ struct OutputSilenceState: Equatable {
     var muted: Bool
     var missing: Bool
     var lastOutputExternal: Bool?
+    /// A435 (la (b), mandato A435 par. 4 a-b) — IL SEGNO DEL SILENZIO DEL CONTO: il conto del Follower sulla band è
+    /// diventato non certo mentre l'iPad suonava, e il click tace fino alla canzone dopo. Sta qui, nello stato che le
+    /// decisioni del volume già leggono: un solo padrone. Finché è alto nessuna scrittura ridà voce al Follower
+    /// (`allowsVolumeWrite`, `volumeForStart`). Lo alza `.countUncertain`; lo abbassano `.countSilenceEnded` (il Play
+    /// della band col tempo che combacia, END SHOW, l'uscita dalla stanza, il cambio di ruolo, Link spento), la
+    /// chiusura dello show e il cambio di ruolo.
+    var uncertainSilence: Bool = false
 
     static let initial = OutputSilenceState(muted: false, missing: false, lastOutputExternal: nil)
 }
@@ -130,6 +137,12 @@ enum OutputSilenceEvent: Equatable {
     case showOpened(playingOutputExternal: Bool?)
     /// Un cambio di ruolo, o Link spento dall'utente (par. 2.3 c).
     case roleChange
+    /// A435 — una lettura di un conto vivo e aperto ha dato «non certo» mentre il Follower suonava: il segno del
+    /// silenzio si alza (solo per il Follower: gli altri ruoli non hanno il conto).
+    case countUncertain
+    /// A435 — il silenzio del conto finisce: il Play della band col tempo che combacia, o un reset della macchina del
+    /// Follower. Abbassa solo il segno: il volume torna con l'avvio.
+    case countSilenceEnded
 }
 
 enum OutputRouteDecision {
@@ -254,19 +267,36 @@ enum OutputRouteDecision {
             next.missing = false
             next.muted = false
             next.lastOutputExternal = nil
+            next.uncertainSilence = false
         case .showOpened(let playingOutputExternal):
             next.lastOutputExternal = playingOutputExternal
         case .roleChange:
             next.missing = false
             next.muted = false
+            next.uncertainSilence = false
+        case .countUncertain:
+            if playerRole == .follower { next.uncertainSilence = true }
+        case .countSilenceEnded:
+            next.uncertainSilence = false
         }
         return next
     }
 
     /// Il volume che `start()` scrive sul mixer principale prima di `engine.start()` (U3 b): 0 solo per il Follower con
     /// l'uscita mancante (il Direttore con l'uscita mancante non parte da solo, e il suo Play abbassa lo stato prima).
+    /// A435 (la (b)) — e per il Follower col segno del silenzio del conto alto: una ripartenza dell'iPad nella stessa
+    /// canzone (configurazione, frequenza, modo, fine di un'interruzione, il motore nuovo dopo il reset dei servizi
+    /// audio) resta muta.
     static func volumeForStart(playerRole: PlayerRole, state: OutputSilenceState) -> Float {
-        (playerRole == .follower && state.missing) ? 0.0 : 1.0
+        (playerRole == .follower && (state.missing || state.uncertainSilence)) ? 0.0 : 1.0
+    }
+
+    /// A435 (la (b), mandato A435 par. 4 b) — UN SOLO PADRONE DEL VOLUME: lo scrittore unico del mixer principale
+    /// (`AudioEngine.writeOutputVolumeQ`) chiede qui prima di ogni scrittura. Col segno del silenzio del conto alto,
+    /// sul Follower, nessun volume sopra 0 si scrive (il ritorno del Follower, il ritorno dopo il buco, lo show
+    /// chiuso, l'avvio): lo 0 passa sempre. Per Direttore e Solo passa tutto, come prima.
+    static func allowsVolumeWrite(volume: Float, playerRole: PlayerRole, state: OutputSilenceState) -> Bool {
+        !(playerRole == .follower && state.uncertainSilence && volume > 0)
     }
 
     /// Un Direttore con l'uscita mancante non riparte da solo (U5, U16): ogni ripartenza automatica è «niente». Per il banco:
