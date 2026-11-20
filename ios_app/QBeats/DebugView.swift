@@ -624,6 +624,13 @@ struct DebugView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.blue)
+                        // A437 — la scaletta del collaudo di 3b (mandato A437, par. 4 f): per l'iPhone nel Solo; per C25 lo
+                        // stesso iPhone da Direttore.
+                        Button("Carica dati test COLLAUDO 3B") {
+                            loadTestDataCollaudo3B()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
                     }
                 }
                 #endif
@@ -1108,6 +1115,48 @@ struct DebugView: View {
             song("7 Long run", [section("Run", 180.5, 4, 4, 400, four)]),
         ]
         let setlist = Setlist(id: UUID(), name: setlistName, date: Date(), songIDs: songs.map { $0.id })
+        QBeatsStore.shared.injectTestData(songs: songs, setlists: [setlist])
+    }
+
+    /// === A437 (18/11/2026) — LA SCALETTA DI PROVA DEL COLLAUDO DI 3B (mandato A437, par. 4 f) ===
+    /// Un caricamento, «COLLAUDO 3B», per l'iPhone nel Solo (per C25 lo stesso iPhone da Direttore). Cinque canzoni, countIn
+    /// 0, nessuna base, accenti col 2 sul battito 1 (il 7/8 come [2,1,2,1,2,1,1], il 6/8 come [2,1,1,1,1,1]), suddivisione
+    /// 1. Le durate: battute × battiti per battuta × 60 / tempo.
+    ///   1 «1 Two sections»: «Verse» 4/4 a 121,5, 16 battute = 64 battiti (31,6 s); «Chorus» 4/4 a 91,5, 16 battute = 64
+    ///     battiti (42,0 s). In tutto 73,6 s. Per C6-C9: la ripresa a metà sezione, vicino alla fine di una sezione, a
+    ///     cavallo del confine e del cambio di tempo.
+    ///   2 «2 Six eight»: «Verse» 6/8 a 101,5, 16 battute = 96 battiti (56,7 s).
+    ///   3 «3 Short»: «Verse» 4/4 a 131,5, 4 battute = 16 battiti (7,3 s). Per C21 (l'ultima battuta: la canzone finita) e
+    ///     C22 (subito dopo il Play: il conto non certo).
+    ///   4 «4 Slow»: «Verse» 4/4 a 71,5, 24 battute = 96 battiti (80,6 s). Per C19 e C20 (la pausa più lunga, con la cassa
+    ///     Bluetooth).
+    ///   5 «5 Odd meter»: «Intro» 7/8 a 161,5, 8 battute = 56 battiti (20,8 s); «Main» 4/4 a 121,5, 8 battute = 32 battiti
+    ///     (15,8 s). In tutto 36,6 s. La ripresa a cavallo del cambio di metro.
+    /// Vive in RAM e sparisce se l'app si chiude (`injectTestData` sostituisce il contenuto dello store).
+    private func loadTestDataCollaudo3B() {
+        os_log("[DebugView] Carica dati test COLLAUDO 3B", log: .default, type: .default)
+        func section(_ name: String, _ bpm: Double, _ beats: UInt32, _ unit: UInt32, _ bars: Int,
+                     _ pattern: [UInt8]) -> SongSection {
+            SongSection(name: name, bpm: bpm, beatsPerBar: beats, beatUnit: unit,
+                        repetitions: bars, notes: "", accentPattern: pattern,
+                        subdivisionMultiplier: 1, swingRatio: 0.5)
+        }
+        func song(_ name: String, _ sections: [SongSection]) -> Song {
+            Song(id: UUID(), name: name, sections: sections, countIn: 0, backtrackFilename: nil)
+        }
+        let four: [UInt8] = [2, 1, 1, 1]
+        let six: [UInt8] = [2, 1, 1, 1, 1, 1]
+        let seven: [UInt8] = [2, 1, 2, 1, 2, 1, 1]
+        let songs = [
+            song("1 Two sections", [section("Verse", 121.5, 4, 4, 16, four),
+                                    section("Chorus", 91.5, 4, 4, 16, four)]),
+            song("2 Six eight", [section("Verse", 101.5, 6, 8, 16, six)]),
+            song("3 Short", [section("Verse", 131.5, 4, 4, 4, four)]),
+            song("4 Slow", [section("Verse", 71.5, 4, 4, 24, four)]),
+            song("5 Odd meter", [section("Intro", 161.5, 7, 8, 8, seven),
+                                 section("Main", 121.5, 4, 4, 8, four)]),
+        ]
+        let setlist = Setlist(id: UUID(), name: "COLLAUDO 3B", date: Date(), songIDs: songs.map { $0.id })
         QBeatsStore.shared.injectTestData(songs: songs, setlists: [setlist])
     }
 

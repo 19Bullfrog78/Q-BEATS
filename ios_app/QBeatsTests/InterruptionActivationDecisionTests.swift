@@ -297,4 +297,34 @@ final class InterruptionActivationDecisionTests: XCTestCase {
                                                   crisisCause: cause), .noRestart, "\(trigger)")
         }
     }
+
+    /// A437 (referto A424, par. 2.1 h) — il Solo nella pausa della ripresa sulla canzone e un inizio d'interruzione. m4 riceve
+    /// l'`isRunning` reale: nella pausa il motore è fermo, nessuno Stop voluto, la causa ricordata non lo ferma: chiude la
+    /// catena e ferma come la console (la ripresa si chiude con lo Stop). Nella scorta il motore è in moto: m4 non fa niente
+    /// e decide la regola delle crisi (`soloStopAsConsole`). Con la ripresa pendente alzata dai tentativi: sgombero e Stop.
+    func testTheSoloInThePauseOfTheResumeAtTheBegin() {
+        for cause in [CrisisCause.configuration, .mode, .outputAdded, .renderGap] {
+            XCTAssertEqual(InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: .solo, engineRunning: false,
+                                                                                  pendingResume: false, wantedStopSinceCrisis: false,
+                                                                                  crisisCause: cause),
+                           .closeChainAndRemember(stop: true), "nella pausa - causa:\(cause)")
+            XCTAssertEqual(InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: .solo, engineRunning: true,
+                                                                                  pendingResume: false, wantedStopSinceCrisis: false,
+                                                                                  crisisCause: cause),
+                           .nothing, "nella scorta - causa:\(cause)")
+            XCTAssertEqual(InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: .solo, engineRunning: false,
+                                                                                  pendingResume: true, wantedStopSinceCrisis: false,
+                                                                                  crisisCause: cause),
+                           .clearPendingAndStop, "con la ripresa pendente - causa:\(cause)")
+            // La regola delle crisi nella scorta e nella pausa, col valore «in moto per il player».
+            let inMotion = SoloResumeDecision.inMotionForPlayer(engineRunning: false, resumePending: true)
+            XCTAssertEqual(CrisisStopDecision.outcome(playerRole: .solo, cause: .interruption, showOpen: true, songInProgress: true,
+                                                      engineRunning: inMotion, silentInSong: false), .soloStopAsConsole)
+        }
+        // Dopo E2 (lo Stop voluto alzato) un inizio d'interruzione non ferma una seconda volta.
+        XCTAssertEqual(InterruptionActivationDecision.soloAtInterruptionBegin(playerRole: .solo, engineRunning: false,
+                                                                              pendingResume: false, wantedStopSinceCrisis: true,
+                                                                              crisisCause: .configuration),
+                       .closeChainAndRemember(stop: false))
+    }
 }

@@ -87,6 +87,27 @@ final class MIDILampDecisionTests: XCTestCase {
         }
     }
 
+    /// A437 (mandato A437, par. 2.2) — nella pausa della ripresa del Solo Play/Pause e Stop premono Stop (la regola del
+    /// pedale col segno della pausa): il pedale fa fare qualcosa all'app, quindi la spia lampeggia. Senza il segno, a
+    /// motore fermo e senza una porta, non preme niente e la spia resta spenta.
+    func testInThePauseOfTheSoloResumeTheLampFollowsThePress() {
+        for action in [PedalTransportAction.playPause, .stop] {
+            let inPause = PedalPressDecision.decide(role: .solo, directorSilent: false, action: action, isPlaying: false,
+                                                    startRequested: false, engineMoving: false, screen: .noDoor,
+                                                    soloResumePending: true)
+            XCTAssertEqual(inPause.command, .stop)
+            XCTAssertTrue(inPause.lamp)
+            let atRest = PedalPressDecision.decide(role: .solo, directorSilent: false, action: action, isPlaying: false,
+                                                   startRequested: false, engineMoving: false, screen: .noDoor,
+                                                   soloResumePending: false)
+            XCTAssertNil(atRest.command)
+            XCTAssertFalse(atRest.lamp)
+            let midi: MIDIAction = action == .playPause ? .playPause : .stop
+            XCTAssertTrue(fires(midi, .solo, pressed: inPause.lamp), "\(midi.rawValue) nella pausa")
+            XCTAssertFalse(fires(midi, .solo, pressed: atRest.lamp), "\(midi.rawValue) a click fermo")
+        }
+    }
+
     /// A435 (mandato A435, par. 2.2): col tap ignorato (il Direttore a canzone in corso) la spia non si accende; col
     /// tap che agisce sì. Sul Follower mai. Per le altre azioni l'ingresso non conta.
     func testTapTempoFiresOnlyWhenTheTapActs() {

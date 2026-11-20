@@ -35,6 +35,22 @@ import Foundation
 // Direttore fuori da una canzone con l'uscita di prima: segue Link (U8) e il ritorno dopo il buco. Follower: la riga e il
 // ritorno dopo il buco. Solo (anche il Direttore con Link spento): la riga e basta, niente guardiano e niente ritorno (il Solo
 // non segue una griglia: dopo il buco va avanti da dov'era).
+// ⚠️ CORRETTO A437 · PARTE 2 (18/11/2026): «Solo [...]: la riga e basta, niente guardiano e niente ritorno» vale da qui in
+// poi solo FUORI da una canzone.
+//
+// === A437 · PARTE 2 (18/11/2026) — IL SOLO IN CANZONE SOTTO IL GUARDIANO (P6, P25; referto A424, par. 2.1 j) ===
+// Il fatto (referto A423, Aperto §A.2). Il Solo non ha una correzione di fase che rimetta la griglia: dopo un buco, anche
+// piccolo, il suo click resta in ritardo fino allo Stop. Da A437 (parte 1) il Solo in canzone sa riprendere sulla posizione
+// della canzone (`SoloResumeDecision`): quindi a show aperto, con la canzone in corso e il motore in moto, il Solo sta sotto
+// il guardiano come Direttore e Follower (`guardsAgainstHoles`), e OGNI buco sopra la soglia della riga è una crisi, senza
+// soglia della crisi al tempo del motore: motivo «buco», o «uscita-sparita» se la memoria dice esterna e adesso un'esterna
+// non c'è (lo stacco visto prima della notizia: il Solo si ferma come allo Stop della console). Fuori da una canzone il Solo
+// resta com'era: la riga e basta.
+// ⚠️ AGGIUNTO A437 · SEGUITO 5 (19/11/2026) — al fatto del Centro di Controllo (riga 16), il collaudo del 19/11. L'iPad
+// (iPadOS 18.7.12) nel Solo in canzone col Centro di Controllo: 5 buchi da 33,7 a 66,4 ms (54,9 · 33,7 · 40,3 · 66,4 · 35,0),
+// 5 crisi e 5 riprese sulla canzone (C19). L'iPhone 13 (iOS 27.0.1) col Centro di Controllo aperto più volte nel Solo:
+// nessun buco sopra la soglia della riga (`RenderGapMeter.thresholdBuffers`, 3 buffer): 0 righe «[RENDER] buco» nel registro
+// del 19/11 delle 12:58.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// L'esito, col nome che va nella riga `[RENDER] … -> esito:`.
@@ -100,7 +116,15 @@ enum RenderGapDecision {
 
     /// La regola (par. 4.3). L'ordine è la precedenza: chi non è il Direttore col motore in moto solo la riga; l'uscita sparita
     /// (in canzone o fuori); fuori da una canzone segue Link; in canzone la scorta, poi la finestra, poi il buco contro la soglia.
+    /// A437 · PARTE 2 — prima di tutto il Solo: in canzone col motore in moto la crisi a ogni buco (`holeSeconds` è già sopra
+    /// la soglia della riga), col motivo «uscita-sparita» se l'esterna non c'è più, se no «buco»; nessuna soglia
+    /// (`thresholdSeconds` nullo); fuori da una canzone, o a motore fermo, solo la riga.
     static func verdict(_ s: Situation) -> RenderGapVerdict {
+        if s.playerRole == .solo {
+            guard s.engineRunning, s.showOpen, s.songInProgress else { return .lineOnly }
+            return RenderGapVerdict(outcome: .crisis, crisisReason: s.externalVanished ? .outputVanished : .hole,
+                                    thresholdSeconds: nil)
+        }
         guard s.playerRole == .direttore, s.engineRunning else { return .lineOnly }
         if s.externalVanished {
             return RenderGapVerdict(outcome: .crisis, crisisReason: .outputVanished, thresholdSeconds: nil)
@@ -155,8 +179,10 @@ enum RenderGapDecision {
 
     /// Par. 4.2, 4.4 — il guardiano e il ritorno dopo il buco sono per il Direttore e il Follower; il Solo (anche il Direttore
     /// con Link spento) no.
-    static func guardsAgainstHoles(playerRole: PlayerRole) -> Bool {
-        playerRole != .solo
+    /// ⚠️ CORRETTO A437 · PARTE 2 (18/11/2026), c'era la firma `guardsAgainstHoles(playerRole:)` = `playerRole != .solo`: il
+    /// Solo sta sotto il guardiano a show aperto con la canzone in corso (P6); fuori da una canzone no, com'era.
+    static func guardsAgainstHoles(playerRole: PlayerRole, showOpen: Bool, songInProgress: Bool) -> Bool {
+        playerRole != .solo || (showOpen && songInProgress)
     }
 
     /// L'innesco nella riga `[DIR-RIENTRO] segue Link innesco:…` quando l'esito è `followLink`.

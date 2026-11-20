@@ -11,6 +11,11 @@ import XCTest
 // asserzioni di A421 sulla soglia di 75 ms (testTheThreshold, testTheDirectorThatFollowsLinkStillGoesIntoCrisis,
 // testBelowTheThresholdTheDirectorFollowsLink e la matrice; testTheSilentDirectorWithTheEngineRunning tolto: ripeteva la regola) sono riscritte qui
 // sulla soglia nuova, col motivo nel referto.
+// === A437 · PARTE 2 (18/11/2026) — il Solo in canzone sotto il guardiano (P6, P25; mandato A437, par. 4 a) ===
+// Il Solo a show aperto, con la canzone in corso e il motore in moto: crisi a ogni buco sopra la soglia della riga (motivo
+// «buco», o «uscita-sparita»), senza soglia; fuori da una canzone solo la riga, com'era. Le asserzioni di prima che davano il
+// Solo «solo riga» anche in canzone (i buchi del 19/10 e del 24/10, la tabella del seguito 2, l'uscita sparita, la matrice,
+// `guardsAgainstHoles` che cambia firma) seguono la regola nuova, col motivo nel referto di A437.
 
 final class RenderGapDecisionTests: XCTestCase {
 
@@ -88,8 +93,11 @@ final class RenderGapDecisionTests: XCTestCase {
     /// I 19 buchi del referto A419, par. 3.2.b, col ruolo del registro.
     func testTheNineteenHolesOfA419() {
         // Solo: R1 121,5 (tolta), R5 218,7 (aggiunta) e 108,0 (tolta): solo riga (la crisi del Solo arriva dalla notizia).
+        // ⚠️ CORRETTO A437 · PARTE 2: «solo riga» vale fuori da una canzone; in canzone col motore in moto ognuno è una crisi.
         for ms in [121.5, 218.7, 108.0] {
-            XCTAssertEqual(outcome(ms, .solo), .lineOnly, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo, song: false), .lineOnly, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo, show: false), .lineOnly, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo), .crisis, "\(ms)")
         }
         // Direttore in canzone: R2 155,2 e 187,5; R4 circa 791 e 803 (19/10): crisi anche con la soglia a 150.
         for ms in [155.2, 187.5, 791.0, 803.0] {
@@ -106,8 +114,11 @@ final class RenderGapDecisionTests: XCTestCase {
     /// sarebbero crisi i quattro sopra i 150 ms; 108,8 (crisi a 75) da qui segue Link.
     func testTheFiveHolesOfOctober24() {
         XCTAssertEqual(outcome(906.1, .direttore), .crisis)
+        // ⚠️ CORRETTO A437 · PARTE 2: i quattro del Solo sono «solo riga» fuori da una canzone; in canzone sono crisi (le cuffie
+        // col filo a canzone in corso: la ripresa sulla posizione della canzone).
         for ms in [835.4, 783.7, 254.5, 108.8] {
-            XCTAssertEqual(outcome(ms, .solo), .lineOnly, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo, song: false), .lineOnly, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo), .crisis, "\(ms)")
         }
         for ms in [906.1, 835.4, 783.7, 254.5] {
             XCTAssertEqual(outcome(ms, .direttore), .crisis, "\(ms)")
@@ -147,6 +158,12 @@ final class RenderGapDecisionTests: XCTestCase {
                                                                                   leadIn: leadIn, vanished: vanished))
                                     let tag = "\(ms) ruolo:\(role) show:\(show) canzone:\(song) scorta:\(leadIn) sparita:\(vanished) segue:\(follows)"
                                     let expected: (outcome: RenderGapOutcome, reason: RenderGapCrisisReason?, threshold: Double?) = {
+                                        // A437 · PARTE 2: il Solo in canzone (qui il motore è in moto): crisi a ogni buco, senza
+                                        // soglia; l'uscita sparita dà il motivo. Fuori da una canzone solo la riga.
+                                        if role == .solo {
+                                            if !(show && song) { return (.lineOnly, nil, nil) }
+                                            return (.crisis, vanished ? .outputVanished : .hole, nil)
+                                        }
                                         if role != .direttore { return (.lineOnly, nil, nil) }
                                         if vanished { return (.crisis, .outputVanished, nil) }
                                         if !(show && song) { return (.followLink, nil, nil) }
@@ -172,7 +189,8 @@ final class RenderGapDecisionTests: XCTestCase {
         XCTAssertEqual(cells, 5 * 3 * 2 * 2 * 2 * 2 * 2)
         // Le crisi: l'uscita sparita (5 buchi × 4 show/canzone × 2 scorta × 2 segue = 80), la scorta in canzone con l'uscita
         // presente (5 × 2 segue = 10), il buco di 151 ms in canzone fuori dalla scorta con l'uscita presente (2 segue = 2).
-        XCTAssertEqual(crises, 80 + 10 + 2)
+        // A437 · PARTE 2: più il Solo in canzone, ogni cella (5 buchi × 2 scorta × 2 sparita × 2 segue = 40).
+        XCTAssertEqual(crises, 80 + 10 + 2 + 40)
     }
 
     /// Il 29/10: il buco di 70,0 ms sul Direttore in canzone (0,1412 battiti a 121), la prima correzione di 0,1883 battiti (il
@@ -223,8 +241,13 @@ final class RenderGapDecisionTests: XCTestCase {
             }
         }
         // Follower e Solo: la regola non li ferma (il Follower rilegge U5 al ritorno; il Solo niente).
+        // ⚠️ CORRETTO A437 · PARTE 2: «il Solo niente» vale fuori da una canzone; in canzone è la crisi col motivo «uscita-sparita».
         XCTAssertEqual(RenderGapDecision.verdict(situation(119.3, .follower, vanished: true)).outcome, .lineOnly)
-        XCTAssertEqual(RenderGapDecision.verdict(situation(119.3, .solo, vanished: true)).outcome, .lineOnly)
+        XCTAssertEqual(RenderGapDecision.verdict(situation(119.3, .solo, song: false, vanished: true)).outcome, .lineOnly)
+        let soloVanished = RenderGapDecision.verdict(situation(119.3, .solo, vanished: true))
+        XCTAssertEqual(soloVanished.outcome, .crisis)
+        XCTAssertEqual(soloVanished.crisisReason, .outputVanished)
+        XCTAssertNil(soloVanished.thresholdSeconds)
     }
 
     /// Nella finestra «sync skip» conta la salita dello scarto dall'apertura, con P dell'apertura: due buchi del Centro di
@@ -304,12 +327,17 @@ final class RenderGapDecisionTests: XCTestCase {
     }
 
     /// Follower e Solo: solo riga, qualunque buco e qualunque stato (il ritorno dopo il buco del Follower lo arma il motore).
+    /// ⚠️ CORRETTO A437 · PARTE 2 (18/11/2026): per il Solo «qualunque stato» non vale più: a show aperto con la canzone in
+    /// corso (e il motore in moto) ogni buco è una crisi (`testTheSoloInSongIsACrisisAtEveryHoleAboveTheLine`); qui resta il
+    /// Follower in ogni stato e il Solo fuori da una canzone. `guardsAgainstHoles` prende lo show e la canzone: per il
+    /// Direttore e il Follower non contano, per il Solo decidono.
     func testFollowerAndSoloAreLineOnly() {
         for role in [PlayerRole.follower, .solo] {
             for ms in [32.2, 150.0, 906.1, 5000.0] {
                 for show in bools {
                     for song in bools {
                         for follows in bools {
+                            if role == .solo && show && song { continue }
                             XCTAssertEqual(outcome(ms, role, show: show, song: song, follows: follows), .lineOnly,
                                            "ruolo:\(role) \(ms) show:\(show) canzone:\(song)")
                         }
@@ -317,21 +345,59 @@ final class RenderGapDecisionTests: XCTestCase {
                 }
             }
         }
-        XCTAssertTrue(RenderGapDecision.guardsAgainstHoles(playerRole: .direttore))
-        XCTAssertTrue(RenderGapDecision.guardsAgainstHoles(playerRole: .follower))
-        XCTAssertFalse(RenderGapDecision.guardsAgainstHoles(playerRole: .solo))
+        for show in bools {
+            for song in bools {
+                XCTAssertTrue(RenderGapDecision.guardsAgainstHoles(playerRole: .direttore, showOpen: show, songInProgress: song))
+                XCTAssertTrue(RenderGapDecision.guardsAgainstHoles(playerRole: .follower, showOpen: show, songInProgress: song))
+            }
+        }
+        XCTAssertFalse(RenderGapDecision.guardsAgainstHoles(playerRole: .solo, showOpen: false, songInProgress: false))
+        XCTAssertFalse(RenderGapDecision.guardsAgainstHoles(playerRole: .solo, showOpen: true, songInProgress: false))
+        XCTAssertFalse(RenderGapDecision.guardsAgainstHoles(playerRole: .solo, showOpen: false, songInProgress: true))
+        XCTAssertTrue(RenderGapDecision.guardsAgainstHoles(playerRole: .solo, showOpen: true, songInProgress: true))
+    }
+
+    /// A437 · PARTE 2 (P6, P25) — il Solo a show aperto, con la canzone in corso e il motore in moto: crisi a ogni buco sopra
+    /// la soglia della riga, anche sotto i 75 e i 150 ms (il buco piccolo del Centro di Controllo, 33,2 ms, e quello delle
+    /// cuffie, 835,4 ms), col motivo «buco» e senza soglia; con l'uscita esterna sparita il motivo «uscita-sparita». La scorta,
+    /// la finestra, «segue Link», il tempo e P non contano. Fuori da una canzone e a motore fermo solo la riga.
+    func testTheSoloInSongIsACrisisAtEveryHoleAboveTheLine() {
+        for ms in [33.2, 74.9, 108.8, 149.0, 150.0, 835.4] {
+            for bpm in [71.5, 121.5, 240.0] {
+                for leadIn in bools {
+                    for windowOpen in bools {
+                        let verdict = RenderGapDecision.verdict(situation(ms, .solo, follows: leadIn, leadIn: leadIn, windowOpen: windowOpen,
+                                                                          windowRiseMs: windowOpen ? 1.0 : nil, bpm: bpm,
+                                                                          projectionMs: 123.0))
+                        let tag = "\(ms) bpm:\(bpm) scorta:\(leadIn) finestra:\(windowOpen)"
+                        XCTAssertEqual(verdict.outcome, .crisis, tag)
+                        XCTAssertEqual(verdict.crisisReason, .hole, tag)
+                        XCTAssertNil(verdict.thresholdSeconds, tag)
+                    }
+                }
+            }
+            XCTAssertEqual(RenderGapDecision.verdict(situation(ms, .solo, vanished: true)).crisisReason, .outputVanished, "\(ms)")
+            XCTAssertEqual(outcome(ms, .solo, song: false), .lineOnly, "\(ms): fuori da una canzone")
+            XCTAssertEqual(outcome(ms, .solo, show: false), .lineOnly, "\(ms): a show chiuso")
+            XCTAssertEqual(outcome(ms, .solo, running: false), .lineOnly, "\(ms): a motore fermo")
+            XCTAssertEqual(RenderGapDecision.verdict(situation(ms, .solo, running: false, vanished: true)).outcome, .lineOnly, "\(ms)")
+            XCTAssertEqual(RenderGapDecision.verdict(situation(ms, .solo, song: false, vanished: true)).outcome, .lineOnly, "\(ms)")
+        }
     }
 
     /// A motore fermo niente (il misuratore non gira: entra per la matrice).
     func testEngineStoppedIsLineOnly() {
         XCTAssertEqual(outcome(906.1, .direttore, running: false), .lineOnly)
         XCTAssertEqual(RenderGapDecision.verdict(situation(906.1, .direttore, running: false, vanished: true)).outcome, .lineOnly)
+        XCTAssertEqual(outcome(906.1, .solo, running: false), .lineOnly, "A437: anche il Solo in canzone")
     }
 
     // MARK: - La matrice
 
     private func expected(_ holeMs: Double, _ role: PlayerRole, show: Bool, song: Bool, running: Bool, follows: Bool,
                           bpm: Double, pMs: Double) -> RenderGapOutcome {
+        // A437 · PARTE 2: il Solo in canzone col motore in moto, crisi a ogni buco.
+        if role == .solo { return (show && song && running) ? .crisis : .lineOnly }
         guard role == .direttore, running else { return .lineOnly }
         guard show && song else { return .followLink }
         let threshold = min(150.0, 30_000.0 / bpm - 3.0 * 512.0 / 48.0 - (follows ? 0 : pMs))
@@ -355,7 +421,7 @@ final class RenderGapDecisionTests: XCTestCase {
                                         XCTAssertEqual(got.outcome, expected(ms, role, show: show, song: song, running: running,
                                                                              follows: follows, bpm: bpm, pMs: pMs), tag)
                                         if got.outcome == .crisis {
-                                            XCTAssertTrue(role == .direttore && show && song && running, tag)
+                                            XCTAssertTrue((role == .direttore || role == .solo) && show && song && running, tag)
                                             XCTAssertEqual(got.crisisReason, .hole, tag)
                                         } else {
                                             XCTAssertNil(got.crisisReason, tag)

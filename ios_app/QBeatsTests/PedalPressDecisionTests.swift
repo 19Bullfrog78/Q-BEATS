@@ -192,6 +192,74 @@ final class PedalPressDecisionTests: XCTestCase {
         }
     }
 
+    // MARK: - A437 — la pausa della ripresa del Solo (mandato A437, par. 2.2; P22, la (b))
+
+    private func decidePause(_ role: PlayerRole, _ action: PedalTransportAction, playing: Bool = false, requested: Bool = false,
+                             moving: Bool = false, pause: Bool, screen: PedalScreen) -> PedalPress {
+        PedalPressDecision.decide(role: role, directorSilent: false, action: action, isPlaying: playing,
+                                  startRequested: requested, engineMoving: moving, screen: screen, soloResumePending: pause)
+    }
+
+    /// Nella pausa (il motore e' fermo, `isPlaying` e' falso, il segno e' alto) Play/Pause e Stop premono Stop, come col
+    /// click che suona, su ogni schermo del Solo, con lo stato del player in moto o no. Senza il segno Play/Pause, col
+    /// motore «in moto» per lo stato del player, non fa niente (com'era).
+    func testInThePauseOfTheSoloResumePlayPauseAndStopPressStop() {
+        for index in 13...21 {
+            for moving in [false, true] {
+                for action in [PedalTransportAction.playPause, .stop] {
+                    let p = decidePause(.solo, action, moving: moving, pause: true, screen: Self.screens[index])
+                    XCTAssertEqual(p.command, .stop, "schermo \(index + 1) azione:\(action) inMoto:\(moving)")
+                    XCTAssertEqual(p.reason, "pausa-della-ripresa", "schermo \(index + 1)")
+                    XCTAssertTrue(p.lamp, "schermo \(index + 1)")
+                }
+            }
+        }
+        let without = decidePause(.solo, .playPause, moving: true, pause: false, screen: Self.screens[16])
+        XCTAssertNil(without.command)
+        XCTAssertEqual(without.reason, "partenza-o-arresto-in-corso")
+    }
+
+    /// Col click che suona il motivo resta «in-moto», anche col segno alto (la scorta: il motore e' ripartito).
+    func testWithTheClickPlayingTheReasonStaysInMotion() {
+        for action in [PedalTransportAction.playPause, .stop] {
+            let p = decidePause(.solo, action, playing: true, moving: true, pause: true, screen: Self.screens[16])
+            XCTAssertEqual(p.command, .stop)
+            XCTAssertEqual(p.reason, "in-moto")
+        }
+    }
+
+    /// Il segno e' del Solo: per il Direttore non cambia niente (il motore lo alza solo nel Solo), e per il Follower il
+    /// pedale resta ignorato.
+    func testThePauseSignIsOnlyForTheSolo() {
+        for c in Self.matrix where c.role != .solo {
+            let with = PedalPressDecision.decide(role: c.role, directorSilent: c.silent, action: c.action, isPlaying: c.playing,
+                                                 startRequested: c.requested, engineMoving: c.moving, screen: c.screen,
+                                                 soloResumePending: true)
+            XCTAssertEqual(with, decide(c), c.label)
+        }
+    }
+
+    /// Senza il segno la regola e' quella di prima, cella per cella.
+    func testWithoutTheSignTheRuleIsAsBefore() {
+        for c in Self.matrix {
+            let without = PedalPressDecision.decide(role: c.role, directorSilent: c.silent, action: c.action, isPlaying: c.playing,
+                                                    startRequested: c.requested, engineMoving: c.moving, screen: c.screen,
+                                                    soloResumePending: false)
+            XCTAssertEqual(without, decide(c), c.label)
+        }
+    }
+
+    func testInMotionWithThePause() {
+        XCTAssertTrue(PedalPressDecision.inMotion(action: .playPause, isPlaying: false, startRequested: false, engineMoving: false,
+                                                  soloResumePending: true))
+        XCTAssertTrue(PedalPressDecision.inMotion(action: .stop, isPlaying: false, startRequested: false, engineMoving: false,
+                                                  soloResumePending: true))
+        XCTAssertFalse(PedalPressDecision.inMotion(action: .playPause, isPlaying: false, startRequested: true, engineMoving: true,
+                                                   soloResumePending: false))
+        XCTAssertFalse(PedalPressDecision.inMotion(action: .stop, isPlaying: false, startRequested: false, engineMoving: false,
+                                                   soloResumePending: false))
+    }
+
     // MARK: - (4) Stop a click fermo → niente
 
     func testPoint4TheStopAtRestDoesNothingOnEveryScreen() {

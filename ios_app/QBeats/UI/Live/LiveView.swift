@@ -848,6 +848,12 @@ struct LiveView: View {
                 //      quel tempo non la porta a fermo (il player si vede come oggi a click in moto; il tasto lo
                 //      decide `session.directorSilence`). Il silenzio finisce col rientro, con lo Stop voluto (la
                 //      stanza chiude la canzone e arma il velo PRIMA del `.stopped`) o con lo Stop di fine canzone.
+                //      ⚠️ CORRETTO A437 (18/11/2026; referto A427, Aperto B). Qui sopra «Il silenzio finisce col
+                //      rientro» dice meno del vero per questa guardia: da A427 `session.directorSilence` resta non
+                //      `nil` anche dopo il fuoco del rientro, finché il suo primo click non è uscito (la faccia
+                //      «rientro in arrivo», col Direttore non più muto e il motore in moto). La guardia dura quindi
+                //      oltre il rientro, fino all'«uno» uscito: lì la faccia torna `nil` e un `.stopped` del motore
+                //      passa di nuovo.
                 if session.directorSilence != nil {
                     os_log("[Q-BEATS][DIR-TASTO] guardia specchio: scartato .stopped del motore col Direttore muto in canzone",
                            log: .default, type: .default)
@@ -1498,7 +1504,9 @@ struct LiveView: View {
     /// Le facce della console del Solo (`SoloConsoleDecision`), con gli ingressi di prima: `isPlaying` (D5), la base che
     /// nel player non suona (A387 §2.2), il pannello del mixer. Le leggono il body e la porta del pedale.
     private func liveConsoleFaces() -> SoloConsoleFaces {
-        SoloConsoleDecision.faces(transportRunning: audioEngine.isPlaying,
+        // A437 (mandato A437, par. 2.2; P22, la (b)) — nella pausa della ripresa del Solo la faccia resta Stop: il tocco
+        // ferma e chiude la ripresa.
+        SoloConsoleDecision.faces(transportRunning: audioEngine.isPlaying || audioEngine.soloResumePending,
                                   backtrackPlaying: false,
                                   mixerOpen: session.showMixer)
     }

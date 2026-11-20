@@ -80,12 +80,38 @@ final class CrisisStopDecisionTests: XCTestCase {
 
     /// Configurazione e modo nel Solo: com'è oggi (ripartono da sole, non sono interruzioni). A421: anche
     /// «uscita-aggiunta» (par. 2.2 f: la cura è del pezzo 3) e «buco-del-render» (il Solo non ha una band).
+    /// ⚠️ A437 (mandato A437, par. 2.5; referto A424, par. 2.1 e): qui il test diceva «come oggi» anche a show aperto con la
+    /// canzone in corso e il motore in moto; da 3b in canzone è «ripresa sulla canzone» (il test qui sotto), e «come oggi»
+    /// resta fuori da una canzone e a motore fermo senza una ripresa in attesa.
     func testSoloAsTodayOnConfigurationAndMode() {
         for cause in [CrisisCause.configuration, .mode, .outputAdded, .renderGap] {
             for running in bools {
-                XCTAssertEqual(outcome(.solo, cause, running: running), .asToday, "causa:\(cause) motore:\(running)")
+                XCTAssertEqual(outcome(.solo, cause, show: false, running: running), .asToday, "senza show - causa:\(cause) motore:\(running)")
+                XCTAssertEqual(outcome(.solo, cause, song: false, running: running), .asToday, "fuori da una canzone - causa:\(cause) motore:\(running)")
+                XCTAssertEqual(outcome(.solo, cause, show: false, song: false, running: running), .asToday, "causa:\(cause) motore:\(running)")
             }
+            XCTAssertEqual(outcome(.solo, cause, running: false), .asToday, "in canzone a motore fermo senza ripresa in attesa - causa:\(cause)")
         }
+    }
+
+    /// A437 — il Solo a show aperto, con la canzone in corso e in moto per il player (il motore gira, o la ripresa aspetta:
+    /// chi chiama passa `SoloResumeDecision.inMotionForPlayer`), a una causa che non lo ferma: «ripresa sulla canzone». Le
+    /// cause che lo fermano restano «come lo Stop della console». Solo il Solo riprende sulla canzone.
+    func testTheSoloInSongInMotionForThePlayerResumesOnTheSong() {
+        for cause in [CrisisCause.configuration, .mode, .outputAdded, .renderGap] {
+            XCTAssertEqual(outcome(.solo, cause), .soloResumeOnSong, "causa:\(cause)")
+            XCTAssertFalse(cause.stopsSolo)
+        }
+        for cause in CrisisCause.allCases where cause.stopsSolo {
+            XCTAssertEqual(outcome(.solo, cause), .soloStopAsConsole, "causa:\(cause)")
+            XCTAssertEqual(outcome(.solo, cause, running: false), .nothing, "causa:\(cause)")
+        }
+        for cause in CrisisCause.allCases {
+            XCTAssertNotEqual(outcome(.direttore, cause), .soloResumeOnSong, "causa:\(cause)")
+            XCTAssertNotEqual(outcome(.follower, cause), .soloResumeOnSong, "causa:\(cause)")
+        }
+        XCTAssertEqual(CrisisStopOutcome.soloResumeOnSong.rawValue, "ripresa-sulla-canzone")
+        XCTAssertFalse(CrisisStopOutcome.soloResumeOnSong.sendsStopToLink, "nessuna crisi manda Stop a Link")
     }
 
     /// A421 — «uscita-tolta» nel Solo: come lo Stop della console col click in moto (le cuffie staccate: il Solo si ferma e
@@ -119,12 +145,15 @@ final class CrisisStopDecisionTests: XCTestCase {
         XCTAssertEqual(CrisisStopDecision.rememberedCause(previous: .mode, new: .outputRemoved, playerRole: .solo), .outputRemoved)
     }
 
-    /// Il ruolo Direttore con la levetta spenta è un Solo (`PlayerRoleDecision`).
+    /// Il ruolo Direttore con la levetta spenta è un Solo (`PlayerRoleDecision`). A437: come ogni Solo, in canzone col
+    /// click in moto alla configurazione riprende sulla canzone; fuori da una canzone resta com'è oggi.
     func testDirectorRoleWithTheUserSwitchOffIsSolo() {
         let role = PlayerRoleDecision.playerRole(role: .direttore, userLinkEnabled: false)
         XCTAssertEqual(role, .solo)
         XCTAssertEqual(outcome(role, .interruption), .soloStopAsConsole)
-        XCTAssertEqual(outcome(role, .configuration), .asToday)
+        XCTAssertEqual(outcome(role, .configuration), .soloResumeOnSong)
+        XCTAssertEqual(outcome(role, .configuration, song: false), .asToday)
+        XCTAssertEqual(outcome(role, .configuration, show: false), .asToday)
     }
 
     // MARK: - Il Follower
@@ -155,7 +184,8 @@ final class CrisisStopDecisionTests: XCTestCase {
             return .asToday
         case .solo:
             // A421: le cause che fermano il Solo sono le quattro della sessione audio e «uscita-tolta».
-            if !cause.stopsSolo { return .asToday }
+            // A437: in canzone e in moto per il player una causa che non lo ferma è «ripresa sulla canzone».
+            if !cause.stopsSolo { return (show && song && running) ? .soloResumeOnSong : .asToday }
             return running ? .soloStopAsConsole : .nothing
         case .direttore:
             if silent { return .silentInSong }
@@ -183,6 +213,11 @@ final class CrisisStopDecisionTests: XCTestCase {
                                 if got == .silentInSong { XCTAssertEqual(role, .direttore, tag) }
                                 // Solo il Solo si ferma come allo Stop della console.
                                 if got == .soloStopAsConsole { XCTAssertEqual(role, .solo, tag) }
+                                // A437: solo il Solo riprende sulla canzone, e solo in canzone e in moto per il player.
+                                if got == .soloResumeOnSong {
+                                    XCTAssertEqual(role, .solo, tag)
+                                    XCTAssertTrue(show && song && running && !cause.stopsSolo, tag)
+                                }
                             }
                         }
                     }
@@ -197,7 +232,7 @@ final class CrisisStopDecisionTests: XCTestCase {
 
     func testNoCrisisSendsStopToLink() {
         XCTAssertFalse(CrisisStopDecision.sendsStopToLink)
-        for o in [CrisisStopOutcome.silentInSong, .localStop, .soloStopAsConsole, .asToday, .nothing] {
+        for o in [CrisisStopOutcome.silentInSong, .localStop, .soloStopAsConsole, .asToday, .nothing, .soloResumeOnSong] {
             XCTAssertFalse(o.sendsStopToLink, "\(o)")
         }
     }

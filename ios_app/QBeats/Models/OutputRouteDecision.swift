@@ -38,6 +38,14 @@ import Foundation
 // Il volume ha un solo padrone: lo stato `muted` qui, scritto dal motore solo su audioQueue, letto da `start()` prima di
 // `engine.start()`, dal ritorno del Follower e dalla riga [SCHED] (`volume:0|1`). Gli invarianti del banco: volume a 1 ⇒
 // non (Follower con l'uscita mancante); motore in moto ⇒ non (Direttore con l'uscita mancante).
+// === A437 (18/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3b: LA «B» DEL SOLO, UN'USCITA CHE COMPARE A CANZONE IN CORSO ===
+// ⚠️ CORRETTO A437 (18/11/2026; mandato A437, par. 2.5 e 2.7; referto A424, par. 3.2), c'era, più sopra, per il
+// silenzio subito «Solo: solo tolta (par. 2.2 f: a un'uscita che compare il Solo resta com'è oggi, la cura è del pezzo
+// 3)» e per la crisi «Direttore fuori da una canzone e Solo, solo tolta»: vale ancora fuori da una canzone e col Solo
+// fermo. In canzone e col click in moto per il player (il motore gira, o la ripresa aspetta) un'uscita che compare dà
+// al Solo il silenzio subito (se il motore gira), la crisi «uscita-aggiunta» e il ritorno `.solo`: il click tace e
+// torna da solo sull'«uno» della battuta giusta (Mauro, 24/10, la «B»; `SoloResumeDecision`). Una strada sola per le
+// cuffie col filo, la cassa Bluetooth e la scheda USB (P23). Il Solo non ha «uscita mancante».
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Una porta d'uscita: il tipo (`AVAudioSessionPortDescription.portType.rawValue`) e l'identificativo (`uid`).
@@ -67,6 +75,9 @@ enum OutputReturnKind: String, Equatable {
     case director = "direttore"
     /// Il Follower: il volume torna al primo «uno» di battuta dopo le due ore (par. 2.2 c).
     case follower = "follower"
+    /// A437 — il Solo in canzone: dopo l'assestamento o la configurazione la ripresa sulla canzone, con la sua
+    /// guardia (`SoloResumeDecision.returnStep`). Sta nello stato del ritorno del Direttore, col suo tipo.
+    case solo = "solo"
 }
 
 /// Che cosa fa il blocco della coda del cambio di percorso, per un ruolo, dopo la classe.
@@ -81,6 +92,10 @@ struct OutputRouteStep: Equatable {
     let lowersMissing: Bool
     /// Il ritorno da armare, se il silenzio c'è stato.
     let armsReturn: OutputReturnKind?
+    /// A437 · PARTE 2 — C.1 (referto A431, par. 2.7): una tolta dentro un'interruzione, col Direttore non muto in canzone,
+    /// si ricorda a parte (`_removalDuringInterruptionQ`): a fine chiamata il click aspetta il Play. Vero solo in quel caso.
+    /// `var` col valore di base perché l'inizializzatore per membri resti quello dei chiamanti di prima.
+    var remembersRemoval: Bool = false
 
     static let nothing = OutputRouteStep(silences: false, crisisCause: nil, raisesMissing: false,
                                          lowersMissing: false, armsReturn: nil)
@@ -182,13 +197,19 @@ enum OutputRouteDecision {
     /// - `stoppedByCrisis`: il motore è fermo per una crisi o un'interruzione, non per uno Stop (la causa viva senza uno
     ///   Stop voluto dopo, o la ripresa d'interruzione in corso).
     /// - `inInterruption`: lo stato «interruzione di sistema» è alzato: solo lo stato, niente volume, crisi o ritorno.
+    /// - `soloResumePending` (A437): la ripresa del Solo aspetta col motore fermo; col motore che gira fa «il click
+    ///   in moto per il player». Per gli altri ruoli non si legge.
+    /// - `directorSilentInSong` (A437 · PARTE 2, C.1): il Direttore è muto in canzone (`_directorSilentInSongQ`). Si legge
+    ///   solo per la tolta dentro un'interruzione: lì il Direttore NON muto in canzone ricorda la tolta.
     static func step(routeClass: OutputRouteClass,
                      playerRole: PlayerRole,
                      showOpen: Bool,
                      songInProgress: Bool,
                      engineRunning: Bool,
                      stoppedByCrisis: Bool,
-                     inInterruption: Bool) -> OutputRouteStep {
+                     inInterruption: Bool,
+                     soloResumePending: Bool = false,
+                     directorSilentInSong: Bool = false) -> OutputRouteStep {
         let inSong = showOpen && songInProgress
         switch routeClass {
         case .none:
@@ -197,7 +218,8 @@ enum OutputRouteDecision {
             let raises = (playerRole != .solo) && (engineRunning || stoppedByCrisis)
             if inInterruption {
                 return OutputRouteStep(silences: false, crisisCause: nil, raisesMissing: raises,
-                                       lowersMissing: false, armsReturn: nil)
+                                       lowersMissing: false, armsReturn: nil,
+                                       remembersRemoval: playerRole == .direttore && !directorSilentInSong)
             }
             let crisis: CrisisCause? = (playerRole == .follower) ? nil : .outputRemoved
             return OutputRouteStep(silences: engineRunning, crisisCause: crisis, raisesMissing: raises,
@@ -209,8 +231,16 @@ enum OutputRouteDecision {
             }
             switch playerRole {
             case .solo:
-                // Par. 2.2 f: come oggi, nessun silenzio e nessuna crisi (il pezzo 3).
-                return .nothing
+                // ⚠️ CORRETTO A437, c'era «Par. 2.2 f: come oggi, nessun silenzio e nessuna crisi (il pezzo 3).»: vale
+                // fuori da una canzone e col Solo fermo. In canzone e in moto per il player: il silenzio subito se il
+                // motore gira, la crisi «uscita-aggiunta», il ritorno del Solo (anche nella pausa: il ritorno si riarma
+                // con l'attesa della notizia nuova).
+                guard inSong, SoloResumeDecision.inMotionForPlayer(engineRunning: engineRunning,
+                                                                  resumePending: soloResumePending) else {
+                    return .nothing
+                }
+                return OutputRouteStep(silences: engineRunning, crisisCause: .outputAdded, raisesMissing: false,
+                                       lowersMissing: false, armsReturn: .solo)
             case .follower:
                 return OutputRouteStep(silences: engineRunning, crisisCause: nil, raisesMissing: false,
                                        lowersMissing: true, armsReturn: engineRunning ? .follower : nil)

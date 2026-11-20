@@ -39,6 +39,9 @@ enum PedalTransportAction: String, Equatable, CaseIterable {
 }
 
 /// Che cosa copre il comando di partenza dello schermo, cosi' che il dito non lo raggiunge.
+/// ⚠️ CORRETTO A437 (18/11/2026; referto del seguito 2 di A429, par. 6, voce 6). Qui sopra «il comando di partenza»
+/// dice meno del vero: dal seguito 2 il comando coperto puo' essere BACK TO SHOWS (il foglio dell'import sopra la fine
+/// scaletta), che non e' di partenza.
 enum PedalCover: String, Equatable, CaseIterable {
     /// Il bivio «SHOW STOPPED» sopra il player fermo (`QLiveBivioView`).
     case bivio
@@ -61,6 +64,9 @@ enum PedalScreen: Equatable {
     /// Nessuna porta aperta: la lista degli show, lo show chiuso, la Home con le sue porte, Q-Stage, il debug.
     case noDoor
     /// Il comando di partenza c'e' ma e' coperto.
+    /// ⚠️ CORRETTO A437 (18/11/2026; referto del seguito 2 di A429, par. 6, voce 6). Qui sopra «Il comando di partenza»
+    /// dice meno del vero: lo schermo e' coperto, e sotto puo' esserci un comando di partenza oppure BACK TO SHOWS (la
+    /// fine scaletta). A click fermo il pedale non preme niente («coperto-…»).
     case covered(PedalCover)
     /// Il player di Direttore e Follower: lo stato della sessione e, in `.standby`, il velo (`StandbyOverlayDecision`).
     case director(state: LivePlaybackState, veil: StandbyOverlayDecision?)
@@ -108,12 +114,16 @@ enum PedalPressDecision {
     static let pedalOrigin = "pedale"
 
     /// «In moto» per l'azione (seguito 1, par. 2.1 (3) e par. 2.2).
-    static func inMotion(action: PedalTransportAction, isPlaying: Bool, startRequested: Bool, engineMoving: Bool) -> Bool {
+    /// A437 (mandato A437, par. 2.2; P22, la (b)) — `soloResumePending`: la pausa della ripresa del Solo (il motore
+    /// è fermo, `isPlaying` è falso, e il click tornerà da solo). Nella pausa Play/Pause e Stop fermano come col
+    /// click che suona: il comando è `.stop`, che chiude la ripresa.
+    static func inMotion(action: PedalTransportAction, isPlaying: Bool, startRequested: Bool, engineMoving: Bool,
+                         soloResumePending: Bool = false) -> Bool {
         switch action {
         case .playPause:
-            return isPlaying
+            return isPlaying || soloResumePending
         case .stop:
-            return isPlaying || startRequested || engineMoving
+            return isPlaying || startRequested || engineMoving || soloResumePending
         }
     }
 
@@ -130,7 +140,8 @@ enum PedalPressDecision {
                        isPlaying: Bool,
                        startRequested: Bool,
                        engineMoving: Bool,
-                       screen: PedalScreen) -> PedalPress {
+                       screen: PedalScreen,
+                       soloResumePending: Bool = false) -> PedalPress {
         // (1) Follower.
         if role == .follower {
             return PedalPress(command: nil, reason: "follower", lamp: false)
@@ -145,8 +156,11 @@ enum PedalPressDecision {
             }
         }
         // (3) Click in moto → Stop.
-        if inMotion(action: action, isPlaying: isPlaying, startRequested: startRequested, engineMoving: engineMoving) {
-            return PedalPress(command: .stop, reason: "in-moto", lamp: true)
+        // A437 — il segno della pausa della ripresa vale solo per il Solo (il motore lo alza solo lì).
+        let resumePause = role == .solo && soloResumePending
+        if inMotion(action: action, isPlaying: isPlaying, startRequested: startRequested, engineMoving: engineMoving,
+                    soloResumePending: resumePause) {
+            return PedalPress(command: .stop, reason: resumePause && !isPlaying ? "pausa-della-ripresa" : "in-moto", lamp: true)
         }
         // (4) Stop a click fermo → niente.
         if action == .stop {

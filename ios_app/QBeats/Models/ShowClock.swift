@@ -465,3 +465,70 @@ struct ShowClock: Equatable {
         return base >= down ? base - down : 0
     }
 }
+
+// === A437 (18/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3b: IL CONTO DEL SOLO, COL SOLO RIGHELLO DEI SECONDI ===
+// Il fatto (referto A424, par. 3.1 b, punti 2-3; mandato A437, par. 3). Il Solo non ha Link (il lucchetto,
+// `SoloInertDecision`): la sua ripresa a canzone in corso conta col solo righello dei secondi, da un'àncora che
+// porta l'ora vera di un battito uscito (`linkBeat` 0: non si legge). Tre strumenti puri:
+//  · `SongMap.replacingTempo(ofSection:with:)`: la mappa col tempo di una sezione sostituito. La griglia di prima
+//    della crisi correva al tempo del motore, che nella sezione dell'àncora può non essere quello della mappa (un
+//    tap tempo): il conto la prolunga a quel tempo;
+//  · `downbeat(atOrAfterTicks:ticksPerSecond:)`: il primo «uno» della canzone con l'ora sulla mappa non prima di
+//    un'ora data, la stessa ricerca di `downbeat(atOrAfterLinkBeat:)` fatta sui battiti che il righello dei
+//    secondi conta dall'àncora;
+//  · `songBeatsFromStart(section:beatInSection:)`: i battiti della canzone dall'inizio a un battito, per l'«uno»
+//    che il fuoco della ripresa dà al DSP (l'origine dei click) e per le righe.
+// Niente di questo legge Link, la sessione audio o l'orologio: solo numeri in ingresso.
+
+extension SongMap {
+    /// A437 — la stessa mappa col tempo della sezione `index` sostituito da `bpm`. Con un indice fuori dalla mappa
+    /// o un tempo non valido (non finito, zero, negativo) la mappa resta com'è.
+    func replacingTempo(ofSection index: Int, with bpm: Double) -> SongMap {
+        guard index >= 0, index < sections.count, bpm.isFinite, bpm > 0 else { return self }
+        var next = sections
+        let old = next[index]
+        next[index] = SongMapSection(beatsPerBar: old.beatsPerBar, repetitions: old.repetitions, bpm: bpm)
+        return SongMap(sections: next)
+    }
+}
+
+extension ShowClock {
+    /// A437 — il primo inizio di battuta della canzone con l'ora sulla mappa non prima di `ticks`: il righello dei
+    /// secondi dice quanti battiti sono passati dall'àncora a quell'ora, e da lì la ricerca è quella di
+    /// `downbeat(atOrAfterLinkBeat:)`. Un «uno» che cade esattamente a `ticks` vale. `.songEndsFirst` se la canzone
+    /// finisce prima (o è già finita a quell'ora); `.unknown` se il conto non si può fare, se un ciclo sta fra
+    /// l'àncora e quell'ora o è la sezione del bersaglio, o se `ticks` cade prima dell'inizio della sezione
+    /// dell'àncora. Il campo `linkBeat` dell'esito porta i battiti della canzone dall'àncora, sommati al suo.
+    func downbeat(atOrAfterTicks ticks: UInt64, ticksPerSecond: Double) -> ShowClockDownbeatSearch {
+        let ruler = bySeconds(nowTicks: ticks, ticksPerSecond: ticksPerSecond)
+        switch ruler.place {
+        case .unknown(let why):
+            return .unknown(why)
+        case .pastEnd:
+            return .songEndsFirst
+        case .inSong:
+            return downbeat(atOrAfterLinkBeat: anchor.linkBeat + ruler.beatsFromAnchor)
+        }
+    }
+
+    /// A437 — i battiti della canzone dal suo primo battito al battito `beatInSection` della sezione `section`
+    /// (0 = il primo battito della canzone). `nil` con una mappa non valida, una sezione o un battito fuori dalla
+    /// mappa, o un ciclo prima del battito o nella sua sezione (un ciclo non ha un numero di battiti).
+    func songBeatsFromStart(section: Int, beatInSection: Int) -> Int? {
+        guard map.isValid, section >= 0, section < map.sections.count else { return nil }
+        var total = 0
+        var index = 0
+        while index <= section {
+            let current = map.sections[index]
+            if current.isCycle { return nil }
+            guard let beats = current.totalBeats else { return nil }
+            if index == section {
+                guard beatInSection >= 0, beatInSection < beats else { return nil }
+                return total + beatInSection
+            }
+            total += beats
+            index += 1
+        }
+        return nil
+    }
+}

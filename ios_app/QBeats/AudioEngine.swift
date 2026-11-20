@@ -205,6 +205,11 @@ class AudioEngine: ObservableObject {
     }
 
     @Published var isPlaying   : Bool    = false
+    /// A437 (mandato A437, par. 2.2; P22, la (b)) — LA PAUSA DELLA RIPRESA DEL SOLO, un segno a parte: vero da quando la
+    /// ripresa sulla canzone aspetta (il motore fermo dopo una crisi, o muto nella scorta) a quando il fuoco riesce o la
+    /// ripresa si chiude. `isPlaying` resta lo specchio di `isRunning`. Lo scrive solo la coda del motore
+    /// (`publishSoloResumePendingQ`); lo leggono la console del Solo (la faccia resta Stop) e la regola del pedale.
+    @Published var soloResumePending: Bool = false
     @Published var beatsPerBar : UInt32  = 4 {
         didSet {
             // Strada A — Guard suppress PRIMA di guard oldValue.
@@ -377,6 +382,10 @@ class AudioEngine: ObservableObject {
     /// rientro in arrivo (A427: dal fuoco all'«uno» uscito la faccia resta «rientro in arrivo»), il tasto com'è oggi. Solo main: lo
     /// scrivono `publishDirectorFaceQ` (da audioQueue con `main.async`, alla
     /// pubblicazione e al tocco) e lo Stop voluto (`stopSync`). La stanza lo porta nella sessione (`LiveSession.directorSilence`).
+    /// ⚠️ CORRETTO A437 (18/11/2026; VERIFICA_REFEREE_A427_2026-11-05, par. 4). Qui sopra «(il rientro armato)», accanto a
+    /// «rientro in arrivo», dice meno del vero: da A427 la faccia è «rientro in arrivo» anche dal fuoco del rientro al suo
+    /// primo click uscito, quando il rientro armato è già giù (lo dice la frase A427 qui sopra). In tutti e due i casi solo
+    /// senza interruzione in corso e coi servizi audio presenti: se no la faccia è Stop (`DirectorTransportDecision.silence`).
     @Published private(set) var directorSilence: DirectorSilence? = nil
 
     // UX-3 — state machine playback
@@ -412,13 +421,24 @@ class AudioEngine: ObservableObject {
             if self._linkMode != s.linkMode {
                 // A421 — prima del ruolo nuovo: col motore in moto a volume 0 l'arresto locale come lo Stop, e lo stato
                 // dell'uscita giù (mandato A421, par. 2.3 c).
-                self.handleRoleOrLinkChangeQ(reason: "cambio-di-ruolo")
+                // A437 · PARTE 2 — e se il ruolo effettivo cambia (il ruolo scelto prima e quello nuovo, con la levetta di
+                // adesso: `PlayerRoleDecision.effectiveRoleChanges`) «canzone in corso» giù. Da Solo a Solo no.
+                let effectiveRoleChanges = PlayerRoleDecision.effectiveRoleChanges(roleBefore: self._linkMode,
+                                                                                   userLinkEnabledBefore: self._linkUserEnabledQ,
+                                                                                   roleAfter: s.linkMode,
+                                                                                   userLinkEnabledAfter: self._linkUserEnabledQ)
+                self.handleRoleOrLinkChangeQ(reason: "cambio-di-ruolo", effectiveRoleChanges: effectiveRoleChanges)
                 self._linkMode = s.linkMode
                 self.followerResetQ(reason: "cambio-di-ruolo")
                 // A412 — un cambio di ruolo chiude il silenzio del Direttore (il coordinatore è solo suo) e il
                 // «segue Link» dopo un rientro.
                 self.leaveDirectorSilenceQ(reason: "cambio-di-ruolo", closeAnchor: true)
                 self._directorFollowsLinkQ = false
+                // ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): qui c'era «A437 · PARTE 2 — C.1: il cambio di ruolo dimentica la
+                // tolta dentro la chiamata.», con la chiamata `forgetRemovalDuringInterruptionQ(reason: "ruolo")`: tolta. Il
+                // cambio di ruolo non abbassa più il segno della tolta dentro la chiamata: con un cambio di ruolo andata e ritorno
+                // dopo la chiamata il click del Direttore ripartiva da solo (referto A437, par. 27 voce 1). Il segno lo abbassano
+                // solo `prepareNormalStartQ` e il fuoco del rientro (il blocco di C.1, `_removalDuringInterruptionQ`).
                 self.applyLinkActivationQ(trigger: .role)
             } else {
                 self._linkMode = s.linkMode
@@ -980,7 +1000,52 @@ class AudioEngine: ObservableObject {
         let trigger: RecoveryTrigger
         let wait: DirectorReturnWait
         let armedTicks: UInt64
+        /// A437 (mandato A437, par. 2.7) — di chi è il ritorno: lo stato è in comune, il Solo ha la sua guardia allo scatto.
+        let kind: OutputReturnKind
     }
+    // === A437 (18/11/2026) — LA RIPRESA DEL SOLO SULLA CANZONE: LO STATO, accesso SOLO su audioQueue ===
+    /// L'àncora del Solo: il conto dall'ultimo battito contato uscito prima della crisi, con la sua ora vera (convenzione
+    /// più Δ), sulla mappa col tempo del motore alla presa; la canzone e le sue sezioni; `heldByResume`: il fuoco è
+    /// riuscito e l'àncora aspetta il primo battito contato uscito.
+    private struct SoloResumeAnchorQ {
+        let clock: ShowClock
+        let songIdx: Int
+        let sections: [SongSection]
+        let cause: String
+        let takenTicks: UInt64
+        let anchorTempo: Double
+        var heldByResume: Bool
+    }
+    private var _soloAnchorQ: SoloResumeAnchorQ? = nil
+    /// La ripresa aspetta: il Solo è «in moto per il player» col motore fermo, o muto nella scorta.
+    private var _soloResumePendingQ: Bool = false
+    /// Il bersaglio di un armamento della ripresa.
+    private struct SoloResumeTargetQ {
+        let aim: SoloResumeAim
+        let songIdx: Int
+        let trigger: String
+        let lateSkipsLeft: Int
+        let decidedTicks: UInt64
+        let fromSlowPlayer: Bool
+    }
+    /// Le letture valide di Δ della catena corrente (otto posti fissi, scritti a giro) e quante ne sono entrate; e l'ora
+    /// d'uscita data a ogni buffer programmato (otto posti fissi, con l'indice nella catena). Nessuna allocazione a regime.
+    private var _soloDeltaTicksQ: [Int64] = Array(repeating: 0, count: SoloResumeDecision.deltaMemory)
+    private var _soloDeltaReadTicksQ: [UInt64] = Array(repeating: 0, count: SoloResumeDecision.deltaMemory)
+    private var _soloDeltaCountQ: Int = 0
+    private var _soloOutRingIndexQ: [Int] = Array(repeating: -1, count: SoloResumeDecision.deltaMemory)
+    private var _soloOutRingTicksQ: [UInt64] = Array(repeating: 0, count: SoloResumeDecision.deltaMemory)
+    /// A437 · SEGUITO 5 — i contatori delle letture di Δ della catena corrente, per la riga `letture di delta` alla presa
+    /// dell'àncora: interi e due segni, memoria fissa, nessuna allocazione a contare (Costituzione V6, par. 4).
+    private var _soloDeltaTallyQ = SoloDeltaTally()
+    /// A437 · SEGUITO 5 (par. 2.3) — l'epoca delle letture di Δ: sale a ogni azzeramento (`resetSoloDeltaQ`: una catena
+    /// nuova, o un cambio di latenza o di ciclo a catena viva). E il segno degli ultimi due battiti contati
+    /// (`SoloResumeDecision.beatDeltaEpoch`), scritto dove si scrivono `_lastCountedBeatQ` e `_prevCountedBeatQ`: una
+    /// memoria a parte del Solo, che il Direttore e il Follower non leggono (`CountedBeat` resta com'è). Un segno si legge
+    /// solo insieme al suo battito (`takeSoloAnchorQ`).
+    private var _soloDeltaEpochQ: Int = 0
+    private var _soloLastBeatDeltaEpochQ: Int = SoloResumeDecision.noDeltaEpoch
+    private var _soloPrevBeatDeltaEpochQ: Int = SoloResumeDecision.noDeltaEpoch
     private var _directorReturnQ: DirectorReturnWaitQ? = nil
     private lazy var _directorReturnTimerQ = StrictOneShotTimer(queue: audioQueue)
     /// Il ritorno del Follower (par. 2.2 c, g): l'ora della notizia (o del tocco), l'armamento alla prima chiamata di
@@ -3807,6 +3872,22 @@ class AudioEngine: ObservableObject {
                 self._followerAnchorStartSerialQ = nil
                 os_log("[Q-BEATS][CONTO-BAND] conto azzerato motivo:mappa-nuova", log: .default, type: .default)
             }
+            // A437 — per difesa (dal player, nella pausa, la canzone non si cambia): la mappa di un'altra canzone chiude la
+            // ripresa del Solo. Solo la chiusura e l'arresto del motore muto della scorta: il Play che segue parte normale.
+            if let alive = self._soloAnchorQ, alive.songIdx != songIdx {
+                let wasPending = self._soloResumePendingQ
+                self.closeSoloResumeQ(reason: "altra-canzone")
+                if wasPending {
+                    self.disarmSoloResumeFireQ()
+                    self.cancelOutputReturnsQ(reason: "altra-canzone")
+                    if self.isRunning {
+                        self.isRunning = false
+                        self.lowerRejoinClickPendingQ(context: "altra-canzone", publish: true)
+                        self.stopPlayerAndEngineQ(context: "altra-canzone")
+                        self.publishIsPlayingQ(context: "altra-canzone")
+                    }
+                }
+            }
             self._songMapQ = map
             self._songSectionsQ = sections
             self._songMapSongIdxQ = songIdx
@@ -3900,6 +3981,8 @@ class AudioEngine: ObservableObject {
             // voluto che END SHOW e l'uscita dalla stanza mandano prima).
             if !open {
                 self.closeSilenceAnchorQ(reason: "show-chiuso")
+                // A437 — e la ripresa del Solo (di norma l'ha già chiusa lo Stop voluto che END SHOW manda prima).
+                self.closeSoloResumeAtRestQ(reason: "show-chiuso")
                 self._songInProgressQ = false
                 // A432 · PARTE 2b — a show chiuso il conto del Follower finisce.
                 self.resetFollowerBandCountQ(reason: "show-chiuso")
@@ -4336,13 +4419,19 @@ class AudioEngine: ObservableObject {
     /// ricordata e lo Stop voluto restano, con la riga; l'esito e la riga «decisione» non cambiano.
     private func crisisOutcomeQ(cause: CrisisCause) -> CrisisStopOutcome {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
+        // A437 (P35, decisione del referee) — per il Solo la regola e la memoria ricevono «in moto per il player»: il motore
+        // gira, o la ripresa sulla canzone aspetta a motore fermo. Nella pausa lo stacco, i servizi persi e il reset lo
+        // fermano come la console; una causa che non lo ferma dà «ripresa sulla canzone» e l'àncora viva resta.
+        let inMotion = role == .solo
+            ? SoloResumeDecision.inMotionForPlayer(engineRunning: isRunning, resumePending: _soloResumePendingQ)
+            : isRunning
         let outcome = CrisisStopDecision.outcome(playerRole: role,
                                                  cause: cause,
                                                  showOpen: _showOpenQ,
                                                  songInProgress: _songInProgressQ,
-                                                 engineRunning: isRunning,
+                                                 engineRunning: inMotion,
                                                  silentInSong: _directorSilentInSongQ)
-        let memoryStep = CrisisMemoryDecision.step(playerRole: role, cause: cause, engineRunning: isRunning, outcome: outcome)
+        let memoryStep = CrisisMemoryDecision.step(playerRole: role, cause: cause, engineRunning: inMotion, outcome: outcome)
         // A421 — con «riscrive» la causa ricordata (per il Solo una causa che lo ferma resta finché non riparte col Play, U4) e lo
         // Stop voluto a falso; con «invariati» e «niente» la coppia resta com'è (`CrisisMemoryDecision.memoryAfter`, la stessa del banco).
         let memory = CrisisMemoryDecision.memoryAfter(step: memoryStep, previousCause: _crisisCauseQ,
@@ -4354,6 +4443,10 @@ class AudioEngine: ObservableObject {
                cause.rawValue, role.rawValue, _showOpenQ ? 1 : 0, _songInProgressQ ? 1 : 0,
                isRunning ? "in-moto" : "fermo", _directorSilentInSongQ ? 1 : 0, outcome.rawValue,
                outcome.sendsStopToLink ? 1 : 0)
+        if role == .solo && _soloResumePendingQ {
+            os_log("[Q-BEATS][CRISI] Solo nella pausa della ripresa (in moto per il player) causa:%{public}@ -> esito:%{public}@",
+                   log: .default, type: .default, cause.rawValue, outcome.rawValue)
+        }
         if memoryStep == .keep {
             os_log("[Q-BEATS][CRISI] Solo a motore fermo, la crisi non trova niente da fermare causa:%{public}@ - causa ricordata:%{public}@ e stopVoluto:%d invariati",
                    log: .default, type: .default,
@@ -4445,6 +4538,10 @@ class AudioEngine: ObservableObject {
     /// l'ora dell'«uno» non ancora passata (`DirectorTransportDecision.rejoinClickPending`), così una rilettura dopo l'«uno», prima
     /// del controllo di `scheduleNextBuffer`, dice già «fuori». Col primo click in arrivo il Direttore non è muto: il coordinatore
     /// non si legge (come prima, fuori dal silenzio).
+    /// ⚠️ CORRETTO A437 (18/11/2026; VERIFICA_REFEREE_A427_2026-11-05, par. 4). Qui sopra «col rientro armato la faccia è
+    /// «rientro in arrivo» (Play)» dice meno del vero, e la riga A427 non dice la faccia del primo click in arrivo. Col rientro
+    /// armato o col primo click in arrivo la faccia è «rientro in arrivo» solo senza interruzione in corso e coi servizi audio
+    /// presenti: se no la regola dà Stop prima di guardarli (`DirectorTransportDecision.silence`).
     private func directorFaceNowQ(plan: DirectorRejoinDecision.Plan?) -> DirectorFaceQ {
         let role = PlayerRoleDecision.playerRole(role: _linkMode, userLinkEnabled: _linkUserEnabledQ)
         let armed = _rejoinArmedQ
@@ -5002,6 +5099,8 @@ class AudioEngine: ObservableObject {
         let wantedBefore = _wantedStopSinceCrisisQ
         _crisisCauseQ = nil
         _wantedStopSinceCrisisQ = false
+        // A437 · PARTE 2 — C.1: per simmetria (col Direttore muto in canzone il segno non nasce).
+        forgetRemovalDuringInterruptionQ(reason: "rientro")
         os_log("[Q-BEATS][DIR-RIENTRO] causa ricordata e Stop voluto azzerati al fuoco del rientro causaPrima:%{public}@ stopVolutoPrima:%d",
                log: .default, type: .default, causeBefore, wantedBefore ? 1 : 0)
         // A421 · SEGUITO 2 (par. 3) — il silenzio finisce come prima, ma l'àncora resta viva, «tenuta dal rientro», finché il primo
@@ -5098,6 +5197,15 @@ class AudioEngine: ObservableObject {
         let samplesSinceFirst = Double(bufferCount - 1) * Double(bufferSize) + Double(offset)
         let chainTicks = ShowClock.ticks(lead.plan.firstBufferOutputTicks, plusSeconds: samplesSinceFirst / sampleRate,
                                          ticksPerSecond: ticksPerSecond)
+        if playerRoleQ == .solo {
+            // A437 — il primo click della ripresa del Solo: la stessa misura, senza i campi di Link.
+            os_log("[Q-BEATS][SOLO-RIPRESA] primo click scorta:%d bufferMuti:%d battitoUno:%.4f uno:%.4f oraUscitaUno:%llu oraBersaglio:%llu motoreMenoBersaglio_ms:%.1f oraCatena:%llu catenaMenoBersaglio_ms:%.1f",
+                   log: .default, type: .default,
+                   lead.plan.buffers, bufferCount - 1, beatNow, lead.plan.unoBeat,
+                   engineOutTicks, lead.targetTicks, signedMilliseconds(from: lead.targetTicks, to: engineOutTicks),
+                   chainTicks, signedMilliseconds(from: lead.targetTicks, to: chainTicks))
+            return
+        }
         os_log("[Q-BEATS][DIR-RIENTRO] primo click scorta:%d bufferMuti:%d correzionePrimaDelClick:%.4f correzioni:%d battitoUno:%.4f uno:%.4f oraUscitaUno:%llu oraBersaglio:%llu motoreMenoBersaglio_ms:%.1f oraCatena:%llu catenaMenoBersaglio_ms:%.1f",
                log: .default, type: .default,
                lead.plan.buffers, bufferCount - 1, lead.correctionBeats, lead.corrections, beatNow, lead.plan.unoBeat,
@@ -5293,7 +5401,18 @@ class AudioEngine: ObservableObject {
         _songMapForNextStartQ = mark.mapForNextStart
         _crisisCauseQ = nil
         _wantedStopSinceCrisisQ = false
+        // A437 · PARTE 2 — C.1: e la tolta dentro la chiamata (col segno alto ogni ripartenza automatica ha già detto «niente»:
+        // qui arriva il Play del batterista).
+        // ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): «col segno alto ogni ripartenza automatica ha già detto «niente»: qui
+        // arriva il Play del batterista» vale per il Direttore. Il cambio di ruolo non abbassa più il segno, e la regola delle
+        // ripartenze lo legge solo per il Direttore (`RecoveryDecision.route`): dopo un cambio di ruolo col segno alto qui arriva
+        // anche la ripartenza «come oggi» di un altro ruolo (per esempio un Follower che entra nella sessione che suona), e il
+        // segno va giù col motivo «play».
+        forgetRemovalDuringInterruptionQ(reason: "play")
         closeSilenceAnchorQ(reason: "avvio")
+        // A437 — e la ripresa del Solo: un avvio che non è la ripresa (il Play a mano, il debug, una ripartenza «come oggi»)
+        // la chiude, accanto all'àncora del Direttore.
+        closeSoloResumeQ(reason: "avvio")
         // A427 — ogni avvio che comincia abbassa il primo click del rientro in arrivo (qui il motore è fermo: è già giù).
         lowerRejoinClickPendingQ(context: "avvio", publish: true)
     }
@@ -5312,7 +5431,8 @@ class AudioEngine: ObservableObject {
                                            silentInSong: _directorSilentInSongQ,
                                            wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
                                            crisisCause: _crisisCauseQ,
-                                           outputMissing: outputMissing)
+                                           outputMissing: outputMissing,
+                                           removalDuringInterruption: _removalDuringInterruptionQ)
         // A425 (P14) — il motivo del «niente» anche nella riga (`motivo:`, «-» quando si riparte): il «direttore-fermo-dalla-tolta»
         // di U16 si vede qui.
         let reason: NoRestartReason? = route == .noRestart
@@ -5321,7 +5441,8 @@ class AudioEngine: ObservableObject {
                                                silentInSong: _directorSilentInSongQ,
                                                wantedStopSinceCrisis: _wantedStopSinceCrisisQ,
                                                crisisCause: _crisisCauseQ,
-                                               outputMissing: outputMissing)
+                                               outputMissing: outputMissing,
+                                               removalDuringInterruption: _removalDuringInterruptionQ)
             : nil
         os_log("[Q-BEATS][RESUME] ripartenza automatica innesco:%{public}@ fase:%{public}@ ruolo:%{public}@ muto:%d stopVoluto:%d crisi:%{public}@ uscitaMancante:%d -> %{public}@ motivo:%{public}@",
                log: .default, type: .default,
@@ -5737,7 +5858,9 @@ class AudioEngine: ObservableObject {
     /// l'inizio di un'interruzione, la Lost e il reset dei servizi, un cambio di ruolo o Link spento, una ripartenza del
     /// motore. Chiamare SOLO su audioQueue.
     private func cancelOutputReturnsQ(reason: String) {
-        let hadDirector = _directorReturnQ != nil
+        // A437 (mandato A437, par. 2.7) — la riga dice di chi era il ritorno: uno del Solo non si conta come del Direttore.
+        let hadSolo = _directorReturnQ?.kind == .solo
+        let hadDirector = _directorReturnQ != nil && !hadSolo
         let hadFollower = _followerReturnQ != nil
         // A421 · SEGUITO 2 (par. 4.4) — anche il ritorno dopo il buco, con la sua riserva, e il segno del guardiano.
         let hadGap = _gapReturnQ != nil
@@ -5747,9 +5870,9 @@ class AudioEngine: ObservableObject {
         _gapReturnQ = nil
         _gapReturnVanishedTimerQ.cancel()
         _guardianSilenceQ = nil
-        guard hadDirector || hadFollower || hadGap else { return }
-        os_log("[Q-BEATS][USCITA] ritorno annullato motivo:%{public}@ direttore:%d follower:%d dopoBuco:%d",
-               log: .default, type: .default, reason, hadDirector ? 1 : 0, hadFollower ? 1 : 0, hadGap ? 1 : 0)
+        guard hadDirector || hadFollower || hadGap || hadSolo else { return }
+        os_log("[Q-BEATS][USCITA] ritorno annullato motivo:%{public}@ direttore:%d follower:%d dopoBuco:%d solo:%d",
+               log: .default, type: .default, reason, hadDirector ? 1 : 0, hadFollower ? 1 : 0, hadGap ? 1 : 0, hadSolo ? 1 : 0)
     }
 
     /// L'arresto locale di una crisi dell'uscita (le cuffie tolte o aggiunte col Direttore, in canzone o fuori; il buco del
@@ -5876,10 +5999,24 @@ class AudioEngine: ObservableObject {
     /// ruolo nuovo. Col volume a 1 il motore resta com'è (oggi). Chiamare SOLO su audioQueue: in `applySettings` prima del
     /// ruolo nuovo, in `noteUserLinkSwitchQ` dopo la levetta (la logica non dipende dal ruolo: cambia solo il campo `ruolo:`
     /// delle righe).
-    private func handleRoleOrLinkChangeQ(reason: String) {
+    /// A437 · PARTE 2 (seguito 2 di A437, §2 voce 2; VERIFICA_REFEREE_A425 par. 3.2) — `effectiveRoleChanges`: il ruolo del
+    /// player cambia davvero (`PlayerRoleDecision.effectiveRoleChanges`; lo dicono i due chiamanti). Allora «canzone in corso»
+    /// va giù anche col motore in moto al volume 1: una canzone partita in un ruolo non ha, nel ruolo nuovo, il riferimento
+    /// per riprenderla sulla sua posizione, e per il resto di quella canzone valgono le regole di oggi fuori da una canzone.
+    /// Da Solo a Solo (il ruolo scelto che cambia a levetta spenta; la levetta spenta col ruolo Solo) la riga nuova non la
+    /// tocca. Il resto della funzione resta com'è per ogni chiamata, anche senza un cambio: l'annullo dei ritorni, la
+    /// chiusura della ripresa del Solo (nella pausa serve: l'annullo dei ritorni toglie la strada in volo) e il blocco col
+    /// motore in moto e il volume a 0.
+    private func handleRoleOrLinkChangeQ(reason: String, effectiveRoleChanges: Bool) {
         cancelOutputReturnsQ(reason: reason)
         // A421 · SEGUITO 2 (par. 7) — il segno della mappa non sopravvive al cambio di ruolo.
         lowerSongMapForNextStartQ(reason: reason)
+        // A437 — la ripresa del Solo non sopravvive al cambio di ruolo né a Link acceso o spento: chiusa, e col segno alto
+        // il player a «fermo» (per difesa: dal player, nella pausa, il ruolo non si cambia).
+        closeSoloResumeAtRestQ(reason: reason)
+        if effectiveRoleChanges {
+            lowerSongInProgressForRoleChangeQ(reason: reason)
+        }
         if isRunning && _outputSilenceQ.muted {
             isRunning = false
             stopPlayerAndEngineQ(context: reason)
@@ -5904,17 +6041,36 @@ class AudioEngine: ObservableObject {
         }
     }
 
+    /// A437 · PARTE 2 (seguito 2 di A437, §2 voce 2) — «canzone in corso» giù perché il ruolo effettivo cambia. Solo lo stato
+    /// di coda e una riga: il motore, il volume e la sessione non si toccano (col motore in moto al volume 1 il click va
+    /// avanti). Torna vera col prossimo avvio con la mappa (`prepareNormalStartQ`). SOLO su audioQueue (Costituzione V6,
+    /// par. 4: una scrittura di stato di coda, niente nel callback di render né nel blocco del tap).
+    private func lowerSongInProgressForRoleChangeQ(reason: String) {
+        guard _songInProgressQ else { return }
+        _songInProgressQ = false
+        os_log("[Q-BEATS][USCITA] canzone in corso giu' motivo:%{public}@ motore:%{public}@ volume:%d - il ruolo effettivo cambia: fino al prossimo avvio valgono le regole fuori da una canzone",
+               log: .default, type: .default, reason, isRunning ? "in-moto" : "fermo", _outputSilenceQ.muted ? 0 : 1)
+    }
+
     /// U6, par. 2.2 b e d: il ritorno del Direttore dopo il silenzio. Aspetta 100 ms d'assestamento, oppure la notifica di
     /// configurazione (la frequenza della sessione già diversa dalla copia) con la riserva a 2 s; poi
     /// `activateSessionAndStart` → `RecoveryDecision` → il coordinatore → il rientro (T4, T5). Sul timer stretto, un'attesa
     /// sola alla volta. Chiamare SOLO su audioQueue.
-    private func armDirectorReturnQ(trigger: RecoveryTrigger, sessionRateDiffers: Bool) {
+    private func armDirectorReturnQ(kind: OutputReturnKind = .director, trigger: RecoveryTrigger, sessionRateDiffers: Bool) {
         let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: sessionRateDiffers)
         let seconds = OutputReturnDecision.directorWaitSeconds(wait)
-        _directorReturnQ = DirectorReturnWaitQ(trigger: trigger, wait: wait, armedTicks: mach_absolute_time())
-        os_log("[Q-BEATS][USCITA] ritorno del Direttore armato innesco:%{public}@ attesa:%{public}@ ms:%.0f timer:stretto leeway_ms:%d",
-               log: .default, type: .default, trigger.rawValue, wait.rawValue, seconds * 1000.0,
-               StrictOneShotTimer.leewayMilliseconds)
+        _directorReturnQ = DirectorReturnWaitQ(trigger: trigger, wait: wait, armedTicks: mach_absolute_time(), kind: kind)
+        if kind == .solo {
+            // A437 — il ritorno del Solo: la stessa attesa (la configurazione se la frequenza della sessione è già diversa
+            // dalla copia, se no l'assestamento) e lo stesso timer stretto; allo scatto la sua guardia (`fireSoloReturnQ`).
+            os_log("[Q-BEATS][USCITA] ritorno del Solo armato innesco:%{public}@ attesa:%{public}@ ms:%.0f timer:stretto leeway_ms:%d",
+                   log: .default, type: .default, trigger.rawValue, wait.rawValue, seconds * 1000.0,
+                   StrictOneShotTimer.leewayMilliseconds)
+        } else {
+            os_log("[Q-BEATS][USCITA] ritorno del Direttore armato innesco:%{public}@ attesa:%{public}@ ms:%.0f timer:stretto leeway_ms:%d",
+                   log: .default, type: .default, trigger.rawValue, wait.rawValue, seconds * 1000.0,
+                   StrictOneShotTimer.leewayMilliseconds)
+        }
         let reason = (wait == .settle) ? "assestamento" : "scaduta"
         let work = DispatchWorkItem { [weak self] in
             self?.fireDirectorReturnQ(reason: reason)
@@ -5930,6 +6086,11 @@ class AudioEngine: ObservableObject {
         _directorReturnQ = nil
         _directorReturnTimerQ.cancel()
         let elapsedMs = machTicksToSeconds(mach_absolute_time() &- waiting.armedTicks) * 1000.0
+        // A437 — il ritorno del Solo ha la sua guardia; il ramo del Direttore, qui sotto, resta com'è.
+        if waiting.kind == .solo {
+            fireSoloReturnQ(waiting, reason: reason, elapsedMs: elapsedMs)
+            return
+        }
         guard !isRunning, !_interruptionRouteQ.systemInterruption, _directorSilentInSongQ, !_outputSilenceQ.missing else {
             os_log("[Q-BEATS][USCITA] ritorno del Direttore non eseguito attesa:%{public}@ innesco:%{public}@ motore:%{public}@ interruzione:%d muto:%d mancante:%d ms:%.0f",
                    log: .default, type: .default,
@@ -5950,6 +6111,762 @@ class AudioEngine: ObservableObject {
         os_log("[Q-BEATS][USCITA] la notifica di configurazione e' il segnale del ritorno innesco:%{public}@",
                log: .default, type: .default, waiting.trigger.rawValue)
         fireDirectorReturnQ(reason: "configurazione")
+    }
+
+    // === A437 (18/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3b: LA RIPRESA DEL SOLO SULLA POSIZIONE DELLA CANZONE ===
+    // Mandato A437, par. 2 e 3, e seguito 1 (le risposte al fermo dell'inventario); referto A424, par. 2.1 a-l, 3.1 b, 3.2.
+    // Nel Solo, a show aperto e a canzone in corso, una crisi che non lo ferma (configurazione, frequenza, modo, motore
+    // fermo dal sistema, un'uscita che compare) dà l'esito «ripresa sulla canzone» (`CrisisStopDecision`): l'àncora, l'arresto
+    // locale, e la ripartenza che torna sull'«uno» della battuta giusta. Le regole stanno in `SoloResumeDecision` (Models/,
+    // col suo banco); qui lo stato e le strade. TUTTO su audioQueue e sui suoi timer stretti; dal principale si legge solo il
+    // segno pubblicato `soloResumePending`. NESSUNA lettura e NESSUNA scrittura di Link (il lucchetto del Solo,
+    // `SoloInertDecision`): le gemelle di armamento e fuoco tolgono dal rientro del Direttore tutto quello che tocca Link.
+    // Niente qui gira nel callback di render né nel blocco del tap (Costituzione V6, par. 4).
+    //  · LA PAUSA: fra l'arresto della crisi e il fuoco riuscito il motore è fermo (o muto nella scorta) e il Solo è «in moto
+    //    per il player»: `_soloResumePendingQ`, pubblicato come `soloResumePending` (P22, la (b): `isPlaying` resta lo
+    //    specchio di `isRunning`).
+    //  · NESSUNA PAUSA SENZA UNA STRADA IN VOLO (seguito 1, voce 2): con la ripresa in attesa c'è sempre un ritorno armato,
+    //    un tentativo della catena, la rete a 5 s o il fuoco armato; quando l'ultima strada finisce senza avvio, E2.
+    //  · E2 (`abandonSoloResumeAsConsoleQ`): il Solo si ferma come allo Stop della console e aspetta il Play, con lo Stop
+    //    voluto alzato sulla coda prima del passaggio al principale (niente riparte da solo). E3 (`endSoloSongOnResumeQ`):
+    //    la canzone finisce prima del primo «uno» utile, il runner arma la successiva, nessun avvio.
+    //  · OGNI CHIUSURA della ripresa col segno alto alza il contatore della catena (`currentResumeToken`; seguito 1, voce 3):
+    //    un tentativo già accodato muore prima della `setActive`.
+
+    /// A437 — il segno «ripresa del Solo in attesa» dalla coda al principale, come `publishIsPlayingQ`. SOLO su audioQueue.
+    private func publishSoloResumePendingQ() {
+        let value = _soloResumePendingQ
+        DispatchQueue.main.async {
+            if self.soloResumePending != value {
+                self.soloResumePending = value
+            }
+        }
+    }
+
+    /// A437 — la ripresa aspetta. SOLO su audioQueue.
+    private func raiseSoloResumePendingQ(reason: String) {
+        guard !_soloResumePendingQ else { return }
+        _soloResumePendingQ = true
+        os_log("[Q-BEATS][SOLO-RIPRESA] in attesa:1 motivo:%{public}@",
+               log: .default, type: .default, reason)
+        publishSoloResumePendingQ()
+    }
+
+    /// A437 — la ripresa si chiude: il segno giù (e, se era alto, il contatore della catena sale: seguito 1, voce 3) e
+    /// l'àncora chiusa. Idempotente. SOLO su audioQueue.
+    private func closeSoloResumeQ(reason: String) {
+        if _soloResumePendingQ {
+            _soloResumePendingQ = false
+            currentResumeToken += 1
+            os_log("[Q-BEATS][SOLO-RIPRESA] in attesa:0 motivo:%{public}@ catena:%d - un tentativo gia' accodato muore prima della setActive",
+                   log: .default, type: .default, reason, currentResumeToken)
+            publishSoloResumePendingQ()
+        }
+        guard let anchor = _soloAnchorQ else { return }
+        _soloAnchorQ = nil
+        os_log("[Q-BEATS][SOLO-RIPRESA] ancora chiusa motivo:%{public}@ causa:%{public}@ vissuta_s:%.1f",
+               log: .default, type: .default, reason, anchor.cause, secondsSince(anchor.takenTicks))
+    }
+
+    /// A437 — il fuoco armato della ripresa si annulla (il lavoro, il timer stretto, la generazione) e il primo buffer
+    /// all'ora chiesta non serve più. SOLO su audioQueue.
+    private func disarmSoloResumeFireQ() {
+        pendingLinkStart?.cancel()
+        pendingLinkStart = nil
+        _rejoinArmTimerQ.cancel()
+        joinGeneration += 1
+        _anchoredFirstBufferQ = nil
+        _anchoredPreRollLeftQ = 0
+        _rejoinLeadInQ = nil
+    }
+
+    /// A437 — E2: il Solo si ferma come allo Stop della console e aspetta il Play (Mauro, 02/11, la «A»). Sulla coda: il
+    /// fuoco e i ritorni annullati, il motore fermo se girava, la ripresa chiusa, lo Stop voluto alzato PRIMA del passaggio
+    /// al principale (da lì ogni ripartenza automatica trova «niente», `RecoveryDecision`); sul principale
+    /// `stopForSoloCrisis` (la pulizia dello Stop e il player a «fermo»: mai `stopSync` dalla coda). Idempotente.
+    /// `cause`: la causa da ricordare se ferma il Solo (l'uscita sparita, `outputRemoved`: P32), se no `nil`.
+    private func abandonSoloResumeAsConsoleQ(reason: String, cause: CrisisCause?) {
+        disarmSoloResumeFireQ()
+        cancelOutputReturnsQ(reason: "ripresa-solo")
+        var stopped = false
+        if isRunning {
+            isRunning = false
+            lowerRejoinClickPendingQ(context: "ripresa-solo", publish: true)
+            stopPlayerAndEngineQ(context: "ripresa-solo")
+            closeDrainOnCrisisStopQ(context: "ripresa-solo")
+            stopped = true
+        }
+        if pendingResume {
+            clearPendingResumeQ(reason: "ripresa-solo")
+        }
+        closeSoloResumeQ(reason: reason)
+        if let cause {
+            _crisisCauseQ = CrisisStopDecision.rememberedCause(previous: _crisisCauseQ, new: cause, playerRole: .solo)
+        }
+        _wantedStopSinceCrisisQ = true
+        publishIsPlayingQ(context: "ripresa-solo")
+        let stopCause: CrisisCause = cause ?? _crisisCauseQ ?? .configuration
+        os_log("[Q-BEATS][SOLO-RIPRESA] fuoco non eseguito motivo:%{public}@ motore:%{public}@ causa:%{public}@ - il Solo si ferma come allo Stop della console",
+               log: .default, type: .default, reason, stopped ? "fermato" : "gia-fermo", stopCause.rawValue)
+        DispatchQueue.main.async { [weak self] in
+            self?.stopForSoloCrisis(cause: stopCause)
+        }
+    }
+
+    /// A437 · seguito 1 (voci 1 e 2) — una strada della ripartenza finisce senza avvio con la ripresa in attesa: E2. Rende
+    /// vero se la ripresa era in attesa (chi chiama non alza la ripresa pendente). SOLO su audioQueue.
+    @discardableResult
+    private func endSoloResumeRoadQ(reason: String, detail: String = "-") -> Bool {
+        guard playerRoleQ == .solo, _soloResumePendingQ else { return false }
+        os_log("[Q-BEATS][SOLO-RIPRESA] avvio fallito - il Solo si ferma come allo Stop della console motivo:%{public}@ errore:%{public}@",
+               log: .default, type: .default, reason, detail)
+        abandonSoloResumeAsConsoleQ(reason: reason, cause: nil)
+        return true
+    }
+
+    /// A437 — E3: la canzone finisce prima del primo «uno» utile. Come lo Stop di fine canzone del Direttore senza Link:
+    /// «canzone in corso» giù, lo Stop voluto alzato, la pulizia dello Stop sulla coda; sul principale il runner arma la
+    /// successiva (`.songEndedArmNext`, idempotente sulla canzone già chiusa) e il player va a «fermo». Nessun avvio. La
+    /// chiusura di fine sezione non si consegna da qui: il drenaggio era chiuso (col drenaggio aperto l'àncora non si
+    /// prende). SOLO su audioQueue.
+    private func endSoloSongOnResumeQ(phase: String) {
+        disarmSoloResumeFireQ()
+        cancelOutputReturnsQ(reason: "ripresa-solo-canzone-finita")
+        if isRunning {
+            isRunning = false
+            lowerRejoinClickPendingQ(context: "ripresa-solo-canzone-finita", publish: true)
+            stopPlayerAndEngineQ(context: "ripresa-solo-canzone-finita")
+            closeDrainOnCrisisStopQ(context: "ripresa-solo-canzone-finita")
+        }
+        if pendingResume {
+            clearPendingResumeQ(reason: "ripresa-solo-canzone-finita")
+        }
+        closeSoloResumeQ(reason: "canzone-finita")
+        _songInProgressQ = false
+        _wantedStopSinceCrisisQ = true
+        cleanupAfterStopQ()
+        publishIsPlayingQ(context: "ripresa-solo-canzone-finita")
+        os_log("[Q-BEATS][SOLO-RIPRESA] canzone finita fase:%{public}@ - il runner arma la successiva, nessun avvio",
+               log: .default, type: .default, phase)
+        DispatchQueue.main.async {
+            self.directorRunnerActionSubject.send(.songEndedArmNext)
+            self.playbackState = .stopped
+        }
+    }
+
+    /// A437 — una chiusura della ripresa che lascia il player a «fermo» sulla coda (il cambio di ruolo, Link acceso o
+    /// spento, lo show chiuso): col segno alto il fuoco e i ritorni annullati, il motore fermo se girava muto nella scorta,
+    /// «canzone in corso» giù, lo Stop voluto alzato, la pulizia dello Stop. Senza il segno chiude solo l'àncora.
+    private func closeSoloResumeAtRestQ(reason: String) {
+        let wasPending = _soloResumePendingQ
+        closeSoloResumeQ(reason: reason)
+        guard wasPending else { return }
+        disarmSoloResumeFireQ()
+        cancelOutputReturnsQ(reason: reason)
+        if isRunning {
+            isRunning = false
+            lowerRejoinClickPendingQ(context: reason, publish: true)
+            stopPlayerAndEngineQ(context: reason)
+        }
+        _songInProgressQ = false
+        _wantedStopSinceCrisisQ = true
+        cleanupAfterStopQ()
+        publishIsPlayingQ(context: reason)
+        DispatchQueue.main.async { self.playbackState = .stopped }
+        os_log("[Q-BEATS][SOLO-RIPRESA] ripresa chiusa motivo:%{public}@ - il player a fermo, niente riparte da solo",
+               log: .default, type: .default, reason)
+    }
+
+    /// A437 — le letture valide di Δ della catena corrente, le più recenti in coda. Alloca: si chiama solo alla presa
+    /// dell'àncora (un evento), mai a ogni buffer.
+    private func soloDeltaReadingsQ() -> [SoloDeltaReading] {
+        let kept = min(_soloDeltaCountQ, SoloResumeDecision.deltaMemory)
+        var out: [SoloDeltaReading] = []
+        out.reserveCapacity(kept)
+        var index = _soloDeltaCountQ - kept
+        while index < _soloDeltaCountQ {
+            let slot = index % SoloResumeDecision.deltaMemory
+            out.append(SoloDeltaReading(deltaTicks: _soloDeltaTicksQ[slot], readTicks: _soloDeltaReadTicksQ[slot]))
+            index += 1
+        }
+        return out
+    }
+
+    /// A437 — una catena nuova svuota le letture di Δ e la memoria delle ore d'uscita dei buffer. Nessuna allocazione.
+    /// A437 · SEGUITO 5 — e i contatori della riga `letture di delta`; e l'epoca delle letture sale, così un battito
+    /// contato di prima dell'azzeramento non è «di regime» per le letture di dopo (par. 2.3). La chiama anche un cambio di
+    /// latenza o di ciclo a catena viva (`resetSoloDeltaOnTimingChangeQ`).
+    private func resetSoloDeltaQ() {
+        _soloDeltaCountQ = 0
+        _soloDeltaTallyQ = SoloDeltaTally()
+        _soloDeltaEpochQ &+= 1
+        var slot = 0
+        while slot < SoloResumeDecision.deltaMemory {
+            _soloOutRingIndexQ[slot] = -1
+            slot += 1
+        }
+    }
+
+    /// A437 · SEGUITO 5 (par. 3 g, decisione del referee) — latenza o ciclo riscritti a catena viva (il cambio di percorso
+    /// senza cambio di frequenza né di modo, in `handleRouteChange`): le convenzioni già in memoria hanno i valori di
+    /// prima, e una Δ sola vale per una convenzione sola. SOLO se uno dei due è cambiato davvero (quella strada li riscrive
+    /// a ogni notizia, anche uguali: azzerare sempre butterebbe via letture buone e riporterebbe la riserva) le letture, la
+    /// memoria delle convenzioni e i contatori si azzerano e l'epoca sale: un battito contato di un buffer di prima prende
+    /// Δ = 0 («avvio»). Le due letture dopo cadono su «catena» (la memoria è vuota), e la riga `letture di delta` lo dice.
+    /// La riga d'evento solo col Solo in moto: per gli altri ruoli la memoria è già vuota (`noteSoloDeltaQ` esce prima).
+    /// Un evento (una notizia di percorso), niente a ogni buffer (Costituzione V6, par. 4). SOLO su audioQueue.
+    private func resetSoloDeltaOnTimingChangeQ(latencyBeforeTicks: UInt64, cycleBeforeTicks: UInt64) {
+        guard let reason = SoloResumeDecision.deltaResetReason(latencyBeforeTicks: latencyBeforeTicks,
+                                                               latencyNowTicks: outputLatencyTicks,
+                                                               cycleBeforeTicks: cycleBeforeTicks,
+                                                               cycleNowTicks: bufferDurationTicks) else { return }
+        let lost = min(_soloDeltaCountQ, SoloResumeDecision.deltaMemory)
+        resetSoloDeltaQ()
+        guard isRunning, playerRoleQ == .solo else { return }
+        os_log("[Q-BEATS][SOLO-RIPRESA] letture di delta azzerate motivo:%{public}@ latenzaPrima_ms:%.2f latenza_ms:%.2f cicloPrima_ms:%.2f ciclo_ms:%.2f letturePerse:%d",
+               log: .default, type: .default, reason,
+               machTicksToSeconds(latencyBeforeTicks) * 1000.0, machTicksToSeconds(outputLatencyTicks) * 1000.0,
+               machTicksToSeconds(cycleBeforeTicks) * 1000.0, machTicksToSeconds(bufferDurationTicks) * 1000.0, lost)
+    }
+
+    /// A437 · SEGUITO 5 (par. 2.4) — la riga passiva delle letture di Δ della catena corrente, subito dopo «ancora presa»:
+    /// un evento. Le due stringhe degli «ultimi» si fanno qui, non a ogni buffer (Costituzione V6, par. 4). `ciclo_ms` è
+    /// il ciclo d'I/O che il motore ha copiato (`bufferDurationTicks`), `buffer_ms` il buffer del lettore. SOLO su audioQueue.
+    private func logSoloDeltaTallyQ() {
+        let tally = _soloDeltaTallyQ
+        let tps = ticksPerSecond
+        os_log("[Q-BEATS][SOLO-RIPRESA] letture di delta generazione:%d chiamate:%d valide:%d scartate avvio:%d render:%d catena:%d indietro:%d avanti:%d ciclo:%d limiti:%d ultimoRenderMenoAdesso_ms:%{public}@ ultimoDelta_ms:%{public}@ ciclo_ms:%.2f buffer_ms:%.2f",
+               log: .default, type: .default,
+               _bufferChainGenerationQ, tally.calls, tally.valid, tally.startup, tally.render, tally.chain, tally.behind,
+               tally.ahead, tally.cycle, tally.limits,
+               tally.lastRenderMinusNowText(ticksPerSecond: tps), tally.lastDeltaText(ticksPerSecond: tps),
+               machTicksToSeconds(bufferDurationTicks) * 1000.0, Double(bufferSize) / max(sampleRate, 1) * 1000.0)
+    }
+
+    /// A437 — LA LETTURA DI Δ, a ogni chiamata di `scheduleNextBuffer` dopo `rememberProgrammedBufferQ` (P24, la (a)).
+    /// ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026). Qui c'era: «(referto A424, par. 2.1 g; P24, la (a)). Δ = l'ora d'uscita del
+    /// prossimo buffer letta dal rendering meno l'ora d'uscita che il motore ha dato a quello stesso buffer (la convenzione
+    /// di `_bufferOutTicksQ`, la stessa dei battiti contati). Costo a regime, solo nel Solo in canzone: UNA lettura di
+    /// `lastRenderTime`, scritture in tre memorie fisse di otto posti, nessuna allocazione, nessuna riga (Costituzione V6,
+    /// par. 4).» La regola di A424 leggeva `lastRenderTime` come un'ora passata e scartava una lettura nel futuro: sul
+    /// telefono è sempre circa due cicli nel futuro, e nessuna lettura valeva mai (referto A437, par. 45-47). Da questo
+    /// seguito (decisioni del referee): Δ = (l'ora di `lastRenderTime` − mezzo ciclo + la latenza) − la convenzione del
+    /// buffer `wanted` (`_chainCallbacksQ`: il primo non ancora dato per consumato), dalla regola pura in due passi
+    /// (`SoloResumeDecision.deltaReadingGate`, `deltaReading`): `lastRenderTime` si legge solo se il primo passo lo
+    /// permette (non per i buffer della partenza, non senza la convenzione in memoria, non col ciclo più lungo del
+    /// buffer), UNA volta per chiamata. Ogni chiamata a regime conta un esito nei contatori della catena
+    /// (`_soloDeltaTallyQ`), che la presa dell'àncora scrive in una riga. Costo a regime, solo nel Solo in canzone: al più
+    /// una lettura di `lastRenderTime`, aritmetica su interi (più la conversione in `Double` del confronto del ciclo, come
+    /// già quella del buffer in tick), scritture in memorie fisse, nessuna allocazione nuova, nessuna riga (Costituzione
+    /// V6, par. 4). `inRegime`: in questa chiamata il misuratore non ha visto un buco e non c'era il segno del guardiano.
+    /// SOLO su audioQueue.
+    private func noteSoloDeltaQ(inRegime: Bool) {
+        guard playerRoleQ == .solo, _showOpenQ, _songInProgressQ else { return }
+        let memory = SoloResumeDecision.deltaMemory
+        let index = bufferCount - 1 - _chainFirstBufferCountQ
+        guard index >= 0 else { return }
+        _soloOutRingIndexQ[index % memory] = index
+        _soloOutRingTicksQ[index % memory] = _bufferOutTicksQ
+        guard inRegime else { return }
+        let wanted = _chainCallbacksQ
+        let wantedInMemory = wanted >= 0 && _soloOutRingIndexQ[wanted % memory] == wanted
+        // Il primo passo, prima della lettura: «avvio», «catena», «ciclo».
+        if let early = SoloResumeDecision.deltaReadingGate(wantedIndex: wanted,
+                                                           wantedInChainMemory: wantedInMemory,
+                                                           cycleTicks: bufferDurationTicks,
+                                                           sampleRate: sampleRate,
+                                                           ticksPerSecond: ticksPerSecond,
+                                                           bufferFrames: Int(bufferSize)) {
+            _soloDeltaTallyQ.noteBeforeRead(early)
+            return
+        }
+        // L'unica lettura di `lastRenderTime` della chiamata, poi adesso (l'ordine di prima).
+        let renderTime = playerNode.lastRenderTime
+        let renderValid = renderTime?.isHostTimeValid ?? false
+        let lastRenderTicks: UInt64 = renderValid ? (renderTime?.hostTime ?? 0) : 0
+        let now = mach_absolute_time()
+        let outcome = SoloResumeDecision.deltaReading(renderTimeValid: renderValid,
+                                                      lastRenderTicks: lastRenderTicks,
+                                                      nowTicks: now,
+                                                      cycleTicks: bufferDurationTicks,
+                                                      latencyTicks: outputLatencyTicks,
+                                                      conventionTicks: _soloOutRingTicksQ[wanted % memory],
+                                                      bufferTicks: secondsToMachTicks(Double(bufferSize) / max(sampleRate, 1)),
+                                                      queuedAheadBuffers: OutputReturnDecision.queuedAheadBuffers)
+        _soloDeltaTallyQ.noteAfterRead(outcome, renderTimeValid: renderValid, lastRenderTicks: lastRenderTicks, nowTicks: now)
+        guard case .valid(let delta) = outcome else { return }
+        let slot = _soloDeltaCountQ % memory
+        _soloDeltaTicksQ[slot] = delta
+        _soloDeltaReadTicksQ[slot] = now
+        _soloDeltaCountQ += 1
+    }
+
+    /// A437 — L'ÀNCORA DEL SOLO, alla crisi, PRIMA che `isRunning` vada a falso (l'ultimo battito contato già uscito, come
+    /// `takeSilenceAnchorQ`, ma senza Link: il conto del Solo usa il solo righello dei secondi). L'ora vera è quella della
+    /// convenzione più Δ. Con «presa» e «già viva» la ripresa aspetta; col drenaggio aperto l'àncora viva si chiude e la
+    /// canzone finisce come finita suonando; con «non presa» chi chiama ferma il Solo come allo Stop
+    /// (`afterSoloCrisisStopQ`). SOLO su audioQueue.
+    private func takeSoloAnchorQ(cause: CrisisCause) -> SoloAnchorTake {
+        let now = mach_absolute_time()
+        var beat: CountedBeat? = nil
+        var which = "-"
+        // A437 · SEGUITO 5 (par. 2.3) — il segno del battito preso (l'ultimo o il penultimo: il segno è il suo).
+        var beatEpoch = SoloResumeDecision.noDeltaEpoch
+        if let last = _lastCountedBeatQ, last.outTicks <= now {
+            beat = last
+            which = "ultimo"
+            beatEpoch = _soloLastBeatDeltaEpochQ
+        } else if let previous = _prevCountedBeatQ, previous.outTicks <= now {
+            beat = previous
+            which = "penultimo"
+            beatEpoch = _soloPrevBeatDeltaEpochQ
+        }
+        let map = _songMapQ
+        var mapValid = map?.isValid ?? false
+        var inCycle = false
+        if let beat, let map {
+            if beat.section < 0 || beat.section >= map.sections.count {
+                mapValid = false
+            } else {
+                inCycle = beat.beatInSection < 0 || map.sections[beat.section].isCycle
+            }
+        }
+        let take = SoloResumeDecision.anchorTake(playerRole: playerRoleQ,
+                                                 showOpen: _showOpenQ,
+                                                 songInProgress: _songInProgressQ,
+                                                 stoppingCauseRemembered: _crisisCauseQ?.stopsSolo ?? false,
+                                                 engineRunning: isRunning,
+                                                 drainOpen: _sectionEndPending,
+                                                 anchorAlive: _soloAnchorQ != nil,
+                                                 mapValid: mapValid,
+                                                 countedBeatOut: beat != nil,
+                                                 beatInCycle: inCycle)
+        switch take {
+        case .taken:
+            guard let beat, let map else { return .notTaken(.noMap) }
+            // A437 · SEGUITO 5 (par. 2.3, decisione del referee) — Δ si somma solo a un'ora di regime: il buffer del battito
+            // l'ha prodotto un richiamo della catena corrente dopo l'ultimo azzeramento delle letture. Se no (uno dei tre
+            // buffer della partenza: la convenzione dei tre accodati insieme al Play, o l'ora vera della catena ancorata; o
+            // un buffer di prima di un azzeramento) Δ = 0 e la lettura è «avvio», qualunque sia il numero delle letture.
+            let delta = SoloResumeDecision.anchorDelta(
+                fromReadings: SoloResumeDecision.delta(readings: soloDeltaReadingsQ()),
+                beatOnRegimeConvention: SoloResumeDecision.beatOnRegimeConvention(beatEpoch: beatEpoch,
+                                                                                  currentEpoch: _soloDeltaEpochQ))
+            let trueTicks = SoloResumeDecision.anchorTicks(conventionTicks: beat.outTicks, delta: delta)
+            let anchorTempo = _engineTempoQ
+            let countMap = map.replacingTempo(ofSection: beat.section, with: anchorTempo)
+            let clock = ShowClock(map: countMap,
+                                  anchor: ShowClockAnchor(section: beat.section,
+                                                          beatInSection: beat.beatInSection,
+                                                          linkBeat: 0,
+                                                          ticks: trueTicks))
+            _soloAnchorQ = SoloResumeAnchorQ(clock: clock, songIdx: _songMapSongIdxQ, sections: _songSectionsQ,
+                                             cause: cause.rawValue, takenTicks: now, anchorTempo: anchorTempo,
+                                             heldByResume: false)
+            let position = clock.barAndBeat(section: beat.section, beatInSection: Double(beat.beatInSection))
+            let total = map.sections[beat.section].totalBeats ?? 0
+            let ageMs: Double = delta.newestReadTicks.map { signedMilliseconds(from: $0, to: now) } ?? -1.0
+            os_log("[Q-BEATS][SOLO-RIPRESA] ancora presa causa:%{public}@ songIdx:%d posizione:%d.%d.%d indice:%d/%d battito:%{public}@ oraConvenzione:%llu oraVera:%llu delta_ms:%.2f letture:%d eta_ms:%.1f lettura:%{public}@ tempoAncora:%.2f tempoMappa:%.2f",
+                   log: .default, type: .default,
+                   cause.rawValue, _songMapSongIdxQ, beat.section, position.bar, position.beat,
+                   beat.beatInSection, total, which, beat.outTicks, trueTicks,
+                   Double(delta.ticks) / ticksPerSecond * 1000.0, delta.readings, ageMs, delta.sourceName,
+                   anchorTempo, map.sections[beat.section].bpm)
+            // A437 · SEGUITO 5 (par. 2.4) — subito dopo, la riga passiva delle letture della catena.
+            logSoloDeltaTallyQ()
+            raiseSoloResumePendingQ(reason: "ancora-presa")
+        case .alreadyAlive:
+            let wasHeld = _soloAnchorQ?.heldByResume ?? false
+            _soloAnchorQ?.heldByResume = false
+            os_log("[Q-BEATS][SOLO-RIPRESA] ancora gia' viva (causa:%{public}@) - causa nuova:%{public}@ tenutaDallaRipresa:%d - il conto resta su di lei",
+                   log: .default, type: .default, _soloAnchorQ?.cause ?? "-", cause.rawValue, wasHeld ? 1 : 0)
+            raiseSoloResumePendingQ(reason: "ancora-gia-viva")
+        case .drainDelivered:
+            os_log("[Q-BEATS][SOLO-RIPRESA] ancora non presa: drenaggio consegnato causa:%{public}@ - la canzone finisce come finita suonando",
+                   log: .default, type: .default, cause.rawValue)
+            closeSoloResumeQ(reason: "drenaggio")
+        case .notTaken(let why):
+            os_log("[Q-BEATS][SOLO-RIPRESA] ancora non presa motivo:%{public}@ causa:%{public}@",
+                   log: .default, type: .default, why.rawValue, cause.rawValue)
+        }
+        return take
+    }
+
+    /// A437 — dopo l'arresto della crisi: con l'àncora non presa la ripresa non è possibile e il Solo si ferma come allo
+    /// Stop della console (E2); con «presa» e «già viva» la ripresa aspetta la sua strada; col drenaggio consegnato niente.
+    /// Con una causa che lo ferma già ricordata (`stoppingCause`) niente: lo Stop «come la console» di quella crisi è già
+    /// in arrivo dal suo gestore, e la ripartenza che segue trova «niente» (`RecoveryDecision`), come prima.
+    private func afterSoloCrisisStopQ(_ take: SoloAnchorTake) {
+        if case .notTaken(let why) = take, why != .stoppingCause {
+            abandonSoloResumeAsConsoleQ(reason: "ancora-non-presa(\(why.rawValue))", cause: nil)
+        }
+    }
+
+    private func describe(_ why: SoloResumeUncertain) -> String {
+        switch why {
+        case .noAnchor: return "ancora-assente"
+        case .clock(let unknown): return "conto:" + describe(unknown)
+        case .noTarget: return "nessun-bersaglio"
+        case .lateTooManyTimes: return "ritardo-oltre-i-salti"
+        }
+    }
+
+    /// A437 — IL CONTO DELLA RIPRESA, adesso: il primo «uno» di battuta con l'ora sulla mappa non prima di adesso più il
+    /// margine (`SoloResumeDecision.plan`), con la sua riga. Il margine è quello del rientro (`rejoinMarginNowQ`: legge
+    /// la durata del ciclo e la latenza dalla sessione, non la tocca). L'àncora di un'altra canzone vale come assente.
+    private func soloResumePlanQ(phase: String, trigger: String, notBeforeTicks: UInt64 = 0) -> (plan: SoloResumePlan, nowTicks: UInt64) {
+        let margin = rejoinMarginNowQ()
+        let now = mach_absolute_time()
+        var clock: ShowClock? = nil
+        var sinceAnchor = -1.0
+        if let anchor = _soloAnchorQ, anchor.songIdx == _songMapSongIdxQ {
+            clock = anchor.clock
+            sinceAnchor = secondsSince(anchor.takenTicks)
+        }
+        let plan = SoloResumeDecision.plan(clock: clock, nowTicks: now, ticksPerSecond: ticksPerSecond,
+                                           marginSeconds: margin.marginSeconds, notBeforeTicks: notBeforeTicks)
+        let outcomeText: String
+        var section = -1
+        var bar = 0
+        var fromNowMs = 0.0
+        switch plan {
+        case .resume(let aim):
+            outcomeText = "riprende"
+            section = aim.section
+            bar = aim.bar
+            fromNowMs = signedMilliseconds(from: now, to: aim.targetTicks)
+        case .songEnded:
+            outcomeText = "canzone-finita"
+        case .uncertain(let why):
+            outcomeText = "non-certo(" + describe(why) + ")"
+        }
+        os_log("[Q-BEATS][SOLO-RIPRESA] decisione fase:%{public}@ esito:%{public}@ innesco:%{public}@ sezioneIdx:%d battuta:%d bersaglioDaAdesso_ms:%.1f margine_ms:%.1f D_ms:%.1f dallAncora_s:%.2f",
+               log: .default, type: .default,
+               phase, outcomeText, trigger, section, bar, fromNowMs,
+               margin.marginSeconds * 1000.0, margin.distanceSeconds * 1000.0, sinceAnchor)
+        return (plan, now)
+    }
+
+    /// A437 — IL PRE-CONTROLLO, IN UN PUNTO SOLO (decisione del referee, VR-3b N1): all'ingresso di
+    /// `activateSessionAndStart`, prima di ogni scrittura della sessione, per ogni tentativo vivo della catena. Con
+    /// «riprende» si va avanti (vero); con «canzone finita» E3 e con «non certo» E2, e la sessione non si tocca (falso).
+    /// Senza la ripresa in attesa non decide niente (vero).
+    private func soloResumePreCheckQ(trigger: RecoveryTrigger) -> Bool {
+        guard playerRoleQ == .solo, _soloResumePendingQ else { return true }
+        switch soloResumePlanQ(phase: "pre-controllo", trigger: trigger.rawValue).plan {
+        case .resume:
+            return true
+        case .songEnded:
+            endSoloSongOnResumeQ(phase: "pre-controllo")
+            return false
+        case .uncertain(let why):
+            abandonSoloResumeAsConsoleQ(reason: "non-certo(" + describe(why) + ")", cause: nil)
+            return false
+        }
+    }
+
+    private enum SoloCoordinatorStep {
+        /// Il bersaglio: l'avvio prosegue e il fuoco si arma.
+        case resume(SoloResumeTargetQ)
+        /// E2 o E3 sono già stati eseguiti: l'avvio si ferma qui.
+        case stopped
+    }
+
+    /// A437 — IL COORDINATORE DEL SOLO, dentro `start()` (la decisione vera: fra il pre-controllo e qui possono passare i
+    /// tentativi della `setActive`) e al fuoco in ritardo. Esegue da sé E3 ed E2. SOLO su audioQueue.
+    /// `notBeforeTicks`: dal fuoco in ritardo, l'ora del bersaglio mancato più un tick (il bersaglio nuovo è dopo di lui).
+    private func coordinateSoloResumeQ(phase: String, trigger: String, lateSkipsLeft: Int, fromSlowPlayer: Bool,
+                                       notBeforeTicks: UInt64 = 0) -> SoloCoordinatorStep {
+        let read = soloResumePlanQ(phase: phase, trigger: trigger, notBeforeTicks: notBeforeTicks)
+        switch read.plan {
+        case .resume(let aim):
+            return .resume(SoloResumeTargetQ(aim: aim, songIdx: _songMapSongIdxQ, trigger: trigger,
+                                             lateSkipsLeft: lateSkipsLeft, decidedTicks: read.nowTicks,
+                                             fromSlowPlayer: fromSlowPlayer))
+        case .songEnded:
+            endSoloSongOnResumeQ(phase: phase)
+            return .stopped
+        case .uncertain(let why):
+            abandonSoloResumeAsConsoleQ(reason: "non-certo(" + describe(why) + ")", cause: nil)
+            return .stopped
+        }
+    }
+
+    /// A437 — L'ARMAMENTO DELLA RIPRESA: la parte comune di `armSharedJoin` senza la guardia su Link (il lavoro di prima e
+    /// il timer annullati, la generazione che sale), poi il margine, il «lettore lento» e il timer stretto come
+    /// `armDirectorRejoinQ`. Il motore è in moto e muto, senza buffer: la catena la apre il fuoco. SOLO su audioQueue.
+    private func armSoloResumeQ(_ target: SoloResumeTargetQ) {
+        pendingLinkStart?.cancel()
+        _rejoinArmTimerQ.cancel()
+        joinGeneration += 1
+        let generation = joinGeneration
+        let margin = rejoinMarginNowQ()
+        let plannedArmAt = DirectorRejoinDecision.armingTicks(targetOutputTicks: target.aim.targetTicks,
+                                                              marginSeconds: margin.marginSeconds,
+                                                              ticksPerSecond: ticksPerSecond)
+        let now = mach_absolute_time()
+        let slowPlayer = !target.fromSlowPlayer
+            && DirectorRejoinDecision.slowPlayerAtArming(nowTicks: now, targetOutputTicks: target.aim.targetTicks,
+                                                         distanceTicks: secondsToMachTicks(margin.distanceSeconds),
+                                                         minLeadTicks: secondsToMachTicks(DirectorRejoinDecision.minLeadSeconds))
+        let armAt = slowPlayer ? now : plannedArmAt
+        let delaySeconds = armAt > now ? machTicksToSeconds(armAt - now) : 0
+        os_log("[Q-BEATS][SOLO-RIPRESA] armato sectionIdx:%d battuta:%d uno:%.0f oraMappa:%llu armamento:%llu attesa_s:%.3f generazione:%d salti:%d innesco:%{public}@ timer:stretto leeway_ms:%d D_ms:%.1f margine_ms:%.1f lettoreLento:%d bersaglioDaAdesso_ms:%.1f dallaDecisione_ms:%.1f",
+               log: .default, type: .default,
+               target.aim.section, target.aim.bar, target.aim.unoBeat, target.aim.targetTicks, armAt, delaySeconds,
+               generation, target.lateSkipsLeft, target.trigger, StrictOneShotTimer.leewayMilliseconds,
+               margin.distanceSeconds * 1000.0, margin.marginSeconds * 1000.0, slowPlayer ? 1 : 0,
+               signedMilliseconds(from: now, to: target.aim.targetTicks), signedMilliseconds(from: target.decidedTicks, to: now))
+        let work = DispatchWorkItem { [weak self] in
+            self?.fireSoloResumeQ(target, generation: generation, armedFor: armAt, slowPlayer: slowPlayer, margin: margin)
+        }
+        pendingLinkStart = work
+        _rejoinArmTimerQ.arm(afterSeconds: delaySeconds, work: work)
+    }
+
+    /// A437 — IL FUOCO DELLA RIPRESA, la gemella di `fireDirectorRejoinQ` SENZA Link: niente controllo mappa-ponte, niente
+    /// lettura della sessione, niente «uno» da Link (l'«uno» del DSP sono i battiti della canzone fino al bersaglio), niente
+    /// quantum, niente «segue Link», niente stato del silenzio del Direttore. Mai un click in ritardo (LIBRO 2026-09-20): il
+    /// fuoco in ritardo salta al bersaglio dopo coi salti contati, poi E2. SOLO su audioQueue, dal timer stretto.
+    private func fireSoloResumeQ(_ target: SoloResumeTargetQ, generation: Int, armedFor: UInt64, slowPlayer: Bool, margin: RejoinMargin) {
+        let firedAt = mach_absolute_time()
+        guard generation == joinGeneration, isRunning else {
+            os_log("[Q-BEATS][SOLO-RIPRESA] fuoco scartato - generazione:%d attuale:%d motore:%{public}@",
+                   log: .default, type: .default,
+                   generation, joinGeneration, isRunning ? "in moto" : "fermo")
+            return
+        }
+        pendingLinkStart = nil
+        _rejoinArmTimerQ.cancel()
+        let alive = _soloAnchorQ
+        let sameSong = alive.map { $0.songIdx == _songMapSongIdxQ && $0.songIdx == target.songIdx } ?? false
+        let sectionInMap = alive.map {
+            target.aim.section >= 0 && target.aim.section < $0.sections.count
+                && target.aim.section < $0.clock.map.sections.count
+        } ?? false
+        if let refusal = SoloResumeDecision.fireRefusal(playerRole: playerRoleQ,
+                                                        systemInterruption: _interruptionRouteQ.systemInterruption,
+                                                        servicesNormal: MediaServicesResetDecision.allowsAudioWork(_mediaServicesQ),
+                                                        anchorAlive: alive != nil,
+                                                        sameSong: sameSong,
+                                                        sectionInMap: sectionInMap,
+                                                        handlesPresent: metronomeHandle != nil && midiEngineHandle != nil) {
+            abandonSoloResumeAsConsoleQ(reason: refusal.rawValue, cause: nil)
+            return
+        }
+        guard let anchor = alive, let h = metronomeHandle, let mh = midiEngineHandle else {
+            abandonSoloResumeAsConsoleQ(reason: SoloFireRefusal.handlesMissing.rawValue, cause: nil)
+            return
+        }
+        let tps = ticksPerSecond
+        let arrival = anchor.sections[target.aim.section]
+        let bpb: UInt32 = max(arrival.beatsPerBar, 1)
+        // 1. L'ora del bersaglio riletta sulla mappa del conto.
+        guard let targetTicks = anchor.clock.ticks(section: target.aim.section, beatInSection: target.aim.beatInSection,
+                                                   ticksPerSecond: tps) else {
+            abandonSoloResumeAsConsoleQ(reason: "non-certo(" + describe(SoloResumeUncertain.noTarget) + ")", cause: nil)
+            return
+        }
+        // 2. Il tempo d'arrivo: nella sezione dell'àncora quello del motore di adesso (un tap tempo nella pausa lo cambia: il
+        //    bersaglio resta sulla griglia di prima, dall'«uno» in poi il tempo nuovo); nelle altre il tempo della mappa.
+        let arrivalBPM = SoloResumeDecision.arrivalTempo(targetSection: target.aim.section,
+                                                         anchorSection: anchor.clock.anchor.section,
+                                                         anchorTempo: anchor.anchorTempo,
+                                                         engineTempoNow: _engineTempoQ,
+                                                         mapTempo: arrival.bpm)
+        if target.aim.section == anchor.clock.anchor.section && arrivalBPM != anchor.anchorTempo {
+            os_log("[Q-BEATS][SOLO-RIPRESA] tempo cambiato nella pausa tempoAncora:%.2f tempoAdesso:%.2f - il bersaglio resta sulla griglia di prima, dall'uno il tempo nuovo",
+                   log: .default, type: .default, anchor.anchorTempo, arrivalBPM)
+        }
+        // 3. La scorta muta davanti all'«uno», come il rientro del Direttore.
+        let unoBeat = target.aim.unoBeat
+        let ioSeconds = machTicksToSeconds(bufferDurationTicks)
+        let leadIn = DirectorRejoinDecision.leadIn(targetOutputTicks: targetTicks,
+                                                   outputLatencyTicks: outputLatencyTicks,
+                                                   unoBeat: unoBeat, bpm: arrivalBPM,
+                                                   bufferFrames: Int(bufferSize), sampleRate: sampleRate,
+                                                   ioBufferSeconds: ioSeconds, ticksPerSecond: tps)
+        let renderTicks = leadIn?.firstBufferRenderTicks
+            ?? DirectorRejoinDecision.firstBufferRenderTicks(targetOutputTicks: targetTicks,
+                                                             outputLatencyTicks: outputLatencyTicks)
+        let firstOutputTicks = leadIn?.firstBufferOutputTicks ?? targetTicks
+        if leadIn == nil {
+            os_log("[Q-BEATS][SOLO-RIPRESA] scorta non possibile - uno:%.0f tempo:%.1f io_ms:%.2f - primo buffer all'ora del bersaglio",
+                   log: .default, type: .default, unoBeat, arrivalBPM, ioSeconds * 1000.0)
+        }
+        // 4. In ritardo? Mai un click in ritardo: si salta al bersaglio dopo, coi salti contati; senza salti E2.
+        let checkedAt = mach_absolute_time()
+        if DirectorRejoinDecision.isLate(nowTicks: checkedAt, renderTicks: renderTicks,
+                                         minLeadTicks: secondsToMachTicks(DirectorRejoinDecision.minLeadSeconds)) {
+            os_log("[Q-BEATS][SOLO-RIPRESA] fuoco in ritardo sul bersaglio oraRender:%llu adesso:%llu anticipo_ms:%.1f minimo_ms:%.1f salti:%d lettoreLento:%d",
+                   log: .default, type: .default,
+                   renderTicks, checkedAt, signedMilliseconds(from: checkedAt, to: renderTicks),
+                   DirectorRejoinDecision.minLeadSeconds * 1000.0, target.lateSkipsLeft, slowPlayer ? 1 : 0)
+            switch SoloResumeDecision.lateStep(slowPlayer: slowPlayer, lateSkipsLeft: target.lateSkipsLeft) {
+            case .giveUp:
+                abandonSoloResumeAsConsoleQ(reason: "non-certo(" + describe(SoloResumeUncertain.lateTooManyTimes) + ")", cause: nil)
+            case .recount(let skipsLeft, let lateTrigger):
+                switch coordinateSoloResumeQ(phase: "ritardo", trigger: lateTrigger, lateSkipsLeft: skipsLeft,
+                                             fromSlowPlayer: slowPlayer, notBeforeTicks: targetTicks &+ 1) {
+                case .resume(let next):
+                    armSoloResumeQ(next)
+                case .stopped:
+                    break
+                }
+            }
+            return
+        }
+        // 5. La sezione d'arrivo: i cambi armati annullati, i setter immediati, il seme del contatore, la successiva precaricata.
+        let closure = _songSectionEndClosureQ
+        metronome_cancel_pending_bpm(h)
+        metronome_cancel_pending_bpb(h)
+        metronome_cancel_pending_subdivision(h)
+        _pendingBPMValue = nil
+        _pendingBPMTargetTick = 0
+        _pendingNextBPM = nil
+        _pendingNextBPB = nil
+        _pendingNextAccentPattern = nil
+        _pendingNextSectionTotalBeats = nil
+        _pendingNextOnSectionEnd = nil
+        _pendingNextRepetitions = nil
+        _pendingNextSubdivisionMultiplier = nil
+        _pendingNextSwingRatio = nil
+        _sectionEndPending = false
+        _pendingEndClosure = nil
+        metronome_setBPM(h, arrivalBPM)
+        metronome_setBeatsPerBar(h, bpb)
+        let dspPattern: [UInt8] = arrival.accentPattern.map { $0 == 2 ? UInt8(1) : UInt8(0) }
+        dspPattern.withUnsafeBufferPointer { ptr in
+            metronome_setAccentPattern(h, ptr.baseAddress, UInt32(dspPattern.count))
+        }
+        metronome_setSubdivision(h, arrival.subdivisionMultiplier, arrival.swingRatio)
+        _audioBPM = arrivalBPM
+        _engineTempoQ = arrivalBPM
+        _beatsPerBarQ = bpb
+        let totalBeats = arrival.repetitions > 0 ? arrival.repetitions * Int(bpb) : 0
+        let seed = (target.aim.bar - 1) * Int(bpb)
+        _sectionTotalBeats = totalBeats
+        _onSectionEnd = totalBeats > 0 ? closure : nil
+        if totalBeats > 0 && seed >= 0 && seed < totalBeats {
+            _sectionBeatCounter = seed
+            startBeatOffset = seed
+        } else {
+            _sectionBeatCounter = 0
+            startBeatOffset = 0
+        }
+        _songMapSectionQ = target.aim.section
+        if target.aim.section + 1 < anchor.sections.count, let closure {
+            let following = anchor.sections[target.aim.section + 1]
+            _pendingNextBPM = following.bpm
+            _pendingNextBPB = following.beatsPerBar
+            _pendingNextAccentPattern = following.accentPattern
+            _pendingNextSectionTotalBeats = following.repetitions * Int(following.beatsPerBar)
+            _pendingNextOnSectionEnd = closure
+            _pendingNextRepetitions = following.repetitions
+            _pendingNextSubdivisionMultiplier = following.subdivisionMultiplier
+            _pendingNextSwingRatio = following.swingRatio
+        }
+        // 6. Il DSP e il MIDI all'«uno» (l'origine dei click), con la scorta davanti.
+        metronome_reset_for_start(h, unoBeat)
+        _dspOriginBeatQ = unoBeat
+        let seedBeat = leadIn?.seedBeat ?? unoBeat
+        if leadIn != nil {
+            metronome_set_beat_position_time_only(h, seedBeat)
+        }
+        midi_engine_set_bpm(mh, arrivalBPM)
+        midi_engine_sync_clock(mh, 0, mach_absolute_time(), sampleRate)
+        midi_engine_set_beat_position(mh, seedBeat)
+        _startAbsoluteBeat = unoBeat
+        // 7. La catena: il primo buffer all'ora chiesta, la scorta, tre buffer. Nel Solo la correzione di fase non gira (il
+        //    lucchetto la salta comunque): il contatore dei buffer senza correzione resta quello del rientro, innocuo.
+        linkSyncSkipBuffers = DirectorRejoinDecision.uncorrectedFireBuffers
+        _anchoredFirstBufferQ = AVAudioTime(hostTime: renderTicks)
+        _anchoredOutputTicksQ = firstOutputTicks
+        _anchoredPreRollLeftQ = 3
+        _rejoinLeadInQ = leadIn.map {
+            RejoinLeadIn(plan: $0, targetTicks: targetTicks,
+                         bufferBeats: Double(bufferSize) / sampleRate * arrivalBPM / 60.0)
+        }
+        let songIdx = target.songIdx
+        let sectionIdx = target.aim.section
+        let pattern = arrival.accentPattern
+        let repetitions = arrival.repetitions
+        DispatchQueue.main.async {
+            self.isWaitingForLinkDownbeat = false
+            self.directorRunnerActionSubject.send(.rejoin(songIdx: songIdx, sectionIdx: sectionIdx))
+            self._suppressBeatsPerBarDidSet = true
+            self.beatsPerBar = bpb
+            self.currentAccentPattern = pattern
+            self.currentSectionRepetitions = repetitions
+            self.currentBPM = arrivalBPM
+        }
+        openBufferChainQ()
+        scheduleNextBuffer()
+        scheduleNextBuffer()
+        scheduleNextBuffer()
+        let scheduledAt = mach_absolute_time()
+        // 8. La memoria delle ripartenze come al Play; «canzone in corso» resta; il segno della pausa scende; l'àncora resta
+        //    tenuta dalla ripresa finché il primo battito contato della ripresa non è uscito (`checkSoloAnchorHeldQ`).
+        _crisisCauseQ = nil
+        _wantedStopSinceCrisisQ = false
+        if _soloResumePendingQ {
+            _soloResumePendingQ = false
+            publishSoloResumePendingQ()
+        }
+        _soloAnchorQ?.heldByResume = true
+        os_log("[Q-BEATS][SOLO-RIPRESA] fuoco esito:ingresso innesco:%{public}@ sectionIdx:%d battuta:%d seme:%d uno:%.0f oraUscita:%llu oraRender:%llu armamentoPrevisto:%llu armamentoVero:%llu ritardo_ms:%.3f anticipo_ms:%.1f latenza_ms:%.1f generazione:%d salti:%d scorta:%d oraPrimoBuffer:%llu tempo:%.2f margine_ms:%.1f",
+               log: .default, type: .default,
+               target.trigger, target.aim.section, target.aim.bar, seed, unoBeat, targetTicks, renderTicks,
+               armedFor, firedAt, signedMilliseconds(from: armedFor, to: firedAt),
+               signedMilliseconds(from: scheduledAt, to: renderTicks),
+               machTicksToSeconds(outputLatencyTicks) * 1000.0, generation, target.lateSkipsLeft,
+               leadIn?.buffers ?? 0, firstOutputTicks, arrivalBPM, margin.marginSeconds * 1000.0)
+    }
+
+    /// A437 — l'àncora tenuta dalla ripresa si chiude quando il primo battito contato della ripresa è uscito (la regola di
+    /// `checkAnchorHeldByRejoinQ`). A ogni chiamata di `scheduleNextBuffer`: senza un'àncora tenuta esce subito, senza
+    /// leggere l'orologio. SOLO su audioQueue.
+    private func checkSoloAnchorHeldQ() {
+        guard let anchor = _soloAnchorQ, anchor.heldByResume else { return }
+        guard let last = _lastCountedBeatQ, last.outTicks <= mach_absolute_time() else { return }
+        closeSoloResumeQ(reason: "ripresa")
+    }
+
+    /// A437 — LO SCATTO DEL RITORNO DEL SOLO (mandato A437, par. 2.7; referto A424, par. 2.1 a): la guardia del Solo, poi
+    /// l'uscita sparita (P32: come la tolta, E2 con la causa «uscita-tolta»), poi la ripartenza col suo innesco, che passa
+    /// dal pre-controllo. Se la guardia non regge con la ripresa ancora in attesa e il motore fermo, era l'ultima strada:
+    /// E2 (seguito 1, voce 2). SOLO su audioQueue.
+    private func fireSoloReturnQ(_ waiting: DirectorReturnWaitQ, reason: String, elapsedMs: Double) {
+        let alive = _soloAnchorQ
+        let sameSong = alive.map { $0.songIdx == _songMapSongIdxQ } ?? false
+        let servicesNormal = MediaServicesResetDecision.allowsAudioWork(_mediaServicesQ)
+        let vanished = _outputSilenceQ.lastOutputExternal == true && !hasExternalOutputNowQ()
+        let step = SoloResumeDecision.returnStep(engineRunning: isRunning,
+                                                 systemInterruption: _interruptionRouteQ.systemInterruption,
+                                                 servicesNormal: servicesNormal,
+                                                 playerRole: playerRoleQ,
+                                                 pending: _soloResumePendingQ,
+                                                 anchorAlive: alive != nil,
+                                                 sameSong: sameSong,
+                                                 externalVanished: vanished)
+        switch step {
+        case .notFired(let why):
+            os_log("[Q-BEATS][USCITA] ritorno del Solo non eseguito motivo:%{public}@ motore:%{public}@ interruzione:%d servizi:%d ruolo:%{public}@ attesa:%{public}@ stessaCanzone:%d innesco:%{public}@ ms:%.0f",
+                   log: .default, type: .default,
+                   why.rawValue, isRunning ? "in-moto" : "fermo", _interruptionRouteQ.systemInterruption ? 1 : 0,
+                   servicesNormal ? 1 : 0, playerRoleQ.rawValue, reason, sameSong ? 1 : 0, waiting.trigger.rawValue, elapsedMs)
+            if _soloResumePendingQ && !isRunning {
+                abandonSoloResumeAsConsoleQ(reason: "ritorno-non-eseguito(" + why.rawValue + ")", cause: nil)
+            }
+        case .asRemoved:
+            os_log("[Q-BEATS][USCITA] ritorno del Solo: l'ultima uscita era esterna e adesso un'esterna non c'e' attesa:%{public}@ innesco:%{public}@ ms:%.0f - come la tolta",
+                   log: .default, type: .default, reason, waiting.trigger.rawValue, elapsedMs)
+            abandonSoloResumeAsConsoleQ(reason: "uscita-sparita", cause: .outputRemoved)
+        case .fire:
+            os_log("[Q-BEATS][USCITA] ritorno del Solo innesco:%{public}@ attesa:%{public}@ ms:%.0f",
+                   log: .default, type: .default, waiting.trigger.rawValue, reason, elapsedMs)
+            activateSessionAndStart(resumeAtBeat: nil, trigger: waiting.trigger)
+        }
     }
 
     /// Par. 2.2 c, g: il ritorno del Follower si prenota alla notizia (o al tocco «altoparlante») e si arma alla prima chiamata
@@ -6396,6 +7313,12 @@ class AudioEngine: ObservableObject {
     /// l'esito «arresto locale» (il Direttore fuori da una canzone con l'uscita sparita, come la tolta: U16) il player a «fermo»
     /// sul principale e nessun ritorno del Direttore armato; in canzone il ritorno rilegge il percorso con la memoria e dà niente
     /// (`recoveryRouteQ`, U5).
+    /// A437 · PARTE 2 (P6, P25, P32; referto A424, par. 2.1 j) — il Solo in canzone: l'esito «ripresa sulla canzone» fa
+    /// l'àncora PRIMA dell'arresto (il battito contato è di prima del buco: la chiamata del buco non ha ancora programmato
+    /// niente), l'arresto locale, l'annullo dei ritorni e il ritorno del Solo con l'innesco `renderGap`; col motivo
+    /// «uscita-sparita» il Solo si ferma come allo Stop della console (E2, causa «uscita-tolta»: lo stacco visto prima della
+    /// notizia). Costituzione V6, par. 4: tutto su audioQueue, fuori dal callback di render e dal blocco del tap; gira alla
+    /// chiamata di una crisi, mai a regime.
     private func handleRenderGapCrisisQ(holeSeconds: Double, bufferCount holeBufferCount: Int, reason: RenderGapCrisisReason,
                                         thresholdSeconds: Double?, projectionSeconds: Double) {
         os_log("[Q-BEATS][USCITA] crisi da misuratore buco_ms:%.1f soglia_ms:%{public}@ P_ms:%.1f motivo:%{public}@ buffer:%d - silenzio, arresto locale, il buffer del buco non si programma (U7)",
@@ -6424,8 +7347,31 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][USCITA] crisi da misuratore fuori da una canzone motivo:%{public}@ - il player a fermo, nessun ritorno del Direttore: riparte col Play (U16)",
                    log: .default, type: .default, reason.rawValue)
             DispatchQueue.main.async { self.playbackState = .stopped }
+        case .soloResumeOnSong:
+            // ⚠️ RISCRITTO A437 · PARTE 2 (18/11/2026). Nella parte 1 qui c'era «"ripresa sulla canzone" qui è della parte 2
+            // [...]: nella parte 1 il guardiano non guarda il Solo e questo ramo resta l'esito inatteso.». Da qui il Solo in
+            // canzone sta sotto il guardiano (`RenderGapDecision`).
+            if reason == .outputVanished {
+                os_log("[Q-BEATS][USCITA] crisi da misuratore nel Solo in canzone: l'uscita esterna da cui usciva il click non c'e' piu' - come la tolta, il Solo si ferma come allo Stop della console (P32)",
+                       log: .default, type: .default)
+                abandonSoloResumeAsConsoleQ(reason: "uscita-sparita-al-buco", cause: .outputRemoved)
+            } else {
+                let take = takeSoloAnchorQ(cause: .renderGap)
+                if isRunning {
+                    stopForOutputCrisisQ(context: "buco-del-render")
+                }
+                afterSoloCrisisStopQ(take)
+                cancelOutputReturnsQ(reason: "buco-del-render")
+                if _soloResumePendingQ {
+                    // Come il Direttore qui sopra: la configurazione se la frequenza della sessione è già diversa dalla copia,
+                    // se no l'assestamento (la lettura della sessione viene dopo il silenzio).
+                    armDirectorReturnQ(kind: .solo, trigger: .renderGap,
+                                       sessionRateDiffers: !SampleRateDecision.same(AVAudioSession.sharedInstance().sampleRate, sampleRate))
+                }
+            }
         case .soloStopAsConsole, .asToday, .nothing:
-            // La regola della crisi da misuratore chiede il Direttore col motore in moto: qui non si arriva; il contatore di sospetto.
+            // La regola della crisi da misuratore chiede il Direttore, o il Solo in canzone, col motore in moto: qui non si
+            // arriva; il contatore di sospetto.
             os_log("[Q-BEATS][USCITA] crisi da misuratore con esito inatteso:%{public}@ ruolo:%{public}@ motore:%{public}@ - nessun arresto",
                    log: .default, type: .default, outcome.rawValue, playerRoleQ.rawValue, isRunning ? "in-moto" : "fermo")
             cancelOutputReturnsQ(reason: "buco-del-render")
@@ -6440,8 +7386,12 @@ class AudioEngine: ObservableObject {
     /// regime, per il Direttore e il Follower: un timer stretto all'ora in cui la chiamata dopo sarebbe un buco per il misuratore
     /// (`RenderGapMeter.guardianTicks`). Fuori dal regime, o nel Solo, si spegne. Chiamare SOLO su audioQueue, in fondo a
     /// `scheduleNextBuffer`.
+    /// ⚠️ CORRETTO A437 · PARTE 2 (18/11/2026): «per il Direttore e il Follower» e «nel Solo si spegne» valgono per il Solo
+    /// solo fuori da una canzone. A show aperto con la canzone in corso il guardiano si arma anche nel Solo, a ogni chiamata
+    /// (P6): lo stesso costo che hanno Direttore e Follower (il timer stretto riarmato a ogni chiamata).
+    /// Costituzione V6, par. 4: gira su audioQueue e sul suo timer stretto; niente nel callback di render né nel blocco del tap.
     private func armRenderGapGuardianQ() {
-        guard RenderGapDecision.guardsAgainstHoles(playerRole: playerRoleQ),
+        guard RenderGapDecision.guardsAgainstHoles(playerRole: playerRoleQ, showOpen: _showOpenQ, songInProgress: _songInProgressQ),
               let due = _renderGapMeterQ.guardianTicks(bufferCountAfterCall: bufferCount) else {
             cancelRenderGapGuardianQ()
             return
@@ -6472,7 +7422,7 @@ class AudioEngine: ObservableObject {
         let lateMs = signedMilliseconds(from: armed.dueTicks, to: now)
         guard armed.chain == _bufferChainGenerationQ, armed.bufferCount == bufferCount, isRunning,
               !_interruptionRouteQ.systemInterruption, MediaServicesResetDecision.allowsAudioWork(_mediaServicesQ),
-              RenderGapDecision.guardsAgainstHoles(playerRole: playerRoleQ) else {
+              RenderGapDecision.guardsAgainstHoles(playerRole: playerRoleQ, showOpen: _showOpenQ, songInProgress: _songInProgressQ) else {
             os_log("[Q-BEATS][USCITA] guardiano del buco: condizione caduta catena:%d corrente:%d buffer:%d corrente:%d motore:%{public}@ interruzione:%d servizi:%{public}@ ruolo:%{public}@ - niente",
                    log: .default, type: .default,
                    armed.chain, _bufferChainGenerationQ, armed.bufferCount, bufferCount, isRunning ? "in-moto" : "fermo",
@@ -6914,9 +7864,19 @@ class AudioEngine: ObservableObject {
     /// A425 (P1) — `origine:`, l'origine che l'avvio ha usato: il battito per il ramo fresco e la ripresa (l'origine del DSP, il
     /// battito passato a `metronome_reset_for_start`); «al-fuoco» dove il DSP si azzera dopo, al fuoco (rientro, ingresso del
     /// Follower, ingresso condiviso: l'origine la porta la riga del fuoco); «-» senza ramo.
+    /// A437 · SEGUITO 5 (par. 2.5; referto A437, par. 51) — in più `reset_ms` (da prima a dopo `playerNode.reset()`) e
+    /// `play_ms` (da dopo `reset()` alla fine di `playerNode.play()`): solo misura, per dire dove si spende il mezzo secondo
+    /// visto nelle riprese del Solo dopo un'interruzione senza fine. Due stringhe, così un chiamante senza quelle due
+    /// chiamate scriverebbe «-» (oggi il chiamante è uno solo, e le ha).
     private func logStartTimingQ(trigger: String, branch: String, entry: UInt64, block: UInt64, engineStarted: UInt64,
-                                 played: UInt64, hostNow: UInt64?) {
+                                 beforeReset: UInt64?, afterReset: UInt64?, played: UInt64, hostNow: UInt64?) {
         let hostNowText: String = hostNow.map { String(format: "%.1f", signedMilliseconds(from: entry, to: $0)) } ?? "-"
+        var resetText = "-"
+        var playText = "-"
+        if let beforeReset, let afterReset {
+            resetText = String(format: "%.1f", signedMilliseconds(from: beforeReset, to: afterReset))
+            playText = String(format: "%.1f", signedMilliseconds(from: afterReset, to: played))
+        }
         let originText: String
         switch branch {
         case "fresco", "ripresa":
@@ -6926,11 +7886,11 @@ class AudioEngine: ObservableObject {
         default:
             originText = "-"
         }
-        os_log("[Q-BEATS][START] tempi innesco:%{public}@ ramo:%{public}@ coda_ms:%.1f motore_ms:%.1f lettore_ms:%.1f hostNow_ms:%{public}@ origine:%{public}@ - da [START] ENTRY",
+        os_log("[Q-BEATS][START] tempi innesco:%{public}@ ramo:%{public}@ coda_ms:%.1f motore_ms:%.1f lettore_ms:%.1f hostNow_ms:%{public}@ origine:%{public}@ reset_ms:%{public}@ play_ms:%{public}@ - da [START] ENTRY",
                log: .default, type: .default,
                trigger, branch,
                signedMilliseconds(from: entry, to: block), signedMilliseconds(from: entry, to: engineStarted),
-               signedMilliseconds(from: entry, to: played), hostNowText, originText)
+               signedMilliseconds(from: entry, to: played), hostNowText, originText, resetText, playText)
     }
 
     /// La condizione «hardware ancora occupato» della fine dell'interruzione (la stessa del suo gestore): la sessione in un
@@ -6949,7 +7909,39 @@ class AudioEngine: ObservableObject {
     /// `isAudioInterrupted` si abbassa e il tasto si ripubblica (come dopo un reset): senza, il tasto del Direttore resterebbe
     /// «ferma la band» e il pedale fermerebbe la band. Con l'hardware ancora occupato la ripresa pendente resta in piedi,
     /// perché chi la recupera l'ha già tolta: così una notizia dopo la riprova. Chiamare SOLO su audioQueue.
+    /// A437 · PARTE 2 — C.1 (mandato A437, par. 2.8, C-1; seguito 2 di A437, §2 voce 1): il «niente» col motivo
+    /// «direttore-tolta-nella-chiamata» porta l'app nello stesso stato fermo: il player a «fermo», e `isAudioInterrupted` giù
+    /// con l'interruzione di sistema finita e l'hardware libero. In più la ripresa pendente NON resta alzata: `pendingResume` e
+    /// `pendingResumeBeat` vanno giù (solo quei due valori: non `clearPendingResumeQ`, che abbasserebbe `isAudioInterrupted` e
+    /// alzerebbe il contatore della catena), anche con l'hardware occupato, dove per l'uscita mancante si rialza. Col segno
+    /// della tolta alto, fino al Play, ogni ripartenza dice «niente»: nessuno la userebbe; lasciata alta, una strada che
+    /// abbassa il segno senza un Play la farebbe ripartire da sola.
+    /// ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): «Col segno della tolta alto, fino al Play, ogni ripartenza dice «niente»» vale
+    /// per il Direttore: il segno lo legge solo lui, e con un altro ruolo la ripartenza è «come oggi». E «una strada che abbassa il
+    /// segno senza un Play» per il Direttore non c'è più: il cambio di ruolo e Link spento non lo abbassano (le due chiamate tolte
+    /// in `applySettings` e in `noteUserLinkSwitchQ`), così anche una ripresa pendente alzata prima del primo «niente» (la fine
+    /// con l'hardware occupato, la rete a 1 s) trova il segno alto e dice «niente» (referto A437, par. 27 voce 1).
     private func noteNoRestartQ(trigger: RecoveryTrigger, stage: String, reason: NoRestartReason?) {
+        if reason == .directorRemovalInCall {
+            os_log("[Q-BEATS][USCITA] player a fermo - Direttore fuori da una canzone, niente ripartenza per la tolta nella chiamata innesco:%{public}@",
+                   log: .default, type: .default, trigger.rawValue)
+            DispatchQueue.main.async { self.playbackState = .stopped }
+            let hadPending = pendingResume
+            pendingResume = false
+            pendingResumeBeat = nil
+            let busyInCall = hardwareBusyForResumeQ()
+            let lowersInterrupted = !_interruptionRouteQ.systemInterruption && !busyInCall
+            if lowersInterrupted {
+                if isAudioInterrupted {
+                    isAudioInterrupted = false
+                }
+                publishDirectorSilenceQ(context: "tolta-nella-chiamata")
+            }
+            os_log("[Q-BEATS][USCITA] niente ripartenza per la tolta nella chiamata innesco:%{public}@ fase:%{public}@ ripresaPendentePrima:%d hardwareOccupato:%d interruzioneDiSistema:%d interrotto:%d - la ripresa pendente non resta in piedi, il click aspetta il Play (C.1)",
+                   log: .default, type: .default, trigger.rawValue, stage, hadPending ? 1 : 0, busyInCall ? 1 : 0,
+                   _interruptionRouteQ.systemInterruption ? 1 : 0, isAudioInterrupted ? 1 : 0)
+            return
+        }
         guard reason == .outputMissing else { return }
         // A421 · SEGUITO 1 (par. 5.2) — col Direttore fuori da una canzone `playbackState` restava `.playing` (lo leggono
         // LiveView e `transportInMotion`): il player a «fermo» sul principale, come fa la tolta (U16); il Direttore muto in
@@ -6973,6 +7965,42 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][USCITA] niente ripartenza per l'uscita mancante innesco:%{public}@ fase:%{public}@ - hardware occupato, ripresa pendente in piedi",
                    log: .default, type: .default, trigger.rawValue, stage)
         }
+    }
+
+    // === A437 · PARTE 2 (18/11/2026) — C.1: LA TOLTA DENTRO UNA CHIAMATA CONTA COME TOLTA (referto A431, par. 2.7 e 3.3) ===
+    // Il Direttore fuori da una canzone col click in moto; arriva una chiamata; il batterista stacca le cuffie. La tolta
+    // dentro l'interruzione non passa dalla regola delle crisi (a motore fermo darebbe «niente» e non lascerebbe traccia): si
+    // ricorda qui, a parte, e arriva alla regola delle ripartenze come U16 (`RecoveryDecision.route`, l'ingresso
+    // `removalDuringInterruption`). Lo alza il passo del cambio di percorso (`OutputRouteStep.remembersRemoval`); lo abbassano
+    // il Play (`prepareNormalStartQ`), il cambio di ruolo, Link spento e il fuoco del rientro del Direttore. Non lo abbassano le
+    // ripartenze automatiche che dicono «niente», né le cuffie riattaccate: la tolta conta finché il batterista non preme Play.
+    // Vive su audioQueue (Costituzione V6, par. 4: niente nel callback di render né nel blocco del tap, niente a regime in
+    // `scheduleNextBuffer`); non tocca la sessione, il motore, il volume né la memoria delle crisi.
+    // ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): «lo abbassano il Play (`prepareNormalStartQ`), il cambio di ruolo, Link spento
+    // e il fuoco del rientro del Direttore» non vale più per il cambio di ruolo e Link spento: le due chiamate sono tolte (in
+    // `applySettings` e in `noteUserLinkSwitchQ`). Lo abbassano solo `prepareNormalStartQ` (ogni avvio salvo il rientro del
+    // Direttore muto in canzone e la ripresa del Solo: il Play e, dopo un cambio di ruolo col segno alto, la ripartenza
+    // «come oggi» di un altro ruolo) e il fuoco del rientro. Il segno decide solo per il Direttore (`RecoveryDecision.route`):
+    // per lui la tolta conta finché il batterista non preme Play, anche se in mezzo si cambia ruolo o si spegne Link; il Solo e
+    // il Follower non cambiano.
+    private var _removalDuringInterruptionQ: Bool = false
+
+    /// A437 · PARTE 2 — C.1: il segno si alza. SOLO su audioQueue, dal blocco del cambio di percorso.
+    private func rememberRemovalDuringInterruptionQ() {
+        guard !_removalDuringInterruptionQ else { return }
+        _removalDuringInterruptionQ = true
+        os_log("[Q-BEATS][USCITA] tolta dentro l'interruzione ricordata ruolo:%{public}@ - a fine chiamata il click aspetta il Play (C.1)",
+               log: .default, type: .default, playerRoleQ.rawValue)
+    }
+
+    /// A437 · PARTE 2 — C.1: il segno si abbassa (`reason`: play | ruolo | link | rientro). SOLO su audioQueue.
+    /// ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): «ruolo» e «link» non ci sono più (le due chiamate sono tolte); i motivi sono
+    /// play (`prepareNormalStartQ`) | rientro (il fuoco del rientro del Direttore).
+    private func forgetRemovalDuringInterruptionQ(reason: String) {
+        guard _removalDuringInterruptionQ else { return }
+        _removalDuringInterruptionQ = false
+        os_log("[Q-BEATS][USCITA] tolta dentro l'interruzione dimenticata motivo:%{public}@",
+               log: .default, type: .default, reason)
     }
 
     /// A421 · SEGUITO 1 (par. 3.2-3.3) — la regola: con l'interruzione di sistema in corso una ripartenza automatica non
@@ -7044,6 +8072,10 @@ class AudioEngine: ObservableObject {
                 // esce perché il motore è in moto (col metronomo assente niente consumo).
                 if self.isRunning {
                     self.consumeSongMapForRunningStartQ(context: "avvio-gia-in-moto")
+                }
+                // A437 · seguito 1 (voce 1, per difesa) — senza il metronomo la ripresa del Solo non può ripartire: E2.
+                if !self.isRunning {
+                    self.endSoloResumeRoadQ(reason: "avvio-senza-metronomo")
                 }
                 // A421 — par. 2.2 e: lo specchio a ogni uscita di `start()` senza avvio.
                 self.publishIsPlayingQ(context: "avvio-gia-in-moto")
@@ -7179,6 +8211,8 @@ class AudioEngine: ObservableObject {
                 if silentRefused { self.publishDirectorSilenceQ(context: "avvio-rifiutato") }
                 // A421 — par. 2.2 e: lo specchio a ogni uscita di `start()` senza avvio.
                 self.publishIsPlayingQ(context: "avvio-rifiutato")
+                // A437 · seguito 1 (voce 1, per difesa) — con la ripresa del Solo in attesa: E2.
+                self.endSoloResumeRoadQ(reason: "avvio-rifiutato-servizi-persi")
                 return
             case .rebuildThenStart:
                 guard self.rebuildAfterMediaResetQ() else {
@@ -7198,6 +8232,8 @@ class AudioEngine: ObservableObject {
                     if silentFailed { self.publishDirectorSilenceQ(context: "ricostruzione-fallita") }
                     // A421 — par. 2.2 e: lo specchio a ogni uscita di `start()` senza avvio.
                     self.publishIsPlayingQ(context: "ricostruzione-fallita")
+                    // A437 · seguito 1 (voce 1, per difesa) — con la ripresa del Solo in attesa: E2.
+                    self.endSoloResumeRoadQ(reason: "ricostruzione-fallita")
                     return
                 }
                 self._firstStartAfterMediaResetQ = true
@@ -7271,6 +8307,8 @@ class AudioEngine: ObservableObject {
             // registro e basta, e «da qui in giù start() è identico a oggi»; per il Direttore muto in
             // canzone non è più vero.
             var rejoinTarget: RejoinTarget? = nil
+            // A437 — il bersaglio della ripresa del Solo, se questa ripartenza è la ripresa sulla canzone.
+            var soloTarget: SoloResumeTargetQ? = nil
             if self._directorSilentInSongQ {
                 switch self.coordinateDirectorRejoinQ(trigger: trigger, resume: resumeAtBeat != nil,
                                                       lateSkipsLeft: DirectorRejoinDecision.maxLateSkips) {
@@ -7287,6 +8325,24 @@ class AudioEngine: ObservableObject {
                 case .proceedAsToday:
                     self.prepareNormalStartQ(trigger: trigger)
                 }
+            } else if self.playerRoleQ == .solo, recovery != nil, self._soloResumePendingQ {
+                // === A437 — IL COORDINATORE DEL SOLO (referto A424, par. 3.1 b, punto 6) ===
+                // Una ripartenza automatica con la ripresa in attesa: la decisione vera si prende qui (fra il pre-controllo e
+                // questo punto possono essere passati i tentativi della `setActive`). «Riprende»: l'avvio prosegue senza
+                // `prepareNormalStartQ` (la causa ricordata e l'àncora restano fino al fuoco) e il ramo, più sotto, arma il
+                // fuoco. «Canzone finita» e «non certo»: E3 ed E2 li ha già fatti il coordinatore, e l'avvio si ferma qui.
+                switch self.coordinateSoloResumeQ(phase: "avvio", trigger: trigger,
+                                                  lateSkipsLeft: DirectorRejoinDecision.maxLateSkips, fromSlowPlayer: false) {
+                case .resume(let target):
+                    soloTarget = target
+                    resumeBeatForStart = nil
+                case .stopped:
+                    DispatchQueue.main.async {
+                        self._linkStartEmitInFlight = false
+                    }
+                    self.publishIsPlayingQ(context: "avvio-ripresa-solo-chiusa")
+                    return
+                }
             } else {
                 self.prepareNormalStartQ(trigger: trigger)
             }
@@ -7300,6 +8356,9 @@ class AudioEngine: ObservableObject {
             // A421 — par. 2.2 h: le ore della riga dei tempi dell'avvio, e il ramo preso.
             var engineStartedTicks: UInt64 = 0
             var playedTicks: UInt64 = 0
+            // A437 · SEGUITO 5 (par. 2.5) — e le due ore attorno a `playerNode.reset()`, per `reset_ms` e `play_ms`.
+            var beforeResetTicks: UInt64 = 0
+            var afterResetTicks: UInt64 = 0
             var freshHostNow: UInt64? = nil
             // A421 · SEGUITO 1 (par. 5.1) — parte da «nessuno»: l'unico `try` del blocco è `engine.start()`, prima di ogni
             // ramo, e la riga del catch diceva sempre «ramo:fresco»; ogni ramo che arriva alla riga dei tempi scrive il suo nome.
@@ -7375,7 +8434,11 @@ class AudioEngine: ObservableObject {
                 } else {
                     self.currentResumeToken += 1
                 }
+                // A437 · SEGUITO 5 (par. 2.5) — solo misura: due letture dell'orologio in un evento (l'avvio), fuori dal
+                // render; nessun cambio di comportamento.
+                beforeResetTicks = mach_absolute_time()
                 self.playerNode.reset()
+                afterResetTicks = mach_absolute_time()
                 self.playerNode.play()
                 playedTicks = mach_absolute_time()
                 self.isRunning = true
@@ -7433,7 +8496,9 @@ class AudioEngine: ObservableObject {
                     } else {
                         midi_engine_set_beat_position(mh, 0.0)
                     }
-                    if let lh = self.linkEngineHandle {
+                    // A437 — la ripresa del Solo non scrive niente su Link (il lucchetto vale anche per la ripresa): il quantum
+                    // resta quello di prima; gli altri avvii come sempre.
+                    if soloTarget == nil, let lh = self.linkEngineHandle {
                         link_engine_set_quantum(lh, Double(self._beatsPerBarQ))
                     }
 
@@ -7509,6 +8574,14 @@ class AudioEngine: ObservableObject {
                         // d'avvio). I buffer, il seme del contatore e la sezione d'arrivo arrivano al fuoco.
                         self.startBeatOffset = 0
                         self.armSharedJoin(retriesLeft: 0, rejoin: target)
+                    } else if let target = soloTarget {
+                        startBranch = "ripresa-solo"
+                        // === A437 — IL RAMO DELLA RIPRESA DEL SOLO ===
+                        // Il motore è in moto e muto, senza buffer; l'ingresso al bersaglio lo arma `armSoloResumeQ`: nessuna
+                        // lettura e nessuna scrittura di Link. I buffer, il seme del contatore e la sezione d'arrivo arrivano al
+                        // fuoco (`fireSoloResumeQ`).
+                        self.startBeatOffset = 0
+                        self.armSoloResumeQ(target)
                     } else {
                         // FRESH PLAY: probe + num_peers per distinguere i 3 scenari.
                         let hostNow = mach_absolute_time()
@@ -7698,7 +8771,8 @@ class AudioEngine: ObservableObject {
 
                 // A421 — par. 2.2 h: la riga dei tempi dell'avvio, una per avvio, nessun cambio di comportamento.
                 self.logStartTimingQ(trigger: trigger, branch: startBranch, entry: entryTicks, block: blockStartTicks,
-                                     engineStarted: engineStartedTicks, played: playedTicks, hostNow: freshHostNow)
+                                     engineStarted: engineStartedTicks, beforeReset: beforeResetTicks,
+                                     afterReset: afterResetTicks, played: playedTicks, hostNow: freshHostNow)
             } catch {
                 os_log("[Q-BEATS][START] -> NO METRONOME CALL in this branch",
                        log: .default, type: .default)
@@ -7727,6 +8801,9 @@ class AudioEngine: ObservableObject {
                 if self._directorSilentInSongQ {
                     self.publishDirectorSilenceQ(context: "avvio-fallito")
                 }
+                // A437 · seguito 1 (voce 1) — il motore non è partito con la ripresa del Solo in attesa: E2, il Solo si ferma
+                // come allo Stop della console e aspetta il Play (niente pausa col tasto su Stop e niente in volo).
+                self.endSoloResumeRoadQ(reason: "avvio-fallito", detail: AudioEngine.describeAudioError(error))
             }
         }
     }
@@ -8303,16 +9380,36 @@ class AudioEngine: ObservableObject {
         os_log("[Q-BEATS][A360] Link dell'utente:%{public}@ (%{public}@) - ruolo:%{public}@",
                log: .default, type: .default,
                isEnabled ? "acceso" : "spento", source, String(describing: _linkMode))
+        if changed && isEnabled {
+            // A437 · PARTE 2 (seguito 2 di A437, §2 voce 2) — la levetta accesa: se il ruolo effettivo cambia (da Solo a
+            // Direttore o a Follower) «canzone in corso» giù e la ripresa del Solo chiusa. Nient'altro su questa strada.
+            if PlayerRoleDecision.effectiveRoleChanges(roleBefore: _linkMode, userLinkEnabledBefore: false,
+                                                       roleAfter: _linkMode, userLinkEnabledAfter: true) {
+                closeSoloResumeAtRestQ(reason: "link-utente-acceso")
+                lowerSongInProgressForRoleChangeQ(reason: "link-utente-acceso")
+            }
+        }
         if changed && !isEnabled {
             // A421 — Follower e Direttore diventano il Solo: col motore in moto a volume 0 l'arresto locale come lo
             // Stop, e lo stato dell'uscita giù (mandato A421, par. 2.3 c).
-            handleRoleOrLinkChangeQ(reason: "link-utente-spento")
+            // A437 · PARTE 2 — il ruolo scelto, con la levetta accesa prima e spenta dopo: col ruolo scelto Solo il ruolo
+            // effettivo non cambia.
+            handleRoleOrLinkChangeQ(reason: "link-utente-spento",
+                                    effectiveRoleChanges: PlayerRoleDecision.effectiveRoleChanges(roleBefore: _linkMode,
+                                                                                                  userLinkEnabledBefore: true,
+                                                                                                  roleAfter: _linkMode,
+                                                                                                  userLinkEnabledAfter: false))
             followerResetQ(reason: "link-utente-spento")
             DispatchQueue.main.async { self.linkPeerCount = nil }
             // A412 — a levetta spenta il ruolo Direttore è un Solo: il silenzio del Direttore e il «segue Link»
             // dopo un rientro finiscono qui.
             leaveDirectorSilenceQ(reason: "link-utente-spento", closeAnchor: true)
             _directorFollowsLinkQ = false
+            // ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): qui c'era «A437 · PARTE 2 — C.1: Link spento dimentica la tolta
+            // dentro la chiamata.», con la chiamata `forgetRemovalDuringInterruptionQ(reason: "link")`: tolta. Link spento non
+            // abbassa più il segno della tolta dentro la chiamata: con la levetta spenta e riaccesa dopo la chiamata il click del
+            // Direttore ripartiva da solo (referto A437, par. 27 voce 1). Il segno lo abbassano solo `prepareNormalStartQ` e il
+            // fuoco del rientro (il blocco di C.1, `_removalDuringInterruptionQ`).
         }
         return changed
     }
@@ -8688,6 +9785,8 @@ class AudioEngine: ObservableObject {
         let pedalScreen: PedalScreen = pedalDoor?.screen() ?? .noDoor
         let pedalSilent = directorSilence != nil
         let pedalIsPlaying = isPlaying
+        // A437 (mandato A437, par. 2.2) — la pausa della ripresa del Solo: Play/Pause e Stop fermano come col click che suona.
+        let pedalResumePause = soloResumePending
         let pedalStartRequested = _startRequestToken != nil
         let pedalPress: PedalPress? = pedalTransport.map {
             PedalPressDecision.decide(role: lampRole,
@@ -8696,7 +9795,8 @@ class AudioEngine: ObservableObject {
                                       isPlaying: pedalIsPlaying,
                                       startRequested: pedalStartRequested,
                                       engineMoving: lampMoving,
-                                      screen: pedalScreen)
+                                      screen: pedalScreen,
+                                      soloResumePending: pedalResumePause)
         }
         // === A435 (16/11/2026) — IL TAP TEMPO DEL DIRETTORE A CANZONE IN CORSO NON FA NIENTE (mandato A435, par. 2.2;
         // seguito 1, par. 2; LIBRO_MASTRO, «a canzone in corso il Direttore solo Stop», la marcatura dell'08/11/2026) ===
@@ -8756,7 +9856,8 @@ class AudioEngine: ObservableObject {
                    log: .default, type: .default,
                    pedalTransport.rawValue, lampRole.rawValue, pedalSilent ? 1 : 0,
                    PedalPressDecision.inMotion(action: pedalTransport, isPlaying: pedalIsPlaying,
-                                               startRequested: pedalStartRequested, engineMoving: lampMoving) ? 1 : 0,
+                                               startRequested: pedalStartRequested, engineMoving: lampMoving,
+                                               soloResumePending: lampRole == .solo && pedalResumePause) ? 1 : 0,
                    pedalStartRequested ? 1 : 0,
                    PedalPressDecision.screenName(pedalScreen),
                    PedalPressDecision.commandName(pedalPress.command),
@@ -8811,6 +9912,14 @@ class AudioEngine: ObservableObject {
             // da A427, dal fuoco al primo click), e il tocco su una faccia Play si rilegge sulla
             // coda (`directorPlayFaceTappedQ`): il pedale passa di lì da sé, con `origin: "pedale"`. A426 — anche durante l'attesa
             // del rientro il pedale stop ferma la band; un tocco di playPause su «rientro in arrivo» non fa niente.
+            // ⚠️ CORRETTO A437 (18/11/2026; VERIFICA_REFEREE_A427_2026-11-05, par. 4). Qui sopra «dal fuoco all'«uno» uscito il
+            // pedale segue la faccia «rientro in arrivo» (A427)» dice meno del vero: il pedale segue la faccia che la regola dà
+            // in quel momento (`directorSilence`). Di norma è «rientro in arrivo»; con un'interruzione in corso o coi servizi
+            // audio persi è Stop anche lì, e allora il Play/Pause del pedale ferma la band (`tapRoute` ⇒ `stop()`).
+            // Sempre qui sopra, «niente a click fermo»: da A437 non vale nella pausa della ripresa del Solo (motore fermo,
+            // `soloResumePending` alto), dove Play/Pause e Stop premono tutti e due lo Stop, che chiude la ripresa
+            // (`PedalPressDecision`, punto (3)). E «Il pedale stop resta sempre Stop» va letto con la frase prima: fuori dal
+            // silenzio, a click fermo e senza partenza in corso, il pedale stop non fa niente (`PedalPressDecision`, punto (4)).
             if let silence = directorSilence {
                 directorTransportTapped(silence.tap, origin: "pedale")
             }
@@ -8842,6 +9951,12 @@ class AudioEngine: ObservableObject {
     /// («schermo:nessuna-porta»). Il gettone: chi chiude chiude solo la propria. La porta non conserva copie: `screen`
     /// legge adesso le fonti vive della vista (sessione, runner, motore, stanza, il foglio dell'import). E' una chiamata di
     /// funzione diretta: non aspetta un ridisegno, quindi vale anche in sfondo e a schermo bloccato. Solo main.
+    /// ⚠️ CORRETTO A437 (18/11/2026; VERIFICA_REFEREE_A429_SEGUITO_3_RITORNO_2026-11-08, N2). Qui sopra «quindi vale anche
+    /// in sfondo e a schermo bloccato» vale per una porta gia' aperta. A un cambio di pagina della stanza (anche quello
+    /// che fa il pedale stesso con START SHOW, RESUME o BACK TO SHOWS) le porte si chiudono tutte (`closeAllPedalDoors`)
+    /// e la porta nuova si apre solo quando la pagina nuova compare (il suo `onAppear`): fino ad allora il pedale trova
+    /// «schermo:nessuna-porta» e a click fermo non preme niente. Che in sfondo o a schermo bloccato la pagina nuova
+    /// compaia subito non e' provato (referto del seguito 3 di A429, par. 2.6).
     struct PedalDoor {
         /// Cosa mostra adesso la schermata, letto all'atto del pedale.
         let screen: () -> PedalScreen
@@ -8963,6 +10078,9 @@ class AudioEngine: ObservableObject {
             // consumato. In testa al blocco, prima del `guard` più sotto: vale anche a motore già
             // fermo.
             self.lowerOwnTransportStartQ(reason: "stop")
+            // A437 — ogni Stop chiude la ripresa del Solo (il tasto e il pedale nella pausa, END SHOW, l'uscita dalla stanza,
+            // l'arresto «come la console» delle crisi): l'àncora, il segno, e col segno alto il contatore della catena.
+            self.closeSoloResumeQ(reason: origin == .wanted ? "stop" : (origin == .soloCrisis ? "crisi-solo" : "reset-follower"))
             // A421 — ogni Stop annulla i ritorni in attesa (par. 2.3 b); lo Stop voluto del Direttore abbassa «uscita
             // mancante» (U5; per il Follower lo stato resta: risposta 3 di Mauro del 23/10).
             self.cancelOutputReturnsQ(reason: origin == .wanted ? "stop" : (origin == .soloCrisis ? "crisi-solo" : "reset-follower"))
@@ -9187,6 +10305,15 @@ class AudioEngine: ObservableObject {
         // (`RecoveryTrigger`), coi nomi che le righe [RESUME] scrivevano già.
         if recoveryRouteQ(trigger: trigger, stage: "ingresso") == .noRestart { return }
 
+        // === A437 — IL PRE-CONTROLLO DELLA RIPRESA DEL SOLO, IN UN PUNTO SOLO (mandato A437, par. 2.3; VR-3b N1) ===
+        // Qui, prima di ogni scrittura della sessione, per il primo tentativo e per ogni tentativo vivo della catena (i
+        // tentativi e la rete a 5 s rientrano da questa testa): il conto si rilegge adesso. «Riprende»: avanti; «canzone
+        // finita»: E3; «non certo»: E2; la sessione non si tocca. Un tentativo di una catena morta non decide niente: lo
+        // uccide il controllo del contatore qui sotto.
+        if attempt == 0 || token == currentResumeToken {
+            if !soloResumePreCheckQ(trigger: trigger) { return }
+        }
+
         // — Token anti-zombie —
         var activeToken = token
         if attempt == 0 {
@@ -9217,6 +10344,9 @@ class AudioEngine: ObservableObject {
             } catch {
                 os_log("[Q-BEATS][RESUME] setCategory fallito: %{public}@. Pending=true.",
                        log: .default, type: .error, error.localizedDescription)
+                // A437 · seguito 1 (voce 2) — con la ripresa del Solo in attesa questa strada finiva senza rete: E2 al posto
+                // della ripresa pendente (nessuna pausa senza una strada in volo).
+                if self.endSoloResumeRoadQ(reason: "setCategory-fallito", detail: error.localizedDescription) { return }
                 self.pendingResume = true
                 self.pendingResumeBeat = nil
                 return
@@ -9233,6 +10363,8 @@ class AudioEngine: ObservableObject {
             if session.isOtherAudioPlaying {
                 os_log("[Q-BEATS][RESUME] Hardware ancora occupato (isOtherAudioPlaying). Pending=true.",
                        log: .default, type: .default)
+                // A437 · seguito 1 (voce 2) — come qui sopra: E2 al posto della ripresa pendente.
+                if self.endSoloResumeRoadQ(reason: "hardware-occupato") { return }
                 self.pendingResume = true
                 self.pendingResumeBeat = nil
                 return
@@ -9321,6 +10453,11 @@ class AudioEngine: ObservableObject {
                               self.currentResumeToken == activeToken else {
                             os_log("[Q-BEATS][RESUME] Safety net annullato — token cambiato o pendingResume cleared",
                                    log: .default, type: .default)
+                            // A437 · seguito 1 (voce 2) — la catena finisce qui senza avvio: se è ancora la catena della
+                            // ripresa del Solo (stesso contatore, la ripresa in attesa), E2.
+                            if self.currentResumeToken == activeToken {
+                                self.endSoloResumeRoadQ(reason: "rete-senza-ripresa-pendente")
+                            }
                             return
                         }
                         self.pendingResume = false
@@ -9891,6 +11028,23 @@ class AudioEngine: ObservableObject {
     // ~15ms = 0.035 beat a 140 BPM. Sotto soglia DIRECTOR-ASSERT 0.04 →
     // nessuna correzione automatica, ma percettibile all'orecchio.
     //
+    // ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «Indica l'orario in cui l'ULTIMO buffer è stato renderizzato. Il buffer
+    // corrente (quello in scheduleNextBuffer) sarà renderizzato ~bufferDuration dopo» non regge alle misure. Letta dalla
+    // chiamata del richiamo, l'ora di `lastRenderTime` non è un'ora passata: sta circa due cicli d'I/O NEL FUTURO (24/05:
+    // lastRender − now da +21,80 a +21,93 ms in 9 righe su 9; 19/11: da +21,96 a +23,62 ms in 15 riprese su 15, iPhone e
+    // iPad; referto A437, par. 45). Apple lo scrive per il blocco di rendering di una Audio Unit (`AURenderBlock`, il
+    // parametro `timestamp`: l'ora del livello dell'hardware a cui i dati saranno resi,
+    // https://developer.apple.com/documentation/audiotoolbox/aurenderblock); che `lastRenderTime` porti la stessa ora è
+    // [Probabile]: Apple lo scrive per `AURenderBlock`. Misurato nelle 15 catene ancorate del 19/11 ([Probabile] a regime):
+    // a quell'ora il lettore sta già rendendo, da ψ (0,19-10,56 ms, dentro un ciclo), il primo buffer non ancora dato per
+    // consumato, quello prodotto DUE richiami prima; il buffer che `scheduleNextBuffer` sta riempiendo è due buffer più
+    // avanti. Quindi questa funzione (L + ciclo + latenza) dà un'ora che supera di un ciclo + ψ (11-21 ms a 48 kHz) l'uscita
+    // vera del buffer che si sta rendendo all'ora L. Il comportamento NON cambia qui: l'unico chiamante è W2, la scrittura
+    // del tempo su Link al confine di sezione (va in BUGS al giro dei canonici, Fase 3). La misura del 12/05 resta com'è.
+    // Nella frase sul ripiego qui sopra si corregge solo il perché: «perché non include il pre-roll AVAudioPlayerNode (1-2
+    // buffer in coda)» non è la causa. La differenza fra il ripiego (adesso + latenza + ciclo) e la lettura hardware
+    // (L + ciclo + latenza) è L − adesso, circa 22 ms: l'anticipo del rendering.
+    //
     // Chiamabile da audioQueue.
     private func nextBufferOutputHostTime() -> UInt64 {
         let now = mach_absolute_time()
@@ -9907,6 +11061,9 @@ class AudioEngine: ObservableObject {
         }
         // Fallback: playerNode non running, oppure hostTime non valido.
         // Errore residuo come fix #3 (~15ms sottostimato).
+        // ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «Errore residuo come fix #3 (~15ms sottostimato)»: rispetto alla lettura
+        // hardware qui sopra il ripiego sta sotto di L − adesso, circa 22 ms (due cicli: l'anticipo del rendering; referto
+        // A437, par. 45), non di ~15 ms.
         let fallback = now + self.outputLatencyTicks + self.bufferDurationTicks
         os_log("[Q-BEATS][L1bSync] nextBufferOutputHostTime FALLBACK — lastRender:nil-or-invalid now:%llu bufDur:%llu outLat:%llu result:%llu deltaFromNow:%lld",
                log: .default, type: .default,
@@ -9931,6 +11088,8 @@ class AudioEngine: ObservableObject {
         _chainCallbacksQ = 0
         _chainFirstBufferCountQ = bufferCount
         _programmedBuffersQ = []
+        // A437 — e le letture di Δ del Solo, che sono della catena.
+        resetSoloDeltaQ()
         // A421 · SEGUITO 2 (correzione B3 del verificatore del diff) — la finestra «sync skip» è della catena: una catena nuova
         // la chiude senza verdetto (il contatore riparte dalla scorta, il misuratore dal suo riferimento) e toglie il segno della
         // prima correzione.
@@ -9943,6 +11102,10 @@ class AudioEngine: ObservableObject {
     /// del ritorno del Follower (la fine dei buffer programmati all'armo; il primo campione a volume 1 nella chiamata
     /// dell'«uno»): una riga sola, quella del ritorno. `fallback`: `lastRenderTime` non valido (la lettura di riserva, che
     /// sottostima di circa un ciclo: `firstSampleAtVolumeOneTicks` toglie un ciclo in più). Chiamare SOLO su audioQueue.
+    /// ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «la lettura di riserva, che sottostima di circa un ciclo» non regge alle
+    /// misure: la lettura di riserva (adesso + latenza + ciclo) sta sotto quella hardware (L + ciclo + latenza) di L − adesso,
+    /// circa due cicli (22 ms: l'ora di `lastRenderTime` è nel futuro; referto A437, par. 45 e 48). Il comportamento non
+    /// cambia: il ritorno del Follower e il ritorno dopo il buco restano come sono (vanno in BUGS con W2).
     private func nextBufferOutputReadQ() -> (ticks: UInt64, fallback: Bool) {
         if let renderTime = self.playerNode.lastRenderTime, renderTime.isHostTimeValid {
             return (renderTime.hostTime + self.bufferDurationTicks + self.outputLatencyTicks, false)
@@ -9985,6 +11148,8 @@ class AudioEngine: ObservableObject {
         guard isRunning, let h = metronomeHandle else { return }
         // A421 · SEGUITO 2 (par. 3.3) — l'àncora tenuta dal rientro si chiude quando il primo battito contato del rientro è uscito.
         checkAnchorHeldByRejoinQ()
+        // A437 — lo stesso per l'àncora del Solo tenuta dalla ripresa (senza un'àncora tenuta esce subito).
+        checkSoloAnchorHeldQ()
         // A427 — il primo click del rientro in arrivo va giù quando l'ora d'uscita dell'«uno» del fuoco è passata, e il tasto torna
         // com'è oggi (mandato A427, par. 2.1 a).
         checkRejoinFirstClickOutQ()
@@ -10100,6 +11265,13 @@ class AudioEngine: ObservableObject {
         // nella finestra «sync skip» conta la salita dello scarto dall'apertura; sotto la soglia il silenzio (se il guardiano non
         // l'ha già scritto) e il ritorno dopo il buco, senza aspettare l'«uno»; Follower: la riga e lo stesso ritorno; Solo: la
         // riga e basta. Le letture della sessione dopo il silenzio.
+        // ⚠️ CORRETTO A437 · PARTE 2 (18/11/2026): «Solo: la riga e basta» vale fuori da una canzone. Il Solo a show aperto, in
+        // canzone e in moto sta sotto il guardiano (P6, P25): il silenzio alla chiamata del buco (se il guardiano non l'ha già
+        // scritto) e la crisi a OGNI buco sopra la soglia della riga, o alla prima chiamata dopo uno scatto del guardiano: l'àncora,
+        // l'arresto locale, il ritorno del Solo e la ripresa sulla posizione della canzone (`handleRenderGapCrisisQ`); il buffer di
+        // quella chiamata non si programma. Nessuna riga nuova a regime: tutto questo gira solo alla chiamata del buco.
+        // Costituzione V6, par. 4: su audioQueue, niente nel callback di render né nel blocco del tap; a regime il Solo in
+        // canzone ha in più il solo riarmo del guardiano in fondo alla chiamata (`armRenderGapGuardianQ`).
         let gapNowTicks = mach_absolute_time()
         let meterOutcome = self._renderGapMeterQ.observe(nowTicks: gapNowTicks, bufferCount: self.bufferCount,
                                                          sampleRate: self.sampleRate)
@@ -10124,7 +11296,8 @@ class AudioEngine: ObservableObject {
                                                                   windowProjectionSeconds: self._syncWindowProjectionQ) {
                 os_log("[Q-BEATS][RENDER] finestra chiusa salita_ms:%.1f soglia_ms:%.1f -> esito:crisi (finestra) - la correzione non si applica",
                        log: .default, type: .default, (rise ?? 0) * 1000.0, (verdict.thresholdSeconds ?? 0) * 1000.0)
-                if RenderGapDecision.guardsAgainstHoles(playerRole: self.playerRoleQ) && !self._outputSilenceQ.muted {
+                if RenderGapDecision.guardsAgainstHoles(playerRole: self.playerRoleQ, showOpen: self._showOpenQ,
+                                                        songInProgress: self._songInProgressQ) && !self._outputSilenceQ.muted {
                     self.silenceOutputNowQ(reason: "buco")
                 }
                 self.handleRenderGapCrisisQ(holeSeconds: rise ?? 0, bufferCount: self.bufferCount, reason: .window,
@@ -10135,13 +11308,17 @@ class AudioEngine: ObservableObject {
             os_log("[Q-BEATS][RENDER] finestra chiusa salita_ms:%{public}@ ruolo:%{public}@ - sotto la soglia: il ritorno aspetta la prima correzione dopo la finestra",
                    log: .default, type: .default, rise.map { String(format: "%.1f", $0 * 1000.0) } ?? "-", self.playerRoleQ.rawValue)
         }
+        // A437 — la lettura di Δ del Solo vale solo a regime: non nella chiamata di un buco né in quella dopo il guardiano.
+        var soloDeltaInRegime = true
         if case .gap(let renderGap) = meterOutcome {
+            soloDeltaInRegime = false
             self._lastMeterGapTicksQ = gapNowTicks
             // A432 · PARTE 2b — dopo un buco il riallineo del conto del Follower è dovuto (il punto R, caso 1): si fa alla
             // prima chiamata in cui la correzione è stata valutata, non qui (la posizione non è ancora quella di Link).
             self.noteFollowerRealignDueQ(reason: "buco")
             let role = self.playerRoleQ
-            let guards = RenderGapDecision.guardsAgainstHoles(playerRole: role)
+            let guards = RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: self._showOpenQ,
+                                                              songInProgress: self._songInProgressQ)
             let guardianWroteBefore = self._guardianSilenceQ != nil
             // Il segno del guardiano si consuma qui: la chiamata del buco arma il ritorno da sé.
             self._guardianSilenceQ = nil
@@ -10150,7 +11327,8 @@ class AudioEngine: ObservableObject {
                 self.silenceOutputNowQ(reason: "buco")
             }
             var externalVanished = false
-            if role == .direttore {
+            // A437 · PARTE 2 — anche il Solo in canzone (P32): lo stacco visto prima della notizia.
+            if role == .direttore || (role == .solo && guards) {
                 externalVanished = self._outputSilenceQ.lastOutputExternal == true && !self.hasExternalOutputNowQ()
             }
             let projection = self.machTicksToSeconds(self.outputLatencyTicks + self.bufferDurationTicks)
@@ -10196,6 +11374,7 @@ class AudioEngine: ObservableObject {
                 self?.writeRenderGapContextLineQ(contextSnapshot)
             }
         } else if let guardianSilence = self._guardianSilenceQ {
+            soloDeltaInRegime = false
             // Par. 4.4 — la prima chiamata della stessa catena che arriva al misuratore dopo uno scatto del guardiano, anche se il
             // misuratore non dice buco: il silenzio del guardiano ha sempre il suo ritorno.
             self._guardianSilenceQ = nil
@@ -10203,7 +11382,23 @@ class AudioEngine: ObservableObject {
             if guardianSilence.chain == self._bufferChainGenerationQ {
                 self.noteFollowerRealignDueQ(reason: "buco")
             }
-            if guardianSilence.chain == self._bufferChainGenerationQ && RenderGapDecision.guardsAgainstHoles(playerRole: self.playerRoleQ) {
+            let guardsNow = RenderGapDecision.guardsAgainstHoles(playerRole: self.playerRoleQ, showOpen: self._showOpenQ,
+                                                                 songInProgress: self._songInProgressQ)
+            if guardianSilence.chain == self._bufferChainGenerationQ && guardsNow && self.playerRoleQ == .solo {
+                // A437 · PARTE 2 (referto A424, par. 2.1 j) — nel Solo in canzone il silenzio del guardiano non ha un «ritorno dopo
+                // il buco» (il Solo non ha una griglia rimessa da una correzione): è la crisi, e la ripresa sulla canzone. Come alla
+                // chiamata del buco, con l'uscita sparita il Solo si ferma come allo Stop (P32); il buffer non si programma.
+                let sinceFireSeconds = max(0, self.signedMilliseconds(from: guardianSilence.ticks, to: gapNowTicks) / 1000.0)
+                let vanished = self._outputSilenceQ.lastOutputExternal == true && !self.hasExternalOutputNowQ()
+                os_log("[Q-BEATS][USCITA] guardiano: la chiamata dopo lo scatto non e' un buco per il misuratore dalloScatto_ms:%.1f - nel Solo in canzone la crisi e la ripresa sulla canzone",
+                       log: .default, type: .default, sinceFireSeconds * 1000.0)
+                self.handleRenderGapCrisisQ(holeSeconds: sinceFireSeconds, bufferCount: self.bufferCount,
+                                            reason: vanished ? .outputVanished : .hole,
+                                            thresholdSeconds: nil, projectionSeconds: 0)
+                self.logRenderGapContextQ(nowTicks: gapNowTicks)
+                return
+            }
+            if guardianSilence.chain == self._bufferChainGenerationQ && guardsNow {
                 os_log("[Q-BEATS][USCITA] guardiano: la chiamata dopo lo scatto non e' un buco per il misuratore dalloScatto_ms:%.1f - il ritorno dopo il buco si arma lo stesso",
                        log: .default, type: .default, self.signedMilliseconds(from: guardianSilence.ticks, to: gapNowTicks))
                 self.armGapReturnQ(reason: "silenzio del guardiano")
@@ -10415,6 +11610,11 @@ class AudioEngine: ObservableObject {
         beatTotal   += Int(beatCount)
         // A421 · SEGUITO 2 (par. 4.5) — la memoria del buffer programmato, per la riga della misura.
         self.rememberProgrammedBufferQ()
+        // A437 — la lettura di Δ per l'àncora del Solo (solo nel Solo in canzone: una lettura di `lastRenderTime`, memorie
+        // fisse, nessuna riga).
+        // ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «una lettura di `lastRenderTime`» è «al più una»: per i buffer della
+        // partenza, senza la convenzione in memoria o col ciclo più lungo del buffer non si legge (`noteSoloDeltaQ`).
+        self.noteSoloDeltaQ(inRegime: soloDeltaInRegime)
 
         let muteGain: Float = self._clickMuted ? 0.0 : 1.0
 
@@ -10525,6 +11725,14 @@ class AudioEngine: ObservableObject {
                     self._lastCountedBeatQ = CountedBeat(section: self._songMapSectionQ,
                                                          beatInSection: self._sectionTotalBeats > 0 ? self._sectionBeatCounter : -1,
                                                          outTicks: self._lastBeatOutTicksQ)
+                    // A437 · SEGUITO 5 (par. 2.3) — accanto, per l'àncora del Solo, il segno dei due battiti: l'epoca delle
+                    // letture di Δ se il buffer di questo battito l'ha prodotto un richiamo della catena (indice nella
+                    // catena da tre in su), se no «nessuna» (`SoloResumeDecision.beatDeltaEpoch`). Lo legge solo
+                    // `takeSoloAnchorQ`. Due scritture di un intero a ogni battito contato, su questa coda; nessuna riga.
+                    self._soloPrevBeatDeltaEpochQ = self._soloLastBeatDeltaEpochQ
+                    self._soloLastBeatDeltaEpochQ = SoloResumeDecision.beatDeltaEpoch(
+                        bufferChainIndex: self.bufferCount - 1 - self._chainFirstBufferCountQ,
+                        epoch: self._soloDeltaEpochQ)
                     // A432 · PARTE 2c — il battito di controllo «sulla griglia» del conto del Follower: lo stesso battito,
                     // solo col conto vivo, e non se (i) un riallineo dovuto «buco» aspetta ancora la sua lettura (la
                     // correzione non è stata valutata: il battito è uscito in ritardo della durata del buco) o se (ii) è il
@@ -10634,6 +11842,16 @@ class AudioEngine: ObservableObject {
                             // righe 586-588 + completion handler scheduleNextBuffer mantengono
                             // steady-state ~2 in coda). nextBufferOutputHostTime punta al
                             // prossimo buffer da renderizzare; il nostro è dietro di preRollTicks.
+                            // ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «nextBufferOutputHostTime punta al prossimo buffer
+                            // da renderizzare; il nostro è dietro di preRollTicks» non regge alle misure. All'ora di
+                            // `lastRenderTime` (circa due cicli nel futuro: il commento di Fix #4) il lettore sta già
+                            // rendendo, da ψ (0,19-10,56 ms), il buffer due posti prima del nostro: l'uscita vera del
+                            // nostro evento è L − ψ + due buffer + latenza + lo scostamento, e l'ora scritta qui a Link
+                            // (L + ciclo + latenza + due cicli + lo scostamento) è PIÙ TARDA dell'uscita vera di un ciclo
+                            // + ψ (11-21 ms a 48 kHz), e di circa 43 ms dell'ora che il Direttore usa negli assert dello
+                            // stesso buffer (referto A437, par. 48). Il comportamento di W2 NON si tocca qui: va in BUGS
+                            // al giro dei canonici (Fase 3). «Un ciclo + ψ» vale col ciclo d'I/O uguale al buffer del
+                            // lettore, com'era nelle misure; in generale la differenza è tre cicli − due buffer + ψ.
                             let preRollTicks = 2 * self.bufferDurationTicks
                             let hostTime = self.nextBufferOutputHostTime() + preRollTicks + ticksOffset
                             let currentBeat = midi_engine_get_beat_position(mh)
@@ -11304,7 +12522,9 @@ class AudioEngine: ObservableObject {
                                                       songInProgress: self._songInProgressQ,
                                                       engineRunning: self.isRunning,
                                                       stoppedByCrisis: self.stoppedByCrisisQ,
-                                                      inInterruption: self._interruptionRouteQ.systemInterruption)
+                                                      inInterruption: self._interruptionRouteQ.systemInterruption,
+                                                      soloResumePending: self._soloResumePendingQ,
+                                                      directorSilentInSong: self._directorSilentInSongQ)
             os_log("[Q-BEATS][USCITA] passo classe:%{public}@ ruolo:%{public}@ show:%d canzone:%d motore:%{public}@ fermoPerCrisi:%d interruzione:%d -> silenzio:%d crisi:%{public}@ alzaMancante:%d abbassaMancante:%d ritorno:%{public}@",
                    log: .default, type: .default,
                    classification.routeClass.rawValue, self.playerRoleQ.rawValue, self._showOpenQ ? 1 : 0,
@@ -11339,6 +12559,11 @@ class AudioEngine: ObservableObject {
             }
             if outputStep.raisesMissing {
                 self.noteOutputStateQ(.removed, from: "tolta", externalPresent: externalNow)
+            }
+            // A437 · PARTE 2 — C.1: la tolta dentro un'interruzione, col Direttore non muto in canzone, si ricorda a parte. Uno
+            // stato puro, prima del rimando qui sotto: non tocca sessione, motore né la memoria delle crisi.
+            if outputStep.remembersRemoval {
+                self.rememberRemovalDuringInterruptionQ()
             }
             if outputStep.lowersMissing {
                 // A421 · SEGUITO 2 (par. 5.3, E.7) — col motore in moto e il volume a 1 che resta (il Direttore fuori da una canzone,
@@ -11400,8 +12625,23 @@ class AudioEngine: ObservableObject {
                     }
                 case .soloStopAsConsole:
                     soloStopCause = cause
+                case .soloResumeOnSong:
+                    // A437 (P23, la strada unica; referto A424, par. 3.2) — il Solo in canzone con un'uscita che compare:
+                    // l'àncora PRIMA dell'arresto, poi l'arresto locale come il Direttore in canzone; senza àncora E2.
+                    let take = self.takeSoloAnchorQ(cause: cause)
+                    if self.isRunning {
+                        self.stopForOutputCrisisQ(context: "percorso-\(classification.routeClass.rawValue)")
+                    }
+                    self.afterSoloCrisisStopQ(take)
                 case .asToday, .nothing:
                     break
+                }
+                // A437 — il ritorno del Solo: dopo l'annullo di quello che c'era, con l'attesa della configurazione se la
+                // frequenza della sessione è già diversa dalla copia, se no l'assestamento (come il Direttore, qui sotto).
+                if outputStep.armsReturn == .solo && outcome == .soloResumeOnSong && self._soloResumePendingQ {
+                    self.cancelOutputReturnsQ(reason: "percorso-aggiunta")
+                    self.armDirectorReturnQ(kind: .solo, trigger: .outputAdded,
+                                            sessionRateDiffers: !SampleRateDecision.same(routeSession.sampleRate, self.sampleRate))
                 }
                 if outputStep.armsReturn == .director && outcome == .silentInSong {
                     self.cancelOutputReturnsQ(reason: "percorso-aggiunta")
@@ -11502,9 +12742,12 @@ class AudioEngine: ObservableObject {
                 // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`): col Direttore muto in canzone
                 // l'àncora e il silenzio, e la ripartenza qui sotto passa dal coordinatore
                 // (`RecoveryDecision`); per tutti gli altri come oggi.
-                if self.crisisOutcomeQ(cause: .mode) == .silentInSong {
+                let modeOutcome = self.crisisOutcomeQ(cause: .mode)
+                if modeOutcome == .silentInSong {
                     self.enterDirectorSilenceQ(cause: .mode)
                 }
+                // A437 — il Solo in canzone: l'àncora prima dell'arresto (nella pausa è già viva e resta quella).
+                let soloModeTake: SoloAnchorTake? = modeOutcome == .soloResumeOnSong ? self.takeSoloAnchorQ(cause: .mode) : nil
                 self.isRunning = false
                 // A427 — a motore fermo il primo click del rientro in arrivo va giù, con la faccia (`nil` fuori dal silenzio).
                 self.lowerRejoinClickPendingQ(context: "modo", publish: true)
@@ -11514,6 +12757,10 @@ class AudioEngine: ObservableObject {
                 // ritorni in attesa si annullano solo se questo ramo riparte, più sotto (par. 2.3 b).
                 self.closeDrainOnCrisisStopQ(context: "modo")
                 self.publishIsPlayingQ(context: "modo")
+                // A437 — senza àncora la ripresa non è possibile: E2 (lo Stop voluto alzato: la ripartenza qui sotto dà «niente»).
+                if let soloModeTake {
+                    self.afterSoloCrisisStopQ(soloModeTake)
+                }
                 // RIENTRO-P1 (a) — arresto che non passa da `stopSync`: l'ingresso
                 // pendente, se c'è, si annulla qui.
                 self.cancelPendingJoin(reason: "cambio di topologia")
@@ -11576,8 +12823,14 @@ class AudioEngine: ObservableObject {
 
             // --- Aggiornamento latency ticks ---
             let avSession = AVAudioSession.sharedInstance()
+            // A437 · SEGUITO 5 (par. 3 g) — i due valori di prima: questa strada può girare a catena viva (il Solo in
+            // canzone col click in moto, una notizia di percorso che non cambia né frequenza né modo).
+            let latencyBeforeTicks = self.outputLatencyTicks
+            let cycleBeforeTicks = self.bufferDurationTicks
             self.outputLatencyTicks  = self.secondsToMachTicks(avSession.outputLatency)
             self.bufferDurationTicks = self.secondsToMachTicks(avSession.ioBufferDuration)
+            // A437 · SEGUITO 5 (par. 3 g) — se latenza o ciclo sono cambiati davvero, le letture di Δ del Solo si azzerano.
+            self.resetSoloDeltaOnTimingChangeQ(latencyBeforeTicks: latencyBeforeTicks, cycleBeforeTicks: cycleBeforeTicks)
             if let lh = self.linkEngineHandle {
                 link_engine_set_output_latency_ticks(lh, self.outputLatencyTicks)
             }
@@ -11633,7 +12886,7 @@ class AudioEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self.stopForSoloCrisis(cause: .servicesLost)
                 }
-            case .asToday, .nothing:
+            case .asToday, .nothing, .soloResumeOnSong:
                 break
             }
             self.clearPendingResumeQ(reason: "lost")
@@ -11697,7 +12950,7 @@ class AudioEngine: ObservableObject {
                     soloStop = cause
                 case .asToday:
                     followerStopSync = step.action == .stopThenMarkRebuild
-                case .nothing:
+                case .nothing, .soloResumeOnSong:
                     break
                 }
             }
@@ -11906,9 +13159,13 @@ class AudioEngine: ObservableObject {
         // A412 — dentro la regola di ogni crisi (`CrisisStopDecision`), con la causa «configurazione»: per Apple un cambio
         // di frequenza dell'hardware è un cambio di configurazione del motore. Col Direttore muto in canzone l'àncora e il
         // silenzio, e la ripartenza qui sotto passa dal coordinatore (`RecoveryDecision`); per tutti gli altri come oggi.
-        if crisisOutcomeQ(cause: .configuration) == .silentInSong {
+        let rateOutcome = crisisOutcomeQ(cause: .configuration)
+        if rateOutcome == .silentInSong {
             enterDirectorSilenceQ(cause: .configuration)
         }
+        // A437 — il Solo in canzone: l'àncora prima dell'arresto; la ripartenza qui sotto passa dal pre-controllo e dal
+        // coordinatore del Solo (`activateSessionAndStart`, `start()`).
+        let soloRateTake: SoloAnchorTake? = rateOutcome == .soloResumeOnSong ? takeSoloAnchorQ(cause: .configuration) : nil
         // L'arresto sulla coda (mandato A420, par. 2.1): lettore e motore, anche quando il motore l'ha già fermato il sistema
         // (cambio di configurazione: lo stop libera le risorse preparate, e il ricollegamento qui sotto le riprepara).
         isRunning = false
@@ -11959,6 +13216,10 @@ class AudioEngine: ObservableObject {
         // Il tasto a stato finito, e la ripartenza dalla regola: il Direttore muto in canzone va al coordinatore.
         if _directorSilentInSongQ {
             publishDirectorSilenceQ(context: source.stopContext)
+        }
+        // A437 — senza àncora la ripresa non è possibile: E2 (lo Stop voluto alzato: la ripartenza qui sotto dà «niente»).
+        if let soloRateTake {
+            afterSoloCrisisStopQ(soloRateTake)
         }
         activateSessionAndStart(resumeAtBeat: resumeBeat, trigger: trigger)
     }

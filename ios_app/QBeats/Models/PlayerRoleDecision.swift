@@ -48,4 +48,14 @@ struct PlayerRoleDecision: Equatable {
         }
         return .solo
     }
+
+    /// A437 · PARTE 2 (seguito 2 di A437, §2 voce 2) — il ruolo effettivo cambia: il ruolo del player di prima e quello di
+    /// dopo sono diversi. Da Solo a Solo (il ruolo scelto che cambia a levetta spenta; la levetta che si spegne col ruolo
+    /// Direttore o Follower già Solo) NON è un cambio. Lo legge il motore per abbassare «canzone in corso»: una canzone
+    /// partita in un ruolo non ha, nel ruolo nuovo, il riferimento che serve per riprenderla sulla sua posizione.
+    static func effectiveRoleChanges(roleBefore: LinkMode, userLinkEnabledBefore: Bool,
+                                     roleAfter: LinkMode, userLinkEnabledAfter: Bool) -> Bool {
+        playerRole(role: roleBefore, userLinkEnabled: userLinkEnabledBefore)
+            != playerRole(role: roleAfter, userLinkEnabled: userLinkEnabledAfter)
+    }
 }

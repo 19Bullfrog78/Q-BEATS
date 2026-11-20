@@ -48,6 +48,8 @@ private struct DirectorReturn {
     let trigger: RecoveryTrigger
     /// L'ora dell'armamento: la ripresa pendente è assorbita solo da un ritorno armato dalla stessa notizia.
     let armedAt: Double
+    /// A437 — di chi è il ritorno: lo stato è in comune, il Solo ha la sua guardia allo scatto (`fireSoloReturn`).
+    var kind: OutputReturnKind = .director
 }
 
 private struct FollowerReturn {
@@ -93,10 +95,25 @@ private struct RejoinWait {
 }
 
 /// A421 · SEGUITO 1 — un tentativo di `activateSessionAndStart` in volo (ogni 0,5 s), o la rete a 5 s dopo i tentativi esauriti.
+/// A437 — il fuoco armato della ripresa del Solo: il bersaglio, l'ora dello scatto, i salti rimasti, il «lettore lento».
+private struct SoloFireWait {
+    let aim: SoloResumeAim
+    let fireAt: Double
+    let skipsLeft: Int
+    let slowPlayer: Bool
+}
+
 private struct RetryWait {
     let fireAt: Double
     let trigger: RecoveryTrigger
     let attempt: Int
+    let token: Int
+}
+
+/// A437 · PARTE 2 — la rete a 1 s della fine dell'interruzione senza `shouldResume` (`safety_net_noresume`): scatta solo con la
+/// ripresa pendente ancora alta e lo stesso contatore della catena.
+private struct NoResumeNet {
+    let fireAt: Double
     let token: Int
 }
 
@@ -378,6 +395,19 @@ private struct OutputRig {
     var useEngineBeatZero = true
     var useRunningStartConsumesMap = true
     var useRejoinFireClearsMemory = true
+    /// A437 · PARTE 2 (C.8; VERIFICA_REFEREE_A425, par. 3.1) — LA ROTTURA VOLUTA: l'azzeramento della causa ricordata e dello Stop
+    /// voluto in cima al fuoco del rientro, prima delle uscite del fuoco che non parte. Spento di base: acceso è il rig sbagliato
+    /// che `testARejoinFireThatDoesNotStartClearsNothing` deve vedere.
+    var rejoinFireClearsMemoryAtTheTop = false
+    /// A437 · PARTE 2 (§B.8 del seguito 4 di A421) — il controllo «in ritardo» del fuoco del rientro come il motore: senza piano
+    /// della scorta (`DirectorRejoinDecision.leadIn` nullo) l'ora del render è il bersaglio meno la sola latenza
+    /// (`fireDirectorRejoinQ`: `leadIn?.firstBufferRenderTicks ?? firstBufferRenderTicks(…)`). Spento: il rig di prima, sempre D
+    /// con la scorta.
+    var useEngineLateCheckWithoutLeadIn = true
+    /// A437 · PARTE 2 (§B.4 del seguito 4 di A421) — le chiamate della scorta del rientro arrivate col segno della prima
+    /// correzione dopo la finestra alto: nel motore non succede (il segno lo abbassano l'arresto e ogni catena nuova); nel banco
+    /// il segno nella scorta si mette a mano, e questo contatore dice che nessuna sequenza vera ci arriva.
+    var leadInCallsWithTheMarkUp = 0
     /// A425: le correzioni sotto la soglia non applicate, le mappe consumate dall'avvio in corso, gli azzeramenti al fuoco.
     var correctionsUnderThreshold = 0
     var mapsConsumedByRunningStart = 0
@@ -399,6 +429,104 @@ private struct OutputRig {
     ///    tenuta, anche oltre il bersaglio); spento, si chiude alla prima chiamata dal bersaglio in poi (`firstBeatOutAt`), che
     ///    l'«uno» sia contato o no, com'era.
     var useEngineHeldAnchorClose = true
+
+    // A437 — LA RIPRESA DEL SOLO SULLA CANZONE (mandato A437, par. 2 e 3; seguito 1). La mappa della canzone del Solo e la
+    // sua griglia (l'ora d'uscita vera di ogni battito: dal Play, e dopo una ripresa dal bersaglio); l'àncora (il conto
+    // dall'ultimo battito uscito prima della crisi), tenuta dalla ripresa fino al primo battito uscito; il segno della pausa;
+    // il fuoco armato; Δ (di quanto l'uscita vera segue la convenzione del motore) e le sue letture valide della catena.
+    var soloMap: SongMap? = nil
+    var soloSongIdx = 0
+    var soloGrid: ShowClock? = nil
+    var soloAnchor: ShowClock? = nil
+    var soloAnchorSongIdx = 0
+    var soloAnchorHeld = false
+    var soloResumePending = false
+    var soloFire: SoloFireWait? = nil
+    var soloDeltaSeconds = 0.0
+    var soloDeltaReadings: [SoloDeltaReading] = []
+    var soloRenderFresh = true
+    // === A437 · SEGUITO 5 (19/11/2026) — LE LETTURE DI Δ DALLA REGOLA PURA, COME IL MOTORE (`noteSoloDeltaQ`) ===
+    // Fino al seguito 4 il rig aggiungeva le letture da sé, col solo segno `soloRenderFresh`, senza passare dalla regola: nessuna
+    // sequenza aveva mai giocato una lettura scartata. Ora il rig conta i richiami della catena, tiene la convenzione di ogni
+    // buffer in una memoria di otto posti e passa da `SoloResumeDecision.deltaReadingGate` e `deltaReading`. Due modi (decisione
+    // del referee, par. 4 del seguito 5):
+    //  · REALISTICO (`renderAheadSeconds` e `renderPhaseSeconds` dati: «a» e «ψ» del telefono). L'ora dell'ultimo render è
+    //    l'inizio del rendering del buffer di confronto più ψ; adesso è l'ora della chiamata: nei richiami puntuali adesso =
+    //    L − a, e un richiamo in ritardo sposta adesso e non L [scelta del rig, come `renderNext`; Ipotesi che sul telefono sia
+    //    così]. L'uscita vera di ogni buffer sta sulla linea della catena (il buffer 0 di un Play esce a t + latenza + a − ψ):
+    //    Δ non è data, si ricava (`soloTrueDeltaSeconds`);
+    //  · DI PRIMA (i due non dati): l'uscita vera è la convenzione più `soloDeltaSeconds`, com'era, e L si ricava dalla Δ data
+    //    (L = convenzione + Δ + ciclo/2 − latenza, adesso = L − 2 cicli): la regola pura rende la stessa Δ di prima, e le prove
+    //    di prima vedono gli stessi numeri. Nei tre buffer della catena ancorata la convenzione è l'ora vera, come nel motore.
+    // `soloRenderFresh` falso è il render fermo: L resta `soloRenderBehindSeconds` prima di adesso (motivo «indietro»).
+    // Il modello del Follower (`renderNext`, in `scheduleNextBuffer`) resta com'è: i due convivono.
+    var renderAheadSeconds: Double? = nil
+    var renderPhaseSeconds: Double? = nil
+    var soloRenderBehindSeconds = 0.001
+    /// I richiami della catena (`_chainCallbacksQ`): ogni chiamata di `scheduleNextBuffer` che non è una delle tre della partenza.
+    var chainCallbacks = 0
+    var soloOutRingIndex: [Int] = Array(repeating: -1, count: SoloResumeDecision.deltaMemory)
+    var soloOutRingTicks: [UInt64] = Array(repeating: 0, count: SoloResumeDecision.deltaMemory)
+    /// I contatori della riga `letture di delta` (`_soloDeltaTallyQ`), e quelli scritti all'ultima presa dell'àncora (la riga).
+    var soloDeltaTally = SoloDeltaTally()
+    var soloLastTally: SoloDeltaTally? = nil
+    /// L'epoca delle letture (`_soloDeltaEpochQ`) e l'indice nella catena del primo buffer prodotto dopo l'ultimo azzeramento.
+    var soloDeltaEpoch = 0
+    var soloEpochFirstBuffer = 0
+    /// L'uscita vera del buffer 0 della catena corrente; se la catena è ancorata; la convenzione di ogni suo buffer.
+    var soloChainOutStart: Double? = nil
+    var soloChainAnchored = false
+    var soloChainConventions: [Double] = []
+    /// Gli azzeramenti a catena viva (par. 3 g del seguito 5), col motivo.
+    var soloDeltaResets: [String] = []
+    var soloRealRender: Bool { renderAheadSeconds != nil && renderPhaseSeconds != nil }
+    /// Nel modo realistico la griglia vera parte a − ψ dopo l'ora di prima (t + latenza); nel modo di prima 0.
+    var soloRenderShift: Double {
+        guard let ahead = renderAheadSeconds, let phase = renderPhaseSeconds else { return 0 }
+        return ahead - phase
+    }
+    /// L'uscita vera meno la convenzione di un buffer di regime: nel modo realistico 2B − ciclo + a − ψ (par. 2.1 del seguito
+    /// 5), nel modo di prima `soloDeltaSeconds`.
+    var soloTrueDeltaSeconds: Double {
+        guard let ahead = renderAheadSeconds, let phase = renderPhaseSeconds else { return soloDeltaSeconds }
+        return 2 * bufferSeconds - cycleSeconds + ahead - phase
+    }
+    /// Le strade che finiscono senza avvio: `setCategory` che fallisce, `engine.start()` che fallisce (`hardwareBusy` c'è già).
+    var setCategoryFails = false
+    var engineStartFails = false
+    /// A437 · PARTE 2 (seguito 2 di A437, §1 voce 4 h) — gli ingressi delle tre uscite E2 «per difesa» di `start()`: il
+    /// metronomo che manca (la prima guardia), lo stato dei servizi audio all'avvio (`MediaServicesResetDecision`, evento
+    /// `.start`: «servizi persi» rifiuta, «da ricostruire» ricostruisce) e la ricostruzione che fallisce.
+    var metronomeMissing = false
+    var servicesAtStart: MediaServicesState = .normal
+    var rebuildFails = false
+    /// A437 · PARTE 2 — C.1 (referto A431, par. 2.7): il segno «tolta dentro l'interruzione» (`_removalDuringInterruptionQ`),
+    /// quante volte si è alzato e con che motivo si è abbassato (play | ruolo | link | rientro).
+    /// ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): «ruolo» e «link» non ci sono più (il cambio di ruolo e Link spento non abbassano
+    /// più il segno, come il motore); i motivi sono play | rientro.
+    var removalDuringInterruption = false
+    var removalsRemembered = 0
+    var removalsForgotten: [String] = []
+    /// A437 · PARTE 2 — la fine dell'interruzione senza `shouldResume`: la rete a 1 s (col contatore della catena di allora).
+    var noResumeNet: NoResumeNet? = nil
+    var noResumeNetFired = 0
+    // I contatori della ripresa.
+    var engineStartFailures = 0
+    var runnerArmNext = 0
+    var runnerRejoins: [Int] = []
+    var soloAnchorsTaken = 0
+    var soloLastDelta: SoloDelta? = nil
+    var soloE2: [String] = []
+    var soloE3: [String] = []
+    var soloResumes = 0
+    var soloFirstClickAt: Double? = nil
+    var soloFirstAim: SoloResumeAim? = nil
+    var soloLateFires = 0
+    var soloLateTargets: [Double] = []
+    var soloClosures: [String] = []
+    var soloPreChecks = 0
+    var soloReturnsFired = 0
+    var soloReturnsNotFired = 0
 
     init(role: PlayerRole, route: [OutputPort], bpm: Double = 121, beatsPerBar: Int = 4,
          cycleSeconds: Double = 512.0 / 48_000.0, renderOffsetBuffers: Double = 0.0, fallbackRead: Bool = false) {
@@ -581,10 +709,14 @@ private struct OutputRig {
     /// Solo a motore fermo con una causa che non lo ferma la tiene (con la riga: `memoryKeptLines`); com'era (regola spenta) ogni
     /// esito diverso da «niente» la riscriveva.
     mutating func crisis(_ cause: CrisisCause) -> CrisisStopOutcome {
+        // A437 (P35): per il Solo la regola e la memoria ricevono «in moto per il player» (il motore gira, o la ripresa aspetta).
+        let inMotion = role == .solo
+            ? SoloResumeDecision.inMotionForPlayer(engineRunning: isRunning, resumePending: soloResumePending)
+            : isRunning
         let outcome = CrisisStopDecision.outcome(playerRole: role, cause: cause, showOpen: showOpen,
-                                                 songInProgress: songInProgress, engineRunning: isRunning,
+                                                 songInProgress: songInProgress, engineRunning: inMotion,
                                                  silentInSong: silentInSong)
-        var memoryStep = CrisisMemoryDecision.step(playerRole: role, cause: cause, engineRunning: isRunning, outcome: outcome)
+        var memoryStep = CrisisMemoryDecision.step(playerRole: role, cause: cause, engineRunning: inMotion, outcome: outcome)
         if !useCrisisMemoryRule && memoryStep == .keep { memoryStep = .rewrite }
         let memory = CrisisMemoryDecision.memoryAfter(step: memoryStep, previousCause: crisisCause, wantedStopSinceCrisis: wantedStop,
                                                       cause: cause, playerRole: role)
@@ -617,6 +749,7 @@ private struct OutputRig {
         engineRunning = false
         queued = []
         rejoin = nil
+        soloFire = nil   // A437: `cancelPendingJoin` annulla anche il fuoco armato della ripresa del Solo
         netAt = nil
         leadInBuffersLeft = 0
         rejoinLeadIn = nil
@@ -652,6 +785,9 @@ private struct OutputRig {
         // A421 · SEGUITO 4 (par. 3.2): `stopSync` abbassa «canzone in corso» per ogni origine, anche a motore gia' fermo.
         if useEngineSongInProgress { songInProgress = false }
         wantedStop = true
+        // A437: ogni Stop chiude la ripresa del Solo (l'àncora, il segno, e col segno alto il contatore della catena).
+        closeSoloResume(reason: "stop")
+        soloFire = nil
         cancelReturns()
         cancelGuardian()
         rejoin = nil
@@ -710,6 +846,9 @@ private struct OutputRig {
     /// Il Solo fermo come allo Stop della console (`stopForSoloCrisis` → `stopSync(.soloCrisis)`).
     mutating func soloStop() {
         soloStops += 1
+        // A437: `stopSync(.soloCrisis)` chiude la ripresa del Solo come ogni Stop.
+        closeSoloResume(reason: "crisi-solo")
+        soloFire = nil
         // A421 · SEGUITO 4 (par. 3.2): `stopSync(.soloCrisis)` abbassa «canzone in corso».
         if useEngineSongInProgress { songInProgress = false }
         cancelReturns()
@@ -784,6 +923,7 @@ private struct OutputRig {
         silentInSong = false
         songMapPending = false
         closeAnchor(at: t, reason: "show-chiuso")
+        closeSoloResumeAtRest(reason: "show-chiuso")   // A437
         cancelReturns()
         if isRunning && state.muted && mediaServicesNormal {
             restoreVolume()
@@ -801,7 +941,8 @@ private struct OutputRig {
         if rateChanges { hardwareRate = (hardwareRate == 48_000) ? 44_100 : 48_000 }
         let step = OutputRouteDecision.step(routeClass: routeClass, playerRole: role, showOpen: showOpen,
                                             songInProgress: songInProgress, engineRunning: isRunning,
-                                            stoppedByCrisis: stoppedByCrisis, inInterruption: systemInterruption)
+                                            stoppedByCrisis: stoppedByCrisis, inInterruption: systemInterruption,
+                                            soloResumePending: soloResumePending, directorSilentInSong: silentInSong)
         // L'ordine del par. 2.3 a (alla lettera, dopo la verifica del diff): `mediaResetSkipsQ`; il silenzio (U3); lo stato
         // puro «uscita mancante» e, a una tolta, l'annullo dei ritorni (anche nel rimando dentro un'interruzione, che poi
         // esce); la crisi e l'arresto; i ritorni; la ripresa pendente; i rami di oggi. Fra la Lost e la Reset niente, nemmeno
@@ -815,6 +956,12 @@ private struct OutputRig {
             lastRemovalMeasure = (removalWrittenBy, silenceWrittenNow)
         }
         if step.raisesMissing { apply(.removed) }
+        // A437 · PARTE 2 — C.1: la tolta dentro un'interruzione, col Direttore non muto in canzone, si ricorda a parte (uno stato
+        // puro, prima del rimando che esce più sotto).
+        if step.remembersRemoval && !removalDuringInterruption {
+            removalDuringInterruption = true
+            removalsRemembered += 1
+        }
         // A421 · SEGUITO 2 (E.7): col motore in moto e il volume a 1 che resta, la memoria prende l'esterna.
         if step.lowersMissing { apply(.externalPresent(playingAtVolumeOne: isRunning && !state.muted)) }
         if routeClass == .removed { cancelReturns() }
@@ -822,6 +969,7 @@ private struct OutputRig {
         // Il Solo si ferma sul principale (`stopForSoloCrisis`, mai da audioQueue): dopo il blocco della coda, cioè dopo i
         // rami della frequenza e del modo qui sotto.
         var deferredSoloStop = false
+        var soloResumeCrisis = false
         if useRouteCrisis {
             if let cause = step.crisisCause {
                 switch crisis(cause) {
@@ -833,11 +981,25 @@ private struct OutputRig {
                     playbackStopped = true
                 case .soloStopAsConsole:
                     deferredSoloStop = true
+                case .soloResumeOnSong:
+                    // A437 (P23, la strada unica): l'àncora prima dell'arresto, l'arresto locale; senza àncora E2.
+                    let take = takeSoloAnchor(cause: cause)
+                    if isRunning { crisisStop() }
+                    afterSoloCrisisStop(take)
+                    soloResumeCrisis = true
                 case .asToday, .nothing:
                     break
                 }
             }
             switch step.armsReturn {
+            case .solo?:
+                // A437: il ritorno del Solo, dopo l'annullo di quello che c'era, con la stessa attesa del Direttore.
+                if soloResumeCrisis && soloResumePending {
+                    cancelReturns()
+                    let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: hardwareRate != copyRate)
+                    directorReturn = DirectorReturn(wait: wait, fireAt: t + OutputReturnDecision.directorWaitSeconds(wait),
+                                                    trigger: .outputAdded, armedAt: t, kind: .solo)
+                }
             case .director?:
                 if silentInSong && !isRunning {
                     let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: hardwareRate != copyRate)
@@ -878,8 +1040,12 @@ private struct OutputRig {
             }
         } else if modeChanges {
             let wasRunning = isRunning
-            if crisis(.mode) == .silentInSong { silentInSong = true }
+            let modeOutcome = crisis(.mode)
+            if modeOutcome == .silentInSong { silentInSong = true }
+            // A437: il Solo in canzone prende l'àncora prima dell'arresto (nella pausa è già viva e resta quella).
+            let soloModeTake: SoloAnchorTake? = modeOutcome == .soloResumeOnSong ? takeSoloAnchor(cause: .mode) : nil
             if isRunning { crisisStop() }
+            if let soloModeTake { afterSoloCrisisStop(soloModeTake) }
             if wasRunning {
                 cancelReturns()
                 activateSessionAndStart(trigger: .modeChange, at: t)
@@ -915,10 +1081,14 @@ private struct OutputRig {
 
     /// `restartForRateChangeQ`: l'arresto, gli annulli dei ritorni (par. 2.3 b), la frequenza, la ripartenza.
     mutating func restartForRateChange(trigger: RecoveryTrigger, at t: Double) {
-        if crisis(.configuration) == .silentInSong { silentInSong = true }
+        let rateOutcome = crisis(.configuration)
+        if rateOutcome == .silentInSong { silentInSong = true }
+        // A437: il Solo in canzone prende l'àncora prima dell'arresto; la ripartenza passa dal pre-controllo.
+        let soloRateTake: SoloAnchorTake? = rateOutcome == .soloResumeOnSong ? takeSoloAnchor(cause: .configuration) : nil
         crisisStop()
         cancelReturns()
         copyRate = hardwareRate
+        if let soloRateTake { afterSoloCrisisStop(soloRateTake) }
         activateSessionAndStart(trigger: trigger, at: t)
     }
 
@@ -962,10 +1132,16 @@ private struct OutputRig {
         guard mediaServicesNormal else { return }
         let missing = recoveryRead()
         let first = RecoveryDecision.route(trigger: trigger, playerRole: role, silentInSong: silentInSong,
-                                           wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause, outputMissing: missing)
+                                           wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause, outputMissing: missing,
+                                           removalDuringInterruption: removalDuringInterruption)
         if first == .noRestart {
             noteNoRestart(trigger: trigger, missing: missing)
             return
+        }
+        // A437: il pre-controllo della ripresa del Solo, in un punto solo, prima di ogni scrittura della sessione, per il
+        // primo tentativo e per ogni tentativo vivo della catena (un tentativo di una catena morta lo uccide il contatore).
+        if attempt == 0 || token == resumeToken {
+            if !soloPreCheck(at: t) { return }
         }
         var activeToken = token
         if attempt == 0 {
@@ -980,8 +1156,16 @@ private struct OutputRig {
                 refuseActivation()
                 return
             }
+            // A437 · seguito 1 (voce 2): `setCategory` fallito e hardware occupato con la ripresa del Solo in attesa: E2 al
+            // posto della ripresa pendente; per gli altri come oggi.
+            if setCategoryFails {
+                if endSoloResumeRoad(reason: "setCategory-fallito") { return }
+                pendingResume = true
+                return
+            }
             sessionWrites += 1
             if hardwareBusy {
+                if endSoloResumeRoad(reason: "hardware-occupato") { return }
                 pendingResume = true
                 return
             }
@@ -1033,7 +1217,7 @@ private struct OutputRig {
         if proMode { rebuildGraph() }
         let second = RecoveryDecision.route(trigger: trigger, playerRole: role, silentInSong: silentInSong,
                                             wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause,
-                                            outputMissing: recoveryRead())
+                                            outputMissing: recoveryRead(), removalDuringInterruption: removalDuringInterruption)
         if second == .noRestart {
             noteNoRestart(trigger: trigger, missing: state.missing)
             return
@@ -1051,7 +1235,16 @@ private struct OutputRig {
     mutating func noteNoRestart(trigger: RecoveryTrigger, missing: Bool) {
         let reason = RecoveryDecision.noRestartReason(trigger: trigger, playerRole: role, silentInSong: silentInSong,
                                                       wantedStopSinceCrisis: wantedStop, crisisCause: crisisCause,
-                                                      outputMissing: missing)
+                                                      outputMissing: missing, removalDuringInterruption: removalDuringInterruption)
+        // A437 · PARTE 2 — C.1 (mandato A437, par. 2.8, C-1; seguito 2, §2 voce 1): col motivo «direttore-tolta-nella-chiamata» lo
+        // stesso stato fermo (il player a «fermo»; l'interruzione giù con l'hardware libero), e la ripresa pendente NON resta
+        // alzata, nemmeno con l'hardware occupato (lì per l'uscita mancante si rialza, qui sotto).
+        if reason == .directorRemovalInCall {
+            playbackStopped = true
+            pendingResume = false
+            if !systemInterruption && !hardwareBusy { interrupted = false }
+            return
+        }
         guard reason == .outputMissing else { return }
         if role == .direttore && !silentInSong { playbackStopped = true }
         if !systemInterruption && !hardwareBusy {
@@ -1067,6 +1260,12 @@ private struct OutputRig {
         guard !isRunning else {
             // A425 (P4): la guardia «avvio-gia-in-moto» col motore in moto consuma la mappa di questo avvio.
             if useEngineSongInProgress && useRunningStartConsumesMap { consumeMapForRunningStart() }
+            return
+        }
+        // A437 · PARTE 2 (h): la stessa guardia, col metronomo che manca e il motore fermo: con la ripresa del Solo in attesa E2.
+        if metronomeMissing {
+            endSoloResumeRoad(reason: "avvio-senza-metronomo")
+            publishIsPlaying()
             return
         }
         if recovery != nil && role == .direttore && recoveryRead() {
@@ -1088,11 +1287,41 @@ private struct OutputRig {
             publishIsPlaying()
             return
         }
+        // A437 · PARTE 2 (h): i servizi audio all'avvio, come `start()`: l'avvio rifiutato («servizi persi») e la ricostruzione
+        // fallita («da ricostruire») sono uscite senza avvio; con la ripresa del Solo in attesa E2.
+        switch MediaServicesResetDecision.transition(state: servicesAtStart, event: .start).action {
+        case .refuseStart:
+            if !(role == .direttore && silentInSong) { playbackStopped = true }
+            publishIsPlaying()
+            endSoloResumeRoad(reason: "avvio-rifiutato-servizi-persi")
+            return
+        case .rebuildThenStart:
+            if rebuildFails {
+                if !(role == .direttore && silentInSong) { playbackStopped = true }
+                publishIsPlaying()
+                endSoloResumeRoad(reason: "ricostruzione-fallita")
+                return
+            }
+            servicesAtStart = .normal
+        default:
+            break
+        }
         // `prepareNormalStartQ`: l'avvio che non passa dal coordinatore azzera causa e Stop voluto, consuma il segno della mappa
         // e chiude l'àncora. (Come il motore, `start()` non annulla i ritorni: li annullano le strade che fermano e ripartono.)
-        if !(role == .direttore && silentInSong) {
+        // A437: il coordinatore del Solo. Una ripartenza automatica con la ripresa in attesa decide qui (il bersaglio, oppure
+        // E3 o E2 e l'avvio si ferma); ogni altro avvio passa da `prepareNormalStartQ`, che chiude la ripresa.
+        var soloAim: SoloResumeAim? = nil
+        if role == .solo && recovery != nil && soloResumePending {
+            guard let aim = coordinateSoloResume(phase: "avvio", at: t) else {
+                publishIsPlaying()
+                return
+            }
+            soloAim = aim
+        } else if !(role == .direttore && silentInSong) {
+            closeSoloResume(reason: "avvio")
             crisisCause = nil
             wantedStop = false
+            forgetRemovalDuringInterruption(reason: "play")   // A437 · PARTE 2 — C.1
             // A425 (B.1 del seguito 4): `prepareNormalStartQ` riporta il Direttore all'assert se dopo un rientro seguiva Link.
             if useEngineAssertAtStart { followsLink = false }
             // A421 · SEGUITO 4 (par. 3.2): «canzone in corso» diventa la mappa di questo avvio, falsa senza mappa, anche per le
@@ -1129,6 +1358,14 @@ private struct OutputRig {
         } else {
             restoreVolume()
         }
+        // A437 · seguito 1 (voce 1): `engine.start()` che fallisce con la ripresa del Solo in attesa: E2.
+        if engineStartFails {
+            engineStartFails = false
+            engineStartFailures += 1
+            publishIsPlaying()
+            endSoloResumeRoad(reason: "avvio-fallito")
+            return
+        }
         engineRunning = true
         isRunning = true
         // `engine.start()` riuscito chiude l'interruzione di sistema (A416 · SEGUITO 2) e — A421 · SEGUITO 1 (par. 3.5) — ogni
@@ -1147,21 +1384,35 @@ private struct OutputRig {
         firstCorrectionPending = false
         countedBeatOut = false
         rejoinUnoOutAt = nil
-        // Il Play parte a beat zero: il primo buffer porta il primo battito, che esce circa una latenza dopo l'avvio.
-        firstBeatOutAt = t + latency
+        // A437: le letture di Δ sono della catena. ⚠️ A437 · SEGUITO 5: qui c'era `soloDeltaReadings = []`; ora, come
+        // `openBufferChainQ`, i richiami, la memoria delle convenzioni, i contatori e l'epoca delle letture ripartono con la catena.
+        // Il Play parte a beat zero: il primo buffer porta il primo battito, che esce circa una latenza dopo l'avvio (nel modo
+        // realistico del seguito 5, a − ψ più tardi: `soloRenderShift`, che nel modo di prima vale 0).
+        let firstOut = t + latency + soloRenderShift
+        openChainForSoloDelta(outStart: firstOut, anchored: false)
+        firstBeatOutAt = firstOut
         starts += 1
         publishIsPlaying()
         playbackStopped = false
         now = t + engineStartDuration
         if let target {
             armRejoin(targetAt: target, skips: 0)
+        } else if let soloAim {
+            // A437: il motore è in moto e muto, senza buffer; la catena la apre il fuoco della ripresa.
+            armSoloResume(soloAim, skipsLeft: DirectorRejoinDecision.maxLateSkips, fromSlowPlayer: false)
         } else {
+            // A437: la griglia della canzone del Solo parte dal primo battito di questo avvio (in canzone e con la mappa).
+            if role == .solo {
+                soloGrid = (songInProgress ? soloMap : nil).map {
+                    ShowClock(map: $0, anchor: ShowClockAnchor(section: 0, beatInSection: 0, linkBeat: 0, ticks: ticks(firstOut)))
+                }
+            }
             dspOrigin = 0
             position = 0
             syncSkip = 3
-            scheduleNextBuffer(at: now)
-            scheduleNextBuffer(at: now)
-            scheduleNextBuffer(at: now)
+            scheduleNextBuffer(at: now, chainStart: true)
+            scheduleNextBuffer(at: now, chainStart: true)
+            scheduleNextBuffer(at: now, chainStart: true)
         }
     }
 
@@ -1184,9 +1435,22 @@ private struct OutputRig {
     /// Il fuoco del rientro (T5): in ritardo si salta al bersaglio dopo, fino a quattro volte; col segno «lettore-lento» il
     /// coordinatore con lo stesso conto dei salti, senza la guardia. Al fuoco la scorta muta, l'àncora resta tenuta dal rientro.
     mutating func fireRejoin(at t: Double) {
+        // A437 · PARTE 2 (C.8): la rottura voluta, l'azzeramento salito in cima (spento di base).
+        if useRejoinFireClearsMemory && rejoinFireClearsMemoryAtTheTop {
+            crisisCause = nil
+            wantedStop = false
+            memoryClearedAtRejoinFire += 1
+        }
         guard let wait = rejoin, isRunning else { rejoin = nil; return }
         rejoin = nil
-        let renderAt = wait.targetAt - (copiesDistance ?? firstBufferDistance)
+        // A437 · PARTE 2 (§B.8): come il motore, il piano della scorta si conosce PRIMA del controllo «in ritardo»; senza piano
+        // l'ora del render è il bersaglio meno la sola latenza, col piano il bersaglio meno D (la scorta e la latenza).
+        let noLeadInPlan = useEngineLeadIn
+            && DirectorRejoinDecision.leadIn(targetOutputTicks: ticks(wait.targetAt), outputLatencyTicks: ticks(latency),
+                                             unoBeat: linkBeat(at: wait.targetAt), bpm: bpm, bufferFrames: 512, sampleRate: nodeRate,
+                                             ioBufferSeconds: cycleSeconds, ticksPerSecond: OutputRig.tps) == nil
+        let renderDistance = (useEngineLateCheckWithoutLeadIn && noLeadInPlan) ? latency : firstBufferDistance
+        let renderAt = wait.targetAt - (copiesDistance ?? renderDistance)
         if t + DirectorRejoinDecision.minLeadSeconds > renderAt {
             if wait.slowPlayer {
                 slowPlayerFires += 1
@@ -1244,15 +1508,17 @@ private struct OutputRig {
         meterScarto = 0
         countedBeatOut = false
         rejoinUnoOutAt = nil
+        openChainForSoloDelta(outStart: nil, anchored: true)   // A437 · SEGUITO 5: come `openBufferChainQ`
         syncSkip = DirectorRejoinDecision.uncorrectedFireBuffers
-        scheduleNextBuffer(at: t)
-        scheduleNextBuffer(at: t)
-        scheduleNextBuffer(at: t)
+        scheduleNextBuffer(at: t, chainStart: true)
+        scheduleNextBuffer(at: t, chainStart: true)
+        scheduleNextBuffer(at: t, chainStart: true)
         // A425 (P14): dopo la catena del fuoco, il rientro è fatto: la causa ricordata e lo Stop voluto si azzerano, come il Play
         // (`fireDirectorRejoinQ`, prima di `leaveDirectorSilenceQ`). Il fuoco che non parte (più sopra, `crisisStop`) non azzera niente.
-        if useRejoinFireClearsMemory {
+        if useRejoinFireClearsMemory && !rejoinFireClearsMemoryAtTheTop {
             crisisCause = nil
             wantedStop = false
+            forgetRemovalDuringInterruption(reason: "rientro")   // A437 · PARTE 2 — C.1, per simmetria
             memoryClearedAtRejoinFire += 1
         }
     }
@@ -1307,7 +1573,7 @@ private struct OutputRig {
         guard let armed = guardian else { return }
         guardian = nil
         guard armed.chain == chain, armed.bufferCount == bufferCount, isRunning, !systemInterruption, mediaServicesNormal,
-              RenderGapDecision.guardsAgainstHoles(playerRole: role) else { return }
+              RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: showOpen, songInProgress: songInProgress) else { return }
         guard !state.muted else { return }
         silenceNow(reason: "buco-in-corso")
         guardianSilenceChain = chain
@@ -1383,6 +1649,22 @@ private struct OutputRig {
         case .localStop:
             if isRunning { crisisStop() }
             playbackStopped = true
+        case .soloResumeOnSong:
+            // A437 · PARTE 2 (P6, P25, P32): con l'uscita sparita E2 con la causa «uscita-tolta»; se no l'àncora prima
+            // dell'arresto, l'arresto locale, l'annullo dei ritorni e il ritorno del Solo con l'innesco `renderGap`.
+            if reason == .outputVanished {
+                abandonSoloResume(reason: "uscita-sparita-al-buco", cause: .outputRemoved)
+            } else {
+                let take = takeSoloAnchor(cause: .renderGap)
+                if isRunning { crisisStop() }
+                afterSoloCrisisStop(take)
+                cancelReturns()
+                if soloResumePending {
+                    let wait = OutputReturnDecision.directorWait(sessionRateDiffersFromCopy: hardwareRate != copyRate)
+                    directorReturn = DirectorReturn(wait: wait, fireAt: t + OutputReturnDecision.directorWaitSeconds(wait),
+                                                    trigger: .renderGap, armedAt: t, kind: .solo)
+                }
+            }
         case .soloStopAsConsole, .asToday, .nothing:
             break
         }
@@ -1408,14 +1690,19 @@ private struct OutputRig {
     /// `scheduleNextBuffer`: la guardia, il motore di sistema fermo (par. 2.2 a), il drenaggio, il misuratore (U7, U8), il
     /// ritorno del Follower (par. 2.2 c; seguito 1, par. 2.2: le due ore, la rilettura dell'«uno», la guardia del primo
     /// campione, la battuta dopo), l'assert o la correzione (U9), il buffer.
-    mutating func scheduleNextBuffer(at t: Double, idealAt: Double? = nil, gapSeconds: Double? = nil, correction: Double? = nil) {
+    /// ⚠️ A437 · SEGUITO 5: `chainStart` dice le tre chiamate della partenza di una catena; ogni altra chiamata è un richiamo e
+    /// si conta (`_chainCallbacksQ`, che nel motore sale in `bufferCallbackQ` prima di questa funzione).
+    mutating func scheduleNextBuffer(at t: Double, idealAt: Double? = nil, gapSeconds: Double? = nil, correction: Double? = nil,
+                                     chainStart: Bool = false) {
         guard isRunning else { return }
+        if !chainStart { chainCallbacks += 1 }
         // A421 · SEGUITO 2 (par. 3.3): l'àncora tenuta dal rientro si chiude quando il primo battito contato del rientro è uscito.
         // ⚠️ A432 · parte 2d (K2): l'ora non è più sempre il bersaglio (`firstBeatOutAt`, com'era e come resta con
         // `useEngineHeldAnchorClose` spento): è l'ora d'uscita vera dell'«uno» contato (`heldAnchorCloseAt`).
         if anchorHeld, let out = heldAnchorCloseAt, t >= out {
             closeAnchor(at: t)
         }
+        checkSoloAnchorHeld(at: t)   // A437
         let skipAtCallStart = syncSkip
         if useStoppedEngineCheck && !engineRunning {
             stoppedCallbacks += 1
@@ -1427,6 +1714,12 @@ private struct OutputRig {
             drainDelivered += 1
             return
         }
+        // ⚠️ A437 · SEGUITO 5 (19/11/2026): qui c'era «A437: la lettura di Δ del Solo in canzone, a regime (non nella chiamata di
+        // un buco, e solo col render fresco)», con la lettura aggiunta dal rig senza passare dalla regola. Ora la lettura sta in
+        // fondo alla chiamata, dopo che il buffer è prodotto, come nel motore, e passa dalla regola pura (`noteSoloDelta`).
+        // Come nel motore (`soloDeltaInRegime`) la lettura non è a regime nella chiamata di un buco né in quella dopo uno scatto
+        // del guardiano (nota C1 del verificatore V2 del seguito 5: la prima stesura guardava solo il buco).
+        var soloDeltaInRegime = gapSeconds == nil
         // La convenzione della correzione di fase (l'ora d'uscita di questo buffer: `now + latenza + ciclo`) e l'ora del rendering
         // (`lastRenderTime + ciclo + latenza`, qui l'ora attesa del richiamo più il ciclo e lo scarto): la prima dà il buffer
         // dell'«uno», la seconda le due ore. Un richiamo in ritardo sposta la prima e non la seconda.
@@ -1445,13 +1738,14 @@ private struct OutputRig {
                                                                                   sampleRate: nodeRate, windowProjectionSeconds: windowProjection) {
                 _ = verdict
                 // Come il motore: lo 0 «buco» prima della crisi (par. 5).
-                if RenderGapDecision.guardsAgainstHoles(playerRole: role) && !state.muted { silenceNow(reason: "buco", at: t) }
+                if RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: showOpen, songInProgress: songInProgress)
+                    && !state.muted { silenceNow(reason: "buco", at: t) }
                 renderGapCrisis(at: t, reason: .window)
                 return
             }
         }
         if let hole = gapSeconds, useMeterCrisis {
-            let guards = RenderGapDecision.guardsAgainstHoles(playerRole: role)
+            let guards = RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: showOpen, songInProgress: songInProgress)
             guardianSilenceChain = nil
             // Par. 4.3: il silenzio prima della lettura del percorso e della decisione, se il guardiano non è arrivato prima.
             if guards && !state.muted { silenceNow(reason: "buco", at: t) }
@@ -1459,7 +1753,9 @@ private struct OutputRig {
             lastHoleMeasure = holeMeasure(at: t, hole: hole)
             let verdict = RenderGapDecision.verdict(RenderGapDecision.Situation(
                 holeSeconds: hole, playerRole: role, showOpen: showOpen, songInProgress: songInProgress, engineRunning: isRunning,
-                followsLink: followsLink, inLeadIn: inLeadIn, externalVanished: role == .direttore && externalVanishedNow,
+                followsLink: followsLink, inLeadIn: inLeadIn,
+                // A437 · PARTE 2: anche il Solo in canzone (P32).
+                externalVanished: (role == .direttore || (role == .solo && guards)) && externalVanishedNow,
                 windowOpen: windowOpen && skipAtCallStart > 0, windowRiseSeconds: windowOpen ? meterScarto - windowRiseBase : nil,
                 windowProjectionSeconds: windowProjection, bpm: bpm, bufferFrames: 512, sampleRate: nodeRate,
                 projectionSeconds: latency + cycleSeconds))
@@ -1475,8 +1771,16 @@ private struct OutputRig {
             // Par. 4.4: il ritorno dopo il buco (col ritorno del Follower armato vale quello, col riarmo di A421 · SEGUITO 1).
             if guards { armGapReturn(at: t, renderNext: renderNext) }
         } else if let silenceChain = guardianSilenceChain {
+            soloDeltaInRegime = false
             guardianSilenceChain = nil
-            if silenceChain == chain && RenderGapDecision.guardsAgainstHoles(playerRole: role) {
+            let guardsNow = RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: showOpen, songInProgress: songInProgress)
+            if silenceChain == chain && guardsNow && role == .solo {
+                // A437 · PARTE 2: nel Solo in canzone il silenzio del guardiano non ha un «ritorno dopo il buco»: è la crisi, e la
+                // ripresa sulla canzone; con l'uscita sparita il Solo si ferma come allo Stop. Il buffer non si programma.
+                renderGapCrisis(at: t, reason: externalVanishedNow ? .outputVanished : .hole)
+                return
+            }
+            if silenceChain == chain && guardsNow {
                 armGapReturn(at: t, renderNext: renderNext)
             }
         }
@@ -1560,6 +1864,8 @@ private struct OutputRig {
         // Il blocco della fase, PRIMA dei controlli dei ritorni, come nel motore (A421 · SEGUITO 3, par. 8.2: `checkFollowerReturnQ`
         // e `checkGapReturnQ` stanno in fondo a `scheduleNextBuffer`, dopo la correzione): così un riarmo fatto dalla prima correzione
         // dopo la finestra sposta la scadenza prima che la chiamata decida se il volume torna.
+        // A437 · PARTE 2 (§B.4): una chiamata della scorta del rientro col segno della prima correzione dopo la finestra alto.
+        if inLeadIn && firstCorrectionPending { leadInCallsWithTheMarkUp += 1 }
         var mutedThisBuffer = false
         if skipsCorrection {
             // La finestra: né assert né correzione.
@@ -1770,9 +2076,14 @@ private struct OutputRig {
         bufferCount += 1
         queued.append(RigBuffer(outputStart: outputStart, outputEnd: outputEnd, chain: chain))
         if queued.count > 3 { queued.removeFirst() }
+        // A437 · SEGUITO 5: la lettura di Δ dopo che il buffer è prodotto (`noteSoloDeltaQ`, dopo `bufferCount += 1`): non a
+        // regime nella chiamata di un buco né in quella dopo uno scatto del guardiano, e mai nelle chiamate che escono prima per
+        // una crisi. `bufferCount` riparte da zero a ogni catena: `bufferCount - 1` è l'indice del buffer nella catena.
+        noteSoloDelta(at: t, chainIndex: bufferCount - 1, regimeConvention: outputStart, inRegime: soloDeltaInRegime)
         // Seguito 2 (par. 4.2): il guardiano, a ogni chiamata che programma, col misuratore in regime (dalla quarta chiamata
         // della catena, con la base presente: non alla chiamata del buco): quattro buffer dall'ultima chiamata.
-        if useGuardian && RenderGapDecision.guardsAgainstHoles(playerRole: role) && bufferCount >= 4 && gapSeconds == nil {
+        if useGuardian && RenderGapDecision.guardsAgainstHoles(playerRole: role, showOpen: showOpen, songInProgress: songInProgress)
+            && bufferCount >= 4 && gapSeconds == nil {
             guardian = GuardianArm(chain: chain, bufferCount: bufferCount, dueAt: t + 4 * bufferSeconds)
         } else {
             guardian = nil
@@ -1793,6 +2104,11 @@ private struct OutputRig {
     mutating func fireDirectorReturn(at t: Double) {
         guard let waiting = directorReturn else { return }
         directorReturn = nil
+        // A437: il ritorno del Solo ha la sua guardia; il ramo del Direttore resta com'è.
+        if waiting.kind == .solo {
+            fireSoloReturn(waiting, at: t)
+            return
+        }
         guard !isRunning, !systemInterruption, silentInSong, !state.missing else { return }
         activateSessionAndStart(trigger: waiting.trigger, at: t)
     }
@@ -1818,9 +2134,22 @@ private struct OutputRig {
         activateSessionAndStart(trigger: wait.trigger, at: t, attempt: wait.attempt, token: wait.token)
     }
 
+    /// A437 · PARTE 2 — la rete a 1 s della fine senza `shouldResume`: solo con la ripresa pendente ancora alta e lo stesso
+    /// contatore della catena; abbassa la ripresa e riparte con l'innesco `safety_net_noresume`.
+    mutating func fireNoResumeNet(at t: Double) {
+        guard let net = noResumeNet else { return }
+        noResumeNet = nil
+        guard pendingResume, resumeToken == net.token else { return }
+        noResumeNetFired += 1
+        pendingResume = false
+        activateSessionAndStart(trigger: .safetyNetNoResume, at: t)
+    }
+
     mutating func fireSafetyNet(_ wait: RetryWait, at t: Double) {
         guard pendingResume, resumeToken == wait.token else {
             safetyNetSkipped += 1
+            // A437 · seguito 1 (voce 2): la catena finisce qui senza avvio; se è ancora quella della ripresa del Solo, E2.
+            if resumeToken == wait.token { endSoloResumeRoad(reason: "rete-senza-ripresa-pendente") }
             return
         }
         safetyNetFired += 1
@@ -1831,6 +2160,10 @@ private struct OutputRig {
     /// Il tempo passa fino a `t`: le attese scadute scattano nell'ordine.
     mutating func advance(to t: Double) {
         guard t > now else { return }
+        // A437 · seguito 1 (voce 2): l'invariante «nessuna pausa senza una strada in volo» lo guarda il rig stesso, in ogni
+        // sequenza: quando il tempo riparte (lo stato lasciato dall'azione di prima) e dopo ogni attesa scattata.
+        let pauseHadARoad = soloPauseInvariantHolds
+        XCTAssertTrue(pauseHadARoad, "pausa senza una strada in volo prima di avanzare")
         while true {
             var due: [(Double, Int)] = []
             if let d = directorReturn, d.fireAt <= t { due.append((d.fireAt, 0)) }
@@ -1841,6 +2174,8 @@ private struct OutputRig {
             // A421 · SEGUITO 2: il guardiano e la riserva dell'esterna sparita.
             if let g = guardian, g.dueAt <= t { due.append((g.dueAt, 6)) }
             if let v = gapVanishedAt, v <= t { due.append((v, 7)) }
+            if let f = soloFire, f.fireAt <= t { due.append((f.fireAt, 8)) }   // A437: il fuoco della ripresa del Solo
+            if let n = noResumeNet, n.fireAt <= t { due.append((n.fireAt, 9)) }   // A437 · PARTE 2: la rete a 1 s senza shouldResume
             guard let next = due.min(by: { $0.0 < $1.0 }) else { break }
             now = max(now, next.0)
             switch next.1 {
@@ -1853,13 +2188,431 @@ private struct OutputRig {
                 fireRetry(wait, at: next.0)
             case 6: fireGuardian(at: next.0)
             case 7: fireGapVanished(at: next.0)
+            case 8: fireSoloResume(at: next.0)
+            case 9: fireNoResumeNet(at: next.0)
             default:
                 let wait = safetyNet!
                 safetyNet = nil
                 fireSafetyNet(wait, at: next.0)
             }
+            let pauseHasARoad = soloPauseInvariantHolds
+            XCTAssertTrue(pauseHasARoad, "pausa senza una strada in volo dopo un'attesa scattata")
         }
         now = t
+    }
+
+    // MARK: - A437 — la ripresa del Solo sulla posizione della canzone (mandato A437, par. 2 e 3; seguito 1)
+
+    /// Una strada che fa ripartire la ripresa o la chiude è in volo: il ritorno del Solo armato, un tentativo della catena,
+    /// la rete a 5 s, il fuoco armato.
+    var soloRoadInFlight: Bool {
+        (directorReturn?.kind == .solo) || retry != nil || safetyNet != nil || soloFire != nil
+    }
+
+    /// L'invariante del seguito 1, voce 2: nessuna pausa senza una strada in volo.
+    var soloPauseInvariantHolds: Bool { !soloResumePending || soloRoadInFlight }
+
+    /// Lo stato della ripresa dai tre valori che il motore tiene; `nil` = una combinazione che non esiste.
+    var soloResumeState: SoloResumeState? {
+        SoloResumeDecision.state(anchorAlive: soloAnchor != nil, pending: soloResumePending, heldByResume: soloAnchorHeld,
+                                 engineRunning: isRunning)
+    }
+
+    /// La faccia della console del Solo: Stop col click che suona o nella pausa della ripresa (`LiveView.liveConsoleFaces`).
+    var soloConsoleShowsStop: Bool { isPlaying || soloResumePending }
+
+    /// L'ultimo battito della canzone già uscito all'ora `t` (l'ultimo battito contato con l'ora d'uscita non dopo adesso):
+    /// dalla griglia della canzone del Solo. `nil` prima del primo battito, oltre la fine, senza griglia.
+    func soloLastCountedBeat(at t: Double) -> (section: Int, beat: Int, outAt: Double)? {
+        guard let grid = soloGrid, ticks(t) >= grid.anchor.ticks else { return nil }
+        guard case .inSong(let section, let x) = grid.bySeconds(nowTicks: ticks(t), ticksPerSecond: OutputRig.tps).place else {
+            return nil
+        }
+        let beat = Int((x + 1e-9).rounded(.down))
+        guard let out = grid.ticks(section: section, beatInSection: beat, ticksPerSecond: OutputRig.tps) else { return nil }
+        return (section, beat, seconds(out))
+    }
+
+    /// `closeSoloResumeQ`: il segno giù (e, se era alto, il contatore della catena sale: seguito 1, voce 3), l'àncora chiusa.
+    mutating func closeSoloResume(reason: String) {
+        if soloResumePending {
+            soloResumePending = false
+            resumeToken += 1
+        }
+        if soloAnchor != nil {
+            soloAnchor = nil
+            soloAnchorHeld = false
+            soloClosures.append(reason)
+        }
+    }
+
+    /// `deliveringDrain` (A437 · PARTE 2, seguito 2 §1 voce 4 g): E2 ed E3, come il motore (`closeDrainOnCrisisStopQ` dentro
+    /// `abandonSoloResumeAsConsoleQ` e `endSoloSongOnResumeQ`), consegnano la chiusura di fine sezione rimasta aperta; la
+    /// chiusura a fermo (`closeSoloResumeAtRestQ`) no.
+    mutating func stopSoloEngineIfRunning(deliveringDrain: Bool = false) {
+        guard isRunning else { return }
+        isRunning = false
+        engineRunning = false
+        queued = []
+        netAt = nil
+        if deliveringDrain && drainPending {
+            drainPending = false
+            drainDelivered += 1
+        }
+    }
+
+    /// E2 (`abandonSoloResumeAsConsoleQ`): il Solo si ferma come allo Stop della console, con lo Stop voluto alzato.
+    mutating func abandonSoloResume(reason: String, cause: CrisisCause?) {
+        soloE2.append(reason)
+        soloFire = nil
+        cancelReturns()
+        stopSoloEngineIfRunning(deliveringDrain: true)
+        if pendingResume { clearPendingResume() }
+        closeSoloResume(reason: reason)
+        if let cause {
+            crisisCause = CrisisStopDecision.rememberedCause(previous: crisisCause, new: cause, playerRole: .solo)
+        }
+        wantedStop = true
+        publishIsPlaying()
+        soloStop()
+    }
+
+    /// `endSoloResumeRoadQ`: una strada della ripartenza finisce senza avvio con la ripresa in attesa: E2.
+    @discardableResult
+    mutating func endSoloResumeRoad(reason: String) -> Bool {
+        guard role == .solo, soloResumePending else { return false }
+        abandonSoloResume(reason: reason, cause: nil)
+        return true
+    }
+
+    /// E3 (`endSoloSongOnResumeQ`): la canzone finisce prima del primo «uno» utile; il runner arma la successiva.
+    mutating func endSoloSong(phase: String) {
+        soloE3.append(phase)
+        soloFire = nil
+        cancelReturns()
+        stopSoloEngineIfRunning(deliveringDrain: true)
+        if pendingResume { clearPendingResume() }
+        closeSoloResume(reason: "canzone-finita")
+        songInProgress = false
+        wantedStop = true
+        stopCleanup()
+        publishIsPlaying()
+        runnerArmNext += 1
+        playbackStopped = true
+    }
+
+    /// `closeSoloResumeAtRestQ`: il cambio di ruolo e lo show chiuso; col segno alto il player a «fermo».
+    mutating func closeSoloResumeAtRest(reason: String) {
+        let wasPending = soloResumePending
+        closeSoloResume(reason: reason)
+        guard wasPending else { return }
+        soloFire = nil
+        cancelReturns()
+        stopSoloEngineIfRunning()
+        songInProgress = false
+        wantedStop = true
+        stopCleanup()
+        publishIsPlaying()
+        playbackStopped = true
+    }
+
+    // MARK: - A437 · SEGUITO 5 — le letture di Δ dalla regola pura
+
+    /// `resetSoloDeltaQ`: le letture, la memoria delle convenzioni e i contatori si svuotano, l'epoca sale.
+    mutating func resetSoloDelta() {
+        soloDeltaReadings = []
+        soloDeltaTally = SoloDeltaTally()
+        soloDeltaEpoch += 1
+        soloEpochFirstBuffer = bufferCount
+        for slot in 0..<SoloResumeDecision.deltaMemory { soloOutRingIndex[slot] = -1 }
+    }
+
+    /// `openBufferChainQ`, per quello che serve alle letture: i richiami ripartono e le letture si azzerano. Si chiama dopo
+    /// `bufferCount = 0`. `outStart`: l'uscita vera del buffer 0 della catena; `anchored`: la catena del fuoco di una ripresa.
+    mutating func openChainForSoloDelta(outStart: Double?, anchored: Bool) {
+        chainCallbacks = 0
+        soloChainOutStart = outStart
+        soloChainAnchored = anchored
+        soloChainConventions = []
+        resetSoloDelta()
+    }
+
+    /// `noteSoloDeltaQ`: la convenzione del buffer appena prodotto va in memoria; a regime, la lettura dalla regola pura in due
+    /// passi, e un esito nei contatori. `regimeConvention`: adesso + latenza + ciclo (`_bufferOutTicksQ`).
+    mutating func noteSoloDelta(at t: Double, chainIndex: Int, regimeConvention: Double, inRegime: Bool) {
+        var convention = regimeConvention
+        if soloChainAnchored, chainIndex < SoloResumeDecision.chainStartBuffers, let start = soloChainOutStart {
+            // I tre buffer ancorati: l'ora vera della catena (`_anchoredOutputTicksQ + indice × buffer`).
+            convention = start + Double(chainIndex) * bufferSeconds
+        }
+        soloChainConventions.append(convention)
+        guard role == .solo, showOpen, songInProgress else { return }
+        let memory = SoloResumeDecision.deltaMemory
+        soloOutRingIndex[chainIndex % memory] = chainIndex
+        soloOutRingTicks[chainIndex % memory] = ticks(convention)
+        guard inRegime else { return }
+        let wanted = chainCallbacks
+        let cycleTicks = ticks(cycleSeconds)
+        if let early = SoloResumeDecision.deltaReadingGate(wantedIndex: wanted,
+                                                           wantedInChainMemory: soloOutRingIndex[wanted % memory] == wanted,
+                                                           cycleTicks: cycleTicks, sampleRate: nodeRate,
+                                                           ticksPerSecond: OutputRig.tps, bufferFrames: 512) {
+            soloDeltaTally.noteBeforeRead(early)
+            return
+        }
+        let conventionTicks = soloOutRingTicks[wanted % memory]
+        let latencyTicks = ticks(latency)
+        let lastRender: UInt64
+        let nowTicks: UInt64
+        if !soloRenderFresh {
+            // Il render fermo: L resta indietro.
+            nowTicks = ticks(t)
+            lastRender = nowTicks - ticks(soloRenderBehindSeconds)
+        } else if soloRealRender, let phase = renderPhaseSeconds, let start = soloChainOutStart {
+            // Il modo realistico: L = l'inizio del rendering di `wanted` sulla linea della catena + ψ; adesso = la chiamata.
+            nowTicks = ticks(t)
+            lastRender = ticks(start - latency + Double(wanted) * bufferSeconds + phase)
+        } else {
+            // Il modo di prima: L ricavata dalla Δ data, due cicli avanti.
+            lastRender = conventionTicks + ticks(soloDeltaSeconds) + cycleTicks / 2 - latencyTicks
+            nowTicks = lastRender - 2 * cycleTicks
+        }
+        let outcome = SoloResumeDecision.deltaReading(renderTimeValid: true, lastRenderTicks: lastRender, nowTicks: nowTicks,
+                                                      cycleTicks: cycleTicks, latencyTicks: latencyTicks,
+                                                      conventionTicks: conventionTicks, bufferTicks: ticks(bufferSeconds),
+                                                      queuedAheadBuffers: OutputReturnDecision.queuedAheadBuffers)
+        soloDeltaTally.noteAfterRead(outcome, renderTimeValid: true, lastRenderTicks: lastRender, nowTicks: nowTicks)
+        guard case .valid(let delta) = outcome else { return }
+        soloDeltaReadings.append(SoloDeltaReading(deltaTicks: delta, readTicks: ticks(t)))
+        if soloDeltaReadings.count > SoloResumeDecision.deltaMemory { soloDeltaReadings.removeFirst() }
+    }
+
+    /// L'indice nella catena del buffer che ha portato un battito uscito a `outAt` (i buffer escono uno dietro l'altro da
+    /// `soloChainOutStart`); `nil` senza l'ora della catena.
+    func soloBeatBufferIndex(outAt: Double) -> Int? {
+        guard let start = soloChainOutStart else { return nil }
+        return max(Int(((outAt - start) / bufferSeconds + 1e-6).rounded(.down)), 0)
+    }
+
+    /// L'ora della convenzione di un battito uscito a `outAt` (`_lastBeatOutTicksQ`: la convenzione del suo buffer più lo
+    /// scostamento). Nel modo realistico dalla convenzione scritta per quel buffer; nel modo di prima l'uscita vera meno
+    /// `soloDeltaSeconds`, salvo nei tre buffer della catena ancorata, dove è l'uscita vera.
+    func soloBeatConvention(outAt: Double, bufferIndex: Int?) -> Double {
+        if soloRealRender {
+            if let index = bufferIndex, index < soloChainConventions.count, let start = soloChainOutStart {
+                return soloChainConventions[index] + (outAt - (start + Double(index) * bufferSeconds))
+            }
+            return outAt - soloTrueDeltaSeconds
+        }
+        if soloChainAnchored, let index = bufferIndex, index < SoloResumeDecision.chainStartBuffers { return outAt }
+        return outAt - soloDeltaSeconds
+    }
+
+    /// Par. 3 g del seguito 5 (`handleRouteChange`, «Path senza cambio né SR né mode», e `resetSoloDeltaOnTimingChangeQ`): una
+    /// notizia di percorso di classe «nessuna», senza cambio di frequenza né di modo, riscrive latenza e ciclo a catena viva.
+    /// Le letture si azzerano solo se uno dei due cambia davvero.
+    mutating func routeNewsRewritesTiming(at t: Double, latency newLatency: Double? = nil, cycleSeconds newCycle: Double? = nil) {
+        advance(to: t)
+        guard mediaServicesNormal, !systemInterruption, !pendingResume else { return }
+        let latencyBefore = ticks(latency)
+        let cycleBefore = ticks(cycleSeconds)
+        if let newLatency { latency = newLatency }
+        if let newCycle { cycleSeconds = newCycle }
+        guard let reason = SoloResumeDecision.deltaResetReason(latencyBeforeTicks: latencyBefore, latencyNowTicks: ticks(latency),
+                                                               cycleBeforeTicks: cycleBefore, cycleNowTicks: ticks(cycleSeconds)) else {
+            return
+        }
+        resetSoloDelta()
+        if isRunning && role == .solo { soloDeltaResets.append(reason) }
+    }
+
+    /// `takeSoloAnchorQ`: l'àncora alla crisi, prima dell'arresto. L'ora vera è quella della convenzione (nel rig l'ora
+    /// d'uscita vera meno `soloDeltaSeconds`) più Δ dalle letture valide.
+    /// ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): «nel rig l'ora d'uscita vera meno `soloDeltaSeconds`» vale nel modo di prima e
+    /// per un battito di regime (`soloBeatConvention`); e Δ si somma solo a un battito di regime (par. 2.3): un battito di uno dei
+    /// tre buffer della partenza, o di prima di un azzeramento, prende Δ = 0 e la lettura «avvio». Alla presa si tengono i
+    /// contatori delle letture, come la riga `letture di delta` (`soloLastTally`).
+    mutating func takeSoloAnchor(cause: CrisisCause) -> SoloAnchorTake {
+        let last = soloLastCountedBeat(at: now)
+        let take = SoloResumeDecision.anchorTake(playerRole: role, showOpen: showOpen, songInProgress: songInProgress,
+                                                 stoppingCauseRemembered: crisisCause?.stopsSolo ?? false,
+                                                 engineRunning: isRunning, drainOpen: drainPending,
+                                                 anchorAlive: soloAnchor != nil, mapValid: soloMap?.isValid ?? false,
+                                                 countedBeatOut: last != nil, beatInCycle: false)
+        switch take {
+        case .taken:
+            guard let last, let grid = soloGrid else { return .notTaken(.noMap) }
+            let beatBuffer = soloBeatBufferIndex(outAt: last.outAt)
+            let beatIndex = beatBuffer ?? -1
+            let beatEpoch = SoloResumeDecision.beatDeltaEpoch(
+                bufferChainIndex: beatIndex, epoch: beatIndex >= soloEpochFirstBuffer ? soloDeltaEpoch : soloDeltaEpoch - 1)
+            let delta = SoloResumeDecision.anchorDelta(
+                fromReadings: SoloResumeDecision.delta(readings: soloDeltaReadings),
+                beatOnRegimeConvention: SoloResumeDecision.beatOnRegimeConvention(beatEpoch: beatEpoch, currentEpoch: soloDeltaEpoch))
+            let trueTicks = SoloResumeDecision.anchorTicks(
+                conventionTicks: ticks(soloBeatConvention(outAt: last.outAt, bufferIndex: beatBuffer)), delta: delta)
+            soloAnchor = ShowClock(map: grid.map, anchor: ShowClockAnchor(section: last.section, beatInSection: last.beat,
+                                                                          linkBeat: 0, ticks: trueTicks))
+            soloAnchorSongIdx = soloSongIdx
+            soloAnchorHeld = false
+            soloAnchorsTaken += 1
+            soloLastDelta = delta
+            soloLastTally = soloDeltaTally
+            soloResumePending = true
+        case .alreadyAlive:
+            soloAnchorHeld = false
+            soloResumePending = true
+        case .drainDelivered:
+            closeSoloResume(reason: "drenaggio")
+        case .notTaken:
+            break
+        }
+        return take
+    }
+
+    /// `afterSoloCrisisStopQ`: senza àncora E2; con una causa che ferma il Solo già ricordata niente (lo Stop è in arrivo).
+    mutating func afterSoloCrisisStop(_ take: SoloAnchorTake) {
+        if case .notTaken(let why) = take, why != .stoppingCause {
+            abandonSoloResume(reason: "ancora-non-presa(\(why.rawValue))", cause: nil)
+        }
+    }
+
+    /// `soloResumePlanQ`: il conto adesso; l'àncora di un'altra canzone vale come assente.
+    func soloPlan(at t: Double, notBeforeTicks: UInt64 = 0) -> SoloResumePlan {
+        let clock: ShowClock? = (soloAnchor != nil && soloAnchorSongIdx == soloSongIdx) ? soloAnchor : nil
+        return SoloResumeDecision.plan(clock: clock, nowTicks: ticks(t), ticksPerSecond: OutputRig.tps, marginSeconds: margin,
+                                       notBeforeTicks: notBeforeTicks)
+    }
+
+    /// `soloResumePreCheckQ`: all'ingresso di `activateSessionAndStart`, prima di ogni scrittura della sessione.
+    mutating func soloPreCheck(at t: Double) -> Bool {
+        guard role == .solo, soloResumePending else { return true }
+        soloPreChecks += 1
+        switch soloPlan(at: t) {
+        case .resume:
+            return true
+        case .songEnded:
+            endSoloSong(phase: "pre-controllo")
+            return false
+        case .uncertain:
+            abandonSoloResume(reason: "non-certo", cause: nil)
+            return false
+        }
+    }
+
+    /// `coordinateSoloResumeQ`: il bersaglio, oppure E3 o E2 già eseguiti (`nil`).
+    mutating func coordinateSoloResume(phase: String, at t: Double, notBeforeTicks: UInt64 = 0) -> SoloResumeAim? {
+        switch soloPlan(at: t, notBeforeTicks: notBeforeTicks) {
+        case .resume(let aim):
+            return aim
+        case .songEnded:
+            endSoloSong(phase: phase)
+            return nil
+        case .uncertain:
+            abandonSoloResume(reason: "non-certo", cause: nil)
+            return nil
+        }
+    }
+
+    /// `armSoloResumeQ`: il timer del fuoco, col margine e col «lettore lento» come il rientro del Direttore.
+    mutating func armSoloResume(_ aim: SoloResumeAim, skipsLeft: Int, fromSlowPlayer: Bool) {
+        let targetAt = seconds(aim.targetTicks)
+        let slow = !fromSlowPlayer
+            && DirectorRejoinDecision.slowPlayerAtArming(nowTicks: ticks(now), targetOutputTicks: aim.targetTicks,
+                                                         distanceTicks: ticks(firstBufferDistance),
+                                                         minLeadTicks: ticks(DirectorRejoinDecision.minLeadSeconds))
+        soloFire = SoloFireWait(aim: aim, fireAt: slow ? now : max(targetAt - margin, now), skipsLeft: skipsLeft, slowPlayer: slow)
+    }
+
+    /// `fireSoloResumeQ`: la guardia, il ritardo coi salti (il bersaglio nuovo sempre dopo quello mancato), l'ingresso.
+    mutating func fireSoloResume(at t: Double) {
+        guard let wait = soloFire, isRunning else {
+            soloFire = nil
+            return
+        }
+        soloFire = nil
+        let sameSong = soloAnchor != nil && soloAnchorSongIdx == soloSongIdx
+        let sectionInMap = soloAnchor.map { wait.aim.section >= 0 && wait.aim.section < $0.map.sections.count } ?? false
+        if let refusal = SoloResumeDecision.fireRefusal(playerRole: role, systemInterruption: systemInterruption,
+                                                        servicesNormal: mediaServicesNormal, anchorAlive: soloAnchor != nil,
+                                                        sameSong: sameSong, sectionInMap: sectionInMap, handlesPresent: true) {
+            abandonSoloResume(reason: refusal.rawValue, cause: nil)
+            return
+        }
+        guard let anchor = soloAnchor,
+              let targetTicks = anchor.ticks(section: wait.aim.section, beatInSection: wait.aim.beatInSection,
+                                             ticksPerSecond: OutputRig.tps) else {
+            abandonSoloResume(reason: "non-certo", cause: nil)
+            return
+        }
+        let targetAt = seconds(targetTicks)
+        let renderAt = targetAt - (copiesDistance ?? firstBufferDistance)
+        if t + DirectorRejoinDecision.minLeadSeconds > renderAt {
+            soloLateFires += 1
+            soloLateTargets.append(targetAt)
+            switch SoloResumeDecision.lateStep(slowPlayer: wait.slowPlayer, lateSkipsLeft: wait.skipsLeft) {
+            case .giveUp:
+                abandonSoloResume(reason: "non-certo(ritardo-oltre-i-salti)", cause: nil)
+            case .recount(let skipsLeft, _):
+                if let next = coordinateSoloResume(phase: "ritardo", at: t, notBeforeTicks: targetTicks + 1) {
+                    armSoloResume(next, skipsLeft: skipsLeft, fromSlowPlayer: wait.slowPlayer)
+                }
+            }
+            return
+        }
+        soloResumes += 1
+        soloFirstClickAt = targetAt
+        soloFirstAim = wait.aim
+        firstBeatOutAt = targetAt
+        soloGrid = ShowClock(map: anchor.map, anchor: ShowClockAnchor(section: wait.aim.section, beatInSection: wait.aim.beatInSection,
+                                                                      linkBeat: 0, ticks: targetTicks))
+        runnerRejoins.append(wait.aim.section)
+        rejoinLeadIn = nil
+        chain += 1
+        cancelGuardian()
+        bufferCount = 0
+        meterScarto = 0
+        countedBeatOut = false
+        // ⚠️ A437 · SEGUITO 5: qui c'era `soloDeltaReadings = []`. La catena della ripresa è ancorata: il suo buffer 0 esce al
+        // bersaglio (il rig non gioca la scorta del Solo), e i primi tre hanno per convenzione l'ora vera della catena.
+        openChainForSoloDelta(outStart: targetAt, anchored: true)
+        dspOrigin = 0
+        position = 0
+        syncSkip = DirectorRejoinDecision.uncorrectedFireBuffers
+        scheduleNextBuffer(at: t, chainStart: true)
+        scheduleNextBuffer(at: t, chainStart: true)
+        scheduleNextBuffer(at: t, chainStart: true)
+        crisisCause = nil
+        wantedStop = false
+        soloResumePending = false
+        soloAnchorHeld = true
+    }
+
+    /// `fireSoloReturnQ`: la guardia del Solo, l'uscita sparita (come la tolta), la ripartenza col suo innesco.
+    mutating func fireSoloReturn(_ waiting: DirectorReturn, at t: Double) {
+        let sameSong = soloAnchor != nil && soloAnchorSongIdx == soloSongIdx
+        switch SoloResumeDecision.returnStep(engineRunning: isRunning, systemInterruption: systemInterruption,
+                                             servicesNormal: mediaServicesNormal, playerRole: role, pending: soloResumePending,
+                                             anchorAlive: soloAnchor != nil, sameSong: sameSong,
+                                             externalVanished: externalVanishedNow) {
+        case .notFired:
+            soloReturnsNotFired += 1
+            if soloResumePending && !isRunning {
+                abandonSoloResume(reason: "ritorno-non-eseguito", cause: nil)
+            }
+        case .asRemoved:
+            abandonSoloResume(reason: "uscita-sparita", cause: .outputRemoved)
+        case .fire:
+            soloReturnsFired += 1
+            activateSessionAndStart(trigger: waiting.trigger, at: t)
+        }
+    }
+
+    /// `checkSoloAnchorHeldQ`: l'àncora tenuta dalla ripresa si chiude al primo battito contato della ripresa uscito.
+    mutating func checkSoloAnchorHeld(at t: Double) {
+        if soloAnchorHeld, let out = firstBeatOutAt, t >= out {
+            closeSoloResume(reason: "ripresa")
+        }
     }
 
     // MARK: - Interruzioni, servizi, ruolo, tocco, risveglio, orologi
@@ -1901,7 +2654,7 @@ private struct OutputRig {
             return
         case .silentInSong:
             silentInSong = true
-        case .localStop, .asToday, .nothing:
+        case .localStop, .asToday, .nothing, .soloResumeOnSong:
             break
         }
         guard isRunning else { return }
@@ -1910,13 +2663,23 @@ private struct OutputRig {
     }
 
     /// La fine dell'interruzione: la ripresa pendente, la guardia, l'hardware occupato, la ricostruzione del grafo e la ripartenza.
-    mutating func interruptionEnded(at t: Double, hardwareBusy busy: Bool = false) {
+    /// A437 · PARTE 2 — `shouldResume` falso (la strada che il rig non aveva): come il motore, dopo il recupero della ripresa
+    /// pendente e PRIMA della guardia e dell'hardware: con un'interruzione attiva e nessuno Stop voluto
+    /// (`RecoveryDecision.raisesPendingOnEndedWithoutResume`) la ripresa pendente si rialza e si arma la rete a 1 s; se no niente.
+    mutating func interruptionEnded(at t: Double, hardwareBusy busy: Bool = false, shouldResume: Bool = true) {
         advance(to: t)
         systemInterruption = false
         hardwareBusy = busy
         if pendingResume {
             pendingResume = false
             activateSessionAndStart(trigger: .pendingRecovery, at: t)
+            return
+        }
+        if !shouldResume {
+            guard RecoveryDecision.raisesPendingOnEndedWithoutResume(interruptionActive: interrupted,
+                                                                     wantedStopSinceCrisis: wantedStop) else { return }
+            pendingResume = true
+            noResumeNet = NoResumeNet(fireAt: t + 1.0, token: resumeToken)
             return
         }
         guard interrupted else { return }
@@ -1940,7 +2703,7 @@ private struct OutputRig {
             crisisStop()
         case .soloStopAsConsole:
             soloStop()
-        case .asToday, .nothing:
+        case .asToday, .nothing, .soloResumeOnSong:
             break
         }
         pendingResume = false
@@ -1970,7 +2733,7 @@ private struct OutputRig {
             if isRunning { crisisStop() }
         case .soloStopAsConsole:
             soloStop()
-        case .asToday, .nothing:
+        case .asToday, .nothing, .soloResumeOnSong:
             break
         }
         clearPendingResume()
@@ -1990,11 +2753,36 @@ private struct OutputRig {
         start(at: t, recovery: nil)
     }
 
+    /// A437 · PARTE 2 — C.1: il segno della tolta dentro la chiamata si abbassa (`forgetRemovalDuringInterruptionQ`).
+    mutating func forgetRemovalDuringInterruption(reason: String) {
+        guard removalDuringInterruption else { return }
+        removalDuringInterruption = false
+        removalsForgotten.append(reason)
+    }
+
+    /// A437 · PARTE 2 (seguito 2 di A437, §2 voce 2) — la levetta di Link ACCESA (`noteUserLinkSwitchQ`, il ramo nuovo): se il
+    /// ruolo effettivo cambia (da Solo a Direttore o a Follower) «canzone in corso» giù e la ripresa del Solo chiusa.
+    /// Nient'altro su questa strada: i ritorni, il segno della mappa, lo stato dell'uscita restano.
+    mutating func userLinkSwitchedOn(to newRole: PlayerRole, at t: Double) {
+        advance(to: t)
+        if newRole != role {
+            closeSoloResumeAtRest(reason: "link-utente-acceso")
+            if useEngineSongInProgress { songInProgress = false }
+        }
+        role = newRole
+    }
+
+    /// `applySettings` (il cambio del ruolo scelto) e la levetta SPENTA: `handleRoleOrLinkChangeQ`. Nel rig il ruolo è già quello
+    /// effettivo: «il ruolo effettivo cambia» è `newRole != role` (da Solo a Solo no).
     mutating func roleChange(to newRole: PlayerRole, at t: Double) {
         advance(to: t)
         cancelReturns()
         songMapPending = false
         closeAnchor(at: t)
+        closeSoloResumeAtRest(reason: "cambio-di-ruolo")   // A437
+        // A437 · PARTE 2 (seguito 2, §2 voce 2): col ruolo effettivo che cambia «canzone in corso» giù, anche col motore in moto
+        // al volume 1 (col rig di prima, `useEngineSongInProgress` spento, «canzone in corso» non segue il motore: resta).
+        if newRole != role && useEngineSongInProgress { songInProgress = false }
         if isRunning && state.muted {
             isRunning = false
             engineRunning = false
@@ -2010,6 +2798,9 @@ private struct OutputRig {
         apply(.roleChange)
         silentInSong = false
         followsLink = false
+        // ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): qui c'era `forgetRemovalDuringInterruption(reason: "ruolo")`, con la coda
+        // «A437 · PARTE 2 — C.1 (il cambio di ruolo e Link spento)»: tolta, come le due chiamate del motore (in `applySettings`
+        // e in `noteUserLinkSwitchQ`). Il cambio di ruolo e Link spento non abbassano più il segno della tolta dentro la chiamata.
         role = newRole
     }
 
@@ -2039,9 +2830,21 @@ private struct OutputRig {
         }
     }
 
+    /// A437 · PARTE 2 (mandato A437, par. 2.8, C-1) — quello che legge il pedale Stop (`PedalPressDecision.decide`): `engineMoving`
+    /// è lo stato del player (`transportInMotion`: `.playing` o `.countIn`), qui «non a fermo». Dopo un arresto locale dentro una
+    /// chiamata il player resta `.playing` e lo Stop del pedale ferma (verso la band); col player a «fermo» dà niente («fermo»).
+    func pedalStopPress() -> PedalPress {
+        PedalPressDecision.decide(role: role, directorSilent: role == .direttore && silentInSong, action: .stop,
+                                  isPlaying: isPlaying, startRequested: false, engineMoving: !playbackStopped,
+                                  screen: .noDoor, soloResumePending: role == .solo && soloResumePending)
+    }
+
     /// Il pedale playPause fuori dal silenzio del Direttore: `isPlaying ? stop() : start()`.
     mutating func pedalPlayPause(at t: Double) {
-        if isPlaying { stop(at: t) } else { start(at: t, recovery: nil) }
+        // A437: la regola del pedale col segno della pausa della ripresa del Solo (nella pausa ferma, non avvia).
+        let inMotion = PedalPressDecision.inMotion(action: .playPause, isPlaying: isPlaying, startRequested: false,
+                                                   engineMoving: false, soloResumePending: role == .solo && soloResumePending)
+        if inMotion { stop(at: t) } else { start(at: t, recovery: nil) }
     }
 
     /// Un cambio di tempo della sessione Link: la linea si ri-àncora qui, i battiti restano dove sono.
@@ -2237,6 +3040,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// non ha più niente da fare.
     func testTheSpeakerInTheSoloAt143244() {
         var rig = playing(.solo, route: [speaker], at: 40.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.routeChange(at: 44.555, to: [bluetooth], rateChanges: false)
         XCTAssertTrue(rig.isRunning, "nel Solo un'uscita che compare resta come oggi")
         XCTAssertEqual(rig.volume, 1.0)
@@ -3366,6 +4170,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// innesco); alla fine niente riparte; riparte col Play.
     func testTheSoloWithAChainInFlightAndABegin() {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.setActiveFailures = 2
         rig.systemStopsEngine(at: 11.0)
         rig.configurationNotification(at: 11.1)
@@ -3391,6 +4196,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// fine entro i 5 s della rete: la ripresa si perde all'inizio, la causa è «interruzione», niente riparte.
     func testTheSoloWithAPendingResumeAndABeginBeforeTheNet() {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.setActiveFailures = 21
         rig.systemStopsEngine(at: 11.0)
         rig.configurationNotification(at: 11.1)
@@ -4127,6 +4933,17 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// F1: il riattacco subito dopo un cambio di sezione a 180,5 BPM (la finestra aperta): il volume non torna nella finestra;
     /// alla prima correzione dopo la finestra che sposta il ritorno si riarma e il volume torna all'«uno» dopo.
     func testTheReattachRightAfterASectionChangeWaitsForTheWindow() throws {
+        // A437 · PARTE 2 (§B.7 del seguito 4 di A421): la rottura della riga del ritorno prenotato, provata nel banco. Senza la
+        // difesa della notizia (`useRouteCrisis` spento) la tolta non zittisce e l'aggiunta non prenota niente: la riga con
+        // `XCTUnwrap`, più sotto, cadrebbe.
+        var broken = playing(.follower, route: [headphones], bpm: 180.5, at: 10.0)
+        broken.useRouteCrisis = false
+        broken.routeChange(at: 15.0, to: [speaker])
+        broken.callbacks(from: 15.004, count: 50)
+        broken.sectionChange(at: broken.now + 0.001)
+        broken.routeChange(at: broken.now + 0.002, to: [headphones])
+        XCTAssertNil(broken.followerReturn, "senza la difesa della notizia nessun ritorno prenotato")
+        XCTAssertEqual(broken.volume, 1.0, "e nessun silenzio da cui tornare")
         var rig = playing(.follower, route: [headphones], bpm: 180.5, at: 10.0)
         rig.routeChange(at: 15.0, to: [speaker])
         rig.callbacks(from: 15.004, count: 50)
@@ -4265,6 +5082,7 @@ final class OutputCrisisSequenceTests: XCTestCase {
     /// niente riparte, il Solo fermo come allo Stop della console. E il Solo appena aperto, o gia' fermo per una crisi: niente Stop.
     func testTheSoloWithAShortInterruptionDuringTheRetriesDoesNotRestart() {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.setActiveFailures = 1
         rig.systemStopsEngine(at: 11.0)
         rig.configurationNotification(at: 11.1)
@@ -4478,7 +5296,11 @@ func testTheSlowPlayerMarkOnTheLastTargetOfTheSkipsIsNotUncertain() throws {
 /// ⚠️ RISCRITTO A421 · SEGUITO 4: si chiamava `testADecisionInsideAnInterruptionTakesTheMarginReadNow` e decideva con la latenza a 0
 /// (il margine di base, lo stesso del margine fisso); la riga con la cassa controllava solo la formula, senza decisione, con una
 /// latenza (0,1696 s) che era D sul telefono a 44,1 kHz.
-func testARejoinStartInsideAnInterruptionTakesTheMarginWithTheBluetoothLatencyReadAtTheStart() throws {
+/// ⚠️ A437 · PARTE 2 (mandato A437, par. 2.11; §B.3 del seguito 4 di A421): si chiamava
+/// `testARejoinStartInsideAnInterruptionTakesTheMarginWithTheBluetoothLatencyReadAtTheStart`. Il nome nuovo dice che il test prova
+/// la decisione del rig all'avvio del rientro (non le due del motore dentro un'interruzione, al secondo e del tasto, che il rig
+/// non ha), e «AtTheRejoinStart» non si può più leggere «all'inizio dell'interruzione». Il corpo non cambia.
+func testTheStartDecisionOfARejoinInsideAnInterruptionTakesTheMarginWithTheBluetoothLatencyReadAtTheRejoinStart() throws {
     for fixed in [false, true] {
         var rig = playing(.direttore, route: [speaker], at: 10.0)
         rig.useFixedMargin = fixed
@@ -4702,6 +5524,7 @@ func testTheSoloNeverStartedIsNotStoppedByAModeChangeAndACall() {
 func testTheSoloStoppedDuringTheRetriesDoesNotRestartAfterAModeChange() {
     for rule in [true, false] {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.useCrisisMemoryRule = rule
         rig.setActiveFailures = 1
         rig.systemStopsEngine(at: 11.0)
@@ -4741,6 +5564,7 @@ func testTheSoloStoppedDuringTheRetriesDoesNotRestartAfterAModeChange() {
     for rule in [true, false] {
         // Dentro un'interruzione cominciata dopo lo Stop: m4 chiude la catena; il cambio di modo e' rimandato; niente riparte.
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.useCrisisMemoryRule = rule
         rig.setActiveFailures = 1
         rig.systemStopsEngine(at: 11.0)
@@ -4766,6 +5590,7 @@ func testTheSoloStoppedDuringTheRetriesDoesNotRestartAfterAModeChange() {
 func testTheLiveChainRestartsAfterAModeChangeAtEngineStoppedAndKeepsTheCause() {
     for rule in [true, false] {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.useCrisisMemoryRule = rule
         rig.setActiveFailures = 1
         rig.systemStopsEngine(at: 11.0)
@@ -4785,6 +5610,7 @@ func testTheLiveChainRestartsAfterAModeChangeAtEngineStoppedAndKeepsTheCause() {
     // catena e ferma il Solo; il cambio di modo e' rimandato e non tocca la memoria; niente riparte, con e senza la regola.
     for rule in [true, false] {
         var rig = playing(.solo, route: [speaker], at: 10.0)
+        rig.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         rig.useCrisisMemoryRule = rule
         rig.setActiveFailures = 1
         rig.systemStopsEngine(at: 11.0)
@@ -4807,6 +5633,7 @@ func testTheLiveChainRestartsAfterAModeChangeAtEngineStoppedAndKeepsTheCause() {
 /// tolta): «niente», la memoria non si tocca come oggi, nessuna riga «invariati».
 func testTheSoloInMotionWithAModeChangeAndAStoppingCauseAtEngineStoppedAreAsToday() {
     var inMotion = playing(.solo, route: [usb], at: 10.0)
+    inMotion.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
     inMotion.routeChange(at: 12.0, to: [usb2], modeChanges: true)
     XCTAssertEqual(inMotion.starts, 2, "il ramo del modo col motore in moto riparte come oggi")
     XCTAssertTrue(inMotion.isRunning)
@@ -4960,8 +5787,10 @@ func testTheLeadInAfterItsFirstCorrectionAndTheOwnClockFirstPinKeepTheMarkAfterT
     for engine in [true, false] {
         // A zero correzioni, la prima chiamata dopo i tre buffer del fuoco, senza correzione.
         var plain = try rejoined(engineLeadIn: engine)
+        XCTAssertEqual(plain.leadInCallsWithTheMarkUp, 0, "motore:\(engine): il rientro vero non arriva alla scorta col segno alto (A437, §B.4)")
         plain.firstCorrectionPending = true
         plain.callbacks(from: plain.now + plain.bufferSeconds, count: 1)
+        XCTAssertEqual(plain.leadInCallsWithTheMarkUp, 1, "motore:\(engine): la sonda vede il segno messo a mano (A437, §B.4)")
         XCTAssertTrue(plain.inLeadIn, "motore:\(engine)")
         XCTAssertEqual(plain.firstCorrectionPending, !engine, engine ? "a zero correzioni senza correzione il segno si consuma, come Link"
                                                                      : "il rig di prima: la scorta senza correzione teneva il segno")
@@ -5562,6 +6391,7 @@ func testSongInProgressFollowsTheEngineAtEveryStopAndStart() {
         XCTAssertEqual(soloCrisis.songInProgress, !engine, "\(tag): l'arresto della crisi del Solo")
         // Una ripartenza automatica senza mappa nuova: la configurazione col Solo in moto.
         var restart = playing(.solo, route: [speaker], at: 10.0, engineSongInProgress: engine)
+        restart.showOpen = false   // A437: a show chiuso il Solo resta com'era (in canzone, da 3b, riprende sulla canzone)
         restart.systemStopsEngine(at: 11.0)
         restart.configurationNotification(at: 11.1)
         XCTAssertEqual(restart.starts, 2, "\(tag): la ripartenza come oggi")
@@ -6119,6 +6949,2247 @@ func testACrisisBetweenTheUnoSetAtOnceAndTheTargetTakesTheAnchorFromTheUnoWhenTh
                 XCTAssertEqual(rig.rejoins, (held || engineOut) ? 2 : 1, tag)
             }
         }
+    }
+}
+
+// MARK: - A437 (mandato A437, par. 3; seguito 1, par. 1 e 2): la ripresa del Solo sulla posizione della canzone
+//
+// Le canzoni sono quelle della scaletta di prova «COLLAUDO 3B»: «1 Two sections» (4/4 a 121,5 per 16 battute, poi 4/4 a 91,5
+// per 16) e «3 Short» (4/4 a 131,5 per 4). Il Play è a 10,0 s: il primo battito esce una latenza dopo (10,0233 s), e da lì
+// la griglia della canzone. L'atteso di ogni ripresa è il primo «uno» di battuta con l'ora non prima della decisione più il
+// margine, calcolato qui a mano dalla mappa (`soloBar`), non dal tipo. Ogni sequenza della pausa guarda l'invariante del
+// seguito 1, voce 2 («nessuna pausa senza una strada in volo») e che lo stato della ripresa esista (`checkSolo`).
+// Le stesse sequenze, con le rotture volute, girano nel modello Python del mandato (prove_rig.py).
+
+private var soloTwoSections: SongMap {
+    SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 16, bpm: 121.5),
+                       SongMapSection(beatsPerBar: 4, repetitions: 16, bpm: 91.5)])
+}
+
+private var soloShort: SongMap {
+    SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 4, bpm: 131.5)])
+}
+
+/// Il primo «uno» della canzone con l'ora non prima di `t`, a mano dalla mappa: l'ora, la sezione (da 0), la battuta (da 1).
+private func soloBar(_ map: SongMap, atOrAfter t: Double) -> (at: Double, section: Int, bar: Int)? {
+    var at = 10.0 + 0.0233
+    for (index, section) in map.sections.enumerated() {
+        let barSeconds = Double(section.beatsPerBar) * 60.0 / section.bpm
+        var bar = 1
+        while bar <= section.repetitions {
+            if at >= t - 1e-9 { return (at, index, bar) }
+            at += barSeconds
+            bar += 1
+        }
+    }
+    return nil
+}
+
+private func checkSolo(_ rig: OutputRig, _ tag: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertTrue(rig.soloPauseInvariantHolds, "pausa senza una strada in volo: \(tag)", file: file, line: line)
+    XCTAssertNotNil(rig.soloResumeState, "uno stato della ripresa che non esiste: \(tag)", file: file, line: line)
+}
+
+/// Il Solo in canzone col click in moto: la mappa, il Play a 10,0 s, cinquanta richiami (e le letture di Δ a regime).
+private func soloInSong(_ map: SongMap? = nil, route: [OutputPort]? = nil, delta: Double = 0.0213) -> OutputRig {
+    var rig = OutputRig(role: .solo, route: route ?? [speaker])
+    rig.soloMap = map ?? soloTwoSections
+    rig.soloDeltaSeconds = delta
+    rig.runnerPlay(at: 10.0)
+    rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+    return rig
+}
+
+/// A437 · PARTE 2 — il Solo in canzone col guardiano acceso e i richiami che continuano fino a poco prima di `until` (col
+/// guardiano acceso i richiami non possono fermarsi: quattro buffer dopo l'ultimo il guardiano scatta, come nel motore).
+private func soloInSongUnderGuardian(route: [OutputPort]? = nil, until: Double = 13.0) -> OutputRig {
+    var rig = OutputRig(role: .solo, route: route ?? [speaker])
+    rig.soloMap = soloTwoSections
+    rig.soloDeltaSeconds = 0.0213
+    rig.useGuardian = true
+    rig.runnerPlay(at: 10.0)
+    let count = Int(((until - 10.0) / rig.bufferSeconds).rounded(.down)) - 1
+    rig.callbacks(from: 10.0 + rig.bufferSeconds, count: count)
+    return rig
+}
+
+/// La pausa più lunga: la cassa Bluetooth a 44,1 kHz a canzone in corso, il ritorno che aspetta la configurazione.
+private func soloPausedByBluetooth() -> OutputRig {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [bluetooth], rateChanges: true)
+    rig.advance(to: 13.5)
+    return rig
+}
+
+/// C6 — le cuffie col filo attaccate a canzone in corso: il silenzio subito, la crisi «uscita-aggiunta», l'àncora, l'arresto, il
+/// ritorno del Solo dopo l'assestamento; la ripartenza muta e il primo click sull'«uno» della battuta giusta. Nella pausa il motore
+/// è fermo, `isPlaying` è falso e la faccia della console resta Stop. E il margine: una decisione che cade 74 ms prima di un «uno»
+/// non lo sceglie.
+func testTheSoloWithWiredHeadphonesAddedInSongComesBackOnTheRightBar() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [headphones])
+    checkSolo(rig, "dopo la notizia")
+    XCTAssertEqual(rig.volume, 0.0, "il silenzio subito")
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertFalse(rig.isPlaying, "isPlaying resta lo specchio del motore")
+    XCTAssertTrue(rig.soloResumePending)
+    XCTAssertTrue(rig.soloConsoleShowsStop, "nella pausa la faccia resta Stop")
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    XCTAssertEqual(rig.directorReturn?.wait, .settle)
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    XCTAssertFalse(rig.playbackStopped, "lo schermo resta quello del player")
+    XCTAssertEqual(rig.setActiveAttempts, 0)
+    rig.advance(to: 13.05)
+    XCTAssertEqual(rig.starts, 1, "prima dell'assestamento niente riparte")
+    rig.advance(to: 13.2)
+    checkSolo(rig, "nella scorta")
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(rig.setActiveAttempts, 1)
+    XCTAssertEqual(rig.soloResumeState, .armed)
+    XCTAssertEqual(rig.volume, 1.0, "il volume dell'avvio dallo scrittore unico")
+    XCTAssertTrue(rig.isPlaying)
+    XCTAssertTrue(rig.soloResumePending, "nella scorta il segno è ancora alto")
+    XCTAssertEqual(rig.soloResumes, 0)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + rig.margin))
+    XCTAssertEqual(want.section, 0)
+    XCTAssertEqual(want.bar, 3)
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.soloResumes, 1)
+    XCTAssertFalse(rig.soloResumePending, "al fuoco riuscito il segno scende")
+    XCTAssertEqual(rig.soloResumeState, .held)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6, "il primo click sull'uno della battuta 3")
+    let aim = try XCTUnwrap(rig.soloFirstAim)
+    XCTAssertEqual(aim.section, 0)
+    XCTAssertEqual(aim.bar, 3)
+    XCTAssertEqual(aim.unoBeat, 8)
+    XCTAssertEqual(rig.runnerRejoins, [0])
+    XCTAssertNil(rig.crisisCause)
+    XCTAssertFalse(rig.wantedStop)
+    XCTAssertEqual(rig.soloLastDelta?.fromHardware, true, "lettura:hardware")
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: 8)
+    XCTAssertEqual(rig.soloResumeState, .idle, "l'àncora tenuta si chiude al primo battito uscito")
+    XCTAssertEqual(rig.soloClosures, ["ripresa"])
+    XCTAssertEqual(rig.soloStops, 0)
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.soloE3, [])
+    XCTAssertTrue(rig.songInProgress)
+    XCTAssertEqual(rig.state.lastOutputExternal, true)
+    // Il margine: la decisione a 13,9 s cade 74 ms prima dell'«uno» della battuta 3, che non è più raggiungibile: la 4.
+    var close = soloInSong()
+    close.routeChange(at: 13.8, to: [headphones])
+    let next = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.9 + close.margin))
+    XCTAssertEqual(next.bar, 4)
+    close.advance(to: next.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(close.soloFirstClickAt), next.at, accuracy: 1e-6)
+    XCTAssertEqual(close.soloLateFires, 0, "nessun fuoco in ritardo: il margine ha scelto la battuta giusta")
+}
+
+/// C7 — la cassa Bluetooth a 44,1 kHz: il ritorno aspetta la configurazione (l'assestamento non basta), il ramo della frequenza
+/// a motore fermo ricollega soltanto; la notifica di configurazione fa scattare il ritorno. Senza la notifica, la riserva a 2 s.
+func testTheSoloWithABluetoothSpeakerWaitsTheConfigurationThenComesBack() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [bluetooth], rateChanges: true)
+    checkSolo(rig, "dopo la notizia")
+    XCTAssertEqual(rig.directorReturn?.wait, .configuration)
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(rig.copyRate, 44_100, "il ramo della frequenza a motore fermo ricollega soltanto")
+    rig.advance(to: 13.2)
+    XCTAssertEqual(rig.starts, 1, "l'assestamento non basta: aspetta la configurazione")
+    checkSolo(rig, "in attesa della configurazione")
+    rig.configurationNotification(at: 13.25)
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(rig.soloResumeState, .armed)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.25 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    var late = soloInSong()
+    late.routeChange(at: 13.0, to: [bluetooth], rateChanges: true)
+    late.advance(to: 14.9)
+    XCTAssertEqual(late.starts, 1)
+    checkSolo(late, "prima della riserva")
+    late.advance(to: 15.05)
+    XCTAssertEqual(late.starts, 2, "la riserva a 2 s")
+    let wantLate = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 15.0 + late.margin))
+    late.advance(to: wantLate.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(late.soloFirstClickAt), wantLate.at, accuracy: 1e-6)
+}
+
+/// C8 — la scheda USB (l'aggiunta e il cambio di modo nella stessa notizia): la strada unica (P23). La crisi dell'aggiunta ferma
+/// e arma il ritorno; il ramo del modo trova l'àncora già viva, non riparte, e il ritorno armato prima resta.
+func testTheSoloWithAUSBCardTheModeBranchFindsTheAnchorAliveAndDoesNotRestart() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [usb], modeChanges: true)
+    checkSolo(rig, "dopo la notizia")
+    XCTAssertEqual(rig.soloAnchorsTaken, 1, "il ramo del modo trova l'àncora già viva")
+    XCTAssertEqual(rig.starts, 1, "nessuna ripartenza dal ramo del modo")
+    XCTAssertEqual(rig.directorReturn?.kind, .solo, "il ritorno armato prima resta")
+    XCTAssertEqual(rig.setActiveAttempts, 0)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloResumes, 1)
+}
+
+/// C9 — una ripartenza senza un'uscita nuova: la configurazione del motore a canzone in corso. L'àncora, l'arresto, e il
+/// pre-controllo che conta di nuovo a ogni tentativo della `setActive`: la battuta 3 passa durante i tentativi, si torna sulla 4.
+func testTheSoloWithAConfigurationChangeInSongComesBackAndThePreCheckCountsAtEveryAttempt() throws {
+    var rig = soloInSong()
+    rig.setActiveFailures = 2
+    rig.systemStopsEngine(at: 13.0)
+    rig.configurationNotification(at: 13.1)
+    checkSolo(rig, "dopo la configurazione")
+    XCTAssertTrue(rig.soloResumePending)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.crisisCause, .configuration)
+    XCTAssertEqual(rig.setActiveAttempts, 1)
+    XCTAssertEqual(rig.soloPreChecks, 1)
+    XCTAssertEqual(rig.starts, 1)
+    rig.advance(to: 13.7)
+    checkSolo(rig, "fra i tentativi")
+    XCTAssertEqual(rig.setActiveAttempts, 2)
+    XCTAssertEqual(rig.soloPreChecks, 2)
+    rig.advance(to: 14.2)
+    XCTAssertEqual(rig.setActiveAttempts, 3)
+    XCTAssertEqual(rig.soloPreChecks, 3)
+    XCTAssertEqual(rig.starts, 2)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 14.1 + rig.margin))
+    XCTAssertEqual(want.bar, 4, "la battuta 3 è passata durante i tentativi: si torna sulla 4")
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloStops, 0)
+}
+
+/// C9 — il motore fermato dal sistema senza nessuna notifica: la rete a 2 s riparte e la ripresa torna sulla canzone.
+func testTheSoloWithTheEngineStoppedBySystemComesBackFromTheNet() throws {
+    var rig = soloInSong()
+    rig.systemStopsEngine(at: 13.0)
+    rig.callbacks(from: 13.0 + rig.bufferSeconds, count: 2)
+    XCTAssertEqual(rig.stoppedCallbacks, 2)
+    rig.advance(to: 15.1)
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.0 + rig.bufferSeconds + 2.0 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    checkSolo(rig, "dopo il fuoco")
+}
+
+/// C6 — vicino alla fine di una sezione il primo «uno» utile è l'inizio della sezione dopo; a cavallo del confine e del cambio
+/// di tempo (121,5 -> 91,5) è la seconda battuta del Chorus, al tempo nuovo. Il runner va sulla sezione d'arrivo.
+func testNearTheEndOfASectionAndAcrossTheTempoChangeTheTargetIsInTheNextSection() throws {
+    var rig = soloInSong()
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: Int(30.4 / rig.bufferSeconds))
+    rig.routeChange(at: 41.0, to: [headphones])
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 41.1 + rig.margin))
+    XCTAssertEqual(want.section, 1)
+    XCTAssertEqual(want.bar, 1, "il primo uno utile è l'inizio del Chorus")
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.runnerRejoins, [1])
+    XCTAssertEqual(rig.soloFirstAim?.unoBeat, 64)
+    var across = soloInSong()
+    across.callbacks(from: across.now + across.bufferSeconds, count: Int(30.9 / across.bufferSeconds))
+    across.routeChange(at: 41.5, to: [headphones])
+    let second = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 41.6 + across.margin))
+    XCTAssertEqual(second.section, 1)
+    XCTAssertEqual(second.bar, 2, "a cavallo del confine: la seconda battuta del Chorus, al tempo nuovo")
+    across.advance(to: second.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(across.soloFirstClickAt), second.at, accuracy: 1e-6)
+    XCTAssertEqual(across.runnerRejoins, [1])
+    XCTAssertEqual(across.soloFirstAim?.unoBeat, 68)
+}
+
+/// C21 — «canzone finita» (E3). In «3 Short» l'ultimo «uno» (la battuta 4) esce a 15,4986 s. Al primo pre-controllo è ancora
+/// raggiungibile; al tentativo dopo la canzone finisce prima: il runner arma la successiva una volta, nessun avvio, la sessione
+/// non si tocca, niente riparte dopo. E con E3 già al primo pre-controllo: nessuna scrittura della sessione.
+func testTheSongThatEndsBeforeTheFirstUsefulBarArmsTheNextOneAndNothingStarts() {
+    var rig = soloInSong(soloShort)
+    rig.setActiveFailures = 5
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: Int(4.6 / rig.bufferSeconds))
+    rig.routeChange(at: 15.2, to: [headphones])
+    rig.advance(to: 15.35)
+    XCTAssertEqual(rig.setActiveAttempts, 1, "al primo pre-controllo la battuta 4 è ancora raggiungibile")
+    XCTAssertEqual(rig.soloE3, [])
+    checkSolo(rig, "fra i tentativi")
+    rig.advance(to: 15.9)
+    XCTAssertEqual(rig.soloE3, ["pre-controllo"], "al tentativo dopo la canzone finisce prima")
+    XCTAssertEqual(rig.setActiveAttempts, 1, "E3: la sessione non si tocca")
+    XCTAssertEqual(rig.runnerArmNext, 1)
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertFalse(rig.songInProgress)
+    XCTAssertEqual(rig.soloResumeState, .idle)
+    XCTAssertEqual(rig.drainDelivered, 0, "nessuna chiusura di fine sezione consegnata da qui")
+    XCTAssertEqual(rig.soloStops, 0)
+    rig.wakeup(at: 17.0)
+    rig.routeChange(at: 18.0, to: [speaker])
+    rig.advance(to: 25.0)
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(rig.runnerArmNext, 1, "una sola azione al runner")
+    var direct = soloInSong(soloShort)
+    direct.callbacks(from: direct.now + direct.bufferSeconds, count: Int(4.85 / direct.bufferSeconds))
+    direct.routeChange(at: 15.45, to: [headphones])
+    let writes = direct.sessionWrites
+    direct.advance(to: 15.6)
+    XCTAssertEqual(direct.soloE3, ["pre-controllo"])
+    XCTAssertEqual(direct.sessionWrites, writes, "nessuna scrittura della sessione")
+    XCTAssertEqual(direct.setActiveAttempts, 0)
+    XCTAssertEqual(direct.runnerArmNext, 1)
+    XCTAssertEqual(direct.starts, 1)
+}
+
+/// C21 e seguito 1, voce 6 — col drenaggio aperto la canzone finisce come finita suonando: l'arresto consegna la chiusura una
+/// volta, nessuna àncora, nessuna ripresa, nessuna E3. Anche con un'àncora ancora viva (tenuta dalla ripresa): si chiude lei.
+/// E a motore fermo senza una ripresa in attesa una crisi che non ferma il Solo resta «come oggi».
+func testWithTheDrainOpenTheSongEndsAsPlayedWithOneDeliveryAndNoResume() throws {
+    var rig = soloInSong()
+    rig.drainPending = true
+    rig.routeChange(at: 13.0, to: [headphones])
+    XCTAssertEqual(rig.drainDelivered, 1)
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertEqual(rig.soloE3, [])
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.runnerArmNext, 0)
+    XCTAssertFalse(rig.isRunning)
+    checkSolo(rig, "dopo il drenaggio")
+    rig.routeChange(at: 14.0, to: [headphones, usb], modeChanges: true)
+    XCTAssertEqual(rig.soloE2, [], "a motore fermo e senza ripresa in attesa: come oggi")
+    XCTAssertEqual(rig.soloStops, 0)
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    XCTAssertEqual(rig.starts, 1)
+    var held = soloInSong()
+    held.routeChange(at: 13.0, to: [headphones])
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + held.margin))
+    held.advance(to: want.at - 0.02)
+    XCTAssertEqual(held.soloResumeState, .held)
+    held.drainPending = true
+    held.systemStopsEngine(at: want.at - 0.015)
+    held.configurationNotification(at: want.at - 0.01)
+    XCTAssertEqual(held.drainDelivered, 1, "una sola chiusura consegnata")
+    XCTAssertEqual(held.soloClosures, ["drenaggio"], "l'àncora viva si chiude")
+    XCTAssertEqual(held.soloE3, [], "nessuna E3")
+    XCTAssertEqual(held.runnerArmNext, 0)
+    XCTAssertFalse(held.soloResumePending)
+    XCTAssertNil(held.soloAnchor)
+    XCTAssertEqual(held.soloAnchorsTaken, 1)
+}
+
+/// C22 — il conto non certo (E2): le cuffie attaccate subito dopo il Play, prima che esca il primo battito contato. Il Solo si
+/// ferma come allo Stop della console, niente riparte da solo, il Play riparte.
+func testWithNoCountedBeatOutTheSoloStopsAsTheConsoleAndWaitsThePlay() {
+    var rig = OutputRig(role: .solo, route: [speaker])
+    rig.soloMap = soloTwoSections
+    rig.runnerPlay(at: 10.0)
+    rig.routeChange(at: 10.01, to: [headphones])
+    XCTAssertEqual(rig.soloE2, ["ancora-non-presa(nessun-battito-contato-gia-uscito)"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertTrue(rig.playbackStopped, "«Resume from»")
+    XCTAssertTrue(rig.wantedStop, "lo Stop voluto alzato")
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertFalse(rig.soloConsoleShowsStop)
+    rig.wakeup(at: 11.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    rig.runnerPlay(at: 21.0)
+    XCTAssertTrue(rig.isRunning, "riparte col Play")
+    XCTAssertFalse(rig.wantedStop)
+}
+
+/// C20 — il tasto e il pedale nella pausa (con la cassa Bluetooth, la pausa più lunga): la faccia resta Stop; un tocco ferma e
+/// chiude la ripresa (il contatore della catena sale, il ritorno si annulla), niente riparte da solo. Il pedale Play/Pause fa lo
+/// stesso (ferma, non avvia). Un avvio a mano (il debug) chiude la ripresa e parte normale.
+func testInThePauseTheKeyStaysStopAndATouchStopsAndClosesTheResume() {
+    var rig = soloPausedByBluetooth()
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    XCTAssertTrue(rig.soloConsoleShowsStop, "la faccia resta Stop")
+    XCTAssertFalse(rig.isPlaying)
+    let token = rig.resumeToken
+    rig.stop(at: 13.6)
+    XCTAssertEqual(rig.resumeToken, token + 1, "la chiusura alza il contatore della catena")
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertEqual(rig.soloClosures, ["stop"])
+    XCTAssertEqual(rig.soloResumeState, .idle)
+    XCTAssertFalse(rig.soloConsoleShowsStop)
+    XCTAssertTrue(rig.playbackStopped)
+    rig.configurationNotification(at: 13.7)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    var manual = soloPausedByBluetooth()
+    manual.start(at: 13.6, recovery: nil)
+    XCTAssertEqual(manual.soloClosures, ["avvio"])
+    XCTAssertFalse(manual.soloResumePending)
+    XCTAssertTrue(manual.isRunning)
+    XCTAssertEqual(manual.soloResumes, 0)
+    XCTAssertEqual(manual.starts, 2)
+    XCTAssertNil(manual.soloFire)
+    var pedal = soloPausedByBluetooth()
+    pedal.pedalPlayPause(at: 13.6)
+    XCTAssertEqual(pedal.starts, 1, "il pedale nella pausa ferma, non avvia")
+    XCTAssertTrue(pedal.wantedStop)
+    XCTAssertEqual(pedal.soloClosures, ["stop"])
+    XCTAssertTrue(pedal.playbackStopped)
+    pedal.advance(to: 20.0)
+    XCTAssertEqual(pedal.starts, 1)
+}
+
+/// Seguito 1, voce 3 — la chiusura accodata prima del blocco della `setActive`: lo Stop arriva nella finestra di un giro di
+/// coda, il contatore della catena sale e il blocco già accodato muore al suo controllo. Zero attivazioni.
+func testAStopQueuedBeforeTheSetActiveKillsTheAttempt() {
+    var rig = soloInSong()
+    rig.systemStopsEngine(at: 13.0)
+    rig.injectStopBeforeSetActive = true
+    rig.configurationNotification(at: 13.1)
+    XCTAssertEqual(rig.deadChainsAtSetActive, 1, "il blocco già accodato muore al controllo del contatore")
+    XCTAssertEqual(rig.setActiveAttempts, 0, "zero attivazioni")
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(rig.soloClosures, ["stop"])
+    XCTAssertTrue(rig.wantedStop)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.setActiveAttempts, 0)
+    XCTAssertEqual(rig.starts, 1)
+}
+
+/// Seguito 1, voce 2 — `setCategory` fallito e hardware occupato con la ripresa in attesa: E2 al posto della ripresa pendente
+/// (zero ripresa pendente). Fuori da una canzone resta come oggi: la ripresa pendente si alza.
+func testASetCategoryFailureOrABusyHardwareInThePauseStopsAsTheConsole() {
+    var rig = soloInSong()
+    rig.setCategoryFails = true
+    rig.systemStopsEngine(at: 13.0)
+    rig.configurationNotification(at: 13.1)
+    XCTAssertEqual(rig.soloE2, ["setCategory-fallito"])
+    XCTAssertFalse(rig.pendingResume, "zero ripresa pendente")
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertTrue(rig.wantedStop)
+    checkSolo(rig, "dopo E2")
+    rig.wakeup(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+    var busy = soloInSong()
+    busy.hardwareBusy = true
+    busy.routeChange(at: 13.0, to: [headphones])
+    busy.advance(to: 13.2)
+    XCTAssertEqual(busy.soloE2, ["hardware-occupato"])
+    XCTAssertFalse(busy.pendingResume)
+    XCTAssertEqual(busy.soloStops, 1)
+    checkSolo(busy, "dopo E2")
+    busy.hardwareBusy = false
+    busy.wakeup(at: 14.0)
+    busy.advance(to: 20.0)
+    XCTAssertEqual(busy.starts, 1)
+    var out = soloInSong()
+    out.showOpen = false
+    out.hardwareBusy = true
+    out.systemStopsEngine(at: 13.0)
+    out.configurationNotification(at: 13.1)
+    XCTAssertTrue(out.pendingResume, "fuori da una canzone come oggi")
+    XCTAssertEqual(out.soloE2, [])
+    XCTAssertEqual(out.soloStops, 0)
+}
+
+/// Seguito 1, voce 1 — `engine.start()` che fallisce con la ripresa in attesa: E2, il Solo si ferma come allo Stop della
+/// console e aspetta il Play; niente pausa col tasto su Stop e niente in volo.
+func testAnEngineStartThatFailsInThePauseStopsAsTheConsole() {
+    var rig = soloInSong()
+    rig.engineStartFails = true
+    rig.routeChange(at: 13.0, to: [headphones])
+    rig.advance(to: 13.2)
+    XCTAssertEqual(rig.engineStartFailures, 1)
+    XCTAssertEqual(rig.soloE2, ["avvio-fallito"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertEqual(rig.soloResumeState, .idle)
+    XCTAssertEqual(rig.starts, 1)
+    checkSolo(rig, "dopo E2")
+    rig.wakeup(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+}
+
+/// Seguito 1, voce 2 — la catena dei tentativi (venti da 0,5 s, la rete a 5 s che rientra dal primo tentativo, e di nuovo) non
+/// lascia mai la pausa senza una strada in volo, e il pre-controllo conta a ogni tentativo. Con una canzone corta finisce da
+/// sola quando la canzone finisce (E3). La rete che trova la ripresa pendente abbassata da altri finisce senza avvio: E2.
+func testTheRetryChainNeverLeavesThePauseWithoutARoadAndEndsWithTheSong() {
+    var rig = soloInSong()
+    rig.setActiveFailures = 1000
+    rig.systemStopsEngine(at: 13.0)
+    rig.configurationNotification(at: 13.1)
+    var t = 13.1
+    while t < 40.0 {
+        t += 0.25
+        rig.advance(to: t)
+        checkSolo(rig, "t:\(t)")
+    }
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.soloE3, [])
+    XCTAssertTrue(rig.soloResumePending)
+    XCTAssertGreaterThanOrEqual(rig.safetyNetFired, 1)
+    XCTAssertGreaterThan(rig.setActiveAttempts, 40)
+    XCTAssertEqual(rig.soloPreChecks, rig.setActiveAttempts, "il pre-controllo conta a ogni tentativo")
+    var short = soloInSong(soloShort)
+    short.setActiveFailures = 1000
+    short.systemStopsEngine(at: 13.0)
+    short.configurationNotification(at: 13.1)
+    t = 13.1
+    while t < 20.0 {
+        t += 0.25
+        short.advance(to: t)
+        checkSolo(short, "corta t:\(t)")
+    }
+    XCTAssertEqual(short.soloE3, ["pre-controllo"], "la catena finisce con la canzone")
+    XCTAssertEqual(short.starts, 1)
+    XCTAssertEqual(short.runnerArmNext, 1)
+    let attempts = short.setActiveAttempts
+    short.advance(to: 40.0)
+    XCTAssertEqual(short.setActiveAttempts, attempts, "dopo E3 la catena è morta")
+    var net = soloInSong()
+    net.setActiveFailures = 1000
+    net.systemStopsEngine(at: 13.0)
+    net.configurationNotification(at: 13.1)
+    net.advance(to: 23.5)
+    XCTAssertNotNil(net.safetyNet)
+    XCTAssertTrue(net.pendingResume)
+    net.pendingResume = false
+    net.advance(to: 30.0)
+    XCTAssertEqual(net.safetyNetSkipped, 1)
+    XCTAssertEqual(net.soloE2, ["rete-senza-ripresa-pendente"], "la catena che finisce senza avvio: E2")
+    XCTAssertEqual(net.soloStops, 1)
+    checkSolo(net, "dopo E2")
+}
+
+/// La regola del 21/10 (BOX5), le due prove del referto A424 par. 2.1 h: l'interruzione che comincia nell'attesa del ritorno
+/// (il ritorno annullato, la catena chiusa, il Solo fermo come la console) e nella scorta (il fuoco annullato); e il fuoco che
+/// scatta fra i due passaggi sulla coda dell'inizio di un'interruzione (la guardia del fuoco: E2). Alla fine niente riparte.
+func testAnInterruptionInTheWaitOfTheReturnAndInTheLeadInStopsAsTheConsole() {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [headphones])
+    rig.interruptionBegan(at: 13.05)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertEqual(rig.chainsClosedAtBegin, 1)
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertEqual(rig.crisisCause, .interruption)
+    XCTAssertEqual(rig.soloResumeState, .idle)
+    XCTAssertTrue(rig.playbackStopped)
+    checkSolo(rig, "dopo l'inizio")
+    rig.interruptionEnded(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "alla fine il Solo non riparte")
+    var lead = soloInSong()
+    lead.routeChange(at: 13.0, to: [headphones])
+    lead.advance(to: 13.2)
+    XCTAssertEqual(lead.soloResumeState, .armed)
+    lead.interruptionBegan(at: 13.3)
+    XCTAssertEqual(lead.soloStops, 1)
+    XCTAssertNil(lead.soloFire)
+    XCTAssertEqual(lead.soloResumeState, .idle)
+    XCTAssertFalse(lead.isRunning)
+    lead.interruptionEnded(at: 14.0)
+    lead.advance(to: 20.0)
+    XCTAssertEqual(lead.starts, 2)
+    XCTAssertEqual(lead.soloResumes, 0)
+    var between = soloInSong()
+    between.routeChange(at: 13.0, to: [headphones])
+    between.advance(to: 13.2)
+    between.systemInterruption = true
+    between.advance(to: 14.5)
+    XCTAssertEqual(between.soloE2, ["interruzione"], "la guardia del fuoco")
+    XCTAssertEqual(between.soloResumes, 0)
+    XCTAssertEqual(between.soloStops, 1)
+    XCTAssertFalse(between.isRunning)
+}
+
+/// Lo stacco nella pausa: la notizia della tolta ferma il Solo come la console anche a motore fermo (P35: in moto per il player).
+/// L'uscita sparita prima della sua notizia (P32): allo scatto del ritorno la memoria dice esterna e un'esterna non c'è: E2 con
+/// la causa «uscita-tolta», nessuna attivazione. E un ritorno che non può scattare con la ripresa in attesa era l'ultima strada: E2.
+func testARemovalOrAVanishedOutputInThePauseStopsAsAtTheRemoval() {
+    var rig = soloInSong(route: [headphones])
+    rig.routeChange(at: 13.0, to: [headphones, bluetooth], rateChanges: true)
+    rig.advance(to: 13.5)
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    rig.routeChange(at: 13.6, to: [speaker])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertEqual(rig.crisisCause, .outputRemoved)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertEqual(rig.soloResumeState, .idle)
+    XCTAssertTrue(rig.playbackStopped)
+    checkSolo(rig, "dopo lo stacco")
+    rig.configurationNotification(at: 13.7)
+    rig.wakeup(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "dopo lo stacco aspetta il Play")
+    var vanished = soloInSong(route: [headphones])
+    XCTAssertEqual(vanished.state.lastOutputExternal, true)
+    vanished.routeChange(at: 13.0, to: [headphones, bluetooth])
+    XCTAssertEqual(vanished.directorReturn?.wait, .settle)
+    vanished.physicalRoute = [speaker]
+    vanished.advance(to: 13.2)
+    XCTAssertEqual(vanished.soloE2, ["uscita-sparita"])
+    XCTAssertEqual(vanished.crisisCause, .outputRemoved)
+    XCTAssertEqual(vanished.soloStops, 1)
+    XCTAssertEqual(vanished.starts, 1)
+    XCTAssertEqual(vanished.setActiveAttempts, 0)
+    vanished.wakeup(at: 14.0)
+    vanished.advance(to: 20.0)
+    XCTAssertEqual(vanished.starts, 1)
+    var other = soloInSong()
+    other.routeChange(at: 13.0, to: [headphones])
+    other.soloSongIdx = 1
+    other.advance(to: 13.2)
+    XCTAssertEqual(other.soloReturnsNotFired, 1)
+    XCTAssertEqual(other.soloE2, ["ritorno-non-eseguito"], "era l'ultima strada")
+    XCTAssertEqual(other.soloStops, 1)
+    XCTAssertEqual(other.starts, 1)
+    checkSolo(other, "dopo E2")
+}
+
+/// I servizi audio persi e il reset senza Lost nella pausa: fermo come la console (in moto per il player), niente riparte.
+func testServicesLostAndResetInThePauseStopAsTheConsole() {
+    var lost = soloPausedByBluetooth()
+    lost.servicesLost(at: 13.6)
+    XCTAssertEqual(lost.soloStops, 1)
+    XCTAssertEqual(lost.crisisCause, .servicesLost)
+    XCTAssertEqual(lost.soloResumeState, .idle)
+    checkSolo(lost, "dopo la Lost")
+    lost.advance(to: 20.0)
+    XCTAssertEqual(lost.starts, 1)
+    var reset = soloPausedByBluetooth()
+    reset.mediaResetWithoutLost(at: 13.6)
+    XCTAssertEqual(reset.soloStops, 1)
+    XCTAssertEqual(reset.crisisCause, .resetWithoutLost)
+    XCTAssertEqual(reset.soloResumeState, .idle)
+    checkSolo(reset, "dopo il reset")
+    reset.advance(to: 20.0)
+    XCTAssertEqual(reset.starts, 1)
+}
+
+/// Il cambio di ruolo e lo show chiuso nella pausa (per difesa: dal player, nella pausa, il ruolo non si cambia): la ripresa
+/// chiusa, il contatore della catena alzato, il player a «fermo», niente riparte. Nella scorta il motore muto si ferma.
+func testARoleChangeOrTheShowClosedInThePauseCloseTheResume() {
+    var role = soloPausedByBluetooth()
+    let token = role.resumeToken
+    role.roleChange(to: .direttore, at: 13.6)
+    XCTAssertFalse(role.soloResumePending)
+    XCTAssertNil(role.soloAnchor)
+    XCTAssertEqual(role.resumeToken, token + 1)
+    XCTAssertTrue(role.playbackStopped)
+    XCTAssertTrue(role.wantedStop)
+    XCTAssertNil(role.directorReturn)
+    role.configurationNotification(at: 13.7)
+    role.advance(to: 20.0)
+    XCTAssertEqual(role.starts, 1)
+    var show = soloPausedByBluetooth()
+    show.closeShow(at: 13.6)
+    XCTAssertFalse(show.soloResumePending)
+    XCTAssertNil(show.soloAnchor)
+    XCTAssertTrue(show.playbackStopped)
+    show.configurationNotification(at: 13.7)
+    show.advance(to: 20.0)
+    XCTAssertEqual(show.starts, 1)
+    var armed = soloInSong()
+    armed.routeChange(at: 13.0, to: [headphones])
+    armed.advance(to: 13.2)
+    XCTAssertEqual(armed.soloResumeState, .armed)
+    armed.roleChange(to: .direttore, at: 13.3)
+    XCTAssertFalse(armed.isRunning)
+    XCTAssertNil(armed.soloFire)
+    XCTAssertEqual(armed.soloResumes, 0)
+    armed.advance(to: 20.0)
+    XCTAssertEqual(armed.soloResumes, 0)
+}
+
+/// Un'uscita che compare nella pausa di una configurazione (il motore è fermo, il volume è a 1): la crisi e il ritorno sì, il
+/// silenzio non si scrive. Il ritorno apre una catena nuova e il tentativo della catena di prima muore.
+func testAnAddedOutputInThePauseOfAConfigurationArmsTheReturnWithoutWritingTheSilence() throws {
+    var rig = soloInSong()
+    rig.setActiveFailures = 1000
+    rig.systemStopsEngine(at: 13.0)
+    rig.configurationNotification(at: 13.1)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    let token = rig.resumeToken
+    rig.routeChange(at: 13.3, to: [headphones])
+    XCTAssertEqual(rig.volume, 1.0, "a motore fermo il silenzio non si scrive")
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    checkSolo(rig, "dopo la notizia")
+    rig.setActiveFailures = 0
+    rig.advance(to: 13.45)
+    XCTAssertGreaterThan(rig.resumeToken, token, "il ritorno apre una catena nuova: il tentativo di prima muore")
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(rig.setActiveAttempts, 2)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.4 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloResumes, 1)
+    rig.advance(to: 30.0)
+    XCTAssertEqual(rig.starts, 2, "il tentativo della catena di prima non riparte")
+}
+
+/// Fuori da una canzone (a show chiuso, o senza una canzone del runner) il Solo resta com'è oggi: l'uscita che compare non fa
+/// niente, la configurazione riparte come oggi, nessuna àncora e nessuna ripresa.
+func testOutOfASongTheSoloIsAsToday() {
+    for withoutShow in [true, false] {
+        var rig = OutputRig(role: .solo, route: [speaker])
+        rig.soloMap = soloTwoSections
+        if withoutShow {
+            rig.showOpen = false
+            rig.runnerPlay(at: 10.0)
+        } else {
+            rig.start(at: 10.0, recovery: nil)
+            XCTAssertFalse(rig.songInProgress)
+        }
+        rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+        rig.routeChange(at: 13.0, to: [headphones])
+        XCTAssertTrue(rig.isRunning, "senzaShow:\(withoutShow)")
+        XCTAssertEqual(rig.volume, 1.0, "senzaShow:\(withoutShow)")
+        XCTAssertNil(rig.directorReturn, "senzaShow:\(withoutShow)")
+        rig.systemStopsEngine(at: 14.0)
+        rig.configurationNotification(at: 14.1)
+        XCTAssertEqual(rig.starts, 2, "senzaShow:\(withoutShow): la ripartenza come oggi")
+        XCTAssertEqual(rig.soloAnchorsTaken, 0, "senzaShow:\(withoutShow)")
+        XCTAssertFalse(rig.soloResumePending, "senzaShow:\(withoutShow)")
+        XCTAssertEqual(rig.soloResumes, 0, "senzaShow:\(withoutShow)")
+        XCTAssertTrue(rig.isRunning, "senzaShow:\(withoutShow)")
+    }
+}
+
+// MARK: - A437 · SEGUITO 5 (19/11/2026): le letture di Δ del Solo dalla regola pura, coi numeri del telefono
+//
+// Sul telefono l'ora dell'ultimo render sta circa 22,9 ms dopo adesso («a»), e l'inizio del rendering del buffer di confronto
+// cade fra 0,19 e 10,56 ms prima di quell'ora («ψ»; referto A437, par. 45-46). Nel modo realistico del rig (`soloOnThePhone`)
+// l'uscita vera di ogni buffer sta sulla linea della catena, e Δ non è data: la regola deve ritrovarla. Queste sequenze provano
+// che la regola, il motivo di ogni scarto e l'àncora tornano DATI quei due fatti: i fatti li prova il WAV del collaudo C6.
+// Le stesse sequenze, con le rotture volute, girano nel modello Python del seguito (prove5.py).
+
+private var soloSlow: SongMap {
+    SongMap(sections: [SongMapSection(beatsPerBar: 4, repetitions: 24, bpm: 71.5)])
+}
+
+/// Il Solo in canzone nel modo realistico: «a» e «ψ» del telefono, il Play a 10,0 s, i richiami puntuali. Di base i richiami
+/// continuano fin poco prima della crisi delle 13,0 (nel motore la catena non si ferma): così la convenzione del battito
+/// dell'àncora è quella scritta per il buffer che lo porta, non la formula di ripiego del rig (nota N5 del verificatore V2).
+private func soloOnThePhone(phase: Double, ahead: Double = 0.0229, nodeRate: Double = 48_000.0, cycleFrames: Double = 512,
+                            callbacks: Int? = nil, map: SongMap? = nil, renderFresh: Bool = true,
+                            renderBehind: Double = 0.001) -> OutputRig {
+    var rig = OutputRig(role: .solo, route: [speaker], cycleSeconds: cycleFrames / nodeRate)
+    rig.nodeRate = nodeRate
+    rig.soloMap = map ?? soloTwoSections
+    rig.renderAheadSeconds = ahead
+    rig.renderPhaseSeconds = phase
+    rig.soloRenderFresh = renderFresh
+    rig.soloRenderBehindSeconds = renderBehind
+    rig.runnerPlay(at: 10.0)
+    let count = callbacks ?? Int(((12.99 - 10.0) / rig.bufferSeconds).rounded(.down))
+    rig.callbacks(from: 10.0 + rig.bufferSeconds, count: count)
+    return rig
+}
+
+/// Il primo «uno» della griglia VERA non prima di `t`: nel modo realistico la griglia parte a − ψ dopo quella di `soloBar`.
+private func soloTrueBar(_ rig: OutputRig, _ map: SongMap, atOrAfter t: Double) -> (at: Double, section: Int, bar: Int)? {
+    guard let bar = soloBar(map, atOrAfter: t - rig.soloRenderShift) else { return nil }
+    return (bar.at + rig.soloRenderShift, bar.section, bar.bar)
+}
+
+/// Le cuffie attaccate a `crisisAt`, il ritorno dopo l'assestamento, la ripresa: rende l'ora vera dell'«uno» atteso.
+private func soloResumeAfterHeadphones(_ rig: inout OutputRig, crisisAt: Double = 13.0, map: SongMap? = nil,
+                                       file: StaticString = #filePath, line: UInt = #line) throws -> Double {
+    rig.routeChange(at: crisisAt, to: [headphones])
+    let want = try XCTUnwrap(soloTrueBar(rig, map ?? soloTwoSections, atOrAfter: crisisAt + 0.1 + rig.margin),
+                             file: file, line: line)
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.soloResumes, 1, "la ripresa", file: file, line: line)
+    return want.at
+}
+
+/// P24, la (a) — l'ora vera dell'àncora ha bisogno delle letture di Δ.
+/// ⚠️ RISCRITTA A437 · SEGUITO 5 (19/11/2026). Fino al seguito 4 la prova dava Δ al rig (21,3 ms) e le letture non passavano
+/// dalla regola: non poteva vedere che sul telefono la regola le scartava tutte. Ora gioca i numeri del telefono: con otto
+/// letture valide (lettura:hardware) il click torna entro mezzo ciclo dalla griglia di prima, e l'errore è ψ meno mezzo ciclo;
+/// col render fermo (L indietro, anche di un solo millisecondo) nessuna lettura vale, la lettura è «riserva» e il click
+/// anticipa della Δ vera (22-34 ms: quello che faceva il telefono fino al seguito 4); con due sole letture ancora la riserva.
+func testTheTrueTimeOfTheAnchorNeedsTheReadingsOfDelta() throws {
+    for phase in [0.00019, 0.00533, 0.01056] {
+        var rig = soloOnThePhone(phase: phase)
+        let want = try soloResumeAfterHeadphones(&rig)
+        let delta = try XCTUnwrap(rig.soloLastDelta)
+        XCTAssertEqual(delta.readings, 8, "psi:\(phase)")
+        XCTAssertTrue(delta.fromHardware, "psi:\(phase)")
+        XCTAssertEqual(delta.sourceName, "hardware", "psi:\(phase)")
+        let half = rig.cycleSeconds / 2
+        let click = try XCTUnwrap(rig.soloFirstClickAt)
+        XCTAssertEqual(click - want, phase - half, accuracy: 2e-6, "psi:\(phase): l'errore e' psi meno mezzo ciclo")
+        XCTAssertLessThanOrEqual(abs(click - want), half + 2e-6, "psi:\(phase): entro mezzo ciclo dalla griglia")
+        XCTAssertEqual(Double(delta.ticks) / OutputRig.tps, 0.0229 + rig.bufferSeconds / 2, accuracy: 2e-6,
+                       "psi:\(phase): Delta letta = a + mezzo buffer (28,23 ms)")
+    }
+    for behind in [0.5, 0.001] {
+        var blind = soloOnThePhone(phase: 0.00533, renderFresh: false, renderBehind: behind)
+        let want = try soloResumeAfterHeadphones(&blind)
+        XCTAssertEqual(blind.soloLastDelta?.readings, 0, "indietro:\(behind)")
+        XCTAssertEqual(blind.soloLastDelta?.fromHardware, false, "lettura:riserva indietro:\(behind)")
+        XCTAssertEqual(blind.soloLastDelta?.sourceName, "riserva", "indietro:\(behind)")
+        let tally = try XCTUnwrap(blind.soloLastTally)
+        XCTAssertEqual(tally.behind, tally.calls - 5, "indietro:\(behind): tutte «indietro» dopo le cinque d'avvio")
+        let click = try XCTUnwrap(blind.soloFirstClickAt)
+        XCTAssertEqual(click - want, -blind.soloTrueDeltaSeconds, accuracy: 2e-6,
+                       "indietro:\(behind): la riserva, il click anticipa della Delta vera")
+    }
+    var two = soloOnThePhone(phase: 0.00533, callbacks: 48, renderFresh: false)
+    two.soloRenderFresh = true
+    two.callbacks(from: two.now + two.bufferSeconds, count: 2)
+    two.routeChange(at: 13.0, to: [headphones])
+    XCTAssertEqual(two.soloLastDelta?.readings, 2)
+    XCTAssertEqual(two.soloLastDelta?.fromHardware, false, "con due letture ancora la riserva")
+    XCTAssertEqual(two.soloLastDelta?.sourceName, "riserva")
+}
+
+/// Lo stesso a 44,1 kHz (la cassa Bluetooth): il buffer e il ciclo durano 11,61 ms, Δ letta 28,7 ms, l'errore entro ±5,80 ms.
+func testAt44100TheAnchorIsWithinHalfACycleOfTheGrid() throws {
+    for phase in [0.00019, 0.00533, 0.01056] {
+        var rig = soloOnThePhone(phase: phase, nodeRate: 44_100.0)
+        let want = try soloResumeAfterHeadphones(&rig)
+        let delta = try XCTUnwrap(rig.soloLastDelta)
+        XCTAssertEqual(delta.readings, 8, "psi:\(phase)")
+        XCTAssertEqual(delta.sourceName, "hardware", "psi:\(phase)")
+        let half = rig.cycleSeconds / 2
+        let click = try XCTUnwrap(rig.soloFirstClickAt)
+        XCTAssertEqual(click - want, phase - half, accuracy: 2e-6, "psi:\(phase)")
+        XCTAssertLessThanOrEqual(abs(click - want), half + 2e-6, "psi:\(phase)")
+        XCTAssertEqual(Double(delta.ticks) / OutputRig.tps, 0.0229 + rig.bufferSeconds / 2, accuracy: 2e-6, "psi:\(phase)")
+    }
+}
+
+/// Il ciclo d'I/O di 256 campioni col buffer di 512 [Ipotesi del referee: il fatto F1 è misurato solo col ciclo uguale al
+/// buffer]: la regola si applica, e l'errore segue il posto di ψ. (i) F1 com'è, a = due cicli: entro mezzo ciclo; (ii) F1
+/// spostato di un ciclo, ψ in (ciclo, 2 cicli]: il click più tardi del vero, da mezzo ciclo a un ciclo e mezzo; (iii) a che
+/// resta 22,9 ms: oltre il tetto di tre cicli (16 ms), «avanti», e vale la riserva; (iv) F1 spostato all'indietro, ψ in
+/// (−ciclo, 0]: il click fino a un ciclo e mezzo in anticipo.
+func testWithACycleOf256FramesTheRuleAppliesAndItsErrorFollowsThePhase() throws {
+    let cycle = 256.0 / 48_000.0
+    for phase in [0.0002, 0.00267, 0.0052] {
+        var rig = soloOnThePhone(phase: phase, ahead: 2 * cycle, cycleFrames: 256)
+        let want = try soloResumeAfterHeadphones(&rig)
+        XCTAssertEqual(rig.soloLastDelta?.sourceName, "hardware", "(i) psi:\(phase)")
+        let click = try XCTUnwrap(rig.soloFirstClickAt)
+        XCTAssertEqual(click - want, phase - cycle / 2, accuracy: 2e-6, "(i) psi:\(phase)")
+        XCTAssertLessThanOrEqual(abs(click - want), cycle / 2 + 2e-6, "(i) psi:\(phase)")
+    }
+    var shifted = soloOnThePhone(phase: cycle + 0.001, ahead: 2 * cycle, cycleFrames: 256)
+    var want = try soloResumeAfterHeadphones(&shifted)
+    XCTAssertEqual(shifted.soloLastDelta?.sourceName, "hardware", "(ii)")
+    XCTAssertEqual(try XCTUnwrap(shifted.soloFirstClickAt) - want, 0.001 + cycle / 2, accuracy: 2e-6, "(ii): +3,67 ms")
+    var far = soloOnThePhone(phase: 0.00267, ahead: 0.0229, cycleFrames: 256)
+    want = try soloResumeAfterHeadphones(&far)
+    XCTAssertEqual(far.soloLastDelta?.readings, 0, "(iii)")
+    XCTAssertEqual(far.soloLastDelta?.sourceName, "riserva", "(iii)")
+    let farTally = try XCTUnwrap(far.soloLastTally)
+    XCTAssertEqual(farTally.ahead, farTally.calls - 5, "(iii): tutte «avanti» dopo le cinque d'avvio")
+    XCTAssertEqual(try XCTUnwrap(far.soloFirstClickAt) - want, -far.soloTrueDeltaSeconds, accuracy: 2e-6, "(iii): la riserva")
+    var back = soloOnThePhone(phase: -0.002, ahead: 2 * cycle, cycleFrames: 256)
+    want = try soloResumeAfterHeadphones(&back)
+    XCTAssertEqual(back.soloLastDelta?.sourceName, "hardware", "(iv)")
+    XCTAssertEqual(try XCTUnwrap(back.soloFirstClickAt) - want, -0.002 - cycle / 2, accuracy: 2e-6, "(iv): -4,67 ms")
+}
+
+/// Il ciclo d'I/O di 1024 campioni, più lungo del buffer del lettore: ogni lettura si scarta col motivo «ciclo», prima ancora
+/// di leggere `lastRenderTime`, e vale la riserva.
+func testWithACycleOf1024FramesTheReadingsAreDiscardedAndTheReserveHolds() throws {
+    var rig = soloOnThePhone(phase: 0.00533, cycleFrames: 1024)
+    let want = try soloResumeAfterHeadphones(&rig)
+    XCTAssertEqual(rig.soloLastDelta?.readings, 0)
+    XCTAssertEqual(rig.soloLastDelta?.sourceName, "riserva")
+    let tally = try XCTUnwrap(rig.soloLastTally)
+    XCTAssertEqual(tally.cycle, tally.calls - 5, "tutte «ciclo» dopo le cinque d'avvio")
+    XCTAssertEqual(tally.valid, 0)
+    XCTAssertEqual(tally.lastRenderMinusNowText(ticksPerSecond: OutputRig.tps), "-", "lastRenderTime non si legge nemmeno")
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt) - want, -rig.soloTrueDeltaSeconds, accuracy: 2e-6, "la riserva")
+}
+
+/// Una crisi subito dopo la partenza della catena: le letture «avvio» sono cinque (le tre chiamate della partenza e i richiami
+/// 1 e 2), e il battito contato è il primo del Play, nel buffer 0. Anche con quattro letture di regime già valide Δ non si somma
+/// a quel battito (niente mescolanza: una Δ sola vale per una convenzione sola): la lettura è «avvio», Δ = 0.
+func testACrisisRightAfterTheChainStartsTakesNoDeltaOnTheStartupBeat() throws {
+    let phase = 0.00533
+    for (count, valid) in [(6, 4), (4, 2)] {
+        var rig = soloOnThePhone(phase: phase, callbacks: count)
+        let want = try soloResumeAfterHeadphones(&rig, crisisAt: 10.07)
+        let tally = try XCTUnwrap(rig.soloLastTally)
+        XCTAssertEqual(tally.startup, 5, "richiami:\(count): le tre chiamate della partenza e i richiami 1 e 2")
+        XCTAssertEqual(tally.valid, valid, "richiami:\(count)")
+        XCTAssertEqual(tally.calls, count + 3, "richiami:\(count)")
+        let delta = try XCTUnwrap(rig.soloLastDelta)
+        XCTAssertEqual(delta.readings, valid, "richiami:\(count): le letture della catena come sono")
+        XCTAssertEqual(delta.sourceName, "avvio", "richiami:\(count)")
+        XCTAssertEqual(delta.ticks, 0, "richiami:\(count)")
+        XCTAssertFalse(delta.fromHardware, "richiami:\(count)")
+        // L'ora del battito è la convenzione dei tre della partenza (adesso + latenza + ciclo): l'errore è ciclo − a + ψ.
+        XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt) - want, rig.cycleSeconds - 0.0229 + phase, accuracy: 2e-6,
+                       "richiami:\(count)")
+    }
+}
+
+/// Par. 2.3 — nella prima battuta dopo un Play a tempo lento (71,5: il secondo battito esce 0,84 s dopo il primo) l'ultimo
+/// battito uscito è ancora quello del buffer 0, mentre le letture di regime sono già otto: l'àncora non gli somma Δ. Dopo il
+/// secondo battito l'àncora è su un battito di regime, e Δ torna.
+func testInTheFirstBarAfterAPlayAtASlowTempoTheAnchorTakesNoDelta() throws {
+    let phase = 0.00533
+    var rig = soloOnThePhone(phase: phase, callbacks: 60, map: soloSlow)
+    var want = try soloResumeAfterHeadphones(&rig, crisisAt: 10.70, map: soloSlow)
+    XCTAssertEqual(rig.soloLastDelta?.readings, 8, "le letture di regime ci sono")
+    XCTAssertEqual(rig.soloLastDelta?.sourceName, "avvio")
+    XCTAssertEqual(rig.soloLastDelta?.ticks, 0)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt) - want, rig.cycleSeconds - 0.0229 + phase, accuracy: 2e-6,
+                   "il battito della partenza: senza Delta")
+    var later = soloOnThePhone(phase: phase, callbacks: 90, map: soloSlow)
+    want = try soloResumeAfterHeadphones(&later, crisisAt: 10.97, map: soloSlow)
+    XCTAssertEqual(later.soloLastDelta?.sourceName, "hardware")
+    XCTAssertEqual(try XCTUnwrap(later.soloFirstClickAt) - want, phase - later.cycleSeconds / 2, accuracy: 2e-6,
+                   "il battito di regime: con Delta")
+}
+
+/// Par. 2.4 — i contatori della riga `letture di delta` alla presa dell'àncora: cinque «avvio», il resto valide, nessun altro
+/// scarto; i due «ultimi» (l'ultimo render meno adesso, l'ultima Δ). Un richiamo in ritardo sposta adesso e non L. La catena
+/// nuova della ripresa riparte da zero.
+func testTheCountersOfTheReadingsAreWrittenAtTheAnchor() throws {
+    var rig = soloOnThePhone(phase: 0.00533)
+    _ = try soloResumeAfterHeadphones(&rig)
+    let tally = try XCTUnwrap(rig.soloLastTally)
+    XCTAssertEqual(tally.startup, 5)
+    XCTAssertEqual(tally.calls, 283, "tre chiamate della partenza e duecentottanta richiami")
+    XCTAssertEqual(tally.valid, 278)
+    XCTAssertEqual(tally.discarded, 5)
+    XCTAssertEqual([tally.render, tally.chain, tally.behind, tally.ahead, tally.cycle, tally.limits], [0, 0, 0, 0, 0, 0])
+    XCTAssertEqual(tally.lastRenderMinusNowText(ticksPerSecond: OutputRig.tps), "22.9")
+    XCTAssertEqual(tally.lastDeltaText(ticksPerSecond: OutputRig.tps), "28.2")
+    var late = soloOnThePhone(phase: 0.00533, callbacks: 49)
+    let lateAt = 10.0 + 50 * late.bufferSeconds + 0.004
+    late.advance(to: lateAt)
+    late.scheduleNextBuffer(at: lateAt)
+    XCTAssertEqual(late.soloDeltaTally.lastRenderMinusNowText(ticksPerSecond: OutputRig.tps), "18.9", "4 ms di ritardo: 22,9 - 4")
+    XCTAssertEqual(late.soloDeltaTally.valid, 48)
+    XCTAssertEqual(rig.soloDeltaTally.calls, 3, "le tre chiamate della partenza della catena della ripresa")
+    XCTAssertEqual(rig.soloDeltaTally.startup, 3)
+}
+
+/// Par. 3 g — una notizia di percorso che non cambia né frequenza né modo riscrive latenza e ciclo a catena viva. Con gli
+/// stessi valori le letture restano; se la latenza (o il ciclo) cambia davvero si azzerano, le due letture dopo cadono su
+/// «catena» (la memoria delle convenzioni è vuota), e un battito contato di un buffer di prima dell'azzeramento prende Δ = 0
+/// («avvio»); con un battito di dopo, Δ torna. Nel modo di prima del rig (l'uscita vera segue la convenzione di 21,3 ms).
+func testTheReadingsAreResetOnlyWhenLatencyOrCycleReallyChangeWithTheChainAlive() throws {
+    var rig = soloInSong()
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: 184)
+    let validBefore = rig.soloDeltaTally.valid
+    rig.routeNewsRewritesTiming(at: 12.5)
+    XCTAssertEqual(rig.soloDeltaResets, [], "gli stessi valori riscritti: niente azzeramento")
+    XCTAssertEqual(rig.soloDeltaTally.valid, validBefore)
+    XCTAssertEqual(rig.soloDeltaReadings.count, 8)
+    rig.routeNewsRewritesTiming(at: 12.5, latency: 0.0300)
+    XCTAssertEqual(rig.soloDeltaResets, ["latenza"])
+    XCTAssertEqual(rig.soloDeltaTally.calls, 0, "i contatori ripartono")
+    XCTAssertEqual(rig.soloDeltaReadings.count, 0)
+    rig.callbacks(from: 12.5 + rig.bufferSeconds, count: 5)
+    XCTAssertEqual(rig.soloDeltaTally.chain, 2, "le due letture dopo: la memoria delle convenzioni e' vuota")
+    XCTAssertEqual(rig.soloDeltaTally.valid, 3)
+    XCTAssertEqual(rig.soloDeltaTally.startup, 0, "la catena e' la stessa: nessuna lettura d'avvio")
+    rig.routeChange(at: 12.57, to: [headphones])
+    XCTAssertEqual(rig.soloLastDelta?.readings, 3)
+    XCTAssertEqual(rig.soloLastDelta?.sourceName, "avvio")
+    var want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 12.67 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at - 0.0213, accuracy: 2e-6,
+                   "un battito di prima dell'azzeramento: senza Delta")
+    var other = soloInSong()
+    other.callbacks(from: other.now + other.bufferSeconds, count: 184)
+    other.routeNewsRewritesTiming(at: 12.5, cycleSeconds: 256.0 / 48_000.0)
+    XCTAssertEqual(other.soloDeltaResets, ["ciclo"])
+    other.callbacks(from: 12.5 + other.bufferSeconds, count: 55)
+    other.routeChange(at: 13.1, to: [headphones])
+    XCTAssertEqual(other.soloLastDelta?.sourceName, "hardware")
+    want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.2 + other.margin))
+    other.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(other.soloFirstClickAt), want.at, accuracy: 2e-6, "un battito di dopo: con Delta")
+}
+
+/// Par. 2.3, la catena ancorata — dopo una ripresa il primo battito sta nel buffer 0 della catena ancorata, e la sua ora è
+/// quella vera della catena. Una crisi prima del secondo battito prende l'àncora da lui: anche con le letture di regime già
+/// valide Δ non si somma (la lettura è «avvio»), e la seconda ripresa torna sulla griglia. Nel modo di prima del rig.
+func testAfterAResumeACrisisOnTheFirstBeatOfTheAnchoredChainTakesNoDelta() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [headphones])
+    let first = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + rig.margin))
+    rig.advance(to: first.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), first.at, accuracy: 1e-6)
+    rig.callbacks(from: rig.now + rig.bufferSeconds, count: 30)
+    XCTAssertEqual(rig.soloClosures, ["ripresa"])
+    XCTAssertGreaterThanOrEqual(rig.soloDeltaTally.valid, 3, "le letture di regime della catena della ripresa ci sono")
+    let holeAt = rig.now + rig.bufferSeconds + 0.05
+    XCTAssertLessThan(holeAt, first.at + 60.0 / 121.5, "prima del secondo battito della ripresa")
+    rig.advance(to: holeAt)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.05)
+    XCTAssertEqual(rig.soloAnchorsTaken, 2)
+    XCTAssertEqual(rig.soloLastDelta?.sourceName, "avvio", "il battito e' del buffer 0 della catena ancorata")
+    XCTAssertEqual(rig.soloLastDelta?.ticks, 0)
+    let second = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: holeAt + 0.1 + rig.margin))
+    rig.advance(to: second.at - 0.01)
+    XCTAssertEqual(rig.soloResumes, 2)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), second.at, accuracy: 1e-6,
+                   "l'ora vera della catena, senza Delta: sulla griglia")
+    checkSolo(rig, "dopo la seconda ripresa")
+}
+
+/// Mai un click in ritardo (LIBRO 2026-09-20): col lettore che parte troppo tardi ogni fuoco è in ritardo, salta al bersaglio
+/// dopo (mai allo stesso) coi salti contati, e senza salti il Solo si ferma come allo Stop. Col «lettore lento» già certo
+/// all'armamento il salto non si consuma e il click torna sulla prima battuta raggiungibile.
+func testALateFireSkipsToTheNextBarAndAfterTheSkipsStopsAsTheConsole() throws {
+    var rig = soloInSong()
+    rig.copiesDistance = 0.5
+    rig.routeChange(at: 13.0, to: [headphones])
+    rig.advance(to: 30.0)
+    XCTAssertEqual(rig.soloResumes, 0, "mai un click in ritardo")
+    XCTAssertEqual(rig.soloLateFires, 5)
+    XCTAssertEqual(rig.soloE2, ["non-certo(ritardo-oltre-i-salti)"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertEqual(rig.soloLateTargets.count, 5)
+    for (earlier, later) in zip(rig.soloLateTargets, rig.soloLateTargets.dropFirst()) {
+        XCTAssertGreaterThan(later, earlier + 1.0, "ogni salto va al bersaglio dopo, mai allo stesso")
+    }
+    var slow = soloInSong()
+    slow.engineStartDuration = 0.9
+    slow.routeChange(at: 13.0, to: [headphones])
+    slow.advance(to: 13.2)
+    XCTAssertEqual(slow.soloFire?.slowPlayer, true, "armato per adesso col segno lettore-lento")
+    let first = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + slow.margin))
+    slow.advance(to: 14.05)
+    XCTAssertEqual(slow.soloLateFires, 1)
+    XCTAssertEqual(slow.soloFire?.skipsLeft, 4, "il lettore lento non consuma un salto")
+    slow.advance(to: 30.0)
+    XCTAssertEqual(slow.soloResumes, 1)
+    XCTAssertEqual(slow.soloLateFires, 1)
+    let click = try XCTUnwrap(slow.soloFirstClickAt)
+    XCTAssertGreaterThan(click, first.at + 1.0, "non la battuta già persa")
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 14.0 + slow.margin))
+    XCTAssertEqual(click, want.at, accuracy: 1e-6)
+}
+
+/// Una seconda crisi nella pausa (un'altra uscita che compare, col cambio di modo): l'àncora resta quella, il ritorno si riarma
+/// con l'attesa della notizia nuova, e la ripresa conta dalla stessa àncora.
+func testASecondCrisisInThePauseKeepsTheAnchorAndRearmsTheReturn() throws {
+    var rig = soloPausedByBluetooth()
+    let firstArmed = try XCTUnwrap(rig.directorReturn?.armedAt)
+    rig.routeChange(at: 13.6, to: [bluetooth, usb], modeChanges: true)
+    checkSolo(rig, "dopo la seconda notizia")
+    XCTAssertEqual(rig.soloAnchorsTaken, 1, "l'àncora resta quella")
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    XCTAssertGreaterThan(try XCTUnwrap(rig.directorReturn?.armedAt), firstArmed, "il ritorno si riarma con la notizia nuova")
+    XCTAssertEqual(rig.starts, 1)
+    rig.configurationNotification(at: 13.8)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.8 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloResumes, 1)
+}
+
+/// C13 — dentro un'interruzione (la regola del referee del 21/10): il Solo fermo da una chiamata, le cuffie attaccate durante la
+/// chiamata: niente àncora, niente ritorno, niente riparte. E una notizia arrivata con lo stato «interruzione» già alzato e la
+/// ripresa ancora in attesa aggiorna solo lo stato: il ritorno non si riarma.
+func testInsideAnInterruptionAnAddedOutputOnlyUpdatesTheState() throws {
+    var rig = soloInSong()
+    rig.interruptionBegan(at: 13.0)
+    XCTAssertEqual(rig.soloStops, 1)
+    rig.routeChange(at: 13.5, to: [headphones])
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertFalse(rig.soloResumePending)
+    rig.interruptionEnded(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertTrue(rig.playbackStopped)
+    var mid = soloPausedByBluetooth()
+    let armed = try XCTUnwrap(mid.directorReturn?.armedAt)
+    mid.systemInterruption = true
+    mid.routeChange(at: 13.6, to: [bluetooth, usb])
+    XCTAssertEqual(mid.directorReturn?.armedAt, armed, "solo lo stato: il ritorno non si riarma")
+    XCTAssertEqual(mid.soloAnchorsTaken, 1)
+    XCTAssertEqual(mid.starts, 1)
+}
+
+/// Una scheda USB staccata a canzone in corso («uscita-tolta» e il cambio di modo nella stessa notizia): il Solo si ferma come
+/// la console e la ripresa non comincia (la causa che lo ferma è già ricordata: nessuna àncora, nessun segno).
+func testAUSBCardRemovedInSongStopsAsTheConsoleAndNoResumeBegins() {
+    var rig = soloInSong(route: [usb])
+    rig.routeChange(at: 13.0, to: [speaker], modeChanges: true)
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertEqual(rig.soloAnchorsTaken, 0, "la ripresa non comincia mentre il Solo si ferma come la console")
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(rig.crisisCause, .outputRemoved)
+    XCTAssertTrue(rig.playbackStopped)
+    checkSolo(rig, "dopo lo stacco")
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+}
+
+// MARK: - A437 · PARTE 2 (mandato A437, par. 4 a; seguito 2, par. 1 voce 4): il Solo in canzone sotto il guardiano
+//
+// Col guardiano acceso i richiami continuano fino al buco (`soloInSongUnderGuardian`): quattro buffer dopo l'ultimo richiamo
+// il guardiano scatta e zittisce, come nel motore. Il buco è il tempo in più oltre il passo di un buffer. L'atteso di ogni
+// ripresa resta il primo «uno» di battuta non prima della decisione (lo scatto del ritorno, 100 ms dopo la crisi) più il margine,
+// calcolato a mano dalla mappa (`soloBar`).
+
+/// C19 — il buco piccolo (33,2 ms, il più piccolo misurato col Centro di Controllo): nel Solo in canzone è una crisi. Il
+/// guardiano zittisce durante il buco; alla chiamata del buco l'àncora, l'arresto locale, il ritorno del Solo con l'innesco
+/// «buco del render»; il buffer del buco non si programma; poi la ripresa sull'«uno» della battuta giusta. Nessun «ritorno dopo
+/// il buco»: il Solo non ha una correzione che rimetta la griglia.
+func testASmallHoleInTheSoloInSongIsACrisisAndTheSoloComesBackOnTheRightBar() throws {
+    var rig = soloInSongUnderGuardian()
+    XCTAssertNotNil(rig.guardian, "in canzone il guardiano si arma anche nel Solo")
+    let holeAt = rig.now + rig.bufferSeconds + 0.0332
+    rig.advance(to: holeAt)
+    XCTAssertEqual(rig.guardianFires, 1, "il guardiano zittisce durante il buco")
+    XCTAssertEqual(rig.volume, 0.0)
+    XCTAssertTrue(rig.isRunning, "il guardiano non ferma niente: decide la chiamata dopo")
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.0332)
+    XCTAssertFalse(rig.isRunning, "la crisi a ogni buco sopra la soglia della riga, anche sotto i 75 e i 150 ms")
+    XCTAssertTrue(rig.queued.isEmpty, "il buffer del buco non si programma")
+    XCTAssertTrue(rig.soloResumePending)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    XCTAssertEqual(rig.directorReturn?.trigger, .renderGap)
+    XCTAssertEqual(rig.directorReturn?.wait, .settle)
+    XCTAssertEqual(rig.gapReturnArms, 0, "nel Solo nessun ritorno dopo il buco")
+    XCTAssertNil(rig.gapReturn)
+    XCTAssertEqual(rig.vanishedCrises, 0)
+    XCTAssertFalse(rig.playbackStopped, "lo schermo resta quello del player")
+    XCTAssertTrue(rig.soloConsoleShowsStop)
+    checkSolo(rig, "dopo la crisi")
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: holeAt + 0.1 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.starts, 2)
+    XCTAssertEqual(rig.soloResumes, 1)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6, "il primo click sull'uno della battuta giusta")
+    XCTAssertEqual(rig.volume, 1.0, "il volume dell'avvio dallo scrittore unico")
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.soloStops, 0)
+    XCTAssertEqual(rig.soloLateFires, 0)
+}
+
+/// C6 col render che riparte prima o dopo la notizia — il buco delle cuffie (835,4 ms, il 24/10). (a) Il render riparte prima
+/// che la notizia si legga: il guardiano ha già zittito, la chiamata del buco fa la crisi; la notizia «aggiunta», 50 ms dopo,
+/// trova il Solo fermo con la ripresa in attesa: l'àncora resta quella e il ritorno si riarma con l'attesa della notizia. Una
+/// ripartenza sola. (b) La notizia dentro il buco (154,8 ms dopo l'inizio, come il 24/10): il guardiano ha già zittito, la crisi
+/// è quella del percorso (parte 1) e il segno del guardiano se ne va coi ritorni annullati.
+func testTheHoleOfTheHeadphonesInTheSoloInSongWithTheNoticeAfterOrInsideTheHole() throws {
+    var rig = soloInSongUnderGuardian()
+    let holeAt = rig.now + rig.bufferSeconds + 0.8354
+    rig.advance(to: holeAt)
+    XCTAssertEqual(rig.guardianFires, 1)
+    XCTAssertEqual(rig.volume, 0.0)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.8354)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.directorReturn?.trigger, .renderGap)
+    rig.routeChange(at: holeAt + 0.05, to: [headphones])
+    XCTAssertEqual(rig.soloAnchorsTaken, 1, "l'àncora resta quella del buco")
+    XCTAssertEqual(rig.directorReturn?.trigger, .outputAdded, "il ritorno si riarma con l'attesa della notizia")
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    checkSolo(rig, "dopo la notizia")
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: holeAt + 0.05 + 0.1 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.starts, 2, "una ripartenza sola")
+    XCTAssertEqual(rig.soloResumes, 1)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.state.lastOutputExternal, true, "il click torna dalle cuffie")
+    var inside = soloInSongUnderGuardian()
+    let begin = inside.now
+    inside.routeChange(at: begin + 0.1548, to: [headphones])
+    XCTAssertEqual(inside.guardianFires, 1, "il guardiano ha zittito prima della notizia")
+    XCTAssertEqual(inside.soloAnchorsTaken, 1)
+    XCTAssertFalse(inside.isRunning)
+    XCTAssertEqual(inside.directorReturn?.trigger, .outputAdded)
+    XCTAssertNil(inside.guardianSilenceChain, "il segno del guardiano se ne va coi ritorni annullati")
+    checkSolo(inside, "dopo la notizia dentro il buco")
+    let wantInside = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: begin + 0.1548 + 0.1 + inside.margin))
+    inside.advance(to: wantInside.at - 0.01)
+    XCTAssertEqual(inside.starts, 2)
+    XCTAssertEqual(try XCTUnwrap(inside.soloFirstClickAt), wantInside.at, accuracy: 1e-6)
+    XCTAssertEqual(inside.volume, 1.0)
+}
+
+/// Il segno del guardiano senza buco del misuratore: il guardiano scatta (quattro buffer dall'ultima chiamata) e la chiamata
+/// dopo arriva prima della soglia della riga. Nel Solo in canzone è la crisi e la ripresa, non il «ritorno dopo il buco»; sul
+/// Follower, lo stesso segno arma il ritorno dopo il buco, com'era.
+func testTheGuardianMarkWithoutAMeterHoleInTheSoloInSongIsACrisisNotAGapReturn() throws {
+    var rig = soloInSongUnderGuardian()
+    let callAt = rig.now + 4.5 * rig.bufferSeconds
+    rig.advance(to: callAt)
+    XCTAssertEqual(rig.guardianFires, 1)
+    XCTAssertNotNil(rig.guardianSilenceChain)
+    rig.scheduleNextBuffer(at: callAt)
+    XCTAssertNil(rig.guardianSilenceChain)
+    XCTAssertEqual(rig.gapReturnArms, 0, "nel Solo in canzone nessun ritorno dopo il buco")
+    XCTAssertNil(rig.gapReturn)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertTrue(rig.queued.isEmpty, "il buffer di quella chiamata non si programma")
+    XCTAssertEqual(rig.soloAnchorsTaken, 1)
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    XCTAssertEqual(rig.directorReturn?.trigger, .renderGap)
+    checkSolo(rig, "dopo la crisi")
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: callAt + 0.1 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(rig.soloResumes, 1)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    var follower = playing(.follower, route: [speaker], at: 10.0, guardian: true)
+    let followerCallAt = follower.now + 4.5 * follower.bufferSeconds
+    follower.advance(to: followerCallAt)
+    XCTAssertEqual(follower.guardianFires, 1)
+    follower.scheduleNextBuffer(at: followerCallAt)
+    XCTAssertEqual(follower.gapReturnArms, 1, "il Follower: il ritorno dopo il buco, com'era")
+    XCTAssertTrue(follower.isRunning)
+}
+
+/// P32 alla crisi da misuratore — lo stacco visto prima della notizia: il click usciva dalle cuffie, alla chiamata del buco il
+/// percorso dice già l'altoparlante. Il Solo si ferma come allo Stop della console con la causa «uscita-tolta» (E2): nessuna
+/// àncora, nessun ritorno, niente riparte da solo, nemmeno quando la notizia della tolta arriva. Lo stesso alla prima chiamata
+/// dopo uno scatto del guardiano senza buco del misuratore.
+func testAVanishedOutputAtTheHoleInTheSoloInSongStopsAsTheConsole() {
+    var rig = soloInSongUnderGuardian(route: [headphones])
+    XCTAssertEqual(rig.state.lastOutputExternal, true)
+    let holeAt = rig.now + rig.bufferSeconds + 0.1193
+    rig.physicalRoute = [speaker]
+    rig.advance(to: holeAt)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.1193)
+    XCTAssertEqual(rig.vanishedCrises, 1)
+    XCTAssertEqual(rig.soloE2, ["uscita-sparita-al-buco"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertEqual(rig.crisisCause, .outputRemoved)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    XCTAssertNil(rig.directorReturn)
+    checkSolo(rig, "dopo lo stacco")
+    rig.routeChange(at: holeAt + 0.001, to: [speaker])
+    rig.advance(to: holeAt + 5.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    XCTAssertEqual(rig.soloResumes, 0)
+    var mark = soloInSongUnderGuardian(route: [headphones])
+    mark.physicalRoute = [speaker]
+    let callAt = mark.now + 4.5 * mark.bufferSeconds
+    mark.advance(to: callAt)
+    XCTAssertEqual(mark.guardianFires, 1)
+    mark.scheduleNextBuffer(at: callAt)
+    XCTAssertEqual(mark.vanishedCrises, 1)
+    XCTAssertEqual(mark.soloE2, ["uscita-sparita-al-buco"])
+    XCTAssertEqual(mark.soloAnchorsTaken, 0)
+    mark.advance(to: callAt + 5.0)
+    XCTAssertEqual(mark.starts, 1)
+}
+
+/// Il buco nella scorta della ripresa: dopo il fuoco riuscito l'àncora è tenuta dalla ripresa fino al primo battito uscito. Un
+/// buco prima di quel battito è una crisi: l'àncora resta quella (già viva, non se ne prende un'altra), l'arresto, il ritorno del
+/// Solo, e una seconda ripresa sulla battuta dopo, contata sulla stessa griglia.
+func testAHoleInTheLeadInOfTheSoloResumeKeepsTheAnchorAndResumesOnALaterBar() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [headphones])
+    let first = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + rig.margin))
+    rig.advance(to: first.at - 0.12)
+    XCTAssertEqual(rig.soloResumes, 1)
+    XCTAssertEqual(rig.soloResumeState, .held, "il fuoco è riuscito e l'àncora è tenuta dalla ripresa")
+    XCTAssertTrue(rig.isRunning)
+    let holeAt = first.at - 0.10
+    rig.advance(to: holeAt)
+    rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.05)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertEqual(rig.soloAnchorsTaken, 1, "l'àncora resta quella: già viva")
+    XCTAssertTrue(rig.soloResumePending)
+    XCTAssertEqual(rig.soloResumeState, .waiting)
+    XCTAssertEqual(rig.soloClosures, [], "l'àncora tenuta non si è chiusa")
+    XCTAssertEqual(rig.directorReturn?.kind, .solo)
+    XCTAssertEqual(rig.directorReturn?.trigger, .renderGap)
+    checkSolo(rig, "dopo il buco nella scorta")
+    let second = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: holeAt + 0.1 + rig.margin))
+    XCTAssertEqual(second.bar, first.bar + 1, "la battuta dopo quella mancata")
+    rig.advance(to: second.at - 0.01)
+    XCTAssertEqual(rig.soloResumes, 2)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), second.at, accuracy: 1e-6)
+    XCTAssertEqual(rig.soloE2, [])
+    XCTAssertEqual(rig.soloStops, 0)
+}
+
+/// Fuori da una canzone il Solo resta com'era: il guardiano non si arma, un buco è solo la riga (nessun silenzio, nessuna crisi,
+/// nessuna àncora), e il click va avanti.
+func testOutOfASongTheSoloIsNotUnderTheGuardianAndAHoleIsOnlyTheLine() {
+    for withoutShow in [true, false] {
+        var rig = OutputRig(role: .solo, route: [speaker])
+        rig.soloMap = soloTwoSections
+        rig.useGuardian = true
+        if withoutShow {
+            rig.showOpen = false
+            rig.runnerPlay(at: 10.0)
+        } else {
+            rig.start(at: 10.0, recovery: nil)
+            XCTAssertFalse(rig.songInProgress)
+        }
+        rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+        XCTAssertNil(rig.guardian, "senzaShow:\(withoutShow): fuori da una canzone il guardiano non si arma nel Solo")
+        let holeAt = rig.now + rig.bufferSeconds + 0.8354
+        rig.advance(to: holeAt)
+        XCTAssertEqual(rig.guardianFires, 0, "senzaShow:\(withoutShow)")
+        rig.scheduleNextBuffer(at: holeAt, gapSeconds: 0.8354)
+        XCTAssertTrue(rig.isRunning, "senzaShow:\(withoutShow)")
+        XCTAssertEqual(rig.volume, 1.0, "senzaShow:\(withoutShow)")
+        XCTAssertEqual(rig.soloAnchorsTaken, 0, "senzaShow:\(withoutShow)")
+        XCTAssertFalse(rig.soloResumePending, "senzaShow:\(withoutShow)")
+        XCTAssertNil(rig.directorReturn, "senzaShow:\(withoutShow)")
+        XCTAssertNil(rig.gapReturn, "senzaShow:\(withoutShow): nessun ritorno dopo il buco")
+        XCTAssertEqual(rig.starts, 1, "senzaShow:\(withoutShow)")
+    }
+}
+
+// MARK: - A437 · PARTE 2 (seguito 2, par. 1 voce 4): le differenze (g) e (h) fra rig e motore, portate nel rig
+
+/// (g) — E2 col motore in moto consegna la chiusura di fine sezione rimasta aperta, una volta sola (`closeDrainOnCrisisStopQ` in
+/// `abandonSoloResumeAsConsoleQ`). Lo stato «chiusura aperta nella scorta della ripresa» qui è messo a mano: nel motore non si
+/// raggiunge (ogni arresto di crisi chiude il drenaggio, e nella scorta muta il DSP non arriva a una fine sezione). Lo Stop
+/// della console che segue non consegna una seconda volta. Lo stesso per E3 (`endSoloSongOnResumeQ`).
+func testE2AndE3WithTheEngineRunningDeliverAnOpenSectionEndOnce() throws {
+    var rig = soloInSong()
+    rig.routeChange(at: 13.0, to: [headphones])
+    rig.advance(to: 13.2)
+    XCTAssertEqual(rig.soloResumeState, .armed)
+    XCTAssertTrue(rig.isRunning)
+    let deliveredBefore = rig.drainDelivered
+    rig.drainPending = true
+    rig.systemInterruption = true
+    rig.advance(to: 14.5)
+    XCTAssertEqual(rig.soloE2, ["interruzione"], "la guardia del fuoco: E2 col motore in moto")
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertEqual(rig.drainDelivered, deliveredBefore + 1, "una consegna")
+    XCTAssertFalse(rig.drainPending)
+    XCTAssertEqual(rig.soloStops, 1)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.drainDelivered, deliveredBefore + 1, "una sola")
+    var ended = soloInSong()
+    ended.routeChange(at: 13.0, to: [headphones])
+    ended.advance(to: 13.2)
+    XCTAssertTrue(ended.isRunning)
+    let endedBefore = ended.drainDelivered
+    ended.drainPending = true
+    ended.endSoloSong(phase: "ritardo")
+    XCTAssertEqual(ended.soloE3, ["ritardo"])
+    XCTAssertFalse(ended.isRunning)
+    XCTAssertEqual(ended.drainDelivered, endedBefore + 1, "una consegna")
+    XCTAssertEqual(ended.runnerArmNext, 1)
+}
+
+/// (h), la prima — `start()` senza il metronomo con la ripresa in attesa: E2 (il Solo si ferma come allo Stop della console),
+/// niente riparte da solo. Senza la ripresa in attesa la stessa uscita non ferma niente e non dichiara niente.
+func testAStartWithoutTheMetronomeInThePauseStopsAsTheConsole() {
+    var rig = soloPausedByBluetooth()
+    XCTAssertTrue(rig.soloResumePending)
+    rig.metronomeMissing = true
+    rig.start(at: 13.6, recovery: .pendingRecovery)
+    XCTAssertEqual(rig.soloE2, ["avvio-senza-metronomo"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertNil(rig.directorReturn)
+    XCTAssertEqual(rig.starts, 1)
+    checkSolo(rig, "dopo l'avvio senza metronomo")
+    rig.metronomeMissing = false
+    rig.configurationNotification(at: 13.7)
+    rig.wakeup(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    var plain = OutputRig(role: .solo, route: [speaker])
+    plain.metronomeMissing = true
+    plain.start(at: 10.0, recovery: nil)
+    XCTAssertEqual(plain.soloE2, [], "senza la ripresa in attesa nessun E2")
+    XCTAssertEqual(plain.soloStops, 0)
+    XCTAssertFalse(plain.isRunning)
+}
+
+/// (h), la seconda — `start()` rifiutato coi servizi audio persi, con la ripresa in attesa: E2.
+func testAStartRefusedForLostServicesInThePauseStopsAsTheConsole() {
+    var rig = soloPausedByBluetooth()
+    rig.servicesAtStart = .servicesLost
+    rig.start(at: 13.6, recovery: .pendingRecovery)
+    XCTAssertEqual(rig.soloE2, ["avvio-rifiutato-servizi-persi"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertEqual(rig.starts, 1)
+    checkSolo(rig, "dopo l'avvio rifiutato")
+    rig.servicesAtStart = .normal
+    rig.configurationNotification(at: 13.7)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    var plain = OutputRig(role: .solo, route: [speaker])
+    plain.servicesAtStart = .servicesLost
+    plain.start(at: 10.0, recovery: nil)
+    XCTAssertEqual(plain.soloE2, [])
+    XCTAssertTrue(plain.playbackStopped, "il Play rifiutato: il player a fermo, come oggi")
+    XCTAssertFalse(plain.isRunning)
+}
+
+/// (h), la terza — la ricostruzione dopo la Reset che fallisce al primo avvio, con la ripresa in attesa: E2. Con la
+/// ricostruzione riuscita l'avvio prosegue e la ripresa parte.
+func testARebuildThatFailsAtTheStartInThePauseStopsAsTheConsole() throws {
+    var rig = soloPausedByBluetooth()
+    rig.servicesAtStart = .needsRebuild
+    rig.rebuildFails = true
+    rig.start(at: 13.6, recovery: .pendingRecovery)
+    XCTAssertEqual(rig.soloE2, ["ricostruzione-fallita"])
+    XCTAssertEqual(rig.soloStops, 1)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertTrue(rig.wantedStop)
+    XCTAssertEqual(rig.starts, 1)
+    checkSolo(rig, "dopo la ricostruzione fallita")
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "niente riparte da solo")
+    var rebuilt = soloPausedByBluetooth()
+    rebuilt.servicesAtStart = .needsRebuild
+    rebuilt.configurationNotification(at: 13.6)
+    XCTAssertEqual(rebuilt.soloE2, [])
+    XCTAssertEqual(rebuilt.starts, 2, "la ricostruzione riuscita: l'avvio prosegue")
+    XCTAssertEqual(rebuilt.servicesAtStart, .normal)
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.6 + rebuilt.margin))
+    rebuilt.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rebuilt.soloFirstClickAt), want.at, accuracy: 1e-6)
+}
+
+// MARK: - A437 · PARTE 2 (mandato A437, par. 2.8 e 4 b; seguito 2, par. 2 voce 1): C.1, la tolta dentro una chiamata
+//
+// La scena (referto A431, par. 2.7): il Direttore fuori da una canzone col click in moto dalle cuffie (un Play senza mappa);
+// arriva una chiamata; il batterista stacca le cuffie dentro la chiamata. Le cinque sequenze del banco di A431, più la N-1
+// (l'hardware ancora occupato quando scatta la rete a 1 s). In ognuna: nessuna ripartenza automatica, lo stato fermo dopo il
+// «niente» (il player a «fermo», l'interruzione, la ripresa pendente, quello che legge il pedale), e il Play che riparte.
+
+/// Il Direttore fuori da una canzone col click in moto dalle cuffie, la chiamata e le cuffie staccate dentro la chiamata.
+private func directorInACallWithTheHeadphonesRemoved() -> OutputRig {
+    var rig = OutputRig(role: .direttore, route: [headphones])
+    rig.start(at: 10.0, recovery: nil)
+    rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+    rig.interruptionBegan(at: 11.0)
+    rig.routeChange(at: 11.5, to: [speaker])
+    return rig
+}
+
+/// Lo stato dopo l'inizio della chiamata e la tolta: l'arresto locale, il segno alzato una volta, il player ancora «in moto»
+/// (lo Stop del pedale ferma: è la metà di A429-3 che resta al passo 2b).
+func testARemovalInsideACallIsRememberedByTheDirectorOutOfASong() {
+    var rig = OutputRig(role: .direttore, route: [headphones])
+    rig.start(at: 10.0, recovery: nil)
+    XCTAssertFalse(rig.songInProgress, "un Play senza mappa: fuori da una canzone")
+    rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+    rig.interruptionBegan(at: 11.0)
+    XCTAssertFalse(rig.isRunning, "l'arresto locale")
+    XCTAssertFalse(rig.silentInSong)
+    XCTAssertTrue(rig.interrupted)
+    XCTAssertEqual(rig.crisisCause, .interruption)
+    XCTAssertFalse(rig.removalDuringInterruption)
+    rig.routeChange(at: 11.5, to: [speaker])
+    XCTAssertTrue(rig.removalDuringInterruption, "la tolta dentro l'interruzione si ricorda")
+    XCTAssertEqual(rig.removalsRemembered, 1)
+    XCTAssertTrue(rig.state.missing)
+    XCTAssertEqual(rig.crisisCause, .interruption, "la memoria delle crisi non si tocca")
+    XCTAssertFalse(rig.playbackStopped, "durante la chiamata il player resta com'era")
+    XCTAssertEqual(rig.pedalStopPress().command, .stop, "durante la chiamata lo Stop del pedale ferma: resta al passo 2b")
+    rig.routeChange(at: 11.6, to: [speaker])
+    XCTAssertEqual(rig.removalsRemembered, 1, "una volta sola")
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertEqual(rig.setActiveAttempts, 0, "dentro l'interruzione niente attiva la sessione")
+}
+
+/// Sequenza 1 — la fine con `shouldResume` e le cuffie ancora staccate, poi riattaccate: nessuna ripartenza (com'era: «uscita
+/// mancante» viene prima, e il motivo resta quello); il segno resta alto finché non arriva il Play, che riparte e lo abbassa.
+func testC1TheEndWithShouldResumeAndTheHeadphonesStillRemovedThenBack() {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.interruptionEnded(at: 12.0)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertTrue(rig.playbackStopped, "il «niente» per l'uscita mancante: il player a fermo")
+    XCTAssertFalse(rig.interrupted)
+    XCTAssertFalse(rig.pendingResume)
+    XCTAssertTrue(rig.removalDuringInterruption, "un «niente» non abbassa il segno")
+    rig.routeChange(at: 13.0, to: [headphones])
+    XCTAssertFalse(rig.state.missing)
+    XCTAssertTrue(rig.removalDuringInterruption, "le cuffie riattaccate non abbassano il segno")
+    rig.advance(to: 15.0)
+    XCTAssertEqual(rig.starts, 1, "nessuna ripartenza")
+    XCTAssertEqual(rig.pedalStopPress().reason, "fermo")
+    rig.start(at: 16.0, recovery: nil)
+    XCTAssertTrue(rig.isRunning, "riparte col Play")
+    XCTAssertFalse(rig.removalDuringInterruption)
+    XCTAssertEqual(rig.removalsForgotten, ["play"])
+    XCTAssertFalse(rig.playbackStopped)
+}
+
+/// Sequenza 2 — la fine senza `shouldResume`, le cuffie riattaccate prima della rete a 1 s: la ripresa pendente recuperata dalla
+/// notizia trova l'uscita, e la regola dice «niente» col motivo nuovo (prima di A437 ripartiva da solo). La ripresa pendente va
+/// giù, il player a «fermo», l'interruzione giù; la rete a 1 s poi non trova niente da fare.
+func testC1TheEndWithoutShouldResumeAndTheHeadphonesBackBeforeTheNet() {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.interruptionEnded(at: 12.0, shouldResume: false)
+    XCTAssertTrue(rig.pendingResume, "la fine senza shouldResume rialza la ripresa pendente e arma la rete a 1 s")
+    XCTAssertNotNil(rig.noResumeNet)
+    XCTAssertFalse(rig.playbackStopped)
+    rig.routeChange(at: 12.5, to: [headphones])
+    XCTAssertEqual(rig.starts, 1, "«niente» col motivo nuovo: il click aspetta il Play")
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertFalse(rig.pendingResume, "la ripresa pendente non resta alzata")
+    XCTAssertTrue(rig.playbackStopped, "il player a fermo")
+    XCTAssertFalse(rig.interrupted, "l'interruzione giù: l'hardware è libero")
+    XCTAssertEqual(rig.pedalStopPress().command, nil)
+    XCTAssertEqual(rig.pedalStopPress().reason, "fermo", "lo Stop del pedale non ferma più niente")
+    XCTAssertEqual(rig.setActiveAttempts, 0, "il «niente» è all'ingresso, prima di ogni scrittura della sessione")
+    rig.advance(to: 14.0)
+    XCTAssertEqual(rig.noResumeNetFired, 0, "la rete a 1 s non trova la ripresa pendente")
+    XCTAssertEqual(rig.starts, 1)
+    XCTAssertTrue(rig.removalDuringInterruption)
+    rig.start(at: 16.0, recovery: nil)
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertEqual(rig.removalsForgotten, ["play"])
+}
+
+/// Sequenza 3 e la N-1 — la fine senza `shouldResume`, la rete a 1 s che scatta con le cuffie ancora staccate, poi riattaccate.
+/// Con l'hardware libero: «niente» per l'uscita mancante, poi niente riparte. Con l'hardware ancora occupato alla rete (N-1): il
+/// «niente» per l'uscita mancante rialza la ripresa pendente (com'era); alle cuffie riattaccate la ripresa recuperata trova il
+/// motivo nuovo e va giù, anche con l'hardware occupato; l'interruzione lì resta alta, e scende col «niente» a hardware libero.
+func testC1TheNetFiresWithTheHeadphonesRemovedThenBackAlsoWithTheHardwareBusy() {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.interruptionEnded(at: 12.0, shouldResume: false)
+    rig.advance(to: 13.5)
+    XCTAssertEqual(rig.noResumeNetFired, 1)
+    XCTAssertFalse(rig.pendingResume)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertFalse(rig.interrupted)
+    rig.routeChange(at: 14.0, to: [headphones])
+    rig.advance(to: 16.0)
+    XCTAssertEqual(rig.starts, 1, "nessuna ripartenza")
+    // N-1: l'hardware ancora occupato quando scatta la rete.
+    var busy = directorInACallWithTheHeadphonesRemoved()
+    busy.interruptionEnded(at: 12.0, hardwareBusy: true, shouldResume: false)
+    busy.advance(to: 13.5)
+    XCTAssertEqual(busy.noResumeNetFired, 1)
+    XCTAssertTrue(busy.pendingResume, "per l'uscita mancante con l'hardware occupato la ripresa pendente resta in piedi, com'era")
+    XCTAssertTrue(busy.playbackStopped)
+    XCTAssertTrue(busy.interrupted)
+    XCTAssertEqual(busy.pedalStopPress().reason, "fermo")
+    busy.routeChange(at: 14.0, to: [headphones])
+    XCTAssertFalse(busy.pendingResume, "col motivo nuovo la ripresa pendente va giù anche con l'hardware occupato")
+    XCTAssertTrue(busy.playbackStopped)
+    XCTAssertTrue(busy.interrupted, "con l'hardware occupato l'interruzione resta alta")
+    XCTAssertEqual(busy.pedalStopPress().command, nil)
+    XCTAssertEqual(busy.pedalStopPress().reason, "fermo")
+    XCTAssertEqual(busy.starts, 1)
+    busy.hardwareBusy = false
+    busy.routeChange(at: 15.0, to: [headphones, bluetooth])
+    busy.wakeup(at: 16.0)
+    busy.advance(to: 20.0)
+    XCTAssertEqual(busy.starts, 1, "le cuffie riattaccate e l'hardware liberato: nessuna ripartenza")
+    XCTAssertFalse(busy.pendingResume)
+    XCTAssertTrue(busy.removalDuringInterruption)
+    busy.start(at: 21.0, recovery: nil)
+    XCTAssertTrue(busy.isRunning, "riparte col Play")
+    XCTAssertFalse(busy.interrupted)
+}
+
+/// Sequenza 4 — la fine con l'hardware ancora occupato (la ripresa pendente si alza), poi l'hardware libero e le cuffie
+/// riattaccate: la ripresa recuperata dalla notizia trova il motivo nuovo: «niente» (prima di A437 ripartiva da solo).
+func testC1TheEndWithTheHardwareBusyThenTheHeadphonesBack() {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.interruptionEnded(at: 12.0, hardwareBusy: true)
+    XCTAssertTrue(rig.pendingResume)
+    XCTAssertTrue(rig.interrupted)
+    XCTAssertFalse(rig.playbackStopped)
+    rig.hardwareBusy = false
+    rig.routeChange(at: 13.0, to: [headphones])
+    XCTAssertEqual(rig.starts, 1, "«niente» col motivo nuovo")
+    XCTAssertFalse(rig.pendingResume)
+    XCTAssertTrue(rig.playbackStopped)
+    XCTAssertFalse(rig.interrupted)
+    XCTAssertEqual(rig.pedalStopPress().reason, "fermo")
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+    // Una ripresa pendente già alta (qui rimessa a mano: chi la recupera di norma l'ha già abbassata prima di chiedere la
+    // ripartenza) va giù al primo «niente» col motivo nuovo, da qualunque innesco.
+    rig.pendingResume = true
+    rig.activateSessionAndStart(trigger: .engineConfigChange, at: 20.5)
+    XCTAssertFalse(rig.pendingResume, "la ripresa pendente già alta va giù al «niente» col motivo nuovo")
+    XCTAssertEqual(rig.starts, 1)
+}
+
+/// Sequenza 5 — le cuffie staccate e riattaccate dentro la stessa chiamata: «uscita mancante» si abbassa alla seconda notizia,
+/// il segno resta. Alla fine, con `shouldResume` e senza (la rete a 1 s): «niente» col motivo nuovo (prima ripartiva da solo).
+func testC1TheHeadphonesRemovedAndBackInsideTheSameCall() {
+    for shouldResume in [true, false] {
+        var rig = directorInACallWithTheHeadphonesRemoved()
+        rig.routeChange(at: 11.8, to: [headphones])
+        XCTAssertFalse(rig.state.missing, "shouldResume:\(shouldResume)")
+        XCTAssertTrue(rig.removalDuringInterruption, "shouldResume:\(shouldResume)")
+        rig.interruptionEnded(at: 12.0, shouldResume: shouldResume)
+        rig.advance(to: 14.0)
+        XCTAssertEqual(rig.starts, 1, "shouldResume:\(shouldResume): nessuna ripartenza")
+        XCTAssertFalse(rig.isRunning, "shouldResume:\(shouldResume)")
+        XCTAssertTrue(rig.playbackStopped, "shouldResume:\(shouldResume)")
+        XCTAssertFalse(rig.pendingResume, "shouldResume:\(shouldResume)")
+        XCTAssertFalse(rig.interrupted, "shouldResume:\(shouldResume)")
+        XCTAssertEqual(rig.noResumeNetFired, shouldResume ? 0 : 1, "shouldResume:\(shouldResume)")
+        rig.start(at: 16.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning, "shouldResume:\(shouldResume): riparte col Play")
+    }
+}
+
+/// Il Solo, fuori e dentro una canzone, le stesse cinque sequenze: nessuna ripartenza, com'era. La chiamata lo ferma come allo
+/// Stop della console; la tolta dentro la chiamata non alza né «uscita mancante» né il segno.
+func testC1TheSoloNeverRestartsAfterACallWithARemoval() {
+    for inSong in [false, true] {
+        for sequence in 1...5 {
+            var rig = OutputRig(role: .solo, route: [headphones])
+            if inSong {
+                rig.soloMap = soloTwoSections
+                rig.runnerPlay(at: 10.0)
+            } else {
+                rig.start(at: 10.0, recovery: nil)
+            }
+            rig.callbacks(from: 10.0 + rig.bufferSeconds, count: 50)
+            let tag = "inCanzone:\(inSong) sequenza:\(sequence)"
+            rig.interruptionBegan(at: 11.0)
+            XCTAssertEqual(rig.soloStops, 1, tag)
+            rig.routeChange(at: 11.5, to: [speaker])
+            XCTAssertFalse(rig.removalDuringInterruption, tag)
+            XCTAssertFalse(rig.state.missing, tag)
+            switch sequence {
+            case 1:
+                rig.interruptionEnded(at: 12.0)
+                rig.routeChange(at: 13.0, to: [headphones])
+            case 2:
+                rig.interruptionEnded(at: 12.0, shouldResume: false)
+                rig.routeChange(at: 12.5, to: [headphones])
+            case 3:
+                rig.interruptionEnded(at: 12.0, shouldResume: false)
+                rig.advance(to: 13.5)
+                rig.routeChange(at: 14.0, to: [headphones])
+            case 4:
+                rig.interruptionEnded(at: 12.0, hardwareBusy: true)
+                rig.hardwareBusy = false
+                rig.routeChange(at: 13.0, to: [headphones])
+            default:
+                rig.routeChange(at: 11.8, to: [headphones])
+                rig.interruptionEnded(at: 12.0)
+            }
+            rig.advance(to: 20.0)
+            XCTAssertEqual(rig.starts, 1, tag)
+            XCTAssertFalse(rig.isRunning, tag)
+            XCTAssertFalse(rig.pendingResume, tag)
+            XCTAssertEqual(rig.soloAnchorsTaken, 0, tag)
+            XCTAssertEqual(rig.removalsRemembered, 0, tag)
+        }
+    }
+}
+
+/// I casi che non devono cambiare. (a) La chiamata senza cuffie staccate: con `shouldResume` il Direttore fuori da una canzone
+/// riparte come oggi, senza la rete a 1 s riparte come oggi. (b) Il Direttore muto in canzone con la chiamata e la tolta: il
+/// segno non nasce; «niente» con le cuffie staccate, il ritorno quando si riattaccano. (c) La tolta fuori da una chiamata (U16):
+/// l'arresto locale e il motivo di U16, il segno non nasce.
+func testC1TheCasesThatDoNotChange() {
+    for shouldResume in [true, false] {
+        var plain = OutputRig(role: .direttore, route: [headphones])
+        plain.start(at: 10.0, recovery: nil)
+        plain.callbacks(from: 10.0 + plain.bufferSeconds, count: 50)
+        plain.interruptionBegan(at: 11.0)
+        plain.interruptionEnded(at: 12.0, shouldResume: shouldResume)
+        plain.advance(to: 14.0)
+        XCTAssertEqual(plain.starts, 2, "shouldResume:\(shouldResume): la chiamata senza cuffie staccate riparte come oggi")
+        XCTAssertTrue(plain.isRunning, "shouldResume:\(shouldResume)")
+        XCTAssertEqual(plain.removalsRemembered, 0, "shouldResume:\(shouldResume)")
+        XCTAssertEqual(plain.noResumeNetFired, shouldResume ? 0 : 1, "shouldResume:\(shouldResume)")
+    }
+    var silent = playing(.direttore, route: [headphones])
+    silent.interruptionBegan(at: 11.0)
+    XCTAssertTrue(silent.silentInSong)
+    silent.routeChange(at: 11.5, to: [speaker])
+    XCTAssertFalse(silent.removalDuringInterruption, "col Direttore muto in canzone il segno non nasce")
+    XCTAssertTrue(silent.state.missing)
+    silent.interruptionEnded(at: 12.0)
+    XCTAssertFalse(silent.isRunning, "«niente» con le cuffie staccate")
+    XCTAssertTrue(silent.silentInSong)
+    silent.routeChange(at: 14.0, to: [headphones])
+    silent.advance(to: 18.0)
+    XCTAssertEqual(silent.rejoins, 1, "il ritorno quando le cuffie si riattaccano, come oggi")
+    var removed = OutputRig(role: .direttore, route: [headphones])
+    removed.start(at: 10.0, recovery: nil)
+    removed.callbacks(from: 10.0 + removed.bufferSeconds, count: 50)
+    removed.routeChange(at: 11.0, to: [speaker])
+    XCTAssertFalse(removed.isRunning, "U16: l'arresto locale")
+    XCTAssertEqual(removed.crisisCause, .outputRemoved)
+    XCTAssertFalse(removed.removalDuringInterruption, "fuori da una chiamata il segno non nasce")
+    removed.routeChange(at: 12.0, to: [headphones])
+    removed.wakeup(at: 13.0)
+    removed.advance(to: 16.0)
+    XCTAssertEqual(removed.starts, 1, "U16, com'era: riparte col Play")
+}
+
+/// Chi abbassa il segno senza un Play: il cambio di ruolo (e Link spento). Le ripartenze automatiche e le cuffie riattaccate no.
+/// ⚠️ CORRETTO A437 · SEGUITO 3 (19/11/2026): qui c'era `testC1TheRoleChangeForgetsTheRemovalInsideTheCall`, che col cambio di
+/// ruolo asseriva il segno giù e `removalsForgotten == ["ruolo"]`. Il cambio di ruolo (e Link spento, che nel rig è la stessa
+/// `roleChange`) non abbassa più il segno: resta alto, nessun motivo nell'elenco, nessuna ripartenza.
+func testC1TheRoleChangeKeepsTheRemovalInsideTheCall() {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.interruptionEnded(at: 12.0)
+    XCTAssertTrue(rig.removalDuringInterruption)
+    rig.roleChange(to: .solo, at: 13.0)
+    XCTAssertTrue(rig.removalDuringInterruption, "il cambio di ruolo non abbassa il segno")
+    XCTAssertEqual(rig.removalsForgotten, [])
+    XCTAssertEqual(rig.starts, 1)
+}
+
+// MARK: - A437 · SEGUITO 3 (19/11/2026): la tolta dentro la chiamata resta ricordata al cambio di ruolo e a Link spento
+//
+// Il fatto (seguito 3, par. 1): col segno alto un cambio di ruolo andata e ritorno, o la levetta spenta e riaccesa, lo
+// abbassavano, e alla ripartenza dopo il click del Direttore ripartiva da solo, in due forme: (a) dopo la chiamata, con la
+// ripresa pendente alta (la fine con l'hardware occupato; la fine senza `shouldResume`); (b) dentro la chiamata, con la fine con
+// `shouldResume` e l'hardware libero. In ogni sequenza, quando arriva la ripartenza, le cuffie sono attaccate e l'hardware è
+// libero: decide il segno, non «uscita mancante» né l'hardware occupato. Il rig non registra il motivo del «niente»: si calcola
+// dallo stato con `RecoveryDecision.noRestartReason`, e con lo stesso stato col segno giù dà «avvio come oggi».
+
+/// Il motivo del «niente» calcolato dallo stato del rig, come `noteNoRestart`; con `removal` dato, lo stesso stato col segno a
+/// quel valore.
+private func noRestartReasonNow(_ rig: OutputRig, trigger: RecoveryTrigger, removal: Bool? = nil) -> NoRestartReason? {
+    RecoveryDecision.noRestartReason(trigger: trigger, playerRole: rig.role, silentInSong: rig.silentInSong,
+                                     wantedStopSinceCrisis: rig.wantedStop, crisisCause: rig.crisisCause,
+                                     outputMissing: rig.state.missing,
+                                     removalDuringInterruption: removal ?? rig.removalDuringInterruption)
+}
+
+/// Sequenza 1 fino alla ripartenza — forma (a) con l'hardware occupato alla fine: la tolta, le cuffie riattaccate dentro la
+/// chiamata, la fine con l'hardware occupato (la ripresa pendente si alza), Direttore → Follower → Direttore, l'hardware libero,
+/// un'uscita Bluetooth che si aggiunge (le cuffie restano attaccate).
+private func removalThenHardwareBusyEndThenARoleRoundTrip() -> OutputRig {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.routeChange(at: 11.8, to: [headphones])
+    XCTAssertFalse(rig.state.missing)
+    XCTAssertTrue(rig.removalDuringInterruption)
+    rig.interruptionEnded(at: 12.0, hardwareBusy: true)
+    XCTAssertTrue(rig.pendingResume, "la fine con l'hardware occupato alza la ripresa pendente")
+    XCTAssertTrue(rig.interrupted)
+    XCTAssertFalse(rig.playbackStopped)
+    rig.roleChange(to: .follower, at: 12.5)
+    rig.roleChange(to: .direttore, at: 12.8)
+    rig.hardwareBusy = false
+    rig.routeChange(at: 13.0, to: [headphones, bluetooth])
+    return rig
+}
+
+/// Sequenza 2 fino alla ripartenza — forma (a) con la levetta: la tolta, le cuffie riattaccate dentro la chiamata, la fine
+/// senza `shouldResume` (la ripresa pendente e la rete a 1 s), la levetta spenta (`roleChange`, `handleRoleOrLinkChangeQ`) e
+/// riaccesa (`userLinkSwitchedOn`) prima che scatti la rete, poi la rete.
+private func removalThenEndWithoutResumeThenTheLinkSwitchOffAndOn() -> OutputRig {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.routeChange(at: 11.8, to: [headphones])
+    rig.interruptionEnded(at: 12.0, shouldResume: false)
+    XCTAssertTrue(rig.pendingResume)
+    XCTAssertNotNil(rig.noResumeNet)
+    rig.roleChange(to: .solo, at: 12.3)
+    rig.userLinkSwitchedOn(to: .direttore, at: 12.6)
+    XCTAssertEqual(rig.noResumeNetFired, 0, "la levetta spenta e riaccesa prima della rete")
+    rig.advance(to: 13.5)
+    XCTAssertEqual(rig.noResumeNetFired, 1)
+    return rig
+}
+
+/// Sequenza 3 fino alla ripartenza — forma (b): dentro la chiamata la tolta e le cuffie riattaccate, Direttore → Solo →
+/// Direttore, la fine con `shouldResume` e l'hardware libero (la ripresa pendente non è alta).
+private func removalAndARoleRoundTripInsideTheCallThenTheEnd() -> OutputRig {
+    var rig = directorInACallWithTheHeadphonesRemoved()
+    rig.routeChange(at: 11.8, to: [headphones])
+    rig.roleChange(to: .solo, at: 11.9)
+    rig.roleChange(to: .direttore, at: 11.95)
+    XCTAssertFalse(rig.pendingResume)
+    rig.interruptionEnded(at: 12.0)
+    return rig
+}
+
+/// Il «niente» deciso dal segno: nessuna ripartenza, zero attivazioni, le cuffie attaccate e l'hardware libero, il motivo
+/// «direttore-tolta-nella-chiamata» (col segno giù lo stesso stato darebbe «avvio come oggi»), lo stato fermo di C-1.
+private func assertNoRestartByTheMark(_ rig: OutputRig, trigger: RecoveryTrigger, _ tag: String) {
+    XCTAssertEqual(rig.starts, 1, "\(tag): nessuna ripartenza")
+    XCTAssertFalse(rig.isRunning, tag)
+    XCTAssertEqual(rig.setActiveAttempts, 0, "\(tag): zero attivazioni della sessione")
+    XCTAssertFalse(rig.state.missing, "\(tag): le cuffie sono attaccate")
+    XCTAssertFalse(rig.hardwareBusy, "\(tag): l'hardware è libero")
+    XCTAssertEqual(noRestartReasonNow(rig, trigger: trigger), .directorRemovalInCall, tag)
+    XCTAssertNil(noRestartReasonNow(rig, trigger: trigger, removal: false), "\(tag): senza il segno l'avvio sarebbe come oggi")
+    XCTAssertTrue(rig.removalDuringInterruption, "\(tag): il segno resta fino al Play")
+    XCTAssertTrue(rig.playbackStopped, "\(tag): il player a fermo")
+    XCTAssertFalse(rig.pendingResume, "\(tag): la ripresa pendente giù")
+}
+
+/// Sequenza 1 — dopo la fine con l'hardware occupato, un cambio di ruolo andata e ritorno e l'hardware libero, la notizia del
+/// percorso recupera la ripresa pendente e dice «niente» col motivo della tolta nella chiamata (prima ripartiva da solo).
+func testC1TheEndWithTheHardwareBusyThenARoleRoundTripThenTheNoticeWaitsForThePlay() {
+    var rig = removalThenHardwareBusyEndThenARoleRoundTrip()
+    assertNoRestartByTheMark(rig, trigger: .pendingRecovery, "sequenza 1")
+    XCTAssertEqual(rig.pedalStopPress().command, nil)
+    XCTAssertEqual(rig.pedalStopPress().reason, "fermo")
+    rig.wakeup(at: 14.0)
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1, "nemmeno il risveglio")
+}
+
+/// Sequenza 2 — la levetta spenta e riaccesa prima della rete a 1 s: la rete dice «niente» col motivo della tolta nella chiamata
+/// (prima ripartiva da sola).
+func testC1TheLinkSwitchOffAndOnBeforeTheOneSecondNetThenTheNetWaitsForThePlay() {
+    var rig = removalThenEndWithoutResumeThenTheLinkSwitchOffAndOn()
+    assertNoRestartByTheMark(rig, trigger: .safetyNetNoResume, "sequenza 2")
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+}
+
+/// Sequenza 3 — la forma (b): il cambio di ruolo andata e ritorno dentro la chiamata, poi la fine con `shouldResume` e
+/// l'hardware libero: «niente» all'ingresso, zero attivazioni (prima ripartiva da sola). La cura del referto par. 27 voce 1 (la
+/// ripresa pendente giù quando il segno cade) questa forma non la chiudeva: qui la ripresa pendente non è alta.
+func testC1ARoleRoundTripInsideTheCallThenTheEndWithShouldResumeWaitsForThePlay() {
+    var rig = removalAndARoleRoundTripInsideTheCallThenTheEnd()
+    assertNoRestartByTheMark(rig, trigger: .interruptionEnded, "sequenza 3")
+    XCTAssertFalse(rig.interrupted, "l'interruzione giù: l'hardware è libero")
+    rig.advance(to: 20.0)
+    XCTAssertEqual(rig.starts, 1)
+}
+
+/// Sequenza 4 — dopo ognuna delle tre, il Play: il segno giù col motivo «play» e l'avvio come oggi.
+func testC1AfterEachOfTheThreeThePlayForgetsTheMarkAndStartsAsToday() {
+    let sequences: [(String, () -> OutputRig)] = [
+        ("sequenza 1", removalThenHardwareBusyEndThenARoleRoundTrip),
+        ("sequenza 2", removalThenEndWithoutResumeThenTheLinkSwitchOffAndOn),
+        ("sequenza 3", removalAndARoleRoundTripInsideTheCallThenTheEnd),
+    ]
+    for (tag, build) in sequences {
+        var rig = build()
+        rig.advance(to: 20.0)
+        XCTAssertEqual(rig.starts, 1, tag)
+        XCTAssertEqual(rig.removalsForgotten, [], tag)
+        rig.start(at: 21.0, recovery: nil)
+        XCTAssertTrue(rig.isRunning, "\(tag): riparte col Play")
+        XCTAssertEqual(rig.starts, 2, tag)
+        XCTAssertFalse(rig.removalDuringInterruption, tag)
+        XCTAssertEqual(rig.removalsForgotten, ["play"], tag)
+        XCTAssertFalse(rig.playbackStopped, tag)
+        XCTAssertFalse(rig.interrupted, tag)
+    }
+}
+
+/// Sequenza 5 — il segno alto e il ruolo cambiato dentro la chiamata, tenuto fino alla fine. Il Follower: l'esito di oggi
+/// («avvio come oggi»: il segno per lui non decide); alla sua ripartenza il segno giù col motivo «play», solo se l'avvio parte
+/// davvero (la sessione della band che suona; senza, `start()` esce prima di `prepareNormalStartQ` e il segno resta). Il Solo:
+/// l'esito di oggi, nessuna ripartenza per la causa che lo ferma («solo-dopo-la-crisi»); gli altri valori sono quelli che il
+/// rig dà oggi, misurati sul modello, non uno Stop della console.
+func testC1TheRoleChangedInsideTheCallAndKeptToTheEndRestartsAsTodayForTheFollowerAndNotForTheSolo() {
+    for sessionPlaying in [false, true] {
+        let tag = "follower sessioneCheSuona:\(sessionPlaying)"
+        var rig = directorInACallWithTheHeadphonesRemoved()
+        rig.routeChange(at: 11.8, to: [headphones])
+        rig.roleChange(to: .follower, at: 11.9)
+        rig.followerSessionPlaying = sessionPlaying
+        XCTAssertEqual(RecoveryDecision.route(trigger: .interruptionEnded, playerRole: rig.role, silentInSong: rig.silentInSong,
+                                              wantedStopSinceCrisis: rig.wantedStop, crisisCause: rig.crisisCause,
+                                              outputMissing: rig.state.missing,
+                                              removalDuringInterruption: rig.removalDuringInterruption),
+                       .startAsToday, tag)
+        rig.interruptionEnded(at: 12.0)
+        XCTAssertEqual(rig.setActiveAttempts, 1, tag)
+        if sessionPlaying {
+            XCTAssertEqual(rig.starts, 2, "\(tag): riparte come oggi")
+            XCTAssertTrue(rig.isRunning, tag)
+            XCTAssertFalse(rig.removalDuringInterruption, tag)
+            XCTAssertEqual(rig.removalsForgotten, ["play"], tag)
+        } else {
+            XCTAssertEqual(rig.starts, 1, "\(tag): senza una sessione che suona il Follower resta fermo, come oggi")
+            XCTAssertFalse(rig.isRunning, tag)
+            XCTAssertTrue(rig.removalDuringInterruption, "\(tag): l'avvio non è partito: il segno resta")
+            XCTAssertEqual(rig.removalsForgotten, [], tag)
+        }
+    }
+    var solo = directorInACallWithTheHeadphonesRemoved()
+    solo.routeChange(at: 11.8, to: [headphones])
+    solo.roleChange(to: .solo, at: 11.9)
+    solo.interruptionEnded(at: 12.0)
+    solo.advance(to: 20.0)
+    XCTAssertEqual(solo.starts, 1, "il Solo: nessuna ripartenza, come oggi")
+    XCTAssertFalse(solo.isRunning)
+    XCTAssertEqual(solo.setActiveAttempts, 0)
+    XCTAssertEqual(noRestartReasonNow(solo, trigger: .interruptionEnded), .soloAfterCrisis)
+    XCTAssertEqual(solo.crisisCause, .interruption)
+    XCTAssertTrue(solo.removalDuringInterruption, "il segno resta: lo legge solo il Direttore")
+    XCTAssertEqual(solo.removalsForgotten, [])
+    // Quello che il rig fa oggi, misurato (sul modello Python, con lo stesso rig): il «niente» per «solo-dopo-la-crisi» non
+    // tocca il player né l'interruzione.
+    XCTAssertFalse(solo.playbackStopped)
+    XCTAssertTrue(solo.interrupted)
+    XCTAssertFalse(solo.pendingResume)
+}
+
+// MARK: - A437 · PARTE 2 (mandato A437, par. 2.9 e 4 c; seguito 2, par. 2 voce 2): «canzone in corso» al cambio del ruolo effettivo
+
+/// Da Follower a Direttore col motore in moto al volume 1: il click va avanti e «canzone in corso» va giù. Dopo, per il resto di
+/// quella canzone, valgono le regole di oggi fuori da una canzone: una crisi dà l'arresto locale, non il «muto in canzone».
+func testFromFollowerToDirectorWithTheEngineRunningTheSongInProgressGoesDown() {
+    var rig = playing(.follower, route: [speaker])
+    XCTAssertTrue(rig.songInProgress)
+    XCTAssertEqual(rig.volume, 1.0)
+    rig.roleChange(to: .direttore, at: 12.0)
+    XCTAssertTrue(rig.isRunning, "col volume a 1 il motore resta in moto")
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertFalse(rig.songInProgress, "il ruolo effettivo cambia: «canzone in corso» giù")
+    XCTAssertFalse(rig.playbackStopped)
+    rig.interruptionBegan(at: 13.0)
+    XCTAssertFalse(rig.isRunning)
+    XCTAssertFalse(rig.silentInSong, "fuori da una canzone la crisi del Direttore è l'arresto locale")
+    XCTAssertNil(rig.directorReturn)
+}
+
+/// Da Solo a Direttore con la levetta di Link accesa, col motore in moto al volume 1 e la canzone in corso: «canzone in corso»
+/// giù; la crisi dopo è l'arresto locale del Direttore fuori da una canzone, non la ripresa del Solo né il «muto in canzone».
+func testFromSoloToDirectorWithTheLinkSwitchOnTheSongInProgressGoesDown() {
+    var rig = soloInSong(route: [headphones])
+    XCTAssertTrue(rig.songInProgress)
+    rig.userLinkSwitchedOn(to: .direttore, at: 12.0)
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertEqual(rig.volume, 1.0)
+    XCTAssertFalse(rig.songInProgress, "il ruolo effettivo cambia: «canzone in corso» giù")
+    rig.routeChange(at: 13.0, to: [speaker])
+    XCTAssertFalse(rig.isRunning, "U16: l'arresto locale")
+    XCTAssertFalse(rig.silentInSong)
+    XCTAssertEqual(rig.soloAnchorsTaken, 0)
+    XCTAssertFalse(rig.soloResumePending)
+    XCTAssertTrue(rig.playbackStopped)
+    // Con la levetta accesa nella pausa della ripresa: la ripresa si chiude e il player va a fermo.
+    var paused = soloPausedByBluetooth()
+    paused.userLinkSwitchedOn(to: .direttore, at: 13.6)
+    XCTAssertFalse(paused.soloResumePending)
+    XCTAssertFalse(paused.songInProgress)
+    XCTAssertTrue(paused.playbackStopped)
+    XCTAssertEqual(paused.soloClosures, ["link-utente-acceso"])
+    paused.configurationNotification(at: 13.7)
+    paused.advance(to: 20.0)
+    XCTAssertEqual(paused.starts, 1, "niente riparte da solo")
+}
+
+/// Da Solo a Solo (il ruolo scelto che cambia a levetta spenta): il ruolo effettivo non cambia. Col motore in moto in canzone,
+/// fuori dalla pausa, «canzone in corso» resta e il Solo riprende ancora sulla canzone. Nella pausa la chiusura della ripresa
+/// resta (l'annullo dei ritorni toglie la strada in volo): il player a fermo, niente riparte da solo.
+func testFromSoloToSoloTheSongInProgressStaysAndInThePauseTheResumeIsClosed() throws {
+    var rig = soloInSong()
+    rig.roleChange(to: .solo, at: 12.0)
+    XCTAssertTrue(rig.isRunning)
+    XCTAssertTrue(rig.songInProgress, "da Solo a Solo «canzone in corso» non si tocca")
+    rig.routeChange(at: 13.0, to: [headphones])
+    XCTAssertEqual(rig.soloAnchorsTaken, 1, "in canzone il Solo riprende ancora")
+    let want = try XCTUnwrap(soloBar(soloTwoSections, atOrAfter: 13.1 + rig.margin))
+    rig.advance(to: want.at - 0.01)
+    XCTAssertEqual(try XCTUnwrap(rig.soloFirstClickAt), want.at, accuracy: 1e-6)
+    var paused = soloPausedByBluetooth()
+    paused.roleChange(to: .solo, at: 13.6)
+    XCTAssertFalse(paused.soloResumePending, "nella pausa la ripresa si chiude anche senza un cambio del ruolo effettivo")
+    XCTAssertNil(paused.directorReturn)
+    XCTAssertTrue(paused.playbackStopped)
+    checkSolo(paused, "dopo il cambio da Solo a Solo nella pausa")
+    paused.configurationNotification(at: 13.7)
+    paused.advance(to: 20.0)
+    XCTAssertEqual(paused.starts, 1)
+}
+
+// MARK: - A437 · PARTE 2 (mandato A437, par. 2.11 e 4 e): il banco del Direttore e le voci che restavano
+
+/// C.8 (VERIFICA_REFEREE_A425, par. 3.1): il fuoco del rientro che non parte non azzera niente. La causa ricordata e lo Stop
+/// voluto restano quando il fuoco esce dal ritardo (il salto al bersaglio dopo; «non certo» oltre i salti; il segno
+/// «lettore-lento») o è scartato alla guardia. Lo Stop voluto si alza a mano prima del fuoco, come in
+/// `testTheRejoinFireClearsTheMemoryAndU16DecidesOnTheNewCause`: nel rig un fuoco con lo Stop voluto alto non si raggiunge. In
+/// ciclo sulla rottura voluta (`rejoinFireClearsMemoryAtTheTop`: l'azzeramento salito in cima al fuoco): col rig giusto la
+/// memoria resta, col rig rotto si azzera a ogni fuoco, anche a quelli che non partono. Le uscite del motore che il rig non ha
+/// (stato mancante, mappa e ponte, Link spento, sessione ferma, avvio cambiato) passano dalla stessa `stopRejoinEngineQ` di
+/// «non certo» oltre i salti.
+func testARejoinFireThatDoesNotStartClearsNothing() throws {
+    for atTheTop in [false, true] {
+        let tag = "azzeramentoInCima:\(atTheTop)"
+        // 1. In ritardo: salta al bersaglio dopo, poi «non certo» oltre i salti.
+        var late = playing(.direttore, route: [headphones], at: 10.0)
+        late.rejoinFireClearsMemoryAtTheTop = atTheTop
+        late.routeChange(at: 12.0, to: [speaker])
+        XCTAssertTrue(late.silentInSong, tag)
+        XCTAssertEqual(late.crisisCause, .outputRemoved, tag)
+        late.copiesDistance = 0.5
+        late.start(at: 13.0, recovery: nil)
+        let firstFire = try XCTUnwrap(late.rejoin, "il rientro armato").fireAt
+        late.wantedStop = true
+        late.advance(to: firstFire)
+        XCTAssertEqual(late.lateSkips, 1, "\(tag): il primo fuoco è in ritardo")
+        XCTAssertNotNil(late.rejoin, "\(tag): riarmato al bersaglio dopo")
+        XCTAssertEqual(late.rejoins, 0, tag)
+        XCTAssertEqual(late.crisisCause, atTheTop ? nil : .outputRemoved, "\(tag): il fuoco che salta non azzera la causa")
+        XCTAssertEqual(late.wantedStop, !atTheTop, "\(tag): né lo Stop voluto")
+        XCTAssertEqual(late.memoryClearedAtRejoinFire, atTheTop ? 1 : 0, tag)
+        late.advance(to: 30.0)
+        XCTAssertEqual(late.lateSkips, 5, "\(tag): cinque fuochi in ritardo")
+        XCTAssertEqual(late.uncertainRejoins, 1, "\(tag): non-certo(ritardo-oltre-i-salti)")
+        XCTAssertEqual(late.rejoins, 0, tag)
+        XCTAssertFalse(late.isRunning, tag)
+        XCTAssertTrue(late.silentInSong, tag)
+        XCTAssertEqual(late.crisisCause, atTheTop ? nil : .outputRemoved, "\(tag): il fuoco che non parte non azzera la causa")
+        XCTAssertEqual(late.wantedStop, !atTheTop, tag)
+        XCTAssertEqual(late.memoryClearedAtRejoinFire, atTheTop ? 5 : 0, tag)
+
+        // 2. Col segno «lettore-lento»: il fuoco in ritardo riarma senza azzerare; il fuoco dopo parte, e solo quello azzera.
+        var slow = playing(.direttore, route: [speaker], at: 10.0)
+        slow.rejoinFireClearsMemoryAtTheTop = atTheTop
+        slow.engineStartDuration = 0.6849
+        let bar = slow.nextBarTime(atOrAfter: 21.5)
+        slow.routeChange(at: bar - 0.4131 - 0.1, to: [headphones])
+        XCTAssertTrue(slow.silentInSong, tag)
+        let returnAt = try XCTUnwrap(slow.directorReturn, "il ritorno dopo l'assestamento").fireAt
+        slow.advance(to: returnAt)
+        let armed = try XCTUnwrap(slow.rejoin, "il rientro armato dall'avvio del ritorno")
+        XCTAssertTrue(armed.slowPlayer, "\(tag): armato per adesso col segno lettore-lento")
+        let causeBeforeFire = slow.crisisCause
+        XCTAssertNotNil(causeBeforeFire, tag)
+        slow.wantedStop = true
+        slow.advance(to: armed.fireAt)
+        XCTAssertEqual(slow.slowPlayerFires, 1, tag)
+        XCTAssertEqual(slow.rejoins, 0, tag)
+        XCTAssertEqual(slow.crisisCause, atTheTop ? nil : causeBeforeFire, "\(tag): il fuoco col segno non azzera la causa")
+        XCTAssertEqual(slow.wantedStop, !atTheTop, tag)
+        XCTAssertEqual(slow.memoryClearedAtRejoinFire, atTheTop ? 1 : 0, tag)
+        slow.advance(to: 30.0)
+        XCTAssertEqual(slow.rejoins, 1, "\(tag): il fuoco dopo parte")
+        XCTAssertNil(slow.crisisCause, "\(tag): e solo quello azzera la causa")
+        XCTAssertFalse(slow.wantedStop, tag)
+        XCTAssertEqual(slow.memoryClearedAtRejoinFire, atTheTop ? 2 : 1, tag)
+
+        // 3. Il fuoco scartato: un'interruzione ha tolto il rientro e fermato il motore; il timer di prima scatta lo stesso.
+        var stale = playing(.direttore, route: [headphones], at: 10.0)
+        stale.rejoinFireClearsMemoryAtTheTop = atTheTop
+        stale.routeChange(at: 12.0, to: [speaker])
+        stale.start(at: 13.0, recovery: nil)
+        let staleFire = try XCTUnwrap(stale.rejoin, "il rientro armato").fireAt
+        XCTAssertLessThan(13.2, staleFire, "\(tag): la scena è quella: l'interruzione prima del fuoco")
+        stale.interruptionBegan(at: 13.2)
+        XCTAssertNil(stale.rejoin, tag)
+        XCTAssertFalse(stale.isRunning, tag)
+        let causeAfterBegin = stale.crisisCause
+        XCTAssertNotNil(causeAfterBegin, tag)
+        stale.wantedStop = true
+        stale.fireRejoin(at: staleFire)
+        XCTAssertEqual(stale.rejoins, 0, tag)
+        XCTAssertEqual(stale.crisisCause, atTheTop ? nil : causeAfterBegin, "\(tag): il fuoco scartato non azzera la causa")
+        XCTAssertEqual(stale.wantedStop, !atTheTop, tag)
+        XCTAssertEqual(stale.memoryClearedAtRejoinFire, atTheTop ? 1 : 0, tag)
+
+        // 4. Il controllo: la scena 1 senza il ritardo. Il fuoco parte e azzera, una volta.
+        var fires = playing(.direttore, route: [headphones], at: 10.0)
+        fires.rejoinFireClearsMemoryAtTheTop = atTheTop
+        fires.routeChange(at: 12.0, to: [speaker])
+        fires.start(at: 13.0, recovery: nil)
+        fires.wantedStop = true
+        fires.advance(to: 30.0)
+        XCTAssertEqual(fires.rejoins, 1, tag)
+        XCTAssertNil(fires.crisisCause, tag)
+        XCTAssertFalse(fires.wantedStop, tag)
+        XCTAssertEqual(fires.memoryClearedAtRejoinFire, 1, tag)
+    }
+}
+
+/// B.1 (VERIFICA_REFEREE_A425, par. 3.2): dopo un rientro il Direttore segue Link fino all'avvio dopo; lo Stop non cambia niente,
+/// il Play (un avvio che passa da `prepareNormalStartQ`) riporta l'assert. Col rig di prima (`useEngineAssertAtStart` spento) il
+/// Direttore dopo il Play seguiva ancora Link: nessun assert, e la correzione di fase spostava lui invece di dare la fase alla
+/// band. Lo stesso dopo l'altra strada che alza «segue Link»: un buco sotto la soglia, in canzone.
+func testAfterARejoinTheStopAndThePlayBringTheAssertBack() throws {
+    for assertAtStart in [true, false] {
+        let tag = "regola:\(assertAtStart)"
+        var rig = try rejoined()
+        rig.useEngineAssertAtStart = assertAtStart
+        XCTAssertTrue(rig.followsLink, "\(tag): dal fuoco del rientro il Direttore segue Link")
+        let assertsAtFire = rig.asserts
+        XCTAssertGreaterThan(assertsAtFire, 0, "\(tag): prima della crisi il Direttore dava la fase")
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 60)
+        XCTAssertFalse(rig.inLeadIn, "\(tag): la scorta è finita")
+        XCTAssertEqual(rig.asserts, assertsAtFire, "\(tag): mentre segue Link nessun assert")
+        XCTAssertEqual(rig.leadInCallsWithTheMarkUp, 0, "\(tag): nessuna chiamata della scorta col segno alto (§B.4)")
+        rig.stop(at: rig.now + 0.5)
+        XCTAssertFalse(rig.isRunning, tag)
+        XCTAssertTrue(rig.followsLink, "\(tag): lo Stop non riporta l'assert, lo fa l'avvio")
+        rig.runnerPlay(at: rig.now + 1.0)
+        XCTAssertTrue(rig.isRunning, tag)
+        XCTAssertFalse(rig.silentInSong, tag)
+        XCTAssertEqual(rig.followsLink, !assertAtStart, "\(tag): il Play riporta il Direttore all'assert")
+        let assertsAtPlay = rig.asserts
+        let correctionsAtPlay = rig.corrections
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 20)
+        XCTAssertEqual(rig.asserts, assertsAtPlay + (assertAtStart ? 20 : 0), "\(tag): un assert a richiamo dopo il Play")
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 1, correction: 0.02)
+        XCTAssertEqual(rig.asserts, assertsAtPlay + (assertAtStart ? 21 : 0), tag)
+        XCTAssertEqual(rig.corrections, correctionsAtPlay + (assertAtStart ? 0 : 1),
+                       "\(tag): chi fa l'assert non si corregge su Link; il rig di prima sì")
+
+        var hole = playing(.direttore, route: [headphones], at: 10.0)
+        hole.useEngineAssertAtStart = assertAtStart
+        let holeAt = hole.now + hole.bufferSeconds + 0.060
+        hole.advance(to: holeAt)
+        hole.scheduleNextBuffer(at: holeAt, gapSeconds: 0.060)
+        XCTAssertTrue(hole.isRunning, "\(tag): sotto la soglia")
+        XCTAssertTrue(hole.followsLink, "\(tag): segue Link fino al Play dopo")
+        hole.stop(at: hole.now + 0.5)
+        hole.runnerPlay(at: hole.now + 1.0)
+        XCTAssertEqual(hole.followsLink, !assertAtStart, tag)
+        let holeAsserts = hole.asserts
+        hole.callbacks(from: hole.now + hole.bufferSeconds, count: 20)
+        XCTAssertEqual(hole.asserts, holeAsserts + (assertAtStart ? 20 : 0), tag)
+    }
+}
+
+/// La crisi del Direttore a metà canzone senza assert (referto A431, par. 2.4 b): dopo una crisi a canzone in corso (un buco del
+/// render, le cuffie attaccate) e il rientro, il Direttore segue Link: nessun assert e nessuno Stop a Link dai richiami dopo la
+/// scorta, da un cambio di sezione e dai richiami dopo la finestra, fino allo Stop; si corregge lui su Link, come un Follower.
+/// Poi lo Stop e il Play riportano l'assert (B.1). Le scritture W2 dei confini con cambio di tempo il rig non le ha (il rig non
+/// modella le scritture verso Link): qui si provano l'assert e lo Stop a Link.
+/// La coda gira con `useEngineAssertAtStart` acceso e spento: col rig di prima il Play lascia il Direttore a seguire Link e
+/// nessun assert torna. Fino allo Stop l'interruttore non conta: il rientro non passa da `prepareNormalStartQ`.
+func testACrisisOfTheDirectorInMidSongAndItsRejoinNeverAssertUntilThePlay() throws {
+    for (crisis, assertAtStart) in [("buco", true), ("cuffie", true), ("buco", false), ("cuffie", false)] {
+        var rig = playing(.direttore, route: [speaker], at: 10.0)
+        rig.useEngineAssertAtStart = assertAtStart
+        let assertsBefore = rig.asserts
+        let linkStopsBefore = rig.linkStops
+        XCTAssertGreaterThan(assertsBefore, 0, "\(crisis): prima della crisi il Direttore dà la fase")
+        if crisis == "buco" {
+            rig.scheduleNextBuffer(at: 20.0, gapSeconds: 0.300)
+        } else {
+            rig.routeChange(at: 20.0, to: [headphones])
+        }
+        XCTAssertTrue(rig.silentInSong, crisis)
+        XCTAssertFalse(rig.isRunning, crisis)
+        rig.advance(to: 30.0)
+        XCTAssertEqual(rig.rejoins, 1, crisis)
+        XCTAssertTrue(rig.followsLink, "\(crisis): dal rientro il Direttore segue Link")
+        let correctionsBefore = rig.corrections
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 300)
+        XCTAssertFalse(rig.inLeadIn, crisis)
+        rig.sectionChange(at: rig.now + 0.001)
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 150, correction: 0.02)
+        XCTAssertEqual(rig.asserts, assertsBefore, "\(crisis): dalla crisi allo Stop nessun assert")
+        XCTAssertEqual(rig.linkStops, linkStopsBefore, "\(crisis): nessuna crisi manda Stop a Link")
+        XCTAssertGreaterThan(rig.corrections, correctionsBefore, "\(crisis): segue Link: si corregge lui")
+        XCTAssertEqual(rig.leadInCallsWithTheMarkUp, 0, "\(crisis): nessuna chiamata della scorta col segno alto (§B.4)")
+        rig.stop(at: rig.now + 0.5)
+        rig.runnerPlay(at: rig.now + 1.0)
+        XCTAssertEqual(rig.followsLink, !assertAtStart, "\(crisis) regola:\(assertAtStart): il Play riporta l'assert")
+        let assertsAtPlay = rig.asserts
+        rig.callbacks(from: rig.now + rig.bufferSeconds, count: 20)
+        XCTAssertEqual(rig.asserts, assertsAtPlay + (assertAtStart ? 20 : 0),
+                       "\(crisis) regola:\(assertAtStart): dopo il Play un assert a richiamo")
+    }
+}
+
+/// §B.8 del seguito 4 di A421 — il controllo «in ritardo» del fuoco senza piano della scorta. A 400 BPM col ciclo d'uscita di 2048
+/// campioni la scorta (otto buffer, 85,3 ms) è più di mezzo battito: il piano non c'è, e il motore guarda il bersaglio meno la
+/// sola latenza. Il lettore da 150 ms arma col segno «lettore-lento» (all'armamento conta D con la scorta, nel motore e nel rig) e
+/// scatta subito, 100 ms prima del bersaglio: per il motore non è in ritardo (l'ora del render è 23,3 ms prima del bersaglio) e
+/// il click entra su quella battuta; il rig di prima guardava D con la scorta (108,6 ms), lo dava in ritardo e andava alla
+/// battuta dopo.
+func testWithoutALeadInPlanTheLateCheckOfTheFireLooksAtTheTargetMinusTheLatencyOnly() throws {
+    for engine in [true, false] {
+        let tag = "comeIlMotore:\(engine)"
+        var rig = playing(.direttore, route: [headphones], bpm: 400, at: 10.0, cycleSeconds: 2048.0 / 48_000.0)
+        rig.useEngineLateCheckWithoutLeadIn = engine
+        XCTAssertEqual(rig.leadInBuffers, 8, tag)
+        rig.routeChange(at: 12.0, to: [speaker])
+        XCTAssertTrue(rig.silentInSong, tag)
+        let bar = rig.nextBarTime(atOrAfter: 13.0)
+        rig.engineStartDuration = 0.150
+        rig.start(at: bar - 0.250, recovery: nil)
+        let armed = try XCTUnwrap(rig.rejoin, "il rientro armato")
+        XCTAssertEqual(armed.targetAt, bar, accuracy: 1e-6, "\(tag): il bersaglio è quella battuta")
+        XCTAssertTrue(armed.slowPlayer, "\(tag): all'armamento conta D con la scorta: il segno lettore-lento")
+        XCTAssertNil(DirectorRejoinDecision.leadIn(targetOutputTicks: rig.ticks(bar), outputLatencyTicks: rig.ticks(rig.latency),
+                                                   unoBeat: rig.linkBeat(at: bar), bpm: 400, bufferFrames: 512, sampleRate: 48_000,
+                                                   ioBufferSeconds: 2048.0 / 48_000.0, ticksPerSecond: OutputRig.tps),
+                     "\(tag): la scena è quella: a 400 BPM con otto buffer di scorta il piano non c'è")
+        rig.advance(to: bar + 1.0)
+        XCTAssertEqual(rig.rejoins, 1, tag)
+        XCTAssertEqual(rig.slowPlayerArms, 1, tag)
+        XCTAssertEqual(rig.lateSkips, 0, tag)
+        if engine {
+            XCTAssertEqual(rig.slowPlayerFires, 0, "senza piano il fuoco non è in ritardo: il bersaglio meno la sola latenza")
+            XCTAssertEqual(try XCTUnwrap(rig.firstClickAt), bar, accuracy: 1e-6, "il click entra su quella battuta")
+        } else {
+            XCTAssertEqual(rig.slowPlayerFires, 1, "il rig di prima: D con la scorta, il fuoco in ritardo")
+            XCTAssertEqual(try XCTUnwrap(rig.firstClickAt), bar + rig.barSeconds, accuracy: 1e-6, "la battuta dopo")
+        }
+    }
+}
+
+/// §B.5 del seguito 4 di A421, rifatta col Solo in canzone sotto il guardiano — (a) in canzone la riga della misura del buco dice
+/// lo stesso con la regola del ricordo (`useSilenceWriterMemory`) e senza: col guardiano scattato «buco-in-corso», scritto prima
+/// della chiamata; senza guardiano «buco», scritto dalla chiamata. Questa metà NON distingue la regola: lo dice a prova, come il
+/// referto del seguito 4 lo diceva a parole. (b) Una scena dove la riga cambia c'è: il guardiano zittisce, lo show si chiude
+/// dentro il buco (il volume torna a 1: `muted` da vero a falso), e la chiamata del buco arriva col Solo fuori da una canzone,
+/// che non scrive lo 0: con la regola la riga dice «nessuno», senza diceva «buco-in-corso» col volume a 1 (una riga falsa). Sul
+/// telefono la chiusura dello show arriva di norma dopo lo Stop: è una scena di banco.
+func testTheHoleMeasureOfTheSoloUnderTheGuardianWithAndWithoutTheLiftRule() {
+    for rule in [true, false] {
+        let tag = "regola:\(rule)"
+        var guarded = soloInSongUnderGuardian()
+        guarded.useSilenceWriterMemory = rule
+        let last = guarded.now
+        guarded.advance(to: last + 4 * guarded.bufferSeconds + 0.001)
+        XCTAssertEqual(guarded.guardianFires, 1, tag)
+        XCTAssertEqual(guarded.lastSilenceWrite?.reason, "buco-in-corso", tag)
+        let holeAt = last + guarded.bufferSeconds + 0.300
+        guarded.advance(to: holeAt)
+        guarded.scheduleNextBuffer(at: holeAt, gapSeconds: 0.300)
+        XCTAssertEqual(guarded.lastHoleMeasure?.writtenBy, "buco-in-corso", "\(tag): (a) col guardiano")
+        XCTAssertEqual(guarded.lastHoleMeasure?.before, true, "\(tag): (a) scritto prima di questa chiamata")
+        XCTAssertFalse(guarded.isRunning, "\(tag): nel Solo in canzone il buco è una crisi")
+
+        var plain = soloInSong()
+        plain.useSilenceWriterMemory = rule
+        let plainHoleAt = plain.now + plain.bufferSeconds + 0.300
+        plain.advance(to: plainHoleAt)
+        plain.scheduleNextBuffer(at: plainHoleAt, gapSeconds: 0.300)
+        XCTAssertEqual(plain.lastHoleMeasure?.writtenBy, "buco", "\(tag): (a) senza guardiano")
+        XCTAssertEqual(plain.lastHoleMeasure?.before, false, "\(tag): (a) scritto da questa chiamata")
+
+        var closed = soloInSongUnderGuardian()
+        closed.useSilenceWriterMemory = rule
+        let closedLast = closed.now
+        closed.advance(to: closedLast + 4 * closed.bufferSeconds + 0.001)
+        XCTAssertEqual(closed.guardianFires, 1, "\(tag): la scena è quella: il guardiano è scattato nel Solo in canzone")
+        closed.closeShow(at: closed.now + 0.010)
+        XCTAssertFalse(closed.state.muted, tag)
+        XCTAssertEqual(closed.volume, 1.0, tag)
+        XCTAssertEqual(closed.lastSilenceWrite?.reason, rule ? nil : "buco-in-corso", "\(tag): (b) il ricordo dopo la chiusura dello show")
+        let closedHoleAt = closedLast + closed.bufferSeconds + 0.300
+        closed.advance(to: closedHoleAt)
+        closed.scheduleNextBuffer(at: closedHoleAt, gapSeconds: 0.300)
+        XCTAssertTrue(closed.isRunning, "\(tag): fuori da una canzone il buco è solo la riga")
+        XCTAssertEqual(closed.volume, 1.0, tag)
+        XCTAssertEqual(closed.lastHoleMeasure?.writtenBy, rule ? "nessuno" : "buco-in-corso", "\(tag): (b) la riga della misura")
+        XCTAssertEqual(closed.lastHoleMeasure?.before, !rule, "\(tag): (b)")
     }
 }
 }

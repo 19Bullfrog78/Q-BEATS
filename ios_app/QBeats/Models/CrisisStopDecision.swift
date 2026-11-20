@@ -38,6 +38,14 @@ import Foundation
 // ferma il Solo finché il Solo non riparte col Play (`rememberedCause`): se no un cambio di modo nello stesso
 // blocco (una scheda USB che si stacca) lo farebbe ripartire da solo. Il Follower resta «come oggi» (la crisi
 // delle cuffie lo zittisce senza fermarlo: `OutputRouteDecision`).
+// === A437 (18/11/2026) — USCITA AUDIO, PASSO 2a, PEZZO 3b: IL SOLO IN CANZONE RIPRENDE SULLA CANZONE ===
+// ⚠️ CORRETTO A437 (18/11/2026; mandato A437, par. 2.5 e 3; referto A424, par. 2.1 e e 3.1 b, punto 1), c'era, più
+// sopra, per il Solo «a configurazione e modo come oggi (ripartono da sole ...)» e «"uscita-aggiunta" e
+// "buco-del-render" nel Solo sono "come oggi"»: vale ancora FUORI da una canzone. A show aperto, con la canzone in
+// corso e il Solo in moto per il player, una causa che non lo ferma dà l'esito nuovo «ripresa sulla canzone»
+// (`soloResumeOnSong`): il motore prende l'àncora, si ferma in locale e riparte da solo sull'«uno» della battuta
+// giusta (`SoloResumeDecision`). «In moto per il player» (P35): il motore gira, o la ripresa aspetta col motore
+// fermo; lo stesso valore va alla memoria delle crisi. Le cause che fermano il Solo restano com'erano.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Le cause per cui il click tace senza Stop, col nome che va nelle righe di registro.
@@ -81,7 +89,12 @@ enum CrisisStopOutcome: String, Equatable {
     /// Solo col click in moto, a una crisi della sessione audio: come lo Stop della sua console.
     case soloStopAsConsole = "come-lo-stop-della-console"
     /// Follower (ogni causa) e Solo a configurazione e modo: il codice di oggi del gestore.
+    /// ⚠️ CORRETTO A437, c'era «Follower (ogni causa) e Solo a configurazione e modo»: per il Solo solo fuori da una
+    /// canzone, o a motore fermo senza una ripresa in attesa (in canzone è `soloResumeOnSong`).
     case asToday = "come-oggi"
+    /// A437 — Solo a show aperto con la canzone in corso e in moto per il player, a una causa che non lo ferma:
+    /// àncora, arresto locale, ripresa sull'«uno» della battuta giusta. Niente verso Link (il lucchetto del Solo).
+    case soloResumeOnSong = "ripresa-sulla-canzone"
     /// Niente da fermare: il motore non suona e nessun silenzio è in corso.
     case nothing = "niente"
 
@@ -98,6 +111,8 @@ enum CrisisStopDecision {
 
     /// La regola. `silentInSong`: il Direttore è già muto in canzone (una crisi nuova durante il
     /// silenzio, o durante l'attesa del rientro a motore fermo).
+    /// A437 — `engineRunning`: per il Solo il motore passa «in moto per il player»
+    /// (`SoloResumeDecision.inMotionForPlayer`): vero anche nella pausa della ripresa, a motore fermo.
     static func outcome(playerRole: PlayerRole,
                         cause: CrisisCause,
                         showOpen: Bool,
@@ -109,7 +124,10 @@ enum CrisisStopDecision {
             return .asToday
         case .solo:
             // A421 — `stopsSolo`: le crisi della sessione audio e «uscita-tolta».
-            guard cause.stopsSolo else { return .asToday }
+            // A437 — una causa che non lo ferma, in canzone e in moto per il player: la ripresa sulla canzone.
+            guard cause.stopsSolo else {
+                return (showOpen && songInProgress && engineRunning) ? .soloResumeOnSong : .asToday
+            }
             return engineRunning ? .soloStopAsConsole : .nothing
         case .direttore:
             if silentInSong { return .silentInSong }

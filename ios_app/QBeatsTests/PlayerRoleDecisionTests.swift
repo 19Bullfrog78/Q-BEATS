@@ -71,4 +71,57 @@ final class PlayerRoleDecisionTests: XCTestCase {
         XCTAssertFalse(d.appLinkEnabled)
         XCTAssertEqual(d.playerRole, .direttore)
     }
+
+    // MARK: - A437 · PARTE 2 (seguito 2 di A437, §2 voce 2): il ruolo effettivo cambia
+
+    /// Il ruolo effettivo cambia se il ruolo del player di prima e quello di dopo sono diversi: tutte le coppie (ruolo scelto,
+    /// levetta) prima e dopo, contro la regola del ruolo.
+    func testTheEffectiveRoleChangesWhenThePlayerRoleBeforeAndAfterDiffer() {
+        let roles: [LinkMode] = [.standalone, .direttore, .collaborativa]
+        for before in roles {
+            for linkBefore in [false, true] {
+                for after in roles {
+                    for linkAfter in [false, true] {
+                        let was = PlayerRoleDecision.playerRole(role: before, userLinkEnabled: linkBefore)
+                        let now = PlayerRoleDecision.playerRole(role: after, userLinkEnabled: linkAfter)
+                        XCTAssertEqual(PlayerRoleDecision.effectiveRoleChanges(roleBefore: before, userLinkEnabledBefore: linkBefore,
+                                                                               roleAfter: after, userLinkEnabledAfter: linkAfter),
+                                       was != now, "prima:\(before)/\(linkBefore) dopo:\(after)/\(linkAfter)")
+                    }
+                }
+            }
+        }
+    }
+
+    /// I casi del motore, a parole. Il cambio del ruolo scelto a levetta accesa cambia il ruolo effettivo; a levetta spenta no
+    /// (da Solo a Solo). La levetta spenta: col ruolo scelto Direttore o Follower sì, col ruolo scelto Solo no. La levetta
+    /// accesa: lo stesso al contrario.
+    func testTheEffectiveRoleInTheThreeRoadsOfTheEngine() {
+        // `applySettings`: il ruolo scelto prima e quello nuovo, con la levetta di adesso.
+        XCTAssertTrue(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .collaborativa, userLinkEnabledBefore: true,
+                                                              roleAfter: .direttore, userLinkEnabledAfter: true), "da Follower a Direttore")
+        XCTAssertTrue(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .standalone, userLinkEnabledBefore: true,
+                                                              roleAfter: .direttore, userLinkEnabledAfter: true), "da Solo a Direttore")
+        XCTAssertFalse(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .standalone, userLinkEnabledBefore: false,
+                                                               roleAfter: .direttore, userLinkEnabledAfter: false),
+                       "a levetta spenta il ruolo scelto cambia ma il player resta Solo")
+        XCTAssertFalse(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .direttore, userLinkEnabledBefore: false,
+                                                               roleAfter: .collaborativa, userLinkEnabledAfter: false),
+                       "da Solo a Solo")
+        // La levetta spenta: il ruolo scelto, accesa prima e spenta dopo.
+        XCTAssertTrue(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .direttore, userLinkEnabledBefore: true,
+                                                              roleAfter: .direttore, userLinkEnabledAfter: false))
+        XCTAssertTrue(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .collaborativa, userLinkEnabledBefore: true,
+                                                              roleAfter: .collaborativa, userLinkEnabledAfter: false))
+        XCTAssertFalse(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .standalone, userLinkEnabledBefore: true,
+                                                               roleAfter: .standalone, userLinkEnabledAfter: false))
+        // La levetta accesa: spenta prima e accesa dopo.
+        XCTAssertTrue(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .direttore, userLinkEnabledBefore: false,
+                                                              roleAfter: .direttore, userLinkEnabledAfter: true), "da Solo a Direttore")
+        XCTAssertFalse(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .standalone, userLinkEnabledBefore: false,
+                                                               roleAfter: .standalone, userLinkEnabledAfter: true))
+        // Niente cambia: niente.
+        XCTAssertFalse(PlayerRoleDecision.effectiveRoleChanges(roleBefore: .direttore, userLinkEnabledBefore: true,
+                                                               roleAfter: .direttore, userLinkEnabledAfter: true))
+    }
 }

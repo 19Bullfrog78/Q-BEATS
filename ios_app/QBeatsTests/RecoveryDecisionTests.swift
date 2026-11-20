@@ -309,4 +309,103 @@ final class RecoveryDecisionTests: XCTestCase {
         XCTAssertEqual(RecoveryRoute.startAsToday.rawValue, "avvio-come-oggi")
         XCTAssertEqual(RecoveryRoute.noRestart.rawValue, "niente")
     }
+
+    /// A437 (referto A424, par. 2.1 e; mandato A437, par. 2.5) — dopo E2 ed E3 la ripresa del Solo ha alzato lo Stop voluto:
+    /// da ogni innesco «niente», qualunque causa sia ricordata (configurazione, modo, uscita aggiunta, buco, nessuna). Nella
+    /// pausa, prima, con una causa che non lo ferma la regola dà «avvio come oggi»: le strade le filtrano il pre-controllo e
+    /// le guardie dei chiamanti. Con l'uscita sparita la causa ricordata è «uscita-tolta», che ferma da sola.
+    func testAfterTheSoloResumeIsAbandonedNoTriggerRestartsIt() {
+        let notStopping: [CrisisCause?] = [nil, .configuration, .mode, .outputAdded, .renderGap]
+        for trigger in RecoveryTrigger.allCases {
+            for cause in notStopping {
+                XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                      wantedStopSinceCrisis: true, crisisCause: cause), .noRestart,
+                               "dopo E2/E3 innesco:\(trigger) causa:\(String(describing: cause))")
+                XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                                wantedStopSinceCrisis: true, crisisCause: cause,
+                                                                outputMissing: false), .wantedStop)
+                XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                      wantedStopSinceCrisis: false, crisisCause: cause), .startAsToday,
+                               "nella pausa innesco:\(trigger) causa:\(String(describing: cause))")
+            }
+            XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                  wantedStopSinceCrisis: false, crisisCause: .outputRemoved), .noRestart,
+                           "uscita sparita innesco:\(trigger)")
+        }
+    }
+
+    // MARK: - A437 · PARTE 2 — C.1: la tolta dentro una chiamata (referto A431, par. 2.7; seguito 2 di A437, §2 voce 1)
+
+    /// Il Direttore non muto in canzone con la tolta dentro l'interruzione non riparte da nessun innesco, qualunque causa sia
+    /// ricordata (di norma «interruzione»), col motivo nuovo. Senza il segno, com'era: «avvio come oggi» (tranne dopo U16).
+    func testTheDirectorWithARemovalInsideTheCallDoesNotRestartFromAnyTrigger() {
+        for trigger in RecoveryTrigger.allCases {
+            for cause in causes {
+                let tag = "innesco:\(trigger) causa:\(String(describing: cause))"
+                XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                      wantedStopSinceCrisis: false, crisisCause: cause, outputMissing: false,
+                                                      removalDuringInterruption: true), .noRestart, tag)
+                XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                                wantedStopSinceCrisis: false, crisisCause: cause,
+                                                                outputMissing: false, removalDuringInterruption: true),
+                               cause == .outputRemoved ? .directorStoppedByRemoval : .directorRemovalInCall, tag)
+                XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                      wantedStopSinceCrisis: false, crisisCause: cause, outputMissing: false,
+                                                      removalDuringInterruption: false),
+                               cause == .outputRemoved ? .noRestart : .startAsToday, "\(tag): senza il segno, com'era")
+            }
+        }
+        XCTAssertEqual(NoRestartReason.directorRemovalInCall.rawValue, "direttore-tolta-nella-chiamata")
+    }
+
+    /// L'ordine della regola col segno alto: uno Stop voluto e «uscita mancante» vengono prima (con le cuffie ancora staccate il
+    /// motivo resta «uscita-mancante», e il motivo nuovo esce solo dove l'uscita c'è); il Direttore muto in canzone va al
+    /// coordinatore come prima; dopo U16 (la causa «uscita-tolta») il motivo resta quello di U16.
+    func testTheOrderOfTheRuleWithTheRemovalInsideTheCall() {
+        for trigger in RecoveryTrigger.allCases {
+            let tag = "innesco:\(trigger)"
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: true, crisisCause: .interruption,
+                                                            outputMissing: true, removalDuringInterruption: true), .wantedStop, tag)
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: false, crisisCause: .interruption,
+                                                            outputMissing: true, removalDuringInterruption: true), .outputMissing,
+                           "\(tag): con le cuffie ancora staccate il motivo resta uscita-mancante")
+            XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: false,
+                                                            wantedStopSinceCrisis: false, crisisCause: .interruption,
+                                                            outputMissing: false, removalDuringInterruption: true),
+                           .directorRemovalInCall, "\(tag): il motivo nuovo esce dove l'uscita c'è")
+            XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .direttore, silentInSong: true,
+                                                  wantedStopSinceCrisis: false, crisisCause: .interruption, outputMissing: false,
+                                                  removalDuringInterruption: true), .coordinator,
+                           "\(tag): il Direttore muto in canzone va al coordinatore, come prima")
+            XCTAssertNil(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .direttore, silentInSong: true,
+                                                          wantedStopSinceCrisis: false, crisisCause: .interruption,
+                                                          outputMissing: false, removalDuringInterruption: true), tag)
+        }
+    }
+
+    /// Il segno è solo del Direttore: il Follower resta «come oggi», il Solo segue la sua regola (dopo l'interruzione «niente»
+    /// col suo motivo, dopo una causa che non lo ferma «avvio come oggi»), col segno alto e basso.
+    func testTheRemovalInsideTheCallIsOnlyForTheDirector() {
+        for trigger in RecoveryTrigger.allCases {
+            for cause in causes {
+                for mark in bools {
+                    let tag = "innesco:\(trigger) causa:\(String(describing: cause)) segno:\(mark)"
+                    XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .follower, silentInSong: false,
+                                                          wantedStopSinceCrisis: false, crisisCause: cause, outputMissing: false,
+                                                          removalDuringInterruption: mark), .startAsToday, tag)
+                    let soloStops = cause?.stopsSolo ?? false
+                    XCTAssertEqual(RecoveryDecision.route(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                          wantedStopSinceCrisis: false, crisisCause: cause, outputMissing: false,
+                                                          removalDuringInterruption: mark),
+                                   soloStops ? .noRestart : .startAsToday, tag)
+                    XCTAssertEqual(RecoveryDecision.noRestartReason(trigger: trigger, playerRole: .solo, silentInSong: false,
+                                                                    wantedStopSinceCrisis: false, crisisCause: cause,
+                                                                    outputMissing: false, removalDuringInterruption: mark),
+                                   soloStops ? .soloAfterCrisis : nil, tag)
+                }
+            }
+        }
+    }
 }

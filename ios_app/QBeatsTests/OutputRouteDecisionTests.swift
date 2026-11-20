@@ -105,14 +105,53 @@ final class OutputRouteDecisionTests: XCTestCase {
         XCTAssertEqual(OutputRouteIdentity.different.rawValue, "diverse")
         XCTAssertEqual(OutputReturnKind.director.rawValue, "direttore")
         XCTAssertEqual(OutputReturnKind.follower.rawValue, "follower")
+        XCTAssertEqual(OutputReturnKind.solo.rawValue, "solo")
     }
 
     // MARK: - Il passo per ruolo (U3, U4, U5, U16, par. 2.2 f)
 
     private func step(_ routeClass: OutputRouteClass, _ role: PlayerRole, show: Bool = true, song: Bool = true,
-                      running: Bool = true, stoppedByCrisis: Bool = false, interruption: Bool = false) -> OutputRouteStep {
+                      running: Bool = true, stoppedByCrisis: Bool = false, interruption: Bool = false,
+                      pause: Bool = false, silent: Bool = false) -> OutputRouteStep {
         OutputRouteDecision.step(routeClass: routeClass, playerRole: role, showOpen: show, songInProgress: song,
-                                 engineRunning: running, stoppedByCrisis: stoppedByCrisis, inInterruption: interruption)
+                                 engineRunning: running, stoppedByCrisis: stoppedByCrisis, inInterruption: interruption,
+                                 soloResumePending: pause, directorSilentInSong: silent)
+    }
+
+    /// A437 · PARTE 2 — C.1 (referto A431, par. 2.7): la tolta dentro un'interruzione si ricorda (`remembersRemoval`) solo col
+    /// Direttore non muto in canzone, qualunque sia lo show, la canzone, il motore e il «fermo per crisi». Non col Direttore
+    /// muto in canzone, non col Follower, non col Solo; non fuori da un'interruzione (lì la tolta passa dalla regola delle
+    /// crisi); non per un'aggiunta né per «nessuna». Il resto del passo dentro un'interruzione non cambia.
+    func testARemovalInsideAnInterruptionIsRememberedOnlyByTheDirectorNotSilentInSong() {
+        for show in bools {
+            for song in bools {
+                for running in bools {
+                    for stopped in bools {
+                        let tag = "show:\(show) canzone:\(song) motore:\(running) crisi:\(stopped)"
+                        let director = step(.removed, .direttore, show: show, song: song, running: running,
+                                            stoppedByCrisis: stopped, interruption: true)
+                        XCTAssertTrue(director.remembersRemoval, tag)
+                        XCTAssertFalse(director.silences, tag)
+                        XCTAssertNil(director.crisisCause, tag)
+                        XCTAssertNil(director.armsReturn, tag)
+                        XCTAssertEqual(director.raisesMissing, running || stopped, tag)
+                        XCTAssertFalse(step(.removed, .direttore, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: true, silent: true).remembersRemoval, "\(tag): muto in canzone")
+                        XCTAssertFalse(step(.removed, .follower, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: true).remembersRemoval, "\(tag): Follower")
+                        XCTAssertFalse(step(.removed, .solo, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: true).remembersRemoval, "\(tag): Solo")
+                        XCTAssertFalse(step(.removed, .direttore, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: false).remembersRemoval, "\(tag): fuori da un'interruzione")
+                        XCTAssertFalse(step(.added, .direttore, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: true).remembersRemoval, "\(tag): un'aggiunta")
+                        XCTAssertFalse(step(.none, .direttore, show: show, song: song, running: running, stoppedByCrisis: stopped,
+                                            interruption: true).remembersRemoval, "\(tag): nessuna")
+                    }
+                }
+            }
+        }
+        XCTAssertFalse(OutputRouteStep.nothing.remembersRemoval)
     }
 
     /// Il Direttore in canzone: tolta e aggiunta zittiscono e dichiarano la crisi; la tolta alza «uscita mancante»,
@@ -183,16 +222,48 @@ final class OutputRouteDecisionTests: XCTestCase {
         XCTAssertFalse(step(.removed, .follower, running: false).raisesMissing)
     }
 
-    /// Il Solo: la tolta zittisce e dichiara «uscita-tolta» (come lo Stop della console); l'aggiunta è come oggi (par. 2.2
-    /// f: nessun silenzio, nessuna crisi); «uscita mancante» non è sua.
+    /// Il Solo: la tolta zittisce e dichiara «uscita-tolta» (come lo Stop della console); «uscita mancante» non è sua.
+    /// ⚠️ A437 (mandato A437, par. 2.5 e 3; referto A424, par. 3.2): qui il test diceva che l'aggiunta è come oggi anche in
+    /// canzone col click in moto (`step(.added, .solo) == .nothing`); da 3b in canzone è la «B» (il test qui sotto), e
+    /// «niente» resta fuori da una canzone.
     func testSolo() {
         let removed = step(.removed, .solo)
         XCTAssertTrue(removed.silences)
         XCTAssertEqual(removed.crisisCause, .outputRemoved)
         XCTAssertFalse(removed.raisesMissing)
-        XCTAssertEqual(step(.added, .solo), .nothing)
         XCTAssertEqual(step(.added, .solo, show: false, song: false), .nothing)
+        XCTAssertEqual(step(.added, .solo, show: false), .nothing, "senza show")
+        XCTAssertEqual(step(.added, .solo, song: false), .nothing, "fuori da una canzone")
         XCTAssertFalse(step(.removed, .solo, running: false, stoppedByCrisis: true).raisesMissing)
+    }
+
+    /// A437 — la «B» del Solo: in canzone e col click in moto per il player un'uscita che compare dà il silenzio subito
+    /// (se il motore gira), la crisi «uscita-aggiunta» e il ritorno del Solo. Nella pausa della ripresa (motore fermo, il
+    /// segno alto) la crisi e il ritorno sì, il silenzio non si scrive. Col Solo fermo su «Resume from» niente. Dentro
+    /// un'interruzione solo lo stato. Il segno è del Solo: per gli altri ruoli non cambia niente.
+    func testTheSoloAtAnAddedOutputInSong() {
+        let playing = step(.added, .solo)
+        XCTAssertEqual(playing, OutputRouteStep(silences: true, crisisCause: .outputAdded, raisesMissing: false,
+                                                lowersMissing: false, armsReturn: .solo))
+        let paused = step(.added, .solo, running: false, pause: true)
+        XCTAssertEqual(paused, OutputRouteStep(silences: false, crisisCause: .outputAdded, raisesMissing: false,
+                                               lowersMissing: false, armsReturn: .solo), "nella pausa della ripresa")
+        XCTAssertEqual(step(.added, .solo, running: false), .nothing, "fermo su Resume from")
+        XCTAssertEqual(step(.added, .solo, show: false, running: false, pause: true), .nothing)
+        XCTAssertEqual(step(.added, .solo, song: false, pause: true), .nothing)
+        let inside = OutputRouteStep(silences: false, crisisCause: nil, raisesMissing: false, lowersMissing: false, armsReturn: nil)
+        XCTAssertEqual(step(.added, .solo, interruption: true), inside, "dentro un'interruzione solo lo stato")
+        XCTAssertEqual(step(.added, .solo, running: false, interruption: true, pause: true), inside)
+        for role in [PlayerRole.direttore, .follower] {
+            for routeClass in OutputRouteClass.allCases {
+                for running in bools {
+                    XCTAssertEqual(step(routeClass, role, running: running, pause: true), step(routeClass, role, running: running),
+                                   "ruolo:\(role) classe:\(routeClass) motore:\(running)")
+                }
+            }
+        }
+        XCTAssertEqual(step(.removed, .solo, running: false, pause: true), step(.removed, .solo, running: false),
+                       "la tolta non legge il segno: la ferma la regola delle crisi")
     }
 
     /// Dentro un'interruzione di sistema (la regola del referee del 21/10): solo lo stato, per ogni ruolo e classe.
@@ -245,7 +316,9 @@ final class OutputRouteDecisionTests: XCTestCase {
         case .removed:
             let raises = role != .solo && (running || stopped)
             if interruption {
-                return OutputRouteStep(silences: false, crisisCause: nil, raisesMissing: raises, lowersMissing: false, armsReturn: nil)
+                // A437 · PARTE 2 — C.1: il Direttore (la matrice non passa «muto in canzone»: falso) ricorda la tolta.
+                return OutputRouteStep(silences: false, crisisCause: nil, raisesMissing: raises, lowersMissing: false, armsReturn: nil,
+                                       remembersRemoval: role == .direttore)
             }
             return OutputRouteStep(silences: running, crisisCause: role == .follower ? nil : .outputRemoved,
                                    raisesMissing: raises, lowersMissing: false, armsReturn: nil)
@@ -255,6 +328,11 @@ final class OutputRouteDecisionTests: XCTestCase {
             }
             switch role {
             case .solo:
+                // A437: in canzone col motore in moto la «B» (la matrice non passa il segno della pausa: a motore fermo niente).
+                if inSong && running {
+                    return OutputRouteStep(silences: true, crisisCause: .outputAdded, raisesMissing: false, lowersMissing: false,
+                                           armsReturn: .solo)
+                }
                 return .nothing
             case .follower:
                 return OutputRouteStep(silences: running, crisisCause: nil, raisesMissing: false, lowersMissing: true,
@@ -285,11 +363,16 @@ final class OutputRouteDecisionTests: XCTestCase {
                                                         stopped: stopped, interruption: interruption)
                                     let tag = "classe:\(routeClass) ruolo:\(role) show:\(show) canzone:\(song) motore:\(running) crisi:\(stopped) interruzione:\(interruption)"
                                     XCTAssertEqual(got, want, tag)
-                                    // Il silenzio solo col motore in moto e fuori da un'interruzione; mai nel Solo a un'aggiunta.
+                                    // Il silenzio solo col motore in moto e fuori da un'interruzione (da A437 anche nel Solo a
+                                    // un'aggiunta, in canzone: l'atteso qui sopra).
                                     if got.silences { XCTAssertTrue(running && !interruption, tag) }
-                                    // Il Follower non dichiara mai una crisi; il Solo solo «uscita-tolta».
+                                    // Il Follower non dichiara mai una crisi; il Solo «uscita-tolta» e, da A437, «uscita-aggiunta» solo
+                                    // in canzone col motore in moto (era: «il Solo solo "uscita-tolta"»).
                                     if role == .follower { XCTAssertNil(got.crisisCause, tag) }
-                                    if role == .solo { XCTAssertTrue(got.crisisCause == nil || got.crisisCause == .outputRemoved, tag) }
+                                    if role == .solo {
+                                        XCTAssertTrue(got.crisisCause == nil || got.crisisCause == .outputRemoved
+                                                      || (got.crisisCause == .outputAdded && show && song && running), tag)
+                                    }
                                     // Un ritorno solo dopo un silenzio.
                                     if got.armsReturn != nil { XCTAssertTrue(got.silences || !running, tag) }
                                     // «Uscita mancante» non è del Solo.

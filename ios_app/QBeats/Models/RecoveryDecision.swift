@@ -40,6 +40,16 @@ import Foundation
 // come oggi; uno Stop voluto; il Direttore con l'uscita mancante; il Direttore muto in canzone al coordinatore; il Direttore fermo
 // dalla tolta; il Solo dopo una causa che lo ferma; tutto il resto come oggi. (Al fuoco del rientro il motore azzera causa e Stop
 // voluto, come il Play: `fireDirectorRejoinQ`.)
+// === A437 · PARTE 2 (18/11/2026) — C.1: LA TOLTA DENTRO UNA CHIAMATA CONTA COME TOLTA (referto A431, par. 2.7 e 3.3) ===
+// Il fatto. Il Direttore fuori da una canzone col click in moto; arriva una chiamata; il batterista stacca le cuffie dentro
+// la chiamata. La tolta dentro un'interruzione non passa dalla regola delle crisi (a motore fermo darebbe «niente» e non
+// lascerebbe traccia): a fine chiamata la causa ricordata è «interruzione», e in più strade il click ripartiva da solo
+// dall'altoparlante o alle cuffie riattaccate. La cura: il motore ricorda a parte la tolta dentro l'interruzione
+// (`OutputRouteStep.remembersRemoval`) e la porta qui con un ingresso nuovo, `removalDuringInterruption`, letto nella riga di
+// U16: il Direttore non muto in canzone, con la causa ricordata «uscita-tolta» O con la tolta dentro l'interruzione, non
+// riparte da nessun innesco; riparte col Play. Il motivo nuovo «direttore-tolta-nella-chiamata» esce solo dove l'uscita c'è
+// quando la ripartenza si decide: con le cuffie ancora staccate «uscita mancante» viene prima e il motivo resta
+// «uscita-mancante». Il Direttore muto in canzone, il Follower e il Solo non cambiano.
 // Solo Foundation: il banco `QBeatsTests` compila QBeats/Models e nient'altro.
 
 /// Gli inneschi delle ripartenze automatiche (referto A409 §4.1), col nome che il motore scrive già
@@ -69,6 +79,8 @@ enum NoRestartReason: String, Equatable {
     case soloAfterCrisis = "solo-dopo-la-crisi"
     /// A425 — U16: il Direttore fuori dal silenzio fermato da una tolta riparte col Play.
     case directorStoppedByRemoval = "direttore-fermo-dalla-tolta"
+    /// A437 · PARTE 2 — C.1: il Direttore non muto in canzone, con una tolta arrivata dentro un'interruzione, riparte col Play.
+    case directorRemovalInCall = "direttore-tolta-nella-chiamata"
 }
 
 /// Dove va una ripartenza automatica.
@@ -86,18 +98,30 @@ enum RecoveryDecision {
 
     /// La regola. `crisisCause`: la causa dell'ultima crisi (`nil` = nessuna dall'ultimo avvio). `outputMissing`:
     /// «uscita mancante» (A421, U5; il valore di default è per i chiamanti di prima e il banco di A412).
+    /// `removalDuringInterruption` (A437 · PARTE 2, C.1): una tolta è arrivata dentro un'interruzione e da allora nessun avvio
+    /// normale del motore è cominciato (il valore di default è per i chiamanti di prima e i banchi di prima).
+    /// ⚠️ CORRETTO A437 · SEGUITO 5 (19/11/2026): qui c'era «una tolta è arrivata dentro un'interruzione e il batterista non ha
+    /// ancora premuto Play». Il segno lo abbassano `prepareNormalStartQ` (motivo «play»: il Play e ogni ripartenza «come oggi»,
+    /// cioè ogni avvio che prosegue, salvo il rientro del Direttore muto in canzone e la ripresa del Solo; anche se poi il
+    /// motore non parte, perché `prepareNormalStartQ` gira prima di `engine.start()`) e il fuoco del rientro del Direttore
+    /// (motivo «rientro»); il cambio di ruolo e Link spento non lo toccano (seguito 3). Qui lo legge solo la riga del Direttore
+    /// non muto in canzone: il Follower esce prima, la riga del Solo non lo legge.
     static func route(trigger: RecoveryTrigger,
                       playerRole: PlayerRole,
                       silentInSong: Bool,
                       wantedStopSinceCrisis: Bool,
                       crisisCause: CrisisCause?,
-                      outputMissing: Bool = false) -> RecoveryRoute {
+                      outputMissing: Bool = false,
+                      removalDuringInterruption: Bool = false) -> RecoveryRoute {
         if playerRole == .follower { return .startAsToday }
         if wantedStopSinceCrisis { return .noRestart }
         if playerRole == .direttore && outputMissing { return .noRestart }
         if playerRole == .direttore && silentInSong { return .coordinator }
         // A425 — U16 (P14): il Direttore non muto in canzone, fermato dalla tolta, riparte col Play.
-        if playerRole == .direttore && !silentInSong && crisisCause == .outputRemoved { return .noRestart }
+        // A437 · PARTE 2 — C.1: lo stesso con la tolta arrivata dentro un'interruzione.
+        if playerRole == .direttore && !silentInSong && (crisisCause == .outputRemoved || removalDuringInterruption) {
+            return .noRestart
+        }
         if playerRole == .solo, let cause = crisisCause, cause.stopsSolo { return .noRestart }
         return .startAsToday
     }
@@ -108,14 +132,17 @@ enum RecoveryDecision {
                                 silentInSong: Bool,
                                 wantedStopSinceCrisis: Bool,
                                 crisisCause: CrisisCause?,
-                                outputMissing: Bool) -> NoRestartReason? {
+                                outputMissing: Bool,
+                                removalDuringInterruption: Bool = false) -> NoRestartReason? {
         guard route(trigger: trigger, playerRole: playerRole, silentInSong: silentInSong,
                     wantedStopSinceCrisis: wantedStopSinceCrisis, crisisCause: crisisCause,
-                    outputMissing: outputMissing) == .noRestart else { return nil }
+                    outputMissing: outputMissing, removalDuringInterruption: removalDuringInterruption) == .noRestart else { return nil }
         if wantedStopSinceCrisis { return .wantedStop }
         if playerRole == .direttore && outputMissing { return .outputMissing }
         // A425 — U16 (P14), prima dell'ultima riga: se no il Direttore uscirebbe col motivo «solo-dopo-la-crisi».
         if playerRole == .direttore && !silentInSong && crisisCause == .outputRemoved { return .directorStoppedByRemoval }
+        // A437 · PARTE 2 — C.1, dopo U16 (la tolta fuori dalla chiamata, già ricordata dalla regola delle crisi, tiene il suo motivo).
+        if playerRole == .direttore && !silentInSong && removalDuringInterruption { return .directorRemovalInCall }
         return .soloAfterCrisis
     }
 
